@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101820" />
+    <title>Kino Mini App</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <button class="brand-icon" type="button" aria-label="Kinolar">
+          <span>▦</span>
+        </button>
+        <div class="brand">
+          <strong>KINO</strong>
+          <span>CINEMA</span>
+        </div>
+        <div class="language-switch" aria-label="Til tanlash">
+          <span class="globe">◎</span>
+          <button class="lang is-active" type="button" data-lang="uz"><span class="flag flag-uz"></span> UZ</button>
+          <button class="lang" type="button" data-lang="ru"><span class="flag flag-ru"></span> RU</button>
+          <button class="lang" type="button" data-lang="en"><span class="flag flag-en"></span> EN</button>
+        </div>
+      </header>
+
+      <section class="search-panel" id="searchPanel" hidden>
+        <label class="search-box">
+          <span>⌕</span>
+          <input id="searchInput" type="search" placeholder="Kino qidirish" autocomplete="off" />
+        </label>
+      </section>
+
+      <nav class="quick-tabs" aria-label="Kino bo'limlari">
+        <button class="tab is-active" type="button" data-filter="all">🎬 Barchasi</button>
+        <button class="tab" type="button" data-filter="top">🔥 TOP</button>
+        <button class="tab" type="button" data-filter="premium">💎 Premium</button>
+        <button class="tab" type="button" data-action="search">🔍 Qidirish</button>
+      </nav>
+
+      <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
+
+      <div class="empty-state" id="emptyState" hidden>
+        <strong>Hech narsa topilmadi</strong>
+        <span>Boshqa nom, janr yoki kod bilan urinib ko'ring.</span>
+      </div>
+
+      <nav class="bottom-bar" aria-label="Mini app menyusi">
+        <button type="button" data-filter="all">🎬</button>
+        <button type="button" data-action="search">⌕</button>
+        <button type="button" data-filter="top">🔥</button>
+        <button type="button" data-action="profile">👤</button>
+      </nav>
+    </main>
+
+    <dialog class="movie-modal" id="movieModal">
+      <button class="modal-close" type="button" data-close aria-label="Yopish">×</button>
+      <div class="modal-poster" id="modalPoster"></div>
+      <div class="modal-content">
+        <div class="modal-meta" id="modalMeta"></div>
+        <h1 id="modalTitle"></h1>
+        <p id="modalDescription"></p>
+        <div class="modal-actions">
+          <button class="watch-button" id="watchButton" type="button">▶ Tomosha qilish</button>
+          <button class="ghost-button" type="button" data-close>Keyinroq</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="profile-modal" id="profileModal">
+      <button class="modal-close" type="button" data-close-profile aria-label="Yopish">×</button>
+      <div class="profile-card">
+        <div class="avatar" id="avatar">KI</div>
+        <h2 id="profileName">Kino foydalanuvchi</h2>
+        <p>Premium: <b>faol emas</b></p>
+        <p>Ko'rilgan kinolar: <b id="viewCount">0</b></p>
+        <button class="watch-button" type="button" data-premium>💎 Premium olish</button>
+      </div>
+    </dialog>
+
+    <section class="video-player" id="videoPlayer" role="dialog" aria-modal="true" aria-label="Video player" hidden>
+      <header class="video-player__topbar">
+        <button class="video-player__close" type="button" data-video-close aria-label="Yopish">←</button>
+        <div class="video-player__title">
+          <strong id="videoTitle">Kino</strong>
+          <span id="videoSourceLabel">Video manba</span>
+        </div>
+        <button class="video-player__close" type="button" data-video-close aria-label="Yopish">×</button>
+      </header>
+      <div class="video-player__stage">
+        <div class="video-loading" id="videoLoading" role="status">
+          <span></span>
+          <b>Video yuklanmoqda...</b>
+        </div>
+        <div class="video-mount" id="videoMount"></div>
+        <div class="video-fallback" id="videoFallback" hidden>
+          <strong>Video yuklanmadi. Iltimos, boshqa manbani tekshiring.</strong>
+          <a id="videoExternalLink" target="_blank" rel="noreferrer" hidden>Telegramda ochish</a>
+        </div>
+      </div>
+    </section>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

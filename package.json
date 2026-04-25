@@ -1,0 +1,8 @@
+{
+  "name": "kino-telegram-mini-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "check": "node --check webapp/app.js && node --check api/youtube/movies.js && node -e \"JSON.parse(require('fs').readFileSync('data/movies.json','utf8')); console.log('movies json ok')\""
+  }
+}

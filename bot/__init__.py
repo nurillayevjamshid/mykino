@@ -1,0 +1,2 @@
+"""Kino Telegram bot package."""
+

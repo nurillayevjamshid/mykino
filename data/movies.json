@@ -1,0 +1,41 @@
+[
+  {
+    "id": 3,
+    "code": "2",
+    "title": "Qora Pantera-2: Vakanda Boqiy",
+    "year": 2023,
+    "genre": "Jangari, Marvel",
+    "rating": 8.9,
+    "quality": "HD",
+    "isTop": false,
+    "isPremium": false,
+    "poster": "https://cdn4.telesco.pe/file/b5pMfDkR7GpQXhiFuKTPhHoViFWowD_mxwTrMW0xcd-PIMhenXWDAbypnlgY8lvmmjRO-_DC-_vrKeF3N6QxKWSNtqpUErEJZoibvggV6rb5UmZjsN0DGo9xb7ltRPmYYdJikM7YqE7FSctD3JeiK9-cyP0jUF-dDN1Mkw8RsYEqe66yJpETdPrzEMCsMkJpgHaGXjiHCf1rYeLvH2HXqqUwUEp1cGwhbnFVggXkUYq77UVbc4KOLcTee3CnunFAJJ5QRKjD9doMnRI3mBgQkwGNZZgWcxWT2lwZARM8Gm47dDqTh0t1_MAbTa317LqhKtbl9O7A0ye1woFLqKf0sA",
+    "streamUrl": "",
+    "description": "Kanalga joylangan kino.",
+    "sourceType": "telegram_channel",
+    "telegramChatId": -1003226387471,
+    "telegramMessageId": 3,
+    "telegramFileId": "BAACAgIAAyEFAATATsQPAAMDaexfTcGkG6GZlzzaEw1aepZzU-AAApGTAALPgzhLSyrX4uz0fMg7BA",
+    "sourceUrl": "https://t.me/mdtsitsibtaryyarbeaa/3",
+    "video_file_id": "BAACAgIAAyEFAATATsQPAAMDaexfTcGkG6GZlzzaEw1aepZzU-AAApGTAALPgzhLSyrX4uz0fMg7BA"
+  },
+  {
+    "id": 2,
+    "code": "1",
+    "title": "Shang-Chi va O‘nta Uzuk Afsonasi",
+    "year": 2023,
+    "genre": "Jangari, Treller",
+    "rating": 8.7,
+    "quality": "HD",
+    "isTop": false,
+    "isPremium": true,
+    "poster": "https://cdn4.telesco.pe/file/XxwuZhUzApLc1Z9CeVwU_O4SjVHWS01GmDxu_-_mFwCn1KYSmKkmpq3CHJ5MuESW07mWaxwsth2flQzXl3zuKPEIHNXylq8k6knB2AcsrnOr_CWBTGdkFWvdlz7WfB9TrPfM3Ikwz-UB6K4pMpGJ1eE1jvItWL8upaviwXvHWfXqguktkEuP728d1rNTO2BmX0FzJwDB0xhDHhh6ld-nfllffA6VEz1_T43KmWtndBrvJ5HH1zZchvQXtR4rZjhYd-cXF42krDm_fo12zKpbNvpmfUJ0dbAAzHkUtz1Wn74Nag2nLNtbUi1qvUsqQWzUIDiy_E_bh2HhUeO2LJ52eg",
+    "streamUrl": "",
+    "description": "Kanalga joylangan kino.",
+    "sourceType": "telegram_channel",
+    "telegramChatId": -1003226387471,
+    "telegramMessageId": 2,
+    "telegramFileId": "",
+    "sourceUrl": "https://t.me/mdtsitsibtaryyarbeaa/2"
+  }
+]
