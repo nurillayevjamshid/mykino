@@ -730,7 +730,8 @@ function posterStyle(movie) {
 }
 
 function heroPosterStyle(movie) {
-  const source = movie?.heroPoster || "";
+  // Use heroPoster first, fallback to regular poster
+  const source = movie?.heroPoster || movie?.poster || "";
   if (!source) return "";
   const poster = String(source).replaceAll("'", "%27").replaceAll(")", "%29");
   return `style="--poster-image: url('${poster}')"`;
@@ -1720,9 +1721,12 @@ function setEmptyState(title, text) {
 function updateEmptyState(list) {
   if (movieLoadState === "loading") {
     emptyState.hidden = false;
+    emptyState.classList.add("loading-state");
     setEmptyState(t("loadingTitle"), t("loadingText"));
     return;
   }
+
+  emptyState.classList.remove("loading-state");
 
   if (movieLoadState === "error") {
     emptyState.hidden = false;
@@ -1772,9 +1776,16 @@ function clearHeroCarouselTimer() {
 
 function getHeroCarouselSourceMovies() {
   const sourceMovies = getViewerMovies();
+  // First priority: featured movies with hero poster
   const featuredMovies = sourceMovies.filter((movie) => movie?.heroFeatured && movie?.heroPoster);
-  const pool = featuredMovies.length ? featuredMovies : sourceMovies.filter((movie) => Boolean(movie?.heroPoster));
-  return pool.slice(0, 6);
+  if (featuredMovies.length) return featuredMovies.slice(0, 6);
+
+  // Second priority: movies with any poster (hero or regular)
+  const moviesWithPoster = sourceMovies.filter((movie) => Boolean(movie?.heroPoster || movie?.poster));
+  if (moviesWithPoster.length) return moviesWithPoster.slice(0, 6);
+
+  // Third priority: any available movies (for all users to see the header)
+  return sourceMovies.slice(0, 6);
 }
 
 function updateHeroCarouselView() {

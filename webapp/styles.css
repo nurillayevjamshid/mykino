@@ -1019,10 +1019,41 @@ html[data-theme="light"] .card-watch-button {
 }
 
 .empty-state {
-  margin: 54px 0;
-  padding: 26px 24px;
+  margin: 40px 0;
+  padding: 40px 24px;
   border-radius: 28px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 180px;
+}
+
+.empty-state.loading-state::before {
+  content: '';
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #ffd15c;
+  border-radius: 50%;
+  animation: loadingSpin 1s linear infinite;
+}
+
+@keyframes loadingSpin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state.loading-state strong {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.empty-state.loading-state span {
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .empty-state strong,
