@@ -249,6 +249,8 @@ let pendingAdminPosterDataUrl = "";
 let pendingAdminHeroPosterDataUrl = "";
 let pendingAdminPosterSourceDataUrl = "";
 let pendingAdminHeroPosterReadyPromise = null;
+let pendingAdminPosterFileSelected = false;
+let pendingAdminHeroPosterFileSelected = false;
 let hasTrackedTelegramUser = false;
 
 const grid = document.querySelector("#movieGrid");
@@ -527,9 +529,20 @@ async function cropImageDataUrl(dataUrl, kind) {
 }
 
 async function prepareAdminImageForSave(kind, fallbackValue) {
-  const source = pendingAdminPosterSourceDataUrl;
+  const source = kind === "hero" ? pendingAdminHeroPosterDataUrl : pendingAdminPosterSourceDataUrl;
   const adjusted = source ? await cropImageDataUrl(source, kind) : String(fallbackValue || "").trim();
   return preparePosterForSharedStorage(adjusted);
+}
+
+function setAdminSaveFeedback(message) {
+  const text = String(message || "").trim();
+  if (!text) return;
+  if (adminEditorMeta && adminEditModal && !adminEditModal.hidden) {
+    adminEditorMeta.textContent = text;
+  }
+  if (adminLibraryHint) {
+    adminLibraryHint.textContent = text;
+  }
 }
 
 function applyTheme(theme) {
@@ -1080,22 +1093,8 @@ function writeAdminMovieOverrideStore(store) {
   localStorage.setItem("kino_admin_movie_overrides_v1", JSON.stringify(store));
 }
 
-function saveAdminMovieOverrideLocally(payload) {
-  const fileId = String(payload?.fileId || "").trim();
-  if (!fileId) return;
-  const store = readAdminMovieOverrideStore();
-  store[fileId] = {
-    title: String(payload.title || "").trim(),
-    genre: String(payload.genre || payload.category || "").trim(),
-    poster: String(payload.poster || "").trim(),
-    heroPoster: String(payload.heroPoster || "").trim(),
-    rating: Number(payload.rating || 0),
-    quality: String(payload.quality || "HD").trim(),
-    description: String(payload.description || "").trim(),
-    heroFeatured: Boolean(payload.heroFeatured),
-    updatedAt: new Date().toISOString(),
-  };
-  writeAdminMovieOverrideStore(store);
+function clearAdminMovieOverrideStore() {
+  localStorage.removeItem("kino_admin_movie_overrides_v1");
 }
 
 function removeAdminMovieOverride(fileId) {
@@ -1105,86 +1104,6 @@ function removeAdminMovieOverride(fileId) {
   if (!(normalizedFileId in store)) return;
   delete store[normalizedFileId];
   writeAdminMovieOverrideStore(store);
-}
-
-function applyAdminMovieOverrides(list = []) {
-  const store = readAdminMovieOverrideStore();
-  return list.map((movie, index) => {
-    const override = store[String(movie?.id || "")] || store[String(movie?.fileId || "")] || null;
-    return override ? normalizeMovie({ ...movie, ...override }, index) : movie;
-  });
-}
-
-function replaceMovieInList(list = [], nextMovie) {
-  const targetId = String(nextMovie?.id || nextMovie?.fileId || "");
-  if (!targetId) return list;
-  let replaced = false;
-  const nextList = list.map((movie, index) => {
-    const movieId = String(movie?.id || movie?.fileId || "");
-    if (movieId !== targetId) return movie;
-    replaced = true;
-    return normalizeMovie({ ...movie, ...nextMovie }, index);
-  });
-  return replaced ? nextList : [...nextList, normalizeMovie(nextMovie, nextList.length)];
-}
-
-async function syncAdminOverridesToServer() {
-  if (!isAdminUser()) return { synced: 0, pending: 0 };
-  await resolveApiBase();
-  if (isLocalRuntimeApiBase()) return { synced: 0, pending: 0 };
-
-  const store = readAdminMovieOverrideStore();
-  const entries = Object.entries(store);
-  if (!entries.length) return { synced: 0, pending: 0 };
-
-  let synced = 0;
-  const nextStore = { ...store };
-  const adminId = Number(getTelegramUser()?.id || 0);
-
-  for (const [fileId, override] of entries) {
-    const sharedPoster = await preparePosterForSharedStorage(override?.poster || "");
-    const sharedHeroPoster = await preparePosterForSharedStorage(override?.heroPoster || "", HERO_POSTER_COMPRESSION_STEPS);
-    const payload = {
-      adminId,
-      fileId,
-      title: String(override?.title || "").trim(),
-      genre: String(override?.genre || "").trim(),
-      poster: sharedPoster,
-      heroPoster: sharedHeroPoster,
-      rating: Number(override?.rating || 0),
-      quality: String(override?.quality || "HD").trim(),
-      description: String(override?.description || "").trim(),
-      heroFeatured: Boolean(override?.heroFeatured),
-    };
-
-    if (!payload.title || !payload.genre) continue;
-
-    try {
-      const response = await fetch(buildApiUrl("/api/admin/movies"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          ...getAdminRequestHeaders(),
-        },
-        body: JSON.stringify(payload),
-      });
-      const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.ok) {
-        continue;
-      }
-      delete nextStore[fileId];
-      synced += 1;
-    } catch {
-      continue;
-    }
-  }
-
-  writeAdminMovieOverrideStore(nextStore);
-  return {
-    synced,
-    pending: Object.keys(nextStore).length,
-  };
 }
 
 function normalizeMovie(movie, index = 0) {
@@ -1414,6 +1333,8 @@ function closeAdminEditor() {
   pendingAdminPosterDataUrl = "";
   pendingAdminHeroPosterDataUrl = "";
   pendingAdminHeroPosterReadyPromise = null;
+  pendingAdminPosterFileSelected = false;
+  pendingAdminHeroPosterFileSelected = false;
   if (adminPosterFileInput) adminPosterFileInput.value = "";
   if (adminHeroPosterFileInput) adminHeroPosterFileInput.value = "";
   if (adminHeroPosterFileStatus) adminHeroPosterFileStatus.textContent = "16:9 gorizontal rasm tanlanmagan.";
@@ -1426,6 +1347,8 @@ function clearAdminEditor() {
   pendingAdminHeroPosterDataUrl = "";
   pendingAdminPosterSourceDataUrl = "";
   pendingAdminHeroPosterReadyPromise = null;
+  pendingAdminPosterFileSelected = false;
+  pendingAdminHeroPosterFileSelected = false;
   if (adminMovieForm) adminMovieForm.reset();
   if (adminMovieIdInput) adminMovieIdInput.value = "";
   if (adminGenreCustomInput) adminGenreCustomInput.value = "";
@@ -1464,6 +1387,8 @@ function openAdminEditor(movie) {
   pendingAdminPosterDataUrl = String(movie.poster || "").startsWith("data:image/") ? String(movie.poster) : "";
   pendingAdminHeroPosterDataUrl = String(movie.heroPoster || "").startsWith("data:image/") ? String(movie.heroPoster) : "";
   pendingAdminHeroPosterReadyPromise = null;
+  pendingAdminPosterFileSelected = false;
+  pendingAdminHeroPosterFileSelected = false;
   if (adminMovieForm) adminMovieForm.reset();
   if (adminMovieIdInput) adminMovieIdInput.value = selectedAdminMovieId;
   if (adminTitleInput) adminTitleInput.value = movie.title || "";
@@ -1548,7 +1473,7 @@ async function loadAdminDashboard() {
     throw new Error(payload?.error || "Admin panel yuklanmadi.");
   }
   adminDashboardMovies = Array.isArray(payload.movies)
-    ? applyAdminMovieOverrides(payload.movies.map((movie, index) => normalizeMovie(movie, index)))
+    ? payload.movies.map((movie, index) => normalizeMovie(movie, index))
     : [];
   const readyCount = adminDashboardMovies.filter((movie) => isLaunchReadyMovie(movie)).length;
   const headerCount = adminDashboardMovies.filter((movie) => isHeaderReadyMovie(movie)).length;
@@ -1584,13 +1509,10 @@ async function openAdminPanel() {
   closeAdminMovieListPage();
   adminModal.showModal();
   try {
-    const syncState = await syncAdminOverridesToServer();
+    clearAdminMovieOverrideStore();
     await loadAdminDashboard();
-    if (adminLibraryHint && syncState.synced > 0) {
-      adminLibraryHint.textContent = `${syncState.synced} ta local edit hammaga sync qilindi`;
-    }
   } catch (error) {
-    adminDashboardMovies = applyAdminMovieOverrides([...movies]);
+    adminDashboardMovies = [...movies];
     if (adminUsersCount) {
       adminUsersCount.textContent = String(Object.keys(readLocalTrackedUsers()).length);
     }
@@ -1624,53 +1546,49 @@ async function saveAdminMovie(formData) {
   if (pendingAdminHeroPosterReadyPromise) {
     await pendingAdminHeroPosterReadyPromise;
   }
-  const fileId = String(formData.get("fileId") || "").trim();
+  const fileId = String(formData.get("fileId") || selectedAdminMovieId || adminMovieIdInput?.value || "").trim();
+  if (adminMovieIdInput && fileId) {
+    adminMovieIdInput.value = fileId;
+  }
   const title = String(formData.get("title") || "").trim();
   const genre = String(formData.get("genreCustom") || formData.get("genreSelect") || "").trim();
-  if (!fileId || !title || !genre) return { ok: false };
-  const poster = await prepareAdminImageForSave("poster", pendingAdminPosterDataUrl || String(formData.get("poster") || "").trim());
-  const heroPoster = await preparePosterForSharedStorage(
-    pendingAdminHeroPosterDataUrl || String(formData.get("heroPoster") || "").trim(),
-    HERO_POSTER_COMPRESSION_STEPS,
-  );
+  if (!fileId) {
+    return { ok: false, message: "Avval ro'yxatdan kinoni tanlang." };
+  }
+  if (!title || !genre) {
+    return { ok: false, message: "Kino nomi va kategoriya majburiy." };
+  }
+
+  const posterInputValue = String(formData.get("poster") || "").trim();
+  const heroPosterInputValue = String(formData.get("heroPoster") || "").trim();
+  const poster = pendingAdminPosterFileSelected
+    ? await prepareAdminImageForSave("poster", pendingAdminPosterDataUrl)
+    : posterInputValue
+      ? await preparePosterForSharedStorage(posterInputValue)
+      : undefined;
+  const heroPoster = pendingAdminHeroPosterFileSelected
+    ? await preparePosterForSharedStorage(pendingAdminHeroPosterDataUrl, HERO_POSTER_COMPRESSION_STEPS)
+    : heroPosterInputValue
+      ? await preparePosterForSharedStorage(heroPosterInputValue, HERO_POSTER_COMPRESSION_STEPS)
+      : undefined;
 
   const payload = {
     adminId: Number(getTelegramUser()?.id || 0),
     fileId,
     title,
     genre,
-    poster,
-    heroPoster,
     rating: Number(formData.get("rating") || 0),
     quality: String(formData.get("quality") || "").trim() || "HD",
     description: String(formData.get("description") || "").trim(),
-    heroFeatured: Boolean(heroPoster) && formData.get("heroFeatured") === "on",
+    heroFeatured: formData.get("heroFeatured") === "on",
   };
-
-  pendingAdminPosterDataUrl = poster.startsWith("data:image/") ? poster : "";
-  pendingAdminHeroPosterDataUrl = heroPoster.startsWith("data:image/") ? heroPoster : "";
-  saveAdminMovieOverrideLocally(payload);
-  const localBaseMovie =
-    adminDashboardMovies.find((movie) => String(movie.id) === fileId)
-    || movies.find((movie) => String(movie.id) === fileId)
-    || { id: fileId, fileId };
-  const localUpdatedMovie = normalizeMovie({ ...localBaseMovie, ...payload, id: fileId }, 0);
-  adminDashboardMovies = replaceMovieInList(adminDashboardMovies, localUpdatedMovie);
-  movies = replaceMovieInList(movies, localUpdatedMovie);
-  renderAdminMovieList(adminDashboardMovies);
-  if (adminHeaderHint) {
-    const headerCount = adminDashboardMovies.filter((movie) => isHeaderReadyMovie(movie)).length;
-    adminHeaderHint.textContent = headerCount
-      ? `${headerCount} ta kino header sliderda ko'rsatiladi.`
-      : "Header uchun 16:9 rasm yuklang.";
-  }
-  renderHeroCarousel(payload.heroFeatured ? fileId : "");
-  closeAdminEditor();
-  renderMovies();
+  if (poster !== undefined) payload.poster = poster;
+  if (heroPoster !== undefined) payload.heroPoster = heroPoster;
 
   try {
     const response = await fetch(buildApiUrl("/api/admin/movies"), {
       method: "POST",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
@@ -1684,10 +1602,17 @@ async function saveAdminMovie(formData) {
     }
 
     adminDashboardMovies = Array.isArray(result.movies)
-      ? applyAdminMovieOverrides(result.movies.map((movie, index) => normalizeMovie(movie, index)))
+      ? result.movies.map((movie, index) => normalizeMovie(movie, index))
       : adminDashboardMovies;
     movies = adminDashboardMovies.length ? [...adminDashboardMovies] : movies;
     removeAdminMovieOverride(fileId);
+    const updatedMovie = adminDashboardMovies.find((movie) => String(movie.id) === fileId);
+    pendingAdminPosterDataUrl = String(updatedMovie?.poster || "").startsWith("data:image/") ? String(updatedMovie.poster) : "";
+    pendingAdminHeroPosterDataUrl = String(updatedMovie?.heroPoster || "").startsWith("data:image/") ? String(updatedMovie.heroPoster) : "";
+    pendingAdminPosterSourceDataUrl = pendingAdminPosterDataUrl;
+    pendingAdminHeroPosterReadyPromise = null;
+    pendingAdminPosterFileSelected = false;
+    pendingAdminHeroPosterFileSelected = false;
     renderAdminMovieList(adminDashboardMovies);
     if (adminHeaderHint) {
       const headerCount = adminDashboardMovies.filter((movie) => isHeaderReadyMovie(movie)).length;
@@ -1696,17 +1621,13 @@ async function saveAdminMovie(formData) {
         : "Header uchun 16:9 rasm yuklang.";
     }
     renderHeroCarousel(payload.heroFeatured ? fileId : "");
+    closeAdminEditor();
     renderMovies();
     return { ok: true, mode: "remote" };
   } catch (error) {
-    const isSharedWrite = !isLocalRuntimeApiBase();
     return {
-      ok: true,
-      mode: "local",
-      shared: !isSharedWrite,
-      message: isSharedWrite
-        ? "Faqat shu qurilmada ko'rinyapti. Hamma userlar uchun hali sync bo'lmadi."
-        : "Serverga yozilmadi, local saqlandi.",
+      ok: false,
+      message: error?.message || "Serverga saqlanmadi. O'zgarishlar umumiy katalogga yozilmadi.",
     };
   }
 }
@@ -2901,6 +2822,7 @@ adminPosterFileInput?.addEventListener("change", () => {
   const file = adminPosterFileInput.files?.[0];
   pendingAdminPosterDataUrl = "";
   pendingAdminPosterSourceDataUrl = "";
+  pendingAdminPosterFileSelected = false;
   updateAdminCropPreview("poster");
   if (!file) return;
   if (!isImageFile(file)) {
@@ -2919,6 +2841,7 @@ adminPosterFileInput?.addEventListener("change", () => {
     const rawPoster = normalizeImageDataUrlForFile(typeof reader.result === "string" ? reader.result : "", file);
     pendingAdminPosterSourceDataUrl = rawPoster;
     pendingAdminPosterDataUrl = rawPoster;
+    pendingAdminPosterFileSelected = Boolean(rawPoster);
     if (rawPoster && adminPosterInput) adminPosterInput.value = "";
     updateAdminCropPreview("poster");
     if (adminLibraryHint) {
@@ -2928,6 +2851,7 @@ adminPosterFileInput?.addEventListener("change", () => {
   reader.addEventListener("error", () => {
     pendingAdminPosterDataUrl = "";
     pendingAdminPosterSourceDataUrl = "";
+    pendingAdminPosterFileSelected = false;
     updateAdminCropPreview("poster");
     if (adminLibraryHint) adminLibraryHint.textContent = "Rasmni o'qib bo'lmadi.";
   });
@@ -2938,6 +2862,7 @@ adminHeroPosterFileInput?.addEventListener("change", () => {
   const file = adminHeroPosterFileInput.files?.[0];
   pendingAdminHeroPosterDataUrl = "";
   pendingAdminHeroPosterReadyPromise = null;
+  pendingAdminHeroPosterFileSelected = false;
   if (!file) return;
   if (!isImageFile(file)) {
     adminHeroPosterFileInput.value = "";
@@ -2961,6 +2886,7 @@ adminHeroPosterFileInput?.addEventListener("change", () => {
       const rawPoster = normalizeImageDataUrlForFile(typeof reader.result === "string" ? reader.result : "", file);
       try {
         pendingAdminHeroPosterDataUrl = await preparePosterForSharedStorage(rawPoster, HERO_POSTER_COMPRESSION_STEPS);
+        pendingAdminHeroPosterFileSelected = Boolean(pendingAdminHeroPosterDataUrl);
         if (rawPoster && adminHeroPosterInput) adminHeroPosterInput.value = "";
         if (rawPoster && adminHeroFeaturedInput) adminHeroFeaturedInput.checked = true;
         if (adminHeroPosterFileStatus) {
@@ -2971,6 +2897,7 @@ adminHeroPosterFileInput?.addEventListener("change", () => {
         }
       } catch {
         pendingAdminHeroPosterDataUrl = rawPoster;
+        pendingAdminHeroPosterFileSelected = Boolean(rawPoster);
         if (rawPoster && adminHeroPosterInput) adminHeroPosterInput.value = "";
         if (rawPoster && adminHeroFeaturedInput) adminHeroFeaturedInput.checked = true;
         if (adminHeroPosterFileStatus) {
@@ -2985,6 +2912,7 @@ adminHeroPosterFileInput?.addEventListener("change", () => {
     });
     reader.addEventListener("error", () => {
       pendingAdminHeroPosterDataUrl = "";
+      pendingAdminHeroPosterFileSelected = false;
       if (adminHeroPosterFileStatus) adminHeroPosterFileStatus.textContent = "Rasmni o'qib bo'lmadi. Boshqa rasm tanlang.";
       if (adminHeaderHint) adminHeaderHint.textContent = "Rasmni o'qib bo'lmadi.";
       resolve();
@@ -3013,19 +2941,13 @@ adminMovieForm?.addEventListener("submit", (event) => {
   saveAdminMovie(formData)
     .then((result) => {
       if (!result?.ok) {
-        if (adminLibraryHint) adminLibraryHint.textContent = "Nomi va kategoriya majburiy.";
+        setAdminSaveFeedback(result?.message || "Nomi va kategoriya majburiy.");
         return;
       }
-      if (adminLibraryHint) {
-        adminLibraryHint.textContent = result.mode === "local"
-          ? (result.message || "Faqat local saqlandi.")
-          : "O'zgarish saqlandi";
-      }
+      setAdminSaveFeedback("O'zgarish serverga saqlandi va hammaga ko'rinadi");
     })
     .catch((error) => {
-      if (adminLibraryHint) {
-        adminLibraryHint.textContent = error?.message || "Saqlash bajarilmadi";
-      }
+      setAdminSaveFeedback(error?.message || "Saqlash bajarilmadi");
     })
     .finally(() => {
       if (adminSaveButton) {
@@ -3126,13 +3048,14 @@ async function loadMovies() {
 
   try {
     const response = await fetch(buildApiUrl("/api/movies"), {
+      cache: "no-store",
       headers: { Accept: "application/json" },
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
-    movies = applyAdminMovieOverrides(payload.map((movie, index) => normalizeMovie(movie, index)));
+    movies = payload.map((movie, index) => normalizeMovie(movie, index));
     movieLoadState = "ready";
   } catch (error) {
     movies = [];
@@ -3159,6 +3082,7 @@ async function silentReloadMovies() {
 
   try {
     const response = await fetch(buildApiUrl("/api/movies"), {
+      cache: "no-store",
       headers: { Accept: "application/json" },
     });
     const payload = await response.json().catch(() => null);
@@ -3166,7 +3090,7 @@ async function silentReloadMovies() {
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
 
-    const newMovies = applyAdminMovieOverrides(payload.map((movie, index) => normalizeMovie(movie, index)));
+    const newMovies = payload.map((movie, index) => normalizeMovie(movie, index));
 
     // Only update if movies actually changed
     const currentMoviesJson = JSON.stringify(movies.map(m => ({ id: m.id, poster: m.poster, heroPoster: m.heroPoster, title: m.title })));
@@ -3178,21 +3102,18 @@ async function silentReloadMovies() {
       renderMovies();
       syncWatchedCount();
       applyCopy();
-      console.log("[Auto-refresh] Kinolar yangilandi!");
     }
   } catch (error) {
-    console.error("[Auto-refresh] Xatolik:", error);
+    // Background refresh should never disturb the viewing experience.
   }
 }
 
 // Start polling every 5 minutes (300000 ms) for all users to see admin changes
 function startMoviesPolling() {
-  // Poll every 5 minutes
+  // Poll every minute so admin edits become visible without forcing users to reopen the app.
   window.setInterval(() => {
     silentReloadMovies();
-  }, 300000);
-
-  console.log("[Auto-refresh] Har 5 daqiqada kinolar yangilanadi");
+  }, 60000);
 }
 
 loadMovies();
