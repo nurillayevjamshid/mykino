@@ -200,7 +200,11 @@ async def _show_feedback_placeholder(message: Message) -> None:
 
 async def _send_start_menu(message: Message, settings: Settings) -> None:
     await message.answer(
-        "Assalomu alaykum, My Kino botiga xush kelibsiz. Biz bilan vaqtingiz chog' va maroqli o'tishini tilab qolamiz. Biz siz uchun doim xizmatdamiz",
+        "👋🏻 Assalomu alaykum, My Kino botiga xush kelibsiz. 
+        
+        📺 Biz bilan vaqtingiz chog' va maroqli o'tishini tilab qolamiz.
+        
+         😇 Biz siz uchun doim xizmatdamiz",
         reply_markup=start_menu(settings.webapp_url),
     )
 
