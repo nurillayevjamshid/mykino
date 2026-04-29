@@ -1567,7 +1567,7 @@ async function saveAdminMovie(formData) {
       ? await preparePosterForSharedStorage(posterInputValue)
       : undefined;
   const heroPoster = pendingAdminHeroPosterFileSelected
-    ? await preparePosterForSharedStorage(pendingAdminHeroPosterDataUrl, HERO_POSTER_COMPRESSION_STEPS)
+    ? await prepareAdminImageForSave("hero", pendingAdminHeroPosterDataUrl)
     : heroPosterInputValue
       ? await preparePosterForSharedStorage(heroPosterInputValue, HERO_POSTER_COMPRESSION_STEPS)
       : undefined;
