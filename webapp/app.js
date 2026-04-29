@@ -3153,4 +3153,47 @@ async function loadMovies() {
   }
 }
 
+// Silent background reload for polling (doesn't show loading state)
+async function silentReloadMovies() {
+  await resolveApiBase();
+
+  try {
+    const response = await fetch(buildApiUrl("/api/movies"), {
+      headers: { Accept: "application/json" },
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !Array.isArray(payload)) {
+      throw new Error(payload?.error || "Katalog yuklanmadi.");
+    }
+
+    const newMovies = applyAdminMovieOverrides(payload.map((movie, index) => normalizeMovie(movie, index)));
+
+    // Only update if movies actually changed
+    const currentMoviesJson = JSON.stringify(movies.map(m => ({ id: m.id, poster: m.poster, heroPoster: m.heroPoster, title: m.title })));
+    const newMoviesJson = JSON.stringify(newMovies.map(m => ({ id: m.id, poster: m.poster, heroPoster: m.heroPoster, title: m.title })));
+
+    if (currentMoviesJson !== newMoviesJson) {
+      movies = newMovies;
+      renderHeroCarousel();
+      renderMovies();
+      syncWatchedCount();
+      applyCopy();
+      console.log("[Auto-refresh] Kinolar yangilandi!");
+    }
+  } catch (error) {
+    console.error("[Auto-refresh] Xatolik:", error);
+  }
+}
+
+// Start polling every 5 minutes (300000 ms) for all users to see admin changes
+function startMoviesPolling() {
+  // Poll every 5 minutes
+  window.setInterval(() => {
+    silentReloadMovies();
+  }, 300000);
+
+  console.log("[Auto-refresh] Har 5 daqiqada kinolar yangilanadi");
+}
+
 loadMovies();
+startMoviesPolling();
