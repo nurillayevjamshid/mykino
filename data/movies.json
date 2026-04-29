@@ -1,22 +1,24 @@
 [
   {
     "id": 3,
-    "code": "2",
-    "title": "Qora Pantera-2: Vakanda Boqiy",
-    "year": 2023,
-    "genre": "Jangari, Marvel",
-    "rating": 8.9,
+    "code": "QORAPANTER3",
+    "title": "« Qora Pantera-2: Vakanda Boqiy »",
+    "year": "",
+    "genre": "Kino",
+    "rating": 0.0,
     "quality": "HD",
     "isTop": false,
     "isPremium": false,
-    "poster": "https://cdn4.telesco.pe/file/b5pMfDkR7GpQXhiFuKTPhHoViFWowD_mxwTrMW0xcd-PIMhenXWDAbypnlgY8lvmmjRO-_DC-_vrKeF3N6QxKWSNtqpUErEJZoibvggV6rb5UmZjsN0DGo9xb7ltRPmYYdJikM7YqE7FSctD3JeiK9-cyP0jUF-dDN1Mkw8RsYEqe66yJpETdPrzEMCsMkJpgHaGXjiHCf1rYeLvH2HXqqUwUEp1cGwhbnFVggXkUYq77UVbc4KOLcTee3CnunFAJJ5QRKjD9doMnRI3mBgQkwGNZZgWcxWT2lwZARM8Gm47dDqTh0t1_MAbTa317LqhKtbl9O7A0ye1woFLqKf0sA",
+    "poster": "",
     "streamUrl": "",
-    "description": "Kanalga joylangan kino.",
+    "description": "( Black Panther: Wakanda Forever )\n------------------\n🔸 Sifat: Blu-Ray HD@720p H.264\n[ Uzb-2x, Eng, Rus ]\n------------------\nBir nechta tildagi filmlarni MxPlayer yoki VlcMediaPlayer ilovasi orqali xohlagan tilni tanlab tomosha qilsangiz bo‘ladi.\nBatafsil...\n------------------\nKANALIMIZGA ULANING\n💬 Filmlar  |  💬 Seriallar\n📹 INSTAGRAM | 📹 TikTok | 📹 YouTube",
     "sourceType": "telegram_channel",
     "telegramChatId": -1003226387471,
     "telegramMessageId": 3,
     "telegramFileId": "BAACAgIAAyEFAATATsQPAAMDaexfTcGkG6GZlzzaEw1aepZzU-AAApGTAALPgzhLSyrX4uz0fMg7BA",
+    "telegramVideoFileId": "BAACAgIAAyEFAATATsQPAAMDaexfTcGkG6GZlzzaEw1aepZzU-AAApGTAALPgzhLSyrX4uz0fMg7BA",
     "sourceUrl": "https://t.me/mdtsitsibtaryyarbeaa/3",
+    "telegramPostUrl": "https://t.me/mdtsitsibtaryyarbeaa/3",
     "video_file_id": "BAACAgIAAyEFAATATsQPAAMDaexfTcGkG6GZlzzaEw1aepZzU-AAApGTAALPgzhLSyrX4uz0fMg7BA"
   },
   {
@@ -36,6 +38,8 @@
     "telegramChatId": -1003226387471,
     "telegramMessageId": 2,
     "telegramFileId": "",
-    "sourceUrl": "https://t.me/mdtsitsibtaryyarbeaa/2"
+    "telegramVideoFileId": "",
+    "sourceUrl": "https://t.me/mdtsitsibtaryyarbeaa/2",
+    "telegramPostUrl": "https://t.me/mdtsitsibtaryyarbeaa/2"
   }
 ]

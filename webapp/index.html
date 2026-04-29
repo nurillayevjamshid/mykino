@@ -1,108 +1,483 @@
 <!doctype html>
 <html lang="uz">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#101820" />
-    <title>Kino Mini App</title>
-    <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="/static/styles.css" />
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  </head>
-  <body>
-    <main class="app-shell">
-      <header class="topbar">
-        <button class="brand-icon" type="button" aria-label="Kinolar">
-          <span>▦</span>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f131a" />
+  <title>My Kino</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <img class="brand-logo" src="/static/assets/my-kino-logo.png" alt="My Kino" />
+      <div class="topbar-controls">
+        <select class="lang-select" aria-label="Til">
+          <option value="uz" selected>UZ</option>
+          <option value="ru">RU</option>
+          <option value="en">EN</option>
+        </select>
+        <button class="theme-toggle icon-button" type="button" data-theme="dark" aria-label="Mavzu">
+          <svg class="icon-svg icon-svg--sun" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"></circle>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+          </svg>
+          <svg class="icon-svg icon-svg--moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
         </button>
-        <div class="brand">
-          <strong>KINO</strong>
-          <span>CINEMA</span>
-        </div>
-        <div class="language-switch" aria-label="Til tanlash">
-          <span class="globe">◎</span>
-          <button class="lang is-active" type="button" data-lang="uz"><span class="flag flag-uz"></span> UZ</button>
-          <button class="lang" type="button" data-lang="ru"><span class="flag flag-ru"></span> RU</button>
-          <button class="lang" type="button" data-lang="en"><span class="flag flag-en"></span> EN</button>
-        </div>
-      </header>
-
-      <section class="search-panel" id="searchPanel" hidden>
-        <label class="search-box">
-          <span>⌕</span>
-          <input id="searchInput" type="search" placeholder="Kino qidirish" autocomplete="off" />
-        </label>
-      </section>
-
-      <nav class="quick-tabs" aria-label="Kino bo'limlari">
-        <button class="tab is-active" type="button" data-filter="all">🎬 Barchasi</button>
-        <button class="tab" type="button" data-filter="top">🔥 TOP</button>
-        <button class="tab" type="button" data-filter="premium">💎 Premium</button>
-        <button class="tab" type="button" data-action="search">🔍 Qidirish</button>
-      </nav>
-
-      <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
-
-      <div class="empty-state" id="emptyState" hidden>
-        <strong>Hech narsa topilmadi</strong>
-        <span>Boshqa nom, janr yoki kod bilan urinib ko'ring.</span>
+        <button class="icon-button icon-button--top profile-trigger" type="button" data-action="profile" aria-label="Profil">
+          <img class="profile-trigger__photo" id="headerAvatarPhoto" alt="Telegram user" hidden />
+          <span class="profile-trigger__initials" id="headerAvatar">KI</span>
+        </button>
       </div>
+    </header>
 
-      <nav class="bottom-bar" aria-label="Mini app menyusi">
-        <button type="button" data-filter="all">🎬</button>
-        <button type="button" data-action="search">⌕</button>
-        <button type="button" data-filter="top">🔥</button>
-        <button type="button" data-action="profile">👤</button>
-      </nav>
-    </main>
-
-    <dialog class="movie-modal" id="movieModal">
-      <button class="modal-close" type="button" data-close aria-label="Yopish">×</button>
-      <div class="modal-poster" id="modalPoster"></div>
-      <div class="modal-content">
-        <div class="modal-meta" id="modalMeta"></div>
-        <h1 id="modalTitle"></h1>
-        <p id="modalDescription"></p>
-        <div class="modal-actions">
-          <button class="watch-button" id="watchButton" type="button">▶ Tomosha qilish</button>
-          <button class="ghost-button" type="button" data-close>Keyinroq</button>
-        </div>
-      </div>
-    </dialog>
-
-    <dialog class="profile-modal" id="profileModal">
-      <button class="modal-close" type="button" data-close-profile aria-label="Yopish">×</button>
-      <div class="profile-card">
-        <div class="avatar" id="avatar">KI</div>
-        <h2 id="profileName">Kino foydalanuvchi</h2>
-        <p>Premium: <b>faol emas</b></p>
-        <p>Ko'rilgan kinolar: <b id="viewCount">0</b></p>
-        <button class="watch-button" type="button" data-premium>💎 Premium olish</button>
-      </div>
-    </dialog>
-
-    <section class="video-player" id="videoPlayer" role="dialog" aria-modal="true" aria-label="Video player" hidden>
-      <header class="video-player__topbar">
-        <button class="video-player__close" type="button" data-video-close aria-label="Yopish">←</button>
-        <div class="video-player__title">
-          <strong id="videoTitle">Kino</strong>
-          <span id="videoSourceLabel">Video manba</span>
-        </div>
-        <button class="video-player__close" type="button" data-video-close aria-label="Yopish">×</button>
-      </header>
-      <div class="video-player__stage">
-        <div class="video-loading" id="videoLoading" role="status">
-          <span></span>
-          <b>Video yuklanmoqda...</b>
-        </div>
-        <div class="video-mount" id="videoMount"></div>
-        <div class="video-fallback" id="videoFallback" hidden>
-          <strong>Video yuklanmadi. Iltimos, boshqa manbani tekshiring.</strong>
-          <a id="videoExternalLink" target="_blank" rel="noreferrer" hidden>Telegramda ochish</a>
-        </div>
-      </div>
+    <section class="category-panel glass-panel" id="categoryPanel" aria-label="Kategoriyalar" hidden>
+      <div class="category-list" id="categoryList"></div>
     </section>
 
-    <script src="/static/app.js"></script>
-  </body>
+    <section class="search-panel" id="searchPanel" hidden>
+      <label class="search-box glass-panel">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input id="searchInput" type="search" placeholder="Kino qidirish" autocomplete="off" />
+      </label>
+    </section>
+
+    <section class="hero-carousel glass-panel" id="heroCarousel" aria-label="Tavsiya etilgan kinolar" role="button" tabindex="0" hidden>
+      <div class="hero-carousel__track" id="heroCarouselTrack"></div>
+      <div class="hero-carousel__content">
+        <span class="hero-carousel__kicker">My Kino</span>
+        <strong class="hero-carousel__title" id="heroCarouselTitle"></strong>
+      </div>
+      <div class="hero-carousel__dots" id="heroCarouselDots"></div>
+    </section>
+
+    <nav class="quick-tabs" aria-label="Kino bo'limlari">
+      <button class="tab is-active" type="button" data-filter="all">
+        <span class="tab__icon" aria-hidden="true">
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="16" rx="4"></rect>
+            <path d="M8 4v16"></path>
+            <path d="M16 4v16"></path>
+            <path d="M3 9h5"></path>
+            <path d="M16 9h5"></path>
+            <path d="M3 15h5"></path>
+            <path d="M16 15h5"></path>
+            <path d="M8 12h8"></path>
+          </svg>
+        </span>
+        <span class="tab__label">Barchasi</span>
+      </button>
+      <button class="tab" type="button" data-action="search">
+        <span class="tab__icon" aria-hidden="true">
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+          </svg>
+        </span>
+        <span class="tab__label">Qidirish</span>
+      </button>
+      <button class="tab" type="button" data-action="categories">
+        <span class="tab__icon" aria-hidden="true">
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="7" height="7" rx="2"></rect>
+            <rect x="14" y="4" width="7" height="7" rx="2"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="2"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="2"></rect>
+          </svg>
+        </span>
+        <span class="tab__label">Kategoriya</span>
+      </button>
+    </nav>
+
+    <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
+
+    <div class="empty-state glass-panel" id="emptyState" hidden>
+      <strong>Hech narsa topilmadi</strong>
+      <span>Boshqa nom, janr yoki kod bilan urinib ko'ring.</span>
+    </div>
+
+    <nav class="bottom-bar glass-panel" aria-label="Mini app menyusi">
+      <button class="bottom-bar__button" type="button" data-filter="all" aria-label="Barchasi" title="Barchasi">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="16" rx="4"></rect>
+          <path d="M8 4v16"></path>
+          <path d="M16 4v16"></path>
+          <path d="M3 9h5"></path>
+          <path d="M16 9h5"></path>
+          <path d="M3 15h5"></path>
+          <path d="M16 15h5"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+      </button>
+      <button class="bottom-bar__button" type="button" data-action="search" aria-label="Qidirish" title="Qidirish">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+      </button>
+      <button class="bottom-bar__button" type="button" data-action="categories" aria-label="Kategoriya" title="Kategoriya">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="4" width="7" height="7" rx="2"></rect>
+          <rect x="14" y="4" width="7" height="7" rx="2"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="2"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="2"></rect>
+        </svg>
+      </button>
+    </nav>
+  </main>
+
+  <dialog class="movie-modal" id="movieModal">
+    <button class="modal-close" type="button" data-close aria-label="Yopish">
+      <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 6 6 18"></path>
+        <path d="m6 6 12 12"></path>
+      </svg>
+    </button>
+    <div class="modal-poster" id="modalPoster"></div>
+    <div class="modal-content">
+      <div class="modal-meta" id="modalMeta"></div>
+      <h1 id="modalTitle"></h1>
+      <p id="modalDescription"></p>
+      <div class="modal-actions">
+        <button class="watch-button" id="watchButton" type="button">Tomosha qilish</button>
+        <button class="ghost-button" type="button" data-close>Keyinroq</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="profile-modal" id="profileModal">
+    <button class="modal-close" type="button" data-close-profile aria-label="Yopish">
+      <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 6 6 18"></path>
+        <path d="m6 6 12 12"></path>
+      </svg>
+    </button>
+    <div class="profile-card">
+      <div class="profile-identity">
+        <div class="avatar-shell">
+          <img class="avatar-photo" id="avatarPhoto" alt="Telegram user" hidden />
+          <div class="avatar" id="avatar">KI</div>
+        </div>
+        <div class="profile-copy">
+          <h2 id="profileName">Kino foydalanuvchi</h2>
+          <p class="profile-username" id="profileUsername">@mykino</p>
+        </div>
+      </div>
+
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <span>Ko'rilgan kinolar</span>
+          <b id="viewCount">0</b>
+        </div>
+      </div>
+
+      <section class="profile-history">
+        <div class="profile-history__head">
+          <div class="profile-history__meta">
+            <strong id="watchedHistoryTitle">Ko'rilgan kinolar</strong>
+            <span id="watchedMovieCount">0 ta</span>
+          </div>
+          <button class="profile-history__clear" id="clearHistoryButton" type="button">Tozalash</button>
+        </div>
+        <div class="profile-history__list" id="watchedMovieList"></div>
+        <p class="profile-history__empty" id="watchedMovieEmpty">Hali ko'rilgan kino yo'q.</p>
+      </section>
+
+      <button class="ghost-button profile-admin-button" type="button" data-admin-open>Admin panel</button>
+    </div>
+  </dialog>
+
+  <dialog class="admin-modal" id="adminModal">
+    <div class="admin-card">
+      <header class="admin-card__topbar">
+        <div class="admin-card__header">
+          <h2>Admin panel</h2>
+          <p>Kino kutubxonasini boshqaring va bot statistikasini kuzating.</p>
+        </div>
+        <button class="modal-close" type="button" data-admin-close aria-label="Yopish">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      </header>
+
+      <section class="admin-stats-grid">
+        <article class="admin-stat-card">
+          <span>Bot foydalanuvchilari</span>
+          <b id="adminUsersCount">0</b>
+        </article>
+        <article class="admin-stat-card">
+          <span>Katalogdagi kinolar</span>
+          <b id="adminMovieCount">0</b>
+        </article>
+        <article class="admin-stat-card">
+          <span>Launch-ready</span>
+          <b id="adminReadyCount">0</b>
+        </article>
+      </section>
+
+      <section class="admin-header-settings glass-panel">
+        <div>
+          <strong>Header section</strong>
+          <span id="adminHeaderHint">Tahrirlash oynasida header sliderga kino tanlang.</span>
+        </div>
+      </section>
+
+      <section class="admin-layout">
+        <section class="admin-library glass-panel">
+          <div class="admin-library__head">
+            <strong>Kino ro'yxati</strong>
+            <span id="adminLibraryHint">Tahrirlash uchun tanlang</span>
+          </div>
+          <button class="watch-button admin-library__open" id="adminLibraryOpen" type="button">Kirish</button>
+        </section>
+
+      </section>
+
+      <section class="admin-list-page glass-panel" id="adminListPage" hidden>
+        <div class="admin-list-page__top">
+          <button class="ghost-button admin-list-back" id="adminListBack" type="button">Orqaga</button>
+          <div>
+            <strong>Kinolar ro'yxati</strong>
+            <span>Tahrirlash uchun kino tanlang.</span>
+          </div>
+        </div>
+        <div class="admin-movie-list" id="adminMovieList"></div>
+      </section>
+
+      <section class="admin-edit-modal" id="adminEditModal" hidden>
+        <div class="admin-editor glass-panel" role="dialog" aria-modal="true" aria-labelledby="adminEditorTitle">
+          <button class="modal-close admin-edit-close" type="button" data-admin-edit-close aria-label="Yopish">
+            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+          </button>
+          <div class="admin-editor__head">
+            <strong id="adminEditorTitle">Kino tanlanmagan</strong>
+            <span id="adminEditorMeta">Kategoriya, ablojka, tavsif va reytingni o'zgartiring.</span>
+          </div>
+
+          <form class="admin-form" id="adminMovieForm">
+            <input id="adminMovieId" name="fileId" type="hidden" />
+            <label class="admin-field">
+              <span>Kino nomi</span>
+              <input id="adminTitle" name="title" type="text" required />
+            </label>
+            <label class="admin-field">
+              <span>Reyting</span>
+              <input id="adminRating" name="rating" type="number" min="0" max="10" step="0.1" placeholder="8.7" />
+            </label>
+            <label class="admin-field">
+              <span>Kategoriya</span>
+              <select id="adminGenreSelect" name="genreSelect"></select>
+            </label>
+            <label class="admin-field">
+              <span>Yangi kategoriya</span>
+              <input id="adminGenreCustom" name="genreCustom" type="text" placeholder="Masalan: Drama" />
+            </label>
+            <label class="admin-field admin-field--wide">
+              <span>Tavsif</span>
+              <textarea id="adminDescription" name="description" rows="5" placeholder="Kino haqida qisqa tavsif"></textarea>
+            </label>
+            <label class="admin-field admin-field--wide">
+              <span>Oblojka URL</span>
+              <input id="adminPoster" name="poster" type="url" placeholder="https://..." />
+            </label>
+            <label class="admin-field admin-field--wide">
+              <span>Oblojka rasm fayli</span>
+              <input id="adminPosterFile" name="posterFile" type="file" accept="image/*" />
+            </label>
+            <div class="admin-image-crop admin-image-crop--poster admin-field--wide" id="adminPosterCrop" hidden>
+              <div class="admin-image-crop__preview" id="adminPosterCropPreview"></div>
+              <div class="admin-image-crop__controls">
+                <label>
+                  <span>Kattalashtirish</span>
+                  <input id="adminPosterZoom" type="range" min="100" max="220" value="100" step="1" />
+                </label>
+                <label>
+                  <span>Chap / o'ng</span>
+                  <input id="adminPosterX" type="range" min="-100" max="100" value="0" step="1" />
+                </label>
+                <label>
+                  <span>Yuqori / past</span>
+                  <input id="adminPosterY" type="range" min="-100" max="100" value="0" step="1" />
+                </label>
+              </div>
+            </div>
+            <label class="admin-field">
+              <span>Sifat</span>
+              <input id="adminQuality" name="quality" type="text" placeholder="HD" />
+            </label>
+            <label class="admin-field admin-field--toggle">
+              <span>Header section</span>
+              <input id="adminHeroFeatured" name="heroFeatured" type="checkbox" />
+              <small>Asosiy header sliderda ko'rsatish</small>
+            </label>
+            <label class="admin-field admin-field--wide">
+              <span>Header ablojka URL</span>
+              <input id="adminHeroPoster" name="heroPoster" type="url" placeholder="https://..." />
+            </label>
+            <label class="admin-field admin-field--wide">
+              <span>Header ablojka rasm fayli</span>
+              <input class="admin-file-input" id="adminHeroPosterFile" name="heroPosterFile" type="file" accept="image/jpeg,image/png,image/webp" />
+              <span class="admin-file-picker">16:9 header rasmi tanlash</span>
+              <small id="adminHeroPosterFileStatus">16:9 gorizontal rasm tanlanmagan.</small>
+            </label>
+            <div class="admin-actions">
+              <button class="watch-button" id="adminSaveButton" type="submit">Saqlash</button>
+              <button class="ghost-button" id="adminResetButton" type="button">Tozalash</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
+  <section class="video-player" id="videoPlayer" role="dialog" aria-modal="true" aria-label="Video player" hidden>
+    <header class="video-player__topbar">
+      <button class="video-player__close" type="button" data-video-close aria-label="Orqaga">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+      </button>
+      <div class="video-player__title">
+        <strong id="videoTitle">Kino</strong>
+        <span id="videoSourceLabel">Video manba</span>
+      </div>
+      <button class="video-player__close" type="button" data-video-close aria-label="Yopish">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+    </header>
+
+    <div class="video-player__stage">
+      <div class="video-loading" id="videoLoading" role="status">
+        <span></span>
+        <b>Video yuklanmoqda...</b>
+      </div>
+
+      <div class="video-mount" id="videoMount"></div>
+
+      <button class="video-player__center-action" id="videoCenterAction" type="button" hidden aria-label="Play">
+        <svg class="icon-svg icon-svg--solid" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m8 6 10 6-10 6z"></path>
+        </svg>
+      </button>
+
+      <div class="video-player__controls glass-panel" id="videoControls" hidden>
+        <div class="video-progress-panel">
+          <span class="video-time" id="videoCurrentTime">0:00</span>
+          <input class="video-progress__range" id="videoSeek" type="range" min="0" max="1000" value="0" step="1"
+            aria-label="Video progress" />
+          <span class="video-time" id="videoDuration">0:00</span>
+        </div>
+
+        <div class="video-command-row">
+          <div class="video-volume-pill">
+            <button class="player-inline-button" id="videoMuteButton" type="button" aria-label="Mute"
+              data-state="sound">
+              <svg class="icon-svg icon-state icon-state--sound" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M11 5 6 9H3v6h3l5 4z"></path>
+                <path d="M16 9a5 5 0 0 1 0 6"></path>
+                <path d="M18.5 6.5a8.5 8.5 0 0 1 0 11"></path>
+              </svg>
+              <svg class="icon-svg icon-state icon-state--mute" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M11 5 6 9H3v6h3l5 4z"></path>
+                <path d="m16 9 5 6"></path>
+                <path d="m21 9-5 6"></path>
+              </svg>
+            </button>
+            <input class="video-volume__range" id="videoVolume" type="range" min="0" max="100" value="100" step="1"
+              aria-label="Volume" />
+            <span class="video-volume__value" id="videoVolumeValue">100%</span>
+          </div>
+
+          <div class="video-main-controls">
+            <button class="player-icon-button" id="videoBackButton" type="button" aria-label="-10 sekund">
+              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M11 8 7 12l4 4"></path>
+                <path d="M5 12a7 7 0 1 0 2-4.9"></path>
+              </svg>
+              <span class="player-icon-button__badge">10</span>
+            </button>
+            <button class="player-icon-button player-icon-button--primary" id="videoToggleButton" type="button"
+              aria-label="Play" data-state="play">
+              <svg class="icon-svg icon-svg--solid icon-state icon-state--play" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m8 6 10 6-10 6z"></path>
+              </svg>
+              <svg class="icon-svg icon-svg--solid icon-state icon-state--pause" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 6h2v12H9z"></path>
+                <path d="M13 6h2v12h-2z"></path>
+              </svg>
+            </button>
+            <button class="player-icon-button" id="videoForwardButton" type="button" aria-label="+10 sekund">
+              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m13 8 4 4-4 4"></path>
+                <path d="M19 12a7 7 0 1 1-2-4.9"></path>
+              </svg>
+              <span class="player-icon-button__badge">10</span>
+            </button>
+          </div>
+
+          <div class="video-extra-controls">
+            <button class="player-inline-button" id="videoPrevButton" type="button" aria-label="Oldingi kino">
+              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M11 19 2 12l9-7v14z"></path>
+                <path d="M22 19 13 12l9-7v14z"></path>
+              </svg>
+            </button>
+            <button class="player-inline-button" id="videoNextButton" type="button" aria-label="Keyingi kino">
+              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m13 5 9 7-9 7V5z"></path>
+                <path d="m2 5 9 7-9 7V5z"></path>
+              </svg>
+            </button>
+            <label class="video-speed-wrap">
+              <span class="sr-only">Speed</span>
+              <select class="video-speed" id="videoSpeed" aria-label="Speed">
+                <option value="1">1x</option>
+              </select>
+            </label>
+            <button class="player-inline-button" id="videoFullscreenButton" type="button" aria-label="Full"
+              data-state="enter">
+              <svg class="icon-svg icon-state icon-state--enter" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 3H4v4"></path>
+                <path d="M16 3h4v4"></path>
+                <path d="M4 16v5h4"></path>
+                <path d="M20 16v5h-4"></path>
+              </svg>
+              <svg class="icon-svg icon-state icon-state--exit" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 9H4V4"></path>
+                <path d="M15 9h5V4"></path>
+                <path d="M4 20v-5h5"></path>
+                <path d="M20 20v-5h-5"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="video-fallback" id="videoFallback" hidden>
+        <strong id="videoFallbackText" hidden></strong>
+        <a id="videoExternalLink" target="_blank" rel="noreferrer" hidden>Manbani ochish</a>
+      </div>
+    </div>
+  </section>
+
+  <script src="/static/app.js"></script>
+</body>
+
 </html>

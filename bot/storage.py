@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,53 @@ def save_movies(path: Path, movies: list[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8") as file:
         json.dump(movies, file, ensure_ascii=False, indent=2)
         file.write("\n")
+
+
+def load_users(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8") as file:
+        payload = json.load(file)
+    if isinstance(payload, dict):
+        payload = list(payload.values())
+    if not isinstance(payload, list):
+        raise ValueError("users.json ro'yxat bo'lishi kerak.")
+    return [item for item in payload if isinstance(item, dict)]
+
+
+def save_users(path: Path, users: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as file:
+        json.dump(users, file, ensure_ascii=False, indent=2)
+        file.write("\n")
+
+
+def upsert_user(path: Path, user: Any) -> dict[str, Any] | None:
+    user_id = getattr(user, "id", None)
+    if not user_id:
+        return None
+
+    users = load_users(path)
+    now = datetime.now(timezone.utc).isoformat()
+    key = str(user_id)
+    existing_index = next((index for index, item in enumerate(users) if str(item.get("id")) == key), None)
+    existing = users[existing_index] if existing_index is not None else {}
+    record = {
+        "id": int(user_id),
+        "username": getattr(user, "username", None) or existing.get("username", ""),
+        "firstName": getattr(user, "first_name", None) or existing.get("firstName", ""),
+        "lastName": getattr(user, "last_name", None) or existing.get("lastName", ""),
+        "firstSeenAt": existing.get("firstSeenAt") or now,
+        "lastSeenAt": now,
+    }
+
+    if existing_index is None:
+        users.append(record)
+    else:
+        users[existing_index] = {**existing, **record}
+
+    save_users(path, sorted(users, key=lambda item: int(item.get("id", 0))))
+    return record
 
 
 def search_movies(path: Path, query: str) -> list[dict[str, Any]]:
@@ -119,6 +167,18 @@ def parse_movie_caption(caption: str | None, fallback_title: str, message_id: in
 
 def upsert_movie(path: Path, movie: dict[str, Any]) -> dict[str, Any]:
     movies = load_movies(path)
+    if movie.get("telegramFileId") and not movie.get("video_file_id"):
+        movie["video_file_id"] = movie["telegramFileId"]
+    if movie.get("video_file_id") and not movie.get("telegramFileId"):
+        movie["telegramFileId"] = movie["video_file_id"]
+    if movie.get("telegramVideoFileId") and not movie.get("video_file_id"):
+        movie["video_file_id"] = movie["telegramVideoFileId"]
+    if movie.get("video_file_id") and not movie.get("telegramVideoFileId"):
+        movie["telegramVideoFileId"] = movie["video_file_id"]
+    if movie.get("sourceUrl") and not movie.get("telegramPostUrl"):
+        movie["telegramPostUrl"] = movie["sourceUrl"]
+    if movie.get("telegramPostUrl") and not movie.get("sourceUrl"):
+        movie["sourceUrl"] = movie["telegramPostUrl"]
     existing_index = next(
         (
             index
@@ -137,13 +197,21 @@ def upsert_movie(path: Path, movie: dict[str, Any]) -> dict[str, Any]:
         existing = movies[existing_index]
         movie["id"] = existing.get("id")
         merged = {**existing, **movie}
-        for key in ("telegramFileId", "video_file_id", "videoFileId"):
+        for key in ("telegramFileId", "telegramVideoFileId", "video_file_id", "videoFileId", "telegramPostUrl"):
             if not movie.get(key) and existing.get(key):
                 merged[key] = existing[key]
+        if merged.get("sourceUrl") and not merged.get("telegramPostUrl"):
+            merged["telegramPostUrl"] = merged["sourceUrl"]
+        if merged.get("telegramPostUrl") and not merged.get("sourceUrl"):
+            merged["sourceUrl"] = merged["telegramPostUrl"]
         if merged.get("telegramFileId") and not merged.get("video_file_id"):
             merged["video_file_id"] = merged["telegramFileId"]
         if merged.get("video_file_id") and not merged.get("telegramFileId"):
             merged["telegramFileId"] = merged["video_file_id"]
+        if merged.get("telegramVideoFileId") and not merged.get("video_file_id"):
+            merged["video_file_id"] = merged["telegramVideoFileId"]
+        if merged.get("video_file_id") and not merged.get("telegramVideoFileId"):
+            merged["telegramVideoFileId"] = merged["video_file_id"]
         movies[existing_index] = merged
 
     save_movies(path, movies)

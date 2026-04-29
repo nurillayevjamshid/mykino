@@ -12,7 +12,7 @@ module.exports = async function handler(request, response) {
     const telegramFile = await getTelegramFile(fileId);
     response.status(200).json({
       ok: true,
-      videoUrl: `/api/video-stream/${encodeURIComponent(fileId)}`,
+      videoUrl: `/api/stream/${encodeURIComponent(fileId)}`,
       filePath: telegramFile.filePath,
       fileSize: telegramFile.fileSize,
     });

@@ -31,6 +31,7 @@ class Settings:
     content_channel_id: int | None
     contact_username: str
     movies_path: Path
+    users_path: Path
     webapp_dir: Path
 
 
@@ -55,5 +56,6 @@ def load_settings() -> Settings:
         ),
         contact_username=os.getenv("CONTACT_USERNAME", "support"),
         movies_path=BASE_DIR / "data" / "movies.json",
+        users_path=BASE_DIR / "data" / "users.json",
         webapp_dir=BASE_DIR / "webapp",
     )
