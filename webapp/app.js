@@ -1016,9 +1016,8 @@ function isHeaderReadyMovie(movie) {
 }
 
 function getViewerMovies() {
-  const launchReadyMovies = movies.filter((movie) => isLaunchReadyMovie(movie));
-  if (isMobileViewingContext()) return launchReadyMovies;
-  return isAdminUser() ? movies : launchReadyMovies;
+  // All users see all movies (admin changes are visible to everyone)
+  return movies;
 }
 
 function shouldSkipInlinePlayback(movie) {
@@ -1308,10 +1307,9 @@ function updateWatchedMovieProgress(movie, progress = 0) {
 }
 
 function getWatchedMovieEntries() {
-  const viewerMovieIds = new Set(getViewerMovies().map((movie) => String(movie.id)));
+  // All users see all watched movies (admin changes are visible to everyone)
   return Object.values(readWatchedMoviesStore())
     .filter((entry) => entry && typeof entry === "object")
-    .filter((entry) => isAdminUser() || viewerMovieIds.has(String(entry.id || "")))
     .sort((left, right) => Number(right.watchedAt || 0) - Number(left.watchedAt || 0));
 }
 
