@@ -73,6 +73,36 @@ def safe_rating(value: Any) -> float:
     return max(0.0, min(10.0, round(numeric, 1)))
 
 
+def bool_flag(value: Any, fallback: bool = False) -> bool:
+    if value is None:
+        return fallback
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value > 0
+    normalized = str(value).strip().casefold()
+    if not normalized:
+        return False
+    if normalized in {"false", "0", "no", "off", "yoq", "yo'q"}:
+        return False
+    return normalized in {"true", "1", "yes", "on", "ha"}
+
+
+def has_key(payload: dict[str, Any], key: str) -> bool:
+    return key in payload
+
+
+def string_update(payload: dict[str, Any], current: dict[str, Any], keys: tuple[str, ...], default: str = "") -> str:
+    for key in keys:
+        if has_key(payload, key):
+            return str(payload.get(key) or "").strip()
+    for key in keys:
+        value = str(current.get(key) or "").strip()
+        if value:
+            return value
+    return default
+
+
 def upsert_local_user(settings: Settings, user: dict[str, Any]) -> dict[str, Any]:
     raw_user_id = str(user.get("id") or "").strip()
     user_id = int(raw_user_id) if raw_user_id.isdigit() else 0
@@ -148,17 +178,25 @@ def update_local_movie(settings: Settings, payload: dict[str, Any]) -> tuple[lis
         )
 
     current = movies[movie_index]
+    show_in_header = (
+        bool_flag(payload.get("showInHeader"))
+        if has_key(payload, "showInHeader")
+        else bool_flag(payload.get("heroFeatured"), bool_flag(current.get("showInHeader")))
+    )
     updated = {
         **current,
         "title": str(payload.get("title") or current.get("title") or "").strip(),
         "genre": str(payload.get("genre") or payload.get("category") or current.get("genre") or "Kino").strip(),
         "description": str(payload.get("description") or current.get("description") or "").strip(),
-        "poster": str(payload.get("poster") or current.get("poster") or "").strip(),
-        "heroPoster": str(payload.get("heroPoster") or current.get("heroPoster") or "").strip(),
+        "posterImage": string_update(payload, current, ("posterImage", "poster")),
+        "headerImage": string_update(payload, current, ("headerImage", "heroPoster", "headerPoster", "heroImage")),
+        "showInHeader": show_in_header,
         "quality": str(payload.get("quality") or current.get("quality") or "HD").strip(),
         "rating": safe_rating(payload.get("rating", current.get("rating", 0))),
-        "heroFeatured": bool(payload.get("heroFeatured", current.get("heroFeatured", False))),
     }
+    updated["poster"] = updated["posterImage"]
+    updated["heroPoster"] = updated["headerImage"]
+    updated["heroFeatured"] = updated["showInHeader"]
     movies[movie_index] = updated
     save_movies(settings.movies_path, movies)
     return movies, updated

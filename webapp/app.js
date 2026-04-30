@@ -5,23 +5,28 @@ const PROD_API_BASE = window.location.protocol === "file:" ? "https://kino-teleg
 const API_BASE_STORAGE_KEY = "kino_api_base_v1";
 const DEBUG_USER_STORAGE_KEY = "kino_debug_user_v1";
 const LOCAL_API_BASES = ["http://127.0.0.1:8080", "http://localhost:8080"];
-const MAX_SHARED_POSTER_DATA_URL_LENGTH = 140000;
+const MAX_SHARED_POSTER_DATA_URL_LENGTH = 35000;
 const MAX_ADMIN_IMAGE_FILE_SIZE = 25000000;
 const ADMIN_POSTER_CROP_SIZE = { width: 720, height: 1080 };
 const POSTER_COMPRESSION_STEPS = [
-  { width: 720, height: 1080, quality: 0.9 },
-  { width: 640, height: 960, quality: 0.86 },
-  { width: 540, height: 810, quality: 0.82 },
-  { width: 420, height: 630, quality: 0.76 },
-  { width: 320, height: 480, quality: 0.7 },
-  { width: 240, height: 360, quality: 0.62 },
+  { width: 720, height: 1080, quality: 0.9, minWidth: 120, minHeight: 180 },
+  { width: 640, height: 960, quality: 0.86, minWidth: 120, minHeight: 180 },
+  { width: 540, height: 810, quality: 0.82, minWidth: 120, minHeight: 180 },
+  { width: 420, height: 630, quality: 0.76, minWidth: 120, minHeight: 180 },
+  { width: 320, height: 480, quality: 0.7, minWidth: 120, minHeight: 180 },
+  { width: 240, height: 360, quality: 0.62, minWidth: 120, minHeight: 180 },
+  { width: 200, height: 300, quality: 0.5, minWidth: 120, minHeight: 180 },
+  { width: 160, height: 240, quality: 0.42, minWidth: 120, minHeight: 180 },
 ];
 const HERO_POSTER_COMPRESSION_STEPS = [
-  { width: 1280, height: 720, quality: 0.86 },
-  { width: 1080, height: 608, quality: 0.82 },
-  { width: 900, height: 506, quality: 0.78 },
-  { width: 720, height: 405, quality: 0.74 },
-  { width: 560, height: 315, quality: 0.68 },
+  { width: 1280, height: 720, quality: 0.86, minWidth: 240, minHeight: 135 },
+  { width: 1080, height: 608, quality: 0.82, minWidth: 240, minHeight: 135 },
+  { width: 900, height: 506, quality: 0.78, minWidth: 240, minHeight: 135 },
+  { width: 720, height: 405, quality: 0.74, minWidth: 240, minHeight: 135 },
+  { width: 560, height: 315, quality: 0.68, minWidth: 240, minHeight: 135 },
+  { width: 420, height: 236, quality: 0.56, minWidth: 240, minHeight: 135 },
+  { width: 320, height: 180, quality: 0.46, minWidth: 240, minHeight: 135 },
+  { width: 240, height: 135, quality: 0.4, minWidth: 240, minHeight: 135 },
 ];
 const DEFAULT_DEBUG_ADMIN_USER = {
   id: 679291909,
@@ -248,6 +253,7 @@ let selectedAdminMovieId = "";
 let pendingAdminPosterDataUrl = "";
 let pendingAdminHeroPosterDataUrl = "";
 let pendingAdminPosterSourceDataUrl = "";
+let pendingAdminPosterReadyPromise = null;
 let pendingAdminHeroPosterReadyPromise = null;
 let pendingAdminPosterFileSelected = false;
 let pendingAdminHeroPosterFileSelected = false;
@@ -303,14 +309,13 @@ const adminMovieIdInput = document.querySelector("#adminMovieId");
 const adminTitleInput = document.querySelector("#adminTitle");
 const adminGenreSelect = document.querySelector("#adminGenreSelect");
 const adminGenreCustomInput = document.querySelector("#adminGenreCustom");
-const adminPosterInput = document.querySelector("#adminPoster");
 const adminPosterFileInput = document.querySelector("#adminPosterFile");
+const adminPosterFileStatus = document.querySelector("#adminPosterFileStatus");
 const adminPosterCrop = document.querySelector("#adminPosterCrop");
 const adminPosterCropPreview = document.querySelector("#adminPosterCropPreview");
 const adminPosterZoomInput = document.querySelector("#adminPosterZoom");
 const adminPosterXInput = document.querySelector("#adminPosterX");
 const adminPosterYInput = document.querySelector("#adminPosterY");
-const adminHeroPosterInput = document.querySelector("#adminHeroPoster");
 const adminHeroPosterFileInput = document.querySelector("#adminHeroPosterFile");
 const adminHeroPosterFileStatus = document.querySelector("#adminHeroPosterFileStatus");
 const adminRatingInput = document.querySelector("#adminRating");
@@ -389,8 +394,10 @@ function renderPosterDataUrl(image, step) {
   const naturalWidth = Number(image.naturalWidth || image.width || step.width || 240) || 240;
   const naturalHeight = Number(image.naturalHeight || image.height || step.height || 360) || 360;
   const scale = Math.min(1, step.width / naturalWidth, step.height / naturalHeight);
-  const width = Math.max(120, Math.round(naturalWidth * scale));
-  const height = Math.max(180, Math.round(naturalHeight * scale));
+  const minWidth = Number(step.minWidth || 120) || 120;
+  const minHeight = Number(step.minHeight || 180) || 180;
+  const width = Math.max(minWidth, Math.round(naturalWidth * scale));
+  const height = Math.max(minHeight, Math.round(naturalHeight * scale));
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -529,7 +536,12 @@ async function cropImageDataUrl(dataUrl, kind) {
 }
 
 async function prepareAdminImageForSave(kind, fallbackValue) {
-  const source = kind === "hero" ? pendingAdminHeroPosterDataUrl : pendingAdminPosterSourceDataUrl;
+  if (kind === "hero") {
+    const source = pendingAdminHeroPosterDataUrl || String(fallbackValue || "").trim();
+    return preparePosterForSharedStorage(source, HERO_POSTER_COMPRESSION_STEPS);
+  }
+
+  const source = pendingAdminPosterSourceDataUrl;
   const adjusted = source ? await cropImageDataUrl(source, kind) : String(fallbackValue || "").trim();
   return preparePosterForSharedStorage(adjusted);
 }
@@ -736,15 +748,36 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function toBooleanFlag(value) {
+  if (value === true) return true;
+  if (value === false || value === undefined || value === null) return false;
+  if (typeof value === "number") return value > 0;
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized || ["false", "0", "no", "off", "yoq", "yo'q"].includes(normalized)) return false;
+  return ["true", "1", "yes", "on", "ha"].includes(normalized);
+}
+
+function getPosterImage(movie) {
+  return String(movie?.posterImage || movie?.poster || "").trim();
+}
+
+function getHeaderImage(movie) {
+  return String(movie?.headerImage || movie?.posterImage || movie?.poster || "").trim();
+}
+
+function isDataImageValue(value) {
+  return String(value || "").trim().startsWith("data:image/");
+}
+
 function posterStyle(movie) {
-  if (!movie.poster) return "";
-  const poster = String(movie.poster).replaceAll("'", "%27").replaceAll(")", "%29");
+  const source = getPosterImage(movie);
+  if (!source) return "";
+  const poster = source.replaceAll("'", "%27").replaceAll(")", "%29");
   return `style="--poster-image: url('${poster}')"`;
 }
 
 function heroPosterStyle(movie) {
-  // Use heroPoster first, fallback to regular poster
-  const source = movie?.heroPoster || movie?.poster || "";
+  const source = getHeaderImage(movie);
   if (!source) return "";
   const poster = String(source).replaceAll("'", "%27").replaceAll(")", "%29");
   return `style="--poster-image: url('${poster}')"`;
@@ -1025,7 +1058,7 @@ function getLaunchWarning(movie) {
 }
 
 function isHeaderReadyMovie(movie) {
-  return Boolean(movie?.heroFeatured && movie?.heroPoster);
+  return Boolean(movie?.showInHeader && getHeaderImage(movie));
 }
 
 function getViewerMovies() {
@@ -1111,7 +1144,8 @@ function normalizeMovie(movie, index = 0) {
   const postUrl = getMoviePostUrl(movie);
   const safeId = String(movie?.id || movie?.code || `movie-${index + 1}`);
   const title = String(movie?.title || `Kino ${index + 1}`).trim();
-  const rawPoster = String(movie?.poster || movie?.thumbnail || (fileId ? buildDriveThumbnailUrl(fileId) : "")).trim();
+  const rawPoster = String(movie?.posterImage || movie?.poster || movie?.thumbnail || (fileId ? buildDriveThumbnailUrl(fileId) : "")).trim();
+  const rawHeaderImage = String(movie?.headerImage || movie?.heroPoster || movie?.headerPoster || movie?.heroImage || "").trim();
   const description = sanitizePublicDescription(movie?.description || "Kino tavsifi kiritilmagan.");
   const sourceType = String(movie?.sourceType || (fileId ? "catalog" : "catalog")).trim();
   const isDriveSource = sourceType === "google_drive" || Boolean(movie?.driveFileId || movie?.fileId || movie?.googleDriveFileId);
@@ -1120,15 +1154,18 @@ function normalizeMovie(movie, index = 0) {
   const rating = Number(movie?.rating || 0);
   const fileName = String(movie?.fileName || movie?.name || "").trim();
   const sourceUrl = resolveAppUrl(postUrl || movie?.sourceUrl || movie?.webViewLink || "");
-  const poster = resolveAppUrl(rawPoster) || buildGeneratedPosterDataUrl({ title, year: movie?.year || "", quality });
-  const heroPoster = resolveAppUrl(String(movie?.heroPoster || movie?.headerPoster || movie?.heroImage || "").trim());
+  const posterImage = resolveAppUrl(rawPoster) || buildGeneratedPosterDataUrl({ title, year: movie?.year || "", quality });
+  const headerImage = isDataImageValue(rawHeaderImage) ? resolveAppUrl(rawHeaderImage) : "";
+  const showInHeader = toBooleanFlag(movie?.showInHeader) && (!rawHeaderImage || Boolean(headerImage));
   const normalized = {
     ...movie,
     id: safeId,
     code: String(movie?.code || safeId).trim().toUpperCase(),
     title,
-    poster,
-    heroPoster,
+    posterImage,
+    headerImage,
+    poster: posterImage,
+    heroPoster: headerImage,
     description,
     genre,
     quality,
@@ -1136,7 +1173,8 @@ function normalizeMovie(movie, index = 0) {
     year: movie?.year || "",
     isTop: Boolean(movie?.isTop),
     isPremium: Boolean(movie?.isPremium),
-    heroFeatured: Boolean(movie?.heroFeatured || movie?.isHero || movie?.showInHeader),
+    showInHeader,
+    heroFeatured: showInHeader,
     sourceType,
     fileId,
     driveFileId: String(movie?.driveFileId || movie?.fileId || movie?.googleDriveFileId || "").trim(),
@@ -1203,7 +1241,7 @@ function markMovieWatched(movie, progress = 0) {
   store[String(movie.id)] = {
     id: String(movie.id),
     title: movie.title || "Kino",
-    poster: movie.poster || "",
+    poster: getPosterImage(movie),
     year: movie.year || "",
     genre: movie.genre || "Kino",
     progress: Math.max(0, Math.floor(Number(progress) || 0)),
@@ -1332,10 +1370,12 @@ function closeAdminEditor() {
   if (adminEditModal) adminEditModal.hidden = true;
   pendingAdminPosterDataUrl = "";
   pendingAdminHeroPosterDataUrl = "";
+  pendingAdminPosterReadyPromise = null;
   pendingAdminHeroPosterReadyPromise = null;
   pendingAdminPosterFileSelected = false;
   pendingAdminHeroPosterFileSelected = false;
   if (adminPosterFileInput) adminPosterFileInput.value = "";
+  if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Oblojka rasmi tanlanmagan.";
   if (adminHeroPosterFileInput) adminHeroPosterFileInput.value = "";
   if (adminHeroPosterFileStatus) adminHeroPosterFileStatus.textContent = "16:9 gorizontal rasm tanlanmagan.";
   resetAdminCrop("poster");
@@ -1346,13 +1386,16 @@ function clearAdminEditor() {
   pendingAdminPosterDataUrl = "";
   pendingAdminHeroPosterDataUrl = "";
   pendingAdminPosterSourceDataUrl = "";
+  pendingAdminPosterReadyPromise = null;
   pendingAdminHeroPosterReadyPromise = null;
   pendingAdminPosterFileSelected = false;
   pendingAdminHeroPosterFileSelected = false;
   if (adminMovieForm) adminMovieForm.reset();
+  if (adminMovieForm) delete adminMovieForm.dataset.fileId;
   if (adminMovieIdInput) adminMovieIdInput.value = "";
   if (adminGenreCustomInput) adminGenreCustomInput.value = "";
   if (adminPosterFileInput) adminPosterFileInput.value = "";
+  if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Oblojka rasmi tanlanmagan.";
   if (adminHeroPosterFileInput) adminHeroPosterFileInput.value = "";
   populateAdminGenreSelect("");
   closeAdminEditor();
@@ -1384,39 +1427,38 @@ function openAdminEditor(movie) {
 
   selectedAdminMovieId = String(movie.id);
   resetAdminCrop("poster");
-  pendingAdminPosterDataUrl = String(movie.poster || "").startsWith("data:image/") ? String(movie.poster) : "";
-  pendingAdminHeroPosterDataUrl = String(movie.heroPoster || "").startsWith("data:image/") ? String(movie.heroPoster) : "";
+  pendingAdminPosterDataUrl = String(movie.posterImage || "").startsWith("data:image/") ? String(movie.posterImage) : "";
+  pendingAdminHeroPosterDataUrl = String(movie.headerImage || "").startsWith("data:image/") ? String(movie.headerImage) : "";
+  pendingAdminPosterReadyPromise = null;
   pendingAdminHeroPosterReadyPromise = null;
   pendingAdminPosterFileSelected = false;
   pendingAdminHeroPosterFileSelected = false;
   if (adminMovieForm) adminMovieForm.reset();
+  if (adminMovieForm) adminMovieForm.dataset.fileId = selectedAdminMovieId;
   if (adminMovieIdInput) adminMovieIdInput.value = selectedAdminMovieId;
   if (adminTitleInput) adminTitleInput.value = movie.title || "";
   populateAdminGenreSelect(movie.genre || "");
   if (adminGenreCustomInput) adminGenreCustomInput.value = "";
-  if (adminPosterInput) {
-    const poster = String(movie.poster || "");
-    adminPosterInput.value = poster && !poster.startsWith("/api/") && !poster.startsWith("data:") ? poster : "";
-  }
   if (adminPosterFileInput) adminPosterFileInput.value = "";
-  if (adminHeroPosterInput) {
-    const heroPoster = String(movie.heroPoster || "");
-    adminHeroPosterInput.value = heroPoster && !heroPoster.startsWith("/api/") && !heroPoster.startsWith("data:") ? heroPoster : "";
+  if (adminPosterFileStatus) {
+    adminPosterFileStatus.textContent = movie.posterImage
+      ? "Oblojka saqlangan. Yangi rasm tanlasangiz almashtiriladi."
+      : "Oblojka rasmi tanlanmagan.";
   }
   if (adminHeroPosterFileInput) adminHeroPosterFileInput.value = "";
   if (adminHeroPosterFileStatus) {
-    adminHeroPosterFileStatus.textContent = movie.heroPoster
+    adminHeroPosterFileStatus.textContent = movie.headerImage
       ? "Header ablojka saqlangan. Yangi 16:9 rasm tanlasangiz almashtiriladi."
       : "16:9 gorizontal rasm tanlanmagan.";
   }
   if (adminRatingInput) adminRatingInput.value = Number.isFinite(Number(movie.rating)) ? String(movie.rating) : "";
   if (adminQualityInput) adminQualityInput.value = movie.quality || "";
-  if (adminHeroFeaturedInput) adminHeroFeaturedInput.checked = Boolean(movie.heroFeatured);
+  if (adminHeroFeaturedInput) adminHeroFeaturedInput.checked = Boolean(movie.showInHeader);
   if (adminDescriptionInput) adminDescriptionInput.value = movie.description || "";
   if (adminEditorTitle) adminEditorTitle.textContent = movie.title || "Kino";
   if (adminEditorMeta) {
     const warning = getLaunchWarning(movie);
-    const headerLabel = isHeaderReadyMovie(movie) ? "Header slider" : movie.heroFeatured ? "Header rasmi yo'q" : "Header off";
+    const headerLabel = isHeaderReadyMovie(movie) ? "Header slider" : movie.showInHeader ? "Header rasmi yo'q" : "Header off";
     adminEditorMeta.textContent = warning
       ? `${movie.quality || "HD"} - ${warning} - ${headerLabel}`
       : `${movie.quality || "HD"} - Launch-ready - ${headerLabel}`;
@@ -1449,7 +1491,7 @@ function renderAdminMovieList(items = adminDashboardMovies) {
         <strong>${escapeHtml(movie.title)}</strong>
         <span>${escapeHtml(movie.genre || "Kategoriya yo'q")}</span>
         <span>${escapeHtml(`${movie.quality || "HD"} - ${movie.rating || 0}`)}</span>
-        ${isHeaderReadyMovie(movie) ? '<span class="admin-movie-item__ready">Header slider</span>' : movie.heroFeatured ? '<span class="admin-movie-item__warning">Header rasmi yo&#039;q</span>' : ""}
+        ${isHeaderReadyMovie(movie) ? '<span class="admin-movie-item__ready">Header slider</span>' : movie.showInHeader ? '<span class="admin-movie-item__warning">Header rasmi yo&#039;q</span>' : ""}
         ${warning
           ? `<span class="admin-movie-item__warning">${escapeHtml(warning)}</span>`
           : '<span class="admin-movie-item__ready">Launch-ready</span>'}
@@ -1543,10 +1585,19 @@ function closeAdminPanel() {
 
 async function saveAdminMovie(formData) {
   await resolveApiBase();
+  if (pendingAdminPosterReadyPromise) {
+    await pendingAdminPosterReadyPromise;
+  }
   if (pendingAdminHeroPosterReadyPromise) {
     await pendingAdminHeroPosterReadyPromise;
   }
-  const fileId = String(formData.get("fileId") || selectedAdminMovieId || adminMovieIdInput?.value || "").trim();
+  const fileId = String(
+    formData.get("fileId")
+    || adminMovieForm?.dataset.fileId
+    || selectedAdminMovieId
+    || adminMovieIdInput?.value
+    || "",
+  ).trim();
   if (adminMovieIdInput && fileId) {
     adminMovieIdInput.value = fileId;
   }
@@ -1559,18 +1610,18 @@ async function saveAdminMovie(formData) {
     return { ok: false, message: "Kino nomi va kategoriya majburiy." };
   }
 
-  const posterInputValue = String(formData.get("poster") || "").trim();
-  const heroPosterInputValue = String(formData.get("heroPoster") || "").trim();
+  const currentMovie = adminDashboardMovies.find((movie) => String(movie.id) === fileId) || null;
   const poster = pendingAdminPosterFileSelected
     ? await prepareAdminImageForSave("poster", pendingAdminPosterDataUrl)
-    : posterInputValue
-      ? await preparePosterForSharedStorage(posterInputValue)
-      : undefined;
-  const heroPoster = pendingAdminHeroPosterFileSelected
+    : undefined;
+  const headerImage = pendingAdminHeroPosterFileSelected
     ? await prepareAdminImageForSave("hero", pendingAdminHeroPosterDataUrl)
-    : heroPosterInputValue
-      ? await preparePosterForSharedStorage(heroPosterInputValue, HERO_POSTER_COMPRESSION_STEPS)
-      : undefined;
+    : undefined;
+  const wantsShowInHeader = formData.get("showInHeader") === "on";
+  const hasHeaderImageForSave = Boolean(headerImage || currentMovie?.headerImage);
+  if (wantsShowInHeader && !hasHeaderImageForSave) {
+    return { ok: false, message: "Header section uchun avval 16:9 rasm tanlang." };
+  }
 
   const payload = {
     adminId: Number(getTelegramUser()?.id || 0),
@@ -1580,10 +1631,10 @@ async function saveAdminMovie(formData) {
     rating: Number(formData.get("rating") || 0),
     quality: String(formData.get("quality") || "").trim() || "HD",
     description: String(formData.get("description") || "").trim(),
-    heroFeatured: formData.get("heroFeatured") === "on",
+    showInHeader: wantsShowInHeader,
   };
-  if (poster !== undefined) payload.poster = poster;
-  if (heroPoster !== undefined) payload.heroPoster = heroPoster;
+  if (poster !== undefined) payload.posterImage = poster;
+  if (headerImage !== undefined) payload.headerImage = headerImage;
 
   try {
     const response = await fetch(buildApiUrl("/api/admin/movies"), {
@@ -1607,12 +1658,23 @@ async function saveAdminMovie(formData) {
     movies = adminDashboardMovies.length ? [...adminDashboardMovies] : movies;
     removeAdminMovieOverride(fileId);
     const updatedMovie = adminDashboardMovies.find((movie) => String(movie.id) === fileId);
-    pendingAdminPosterDataUrl = String(updatedMovie?.poster || "").startsWith("data:image/") ? String(updatedMovie.poster) : "";
-    pendingAdminHeroPosterDataUrl = String(updatedMovie?.heroPoster || "").startsWith("data:image/") ? String(updatedMovie.heroPoster) : "";
+    pendingAdminPosterDataUrl = String(updatedMovie?.posterImage || "").startsWith("data:image/") ? String(updatedMovie.posterImage) : "";
+    pendingAdminHeroPosterDataUrl = String(updatedMovie?.headerImage || "").startsWith("data:image/") ? String(updatedMovie.headerImage) : "";
     pendingAdminPosterSourceDataUrl = pendingAdminPosterDataUrl;
+    pendingAdminPosterReadyPromise = null;
     pendingAdminHeroPosterReadyPromise = null;
     pendingAdminPosterFileSelected = false;
     pendingAdminHeroPosterFileSelected = false;
+    if (adminPosterFileStatus) {
+      adminPosterFileStatus.textContent = updatedMovie?.posterImage
+        ? "Oblojka saqlandi va asosiy sahifada ko'rinadi."
+        : "Oblojka rasmi tanlanmagan.";
+    }
+    if (adminHeroPosterFileStatus) {
+      adminHeroPosterFileStatus.textContent = updatedMovie?.headerImage
+        ? "Header rasmi saqlandi va sliderda ko'rinadi."
+        : "16:9 gorizontal rasm tanlanmagan.";
+    }
     renderAdminMovieList(adminDashboardMovies);
     if (adminHeaderHint) {
       const headerCount = adminDashboardMovies.filter((movie) => isHeaderReadyMovie(movie)).length;
@@ -1620,7 +1682,7 @@ async function saveAdminMovie(formData) {
         ? `${headerCount} ta kino header sliderda ko'rsatiladi.`
         : "Header uchun 16:9 rasm yuklang.";
     }
-    renderHeroCarousel(payload.heroFeatured ? fileId : "");
+    renderHeroCarousel(payload.showInHeader ? fileId : "");
     closeAdminEditor();
     renderMovies();
     return { ok: true, mode: "remote" };
@@ -1695,16 +1757,7 @@ function clearHeroCarouselTimer() {
 
 function getHeroCarouselSourceMovies() {
   const sourceMovies = getViewerMovies();
-  // First priority: featured movies with hero poster
-  const featuredMovies = sourceMovies.filter((movie) => movie?.heroFeatured && movie?.heroPoster);
-  if (featuredMovies.length) return featuredMovies.slice(0, 6);
-
-  // Second priority: movies with any poster (hero or regular)
-  const moviesWithPoster = sourceMovies.filter((movie) => Boolean(movie?.heroPoster || movie?.poster));
-  if (moviesWithPoster.length) return moviesWithPoster.slice(0, 6);
-
-  // Third priority: any available movies (for all users to see the header)
-  return sourceMovies.slice(0, 6);
+  return sourceMovies.filter((movie) => movie?.showInHeader && getHeaderImage(movie)).slice(0, 6);
 }
 
 function updateHeroCarouselView() {
@@ -1904,8 +1957,9 @@ function renderProfileModal() {
 }
 
 function openMovie(movie) {
-  modalPoster.style.backgroundImage = movie.poster
-    ? `linear-gradient(180deg, rgba(0,0,0,0) 48%, rgba(0,0,0,.32) 100%), url('${String(movie.poster).replaceAll("'", "%27")}'), linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)`
+  const posterImage = getPosterImage(movie);
+  modalPoster.style.backgroundImage = posterImage
+    ? `linear-gradient(180deg, rgba(0,0,0,0) 48%, rgba(0,0,0,.32) 100%), url('${posterImage.replaceAll("'", "%27")}'), linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)`
     : "linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)";
   modalMeta.innerHTML = `
     <span><b>${escapeHtml(t("genreLabel"))}</b>${escapeHtml(movie.genre || "Kino")}</span>
@@ -2311,7 +2365,7 @@ function createVideoElement(src, movie, options = {}) {
   video.playsInline = true;
   video.preload = preload;
   video.autoplay = true;
-  video.poster = movie.poster || "";
+  video.poster = getPosterImage(movie);
   video.setAttribute("playsinline", "");
   video.setAttribute("webkit-playsinline", "");
   video.setAttribute("controlsList", "nodownload");
@@ -2822,38 +2876,54 @@ adminPosterFileInput?.addEventListener("change", () => {
   const file = adminPosterFileInput.files?.[0];
   pendingAdminPosterDataUrl = "";
   pendingAdminPosterSourceDataUrl = "";
+  pendingAdminPosterReadyPromise = null;
   pendingAdminPosterFileSelected = false;
   updateAdminCropPreview("poster");
   if (!file) return;
   if (!isImageFile(file)) {
     adminPosterFileInput.value = "";
+    if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Faqat JPG, PNG yoki WEBP rasm tanlang.";
     if (adminLibraryHint) adminLibraryHint.textContent = "Faqat rasm fayl tanlang.";
     return;
   }
   if (file.size > MAX_ADMIN_IMAGE_FILE_SIZE) {
     adminPosterFileInput.value = "";
+    if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Fayl juda katta. 25 MB dan kichik rasm tanlang.";
     if (adminLibraryHint) adminLibraryHint.textContent = "Oblojka rasmi 25 MB dan kichik bo'lsin.";
     return;
   }
 
+  if (adminPosterFileStatus) {
+    adminPosterFileStatus.textContent = `Tanlandi: ${file.name || "oblojka"}. Tayyorlanmoqda...`;
+  }
+  if (adminLibraryHint) {
+    adminLibraryHint.textContent = "Oblojka rasmi tayyorlanmoqda...";
+  }
   const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    const rawPoster = normalizeImageDataUrlForFile(typeof reader.result === "string" ? reader.result : "", file);
-    pendingAdminPosterSourceDataUrl = rawPoster;
-    pendingAdminPosterDataUrl = rawPoster;
-    pendingAdminPosterFileSelected = Boolean(rawPoster);
-    if (rawPoster && adminPosterInput) adminPosterInput.value = "";
-    updateAdminCropPreview("poster");
-    if (adminLibraryHint) {
-      adminLibraryHint.textContent = "Oblojka joylashuvini sozlang va saqlashni bosing.";
-    }
-  });
-  reader.addEventListener("error", () => {
-    pendingAdminPosterDataUrl = "";
-    pendingAdminPosterSourceDataUrl = "";
-    pendingAdminPosterFileSelected = false;
-    updateAdminCropPreview("poster");
-    if (adminLibraryHint) adminLibraryHint.textContent = "Rasmni o'qib bo'lmadi.";
+  pendingAdminPosterReadyPromise = new Promise((resolve) => {
+    reader.addEventListener("load", () => {
+      const rawPoster = normalizeImageDataUrlForFile(typeof reader.result === "string" ? reader.result : "", file);
+      pendingAdminPosterSourceDataUrl = rawPoster;
+      pendingAdminPosterDataUrl = rawPoster;
+      pendingAdminPosterFileSelected = Boolean(rawPoster);
+      updateAdminCropPreview("poster");
+      if (adminPosterFileStatus) {
+        adminPosterFileStatus.textContent = `Tanlandi: ${file.name || "oblojka"}. Joylashuvni sozlab saqlang.`;
+      }
+      if (adminLibraryHint) {
+        adminLibraryHint.textContent = "Oblojka joylashuvini sozlang va saqlashni bosing.";
+      }
+      resolve();
+    });
+    reader.addEventListener("error", () => {
+      pendingAdminPosterDataUrl = "";
+      pendingAdminPosterSourceDataUrl = "";
+      pendingAdminPosterFileSelected = false;
+      updateAdminCropPreview("poster");
+      if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Rasmni o'qib bo'lmadi. Boshqa rasm tanlang.";
+      if (adminLibraryHint) adminLibraryHint.textContent = "Rasmni o'qib bo'lmadi.";
+      resolve();
+    });
   });
   reader.readAsDataURL(file);
 });
@@ -2887,7 +2957,6 @@ adminHeroPosterFileInput?.addEventListener("change", () => {
       try {
         pendingAdminHeroPosterDataUrl = await preparePosterForSharedStorage(rawPoster, HERO_POSTER_COMPRESSION_STEPS);
         pendingAdminHeroPosterFileSelected = Boolean(pendingAdminHeroPosterDataUrl);
-        if (rawPoster && adminHeroPosterInput) adminHeroPosterInput.value = "";
         if (rawPoster && adminHeroFeaturedInput) adminHeroFeaturedInput.checked = true;
         if (adminHeroPosterFileStatus) {
           adminHeroPosterFileStatus.textContent = `Tanlandi: ${file.name || "header rasm"}. Saqlashni bosing.`;
@@ -2898,7 +2967,6 @@ adminHeroPosterFileInput?.addEventListener("change", () => {
       } catch {
         pendingAdminHeroPosterDataUrl = rawPoster;
         pendingAdminHeroPosterFileSelected = Boolean(rawPoster);
-        if (rawPoster && adminHeroPosterInput) adminHeroPosterInput.value = "";
         if (rawPoster && adminHeroFeaturedInput) adminHeroFeaturedInput.checked = true;
         if (adminHeroPosterFileStatus) {
           adminHeroPosterFileStatus.textContent = `Tanlandi: ${file.name || "header rasm"}. Saqlashni bosing.`;
@@ -2944,7 +3012,7 @@ adminMovieForm?.addEventListener("submit", (event) => {
         setAdminSaveFeedback(result?.message || "Nomi va kategoriya majburiy.");
         return;
       }
-      setAdminSaveFeedback("O'zgarish serverga saqlandi va hammaga ko'rinadi");
+      setAdminSaveFeedback("Saqlandi. O'zgarishlar sinxron bazaga yozildi va hammaga ko'rinadi.");
     })
     .catch((error) => {
       setAdminSaveFeedback(error?.message || "Saqlash bajarilmadi");
@@ -3093,8 +3161,20 @@ async function silentReloadMovies() {
     const newMovies = payload.map((movie, index) => normalizeMovie(movie, index));
 
     // Only update if movies actually changed
-    const currentMoviesJson = JSON.stringify(movies.map(m => ({ id: m.id, poster: m.poster, heroPoster: m.heroPoster, title: m.title })));
-    const newMoviesJson = JSON.stringify(newMovies.map(m => ({ id: m.id, poster: m.poster, heroPoster: m.heroPoster, title: m.title })));
+    const currentMoviesJson = JSON.stringify(movies.map((m) => ({
+      id: m.id,
+      posterImage: m.posterImage,
+      headerImage: m.headerImage,
+      showInHeader: m.showInHeader,
+      title: m.title,
+    })));
+    const newMoviesJson = JSON.stringify(newMovies.map((m) => ({
+      id: m.id,
+      posterImage: m.posterImage,
+      headerImage: m.headerImage,
+      showInHeader: m.showInHeader,
+      title: m.title,
+    })));
 
     if (currentMoviesJson !== newMoviesJson) {
       movies = newMovies;

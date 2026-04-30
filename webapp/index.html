@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0f131a" />
   <title>My Kino</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260430-admin-images2" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -291,12 +291,10 @@
               <textarea id="adminDescription" name="description" rows="5" placeholder="Kino haqida qisqa tavsif"></textarea>
             </label>
             <label class="admin-field admin-field--wide">
-              <span>Oblojka URL</span>
-              <input id="adminPoster" name="poster" type="url" placeholder="https://..." />
-            </label>
-            <label class="admin-field admin-field--wide">
-              <span>Oblojka rasm fayli</span>
-              <input id="adminPosterFile" name="posterFile" type="file" accept="image/*" />
+              <span>Oblojka rasmi</span>
+              <input class="admin-file-input" id="adminPosterFile" name="posterFile" type="file" accept="image/jpeg,image/png,image/webp" />
+              <span class="admin-file-picker">Oblojka rasmi tanlash</span>
+              <small id="adminPosterFileStatus">Oblojka rasmi tanlanmagan.</small>
             </label>
             <div class="admin-image-crop admin-image-crop--poster admin-field--wide" id="adminPosterCrop" hidden>
               <div class="admin-image-crop__preview" id="adminPosterCropPreview"></div>
@@ -320,16 +318,12 @@
               <input id="adminQuality" name="quality" type="text" placeholder="HD" />
             </label>
             <label class="admin-field admin-field--toggle">
-              <span>Header section</span>
-              <input id="adminHeroFeatured" name="heroFeatured" type="checkbox" />
-              <small>Asosiy header sliderda ko'rsatish</small>
+              <span>Header sectionda ko'rsatish</span>
+              <input id="adminHeroFeatured" name="showInHeader" type="checkbox" />
+              <small>Tanlangan header rasmi bilan chiqadi</small>
             </label>
             <label class="admin-field admin-field--wide">
-              <span>Header ablojka URL</span>
-              <input id="adminHeroPoster" name="heroPoster" type="url" placeholder="https://..." />
-            </label>
-            <label class="admin-field admin-field--wide">
-              <span>Header ablojka rasm fayli</span>
+              <span>Header section rasmi</span>
               <input class="admin-file-input" id="adminHeroPosterFile" name="heroPosterFile" type="file" accept="image/jpeg,image/png,image/webp" />
               <span class="admin-file-picker">16:9 header rasmi tanlash</span>
               <small id="adminHeroPosterFileStatus">16:9 gorizontal rasm tanlanmagan.</small>
@@ -477,7 +471,7 @@
     </div>
   </section>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=20260430-admin-images2"></script>
 </body>
 
 </html>

@@ -15,6 +15,62 @@ async function readJsonBody(request) {
   return text ? JSON.parse(text) : {};
 }
 
+function normalizeTitle(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function hasOwnValue(source, key) {
+  return Object.prototype.hasOwnProperty.call(source || {}, key);
+}
+
+function normalizeUploadedImage(value, label) {
+  if (value === undefined) return undefined;
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  if (normalized.startsWith("data:image/")) return normalized;
+
+  const error = new Error(`${label} faqat device'dan tanlangan rasm fayli bo'lishi kerak.`);
+  error.statusCode = 400;
+  error.code = "IMAGE_UPLOAD_REQUIRED";
+  throw error;
+}
+
+function normalizeMoviePayload(payload = {}) {
+  const nextPayload = { ...payload };
+  const posterValue = hasOwnValue(payload, "posterImage")
+    ? payload.posterImage
+    : hasOwnValue(payload, "poster")
+      ? payload.poster
+      : undefined;
+  const headerValue = hasOwnValue(payload, "headerImage")
+    ? payload.headerImage
+    : hasOwnValue(payload, "heroPoster")
+      ? payload.heroPoster
+      : undefined;
+
+  delete nextPayload.poster;
+  delete nextPayload.heroPoster;
+  delete nextPayload.headerPoster;
+  delete nextPayload.heroImage;
+  delete nextPayload.heroFeatured;
+  delete nextPayload.isHero;
+
+  const posterImage = normalizeUploadedImage(posterValue, "Poster rasmi");
+  const headerImage = normalizeUploadedImage(headerValue, "Header rasmi");
+  if (posterImage !== undefined) nextPayload.posterImage = posterImage;
+  if (headerImage !== undefined) nextPayload.headerImage = headerImage;
+  if (hasOwnValue(payload, "showInHeader")) {
+    nextPayload.showInHeader = payload.showInHeader;
+  } else if (hasOwnValue(payload, "heroFeatured")) {
+    nextPayload.showInHeader = payload.heroFeatured;
+  }
+
+  return nextPayload;
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
 
@@ -34,17 +90,37 @@ module.exports = async function handler(request, response) {
       return;
     }
 
-    const fileId = String(payload.fileId || "").trim();
+    let fileId = String(
+      payload.fileId
+      || payload.id
+      || payload.movieId
+      || payload.driveFileId
+      || payload.googleDriveFileId
+      || "",
+    ).trim();
+
+    if (!fileId) {
+      const title = String(payload.title || payload.movieTitle || payload.name || "").trim();
+      if (title) {
+        const catalogMovies = await listDriveMovies();
+        const normalizedTitle = normalizeTitle(title);
+        const matchedMovie = catalogMovies.find((movie) => normalizeTitle(movie?.title) === normalizedTitle) || null;
+        if (matchedMovie?.id) {
+          fileId = String(matchedMovie.id);
+        }
+      }
+    }
+
     if (!fileId) {
       response.status(400).json({
         ok: false,
         code: "FILE_ID_REQUIRED",
-        error: "Qaysi kino tahrirlanayotgani aniqlanmadi.",
+        error: "Qaysi kino tahrirlanayotgani aniqlanmadi. Kinoni ro'yxatdan qayta tanlang.",
       });
       return;
     }
 
-    await upsertCatalogMovieMetadata(fileId, payload);
+    await upsertCatalogMovieMetadata(fileId, normalizeMoviePayload(payload));
     const movies = await listDriveMovies();
     const updatedMovie = movies.find((movie) => String(movie.id) === fileId) || null;
 

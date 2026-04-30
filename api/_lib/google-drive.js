@@ -216,6 +216,16 @@ function trimString(value) {
   return String(value || "").trim();
 }
 
+function safeBooleanFlag(value, fallback = false) {
+  if (value === undefined || value === null) return Boolean(fallback);
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value > 0;
+  const normalized = trimString(value).toLowerCase();
+  if (!normalized) return false;
+  if (["false", "0", "no", "off", "yoq", "yo'q"].includes(normalized)) return false;
+  return ["true", "1", "yes", "on", "ha"].includes(normalized);
+}
+
 function sanitizePublicGenre(value) {
   const normalized = trimString(value);
   return /^google drive$/i.test(normalized) ? "Kino" : normalized;
@@ -230,6 +240,91 @@ function getMetadataOverride(metadataMap, fileId) {
   if (!metadataMap || typeof metadataMap !== "object") return null;
   const entry = metadataMap[String(fileId)];
   return entry && typeof entry === "object" ? entry : null;
+}
+
+function hasOwnValue(source, key) {
+  return Object.prototype.hasOwnProperty.call(source || {}, key);
+}
+
+function resolveNextStringUpdate(nextValue, currentValue = "") {
+  if (nextValue === null) return "";
+  if (nextValue === undefined) return trimString(currentValue);
+  return trimString(nextValue);
+}
+
+function firstDefinedValue(source, keys = []) {
+  for (const key of keys) {
+    if (hasOwnValue(source, key)) return source[key];
+  }
+  return undefined;
+}
+
+function resolveImageUpdate(current = {}, updates = {}, keys = []) {
+  const nextValue = firstDefinedValue(updates, keys);
+  if (nextValue !== undefined) return resolveNextStringUpdate(nextValue, "");
+  return trimString(firstDefinedValue(current, keys));
+}
+
+function isDataImageValue(value) {
+  return trimString(value).startsWith("data:image/");
+}
+
+function resolveStoredHeaderImage(value) {
+  const normalized = trimString(value);
+  return !normalized || isDataImageValue(normalized) ? normalized : "";
+}
+
+function resolveShowInHeaderUpdate(current = {}, updates = {}) {
+  if (hasOwnValue(updates, "showInHeader")) return safeBooleanFlag(updates.showInHeader);
+  if (hasOwnValue(updates, "heroFeatured")) return safeBooleanFlag(updates.heroFeatured);
+  return safeBooleanFlag(current.showInHeader);
+}
+
+function cleanupStoredMovieOverride(current = {}) {
+  const posterImage = trimString(current.posterImage || current.poster);
+  const rawHeaderImage = trimString(current.headerImage || current.heroPoster || current.headerPoster || current.heroImage);
+  const headerImage = resolveStoredHeaderImage(rawHeaderImage);
+  const showInHeader = safeBooleanFlag(current.showInHeader) && (!rawHeaderImage || Boolean(headerImage));
+  const next = {
+    ...current,
+    posterImage,
+    headerImage,
+    showInHeader,
+  };
+
+  delete next.poster;
+  delete next.heroPoster;
+  delete next.headerPoster;
+  delete next.heroImage;
+  delete next.heroFeatured;
+  delete next.isHero;
+
+  return next;
+}
+
+function resolveMovieOverride(current = {}, updates = {}) {
+  const normalizedCurrent = cleanupStoredMovieOverride(current);
+  const next = {
+    ...normalizedCurrent,
+    title: resolveNextStringUpdate(updates.title, current.title),
+    genre: sanitizePublicGenre(resolveNextStringUpdate(updates.genre || updates.category, current.genre)) || "Kino",
+    posterImage: resolveImageUpdate(normalizedCurrent, updates, ["posterImage", "poster"]),
+    headerImage: resolveImageUpdate(normalizedCurrent, updates, ["headerImage", "heroPoster", "headerPoster", "heroImage"]),
+    description: sanitizePublicDescription(resolveNextStringUpdate(updates.description, current.description)),
+    quality: resolveNextStringUpdate(updates.quality, current.quality) || "HD",
+    rating: safeRating(updates.rating ?? current.rating ?? 0),
+    showInHeader: resolveShowInHeaderUpdate(normalizedCurrent, updates),
+    updatedAt: new Date().toISOString(),
+  };
+
+  delete next.poster;
+  delete next.heroPoster;
+  delete next.headerPoster;
+  delete next.heroImage;
+  delete next.heroFeatured;
+  delete next.isHero;
+
+  return next;
 }
 
 function extractEmbeddedMovieMetadata(description) {
@@ -279,7 +374,12 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const embeddedOverride = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
   const override = { ...embeddedOverride, ...jsonOverride };
   const genre = sanitizePublicGenre(override?.genre || override?.category) || "Kino";
-  const poster = trimString(override?.poster);
+  const posterImage = trimString(override?.posterImage || override?.poster);
+  const rawHeaderImage = trimString(override?.headerImage || override?.heroPoster || override?.headerPoster || override?.heroImage);
+  const headerImage = resolveStoredHeaderImage(rawHeaderImage);
+  const fallbackPosterImage = file.thumbnailLink ? `/api/drive-thumbnail/${encodeURIComponent(file.id)}` : LOGO_POSTER_URL;
+  const finalPosterImage = posterImage || fallbackPosterImage;
+  const showInHeader = safeBooleanFlag(override?.showInHeader) && (!rawHeaderImage || Boolean(headerImage));
   const finalDescription = sanitizePublicDescription(override?.description) || description;
   const finalTitle = trimString(override?.title) || title;
   const finalQuality = trimString(override?.quality) || quality;
@@ -287,10 +387,13 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const hasCustomMetadata = Boolean(
     trimString(override?.title)
     || trimString(override?.genre)
+    || trimString(override?.posterImage)
     || trimString(override?.poster)
+    || trimString(override?.headerImage)
     || trimString(override?.heroPoster)
     || trimString(override?.description)
     || trimString(override?.quality)
+    || override?.showInHeader !== undefined
     || override?.heroFeatured !== undefined
     || override?.rating !== undefined,
   );
@@ -311,10 +414,13 @@ function toDriveMovie(file, index, metadataMap = {}) {
     hasCustomMetadata,
     isTop: inferFlag(file.name, description, "top"),
     isPremium: inferFlag(file.name, description, "premium"),
-    heroFeatured: Boolean(override?.heroFeatured || override?.isHero || override?.showInHeader),
-    poster: poster || (file.thumbnailLink ? `/api/drive-thumbnail/${encodeURIComponent(file.id)}` : LOGO_POSTER_URL),
-    heroPoster: trimString(override?.heroPoster || override?.headerPoster || override?.heroImage),
-    thumbnail: poster || (file.thumbnailLink ? `/api/drive-thumbnail/${encodeURIComponent(file.id)}` : LOGO_POSTER_URL),
+    posterImage: finalPosterImage,
+    headerImage,
+    showInHeader,
+    poster: finalPosterImage,
+    heroPoster: headerImage,
+    heroFeatured: showInHeader,
+    thumbnail: finalPosterImage,
     streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     sourceUrl: file.webViewLink || "",
@@ -541,16 +647,8 @@ async function writeEmbeddedDriveMovieMetadata(fileId, updates = {}) {
     || "Tomosha uchun tayyor kino.";
 
   const nextOverride = {
-    ...current,
-    title: trimString(updates.title) || trimString(current.title) || "",
-    genre: sanitizePublicGenre(updates.genre || updates.category) || sanitizePublicGenre(current.genre) || "Kino",
-    poster: trimString(updates.poster) || trimString(current.poster) || "",
-    heroPoster: trimString(updates.heroPoster) || trimString(current.heroPoster) || "",
+    ...resolveMovieOverride(current, updates),
     description: visibleDescription,
-    quality: trimString(updates.quality) || trimString(current.quality) || "HD",
-    rating: safeRating(updates.rating ?? current.rating ?? 0),
-    heroFeatured: Boolean(updates.heroFeatured ?? current.heroFeatured ?? false),
-    updatedAt: new Date().toISOString(),
   };
 
   await updateDriveFileFields(fileId, {
@@ -566,21 +664,16 @@ async function upsertCatalogMovieMetadata(fileId, updates = {}) {
       ...defaultMetadataPayload(),
       ...(state.data || {}),
     };
-    const movies = metadata.movies && typeof metadata.movies === "object" ? metadata.movies : {};
+    const movies = metadata.movies && typeof metadata.movies === "object"
+      ? Object.fromEntries(
+        Object.entries(metadata.movies)
+          .filter(([, value]) => value && typeof value === "object")
+          .map(([key, value]) => [key, cleanupStoredMovieOverride(value)]),
+      )
+      : {};
     const current = getMetadataOverride(movies, fileId) || {};
 
-    movies[String(fileId)] = {
-      ...current,
-      title: trimString(updates.title) || current.title || "",
-      genre: sanitizePublicGenre(updates.genre || updates.category) || sanitizePublicGenre(current.genre) || "Kino",
-      poster: trimString(updates.poster) || current.poster || "",
-      heroPoster: trimString(updates.heroPoster) || current.heroPoster || "",
-      description: sanitizePublicDescription(updates.description) || sanitizePublicDescription(current.description) || "",
-      quality: trimString(updates.quality) || current.quality || "HD",
-      rating: safeRating(updates.rating ?? current.rating ?? 0),
-      heroFeatured: Boolean(updates.heroFeatured ?? current.heroFeatured ?? false),
-      updatedAt: new Date().toISOString(),
-    };
+    movies[String(fileId)] = resolveMovieOverride(current, updates);
 
     metadata.movies = movies;
     return await saveCatalogMetadata(metadata);

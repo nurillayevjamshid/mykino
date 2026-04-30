@@ -160,6 +160,9 @@ def parse_movie_caption(caption: str | None, fallback_title: str, message_id: in
         "isTop": _to_bool(str(values.get("isTop", ""))),
         "isPremium": _to_bool(str(values.get("isPremium", ""))),
         "poster": "",
+        "posterImage": "",
+        "headerImage": "",
+        "showInHeader": False,
         "streamUrl": "",
         "description": description,
     }
