@@ -3,9 +3,43 @@
 // Data storage
 let movies = [];
 let categories = [];
+let selectedPosterDataUrl = '';
 
 // API base URL
 const API_URL = '/api';
+const POSTER_MAX_WIDTH = 720;
+const POSTER_MAX_HEIGHT = 1080;
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function sameMovieId(left, right) {
+  return String(left) === String(right);
+}
+
+function normalizeMovieFromApi(movie) {
+  return {
+    id: String(movie.id || movie.fileId || movie.driveFileId || ''),
+    name: movie.title || movie.fileName || 'Kino',
+    category: movie.genre || movie.category || 'Kino',
+    rating: Number(movie.rating || 0),
+    hd: String(movie.quality || 'HD').toUpperCase() !== 'SD',
+    poster: movie.posterImage || movie.poster || movie.thumbnail || '',
+    video: movie.streamUrl || movie.videoUrl || movie.telegramFileId || '',
+    description: movie.description || '',
+    year: movie.year || '',
+    code: movie.code || '',
+    sourceType: movie.sourceType || '',
+    telegramUrl: movie.telegramPostUrl || movie.sourceUrl || movie.webViewLink || '',
+    quality: movie.quality || 'HD'
+  };
+}
 
 // Fetch movies from API
 async function fetchMovies() {
@@ -14,21 +48,8 @@ async function fetchMovies() {
     if (!response.ok) throw new Error('Failed to fetch movies');
     const data = await response.json();
     
-    // Map API data to admin format
-    movies = data.map(movie => ({
-      id: movie.id,
-      name: movie.title,
-      category: movie.genre || 'Kino',
-      rating: movie.rating || 0,
-      hd: movie.quality === 'HD',
-      poster: movie.poster || '',
-      video: movie.streamUrl || movie.telegramFileId || '',
-      description: movie.description || '',
-      year: movie.year,
-      code: movie.code,
-      sourceType: movie.sourceType,
-      telegramUrl: movie.telegramPostUrl || movie.sourceUrl
-    }));
+    movies = data.map(normalizeMovieFromApi).filter(movie => movie.id);
+    syncCategoriesFromMovies();
     
     renderMovies();
   } catch (error) {
@@ -57,10 +78,32 @@ function loadCategories() {
 function updateCategoryCounts() {
   categories.forEach(cat => {
     cat.count = movies.filter(m => 
-      m.category.toLowerCase().includes(cat.name.toLowerCase())
+      String(m.category || '').toLowerCase().includes(String(cat.name || '').toLowerCase())
     ).length;
   });
   localStorage.setItem('categories', JSON.stringify(categories));
+}
+
+function syncCategoriesFromMovies() {
+  const existing = new Map();
+  for (const category of categories) {
+    const name = String(category.name || '').trim();
+    if (name) existing.set(name.toLowerCase(), { ...category, name });
+  }
+
+  for (const movie of movies) {
+    const name = String(movie.category || 'Kino').trim();
+    if (!name || existing.has(name.toLowerCase())) continue;
+    existing.set(name.toLowerCase(), {
+      id: name,
+      name,
+      icon: '🎬',
+      count: 0
+    });
+  }
+
+  categories = [...existing.values()];
+  updateCategoryCounts();
 }
 
 // DOM Elements
@@ -69,6 +112,7 @@ const contentSections = document.querySelectorAll('.content-section');
 const pageTitle = document.getElementById('pageTitle');
 const menuToggle = document.getElementById('menuToggle');
 const sidebar = document.querySelector('.sidebar');
+const themeToggle = document.getElementById('themeToggle');
 
 // Section titles
 const sectionTitles = {
@@ -79,11 +123,19 @@ const sectionTitles = {
 
 // Initialize
 async function init() {
+  applyTheme(localStorage.getItem('adminTheme') || 'dark');
   loadCategories();
   await fetchMovies();
   renderCategories();
+  updateCategorySelect();
   bindEvents();
   loadHeaderSettings();
+}
+
+function applyTheme(theme) {
+  const nextTheme = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = nextTheme;
+  localStorage.setItem('adminTheme', nextTheme);
 }
 
 // Bind Events
@@ -116,12 +168,17 @@ function bindEvents() {
     openMovieModal();
   });
 
+  themeToggle?.addEventListener('click', () => {
+    const currentTheme = document.documentElement.dataset.theme || 'dark';
+    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  });
+
   // Table row actions - event delegation
   document.getElementById('moviesTableBody')?.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-icon');
     if (!btn) return;
     
-    const movieId = parseInt(btn.dataset.movieId);
+    const movieId = btn.dataset.movieId;
     const action = btn.dataset.action;
     
     if (!movieId || !action) return;
@@ -161,7 +218,23 @@ function bindEvents() {
 
   // Poster URL input - live preview
   document.getElementById('moviePoster')?.addEventListener('input', (e) => {
+    selectedPosterDataUrl = '';
     updatePosterPreview(e.target.value);
+  });
+
+  document.getElementById('moviePosterFile')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      selectedPosterDataUrl = await readPosterFile(file);
+      document.getElementById('moviePoster').value = '';
+      updatePosterPreview(selectedPosterDataUrl);
+    } catch (error) {
+      showNotification(error.message || 'Rasmni o\'qib bo\'lmadi.', 'error');
+      e.target.value = '';
+      selectedPosterDataUrl = '';
+    }
   });
 
   // Logout
@@ -228,14 +301,14 @@ function renderMovies() {
   }
 
   tbody.innerHTML = movies.map(movie => `
-    <tr data-id="${movie.id}">
+    <tr data-id="${escapeHtml(movie.id)}">
       <td>
-        <img src="${movie.poster || 'https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image'}" 
-             alt="${movie.name}" class="movie-poster">
+        <img src="${escapeHtml(movie.poster || 'https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image')}" 
+             alt="${escapeHtml(movie.name)}" class="movie-poster">
       </td>
-      <td><strong>${movie.name}</strong><br><small style="color:var(--text-muted)">${movie.code || ''}</small></td>
-      <td>${movie.year || '-'}</td>
-      <td>${getCategoryName(movie.category)}</td>
+      <td><strong>${escapeHtml(movie.name)}</strong><br><small style="color:var(--text-muted)">${escapeHtml(movie.code || '')}</small></td>
+      <td>${escapeHtml(movie.year || '-')}</td>
+      <td>${escapeHtml(getCategoryName(movie.category))}</td>
       <td>
         <span class="rating">⭐ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>
       </td>
@@ -246,10 +319,10 @@ function renderMovies() {
       </td>
       <td>
         <div class="actions">
-          <button class="btn-icon edit" data-action="edit" data-movie-id="${movie.id}" title="Tahrirlash">
+          <button class="btn-icon edit" data-action="edit" data-movie-id="${escapeHtml(movie.id)}" title="Tahrirlash">
             ✏️
           </button>
-          <button class="btn-icon delete" data-action="delete" data-movie-id="${movie.id}" title="O'chirish">
+          <button class="btn-icon delete" data-action="delete" data-movie-id="${escapeHtml(movie.id)}" title="O'chirish">
             🗑️
           </button>
         </div>
@@ -275,9 +348,9 @@ function renderCategories() {
   }
 
   grid.innerHTML = categories.map(cat => `
-    <div class="category-card" data-id="${cat.id}">
-      <div class="category-icon">${cat.icon}</div>
-      <div class="category-name">${cat.name}</div>
+    <div class="category-card" data-id="${escapeHtml(cat.id)}">
+      <div class="category-icon">${escapeHtml(cat.icon)}</div>
+      <div class="category-name">${escapeHtml(cat.name)}</div>
       <div class="category-count">${cat.count} ta kino</div>
     </div>
   `).join('');
@@ -285,8 +358,9 @@ function renderCategories() {
 
 // Get Category Name
 function getCategoryName(id) {
-  const cat = categories.find(c => c.id.toString() === id || c.name.toLowerCase() === id);
-  return cat ? cat.name : id;
+  const value = String(id || '').trim();
+  const cat = categories.find(c => String(c.id) === value || c.name.toLowerCase() === value.toLowerCase());
+  return cat ? cat.name : value;
 }
 
 // Open Movie Modal
@@ -294,6 +368,10 @@ function openMovieModal(movie = null) {
   const modal = document.getElementById('movieModal');
   const title = document.getElementById('movieModalTitle');
   const form = document.getElementById('movieForm');
+  const posterFileInput = document.getElementById('moviePosterFile');
+  selectedPosterDataUrl = '';
+  if (posterFileInput) posterFileInput.value = '';
+  updateCategorySelect(movie?.category || '');
 
   if (movie) {
     title.textContent = 'Kino tahrirlash';
@@ -301,7 +379,8 @@ function openMovieModal(movie = null) {
     document.getElementById('movieCategory').value = movie.category;
     document.getElementById('movieRating').value = movie.rating;
     document.getElementById('movieHd').value = movie.hd.toString();
-    document.getElementById('moviePoster').value = movie.poster;
+    selectedPosterDataUrl = String(movie.poster || '').startsWith('data:image/') ? movie.poster : '';
+    document.getElementById('moviePoster').value = selectedPosterDataUrl ? '' : movie.poster;
     document.getElementById('movieVideo').value = movie.video;
     document.getElementById('movieDescription').value = movie.description;
     form.dataset.editingId = movie.id;
@@ -333,6 +412,38 @@ function updatePosterPreview(url) {
   }
 }
 
+function readPosterFile(file) {
+  if (!file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Faqat rasm fayl tanlang.'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Rasmni o\'qib bo\'lmadi.'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => resolve(String(reader.result || ''));
+      image.onload = () => {
+        const scale = Math.min(1, POSTER_MAX_WIDTH / image.width, POSTER_MAX_HEIGHT / image.height);
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        if (!context) {
+          resolve(String(reader.result || ''));
+          return;
+        }
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.86));
+      };
+      image.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // Close Movie Modal
 function closeMovieModal() {
   document.getElementById('movieModal').classList.remove('active');
@@ -343,21 +454,28 @@ async function handleMovieSubmit(e) {
   e.preventDefault();
 
   const form = e.target;
+  const submitButton = form.querySelector('button[type="submit"]');
+  const posterValue = selectedPosterDataUrl || document.getElementById('moviePoster').value.trim();
   const movieData = {
-    name: document.getElementById('movieName').value,
+    name: document.getElementById('movieName').value.trim(),
     category: document.getElementById('movieCategory').value,
-    rating: parseFloat(document.getElementById('movieRating').value),
+    rating: parseFloat(document.getElementById('movieRating').value) || 0,
     hd: document.getElementById('movieHd').value === 'true',
-    poster: document.getElementById('moviePoster').value,
+    poster: posterValue,
     video: document.getElementById('movieVideo').value,
     description: document.getElementById('movieDescription').value
   };
 
   if (form.dataset.editingId) {
     // Edit existing - call API
-    const id = parseInt(form.dataset.editingId);
+    const id = form.dataset.editingId;
     
     try {
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Saqlanmoqda...';
+      }
+
       const response = await fetch(`${API_URL}/movie-update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -367,7 +485,7 @@ async function handleMovieSubmit(e) {
           genre: movieData.category,
           rating: movieData.rating,
           quality: movieData.hd ? 'HD' : 'SD',
-          poster: movieData.poster,
+          posterImage: movieData.poster,
           description: movieData.description
         })
       });
@@ -375,6 +493,15 @@ async function handleMovieSubmit(e) {
       const result = await response.json();
       
       if (result.ok) {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Saqlash';
+        }
+        closeMovieModal();
+        showNotification('Kino bazada yangilandi!');
+        await fetchMovies();
+        renderCategories();
+        return;
         // Update local data
         const index = movies.findIndex(m => m.id === id);
         if (index !== -1) {
@@ -382,17 +509,26 @@ async function handleMovieSubmit(e) {
         }
         showNotification('Kino bazada yangilandi! ✅');
       } else {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Saqlash';
+        }
         showNotification('Xatolik: ' + result.error, 'error');
         return;
       }
     } catch (error) {
       console.error('Update error:', error);
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Saqlash';
+      }
       showNotification('Serverga ulanishda xatolik!', 'error');
       return;
     }
   } else {
     // Add new
-    const newId = Math.max(...movies.map(m => m.id), 0) + 1;
+    const numericIds = movies.map(m => Number(m.id)).filter(Number.isFinite);
+    const newId = Math.max(...numericIds, 0) + 1;
     movies.push({ id: newId, ...movieData });
     showNotification('Kino qo\'shildi! (lokal)');
   }
@@ -405,7 +541,7 @@ async function handleMovieSubmit(e) {
 
 // Edit Movie
 function editMovie(id) {
-  const movie = movies.find(m => m.id === id);
+  const movie = movies.find(m => sameMovieId(m.id, id));
   if (movie) {
     openMovieModal(movie);
   }
@@ -414,7 +550,7 @@ function editMovie(id) {
 // Delete Movie
 function deleteMovie(id) {
   if (confirm('Bu kinoni o\'chirishni xohlaysizmi?')) {
-    movies = movies.filter(m => m.id !== id);
+    movies = movies.filter(m => !sameMovieId(m.id, id));
     updateCategoryCounts();
     renderMovies();
     renderCategories();
@@ -440,7 +576,8 @@ function handleCategorySubmit(e) {
   const name = document.getElementById('categoryName').value;
   const icon = document.getElementById('categoryIcon').value;
 
-  const newId = Math.max(...categories.map(c => c.id), 0) + 1;
+  const categoryIds = categories.map(c => Number(c.id)).filter(Number.isFinite);
+  const newId = Math.max(...categoryIds, 0) + 1;
   categories.push({ id: newId, name, icon, count: 0 });
 
   renderCategories();
@@ -450,13 +587,17 @@ function handleCategorySubmit(e) {
 }
 
 // Update Category Select in Movie Form
-function updateCategorySelect() {
+function updateCategorySelect(preferredValue = '') {
   const select = document.getElementById('movieCategory');
   if (!select) return;
 
-  const currentValue = select.value;
+  const currentValue = preferredValue || select.value;
+  if (currentValue && !categories.some(c => c.name.toLowerCase() === String(currentValue).toLowerCase())) {
+    categories.push({ id: currentValue, name: currentValue, icon: '🎬', count: 0 });
+  }
+
   select.innerHTML = '<option value="">Tanlang</option>' +
-    categories.map(c => `<option value="${c.name.toLowerCase()}">${c.name}</option>`).join('');
+    categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
   select.value = currentValue;
 }
 

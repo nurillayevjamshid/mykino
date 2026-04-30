@@ -1,78 +1,104 @@
-const fs = require('fs');
-const path = require('path');
+const {
+  getDriveFileMetadata,
+  setCors,
+  updateCatalogMovieMetadata,
+} = require("./_lib/google-drive");
 
-// Set CORS headers
-function setCors(response) {
-  response.setHeader('Access-Control-Allow-Origin', '*');
-  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+async function readRequestBody(request) {
+  if (request.body && Buffer.isBuffer(request.body)) {
+    return JSON.parse(request.body.toString("utf8"));
+  }
+
+  if (request.body && typeof request.body === "string") {
+    return JSON.parse(request.body);
+  }
+
+  if (request.body && typeof request.body === "object") {
+    return request.body;
+  }
+
+  let raw = "";
+  for await (const chunk of request) {
+    raw += chunk;
+  }
+
+  return raw ? JSON.parse(raw) : {};
+}
+
+function trimString(value) {
+  return String(value || "").trim();
+}
+
+function safeRating(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(0, Math.min(10, Number(numeric.toFixed(1))));
 }
 
 module.exports = async function handler(request, response) {
   setCors(response);
-  
-  if (request.method === 'OPTIONS') {
+
+  if (request.method === "OPTIONS") {
     response.status(204).end();
     return;
   }
 
-  if (request.method !== 'PUT' && request.method !== 'POST') {
-    response.status(405).json({ ok: false, code: 'METHOD_NOT_ALLOWED', error: 'Faqat PUT/POST ishlaydi.' });
+  if (request.method !== "PUT" && request.method !== "POST") {
+    response.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", error: "Faqat PUT/POST ishlaydi." });
     return;
   }
 
-  response.setHeader('Cache-Control', 'no-store, max-age=0');
+  response.setHeader("Cache-Control", "no-store, max-age=0");
 
   try {
-    const { id, title, genre, rating, quality, poster, description, year } = request.body;
+    const body = await readRequestBody(request);
+    const id = trimString(body.id || body.fileId || body.driveFileId);
 
     if (!id) {
-      response.status(400).json({ ok: false, code: 'MISSING_ID', error: 'Kino ID si kerak.' });
+      response.status(400).json({ ok: false, code: "MISSING_ID", error: "Kino ID si kerak." });
       return;
     }
 
-    // Read movies.json
-    const moviesPath = path.join(process.cwd(), 'data', 'movies.json');
-    const moviesData = fs.readFileSync(moviesPath, 'utf8');
-    let movies = JSON.parse(moviesData);
+    const updates = {
+      title: body.title,
+      genre: body.genre || body.category,
+      rating: body.rating,
+      quality: body.quality,
+      posterImage: body.posterImage !== undefined ? body.posterImage : body.poster,
+      description: body.description,
+      year: body.year,
+      showInHeader: body.showInHeader,
+    };
 
-    // Find movie index
-    const movieIndex = movies.findIndex(m => m.id === parseInt(id) || m.id === id);
-    
-    if (movieIndex === -1) {
-      response.status(404).json({ ok: false, code: 'MOVIE_NOT_FOUND', error: 'Kino topilmadi.' });
-      return;
-    }
-
-    // Update movie fields
-    const updatedMovie = { ...movies[movieIndex] };
-    
-    if (title !== undefined) updatedMovie.title = title;
-    if (genre !== undefined) updatedMovie.genre = genre;
-    if (rating !== undefined) updatedMovie.rating = parseFloat(rating);
-    if (quality !== undefined) updatedMovie.quality = quality;
-    if (poster !== undefined) updatedMovie.poster = poster;
-    if (description !== undefined) updatedMovie.description = description;
-    if (year !== undefined) updatedMovie.year = year;
-
-    // Update in array
-    movies[movieIndex] = updatedMovie;
-
-    // Save back to file
-    fs.writeFileSync(moviesPath, JSON.stringify(movies, null, 2), 'utf8');
+    const saved = await updateCatalogMovieMetadata(id, updates);
+    const metadata = await getDriveFileMetadata(id, "id,name,mimeType,thumbnailLink,webViewLink");
+    const override = saved.override;
+    const posterImage = trimString(override.posterImage);
 
     response.status(200).json({
       ok: true,
-      message: 'Kino yangilandi!',
-      movie: updatedMovie
+      message: "Kino bazada yangilandi.",
+      movie: {
+        id,
+        fileId: id,
+        driveFileId: id,
+        fileName: metadata.name || "",
+        title: trimString(override.title) || metadata.name || "",
+        genre: trimString(override.genre) || "Kino",
+        category: trimString(override.genre) || "Kino",
+        rating: safeRating(override.rating),
+        quality: trimString(override.quality) || "HD",
+        posterImage,
+        poster: posterImage,
+        description: trimString(override.description),
+        year: override.year || "",
+      },
     });
-
   } catch (error) {
-    console.error('Update movie error:', error);
-    response.status(500).json({
+    response.status(error.statusCode || 500).json({
       ok: false,
-      code: 'UPDATE_FAILED',
-      error: error.message || 'Kino yangilashda xatolik.'
+      code: error.code || "UPDATE_FAILED",
+      error: error.message || "Kino yangilashda xatolik.",
     });
   }
 };

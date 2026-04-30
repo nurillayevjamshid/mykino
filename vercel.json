@@ -96,6 +96,10 @@
       "dest": "/webapp/admin/index.html"
     },
     {
+      "src": "/admin/",
+      "dest": "/webapp/admin/index.html"
+    },
+    {
       "src": "/admin/(.*)",
       "dest": "/webapp/admin/$1"
     },
