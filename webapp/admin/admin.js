@@ -116,6 +116,23 @@ function bindEvents() {
     openMovieModal();
   });
 
+  // Table row actions - event delegation
+  document.getElementById('moviesTableBody')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-icon');
+    if (!btn) return;
+    
+    const row = btn.closest('tr');
+    if (!row) return;
+    
+    const movieId = parseInt(row.dataset.id);
+    
+    if (btn.classList.contains('edit')) {
+      editMovie(movieId);
+    } else if (btn.classList.contains('delete')) {
+      deleteMovie(movieId);
+    }
+  });
+
   // Add Category
   document.getElementById('addCategoryBtn')?.addEventListener('click', () => {
     openCategoryModal();
