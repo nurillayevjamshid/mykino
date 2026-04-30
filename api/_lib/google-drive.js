@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
+const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3/files";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 const DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token";
 const LOGO_POSTER_URL = "/static/assets/my-kino-logo.png";
@@ -15,7 +16,7 @@ let accessTokenCache = {
 
 function setCors(response) {
   response.setHeader("Access-Control-Allow-Origin", "*");
-  response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
 }
 
@@ -153,6 +154,35 @@ async function driveFetchJson(pathname, options = {}) {
   return payload;
 }
 
+async function driveUploadFetch(pathname, options = {}) {
+  const normalizedPath = pathname ? `/${String(pathname).replace(/^\/+/, "")}` : "";
+  const url = new URL(`${DRIVE_UPLOAD_BASE}${normalizedPath}`);
+  const query = {
+    uploadType: "multipart",
+    supportsAllDrives: "true",
+    ...(options.query || {}),
+  };
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  }
+
+  return authorizedFetch(url, options);
+}
+
+async function driveUploadJson(pathname, options = {}) {
+  const response = await driveUploadFetch(pathname, options);
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload) {
+    const error = new Error(payload?.error?.message || "Google Drive fayli saqlanmadi.");
+    error.statusCode = response.status || 502;
+    error.code = payload?.error?.status || "GOOGLE_DRIVE_UPLOAD_FAILED";
+    throw error;
+  }
+  return payload;
+}
+
 function stripExtension(name) {
   return String(name || "").replace(/\.[a-z0-9]{2,5}$/i, "");
 }
@@ -183,6 +213,16 @@ function defaultMetadataPayload() {
     version: 1,
     updatedAt: "",
     movies: {},
+  };
+}
+
+function normalizeCatalogMetadata(payload) {
+  const fallback = defaultMetadataPayload();
+  if (!payload || typeof payload !== "object") return fallback;
+  return {
+    version: Number(payload.version || 1) || 1,
+    updatedAt: trimString(payload.updatedAt),
+    movies: payload.movies && typeof payload.movies === "object" ? payload.movies : {},
   };
 }
 
@@ -399,7 +439,7 @@ async function readDriveTextFile(fileId) {
 
 async function readAppJsonByName(fileName, fallbackFactory) {
   const { folderId } = getDriveConfig();
-  const existing = (await findServiceAccountJsonByName(fileName)) || (await findFolderFileByName(folderId, fileName));
+  const existing = (await findFolderFileByName(folderId, fileName)) || (await findServiceAccountJsonByName(fileName));
   if (!existing) {
     return {
       file: null,
@@ -421,8 +461,108 @@ async function readAppJsonByName(fileName, fallbackFactory) {
   }
 }
 
+function buildJsonMultipartBody(metadata, data) {
+  const boundary = `mykino_${Date.now()}_${crypto.randomBytes(8).toString("hex")}`;
+  const body = [
+    `--${boundary}`,
+    "Content-Type: application/json; charset=UTF-8",
+    "",
+    JSON.stringify(metadata),
+    `--${boundary}`,
+    "Content-Type: application/json; charset=UTF-8",
+    "",
+    JSON.stringify(data, null, 2),
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+
+  return {
+    body,
+    contentType: `multipart/related; boundary=${boundary}`,
+  };
+}
+
+async function writeAppJsonByName(fileName, data, existingFile = null) {
+  const { folderId } = getDriveConfig();
+  const existing = existingFile || (await findFolderFileByName(folderId, fileName)) || (await findServiceAccountJsonByName(fileName));
+  const metadata = {
+    name: fileName,
+    mimeType: "application/json",
+    ...(existing ? {} : { parents: [folderId] }),
+  };
+  const multipart = buildJsonMultipartBody(metadata, data);
+  const pathname = existing ? encodeURIComponent(existing.id) : "";
+  const savedFile = await driveUploadJson(pathname, {
+    method: existing ? "PATCH" : "POST",
+    headers: {
+      "Content-Type": multipart.contentType,
+    },
+    body: multipart.body,
+    query: {
+      fields: "id,name,mimeType,modifiedTime",
+    },
+  });
+
+  return savedFile;
+}
+
 async function readCatalogMetadata() {
   return readAppJsonByName(METADATA_FILE_NAME, defaultMetadataPayload);
+}
+
+async function writeCatalogMetadata(data, existingFile = null) {
+  const normalized = normalizeCatalogMetadata(data);
+  normalized.updatedAt = new Date().toISOString();
+  const file = await writeAppJsonByName(METADATA_FILE_NAME, normalized, existingFile);
+  return {
+    file,
+    data: normalized,
+  };
+}
+
+async function updateCatalogMovieMetadata(fileId, updates = {}) {
+  const normalizedFileId = trimString(fileId);
+  if (!normalizedFileId) {
+    const error = new Error("Kino ID si kerak.");
+    error.statusCode = 400;
+    error.code = "MOVIE_ID_MISSING";
+    throw error;
+  }
+
+  await getDriveFileMetadata(normalizedFileId, "id,name,mimeType");
+
+  const metadataState = await readCatalogMetadata();
+  const metadata = normalizeCatalogMetadata(metadataState.data);
+  const current = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
+    ? metadata.movies[normalizedFileId]
+    : {};
+  const next = { ...current };
+
+  if (updates.title !== undefined) next.title = trimString(updates.title);
+  if (updates.genre !== undefined || updates.category !== undefined) {
+    next.genre = sanitizePublicGenre(updates.genre !== undefined ? updates.genre : updates.category);
+  }
+  if (updates.rating !== undefined) next.rating = safeRating(updates.rating);
+  if (updates.quality !== undefined) next.quality = trimString(updates.quality).toUpperCase();
+  if (updates.posterImage !== undefined || updates.poster !== undefined) {
+    next.posterImage = trimString(updates.posterImage !== undefined ? updates.posterImage : updates.poster);
+  }
+  if (updates.description !== undefined) next.description = trimString(updates.description);
+  if (updates.year !== undefined) {
+    const numericYear = Number(updates.year);
+    next.year = Number.isFinite(numericYear) && numericYear > 0 ? numericYear : "";
+  }
+  if (updates.showInHeader !== undefined) next.showInHeader = safeBooleanFlag(updates.showInHeader);
+
+  const cleaned = cleanupStoredMovieOverride(next);
+  metadata.movies[normalizedFileId] = cleaned;
+
+  await writeCatalogMetadata(metadata, metadataState.file);
+
+  return {
+    id: normalizedFileId,
+    override: cleaned,
+  };
 }
 
 async function listDriveMovies() {
@@ -502,4 +642,5 @@ module.exports = {
   listDriveMovies,
   readCatalogMetadata,
   setCors,
+  updateCatalogMovieMetadata,
 };
