@@ -154,6 +154,20 @@ async function driveFetchJson(pathname, options = {}) {
   return payload;
 }
 
+async function updateDriveFileMetadata(fileId, metadata, fields = "id,name,mimeType,description,modifiedTime") {
+  return driveFetchJson(encodeURIComponent(fileId), {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+    },
+    body: JSON.stringify(metadata),
+    query: {
+      supportsAllDrives: "true",
+      fields,
+    },
+  });
+}
+
 async function driveUploadFetch(pathname, options = {}) {
   const normalizedPath = pathname ? `/${String(pathname).replace(/^\/+/, "")}` : "";
   const url = new URL(`${DRIVE_UPLOAD_BASE}${normalizedPath}`);
@@ -293,6 +307,13 @@ function cleanupStoredMovieOverride(current = {}) {
   return next;
 }
 
+function isServiceAccountStorageQuotaError(error) {
+  const message = `${error?.message || ""} ${error?.code || ""}`.toLowerCase();
+  return message.includes("service accounts do not have storage quota")
+    || message.includes("storage quota")
+    || message.includes("storagequotaexceeded");
+}
+
 function extractEmbeddedMovieMetadata(description) {
   const rawDescription = String(description || "");
   const startIndex = rawDescription.indexOf(EMBEDDED_META_START);
@@ -323,6 +344,16 @@ function extractEmbeddedMovieMetadata(description) {
       visibleDescription: rawDescription.trim(),
     };
   }
+}
+
+function buildEmbeddedMovieDescription(visibleDescription, override) {
+  const cleaned = cleanupStoredMovieOverride(override);
+  return [
+    EMBEDDED_META_START,
+    JSON.stringify(cleaned),
+    EMBEDDED_META_END,
+    trimString(visibleDescription),
+  ].filter((part) => part !== "").join("\n");
 }
 
 function toDriveMovie(file, index, metadataMap = {}) {
@@ -529,13 +560,18 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
     throw error;
   }
 
-  await getDriveFileMetadata(normalizedFileId, "id,name,mimeType");
+  const driveFile = await getDriveFileMetadata(normalizedFileId, "id,name,mimeType,description");
+  const embedded = extractEmbeddedMovieMetadata(driveFile.description || "");
 
   const metadataState = await readCatalogMetadata();
   const metadata = normalizeCatalogMetadata(metadataState.data);
-  const current = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
+  const jsonCurrent = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
     ? metadata.movies[normalizedFileId]
     : {};
+  const current = {
+    ...(embedded.override && typeof embedded.override === "object" ? embedded.override : {}),
+    ...jsonCurrent,
+  };
   const next = { ...current };
 
   if (updates.title !== undefined) next.title = trimString(updates.title);
@@ -557,7 +593,17 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   const cleaned = cleanupStoredMovieOverride(next);
   metadata.movies[normalizedFileId] = cleaned;
 
-  await writeCatalogMetadata(metadata, metadataState.file);
+  try {
+    await writeCatalogMetadata(metadata, metadataState.file);
+  } catch (error) {
+    if (!isServiceAccountStorageQuotaError(error)) {
+      throw error;
+    }
+
+    await updateDriveFileMetadata(normalizedFileId, {
+      description: buildEmbeddedMovieDescription(embedded.visibleDescription, cleaned),
+    });
+  }
 
   return {
     id: normalizedFileId,
