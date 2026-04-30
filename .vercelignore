@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+*.log
 .venv/
 venv/
 env/
@@ -8,6 +9,7 @@ __pycache__/
 *.pyc
 bot/
 requirements.txt
+data/users.json
 output/
 node_modules/
 .vercel/
