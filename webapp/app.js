@@ -187,8 +187,6 @@ const TELEGRAM_STREAM_ERROR_MESSAGE =
   "Tomosha uchun manba tayyorlanmoqda.";
 const DRIVE_STREAM_ERROR_MESSAGE =
   "Tomosha uchun manba tayyorlanmoqda.";
-const DRIVE_UNSUPPORTED_FORMAT_MESSAGE =
-  "Tomosha uchun player tayyorlanmoqda.";
 
 let movies = [];
 let activeFilter = "all";
@@ -290,11 +288,6 @@ function setRangeFill(node, value, maxValue) {
   const max = Number(maxValue || node.max || 100) || 100;
   const current = Math.max(0, Math.min(max, Number(value) || 0));
   node.style.setProperty("--range-fill", `${(current / max) * 100}%`);
-}
-
-function isLocalApiBaseValue(base) {
-  const normalized = String(base || "").trim();
-  return LOCAL_API_BASES.some((candidate) => normalized.startsWith(candidate));
 }
 
 function applyTheme(theme) {
@@ -645,10 +638,6 @@ async function resolveApiBase() {
   return apiBaseResolutionPromise;
 }
 
-function isLocalRuntimeApiBase() {
-  return isLocalApiBaseValue(runtimeApiBase);
-}
-
 function buildApiUrl(path) {
   return `${runtimeApiBase}${path}`;
 }
@@ -663,10 +652,6 @@ function buildDriveStreamUrl(fileId) {
 
 function buildDriveThumbnailUrl(fileId) {
   return buildApiUrl(`/api/drive-thumbnail/${encodeURIComponent(fileId)}`);
-}
-
-function buildDrivePreviewUrl(fileId) {
-  return `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`;
 }
 
 function fileExtension(value) {
@@ -704,10 +689,6 @@ function buildGeneratedPosterDataUrl(movie) {
     </svg>
   `;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
-
-function isAppleMobile() {
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 }
 
 function isMobileViewingContext() {
@@ -758,22 +739,8 @@ function isLaunchReadyMovie(movie) {
   return canBrowserPlayMovie(movie);
 }
 
-function getLaunchWarning(movie) {
-  if (isLaunchReadyMovie(movie)) return "";
-  return "iPhone uchun MP4 tavsiya etiladi";
-}
-
-function isHeaderReadyMovie(movie) {
-  return Boolean(movie?.showInHeader && getHeaderImage(movie));
-}
-
 function getViewerMovies() {
   return movies;
-}
-
-function shouldSkipInlinePlayback(movie) {
-  if (!isAppleMobile()) return false;
-  return !canBrowserPlayMovie(movie);
 }
 
 function hasPlayableEmbedSource(movie) {
@@ -807,7 +774,6 @@ function normalizeMovie(movie, index = 0) {
   const rawHeaderImage = String(movie?.headerImage || movie?.heroPoster || movie?.headerPoster || movie?.heroImage || "").trim();
   const description = sanitizePublicDescription(movie?.description || "Kino tavsifi kiritilmagan.");
   const sourceType = String(movie?.sourceType || (fileId ? "catalog" : "catalog")).trim();
-  const isDriveSource = sourceType === "google_drive" || Boolean(movie?.driveFileId || movie?.fileId || movie?.googleDriveFileId);
   const genre = sanitizePublicGenre(movie?.genre || "Kino");
   const quality = String(movie?.quality || "HD").trim().toUpperCase();
   const rating = Number(movie?.rating || 0);
@@ -1848,11 +1814,6 @@ function openTelegramSource(url) {
 function getInlineSourceLabel(movie) {
   if (movie?.telegramVideoFileId || movie?.telegramFileId) return "Kino video";
   return "Kino player";
-}
-
-function getDrivePreviewUrl(movie) {
-  const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
-  return driveFileId ? buildDrivePreviewUrl(driveFileId) : "";
 }
 
 async function openVideoPlayer(movie) {
