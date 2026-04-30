@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Kino - Admin Panel</title>
+  <link rel="stylesheet" href="admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">🎬</span>
+          <span class="logo-text">My Kino Admin</span>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <ul class="nav-list">
+          <li class="nav-item active" data-section="movies">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">🎞️</span>
+              <span class="nav-text">Kinolar</span>
+            </a>
+          </li>
+          <li class="nav-item" data-section="categories">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">📁</span>
+              <span class="nav-text">Category</span>
+            </a>
+          </li>
+          <li class="nav-item" data-section="header">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">⚙️</span>
+              <span class="nav-text">Header</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn">
+          <span class="nav-icon">🚪</span>
+          <span>Chiqish</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="admin-header">
+        <button class="menu-toggle" id="menuToggle">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <div class="header-title">
+          <h1 id="pageTitle">Kinolar</h1>
+        </div>
+        <div class="header-actions">
+          <span class="admin-badge">Admin</span>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content-wrapper">
+        
+        <!-- Movies Section -->
+        <section class="content-section active" id="moviesSection">
+          <div class="section-header">
+            <h2>Kinolar ro'yxati</h2>
+            <button class="btn btn-primary" id="addMovieBtn">
+              <span>+</span> Yangi kino qo'shish
+            </button>
+          </div>
+          
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Poster</th>
+                  <th>Nomi</th>
+                  <th>Category</th>
+                  <th>Reyting</th>
+                  <th>HD</th>
+                  <th>Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="moviesTableBody">
+                <!-- Dynamic content -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Categories Section -->
+        <section class="content-section" id="categoriesSection">
+          <div class="section-header">
+            <h2>Kategoriyalar</h2>
+            <button class="btn btn-primary" id="addCategoryBtn">
+              <span>+</span> Yangi kategoriya
+            </button>
+          </div>
+          
+          <div class="cards-grid" id="categoriesGrid">
+            <!-- Dynamic content -->
+          </div>
+        </section>
+
+        <!-- Header Section -->
+        <section class="content-section" id="headerSection">
+          <div class="section-header">
+            <h2>Header sozlamalari</h2>
+          </div>
+          
+          <div class="settings-form">
+            <div class="form-group">
+              <label>Logo URL</label>
+              <input type="text" id="logoUrl" class="form-input" placeholder="Logo rasmi URL">
+            </div>
+            
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="headerTitle" class="form-input" placeholder="Sayt nomi">
+            </div>
+            
+            <div class="form-group">
+              <label>Subtitle</label>
+              <input type="text" id="headerSubtitle" class="form-input" placeholder="Taglavha">
+            </div>
+            
+            <div class="form-group">
+              <label>Primary Color</label>
+              <div class="color-picker">
+                <input type="color" id="primaryColor" value="#ffc73a">
+                <span class="color-value">#ffc73a</span>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button class="btn btn-secondary" id="resetHeader">Bekor qilish</button>
+              <button class="btn btn-primary" id="saveHeader">Saqlash</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Movie Modal -->
+  <div class="modal" id="movieModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="movieModalTitle">Yangi kino qo'shish</h3>
+        <button class="modal-close" id="closeMovieModal">&times;</button>
+      </div>
+      <form class="modal-form" id="movieForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Kino nomi</label>
+            <input type="text" id="movieName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="movieCategory" class="form-select" required>
+              <option value="">Tanlang</option>
+              <option value="action">Action</option>
+              <option value="comedy">Comedy</option>
+              <option value="drama">Drama</option>
+              <option value="horror">Horror</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Reyting</label>
+            <input type="number" id="movieRating" class="form-input" min="0" max="10" step="0.1" value="5.0">
+          </div>
+          <div class="form-group">
+            <label>HD</label>
+            <select id="movieHd" class="form-select">
+              <option value="true">HD</option>
+              <option value="false">SD</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Poster URL</label>
+          <input type="text" id="moviePoster" class="form-input" placeholder="Poster rasmi URL">
+        </div>
+        
+        <div class="form-group">
+          <label>Video URL</label>
+          <input type="text" id="movieVideo" class="form-input" placeholder="Video fayl URL">
+        </div>
+        
+        <div class="form-group">
+          <label>Tavsif</label>
+          <textarea id="movieDescription" class="form-textarea" rows="3"></textarea>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelMovie">Bekor qilish</button>
+          <button type="submit" class="btn btn-primary">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Category Modal -->
+  <div class="modal" id="categoryModal">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Yangi kategoriya</h3>
+        <button class="modal-close" id="closeCategoryModal">&times;</button>
+      </div>
+      <form class="modal-form" id="categoryForm">
+        <div class="form-group">
+          <label>Kategoriya nomi</label>
+          <input type="text" id="categoryName" class="form-input" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Ikonka</label>
+          <select id="categoryIcon" class="form-select">
+            <option value="🎬">🎬 Kino</option>
+            <option value="😂">😂 Comedy</option>
+            <option value="💀">💀 Horror</option>
+            <option value="❤️">❤️ Romance</option>
+            <option value="🚀">🚀 Action</option>
+            <option value="📺">📺 Serial</option>
+          </select>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelCategory">Bekor qilish</button>
+          <button type="submit" class="btn btn-primary">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
