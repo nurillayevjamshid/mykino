@@ -5,9 +5,7 @@ Telegram ichida kinolar katalogini ko'rish uchun bot va mini app starter loyihas
 ## Nimalar bor
 
 - Telegram bot user menyusi: kinolar, qidirish, TOP kinolar, premium, profil, bog'lanish.
-- Admin panel inline menyusi: kinolar, kategoriyalar, majburiy obuna, foydalanuvchilar, statistika va boshqalar.
 - Mini app: rasmga o'xshash qorong'i kino katalog UI, til switcher, qidiruv, kategoriya/top filter, profil/premium modal, kino detail oynasi.
-- Mini app ichida local admin panel: title, poster, description, `telegramVideoFileId`, `telegramPostUrl` bilan kino qo'shish.
 - Google Drive katalog integratsiyasi: papkadagi videolar kartalar sifatida chiqadi.
 - MP4 (`H.264/AAC`) videolar Mini App ichida eng barqaror ishlaydi, ayniqsa iPhone uchun.
 - Kanalga tashlangan video postlardan to'ladigan JSON ma'lumotlar bazasi: `data/movies.json`.
@@ -36,7 +34,7 @@ Copy-Item .env.example .env
 python -m bot.main
 ```
 
-4. Botni kino kanaliga admin qiling. Kanal username'ini `.env` ichida ko'rsating:
+4. Botni kino kanaliga postlarni o'qiy oladigan qilib qo'shing. Kanal username'ini `.env` ichida ko'rsating:
 
 ```env
 CONTENT_CHANNEL_USERNAME=mdtsitsibtaryyarbeaa
@@ -57,12 +55,6 @@ Tavsif: Qisqa izoh.
 ```
 
 Faqat video tashlasangiz ham bot uni nomini file nomi yoki captiondan olib qo'shadi.
-
-Admin sifatida eski yoki bot ishlamay turganda o'tib ketgan postlarni tortish:
-
-```text
-/sync
-```
 
 6. Telegram Mini App faqat HTTPS URL bilan to'liq ishlaydi. Local sinov uchun ngrok/cloudflared orqali `http://localhost:8080` ni HTTPS ga chiqaring va o'sha URL ni `WEBAPP_URL` ga yozing.
 

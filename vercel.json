@@ -50,18 +50,6 @@
       "use": "@vercel/node"
     },
     {
-      "src": "api/admin/dashboard.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/admin/movies.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/admin/track-user.js",
-      "use": "@vercel/node"
-    },
-    {
       "src": "webapp/**",
       "use": "@vercel/static"
     }
@@ -94,18 +82,6 @@
     {
       "src": "/api/drive-thumbnail/(.*)",
       "dest": "/api/drive-thumbnail.js?fileId=$1"
-    },
-    {
-      "src": "/api/admin/dashboard",
-      "dest": "/api/admin/dashboard.js"
-    },
-    {
-      "src": "/api/admin/movies",
-      "dest": "/api/admin/movies.js"
-    },
-    {
-      "src": "/api/admin/track-user",
-      "dest": "/api/admin/track-user.js"
     },
     {
       "src": "/static/(.*)",

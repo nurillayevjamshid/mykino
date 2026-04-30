@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0f131a" />
   <title>My Kino</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/static/styles.css?v=20260430-admin-images2" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260430-clean" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -191,150 +191,6 @@
         <div class="profile-history__list" id="watchedMovieList"></div>
         <p class="profile-history__empty" id="watchedMovieEmpty">Hali ko'rilgan kino yo'q.</p>
       </section>
-
-      <button class="ghost-button profile-admin-button" type="button" data-admin-open>Admin panel</button>
-    </div>
-  </dialog>
-
-  <dialog class="admin-modal" id="adminModal">
-    <div class="admin-card">
-      <header class="admin-card__topbar">
-        <div class="admin-card__header">
-          <h2>Admin panel</h2>
-          <p>Kino kutubxonasini boshqaring va bot statistikasini kuzating.</p>
-        </div>
-        <button class="modal-close" type="button" data-admin-close aria-label="Yopish">
-          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M18 6 6 18"></path>
-            <path d="m6 6 12 12"></path>
-          </svg>
-        </button>
-      </header>
-
-      <section class="admin-stats-grid">
-        <article class="admin-stat-card">
-          <span>Bot foydalanuvchilari</span>
-          <b id="adminUsersCount">0</b>
-        </article>
-        <article class="admin-stat-card">
-          <span>Katalogdagi kinolar</span>
-          <b id="adminMovieCount">0</b>
-        </article>
-        <article class="admin-stat-card">
-          <span>Launch-ready</span>
-          <b id="adminReadyCount">0</b>
-        </article>
-      </section>
-
-      <section class="admin-header-settings glass-panel">
-        <div>
-          <strong>Header section</strong>
-          <span id="adminHeaderHint">Tahrirlash oynasida header sliderga kino tanlang.</span>
-        </div>
-      </section>
-
-      <section class="admin-layout">
-        <section class="admin-library glass-panel">
-          <div class="admin-library__head">
-            <strong>Kino ro'yxati</strong>
-            <span id="adminLibraryHint">Tahrirlash uchun tanlang</span>
-          </div>
-          <button class="watch-button admin-library__open" id="adminLibraryOpen" type="button">Kirish</button>
-        </section>
-
-      </section>
-
-      <section class="admin-list-page glass-panel" id="adminListPage" hidden>
-        <div class="admin-list-page__top">
-          <button class="ghost-button admin-list-back" id="adminListBack" type="button">Orqaga</button>
-          <div>
-            <strong>Kinolar ro'yxati</strong>
-            <span>Tahrirlash uchun kino tanlang.</span>
-          </div>
-        </div>
-        <div class="admin-movie-list" id="adminMovieList"></div>
-      </section>
-
-      <section class="admin-edit-modal" id="adminEditModal" hidden>
-        <div class="admin-editor glass-panel" role="dialog" aria-modal="true" aria-labelledby="adminEditorTitle">
-          <button class="modal-close admin-edit-close" type="button" data-admin-edit-close aria-label="Yopish">
-            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18 6 6 18"></path>
-              <path d="m6 6 12 12"></path>
-            </svg>
-          </button>
-          <div class="admin-editor__head">
-            <strong id="adminEditorTitle">Kino tanlanmagan</strong>
-            <span id="adminEditorMeta">Kategoriya, ablojka, tavsif va reytingni o'zgartiring.</span>
-          </div>
-
-          <form class="admin-form" id="adminMovieForm">
-            <input id="adminMovieId" name="fileId" type="hidden" />
-            <label class="admin-field">
-              <span>Kino nomi</span>
-              <input id="adminTitle" name="title" type="text" required />
-            </label>
-            <label class="admin-field">
-              <span>Reyting</span>
-              <input id="adminRating" name="rating" type="number" min="0" max="10" step="0.1" placeholder="8.7" />
-            </label>
-            <label class="admin-field">
-              <span>Kategoriya</span>
-              <select id="adminGenreSelect" name="genreSelect"></select>
-            </label>
-            <label class="admin-field">
-              <span>Yangi kategoriya</span>
-              <input id="adminGenreCustom" name="genreCustom" type="text" placeholder="Masalan: Drama" />
-            </label>
-            <label class="admin-field admin-field--wide">
-              <span>Tavsif</span>
-              <textarea id="adminDescription" name="description" rows="5" placeholder="Kino haqida qisqa tavsif"></textarea>
-            </label>
-            <label class="admin-field admin-field--wide">
-              <span>Oblojka rasmi</span>
-              <input class="admin-file-input" id="adminPosterFile" name="posterFile" type="file" accept="image/jpeg,image/png,image/webp" />
-              <span class="admin-file-picker">Oblojka rasmi tanlash</span>
-              <small id="adminPosterFileStatus">Oblojka rasmi tanlanmagan.</small>
-            </label>
-            <div class="admin-image-crop admin-image-crop--poster admin-field--wide" id="adminPosterCrop" hidden>
-              <div class="admin-image-crop__preview" id="adminPosterCropPreview"></div>
-              <div class="admin-image-crop__controls">
-                <label>
-                  <span>Kattalashtirish</span>
-                  <input id="adminPosterZoom" type="range" min="100" max="220" value="100" step="1" />
-                </label>
-                <label>
-                  <span>Chap / o'ng</span>
-                  <input id="adminPosterX" type="range" min="-100" max="100" value="0" step="1" />
-                </label>
-                <label>
-                  <span>Yuqori / past</span>
-                  <input id="adminPosterY" type="range" min="-100" max="100" value="0" step="1" />
-                </label>
-              </div>
-            </div>
-            <label class="admin-field">
-              <span>Sifat</span>
-              <input id="adminQuality" name="quality" type="text" placeholder="HD" />
-            </label>
-            <label class="admin-field admin-field--toggle">
-              <span>Header sectionda ko'rsatish</span>
-              <input id="adminHeroFeatured" name="showInHeader" type="checkbox" />
-              <small>Tanlangan header rasmi bilan chiqadi</small>
-            </label>
-            <label class="admin-field admin-field--wide">
-              <span>Header section rasmi</span>
-              <input class="admin-file-input" id="adminHeroPosterFile" name="heroPosterFile" type="file" accept="image/jpeg,image/png,image/webp" />
-              <span class="admin-file-picker">16:9 header rasmi tanlash</span>
-              <small id="adminHeroPosterFileStatus">16:9 gorizontal rasm tanlanmagan.</small>
-            </label>
-            <div class="admin-actions">
-              <button class="watch-button" id="adminSaveButton" type="submit">Saqlash</button>
-              <button class="ghost-button" id="adminResetButton" type="button">Tozalash</button>
-            </div>
-          </form>
-        </div>
-      </section>
     </div>
   </dialog>
 
@@ -471,7 +327,7 @@
     </div>
   </section>
 
-  <script src="/static/app.js?v=20260430-admin-images2"></script>
+  <script src="/static/app.js?v=20260430-clean"></script>
 </body>
 
 </html>

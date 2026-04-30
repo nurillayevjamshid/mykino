@@ -5,25 +5,20 @@ import json
 import logging
 from pathlib import Path
 
-from aiohttp import ClientSession, ClientTimeout, web
+from aiohttp import web
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
-from .channel_sync import sync_public_channel
 from .config import Settings, load_settings
-from .keyboards import admin_panel, start_menu
-from .storage import load_movies, load_users, parse_movie_caption, search_movies, upsert_movie, upsert_user
+from .keyboards import start_menu
+from .storage import load_movies, parse_movie_caption, search_movies, upsert_movie, upsert_user
 from .webserver import create_web_app
 
 
 router = Router()
-
-
-def _is_admin(user_id: int | None, admin_ids: set[int]) -> bool:
-    return bool(user_id and user_id in admin_ids)
 
 
 def _normalize_menu_text(text: str | None) -> str:
@@ -33,8 +28,6 @@ def _normalize_menu_text(text: str | None) -> str:
 
 def _menu_action(text: str | None) -> str | None:
     normalized = _normalize_menu_text(text)
-    if normalized == "admin panel":
-        return "admin"
     if normalized == "qidirish":
         return "search"
     if normalized in {"bog lanish", "boglanish"}:
@@ -118,29 +111,6 @@ def _watch_id_from_start(text: str | None) -> int | None:
     return int(movie_id) if movie_id.isdigit() else None
 
 
-async def _sync_user_to_webapp(settings: Settings, user_record: dict) -> None:
-    if not settings.webapp_url or not user_record:
-        return
-
-    url = f"{settings.webapp_url.rstrip('/')}/api/admin/track-user"
-    payload = {
-        "user": {
-            "id": user_record.get("id"),
-            "username": user_record.get("username", ""),
-            "first_name": user_record.get("firstName", ""),
-            "last_name": user_record.get("lastName", ""),
-        }
-    }
-    try:
-        timeout = ClientTimeout(total=4)
-        async with ClientSession(timeout=timeout) as session:
-            async with session.post(url, json=payload) as response:
-                if response.status >= 400:
-                    logging.warning("User sync failed with HTTP %s", response.status)
-    except Exception as error:  # Network should never block bot replies.
-        logging.warning("User sync failed: %s", error)
-
-
 async def _send_movie(message: Message, settings: Settings, movie_id: int) -> None:
     movie = _movie_by_id(settings, movie_id)
     if not movie:
@@ -166,26 +136,6 @@ async def _send_movie(message: Message, settings: Settings, movie_id: int) -> No
     await message.answer("Bu kino uchun Telegram video posti ulanmagan.")
 
 
-async def _show_admin_panel(message: Message, settings: Settings) -> None:
-    if not _is_admin(message.from_user.id if message.from_user else None, settings.admin_ids):
-        await message.answer("Bu bo'lim faqat adminlar uchun.")
-        return
-
-    movies = load_movies(settings.movies_path)
-    users = load_users(settings.users_path)
-    categories = sorted({str(movie.get("genre") or "Kino") for movie in movies})
-    await message.answer(
-        "<b>Admin panel</b>\n\n"
-        f"🎬 Kinolar: <b>{len(movies)}</b>\n"
-        f"👤 Foydalanuvchilar: <b>{len(users)}</b>\n"
-        f"📁 Kategoriyalar: <b>{len(categories)}</b>\n"
-        "📣 Kanallar: <b>0</b>\n"
-        "👁 Bugungi ko'rishlar: <b>0</b>\n\n"
-        "Bo'limni tanlang:",
-        reply_markup=admin_panel(),
-    )
-
-
 async def _show_search_hint(message: Message) -> None:
     await message.answer("Kino nomi, janri yoki kodini yuboring. Masalan: <b>JW4</b> yoki <b>Interstellar</b>.")
 
@@ -209,35 +159,13 @@ async def _send_start_menu(message: Message, settings: Settings) -> None:
 
 @router.message(CommandStart())
 async def start(message: Message, settings: Settings) -> None:
-    user_record = upsert_user(settings.users_path, message.from_user)
-    if user_record:
-        asyncio.create_task(_sync_user_to_webapp(settings, user_record))
+    upsert_user(settings.users_path, message.from_user)
 
     movie_id = _watch_id_from_start(message.text)
     if movie_id:
         await _send_movie(message, settings, movie_id)
 
     await _send_start_menu(message, settings)
-
-
-@router.message(Command("admin"))
-@router.message(F.text == "Admin panel")
-async def admin(message: Message, settings: Settings) -> None:
-    await _show_admin_panel(message, settings)
-
-
-@router.message(Command("sync"))
-async def sync_channel(message: Message, settings: Settings) -> None:
-    if not _is_admin(message.from_user.id if message.from_user else None, settings.admin_ids):
-        await message.answer("Bu komanda faqat adminlar uchun.")
-        return
-
-    imported = sync_public_channel(
-        settings.movies_path,
-        settings.content_channel_username,
-        settings.content_channel_id,
-    )
-    await message.answer(f"✅ Kanal sinxron qilindi. Kinolar: <b>{len(imported)}</b>")
 
 
 @router.message(F.text == "Qidirish")
@@ -273,9 +201,6 @@ async def web_app_data(message: Message, settings: Settings) -> None:
 @router.message(F.text)
 async def movie_search(message: Message, settings: Settings) -> None:
     action = _menu_action(message.text)
-    if action == "admin":
-        await _show_admin_panel(message, settings)
-        return
     if action == "search":
         await _show_search_hint(message)
         return
@@ -303,25 +228,6 @@ async def movie_search(message: Message, settings: Settings) -> None:
         )
     lines.append(f"\nMini app: {settings.webapp_url}")
     await message.answer("\n".join(lines))
-
-
-@router.callback_query(F.data.startswith("admin:"))
-async def admin_callback(callback: CallbackQuery, settings: Settings) -> None:
-    if not _is_admin(callback.from_user.id if callback.from_user else None, settings.admin_ids):
-        await callback.answer("Ruxsat yo'q", show_alert=True)
-        return
-
-    action = callback.data.split(":", 1)[1]
-    if action == "close":
-        await callback.message.delete()
-        return
-
-    if action == "stats":
-        movies = load_movies(settings.movies_path)
-        await callback.answer(f"Kinolar: {len(movies)}", show_alert=True)
-        return
-
-    await callback.answer("Bu bo'lim keyingi bosqichda ulanadi.", show_alert=True)
 
 
 @router.callback_query(F.data == "feedback:soon")
