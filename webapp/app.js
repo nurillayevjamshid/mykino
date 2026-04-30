@@ -5,30 +5,7 @@ const PROD_API_BASE = window.location.protocol === "file:" ? "https://kino-teleg
 const API_BASE_STORAGE_KEY = "kino_api_base_v1";
 const DEBUG_USER_STORAGE_KEY = "kino_debug_user_v1";
 const LOCAL_API_BASES = ["http://127.0.0.1:8080", "http://localhost:8080"];
-const MAX_SHARED_POSTER_DATA_URL_LENGTH = 35000;
-const MAX_ADMIN_IMAGE_FILE_SIZE = 25000000;
-const ADMIN_POSTER_CROP_SIZE = { width: 720, height: 1080 };
-const POSTER_COMPRESSION_STEPS = [
-  { width: 720, height: 1080, quality: 0.9, minWidth: 120, minHeight: 180 },
-  { width: 640, height: 960, quality: 0.86, minWidth: 120, minHeight: 180 },
-  { width: 540, height: 810, quality: 0.82, minWidth: 120, minHeight: 180 },
-  { width: 420, height: 630, quality: 0.76, minWidth: 120, minHeight: 180 },
-  { width: 320, height: 480, quality: 0.7, minWidth: 120, minHeight: 180 },
-  { width: 240, height: 360, quality: 0.62, minWidth: 120, minHeight: 180 },
-  { width: 200, height: 300, quality: 0.5, minWidth: 120, minHeight: 180 },
-  { width: 160, height: 240, quality: 0.42, minWidth: 120, minHeight: 180 },
-];
-const HERO_POSTER_COMPRESSION_STEPS = [
-  { width: 1280, height: 720, quality: 0.86, minWidth: 240, minHeight: 135 },
-  { width: 1080, height: 608, quality: 0.82, minWidth: 240, minHeight: 135 },
-  { width: 900, height: 506, quality: 0.78, minWidth: 240, minHeight: 135 },
-  { width: 720, height: 405, quality: 0.74, minWidth: 240, minHeight: 135 },
-  { width: 560, height: 315, quality: 0.68, minWidth: 240, minHeight: 135 },
-  { width: 420, height: 236, quality: 0.56, minWidth: 240, minHeight: 135 },
-  { width: 320, height: 180, quality: 0.46, minWidth: 240, minHeight: 135 },
-  { width: 240, height: 135, quality: 0.4, minWidth: 240, minHeight: 135 },
-];
-const DEFAULT_DEBUG_ADMIN_USER = {
+const DEFAULT_DEBUG_USER = {
   id: 679291909,
   first_name: "Jamshid",
   last_name: "Nurillayev",
@@ -97,10 +74,6 @@ const copy = {
     videoLoading: "Video yuklanmoqda...",
     openSource: "Manbani ochish",
     newMovie: "Yangi",
-    adminPanel: "Admin panel",
-    edit: "Tahrirlash",
-    save: "Saqlash",
-    saving: "Saqlanmoqda...",
   },
   ru: {
     all: "Все",
@@ -142,10 +115,6 @@ const copy = {
     videoLoading: "Видео загружается...",
     openSource: "Открыть источник",
     newMovie: "Новинка",
-    adminPanel: "Админ панель",
-    edit: "Редактировать",
-    save: "Сохранить",
-    saving: "Сохраняется...",
   },
   en: {
     all: "All",
@@ -187,10 +156,6 @@ const copy = {
     videoLoading: "Video is loading...",
     openSource: "Open source",
     newMovie: "New",
-    adminPanel: "Admin panel",
-    edit: "Edit",
-    save: "Save",
-    saving: "Saving...",
   },
 };
 
@@ -218,8 +183,6 @@ const WATCH_PROGRESS_KEY = "kino_watch_progress_v1";
 const WATCHED_MOVIES_KEY = "kino_watched_movies_v1";
 const WATCH_PROGRESS_MIN_SECONDS = 15;
 const WATCH_PROGRESS_END_GAP = 12;
-const ADMIN_USER_IDS = new Set([679291909]);
-const LOCAL_USER_TRACK_KEY = "kino_local_user_stats_v1";
 const TELEGRAM_STREAM_ERROR_MESSAGE =
   "Tomosha uchun manba tayyorlanmoqda.";
 const DRIVE_STREAM_ERROR_MESSAGE =
@@ -248,17 +211,6 @@ let pendingSeekTime = 0;
 let youtubeAutoAdvanceTimer = null;
 let pendingResumeTime = 0;
 let lastSavedProgressSecond = -1;
-let adminDashboardMovies = [];
-let selectedAdminMovieId = "";
-let pendingAdminPosterDataUrl = "";
-let pendingAdminHeroPosterDataUrl = "";
-let pendingAdminPosterSourceDataUrl = "";
-let pendingAdminPosterReadyPromise = null;
-let pendingAdminHeroPosterReadyPromise = null;
-let pendingAdminPosterFileSelected = false;
-let pendingAdminHeroPosterFileSelected = false;
-let hasTrackedTelegramUser = false;
-
 const grid = document.querySelector("#movieGrid");
 const emptyState = document.querySelector("#emptyState");
 const searchPanel = document.querySelector("#searchPanel");
@@ -289,41 +241,6 @@ const watchedMovieCount = document.querySelector("#watchedMovieCount");
 const watchedMovieEmpty = document.querySelector("#watchedMovieEmpty");
 const watchedHistoryTitle = document.querySelector("#watchedHistoryTitle");
 const clearHistoryButton = document.querySelector("#clearHistoryButton");
-const profileAdminButton = document.querySelector(".profile-admin-button");
-const adminModal = document.querySelector("#adminModal");
-const adminCard = document.querySelector(".admin-card");
-const adminEditModal = document.querySelector("#adminEditModal");
-const adminMovieForm = document.querySelector("#adminMovieForm");
-const adminMovieList = document.querySelector("#adminMovieList");
-const adminMovieCount = document.querySelector("#adminMovieCount");
-const adminUsersCount = document.querySelector("#adminUsersCount");
-const adminReadyCount = document.querySelector("#adminReadyCount");
-const adminLibraryHint = document.querySelector("#adminLibraryHint");
-const adminHeaderHint = document.querySelector("#adminHeaderHint");
-const adminLibraryOpen = document.querySelector("#adminLibraryOpen");
-const adminListPage = document.querySelector("#adminListPage");
-const adminListBack = document.querySelector("#adminListBack");
-const adminEditorTitle = document.querySelector("#adminEditorTitle");
-const adminEditorMeta = document.querySelector("#adminEditorMeta");
-const adminMovieIdInput = document.querySelector("#adminMovieId");
-const adminTitleInput = document.querySelector("#adminTitle");
-const adminGenreSelect = document.querySelector("#adminGenreSelect");
-const adminGenreCustomInput = document.querySelector("#adminGenreCustom");
-const adminPosterFileInput = document.querySelector("#adminPosterFile");
-const adminPosterFileStatus = document.querySelector("#adminPosterFileStatus");
-const adminPosterCrop = document.querySelector("#adminPosterCrop");
-const adminPosterCropPreview = document.querySelector("#adminPosterCropPreview");
-const adminPosterZoomInput = document.querySelector("#adminPosterZoom");
-const adminPosterXInput = document.querySelector("#adminPosterX");
-const adminPosterYInput = document.querySelector("#adminPosterY");
-const adminHeroPosterFileInput = document.querySelector("#adminHeroPosterFile");
-const adminHeroPosterFileStatus = document.querySelector("#adminHeroPosterFileStatus");
-const adminRatingInput = document.querySelector("#adminRating");
-const adminQualityInput = document.querySelector("#adminQuality");
-const adminHeroFeaturedInput = document.querySelector("#adminHeroFeatured");
-const adminDescriptionInput = document.querySelector("#adminDescription");
-const adminSaveButton = document.querySelector("#adminSaveButton");
-const adminResetButton = document.querySelector("#adminResetButton");
 const videoPlayer = document.querySelector("#videoPlayer");
 const videoMount = document.querySelector("#videoMount");
 const videoLoading = document.querySelector("#videoLoading");
@@ -380,183 +297,6 @@ function isLocalApiBaseValue(base) {
   return LOCAL_API_BASES.some((candidate) => normalized.startsWith(candidate));
 }
 
-function loadImageElement(src) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.decoding = "async";
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Poster image load failed."));
-    image.src = src;
-  });
-}
-
-function renderPosterDataUrl(image, step) {
-  const naturalWidth = Number(image.naturalWidth || image.width || step.width || 240) || 240;
-  const naturalHeight = Number(image.naturalHeight || image.height || step.height || 360) || 360;
-  const scale = Math.min(1, step.width / naturalWidth, step.height / naturalHeight);
-  const minWidth = Number(step.minWidth || 120) || 120;
-  const minHeight = Number(step.minHeight || 180) || 180;
-  const width = Math.max(minWidth, Math.round(naturalWidth * scale));
-  const height = Math.max(minHeight, Math.round(naturalHeight * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d", { alpha: false });
-  if (!ctx) return "";
-  ctx.fillStyle = "#101521";
-  ctx.fillRect(0, 0, width, height);
-  ctx.drawImage(image, 0, 0, width, height);
-  return canvas.toDataURL("image/jpeg", step.quality);
-}
-
-async function compressPosterDataUrl(dataUrl, steps = POSTER_COMPRESSION_STEPS) {
-  const normalized = String(dataUrl || "").trim();
-  if (!normalized.startsWith("data:image/")) return normalized;
-  if (normalized.length <= MAX_SHARED_POSTER_DATA_URL_LENGTH) return normalized;
-
-  try {
-    const image = await loadImageElement(normalized);
-    let candidate = normalized;
-    for (const step of steps) {
-      const nextValue = renderPosterDataUrl(image, step);
-      if (!nextValue) continue;
-      candidate = nextValue;
-      if (candidate.length <= MAX_SHARED_POSTER_DATA_URL_LENGTH) {
-        return candidate;
-      }
-    }
-    return candidate;
-  } catch {
-    return normalized;
-  }
-}
-
-async function preparePosterForSharedStorage(poster, steps = POSTER_COMPRESSION_STEPS) {
-  const normalized = String(poster || "").trim();
-  if (!normalized.startsWith("data:image/")) return normalized;
-  return compressPosterDataUrl(normalized, steps);
-}
-
-function imageMimeFromFile(file) {
-  const type = String(file?.type || "").trim().toLowerCase();
-  if (type === "image/jpeg" || type === "image/png" || type === "image/webp") return type;
-
-  const name = String(file?.name || "").trim().toLowerCase();
-  if (name.endsWith(".png")) return "image/png";
-  if (name.endsWith(".webp")) return "image/webp";
-  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
-  return "";
-}
-
-function isImageFile(file) {
-  return Boolean(imageMimeFromFile(file));
-}
-
-function normalizeImageDataUrlForFile(dataUrl, file) {
-  const source = String(dataUrl || "");
-  const mime = imageMimeFromFile(file);
-  if (!mime || source.startsWith("data:image/")) return source;
-  return source.replace(/^data:[^;,]*(;base64,)/, `data:${mime}$1`);
-}
-
-function getCropControls(kind) {
-  return {
-    crop: adminPosterCrop,
-    preview: adminPosterCropPreview,
-    zoom: adminPosterZoomInput,
-    x: adminPosterXInput,
-    y: adminPosterYInput,
-    size: ADMIN_POSTER_CROP_SIZE,
-  };
-}
-
-function getCropState(kind) {
-  const controls = getCropControls(kind);
-  return {
-    zoom: Math.max(1, Math.min(2.2, Number(controls.zoom?.value || 100) / 100)),
-    x: Math.max(-100, Math.min(100, Number(controls.x?.value || 0))),
-    y: Math.max(-100, Math.min(100, Number(controls.y?.value || 0))),
-  };
-}
-
-function updateAdminCropPreview(kind) {
-  const controls = getCropControls(kind);
-  const source = pendingAdminPosterSourceDataUrl;
-  if (!controls.crop || !controls.preview) return;
-  controls.crop.hidden = !source;
-  if (!source) {
-    controls.preview.style.removeProperty("--crop-image");
-    return;
-  }
-
-  const state = getCropState(kind);
-  controls.preview.style.setProperty("--crop-image", `url('${source.replaceAll("'", "%27").replaceAll(")", "%29")}')`);
-  controls.preview.style.setProperty("--crop-size", `${Math.round(state.zoom * 100)}%`);
-  controls.preview.style.setProperty("--crop-x", `${50 + state.x / 2}%`);
-  controls.preview.style.setProperty("--crop-y", `${50 + state.y / 2}%`);
-}
-
-function resetAdminCrop(kind) {
-  const controls = getCropControls(kind);
-  pendingAdminPosterSourceDataUrl = "";
-
-  if (controls.zoom) controls.zoom.value = "100";
-  if (controls.x) controls.x.value = "0";
-  if (controls.y) controls.y.value = "0";
-  updateAdminCropPreview(kind);
-}
-
-async function cropImageDataUrl(dataUrl, kind) {
-  const source = String(dataUrl || "").trim();
-  if (!source.startsWith("data:image/")) return source;
-
-  const { size } = getCropControls(kind);
-  const state = getCropState(kind);
-  const image = await loadImageElement(source);
-  const canvas = document.createElement("canvas");
-  canvas.width = size.width;
-  canvas.height = size.height;
-  const ctx = canvas.getContext("2d", { alpha: false });
-  if (!ctx) return source;
-
-  const naturalWidth = Number(image.naturalWidth || image.width || 1) || 1;
-  const naturalHeight = Number(image.naturalHeight || image.height || 1) || 1;
-  const coverScale = Math.max(size.width / naturalWidth, size.height / naturalHeight) * state.zoom;
-  const drawWidth = naturalWidth * coverScale;
-  const drawHeight = naturalHeight * coverScale;
-  const overflowX = Math.max(0, drawWidth - size.width);
-  const overflowY = Math.max(0, drawHeight - size.height);
-  const dx = (size.width - drawWidth) / 2 + (state.x / 100) * (overflowX / 2);
-  const dy = (size.height - drawHeight) / 2 + (state.y / 100) * (overflowY / 2);
-
-  ctx.fillStyle = "#101521";
-  ctx.fillRect(0, 0, size.width, size.height);
-  ctx.drawImage(image, dx, dy, drawWidth, drawHeight);
-  return canvas.toDataURL("image/jpeg", kind === "hero" ? 0.9 : 0.88);
-}
-
-async function prepareAdminImageForSave(kind, fallbackValue) {
-  if (kind === "hero") {
-    const source = pendingAdminHeroPosterDataUrl || String(fallbackValue || "").trim();
-    return preparePosterForSharedStorage(source, HERO_POSTER_COMPRESSION_STEPS);
-  }
-
-  const source = pendingAdminPosterSourceDataUrl;
-  const adjusted = source ? await cropImageDataUrl(source, kind) : String(fallbackValue || "").trim();
-  return preparePosterForSharedStorage(adjusted);
-}
-
-function setAdminSaveFeedback(message) {
-  const text = String(message || "").trim();
-  if (!text) return;
-  if (adminEditorMeta && adminEditModal && !adminEditModal.hidden) {
-    adminEditorMeta.textContent = text;
-  }
-  if (adminLibraryHint) {
-    adminLibraryHint.textContent = text;
-  }
-}
-
 function applyTheme(theme) {
   const nextTheme = theme === "light" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", nextTheme);
@@ -584,18 +324,18 @@ function readStoredJson(key) {
 }
 
 function readDebugTelegramUser() {
-  const debugUserId = Number(pageParams.get("debugUserId") || pageParams.get("adminId") || 0);
+  const debugUserId = Number(pageParams.get("debugUserId") || 0);
   const debugUsername = String(pageParams.get("debugUsername") || "").trim();
   const debugFirstName = String(pageParams.get("debugFirstName") || "").trim();
   const debugLastName = String(pageParams.get("debugLastName") || "").trim();
 
   if (Number.isFinite(debugUserId) && debugUserId > 0) {
     const queryUser = {
-      ...DEFAULT_DEBUG_ADMIN_USER,
+      ...DEFAULT_DEBUG_USER,
       id: debugUserId,
-      username: debugUsername || DEFAULT_DEBUG_ADMIN_USER.username,
-      first_name: debugFirstName || DEFAULT_DEBUG_ADMIN_USER.first_name,
-      last_name: debugLastName || DEFAULT_DEBUG_ADMIN_USER.last_name,
+      username: debugUsername || DEFAULT_DEBUG_USER.username,
+      first_name: debugFirstName || DEFAULT_DEBUG_USER.first_name,
+      last_name: debugLastName || DEFAULT_DEBUG_USER.last_name,
     };
     localStorage.setItem(DEBUG_USER_STORAGE_KEY, JSON.stringify(queryUser));
     return queryUser;
@@ -603,44 +343,12 @@ function readDebugTelegramUser() {
 
   const storedUser = readStoredJson(DEBUG_USER_STORAGE_KEY);
   if (storedUser?.id) return storedUser;
-  if (window.location.protocol === "file:") return DEFAULT_DEBUG_ADMIN_USER;
+  if (window.location.protocol === "file:") return DEFAULT_DEBUG_USER;
   return null;
 }
 
 function getTelegramUser() {
   return tg?.initDataUnsafe?.user || readDebugTelegramUser() || null;
-}
-
-function isAdminUser(user = getTelegramUser()) {
-  const userId = Number(user?.id);
-  return Number.isFinite(userId) && ADMIN_USER_IDS.has(userId);
-}
-
-function getAdminRequestHeaders() {
-  const user = getTelegramUser();
-  const adminId = Number(user?.id);
-  return Number.isFinite(adminId) ? { "X-Admin-Id": String(adminId) } : {};
-}
-
-async function trackTelegramUser() {
-  if (hasTrackedTelegramUser) return;
-  const user = getTelegramUser();
-  if (!user?.id) return;
-  hasTrackedTelegramUser = true;
-  trackUserLocally(user);
-
-  try {
-    await resolveApiBase();
-    await fetch(buildApiUrl("/api/admin/track-user"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ user }),
-    });
-  } catch {
-    hasTrackedTelegramUser = false;
-  }
 }
 
 function getUserInitials(user) {
@@ -706,8 +414,6 @@ function applyTelegramUser() {
       headerAvatar.hidden = false;
     }
   }
-
-  trackTelegramUser();
 }
 
 function normalizeCategoryValue(value) {
@@ -1062,7 +768,6 @@ function isHeaderReadyMovie(movie) {
 }
 
 function getViewerMovies() {
-  // All users see all movies (admin changes are visible to everyone)
   return movies;
 }
 
@@ -1091,52 +796,6 @@ function readLocalVideoSources() {
   } catch {
     return {};
   }
-}
-
-function readLocalTrackedUsers() {
-  const payload = readStoredJson(LOCAL_USER_TRACK_KEY);
-  return payload && typeof payload === "object" ? payload : {};
-}
-
-function writeLocalTrackedUsers(store) {
-  localStorage.setItem(LOCAL_USER_TRACK_KEY, JSON.stringify(store));
-}
-
-function trackUserLocally(user) {
-  const userId = Number(user?.id || 0);
-  if (!Number.isFinite(userId) || userId <= 0) return 0;
-  const store = readLocalTrackedUsers();
-  store[String(userId)] = {
-    id: userId,
-    username: String(user?.username || "").trim(),
-    firstName: String(user?.first_name || "").trim(),
-    lastName: String(user?.last_name || "").trim(),
-    updatedAt: new Date().toISOString(),
-  };
-  writeLocalTrackedUsers(store);
-  return Object.keys(store).length;
-}
-
-function readAdminMovieOverrideStore() {
-  const payload = readStoredJson("kino_admin_movie_overrides_v1");
-  return payload && typeof payload === "object" ? payload : {};
-}
-
-function writeAdminMovieOverrideStore(store) {
-  localStorage.setItem("kino_admin_movie_overrides_v1", JSON.stringify(store));
-}
-
-function clearAdminMovieOverrideStore() {
-  localStorage.removeItem("kino_admin_movie_overrides_v1");
-}
-
-function removeAdminMovieOverride(fileId) {
-  const normalizedFileId = String(fileId || "").trim();
-  if (!normalizedFileId) return;
-  const store = readAdminMovieOverrideStore();
-  if (!(normalizedFileId in store)) return;
-  delete store[normalizedFileId];
-  writeAdminMovieOverrideStore(store);
 }
 
 function normalizeMovie(movie, index = 0) {
@@ -1264,7 +923,6 @@ function updateWatchedMovieProgress(movie, progress = 0) {
 }
 
 function getWatchedMovieEntries() {
-  // All users see all watched movies (admin changes are visible to everyone)
   return Object.values(readWatchedMoviesStore())
     .filter((entry) => entry && typeof entry === "object")
     .sort((left, right) => Number(right.watchedAt || 0) - Number(left.watchedAt || 0));
@@ -1331,369 +989,6 @@ function clearMovieProgress(movie) {
   delete store[String(movie.id)];
   writeWatchProgressStore(store);
   updateWatchedMovieProgress(movie, 0);
-}
-
-function getAdminMoviesForOptions() {
-  return adminDashboardMovies.length ? adminDashboardMovies : movies;
-}
-
-function populateAdminGenreSelect(selectedGenre = "") {
-  if (!adminGenreSelect) return;
-  const selected = String(selectedGenre || "").trim();
-  const genres = [...new Set(
-    getAdminMoviesForOptions()
-      .map((movie) => String(movie?.genre || "").trim())
-      .filter(Boolean),
-  )].sort((a, b) => a.localeCompare(b));
-
-  if (selected && !genres.includes(selected)) {
-    genres.unshift(selected);
-  }
-
-  adminGenreSelect.innerHTML = "";
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = lang === "ru" ? "Выберите категорию" : lang === "en" ? "Choose category" : "Kategoriya tanlang";
-  adminGenreSelect.append(placeholder);
-
-  for (const genre of genres) {
-    const option = document.createElement("option");
-    option.value = genre;
-    option.textContent = genre;
-    adminGenreSelect.append(option);
-  }
-
-  adminGenreSelect.value = selected;
-}
-
-function closeAdminEditor() {
-  if (adminEditModal) adminEditModal.hidden = true;
-  pendingAdminPosterDataUrl = "";
-  pendingAdminHeroPosterDataUrl = "";
-  pendingAdminPosterReadyPromise = null;
-  pendingAdminHeroPosterReadyPromise = null;
-  pendingAdminPosterFileSelected = false;
-  pendingAdminHeroPosterFileSelected = false;
-  if (adminPosterFileInput) adminPosterFileInput.value = "";
-  if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Oblojka rasmi tanlanmagan.";
-  if (adminHeroPosterFileInput) adminHeroPosterFileInput.value = "";
-  if (adminHeroPosterFileStatus) adminHeroPosterFileStatus.textContent = "16:9 gorizontal rasm tanlanmagan.";
-  resetAdminCrop("poster");
-}
-
-function clearAdminEditor() {
-  selectedAdminMovieId = "";
-  pendingAdminPosterDataUrl = "";
-  pendingAdminHeroPosterDataUrl = "";
-  pendingAdminPosterSourceDataUrl = "";
-  pendingAdminPosterReadyPromise = null;
-  pendingAdminHeroPosterReadyPromise = null;
-  pendingAdminPosterFileSelected = false;
-  pendingAdminHeroPosterFileSelected = false;
-  if (adminMovieForm) adminMovieForm.reset();
-  if (adminMovieForm) delete adminMovieForm.dataset.fileId;
-  if (adminMovieIdInput) adminMovieIdInput.value = "";
-  if (adminGenreCustomInput) adminGenreCustomInput.value = "";
-  if (adminPosterFileInput) adminPosterFileInput.value = "";
-  if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Oblojka rasmi tanlanmagan.";
-  if (adminHeroPosterFileInput) adminHeroPosterFileInput.value = "";
-  populateAdminGenreSelect("");
-  closeAdminEditor();
-  if (adminEditorTitle) adminEditorTitle.textContent = "Kino tanlanmagan";
-  if (adminEditorMeta) {
-    adminEditorMeta.textContent = "Kategoriya, ablojka, tavsif va reytingni o'zgartiring.";
-  }
-}
-
-function openAdminMovieListPage() {
-  if (!adminListPage) return;
-  adminListPage.hidden = false;
-  adminCard?.classList.add("is-list-open");
-  renderAdminMovieList(adminDashboardMovies);
-  adminCard?.scrollTo?.({ top: 0, left: 0 });
-}
-
-function closeAdminMovieListPage() {
-  if (adminListPage) adminListPage.hidden = true;
-  adminCard?.classList.remove("is-list-open");
-  adminCard?.scrollTo?.({ top: 0, left: 0 });
-}
-
-function openAdminEditor(movie) {
-  if (!movie) {
-    clearAdminEditor();
-    return;
-  }
-
-  selectedAdminMovieId = String(movie.id);
-  resetAdminCrop("poster");
-  pendingAdminPosterDataUrl = String(movie.posterImage || "").startsWith("data:image/") ? String(movie.posterImage) : "";
-  pendingAdminPosterSourceDataUrl = pendingAdminPosterDataUrl;
-  updateAdminCropPreview("poster");
-  pendingAdminHeroPosterDataUrl = String(movie.headerImage || "").startsWith("data:image/") ? String(movie.headerImage) : "";
-  pendingAdminPosterReadyPromise = null;
-  pendingAdminHeroPosterReadyPromise = null;
-  pendingAdminPosterFileSelected = false;
-  pendingAdminHeroPosterFileSelected = false;
-  if (adminMovieForm) adminMovieForm.reset();
-  if (adminMovieForm) adminMovieForm.dataset.fileId = selectedAdminMovieId;
-  if (adminMovieIdInput) adminMovieIdInput.value = selectedAdminMovieId;
-  if (adminTitleInput) adminTitleInput.value = movie.title || "";
-  populateAdminGenreSelect(movie.genre || "");
-  if (adminGenreCustomInput) adminGenreCustomInput.value = "";
-  if (adminPosterFileInput) adminPosterFileInput.value = "";
-  if (adminPosterFileStatus) {
-    adminPosterFileStatus.textContent = movie.posterImage
-      ? "Oblojka saqlangan. Yangi rasm tanlasangiz almashtiriladi."
-      : "Oblojka rasmi tanlanmagan.";
-  }
-  if (adminHeroPosterFileInput) adminHeroPosterFileInput.value = "";
-  if (adminHeroPosterFileStatus) {
-    adminHeroPosterFileStatus.textContent = movie.headerImage
-      ? "Header ablojka saqlangan. Yangi 16:9 rasm tanlasangiz almashtiriladi."
-      : "16:9 gorizontal rasm tanlanmagan.";
-  }
-  if (adminRatingInput) adminRatingInput.value = Number.isFinite(Number(movie.rating)) ? String(movie.rating) : "";
-  if (adminQualityInput) adminQualityInput.value = movie.quality || "";
-  if (adminHeroFeaturedInput) adminHeroFeaturedInput.checked = Boolean(movie.showInHeader);
-  if (adminDescriptionInput) adminDescriptionInput.value = movie.description || "";
-  if (adminEditorTitle) adminEditorTitle.textContent = movie.title || "Kino";
-  if (adminEditorMeta) {
-    const warning = getLaunchWarning(movie);
-    const headerLabel = isHeaderReadyMovie(movie) ? "Header slider" : movie.showInHeader ? "Header rasmi yo'q" : "Header off";
-    adminEditorMeta.textContent = warning
-      ? `${movie.quality || "HD"} - ${warning} - ${headerLabel}`
-      : `${movie.quality || "HD"} - Launch-ready - ${headerLabel}`;
-  }
-  if (adminEditModal) adminEditModal.hidden = false;
-  adminTitleInput?.focus();
-}
-
-function renderAdminMovieList(items = adminDashboardMovies) {
-  if (!adminMovieList || !adminMovieCount) return;
-  adminMovieList.innerHTML = "";
-  adminMovieCount.textContent = `${items.length} ta`;
-
-  if (!items.length) {
-    const empty = document.createElement("div");
-    empty.className = "admin-movie-item";
-    empty.innerHTML = "<div><strong>Katalog hozircha bo'sh</strong><span>Kutubxonaga video qo'shing.</span></div>";
-    adminMovieList.append(empty);
-    clearAdminEditor();
-    return;
-  }
-
-  for (const movie of items) {
-    const item = document.createElement("article");
-    const isActive = String(movie.id) === selectedAdminMovieId;
-    const warning = getLaunchWarning(movie);
-    item.className = `admin-movie-item${isActive ? " is-active" : ""}`;
-    item.innerHTML = `
-      <div>
-        <strong>${escapeHtml(movie.title)}</strong>
-        <span>${escapeHtml(movie.genre || "Kategoriya yo'q")}</span>
-        <span>${escapeHtml(`${movie.quality || "HD"} - ${movie.rating || 0}`)}</span>
-        ${isHeaderReadyMovie(movie) ? '<span class="admin-movie-item__ready">Header slider</span>' : movie.showInHeader ? '<span class="admin-movie-item__warning">Header rasmi yo&#039;q</span>' : ""}
-        ${warning
-          ? `<span class="admin-movie-item__warning">${escapeHtml(warning)}</span>`
-          : '<span class="admin-movie-item__ready">Launch-ready</span>'}
-      </div>
-      <button type="button" data-admin-edit="${escapeHtml(String(movie.id))}">${escapeHtml(t("edit"))}</button>
-    `;
-    adminMovieList.append(item);
-  }
-}
-
-async function loadAdminDashboard() {
-  await resolveApiBase();
-  const response = await fetch(`${buildApiUrl("/api/admin/dashboard")}?adminId=${encodeURIComponent(String(getTelegramUser()?.id || ""))}`, {
-    headers: {
-      Accept: "application/json",
-      ...getAdminRequestHeaders(),
-    },
-  });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok || !payload?.ok) {
-    throw new Error(payload?.error || "Admin panel yuklanmadi.");
-  }
-  adminDashboardMovies = Array.isArray(payload.movies)
-    ? payload.movies.map((movie, index) => normalizeMovie(movie, index))
-    : [];
-  const readyCount = adminDashboardMovies.filter((movie) => isLaunchReadyMovie(movie)).length;
-  const headerCount = adminDashboardMovies.filter((movie) => isHeaderReadyMovie(movie)).length;
-  const localTrackedUsers = Object.keys(readLocalTrackedUsers()).length;
-  if (adminUsersCount) {
-    adminUsersCount.textContent = String(Math.max(Number(payload.stats?.botUsers ?? 0), localTrackedUsers));
-  }
-  if (adminReadyCount) {
-    adminReadyCount.textContent = String(readyCount);
-  }
-  if (adminLibraryHint) {
-    adminLibraryHint.textContent = `${readyCount}/${adminDashboardMovies.length} ta kino launch-ready`;
-  }
-  if (adminHeaderHint) {
-    adminHeaderHint.textContent = headerCount
-      ? `${headerCount} ta kino header sliderda ko'rsatiladi.`
-      : "Header uchun 16:9 rasm yuklang.";
-  }
-  closeAdminMovieListPage();
-  renderAdminMovieList(adminDashboardMovies);
-}
-
-async function openAdminPanel() {
-  if (!isAdminUser()) return;
-  await resolveApiBase();
-  profileModal.close();
-  clearAdminEditor();
-  if (adminUsersCount) adminUsersCount.textContent = "…";
-  if (adminMovieCount) adminMovieCount.textContent = "…";
-  if (adminReadyCount) adminReadyCount.textContent = "…";
-  if (adminLibraryHint) adminLibraryHint.textContent = "Yuklanmoqda...";
-  if (adminHeaderHint) adminHeaderHint.textContent = "Header section sozlamalari yuklanmoqda...";
-  closeAdminMovieListPage();
-  adminModal.showModal();
-  try {
-    clearAdminMovieOverrideStore();
-    await loadAdminDashboard();
-  } catch (error) {
-    adminDashboardMovies = [...movies];
-    if (adminUsersCount) {
-      adminUsersCount.textContent = String(Object.keys(readLocalTrackedUsers()).length);
-    }
-    if (adminMovieCount) {
-      adminMovieCount.textContent = `${adminDashboardMovies.length} ta`;
-    }
-    if (adminReadyCount) {
-      adminReadyCount.textContent = String(adminDashboardMovies.filter((movie) => isLaunchReadyMovie(movie)).length);
-    }
-    if (adminHeaderHint) {
-      const headerCount = adminDashboardMovies.filter((movie) => isHeaderReadyMovie(movie)).length;
-      adminHeaderHint.textContent = headerCount
-        ? `${headerCount} ta kino header sliderda ko'rsatiladi.`
-        : "Header uchun 16:9 rasm yuklang.";
-    }
-    if (adminLibraryHint) {
-      adminLibraryHint.textContent = "Local rejim. Server bilan ulanish yo'q.";
-    }
-    renderAdminMovieList(adminDashboardMovies);
-  }
-}
-
-function closeAdminPanel() {
-  closeAdminEditor();
-  closeAdminMovieListPage();
-  adminModal.close();
-}
-
-async function saveAdminMovie(formData) {
-  await resolveApiBase();
-  if (pendingAdminPosterReadyPromise) {
-    await pendingAdminPosterReadyPromise;
-  }
-  if (pendingAdminHeroPosterReadyPromise) {
-    await pendingAdminHeroPosterReadyPromise;
-  }
-  const fileId = String(
-    formData.get("fileId")
-    || adminMovieForm?.dataset.fileId
-    || selectedAdminMovieId
-    || adminMovieIdInput?.value
-    || "",
-  ).trim();
-  if (adminMovieIdInput && fileId) {
-    adminMovieIdInput.value = fileId;
-  }
-  const title = String(formData.get("title") || "").trim();
-  const genre = String(formData.get("genreCustom") || formData.get("genreSelect") || "").trim();
-  if (!fileId) {
-    return { ok: false, message: "Avval ro'yxatdan kinoni tanlang." };
-  }
-  if (!title || !genre) {
-    return { ok: false, message: "Kino nomi va kategoriya majburiy." };
-  }
-
-  const currentMovie = adminDashboardMovies.find((movie) => String(movie.id) === fileId) || null;
-  const poster = pendingAdminPosterFileSelected
-    ? await prepareAdminImageForSave("poster", pendingAdminPosterDataUrl)
-    : undefined;
-  const headerImage = pendingAdminHeroPosterFileSelected
-    ? await prepareAdminImageForSave("hero", pendingAdminHeroPosterDataUrl)
-    : undefined;
-  const wantsShowInHeader = formData.get("showInHeader") === "on";
-  const hasHeaderImageForSave = Boolean(headerImage || currentMovie?.headerImage);
-  if (wantsShowInHeader && !hasHeaderImageForSave) {
-    return { ok: false, message: "Header section uchun avval 16:9 rasm tanlang." };
-  }
-
-  const payload = {
-    adminId: Number(getTelegramUser()?.id || 0),
-    fileId,
-    title,
-    genre,
-    rating: Number(formData.get("rating") || 0),
-    quality: String(formData.get("quality") || "").trim() || "HD",
-    description: String(formData.get("description") || "").trim(),
-    showInHeader: wantsShowInHeader,
-  };
-  if (poster !== undefined) payload.posterImage = poster;
-  if (headerImage !== undefined) payload.headerImage = headerImage;
-
-  try {
-    const response = await fetch(buildApiUrl("/api/admin/movies"), {
-      method: "POST",
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...getAdminRequestHeaders(),
-      },
-      body: JSON.stringify(payload),
-    });
-    const result = await response.json().catch(() => null);
-    if (!response.ok || !result?.ok) {
-      throw new Error(result?.error || "Saqlab bo'lmadi.");
-    }
-
-    adminDashboardMovies = Array.isArray(result.movies)
-      ? result.movies.map((movie, index) => normalizeMovie(movie, index))
-      : adminDashboardMovies;
-    movies = adminDashboardMovies.length ? [...adminDashboardMovies] : movies;
-    removeAdminMovieOverride(fileId);
-    const updatedMovie = adminDashboardMovies.find((movie) => String(movie.id) === fileId);
-    pendingAdminPosterDataUrl = String(updatedMovie?.posterImage || "").startsWith("data:image/") ? String(updatedMovie.posterImage) : "";
-    pendingAdminHeroPosterDataUrl = String(updatedMovie?.headerImage || "").startsWith("data:image/") ? String(updatedMovie.headerImage) : "";
-    pendingAdminPosterSourceDataUrl = pendingAdminPosterDataUrl;
-    pendingAdminPosterReadyPromise = null;
-    pendingAdminHeroPosterReadyPromise = null;
-    pendingAdminPosterFileSelected = false;
-    pendingAdminHeroPosterFileSelected = false;
-    if (adminPosterFileStatus) {
-      adminPosterFileStatus.textContent = updatedMovie?.posterImage
-        ? "Oblojka saqlandi va asosiy sahifada ko'rinadi."
-        : "Oblojka rasmi tanlanmagan.";
-    }
-    if (adminHeroPosterFileStatus) {
-      adminHeroPosterFileStatus.textContent = updatedMovie?.headerImage
-        ? "Header rasmi saqlandi va sliderda ko'rinadi."
-        : "16:9 gorizontal rasm tanlanmagan.";
-    }
-    renderAdminMovieList(adminDashboardMovies);
-    if (adminHeaderHint) {
-      const headerCount = adminDashboardMovies.filter((movie) => isHeaderReadyMovie(movie)).length;
-      adminHeaderHint.textContent = headerCount
-        ? `${headerCount} ta kino header sliderda ko'rsatiladi.`
-        : "Header uchun 16:9 rasm yuklang.";
-    }
-    renderHeroCarousel(payload.showInHeader ? fileId : "");
-    closeAdminEditor();
-    renderMovies();
-    return { ok: true, mode: "remote" };
-  } catch (error) {
-    return {
-      ok: false,
-      message: error?.message || "Serverga saqlanmadi. O'zgarishlar umumiy katalogga yozilmadi.",
-    };
-  }
 }
 
 function setEmptyState(title, text) {
@@ -1950,9 +1245,6 @@ function renderProfileModal() {
   }
   if (watchedMovieEmpty) {
     watchedMovieEmpty.textContent = t("historyEmpty");
-  }
-  if (profileAdminButton) {
-    profileAdminButton.hidden = !isAdminUser(user);
   }
   viewCount.textContent = watchedCount;
   renderProfileHistory();
@@ -2717,9 +2009,6 @@ function applyCopy() {
 
   searchInput.placeholder = plainLabel(t("placeholder"));
   if (movieLaterButton) movieLaterButton.textContent = plainLabel(t("later"));
-  if (profileAdminButton) profileAdminButton.textContent = t("adminPanel");
-  if (adminSaveButton) adminSaveButton.textContent = t("save");
-  if (adminResetButton) adminResetButton.textContent = t("clearHistory");
   if (videoLoading) {
     const label = videoLoading.querySelector("b");
     if (label) label.textContent = t("videoLoading");
@@ -2743,7 +2032,6 @@ function applyCopy() {
   updateHeroCarouselView();
   applyTelegramUser();
   renderCategories();
-  if (adminModal?.open) renderAdminMovieList(adminDashboardMovies);
   renderProfileModal();
   renderMovies();
 }
@@ -2841,200 +2129,6 @@ movieModal?.addEventListener("close", () => {
 });
 
 document.querySelector("[data-close-profile]").addEventListener("click", () => profileModal.close());
-document.querySelectorAll("[data-admin-open]").forEach((button) => {
-  button.addEventListener("click", openAdminPanel);
-});
-document.querySelectorAll("[data-admin-close]").forEach((button) => {
-  button.addEventListener("click", closeAdminPanel);
-});
-document.querySelectorAll("[data-admin-edit-close]").forEach((button) => {
-  button.addEventListener("click", closeAdminEditor);
-});
-
-adminEditModal?.addEventListener("click", (event) => {
-  if (event.target === adminEditModal) {
-    closeAdminEditor();
-  }
-});
-
-adminLibraryOpen?.addEventListener("click", openAdminMovieListPage);
-
-adminListBack?.addEventListener("click", closeAdminMovieListPage);
-
-adminModal?.addEventListener("click", (event) => {
-  if (event.target.closest("#adminLibraryOpen")) {
-    openAdminMovieListPage();
-  }
-  if (event.target.closest("#adminListBack")) {
-    closeAdminMovieListPage();
-  }
-});
-
-[adminPosterZoomInput, adminPosterXInput, adminPosterYInput]
-  .filter(Boolean)
-  .forEach((input) => input.addEventListener("input", () => updateAdminCropPreview("poster")));
-
-adminPosterFileInput?.addEventListener("change", () => {
-  const file = adminPosterFileInput.files?.[0];
-  pendingAdminPosterDataUrl = "";
-  pendingAdminPosterSourceDataUrl = "";
-  pendingAdminPosterReadyPromise = null;
-  pendingAdminPosterFileSelected = false;
-  updateAdminCropPreview("poster");
-  if (!file) return;
-  if (!isImageFile(file)) {
-    adminPosterFileInput.value = "";
-    if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Faqat JPG, PNG yoki WEBP rasm tanlang.";
-    if (adminLibraryHint) adminLibraryHint.textContent = "Faqat rasm fayl tanlang.";
-    return;
-  }
-  if (file.size > MAX_ADMIN_IMAGE_FILE_SIZE) {
-    adminPosterFileInput.value = "";
-    if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Fayl juda katta. 25 MB dan kichik rasm tanlang.";
-    if (adminLibraryHint) adminLibraryHint.textContent = "Oblojka rasmi 25 MB dan kichik bo'lsin.";
-    return;
-  }
-
-  if (adminPosterFileStatus) {
-    adminPosterFileStatus.textContent = `Tanlandi: ${file.name || "oblojka"}. Tayyorlanmoqda...`;
-  }
-  if (adminLibraryHint) {
-    adminLibraryHint.textContent = "Oblojka rasmi tayyorlanmoqda...";
-  }
-  const reader = new FileReader();
-  pendingAdminPosterReadyPromise = new Promise((resolve) => {
-    reader.addEventListener("load", () => {
-      const rawPoster = normalizeImageDataUrlForFile(typeof reader.result === "string" ? reader.result : "", file);
-      pendingAdminPosterSourceDataUrl = rawPoster;
-      pendingAdminPosterDataUrl = rawPoster;
-      pendingAdminPosterFileSelected = Boolean(rawPoster);
-      updateAdminCropPreview("poster");
-      if (adminPosterFileStatus) {
-        adminPosterFileStatus.textContent = `Tanlandi: ${file.name || "oblojka"}. Joylashuvni sozlab saqlang.`;
-      }
-      if (adminLibraryHint) {
-        adminLibraryHint.textContent = "Oblojka joylashuvini sozlang va saqlashni bosing.";
-      }
-      resolve();
-    });
-    reader.addEventListener("error", () => {
-      pendingAdminPosterDataUrl = "";
-      pendingAdminPosterSourceDataUrl = "";
-      pendingAdminPosterFileSelected = false;
-      updateAdminCropPreview("poster");
-      if (adminPosterFileStatus) adminPosterFileStatus.textContent = "Rasmni o'qib bo'lmadi. Boshqa rasm tanlang.";
-      if (adminLibraryHint) adminLibraryHint.textContent = "Rasmni o'qib bo'lmadi.";
-      resolve();
-    });
-  });
-  reader.readAsDataURL(file);
-});
-
-adminHeroPosterFileInput?.addEventListener("change", () => {
-  const file = adminHeroPosterFileInput.files?.[0];
-  pendingAdminHeroPosterDataUrl = "";
-  pendingAdminHeroPosterReadyPromise = null;
-  pendingAdminHeroPosterFileSelected = false;
-  if (!file) return;
-  if (!isImageFile(file)) {
-    adminHeroPosterFileInput.value = "";
-    if (adminHeroPosterFileStatus) adminHeroPosterFileStatus.textContent = "Rasm fayli tanlanmadi. Faqat JPG, PNG yoki WEBP tanlang.";
-    if (adminHeaderHint) adminHeaderHint.textContent = "Faqat rasm fayl tanlang.";
-    return;
-  }
-  if (file.size > MAX_ADMIN_IMAGE_FILE_SIZE) {
-    adminHeroPosterFileInput.value = "";
-    if (adminHeroPosterFileStatus) adminHeroPosterFileStatus.textContent = "Fayl juda katta. 25 MB dan kichik JPG, PNG yoki WEBP tanlang.";
-    if (adminHeaderHint) adminHeaderHint.textContent = "Header ablojka 25 MB dan kichik bo'lsin.";
-    return;
-  }
-
-  if (adminHeroPosterFileStatus) {
-    adminHeroPosterFileStatus.textContent = `Tanlandi: ${file.name || "header rasm"}. Tayyorlanmoqda...`;
-  }
-  const reader = new FileReader();
-  pendingAdminHeroPosterReadyPromise = new Promise((resolve) => {
-    reader.addEventListener("load", async () => {
-      const rawPoster = normalizeImageDataUrlForFile(typeof reader.result === "string" ? reader.result : "", file);
-      try {
-        pendingAdminHeroPosterDataUrl = await preparePosterForSharedStorage(rawPoster, HERO_POSTER_COMPRESSION_STEPS);
-        pendingAdminHeroPosterFileSelected = Boolean(pendingAdminHeroPosterDataUrl);
-        if (rawPoster && adminHeroFeaturedInput) adminHeroFeaturedInput.checked = true;
-        if (adminHeroPosterFileStatus) {
-          adminHeroPosterFileStatus.textContent = `Tanlandi: ${file.name || "header rasm"}. Saqlashni bosing.`;
-        }
-        if (adminHeaderHint) {
-          adminHeaderHint.textContent = "Header ablojka 16:9 formatda tayyor. Endi saqlashni bosing.";
-        }
-      } catch {
-        pendingAdminHeroPosterDataUrl = rawPoster;
-        pendingAdminHeroPosterFileSelected = Boolean(rawPoster);
-        if (rawPoster && adminHeroFeaturedInput) adminHeroFeaturedInput.checked = true;
-        if (adminHeroPosterFileStatus) {
-          adminHeroPosterFileStatus.textContent = `Tanlandi: ${file.name || "header rasm"}. Saqlashni bosing.`;
-        }
-        if (adminHeaderHint) {
-          adminHeaderHint.textContent = "Header ablojka tayyor. Endi saqlashni bosing.";
-        }
-      } finally {
-        resolve();
-      }
-    });
-    reader.addEventListener("error", () => {
-      pendingAdminHeroPosterDataUrl = "";
-      pendingAdminHeroPosterFileSelected = false;
-      if (adminHeroPosterFileStatus) adminHeroPosterFileStatus.textContent = "Rasmni o'qib bo'lmadi. Boshqa rasm tanlang.";
-      if (adminHeaderHint) adminHeaderHint.textContent = "Rasmni o'qib bo'lmadi.";
-      resolve();
-    });
-  });
-  reader.readAsDataURL(file);
-});
-
-adminResetButton?.addEventListener("click", () => {
-  const selected = adminDashboardMovies.find((movie) => String(movie.id) === selectedAdminMovieId);
-  if (selected) {
-    openAdminEditor(selected);
-  } else {
-    clearAdminEditor();
-  }
-});
-
-adminMovieForm?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const formData = new FormData(adminMovieForm);
-  const originalLabel = adminSaveButton?.textContent || t("save");
-  if (adminSaveButton) {
-    adminSaveButton.disabled = true;
-    adminSaveButton.textContent = t("saving");
-  }
-  saveAdminMovie(formData)
-    .then((result) => {
-      if (!result?.ok) {
-        setAdminSaveFeedback(result?.message || "Nomi va kategoriya majburiy.");
-        return;
-      }
-      setAdminSaveFeedback("Saqlandi. O'zgarishlar sinxron bazaga yozildi va hammaga ko'rinadi.");
-    })
-    .catch((error) => {
-      setAdminSaveFeedback(error?.message || "Saqlash bajarilmadi");
-    })
-    .finally(() => {
-      if (adminSaveButton) {
-        adminSaveButton.disabled = false;
-        adminSaveButton.textContent = originalLabel;
-      }
-    });
-});
-
-adminMovieList?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-admin-edit]");
-  if (!button) return;
-  const movie = adminDashboardMovies.find((item) => String(item.id) === String(button.dataset.adminEdit || ""));
-  openAdminEditor(movie || null);
-  renderAdminMovieList(adminDashboardMovies);
-});
-
 videoToggleButton.addEventListener("click", toggleYouTubePlayback);
 videoCenterAction.addEventListener("click", toggleYouTubePlayback);
 videoPrevButton.addEventListener("click", () => playMovieAtIndex(findMovieIndex(activeMovie) - 1));
@@ -3101,10 +2195,6 @@ videoExternalLink?.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && adminEditModal && !adminEditModal.hidden) {
-    closeAdminEditor();
-    return;
-  }
   if (event.key === "Escape" && !videoPlayer.hidden) {
     closeVideoPlayer();
   }
@@ -3135,10 +2225,6 @@ async function loadMovies() {
   renderHeroCarousel();
   syncWatchedCount();
   applyCopy();
-
-  if (adminModal?.open && isAdminUser()) {
-    loadAdminDashboard().catch(() => {});
-  }
 
   if (location.hash === "#profile") {
     renderProfileModal();
@@ -3190,9 +2276,8 @@ async function silentReloadMovies() {
   }
 }
 
-// Start polling every 5 minutes (300000 ms) for all users to see admin changes
+// Keep the catalog fresh without forcing users to reopen the app.
 function startMoviesPolling() {
-  // Poll every minute so admin edits become visible without forcing users to reopen the app.
   window.setInterval(() => {
     silentReloadMovies();
   }, 60000);

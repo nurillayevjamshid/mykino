@@ -1,12 +1,10 @@
 const crypto = require("crypto");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
-const DRIVE_UPLOAD_API_BASE = "https://www.googleapis.com/upload/drive/v3/files";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 const DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token";
 const LOGO_POSTER_URL = "/static/assets/my-kino-logo.png";
 const METADATA_FILE_NAME = ".my-kino-metadata.json";
-const USER_STATS_FILE_NAME = ".my-kino-user-stats.json";
 const EMBEDDED_META_START = "[MY_KINO_META]";
 const EMBEDDED_META_END = "[/MY_KINO_META]";
 
@@ -18,7 +16,7 @@ let accessTokenCache = {
 function setCors(response) {
   response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  response.setHeader("Access-Control-Allow-Headers", "Content-Type, Range, X-Admin-Id");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
 }
 
 function getEnv(name) {
@@ -180,29 +178,11 @@ function inferFlag(name, description, needle) {
   return haystack.includes(`#${needle}`) || haystack.includes(`[${needle}]`) || haystack.includes(` ${needle} `);
 }
 
-function withFriendlyDriveWriteError(error) {
-  const message = String(error?.message || "");
-  if (/insufficient permissions for the specified parent/i.test(message)) {
-    error.statusCode = 403;
-    error.code = "GOOGLE_DRIVE_FOLDER_WRITE_FORBIDDEN";
-    error.message = "Admin panelni saqlash uchun Google Drive papkasida service account ruxsatini Viewer emas, Editor qiling.";
-  }
-  return error;
-}
-
 function defaultMetadataPayload() {
   return {
     version: 1,
     updatedAt: "",
     movies: {},
-  };
-}
-
-function defaultUserStatsPayload() {
-  return {
-    version: 1,
-    updatedAt: "",
-    users: {},
   };
 }
 
@@ -242,29 +222,6 @@ function getMetadataOverride(metadataMap, fileId) {
   return entry && typeof entry === "object" ? entry : null;
 }
 
-function hasOwnValue(source, key) {
-  return Object.prototype.hasOwnProperty.call(source || {}, key);
-}
-
-function resolveNextStringUpdate(nextValue, currentValue = "") {
-  if (nextValue === null) return "";
-  if (nextValue === undefined) return trimString(currentValue);
-  return trimString(nextValue);
-}
-
-function firstDefinedValue(source, keys = []) {
-  for (const key of keys) {
-    if (hasOwnValue(source, key)) return source[key];
-  }
-  return undefined;
-}
-
-function resolveImageUpdate(current = {}, updates = {}, keys = []) {
-  const nextValue = firstDefinedValue(updates, keys);
-  if (nextValue !== undefined) return resolveNextStringUpdate(nextValue, "");
-  return trimString(firstDefinedValue(current, keys));
-}
-
 function isDataImageValue(value) {
   return trimString(value).startsWith("data:image/");
 }
@@ -272,12 +229,6 @@ function isDataImageValue(value) {
 function resolveStoredHeaderImage(value) {
   const normalized = trimString(value);
   return !normalized || isDataImageValue(normalized) ? normalized : "";
-}
-
-function resolveShowInHeaderUpdate(current = {}, updates = {}) {
-  if (hasOwnValue(updates, "showInHeader")) return safeBooleanFlag(updates.showInHeader);
-  if (hasOwnValue(updates, "heroFeatured")) return safeBooleanFlag(updates.heroFeatured);
-  return safeBooleanFlag(current.showInHeader);
 }
 
 function cleanupStoredMovieOverride(current = {}) {
@@ -290,31 +241,6 @@ function cleanupStoredMovieOverride(current = {}) {
     posterImage,
     headerImage,
     showInHeader,
-  };
-
-  delete next.poster;
-  delete next.heroPoster;
-  delete next.headerPoster;
-  delete next.heroImage;
-  delete next.heroFeatured;
-  delete next.isHero;
-
-  return next;
-}
-
-function resolveMovieOverride(current = {}, updates = {}) {
-  const normalizedCurrent = cleanupStoredMovieOverride(current);
-  const next = {
-    ...normalizedCurrent,
-    title: resolveNextStringUpdate(updates.title, current.title),
-    genre: sanitizePublicGenre(resolveNextStringUpdate(updates.genre || updates.category, current.genre)) || "Kino",
-    posterImage: resolveImageUpdate(normalizedCurrent, updates, ["posterImage", "poster"]),
-    headerImage: resolveImageUpdate(normalizedCurrent, updates, ["headerImage", "heroPoster", "headerPoster", "heroImage"]),
-    description: sanitizePublicDescription(resolveNextStringUpdate(updates.description, current.description)),
-    quality: resolveNextStringUpdate(updates.quality, current.quality) || "HD",
-    rating: safeRating(updates.rating ?? current.rating ?? 0),
-    showInHeader: resolveShowInHeaderUpdate(normalizedCurrent, updates),
-    updatedAt: new Date().toISOString(),
   };
 
   delete next.poster;
@@ -357,10 +283,6 @@ function extractEmbeddedMovieMetadata(description) {
       visibleDescription: rawDescription.trim(),
     };
   }
-}
-
-function buildEmbeddedMovieDescription(override, visibleDescription) {
-  return `${EMBEDDED_META_START}${JSON.stringify(override)}${EMBEDDED_META_END}\n${String(visibleDescription || "").trim()}`.trim();
 }
 
 function toDriveMovie(file, index, metadataMap = {}) {
@@ -475,109 +397,6 @@ async function readDriveTextFile(fileId) {
   return response.text();
 }
 
-async function createJsonFileInFolder(folderId, fileName, payload) {
-  const boundary = `codex-${Date.now().toString(36)}`;
-  const metadata = JSON.stringify({
-    name: fileName,
-    parents: [folderId],
-    mimeType: "application/json",
-  });
-  const media = JSON.stringify(payload, null, 2);
-  const body =
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${media}\r\n` +
-    `--${boundary}--`;
-  const url = new URL(DRIVE_UPLOAD_API_BASE);
-  url.searchParams.set("uploadType", "multipart");
-  url.searchParams.set("supportsAllDrives", "true");
-  const response = await authorizedFetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": `multipart/related; boundary=${boundary}`,
-    },
-    body,
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.id) {
-    const error = new Error(result?.error?.message || "Google Drive JSON fayli yaratilmadi.");
-    error.statusCode = response.status || 502;
-    error.code = result?.error?.status || "GOOGLE_DRIVE_JSON_CREATE_FAILED";
-    throw withFriendlyDriveWriteError(error);
-  }
-  return result;
-}
-
-async function createJsonFile(fileName, payload) {
-  const boundary = `codex-${Date.now().toString(36)}`;
-  const metadata = JSON.stringify({
-    name: fileName,
-    mimeType: "application/json",
-  });
-  const media = JSON.stringify(payload, null, 2);
-  const body =
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${media}\r\n` +
-    `--${boundary}--`;
-  const url = new URL(DRIVE_UPLOAD_API_BASE);
-  url.searchParams.set("uploadType", "multipart");
-  const response = await authorizedFetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": `multipart/related; boundary=${boundary}`,
-    },
-    body,
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.id) {
-    const error = new Error(result?.error?.message || "Google Drive JSON fayli yaratilmadi.");
-    error.statusCode = response.status || 502;
-    error.code = result?.error?.status || "GOOGLE_DRIVE_JSON_CREATE_FAILED";
-    throw error;
-  }
-  return result;
-}
-
-async function updateJsonFile(fileId, payload) {
-  const url = new URL(`${DRIVE_UPLOAD_API_BASE}/${encodeURIComponent(fileId)}`);
-  url.searchParams.set("uploadType", "media");
-  url.searchParams.set("supportsAllDrives", "true");
-  const response = await authorizedFetch(url, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json; charset=UTF-8",
-    },
-    body: JSON.stringify(payload, null, 2),
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.id) {
-    const error = new Error(result?.error?.message || "Google Drive JSON fayli yangilanmadi.");
-    error.statusCode = response.status || 502;
-    error.code = result?.error?.status || "GOOGLE_DRIVE_JSON_UPDATE_FAILED";
-    throw withFriendlyDriveWriteError(error);
-  }
-  return result;
-}
-
-async function updateDriveFileFields(fileId, payload) {
-  const url = new URL(`${DRIVE_API_BASE}/${encodeURIComponent(fileId)}`);
-  url.searchParams.set("supportsAllDrives", "true");
-  const response = await authorizedFetch(url, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json; charset=UTF-8",
-    },
-    body: JSON.stringify(payload),
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.id) {
-    const error = new Error(result?.error?.message || "Google Drive fayli metadata'si yangilanmadi.");
-    error.statusCode = response.status || 502;
-    error.code = result?.error?.status || "GOOGLE_DRIVE_FILE_UPDATE_FAILED";
-    throw error;
-  }
-  return result;
-}
-
 async function readAppJsonByName(fileName, fallbackFactory) {
   const { folderId } = getDriveConfig();
   const existing = (await findServiceAccountJsonByName(fileName)) || (await findFolderFileByName(folderId, fileName));
@@ -602,127 +421,8 @@ async function readAppJsonByName(fileName, fallbackFactory) {
   }
 }
 
-async function writeAppJsonByName(fileName, payload) {
-  const { folderId } = getDriveConfig();
-  const existing = (await findServiceAccountJsonByName(fileName)) || (await findFolderFileByName(folderId, fileName));
-  if (!existing) {
-    return createJsonFileInFolder(folderId, fileName, payload);
-  }
-  return updateJsonFile(existing.id, payload);
-}
-
 async function readCatalogMetadata() {
   return readAppJsonByName(METADATA_FILE_NAME, defaultMetadataPayload);
-}
-
-async function saveCatalogMetadata(payload) {
-  const nextPayload = {
-    ...defaultMetadataPayload(),
-    ...(payload || {}),
-    updatedAt: new Date().toISOString(),
-  };
-  await writeAppJsonByName(METADATA_FILE_NAME, nextPayload);
-  return nextPayload;
-}
-
-function shouldFallbackToEmbeddedMetadata(error) {
-  const message = String(error?.message || "").toLowerCase();
-  const code = String(error?.code || "");
-  return (
-    code === "GOOGLE_DRIVE_JSON_CREATE_FAILED"
-    || code === "GOOGLE_DRIVE_FOLDER_WRITE_FORBIDDEN"
-    || message.includes("service accounts do not have storage quota")
-    || message.includes("storage quota")
-  );
-}
-
-async function writeEmbeddedDriveMovieMetadata(fileId, updates = {}) {
-  const file = await getDriveFileMetadata(fileId, "id,description");
-  const embedded = extractEmbeddedMovieMetadata(file.description || "");
-  const current = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
-  const visibleDescription =
-    trimString(updates.description)
-    || sanitizePublicDescription(current.description)
-    || sanitizePublicDescription(embedded.visibleDescription)
-    || "Tomosha uchun tayyor kino.";
-
-  const nextOverride = {
-    ...resolveMovieOverride(current, updates),
-    description: visibleDescription,
-  };
-
-  await updateDriveFileFields(fileId, {
-    description: buildEmbeddedMovieDescription(nextOverride, visibleDescription),
-  });
-  return nextOverride;
-}
-
-async function upsertCatalogMovieMetadata(fileId, updates = {}) {
-  try {
-    const state = await readCatalogMetadata();
-    const metadata = {
-      ...defaultMetadataPayload(),
-      ...(state.data || {}),
-    };
-    const movies = metadata.movies && typeof metadata.movies === "object"
-      ? Object.fromEntries(
-        Object.entries(metadata.movies)
-          .filter(([, value]) => value && typeof value === "object")
-          .map(([key, value]) => [key, cleanupStoredMovieOverride(value)]),
-      )
-      : {};
-    const current = getMetadataOverride(movies, fileId) || {};
-
-    movies[String(fileId)] = resolveMovieOverride(current, updates);
-
-    metadata.movies = movies;
-    return await saveCatalogMetadata(metadata);
-  } catch (error) {
-    if (!shouldFallbackToEmbeddedMetadata(error)) {
-      throw error;
-    }
-    return writeEmbeddedDriveMovieMetadata(fileId, updates);
-  }
-}
-
-async function readUserStats() {
-  return readAppJsonByName(USER_STATS_FILE_NAME, defaultUserStatsPayload);
-}
-
-async function trackUserVisit(user = {}) {
-  const userId = Number(user.id);
-  if (!Number.isFinite(userId) || userId <= 0) {
-    const error = new Error("Foydalanuvchi ID topilmadi.");
-    error.statusCode = 400;
-    error.code = "TRACK_USER_ID_REQUIRED";
-    throw error;
-  }
-
-  const state = await readUserStats();
-  const payload = {
-    ...defaultUserStatsPayload(),
-    ...(state.data || {}),
-  };
-  const users = payload.users && typeof payload.users === "object" ? payload.users : {};
-  const now = new Date().toISOString();
-  const key = String(userId);
-  const existing = users[key] && typeof users[key] === "object" ? users[key] : {};
-  users[key] = {
-    id: userId,
-    firstName: trimString(user.first_name || user.firstName) || existing.firstName || "",
-    lastName: trimString(user.last_name || user.lastName) || existing.lastName || "",
-    username: trimString(user.username) || existing.username || "",
-    photoUrl: trimString(user.photo_url || user.photoUrl) || existing.photoUrl || "",
-    firstSeenAt: existing.firstSeenAt || now,
-    lastSeenAt: now,
-  };
-  payload.users = users;
-  payload.updatedAt = now;
-  await writeAppJsonByName(USER_STATS_FILE_NAME, payload);
-  return {
-    userCount: Object.keys(users).length,
-    updatedAt: now,
-  };
 }
 
 async function listDriveMovies() {
@@ -801,8 +501,5 @@ module.exports = {
   getDriveMediaResponse,
   listDriveMovies,
   readCatalogMetadata,
-  readUserStats,
   setCors,
-  trackUserVisit,
-  upsertCatalogMovieMetadata,
 };

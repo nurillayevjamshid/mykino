@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
-from datetime import datetime, timezone
 from typing import Any
 
 from aiohttp import ClientSession, web
@@ -14,7 +12,7 @@ except ImportError:  # pragma: no cover - optional local dependency
     CachedSession = ClientSession
 
 from .config import Settings
-from .storage import load_movies, load_users, save_movies, save_users
+from .storage import load_movies
 
 
 def get_env(key: str, default: str = "") -> str:
@@ -24,182 +22,12 @@ def get_env(key: str, default: str = "") -> str:
 def set_cors(response: web.StreamResponse) -> web.StreamResponse:
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Admin-Id"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     return response
 
 
 def json_response(payload: Any, status: int = 200) -> web.Response:
     return set_cors(web.json_response(payload, status=status))
-
-
-async def read_json_body(request: web.Request) -> dict[str, Any]:
-    if request.can_read_body:
-        try:
-            payload = await request.json()
-            return payload if isinstance(payload, dict) else {}
-        except (json.JSONDecodeError, TypeError):
-            return {}
-    return {}
-
-
-def resolve_admin_id(request: web.Request, payload: dict[str, Any] | None = None) -> int:
-    raw = (
-        (payload or {}).get("adminId")
-        or request.query.get("adminId", "")
-        or request.headers.get("X-Admin-Id", "")
-    )
-    return int(str(raw).strip()) if str(raw).strip().isdigit() else 0
-
-
-def ensure_admin(request: web.Request, settings: Settings, payload: dict[str, Any] | None = None) -> int:
-    admin_id = resolve_admin_id(request, payload)
-    if admin_id not in settings.admin_ids:
-        raise web.HTTPForbidden(
-            text=json.dumps({
-                "ok": False,
-                "code": "ADMIN_REQUIRED",
-                "error": "Bu endpoint faqat admin uchun.",
-            }),
-            content_type="application/json",
-        )
-    return admin_id
-
-
-def safe_rating(value: Any) -> float:
-    try:
-        numeric = float(str(value).replace(",", "."))
-    except (TypeError, ValueError):
-        return 0.0
-    return max(0.0, min(10.0, round(numeric, 1)))
-
-
-def bool_flag(value: Any, fallback: bool = False) -> bool:
-    if value is None:
-        return fallback
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return value > 0
-    normalized = str(value).strip().casefold()
-    if not normalized:
-        return False
-    if normalized in {"false", "0", "no", "off", "yoq", "yo'q"}:
-        return False
-    return normalized in {"true", "1", "yes", "on", "ha"}
-
-
-def has_key(payload: dict[str, Any], key: str) -> bool:
-    return key in payload
-
-
-def string_update(payload: dict[str, Any], current: dict[str, Any], keys: tuple[str, ...], default: str = "") -> str:
-    for key in keys:
-        if has_key(payload, key):
-            return str(payload.get(key) or "").strip()
-    for key in keys:
-        value = str(current.get(key) or "").strip()
-        if value:
-            return value
-    return default
-
-
-def upsert_local_user(settings: Settings, user: dict[str, Any]) -> dict[str, Any]:
-    raw_user_id = str(user.get("id") or "").strip()
-    user_id = int(raw_user_id) if raw_user_id.isdigit() else 0
-    if user_id <= 0:
-        raise web.HTTPBadRequest(
-            text=json.dumps({
-                "ok": False,
-                "code": "TRACK_USER_ID_REQUIRED",
-                "error": "Foydalanuvchi ID topilmadi.",
-            }),
-            content_type="application/json",
-        )
-
-    users = load_users(settings.users_path)
-    now = datetime.now(timezone.utc).isoformat()
-    existing_index = next((index for index, item in enumerate(users) if int(item.get("id", 0)) == user_id), None)
-    existing = users[existing_index] if existing_index is not None else {}
-    record = {
-        "id": user_id,
-        "username": str(user.get("username") or existing.get("username") or "").strip(),
-        "firstName": str(user.get("first_name") or user.get("firstName") or existing.get("firstName") or "").strip(),
-        "lastName": str(user.get("last_name") or user.get("lastName") or existing.get("lastName") or "").strip(),
-        "photoUrl": str(user.get("photo_url") or user.get("photoUrl") or existing.get("photoUrl") or "").strip(),
-        "firstSeenAt": existing.get("firstSeenAt") or now,
-        "lastSeenAt": now,
-    }
-
-    if existing_index is None:
-        users.append(record)
-    else:
-        users[existing_index] = {**existing, **record}
-
-    save_users(settings.users_path, sorted(users, key=lambda item: int(item.get("id", 0))))
-    return {
-        "userCount": len(users),
-        "updatedAt": now,
-        "user": record,
-    }
-
-
-def update_local_movie(settings: Settings, payload: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    file_id = str(payload.get("fileId") or "").strip()
-    if not file_id:
-        raise web.HTTPBadRequest(
-            text=json.dumps({
-                "ok": False,
-                "code": "FILE_ID_REQUIRED",
-                "error": "Qaysi kino tahrirlanayotgani aniqlanmadi.",
-            }),
-            content_type="application/json",
-        )
-
-    movies = load_movies(settings.movies_path)
-    movie_index = next(
-        (
-            index
-            for index, item in enumerate(movies)
-            if str(item.get("id", "")) == file_id
-            or str(item.get("fileId", "")) == file_id
-            or str(item.get("driveFileId", "")) == file_id
-            or str(item.get("code", "")) == file_id
-        ),
-        None,
-    )
-    if movie_index is None:
-        raise web.HTTPNotFound(
-            text=json.dumps({
-                "ok": False,
-                "code": "MOVIE_NOT_FOUND",
-                "error": "Kino topilmadi.",
-            }),
-            content_type="application/json",
-        )
-
-    current = movies[movie_index]
-    show_in_header = (
-        bool_flag(payload.get("showInHeader"))
-        if has_key(payload, "showInHeader")
-        else bool_flag(payload.get("heroFeatured"), bool_flag(current.get("showInHeader")))
-    )
-    updated = {
-        **current,
-        "title": str(payload.get("title") or current.get("title") or "").strip(),
-        "genre": str(payload.get("genre") or payload.get("category") or current.get("genre") or "Kino").strip(),
-        "description": str(payload.get("description") or current.get("description") or "").strip(),
-        "posterImage": string_update(payload, current, ("posterImage", "poster")),
-        "headerImage": string_update(payload, current, ("headerImage", "heroPoster", "headerPoster", "heroImage")),
-        "showInHeader": show_in_header,
-        "quality": str(payload.get("quality") or current.get("quality") or "HD").strip(),
-        "rating": safe_rating(payload.get("rating", current.get("rating", 0))),
-    }
-    updated["poster"] = updated["posterImage"]
-    updated["heroPoster"] = updated["headerImage"]
-    updated["heroFeatured"] = updated["showInHeader"]
-    movies[movie_index] = updated
-    save_movies(settings.movies_path, movies)
-    return movies, updated
 
 
 def best_thumbnail(thumbnails: dict[str, Any]) -> str:
@@ -336,42 +164,6 @@ def create_web_app(settings: Settings) -> web.Application:
     async def movies(_: web.Request) -> web.Response:
         return json_response(load_movies(settings.movies_path))
 
-    async def admin_dashboard(request: web.Request) -> web.Response:
-        ensure_admin(request, settings)
-        local_movies = load_movies(settings.movies_path)
-        local_users = load_users(settings.users_path)
-        categories = {str(movie.get("genre") or "Kino").strip() for movie in local_movies}
-        return json_response({
-            "ok": True,
-            "stats": {
-                "botUsers": len(local_users),
-                "movies": len(local_movies),
-                "editedMovies": len(local_movies),
-                "categories": len(categories),
-                "updatedAt": max(
-                    [str(user.get("lastSeenAt") or "") for user in local_users] + [""]
-                ),
-            },
-            "movies": local_movies,
-            "users": local_users,
-        })
-
-    async def admin_track_user(request: web.Request) -> web.Response:
-        payload = await read_json_body(request)
-        user = payload.get("user") if isinstance(payload.get("user"), dict) else payload
-        result = upsert_local_user(settings, user if isinstance(user, dict) else {})
-        return json_response({"ok": True, **result})
-
-    async def admin_movies(request: web.Request) -> web.Response:
-        payload = await read_json_body(request)
-        ensure_admin(request, settings, payload)
-        updated_movies, updated_movie = update_local_movie(settings, payload)
-        return json_response({
-            "ok": True,
-            "movie": updated_movie,
-            "movies": updated_movies,
-        })
-
     async def youtube_movies(_: web.Request) -> web.Response:
         response = json_response(await fetch_youtube_movies())
         response.headers["Cache-Control"] = "s-maxage=60, stale-while-revalidate=300"
@@ -425,9 +217,6 @@ def create_web_app(settings: Settings) -> web.Application:
 
     app.router.add_get("/", index)
     app.router.add_get("/api/movies", movies)
-    app.router.add_get("/api/admin/dashboard", admin_dashboard)
-    app.router.add_post("/api/admin/track-user", admin_track_user)
-    app.router.add_post("/api/admin/movies", admin_movies)
     app.router.add_get("/api/youtube/movies", youtube_movies)
     app.router.add_get("/api/video-url/{fileId}", video_url)
     app.router.add_get("/api/stream/{fileId}", stream_video)
