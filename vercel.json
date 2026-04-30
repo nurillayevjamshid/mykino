@@ -84,6 +84,14 @@
       "dest": "/api/drive-thumbnail.js?fileId=$1"
     },
     {
+      "src": "/admin",
+      "dest": "/webapp/admin/index.html"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "/webapp/admin/$1"
+    },
+    {
       "src": "/static/(.*)",
       "dest": "/webapp/$1"
     },
