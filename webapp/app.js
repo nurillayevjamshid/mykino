@@ -1428,6 +1428,8 @@ function openAdminEditor(movie) {
   selectedAdminMovieId = String(movie.id);
   resetAdminCrop("poster");
   pendingAdminPosterDataUrl = String(movie.posterImage || "").startsWith("data:image/") ? String(movie.posterImage) : "";
+  pendingAdminPosterSourceDataUrl = pendingAdminPosterDataUrl;
+  updateAdminCropPreview("poster");
   pendingAdminHeroPosterDataUrl = String(movie.headerImage || "").startsWith("data:image/") ? String(movie.headerImage) : "";
   pendingAdminPosterReadyPromise = null;
   pendingAdminHeroPosterReadyPromise = null;
