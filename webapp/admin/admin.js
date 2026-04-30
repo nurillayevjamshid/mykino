@@ -7,8 +7,9 @@ let selectedPosterDataUrl = '';
 
 // API base URL
 const API_URL = '/api';
-const POSTER_MAX_WIDTH = 720;
-const POSTER_MAX_HEIGHT = 1080;
+const POSTER_MAX_WIDTH = 240;
+const POSTER_MAX_HEIGHT = 360;
+const POSTER_MAX_DATA_URL_LENGTH = 28000;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -424,19 +425,32 @@ function readPosterFile(file) {
       const image = new Image();
       image.onerror = () => resolve(String(reader.result || ''));
       image.onload = () => {
-        const scale = Math.min(1, POSTER_MAX_WIDTH / image.width, POSTER_MAX_HEIGHT / image.height);
-        const width = Math.max(1, Math.round(image.width * scale));
-        const height = Math.max(1, Math.round(image.height * scale));
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
         const context = canvas.getContext('2d');
         if (!context) {
           resolve(String(reader.result || ''));
           return;
         }
-        context.drawImage(image, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.86));
+
+        let scale = Math.min(1, POSTER_MAX_WIDTH / image.width, POSTER_MAX_HEIGHT / image.height);
+        let dataUrl = '';
+
+        for (const quality of [0.78, 0.68, 0.58, 0.48]) {
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+          if (dataUrl.length <= POSTER_MAX_DATA_URL_LENGTH) {
+            resolve(dataUrl);
+            return;
+          }
+
+          scale *= 0.82;
+        }
+
+        reject(new Error('Rasm hajmi katta. Iltimos, kichikroq ablojka tanlang.'));
       };
       image.src = String(reader.result || '');
     };
