@@ -1,35 +1,67 @@
 // Admin Panel JavaScript
 
-// Sample data (replace with API calls)
-let movies = [
-  {
-    id: 1,
-    name: "So'ngi chaqiriq",
-    category: "action",
-    rating: 5.9,
-    hd: true,
-    poster: "",
-    video: "",
-    description: "Action film"
-  },
-  {
-    id: 2,
-    name: "Debora Loganning iblislari",
-    category: "horror",
-    rating: 0.0,
-    hd: true,
-    poster: "",
-    video: "",
-    description: "Horror film"
-  }
-];
+// Data storage
+let movies = [];
+let categories = [];
 
-let categories = [
-  { id: 1, name: "Action", icon: "🚀", count: 12 },
-  { id: 2, name: "Comedy", icon: "😂", count: 8 },
-  { id: 3, name: "Horror", icon: "💀", count: 5 },
-  { id: 4, name: "Drama", icon: "🎬", count: 15 }
-];
+// API base URL
+const API_URL = '/api';
+
+// Fetch movies from API
+async function fetchMovies() {
+  try {
+    const response = await fetch(`${API_URL}/movies`);
+    if (!response.ok) throw new Error('Failed to fetch movies');
+    const data = await response.json();
+    
+    // Map API data to admin format
+    movies = data.map(movie => ({
+      id: movie.id,
+      name: movie.title,
+      category: movie.genre || 'Kino',
+      rating: movie.rating || 0,
+      hd: movie.quality === 'HD',
+      poster: movie.poster || '',
+      video: movie.streamUrl || movie.telegramFileId || '',
+      description: movie.description || '',
+      year: movie.year,
+      code: movie.code,
+      sourceType: movie.sourceType,
+      telegramUrl: movie.telegramPostUrl || movie.sourceUrl
+    }));
+    
+    renderMovies();
+  } catch (error) {
+    console.error('Error fetching movies:', error);
+    showNotification('Kinolarni yuklashda xatolik!', 'error');
+  }
+}
+
+// Load categories from localStorage or set defaults
+function loadCategories() {
+  const saved = localStorage.getItem('categories');
+  if (saved) {
+    categories = JSON.parse(saved);
+  } else {
+    categories = [
+      { id: 1, name: "Action", icon: "🚀", count: 0 },
+      { id: 2, name: "Comedy", icon: "😂", count: 0 },
+      { id: 3, name: "Horror", icon: "💀", count: 0 },
+      { id: 4, name: "Drama", icon: "🎬", count: 0 }
+    ];
+  }
+  updateCategoryCounts();
+}
+
+// Update category counts based on movies
+function updateCategoryCounts() {
+  categories.forEach(cat => {
+    cat.count = movies.filter(m => 
+      m.category.toLowerCase().includes(cat.name.toLowerCase())
+    ).length;
+  });
+  localStorage.setItem('categories', JSON.stringify(categories));
+}
 
 // DOM Elements
 const navItems = document.querySelectorAll('.nav-item');
@@ -46,8 +78,9 @@ const sectionTitles = {
 };
 
 // Initialize
-function init() {
-  renderMovies();
+async function init() {
+  loadCategories();
+  await fetchMovies();
   renderCategories();
   bindEvents();
   loadHeaderSettings();
@@ -158,7 +191,7 @@ function renderMovies() {
   if (movies.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6">
+        <td colspan="7">
           <div class="empty-state">
             <div class="empty-state-icon">🎬</div>
             <h3>Hozircha kinolar yo'q</h3>
@@ -176,10 +209,11 @@ function renderMovies() {
         <img src="${movie.poster || 'https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image'}" 
              alt="${movie.name}" class="movie-poster">
       </td>
-      <td>${movie.name}</td>
+      <td><strong>${movie.name}</strong><br><small style="color:var(--text-muted)">${movie.code || ''}</small></td>
+      <td>${movie.year || '-'}</td>
       <td>${getCategoryName(movie.category)}</td>
       <td>
-        <span class="rating">⭐ ${movie.rating.toFixed(1)}</span>
+        <span class="rating">⭐ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>
       </td>
       <td>
         <span class="badge ${movie.hd ? 'badge-hd' : 'badge-sd'}">
@@ -289,7 +323,9 @@ function handleMovieSubmit(e) {
     movies.push({ id: newId, ...movieData });
   }
 
+  updateCategoryCounts();
   renderMovies();
+  renderCategories();
   closeMovieModal();
   showNotification(form.dataset.editingId ? 'Kino yangilandi!' : 'Kino qo\'shildi!');
 }
@@ -306,7 +342,9 @@ function editMovie(id) {
 function deleteMovie(id) {
   if (confirm('Bu kinoni o\'chirishni xohlaysizmi?')) {
     movies = movies.filter(m => m.id !== id);
+    updateCategoryCounts();
     renderMovies();
+    renderCategories();
     showNotification('Kino o\'chirildi!');
   }
 }
