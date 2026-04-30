@@ -50,6 +50,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/movie-update.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "webapp/**",
       "use": "@vercel/static"
     }
@@ -82,6 +86,10 @@
     {
       "src": "/api/drive-thumbnail/(.*)",
       "dest": "/api/drive-thumbnail.js?fileId=$1"
+    },
+    {
+      "src": "/api/movie-update",
+      "dest": "/api/movie-update.js"
     },
     {
       "src": "/admin",
