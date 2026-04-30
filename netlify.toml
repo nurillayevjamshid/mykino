@@ -1,0 +1,12 @@
+[build]
+  publish = "webapp"
+  
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
