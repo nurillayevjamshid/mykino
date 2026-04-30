@@ -121,14 +121,16 @@ function bindEvents() {
     const btn = e.target.closest('.btn-icon');
     if (!btn) return;
     
-    const row = btn.closest('tr');
-    if (!row) return;
+    const movieId = parseInt(btn.dataset.movieId);
+    const action = btn.dataset.action;
     
-    const movieId = parseInt(row.dataset.id);
+    if (!movieId || !action) return;
     
-    if (btn.classList.contains('edit')) {
+    console.log(`Button clicked: ${action} for movie ${movieId}`);
+    
+    if (action === 'edit') {
       editMovie(movieId);
-    } else if (btn.classList.contains('delete')) {
+    } else if (action === 'delete') {
       deleteMovie(movieId);
     }
   });
@@ -244,10 +246,10 @@ function renderMovies() {
       </td>
       <td>
         <div class="actions">
-          <button class="btn-icon edit" onclick="editMovie(${movie.id})" title="Tahrirlash">
+          <button class="btn-icon edit" data-action="edit" data-movie-id="${movie.id}" title="Tahrirlash">
             ✏️
           </button>
-          <button class="btn-icon delete" onclick="deleteMovie(${movie.id})" title="O'chirish">
+          <button class="btn-icon delete" data-action="delete" data-movie-id="${movie.id}" title="O'chirish">
             🗑️
           </button>
         </div>
