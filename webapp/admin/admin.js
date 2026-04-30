@@ -140,6 +140,11 @@ function bindEvents() {
     document.querySelector('.color-value').textContent = e.target.value;
   });
 
+  // Poster URL input - live preview
+  document.getElementById('moviePoster')?.addEventListener('input', (e) => {
+    updatePosterPreview(e.target.value);
+  });
+
   // Logout
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
     if (confirm('Tizimdan chiqishni xohlaysizmi?')) {
@@ -281,13 +286,32 @@ function openMovieModal(movie = null) {
     document.getElementById('movieVideo').value = movie.video;
     document.getElementById('movieDescription').value = movie.description;
     form.dataset.editingId = movie.id;
+    
+    // Show poster preview
+    updatePosterPreview(movie.poster);
   } else {
     title.textContent = 'Yangi kino qo\'shish';
     form.reset();
     delete form.dataset.editingId;
+    updatePosterPreview('');
   }
 
   modal.classList.add('active');
+}
+
+// Update poster preview
+function updatePosterPreview(url) {
+  const img = document.getElementById('posterPreviewImg');
+  const placeholder = document.getElementById('posterPlaceholder');
+  
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    placeholder.style.display = 'block';
+  }
 }
 
 // Close Movie Modal
@@ -296,7 +320,7 @@ function closeMovieModal() {
 }
 
 // Handle Movie Submit
-function handleMovieSubmit(e) {
+async function handleMovieSubmit(e) {
   e.preventDefault();
 
   const form = e.target;
@@ -311,23 +335,53 @@ function handleMovieSubmit(e) {
   };
 
   if (form.dataset.editingId) {
-    // Edit existing
+    // Edit existing - call API
     const id = parseInt(form.dataset.editingId);
-    const index = movies.findIndex(m => m.id === id);
-    if (index !== -1) {
-      movies[index] = { ...movies[index], ...movieData };
+    
+    try {
+      const response = await fetch(`${API_URL}/movie-update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: id,
+          title: movieData.name,
+          genre: movieData.category,
+          rating: movieData.rating,
+          quality: movieData.hd ? 'HD' : 'SD',
+          poster: movieData.poster,
+          description: movieData.description
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.ok) {
+        // Update local data
+        const index = movies.findIndex(m => m.id === id);
+        if (index !== -1) {
+          movies[index] = { ...movies[index], ...movieData };
+        }
+        showNotification('Kino bazada yangilandi! ✅');
+      } else {
+        showNotification('Xatolik: ' + result.error, 'error');
+        return;
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      showNotification('Serverga ulanishda xatolik!', 'error');
+      return;
     }
   } else {
     // Add new
     const newId = Math.max(...movies.map(m => m.id), 0) + 1;
     movies.push({ id: newId, ...movieData });
+    showNotification('Kino qo\'shildi! (lokal)');
   }
 
   updateCategoryCounts();
   renderMovies();
   renderCategories();
   closeMovieModal();
-  showNotification(form.dataset.editingId ? 'Kino yangilandi!' : 'Kino qo\'shildi!');
 }
 
 // Edit Movie
@@ -412,19 +466,26 @@ function saveHeaderSettings() {
 }
 
 // Show Notification
-function showNotification(message) {
+function showNotification(message, type = 'success') {
   const notification = document.createElement('div');
+  
+  const bgColor = type === 'error' 
+    ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
+    : 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
+  const textColor = type === 'error' ? '#fff' : '#0f131a';
+  
   notification.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: #0f131a;
+    background: ${bgColor};
+    color: ${textColor};
     padding: 16px 24px;
     border-radius: 12px;
     font-weight: 600;
     z-index: 1000;
     animation: slideIn 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
   `;
   notification.textContent = message;
   document.body.appendChild(notification);
@@ -470,3 +531,4 @@ init();
 // Expose functions for inline handlers
 window.editMovie = editMovie;
 window.deleteMovie = deleteMovie;
+window.updatePosterPreview = updatePosterPreview;
