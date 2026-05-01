@@ -58,7 +58,7 @@
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
-              <span class="nav-text">Sozlamalar</span>
+              <span class="nav-text">Header Section</span>
             </a>
           </li>
         </ul>
@@ -160,36 +160,30 @@
         <!-- Header Section -->
         <section class="content-section" id="headerSection">
           <div class="section-header">
-            <h2>Header sozlamalari</h2>
+            <h2>Header Section</h2>
           </div>
           
           <div class="settings-form">
             <div class="form-group">
-              <label>Logo URL</label>
-              <input type="text" id="logoUrl" class="form-input" placeholder="Logo rasmi URL">
+              <label for="headerMovieSelect">Kino tanlash</label>
+              <select id="headerMovieSelect" class="form-select" required>
+                <option value="">Kino tanlang</option>
+              </select>
             </div>
             
             <div class="form-group">
-              <label>Title</label>
-              <input type="text" id="headerTitle" class="form-input" placeholder="Sayt nomi">
-            </div>
-            
-            <div class="form-group">
-              <label>Subtitle</label>
-              <input type="text" id="headerSubtitle" class="form-input" placeholder="Taglavha">
-            </div>
-            
-            <div class="form-group">
-              <label>Primary Color</label>
-              <div class="color-picker">
-                <input type="color" id="primaryColor" value="#ffc73a">
-                <span class="color-value">#ffc73a</span>
+              <label for="headerImageFile">Header rasmi (16:9)</label>
+              <div class="header-image-preview" id="headerImagePreview">
+                <img src="" alt="Header rasmi" id="headerImagePreviewImg" hidden>
+                <span class="header-image-placeholder" id="headerImagePlaceholder">16:9 rasm tanlanmagan</span>
               </div>
+              <input type="file" id="headerImageFile" class="form-input" accept="image/png,image/jpeg,image/webp">
+              <small class="form-hint">Faqat gorizontal 16:9 formatdagi rasm qabul qilinadi.</small>
             </div>
             
             <div class="form-actions">
-              <button class="btn btn-secondary" id="resetHeader">Bekor qilish</button>
-              <button class="btn btn-primary" id="saveHeader">Saqlash</button>
+              <button type="button" class="btn btn-secondary" id="resetHeader">Bekor qilish</button>
+              <button type="button" class="btn btn-primary" id="saveHeader">Saqlash</button>
             </div>
           </div>
         </section>
