@@ -465,6 +465,17 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const posterImage = trimString(override?.posterImage || override?.poster);
   const rawHeaderImage = trimString(override?.headerImage || override?.heroPoster || override?.headerPoster || override?.heroImage);
   const headerImage = resolveStoredHeaderImage(rawHeaderImage);
+
+  // Debug: return qilinayotgan ma'lumot
+  if (override?.posterImage || override?.headerImage) {
+    console.log('[DEBUG] toDriveMovie - Returning:', {
+      fileId: file.id,
+      hasPosterImage: Boolean(posterImage),
+      hasHeaderImage: Boolean(headerImage),
+      posterImageLength: posterImage?.length || 0,
+      headerImageLength: headerImage?.length || 0
+    });
+  }
   const fallbackPosterImage = file.thumbnailLink ? `/api/drive-thumbnail/${encodeURIComponent(file.id)}` : LOGO_POSTER_URL;
   const finalPosterImage = posterImage || fallbackPosterImage;
   const showInHeader = safeBooleanFlag(override?.showInHeader) && (!rawHeaderImage || Boolean(headerImage));
@@ -717,6 +728,16 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
 
   const cleaned = cleanupStoredMovieOverride(next);
   metadata.movies[normalizedFileId] = cleaned;
+
+  // Debug: nima saqlanayotganini ko'rish
+  console.log('[DEBUG] updateCatalogMovieMetadata - Saving:', {
+    fileId: normalizedFileId,
+    hasPosterImage: Boolean(cleaned.posterImage),
+    hasHeaderImage: Boolean(cleaned.headerImage),
+    posterImageLength: cleaned.posterImage?.length || 0,
+    headerImageLength: cleaned.headerImage?.length || 0,
+    showInHeader: cleaned.showInHeader
+  });
 
   try {
     await writeCatalogMetadata(metadata, metadataState.file);
