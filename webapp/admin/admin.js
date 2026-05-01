@@ -17,15 +17,18 @@ let deleteTargetMovieId = '';
 
 // API base URL
 const API_URL = '/api';
-// High quality image settings
-const POSTER_MAX_WIDTH = 800;
-const POSTER_MAX_HEIGHT = 1200;
-const POSTER_MAX_DATA_URL_LENGTH = 80000; // Increased to allow higher quality
+// High quality image settings - Enhanced for all formats
+const POSTER_MAX_WIDTH = 1200; // Increased for better quality
+const POSTER_MAX_HEIGHT = 1800; // Increased for better quality
+const POSTER_MAX_DATA_URL_LENGTH = 200000; // Significantly increased for large images
 const HEADER_IMAGE_RATIO = 16 / 9;
-const HEADER_IMAGE_MAX_WIDTH = 1280; // HD quality
-const HEADER_IMAGE_MAX_HEIGHT = 720;
-const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 100000; // Increased for HD quality
+const HEADER_IMAGE_MAX_WIDTH = 1920; // Full HD quality
+const HEADER_IMAGE_MAX_HEIGHT = 1080; // Full HD quality
+const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 250000; // Increased for HD quality
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
+
+// Maximum file size in bytes (10MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -606,6 +609,11 @@ function readPosterFile(file) {
     return Promise.reject(new Error('Faqat rasm fayl tanlang.'));
   }
 
+  // Check file size (10MB limit)
+  if (file.size > MAX_FILE_SIZE) {
+    return Promise.reject(new Error('Rasm hajmi juda katta. Maksimal hajm: 10MB.'));
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Rasmni o\'qib bo\'lmadi.'));
@@ -623,22 +631,37 @@ function readPosterFile(file) {
         let scale = Math.min(1, POSTER_MAX_WIDTH / image.width, POSTER_MAX_HEIGHT / image.height);
         let dataUrl = '';
 
-        // High quality poster with better dimensions
+        // Enhanced quality poster with better dimensions and progressive compression
         canvas.width = Math.min(POSTER_MAX_WIDTH, Math.max(1, Math.round(image.width * scale)));
         canvas.height = Math.min(POSTER_MAX_HEIGHT, Math.max(1, Math.round(image.height * scale)));
         context.clearRect(0, 0, canvas.width, canvas.height);
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-        // Try high quality first, then gradually reduce only if needed
-        for (const quality of [0.92, 0.88, 0.82, 0.76, 0.70, 0.64]) {
-          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        // Determine best format based on image characteristics
+        const hasTransparency = file.type === 'image/png' || file.type === 'image/gif' || file.type === 'image/webp';
+        const preferWebP = hasTransparency || file.type === 'image/webp';
+        
+        // Progressive quality reduction with format optimization
+        const formats = preferWebP ? 
+          [{ mime: 'image/webp', qualities: [0.95, 0.92, 0.88, 0.84, 0.80, 0.76, 0.70] }] :
+          [{ mime: 'image/jpeg', qualities: [0.95, 0.92, 0.88, 0.84, 0.80, 0.76, 0.70] }];
 
-          if (dataUrl.length <= POSTER_MAX_DATA_URL_LENGTH) {
-            resolve(dataUrl);
-            return;
+        for (const format of formats) {
+          for (const quality of format.qualities) {
+            dataUrl = canvas.toDataURL(format.mime, quality);
+
+            if (dataUrl.length <= POSTER_MAX_DATA_URL_LENGTH) {
+              resolve(dataUrl);
+              return;
+            }
+
+            // Reduce scale if still too large
+            scale *= 0.85;
+            canvas.width = Math.max(1, Math.round(canvas.width * scale));
+            canvas.height = Math.max(1, Math.round(canvas.height * scale));
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
           }
-
-          scale *= 0.82;
         }
 
         reject(new Error('Rasm hajmi katta. Iltimos, kichikroq ablojka tanlang.'));
@@ -691,6 +714,11 @@ async function startHeaderCrop(file) {
     return Promise.reject(new Error('Faqat rasm fayl tanlang.'));
   }
 
+  // Check file size (10MB limit)
+  if (file.size > MAX_FILE_SIZE) {
+    return Promise.reject(new Error('Rasm hajmi juda katta. Maksimal hajm: 10MB.'));
+  }
+
   const dataUrl = await readFileAsDataUrl(file, 'Header rasmini o\'qib bo\'lmadi.');
   const image = await loadImageFromDataUrl(dataUrl);
   if (image.width <= image.height) {
@@ -738,11 +766,12 @@ function encodeHeaderCrop() {
   if (!context) throw new Error('Brauzer rasmni crop qila olmadi.');
 
   const crop = getHeaderCropRect();
-  // HD quality header image sizes - prioritize larger sizes
-  const widths = [1280, 960, 800, 640, 520];
+  // Full HD quality header image sizes with enhanced format support
+  const widths = [1920, 1600, 1280, 1024, 800];
   const formats = [
-    { mime: 'image/webp', qualities: [0.92, 0.88, 0.82, 0.76, 0.70, 0.64] },
-    { mime: 'image/jpeg', qualities: [0.90, 0.86, 0.80, 0.74, 0.68, 0.62] }
+    { mime: 'image/webp', qualities: [0.95, 0.92, 0.88, 0.84, 0.80, 0.76, 0.70] },
+    { mime: 'image/jpeg', qualities: [0.94, 0.90, 0.86, 0.82, 0.78, 0.74, 0.68] },
+    { mime: 'image/png', qualities: [0.92, 0.88, 0.84, 0.80, 0.76, 0.72] } // For transparency support
   ];
 
   let fallback = '';
@@ -774,7 +803,7 @@ function encodeHeaderCrop() {
     }
   }
 
-  if (fallback && fallback.length <= 120000) return fallback;
+  if (fallback && fallback.length <= 300000) return fallback;
   throw new Error('Header rasmi hajmi katta. Kichikroq rasm tanlang yoki cropni yaqinroq qiling.');
 }
 
@@ -1346,6 +1375,11 @@ async function startEditHeaderCrop(file) {
     return Promise.reject(new Error('Faqat rasm fayl tanlang.'));
   }
 
+  // Check file size (10MB limit)
+  if (file.size > MAX_FILE_SIZE) {
+    return Promise.reject(new Error('Rasm hajmi juda katta. Maksimal hajm: 10MB.'));
+  }
+
   const dataUrl = await readFileAsDataUrl(file, 'Header rasmini o\'qib bo\'lmadi.');
   const image = await loadImageFromDataUrl(dataUrl);
   if (image.width <= image.height) {
@@ -1412,11 +1446,12 @@ function encodeEditHeaderCrop() {
   if (!context) throw new Error('Brauzer rasmni crop qila olmadi.');
 
   const crop = getEditHeaderCropRect();
-  // HD quality header image sizes - prioritize larger sizes
-  const widths = [1280, 960, 800, 640, 520];
+  // Full HD quality header image sizes with enhanced format support
+  const widths = [1920, 1600, 1280, 1024, 800];
   const formats = [
-    { mime: 'image/webp', qualities: [0.92, 0.88, 0.82, 0.76, 0.70, 0.64] },
-    { mime: 'image/jpeg', qualities: [0.90, 0.86, 0.80, 0.74, 0.68, 0.62] }
+    { mime: 'image/webp', qualities: [0.95, 0.92, 0.88, 0.84, 0.80, 0.76, 0.70] },
+    { mime: 'image/jpeg', qualities: [0.94, 0.90, 0.86, 0.82, 0.78, 0.74, 0.68] },
+    { mime: 'image/png', qualities: [0.92, 0.88, 0.84, 0.80, 0.76, 0.72] } // For transparency support
   ];
 
   let fallback = '';
@@ -1448,7 +1483,7 @@ function encodeEditHeaderCrop() {
     }
   }
 
-  if (fallback && fallback.length <= 120000) return fallback;
+  if (fallback && fallback.length <= 300000) return fallback;
   throw new Error('Header rasmi hajmi katta. Kichikroq rasm tanlang yoki cropni yaqinroq qiling.');
 }
 
