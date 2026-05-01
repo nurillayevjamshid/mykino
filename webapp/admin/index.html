@@ -265,8 +265,22 @@
         </div>
         
         <div class="form-group">
-          <label>Video URL</label>
-          <input type="text" id="movieVideo" class="form-input" placeholder="Video fayl URL">
+          <label>Ablojka (Poster)</label>
+          <div class="poster-upload" id="posterUploadArea">
+            <input type="file" id="moviePosterFile" class="poster-upload-input" accept="image/*">
+            <div class="poster-upload-content" id="posterUploadContent">
+              <div class="poster-upload-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <div class="poster-upload-text">Rasm yuklash</div>
+              <div class="poster-upload-hint">Format: istalgan · Max: 5MB</div>
+            </div>
+            <img src="" alt="Poster preview" id="posterPreviewImg" class="poster-upload-preview" style="display:none;">
+          </div>
         </div>
         
         <div class="form-group">

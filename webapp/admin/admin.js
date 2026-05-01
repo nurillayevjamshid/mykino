@@ -4,6 +4,7 @@
 let movies = [];
 let categories = [];
 let headerSection = []; // Alohida header section data
+let selectedPosterDataUrl = '';
 let selectedHeaderImageDataUrl = '';
 let headerCropState = null;
 let headerCropPreviewFrame = 0;
@@ -24,6 +25,7 @@ const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 
 // Maximum file size in bytes (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const POSTER_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit for poster images
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -281,6 +283,22 @@ function bindEvents() {
   document.getElementById('categoryForm')?.addEventListener('submit', handleCategorySubmit);
   document.getElementById('movieDescription')?.addEventListener('input', updateDescriptionCounter);
 
+  // Poster file upload
+  document.getElementById('moviePosterFile')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      selectedPosterDataUrl = await readPosterFile(file);
+      updatePosterPreview(selectedPosterDataUrl);
+    } catch (error) {
+      showNotification(error.message || 'Rasmni o\'qib bo\'lmadi.', 'error');
+      e.target.value = '';
+      selectedPosterDataUrl = '';
+      updatePosterPreview('');
+    }
+  });
+
   // Header settings
   document.getElementById('saveHeader')?.addEventListener('click', saveHeaderSettings);
   document.getElementById('resetHeader')?.addEventListener('click', loadHeaderSettings);
@@ -517,7 +535,12 @@ function openMovieModal(movie = null) {
   const modal = document.getElementById('movieModal');
   const title = document.getElementById('movieModalTitle');
   const form = document.getElementById('movieForm');
+  const posterFileInput = document.getElementById('moviePosterFile');
   updateCategorySelect(movie?.category || '');
+
+  // Reset poster state
+  selectedPosterDataUrl = '';
+  if (posterFileInput) posterFileInput.value = '';
 
   if (movie) {
     title.textContent = 'Kino tahrirlash';
@@ -525,13 +548,19 @@ function openMovieModal(movie = null) {
     document.getElementById('movieCategory').value = movie.category;
     document.getElementById('movieRating').value = movie.rating;
     document.getElementById('movieHd').value = movie.hd.toString();
-    document.getElementById('movieVideo').value = movie.video;
     document.getElementById('movieDescription').value = movie.description;
     form.dataset.editingId = movie.id;
+    // Show existing poster if available
+    const existingPoster = movie.posterImage || movie.poster || '';
+    if (existingPoster && existingPoster.startsWith('data:image')) {
+      selectedPosterDataUrl = existingPoster;
+    }
+    updatePosterPreview(selectedPosterDataUrl || existingPoster);
   } else {
     title.textContent = 'Yangi kino q\'oshish';
     form.reset();
     delete form.dataset.editingId;
+    updatePosterPreview('');
   }
 
   updateDescriptionCounter();
@@ -554,6 +583,22 @@ function updateHeaderImagePreview(url) {
   }
 }
 
+function updatePosterPreview(url) {
+  const img = document.getElementById('posterPreviewImg');
+  const uploadArea = document.getElementById('posterUploadArea');
+  if (!img || !uploadArea) return;
+
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    uploadArea.classList.add('has-preview');
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    uploadArea.classList.remove('has-preview');
+  }
+}
+
 function loadImageFromDataUrl(dataUrl) {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -568,6 +613,61 @@ function readFileAsDataUrl(file, errorMessage) {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error(errorMessage));
     reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  });
+}
+
+function readPosterFile(file) {
+  if (!file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Faqat rasm fayl tanlang (JPG, PNG, WEBP, GIF, va h.k.).'));
+  }
+
+  if (file.size > POSTER_MAX_FILE_SIZE) {
+    return Promise.reject(new Error('Rasm hajmi juda katta. Maksimal: 5MB.'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Rasmni o\'qib bo\'lmadi.'));
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      const image = new Image();
+      image.onerror = () => resolve(dataUrl); // Return as-is if can't load
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(dataUrl);
+          return;
+        }
+
+        // Max dimensions for poster - preserve aspect ratio
+        const MAX_POSTER_WIDTH = 1200;
+        const MAX_POSTER_HEIGHT = 1800;
+
+        let width = image.width;
+        let height = image.height;
+
+        // Only resize if image is very large
+        if (width > MAX_POSTER_WIDTH || height > MAX_POSTER_HEIGHT) {
+          const scale = Math.min(MAX_POSTER_WIDTH / width, MAX_POSTER_HEIGHT / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(image, 0, 0, width, height);
+
+        // Export as JPEG with good quality, or WebP if source was WebP/PNG with transparency
+        const isTransparent = file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/gif';
+        const outputFormat = isTransparent ? 'image/webp' : 'image/jpeg';
+        const quality = isTransparent ? 0.92 : 0.90;
+
+        resolve(canvas.toDataURL(outputFormat, quality));
+      };
+      image.src = dataUrl;
+    };
     reader.readAsDataURL(file);
   });
 }
@@ -784,8 +884,8 @@ async function handleMovieSubmit(e) {
     category: document.getElementById('movieCategory').value,
     rating: parseFloat(document.getElementById('movieRating').value) || 0,
     hd: document.getElementById('movieHd').value === 'true',
-    video: document.getElementById('movieVideo').value,
-    description: document.getElementById('movieDescription').value
+    description: document.getElementById('movieDescription').value,
+    posterImage: selectedPosterDataUrl
   };
 
   if (form.dataset.editingId) {
@@ -816,6 +916,10 @@ async function handleMovieSubmit(e) {
         return;
       }
       updatePayload.description = movieData.description;
+    }
+    // Add posterImage if changed or new
+    if (selectedPosterDataUrl && (!currentMovie || selectedPosterDataUrl !== (currentMovie.posterImage || currentMovie.poster))) {
+      updatePayload.posterImage = selectedPosterDataUrl;
     }
 
     if (Object.keys(updatePayload).length === 1) {
