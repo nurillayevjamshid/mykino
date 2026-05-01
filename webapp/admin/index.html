@@ -163,28 +163,43 @@
             <h2>Header Section</h2>
           </div>
           
-          <div class="settings-form">
-            <div class="form-group">
-              <label for="headerMovieSelect">Kino tanlash</label>
-              <select id="headerMovieSelect" class="form-select" required>
-                <option value="">Kino tanlang</option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="headerImageFile">Header rasmi (16:9)</label>
-              <div class="header-image-preview" id="headerImagePreview">
-                <img src="" alt="Header rasmi" id="headerImagePreviewImg" hidden>
-                <span class="header-image-placeholder" id="headerImagePlaceholder">16:9 rasm tanlanmagan</span>
+          <div class="header-settings-layout">
+            <div class="settings-form">
+              <div class="form-group">
+                <label for="headerMovieSelect">Kino tanlash</label>
+                <select id="headerMovieSelect" class="form-select" required>
+                  <option value="">Kino tanlang</option>
+                </select>
               </div>
-              <input type="file" id="headerImageFile" class="form-input" accept="image/png,image/jpeg,image/webp">
-              <small class="form-hint">Faqat gorizontal 16:9 formatdagi rasm qabul qilinadi.</small>
+
+              <div class="form-group">
+                <label for="headerImageFile">Header rasmi (16:9)</label>
+                <div class="header-image-preview" id="headerImagePreview">
+                  <img src="" alt="Header rasmi" id="headerImagePreviewImg" hidden>
+                  <span class="header-image-placeholder" id="headerImagePlaceholder">16:9 rasm tanlanmagan</span>
+                </div>
+                <input type="file" id="headerImageFile" class="form-input" accept="image/png,image/jpeg,image/webp">
+                <small class="form-hint">Faqat gorizontal 16:9 formatdagi rasm qabul qilinadi.</small>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="resetHeader">Bekor qilish</button>
+                <button type="button" class="btn btn-primary" id="saveHeader">Saqlash</button>
+              </div>
             </div>
-            
-            <div class="form-actions">
-              <button type="button" class="btn btn-secondary" id="resetHeader">Bekor qilish</button>
-              <button type="button" class="btn btn-primary" id="saveHeader">Saqlash</button>
-            </div>
+
+            <aside class="header-saved-panel">
+              <div class="header-saved-head">
+                <div>
+                  <h3>Headerda ko'rinadigan kinolar</h3>
+                  <p>Mini app tepasida faqat shu saqlangan kinolar chiqadi.</p>
+                </div>
+                <span id="headerMoviesCount">0 ta</span>
+              </div>
+              <div class="header-movies-list" id="headerMoviesList">
+                <!-- Dynamic header movies -->
+              </div>
+            </aside>
           </div>
         </section>
 
