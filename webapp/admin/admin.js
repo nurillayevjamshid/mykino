@@ -16,13 +16,14 @@ let deleteTargetMovieId = '';
 
 // API base URL
 const API_URL = '/api';
-const POSTER_MAX_WIDTH = 240;
-const POSTER_MAX_HEIGHT = 360;
-const POSTER_MAX_DATA_URL_LENGTH = 18000;
+// High quality image settings
+const POSTER_MAX_WIDTH = 800;
+const POSTER_MAX_HEIGHT = 1200;
+const POSTER_MAX_DATA_URL_LENGTH = 80000; // Increased to allow higher quality
 const HEADER_IMAGE_RATIO = 16 / 9;
-const HEADER_IMAGE_MAX_WIDTH = 520;
-const HEADER_IMAGE_MAX_HEIGHT = 293;
-const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 12000;
+const HEADER_IMAGE_MAX_WIDTH = 1280; // HD quality
+const HEADER_IMAGE_MAX_HEIGHT = 720;
+const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 100000; // Increased for HD quality
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 
 function escapeHtml(value) {
@@ -602,11 +603,14 @@ function readPosterFile(file) {
         let scale = Math.min(1, POSTER_MAX_WIDTH / image.width, POSTER_MAX_HEIGHT / image.height);
         let dataUrl = '';
 
-        for (const quality of [0.78, 0.68, 0.58, 0.48]) {
-          canvas.width = Math.max(1, Math.round(image.width * scale));
-          canvas.height = Math.max(1, Math.round(image.height * scale));
-          context.clearRect(0, 0, canvas.width, canvas.height);
-          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        // High quality poster with better dimensions
+        canvas.width = Math.min(POSTER_MAX_WIDTH, Math.max(1, Math.round(image.width * scale)));
+        canvas.height = Math.min(POSTER_MAX_HEIGHT, Math.max(1, Math.round(image.height * scale)));
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        // Try high quality first, then gradually reduce only if needed
+        for (const quality of [0.92, 0.88, 0.82, 0.76, 0.70, 0.64]) {
           dataUrl = canvas.toDataURL('image/jpeg', quality);
 
           if (dataUrl.length <= POSTER_MAX_DATA_URL_LENGTH) {
@@ -714,10 +718,11 @@ function encodeHeaderCrop() {
   if (!context) throw new Error('Brauzer rasmni crop qila olmadi.');
 
   const crop = getHeaderCropRect();
-  const widths = [HEADER_IMAGE_MAX_WIDTH, 440, 360, 300, 260, 220];
+  // HD quality header image sizes - prioritize larger sizes
+  const widths = [1280, 960, 800, 640, 520];
   const formats = [
-    { mime: 'image/webp', qualities: [0.72, 0.58, 0.44, 0.32, 0.24] },
-    { mime: 'image/jpeg', qualities: [0.68, 0.52, 0.38, 0.28, 0.2] }
+    { mime: 'image/webp', qualities: [0.92, 0.88, 0.82, 0.76, 0.70, 0.64] },
+    { mime: 'image/jpeg', qualities: [0.90, 0.86, 0.80, 0.74, 0.68, 0.62] }
   ];
 
   let fallback = '';
@@ -749,8 +754,8 @@ function encodeHeaderCrop() {
     }
   }
 
-  if (fallback && fallback.length <= 18000) return fallback;
-  throw new Error('Header rasmi hajmi katta. Cropni yaqinroq qiling yoki oddiyroq rasm tanlang.');
+  if (fallback && fallback.length <= 120000) return fallback;
+  throw new Error('Header rasmi hajmi katta. Kichikroq rasm tanlang yoki cropni yaqinroq qiling.');
 }
 
 function updateHeaderCropSize(dataUrl) {
@@ -1365,10 +1370,11 @@ function encodeEditHeaderCrop() {
   if (!context) throw new Error('Brauzer rasmni crop qila olmadi.');
 
   const crop = getEditHeaderCropRect();
-  const widths = [HEADER_IMAGE_MAX_WIDTH, 440, 360, 300, 260, 220];
+  // HD quality header image sizes - prioritize larger sizes
+  const widths = [1280, 960, 800, 640, 520];
   const formats = [
-    { mime: 'image/webp', qualities: [0.72, 0.58, 0.44, 0.32, 0.24] },
-    { mime: 'image/jpeg', qualities: [0.68, 0.52, 0.38, 0.28, 0.2] }
+    { mime: 'image/webp', qualities: [0.92, 0.88, 0.82, 0.76, 0.70, 0.64] },
+    { mime: 'image/jpeg', qualities: [0.90, 0.86, 0.80, 0.74, 0.68, 0.62] }
   ];
 
   let fallback = '';
@@ -1400,8 +1406,8 @@ function encodeEditHeaderCrop() {
     }
   }
 
-  if (fallback && fallback.length <= 18000) return fallback;
-  throw new Error('Header rasmi hajmi katta. Cropni yaqinroq qiling yoki oddiyroq rasm tanlang.');
+  if (fallback && fallback.length <= 120000) return fallback;
+  throw new Error('Header rasmi hajmi katta. Kichikroq rasm tanlang yoki cropni yaqinroq qiling.');
 }
 
 function updateEditHeaderCropSize(dataUrl) {

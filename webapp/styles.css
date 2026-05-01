@@ -460,6 +460,8 @@ html[data-theme="light"] .theme-toggle {
   background-position: center;
   background-repeat: no-repeat;
   transition: opacity 0.55s ease, transform 3s ease;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .hero-carousel__slide.is-active {
@@ -797,6 +799,8 @@ html[data-theme="light"] .tab.is-active {
   background-size: cover;
   background-position: center top;
   transition: transform 0.4s ease;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .movie-card:hover .poster,
@@ -1320,6 +1324,8 @@ dialog::backdrop {
   height: clamp(180px, 36vh, 300px);
   background-size: cover;
   background-position: center top;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .modal-content {
