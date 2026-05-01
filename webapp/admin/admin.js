@@ -119,24 +119,50 @@ const themeToggle = document.getElementById('themeToggle');
 const sectionTitles = {
   movies: 'Kinolar',
   categories: 'Kategoriyalar',
-  header: 'Header sozlamalari'
+  header: 'Sozlamalar'
 };
+
+// Theme management - Light mode as default
+const savedTheme = localStorage.getItem('admin-theme') || 'light';
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const themeToggle = document.getElementById('themeToggle');
+  if (themeToggle) {
+    themeToggle.setAttribute('data-theme', theme);
+  }
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+  localStorage.setItem('admin-theme', newTheme);
+  applyTheme(newTheme);
+}
 
 // Initialize
 async function init() {
-  applyTheme(localStorage.getItem('adminTheme') || 'dark');
+  applyTheme(savedTheme);
   loadCategories();
   await fetchMovies();
   renderCategories();
   updateCategorySelect();
   bindEvents();
   loadHeaderSettings();
+  createSidebarOverlay();
 }
 
-function applyTheme(theme) {
-  const nextTheme = theme === 'light' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = nextTheme;
-  localStorage.setItem('adminTheme', nextTheme);
+// Create sidebar overlay for mobile
+function createSidebarOverlay() {
+  const overlay = document.createElement('div');
+  overlay.className = 'sidebar-overlay';
+  overlay.id = 'sidebarOverlay';
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    menuToggle?.classList.remove('active');
+    overlay.classList.remove('active');
+  });
+  document.body.appendChild(overlay);
 }
 
 // Bind Events
@@ -153,6 +179,11 @@ function bindEvents() {
   // Mobile menu toggle
   menuToggle?.addEventListener('click', () => {
     sidebar.classList.toggle('open');
+    menuToggle.classList.toggle('active');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (overlay) {
+      overlay.classList.toggle('active');
+    }
   });
 
   // Close sidebar on mobile when clicking outside
@@ -160,6 +191,9 @@ function bindEvents() {
     if (window.innerWidth <= 768) {
       if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
         sidebar.classList.remove('open');
+        menuToggle?.classList.remove('active');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (overlay) overlay.classList.remove('active');
       }
     }
   });
@@ -275,9 +309,12 @@ function switchSection(section) {
   // Update title
   pageTitle.textContent = sectionTitles[section];
 
-  // Close mobile sidebar
+  // Close mobile sidebar and overlay
   if (window.innerWidth <= 768) {
     sidebar.classList.remove('open');
+    menuToggle?.classList.remove('active');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (overlay) overlay.classList.remove('active');
   }
 }
 
@@ -291,7 +328,16 @@ function renderMovies() {
       <tr>
         <td colspan="7">
           <div class="empty-state">
-            <div class="empty-state-icon">🎬</div>
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
+              <line x1="7" y1="2" x2="7" y2="22"></line>
+              <line x1="17" y1="2" x2="17" y2="22"></line>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <line x1="2" y1="7" x2="7" y2="7"></line>
+              <line x1="2" y1="17" x2="7" y2="17"></line>
+              <line x1="17" y1="17" x2="22" y2="17"></line>
+              <line x1="17" y1="7" x2="22" y2="7"></line>
+            </svg>
             <h3>Hozircha kinolar yo'q</h3>
             <p>Yangi kino qo'shish uchun "Yangi kino qo'shish" tugmasini bosing</p>
           </div>
@@ -340,7 +386,12 @@ function renderCategories() {
   if (categories.length === 0) {
     grid.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">📁</div>
+        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+        </svg>
         <h3>Hozircha kategoriyalar yo'q</h3>
         <p>Yangi kategoriya qo'shish uchun tugmani bosing</p>
       </div>
