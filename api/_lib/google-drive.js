@@ -9,6 +9,7 @@ const METADATA_FILE_NAME = ".my-kino-metadata.json";
 const EMBEDDED_META_START = "[MY_KINO_META]";
 const EMBEDDED_META_END = "[/MY_KINO_META]";
 const DRIVE_DESCRIPTION_MAX_LENGTH = 28000;
+const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 
 let accessTokenCache = {
   value: "",
@@ -251,6 +252,10 @@ function trimString(value) {
   return String(value || "").trim();
 }
 
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object || {}, key);
+}
+
 function safeBooleanFlag(value, fallback = false) {
   if (value === undefined || value === null) return Boolean(fallback);
   if (typeof value === "boolean") return value;
@@ -286,6 +291,35 @@ function resolveStoredHeaderImage(value) {
   return !normalized || isDataImageValue(normalized) ? normalized : "";
 }
 
+function roundedNumber(value, digits = 0) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  const factor = 10 ** digits;
+  return Math.round(numeric * factor) / factor;
+}
+
+function sanitizeHeaderCrop(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return {
+    ratio: trimString(value.ratio) || "16:9",
+    source: {
+      width: roundedNumber(value.source?.width),
+      height: roundedNumber(value.source?.height),
+    },
+    crop: {
+      x: roundedNumber(value.crop?.x),
+      y: roundedNumber(value.crop?.y),
+      width: roundedNumber(value.crop?.width),
+      height: roundedNumber(value.crop?.height),
+    },
+    transform: {
+      zoom: roundedNumber(value.transform?.zoom, 2),
+      x: roundedNumber(value.transform?.x),
+      y: roundedNumber(value.transform?.y),
+    },
+  };
+}
+
 function cleanupStoredMovieOverride(current = {}) {
   const posterImage = trimString(current.posterImage || current.poster);
   const rawHeaderImage = trimString(current.headerImage || current.heroPoster || current.headerPoster || current.heroImage);
@@ -297,6 +331,12 @@ function cleanupStoredMovieOverride(current = {}) {
     headerImage,
     showInHeader,
   };
+  const headerCrop = sanitizeHeaderCrop(current.headerCrop);
+  if (headerCrop && headerImage) {
+    next.headerCrop = headerCrop;
+  } else {
+    delete next.headerCrop;
+  }
 
   delete next.poster;
   delete next.heroPoster;
@@ -363,6 +403,54 @@ function buildEmbeddedMovieDescription(visibleDescription, override, maxLength =
   return [prefix, clippedVisible].filter((part) => part !== "").join("\n");
 }
 
+function buildCatalogFallbackDescription(visibleDescription, override, updates = {}) {
+  const posterUpdated = hasOwn(updates, "posterImage") || hasOwn(updates, "poster");
+  const headerUpdated = hasOwn(updates, "headerImage")
+    || hasOwn(updates, "heroPoster")
+    || hasOwn(updates, "headerPoster")
+    || hasOwn(updates, "heroImage")
+    || hasOwn(updates, "showInHeader")
+    || hasOwn(updates, "headerCrop");
+  const descriptionUpdated = hasOwn(updates, "description") && updates.description !== undefined;
+  const candidates = [];
+  const seen = new Set();
+  const addCandidate = (candidate) => {
+    const cleaned = cleanupStoredMovieOverride(candidate);
+    const key = JSON.stringify(cleaned);
+    if (!seen.has(key)) {
+      seen.add(key);
+      candidates.push(cleaned);
+    }
+  };
+
+  addCandidate(override);
+
+  const withoutUnchangedLongDescription = { ...override };
+  if (!descriptionUpdated && trimString(withoutUnchangedLongDescription.description).length > MOVIE_DESCRIPTION_MAX_LENGTH) {
+    delete withoutUnchangedLongDescription.description;
+  }
+  addCandidate(withoutUnchangedLongDescription);
+
+  const compact = { ...withoutUnchangedLongDescription };
+  if (!posterUpdated) delete compact.posterImage;
+  if (!headerUpdated) {
+    delete compact.headerImage;
+    delete compact.showInHeader;
+    delete compact.headerCrop;
+  }
+  addCandidate(compact);
+
+  for (const candidate of candidates) {
+    const description = buildEmbeddedMovieDescription(visibleDescription, candidate, DRIVE_DESCRIPTION_MAX_LENGTH);
+    if (description.length <= DRIVE_DESCRIPTION_MAX_LENGTH) return description;
+  }
+
+  const error = new Error("Saqlanadigan metadata juda katta. Rasm hajmini kichraytiring yoki tavsifni qisqartiring.");
+  error.statusCode = 400;
+  error.code = "METADATA_TOO_LARGE";
+  throw error;
+}
+
 function toDriveMovie(file, index, metadataMap = {}) {
   const title = stripExtension(file.name).replace(/[._]+/g, " ").trim() || `Kino ${index + 1}`;
   const embedded = extractEmbeddedMovieMetadata(file.description || "");
@@ -395,6 +483,7 @@ function toDriveMovie(file, index, metadataMap = {}) {
     || trimString(override?.quality)
     || override?.showInHeader !== undefined
     || override?.heroFeatured !== undefined
+    || override?.headerCrop !== undefined
     || override?.rating !== undefined,
   );
 
@@ -421,6 +510,7 @@ function toDriveMovie(file, index, metadataMap = {}) {
     heroPoster: headerImage,
     heroFeatured: showInHeader,
     thumbnail: finalPosterImage,
+    headerCrop: sanitizeHeaderCrop(override?.headerCrop),
     streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     sourceUrl: file.webViewLink || "",
@@ -601,7 +691,24 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
             : updates.heroImage
     );
   }
-  if (updates.description !== undefined) next.description = trimString(updates.description);
+  if (updates.headerCrop !== undefined) {
+    const headerCrop = sanitizeHeaderCrop(updates.headerCrop);
+    if (headerCrop) {
+      next.headerCrop = headerCrop;
+    } else {
+      delete next.headerCrop;
+    }
+  }
+  if (updates.description !== undefined) {
+    const nextDescription = trimString(updates.description);
+    if (nextDescription.length > MOVIE_DESCRIPTION_MAX_LENGTH) {
+      const error = new Error(`Tavsif juda uzun. Maksimal: ${MOVIE_DESCRIPTION_MAX_LENGTH} ta belgi.`);
+      error.statusCode = 400;
+      error.code = "DESCRIPTION_TOO_LONG";
+      throw error;
+    }
+    next.description = nextDescription;
+  }
   if (updates.year !== undefined) {
     const numericYear = Number(updates.year);
     next.year = Number.isFinite(numericYear) && numericYear > 0 ? numericYear : "";
@@ -619,7 +726,7 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
     }
 
     await updateDriveFileMetadata(normalizedFileId, {
-      description: buildEmbeddedMovieDescription(embedded.visibleDescription, cleaned, DRIVE_DESCRIPTION_MAX_LENGTH),
+      description: buildCatalogFallbackDescription(embedded.visibleDescription, cleaned, updates),
     });
   }
 
