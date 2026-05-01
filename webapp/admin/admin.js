@@ -5,6 +5,8 @@ let movies = [];
 let categories = [];
 let selectedPosterDataUrl = '';
 let selectedHeaderImageDataUrl = '';
+let headerCropState = null;
+let headerCropPreviewFrame = 0;
 
 // API base URL
 const API_URL = '/api';
@@ -14,7 +16,7 @@ const POSTER_MAX_DATA_URL_LENGTH = 28000;
 const HEADER_IMAGE_RATIO = 16 / 9;
 const HEADER_IMAGE_MAX_WIDTH = 520;
 const HEADER_IMAGE_MAX_HEIGHT = 293;
-const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 18000;
+const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 12000;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -259,6 +261,7 @@ function bindEvents() {
     selectedHeaderImageDataUrl = movie?.headerImage || '';
     const fileInput = document.getElementById('headerImageFile');
     if (fileInput) fileInput.value = '';
+    clearHeaderCropState();
     updateHeaderImagePreview(selectedHeaderImageDataUrl);
   });
   document.getElementById('headerImageFile')?.addEventListener('change', async (e) => {
@@ -266,14 +269,22 @@ function bindEvents() {
     if (!file) return;
 
     try {
-      selectedHeaderImageDataUrl = await readHeaderImageFile(file);
-      updateHeaderImagePreview(selectedHeaderImageDataUrl);
+      await startHeaderCrop(file);
+      renderHeaderCrop();
     } catch (error) {
       showNotification(error.message || 'Header rasmini o\'qib bo\'lmadi.', 'error');
       e.target.value = '';
       selectedHeaderImageDataUrl = '';
+      clearHeaderCropState();
       updateHeaderImagePreview('');
     }
+  });
+  ['headerCropZoom', 'headerCropX', 'headerCropY'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', scheduleHeaderCropRender);
+  });
+  document.getElementById('applyHeaderCrop')?.addEventListener('click', () => {
+    if (!headerCropState) return;
+    renderHeaderCrop({ notify: true });
   });
   document.getElementById('headerMoviesList')?.addEventListener('click', async (e) => {
     const button = e.target.closest('[data-header-action="remove"]');
@@ -557,80 +568,158 @@ function readPosterFile(file) {
   });
 }
 
-function readHeaderImageFile(file) {
+function loadImageFromDataUrl(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onerror = () => reject(new Error('Rasm fayli ochilmadi.'));
+    image.onload = () => resolve(image);
+    image.src = dataUrl;
+  });
+}
+
+function readFileAsDataUrl(file, errorMessage) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error(errorMessage));
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  });
+}
+
+function clearHeaderCropState() {
+  headerCropState = null;
+  window.cancelAnimationFrame(headerCropPreviewFrame);
+  headerCropPreviewFrame = 0;
+  const controls = document.getElementById('headerCropControls');
+  if (controls) controls.hidden = true;
+  const size = document.getElementById('headerCropSize');
+  if (size) size.textContent = '16:9 crop tayyor';
+}
+
+function resetHeaderCropControls() {
+  const zoom = document.getElementById('headerCropZoom');
+  const x = document.getElementById('headerCropX');
+  const y = document.getElementById('headerCropY');
+  if (zoom) zoom.value = '1';
+  if (x) x.value = '0';
+  if (y) y.value = '0';
+}
+
+async function startHeaderCrop(file) {
   if (!file.type.startsWith('image/')) {
     return Promise.reject(new Error('Faqat rasm fayl tanlang.'));
   }
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Header rasmini o\'qib bo\'lmadi.'));
-    reader.onload = () => {
-      const image = new Image();
-      image.onerror = () => reject(new Error('Rasm fayli ochilmadi.'));
-      image.onload = () => {
-        if (image.width <= image.height) {
-          reject(new Error('Faqat gorizontal rasm tanlang.'));
-          return;
+  const dataUrl = await readFileAsDataUrl(file, 'Header rasmini o\'qib bo\'lmadi.');
+  const image = await loadImageFromDataUrl(dataUrl);
+  if (image.width <= image.height) {
+    throw new Error('Faqat gorizontal rasm tanlang.');
+  }
+
+  headerCropState = { image, width: image.width, height: image.height };
+  resetHeaderCropControls();
+  const controls = document.getElementById('headerCropControls');
+  if (controls) controls.hidden = false;
+}
+
+function getHeaderCropRect() {
+  const image = headerCropState.image;
+  const zoom = Math.max(1, Number(document.getElementById('headerCropZoom')?.value || 1));
+  const panX = Number(document.getElementById('headerCropX')?.value || 0) / 100;
+  const panY = Number(document.getElementById('headerCropY')?.value || 0) / 100;
+  const sourceRatio = image.width / image.height;
+  let cropWidth = image.width;
+  let cropHeight = image.height;
+
+  if (sourceRatio > HEADER_IMAGE_RATIO) {
+    cropWidth = image.height * HEADER_IMAGE_RATIO;
+  } else if (sourceRatio < HEADER_IMAGE_RATIO) {
+    cropHeight = image.width / HEADER_IMAGE_RATIO;
+  }
+
+  cropWidth /= zoom;
+  cropHeight /= zoom;
+  const maxX = Math.max(0, image.width - cropWidth);
+  const maxY = Math.max(0, image.height - cropHeight);
+  const x = Math.min(maxX, Math.max(0, maxX / 2 + panX * maxX / 2));
+  const y = Math.min(maxY, Math.max(0, maxY / 2 + panY * maxY / 2));
+
+  return { x, y, width: cropWidth, height: cropHeight };
+}
+
+function encodeHeaderCrop() {
+  if (!headerCropState?.image) {
+    throw new Error('Avval rasm tanlang.');
+  }
+
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Brauzer rasmni crop qila olmadi.');
+
+  const crop = getHeaderCropRect();
+  const widths = [HEADER_IMAGE_MAX_WIDTH, 440, 360, 300, 260, 220];
+  const formats = [
+    { mime: 'image/webp', qualities: [0.72, 0.58, 0.44, 0.32, 0.24] },
+    { mime: 'image/jpeg', qualities: [0.68, 0.52, 0.38, 0.28, 0.2] }
+  ];
+
+  let fallback = '';
+  for (const width of widths) {
+    canvas.width = width;
+    canvas.height = Math.round(width / HEADER_IMAGE_RATIO);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(
+      headerCropState.image,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    for (const format of formats) {
+      for (const quality of format.qualities) {
+        const dataUrl = canvas.toDataURL(format.mime, quality);
+        if (!dataUrl.startsWith(`data:${format.mime}`)) continue;
+        fallback = dataUrl;
+        if (dataUrl.length <= HEADER_IMAGE_MAX_DATA_URL_LENGTH) {
+          return dataUrl;
         }
+      }
+    }
+  }
 
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) {
-          resolve(String(reader.result || ''));
-          return;
-        }
+  if (fallback && fallback.length <= 18000) return fallback;
+  throw new Error('Header rasmi hajmi katta. Cropni yaqinroq qiling yoki oddiyroq rasm tanlang.');
+}
 
-        const sourceRatio = image.width / image.height;
-        let sourceX = 0;
-        let sourceY = 0;
-        let sourceWidth = image.width;
-        let sourceHeight = image.height;
+function updateHeaderCropSize(dataUrl) {
+  const size = document.getElementById('headerCropSize');
+  if (!size) return;
+  const kb = Math.ceil(dataUrl.length / 1024);
+  const format = dataUrl.startsWith('data:image/webp') ? 'WEBP' : 'JPEG';
+  size.textContent = `${format}, ${kb} KB, 16:9`;
+}
 
-        if (sourceRatio > HEADER_IMAGE_RATIO) {
-          sourceWidth = Math.round(image.height * HEADER_IMAGE_RATIO);
-          sourceX = Math.round((image.width - sourceWidth) / 2);
-        } else if (sourceRatio < HEADER_IMAGE_RATIO) {
-          sourceHeight = Math.round(image.width / HEADER_IMAGE_RATIO);
-          sourceY = Math.round((image.height - sourceHeight) / 2);
-        }
+function renderHeaderCrop(options = {}) {
+  if (!headerCropState) return;
+  selectedHeaderImageDataUrl = encodeHeaderCrop();
+  updateHeaderImagePreview(selectedHeaderImageDataUrl);
+  updateHeaderCropSize(selectedHeaderImageDataUrl);
+  if (options.notify) showNotification('Crop qo\'llandi.');
+}
 
-        let scale = Math.min(1, HEADER_IMAGE_MAX_WIDTH / sourceWidth, HEADER_IMAGE_MAX_HEIGHT / sourceHeight);
-        const qualities = [0.74, 0.64, 0.54, 0.44, 0.34, 0.26];
-
-        for (let attempt = 0; attempt < 8; attempt += 1) {
-          canvas.width = Math.max(280, Math.round(sourceWidth * scale));
-          canvas.height = Math.round(canvas.width / HEADER_IMAGE_RATIO);
-
-          for (const quality of qualities) {
-            context.clearRect(0, 0, canvas.width, canvas.height);
-            context.drawImage(
-              image,
-              sourceX,
-              sourceY,
-              sourceWidth,
-              sourceHeight,
-              0,
-              0,
-              canvas.width,
-              canvas.height
-            );
-            const dataUrl = canvas.toDataURL('image/jpeg', quality);
-
-            if (dataUrl.length <= HEADER_IMAGE_MAX_DATA_URL_LENGTH) {
-              resolve(dataUrl);
-              return;
-            }
-          }
-
-          scale *= 0.82;
-        }
-
-        reject(new Error('Header rasmi hajmi katta. Iltimos, oddiyroq yoki kichikroq gorizontal rasm tanlang.'));
-      };
-      image.src = String(reader.result || '');
-    };
-    reader.readAsDataURL(file);
+function scheduleHeaderCropRender() {
+  window.cancelAnimationFrame(headerCropPreviewFrame);
+  headerCropPreviewFrame = window.requestAnimationFrame(() => {
+    try {
+      renderHeaderCrop();
+    } catch (error) {
+      showNotification(error.message || 'Crop qilishda xatolik.', 'error');
+    }
   });
 }
 
@@ -859,6 +948,7 @@ function loadHeaderSettings() {
 
   updateHeaderMovieSelect(selectedMovieId);
   selectedHeaderImageDataUrl = selectedMovie?.headerImage || '';
+  clearHeaderCropState();
   updateHeaderImagePreview(selectedHeaderImageDataUrl);
 
   const fileInput = document.getElementById('headerImageFile');
@@ -881,6 +971,15 @@ async function saveHeaderSettings() {
   if (!selectedHeaderImageDataUrl) {
     showNotification('16:9 header rasmini tanlang.', 'error');
     return;
+  }
+
+  if (headerCropState) {
+    try {
+      renderHeaderCrop();
+    } catch (error) {
+      showNotification(error.message || 'Crop qilishda xatolik.', 'error');
+      return;
+    }
   }
 
   try {
@@ -910,6 +1009,7 @@ async function saveHeaderSettings() {
     renderHeaderMovies();
     const savedMovie = movies.find(item => sameMovieId(item.id, movie.id));
     selectedHeaderImageDataUrl = savedMovie?.headerImage || selectedHeaderImageDataUrl;
+    clearHeaderCropState();
     updateHeaderImagePreview(selectedHeaderImageDataUrl);
   } catch (error) {
     showNotification(error.message || 'Header Section saqlashda xatolik!', 'error');

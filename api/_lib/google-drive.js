@@ -8,6 +8,7 @@ const LOGO_POSTER_URL = "/static/assets/my-kino-logo.png";
 const METADATA_FILE_NAME = ".my-kino-metadata.json";
 const EMBEDDED_META_START = "[MY_KINO_META]";
 const EMBEDDED_META_END = "[/MY_KINO_META]";
+const DRIVE_DESCRIPTION_MAX_LENGTH = 28000;
 
 let accessTokenCache = {
   value: "",
@@ -346,14 +347,20 @@ function extractEmbeddedMovieMetadata(description) {
   }
 }
 
-function buildEmbeddedMovieDescription(visibleDescription, override) {
+function buildEmbeddedMovieDescription(visibleDescription, override, maxLength = 0) {
   const cleaned = cleanupStoredMovieOverride(override);
-  return [
+  const prefix = [
     EMBEDDED_META_START,
     JSON.stringify(cleaned),
     EMBEDDED_META_END,
-    trimString(visibleDescription),
-  ].filter((part) => part !== "").join("\n");
+  ].join("\n");
+  const visible = trimString(visibleDescription);
+  const description = [prefix, visible].filter((part) => part !== "").join("\n");
+  if (!maxLength || description.length <= maxLength) return description;
+
+  const visibleBudget = Math.max(0, maxLength - prefix.length - 1);
+  const clippedVisible = visible.slice(0, visibleBudget).trimEnd();
+  return [prefix, clippedVisible].filter((part) => part !== "").join("\n");
 }
 
 function toDriveMovie(file, index, metadataMap = {}) {
@@ -612,7 +619,7 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
     }
 
     await updateDriveFileMetadata(normalizedFileId, {
-      description: buildEmbeddedMovieDescription(embedded.visibleDescription, cleaned),
+      description: buildEmbeddedMovieDescription(embedded.visibleDescription, cleaned, DRIVE_DESCRIPTION_MAX_LENGTH),
     });
   }
 
