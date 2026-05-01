@@ -12,10 +12,9 @@ const POSTER_MAX_WIDTH = 240;
 const POSTER_MAX_HEIGHT = 360;
 const POSTER_MAX_DATA_URL_LENGTH = 28000;
 const HEADER_IMAGE_RATIO = 16 / 9;
-const HEADER_IMAGE_RATIO_TOLERANCE = 0.025;
-const HEADER_IMAGE_MAX_WIDTH = 960;
-const HEADER_IMAGE_MAX_HEIGHT = 540;
-const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 180000;
+const HEADER_IMAGE_MAX_WIDTH = 520;
+const HEADER_IMAGE_MAX_HEIGHT = 293;
+const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 18000;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -570,11 +569,8 @@ function readHeaderImageFile(file) {
       const image = new Image();
       image.onerror = () => reject(new Error('Rasm fayli ochilmadi.'));
       image.onload = () => {
-        const ratio = image.width / image.height;
-        const isHorizontal = image.width > image.height;
-        const isSixteenNine = Math.abs(ratio - HEADER_IMAGE_RATIO) <= HEADER_IMAGE_RATIO_TOLERANCE;
-        if (!isHorizontal || !isSixteenNine) {
-          reject(new Error('Faqat gorizontal 16:9 formatdagi rasm tanlang.'));
+        if (image.width <= image.height) {
+          reject(new Error('Faqat gorizontal rasm tanlang.'));
           return;
         }
 
@@ -585,25 +581,52 @@ function readHeaderImageFile(file) {
           return;
         }
 
-        let scale = Math.min(1, HEADER_IMAGE_MAX_WIDTH / image.width, HEADER_IMAGE_MAX_HEIGHT / image.height);
-        let dataUrl = '';
+        const sourceRatio = image.width / image.height;
+        let sourceX = 0;
+        let sourceY = 0;
+        let sourceWidth = image.width;
+        let sourceHeight = image.height;
 
-        for (const quality of [0.82, 0.72, 0.62, 0.52]) {
-          canvas.width = Math.max(1, Math.round(image.width * scale));
-          canvas.height = Math.max(1, Math.round(image.height * scale));
-          context.clearRect(0, 0, canvas.width, canvas.height);
-          context.drawImage(image, 0, 0, canvas.width, canvas.height);
-          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        if (sourceRatio > HEADER_IMAGE_RATIO) {
+          sourceWidth = Math.round(image.height * HEADER_IMAGE_RATIO);
+          sourceX = Math.round((image.width - sourceWidth) / 2);
+        } else if (sourceRatio < HEADER_IMAGE_RATIO) {
+          sourceHeight = Math.round(image.width / HEADER_IMAGE_RATIO);
+          sourceY = Math.round((image.height - sourceHeight) / 2);
+        }
 
-          if (dataUrl.length <= HEADER_IMAGE_MAX_DATA_URL_LENGTH) {
-            resolve(dataUrl);
-            return;
+        let scale = Math.min(1, HEADER_IMAGE_MAX_WIDTH / sourceWidth, HEADER_IMAGE_MAX_HEIGHT / sourceHeight);
+        const qualities = [0.74, 0.64, 0.54, 0.44, 0.34, 0.26];
+
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          canvas.width = Math.max(280, Math.round(sourceWidth * scale));
+          canvas.height = Math.round(canvas.width / HEADER_IMAGE_RATIO);
+
+          for (const quality of qualities) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(
+              image,
+              sourceX,
+              sourceY,
+              sourceWidth,
+              sourceHeight,
+              0,
+              0,
+              canvas.width,
+              canvas.height
+            );
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+            if (dataUrl.length <= HEADER_IMAGE_MAX_DATA_URL_LENGTH) {
+              resolve(dataUrl);
+              return;
+            }
           }
 
           scale *= 0.82;
         }
 
-        reject(new Error('Header rasmi hajmi katta. Iltimos, kichikroq 16:9 rasm tanlang.'));
+        reject(new Error('Header rasmi hajmi katta. Iltimos, oddiyroq yoki kichikroq gorizontal rasm tanlang.'));
       };
       image.src = String(reader.result || '');
     };
