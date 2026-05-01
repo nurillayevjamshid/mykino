@@ -4,7 +4,6 @@
 let movies = [];
 let categories = [];
 let headerSection = []; // Alohida header section data
-let selectedPosterDataUrl = '';
 let selectedHeaderImageDataUrl = '';
 let headerCropState = null;
 let headerCropPreviewFrame = 0;
@@ -17,10 +16,6 @@ let deleteTargetMovieId = '';
 
 // API base URL
 const API_URL = '/api';
-// High quality image settings - Enhanced for all formats
-const POSTER_MAX_WIDTH = 1200; // Increased for better quality
-const POSTER_MAX_HEIGHT = 1800; // Increased for better quality
-const POSTER_MAX_DATA_URL_LENGTH = 200000; // Significantly increased for large images
 const HEADER_IMAGE_RATIO = 16 / 9;
 const HEADER_IMAGE_MAX_WIDTH = 1920; // Full HD quality
 const HEADER_IMAGE_MAX_HEIGHT = 1080; // Full HD quality
@@ -374,27 +369,6 @@ function bindEvents() {
     renderEditHeaderCrop({ notify: true });
   });
 
-  // Poster URL input - live preview
-  document.getElementById('moviePoster')?.addEventListener('input', (e) => {
-    selectedPosterDataUrl = '';
-    updatePosterPreview(e.target.value);
-  });
-
-  document.getElementById('moviePosterFile')?.addEventListener('change', async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      selectedPosterDataUrl = await readPosterFile(file);
-      document.getElementById('moviePoster').value = '';
-      updatePosterPreview(selectedPosterDataUrl);
-    } catch (error) {
-      showNotification(error.message || 'Rasmni o\'qib bo\'lmadi.', 'error');
-      e.target.value = '';
-      selectedPosterDataUrl = '';
-    }
-  });
-
   // Logout
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
     if (confirm('Tizimdan chiqishni xohlaysizmi?')) {
@@ -543,9 +517,6 @@ function openMovieModal(movie = null) {
   const modal = document.getElementById('movieModal');
   const title = document.getElementById('movieModalTitle');
   const form = document.getElementById('movieForm');
-  const posterFileInput = document.getElementById('moviePosterFile');
-  selectedPosterDataUrl = '';
-  if (posterFileInput) posterFileInput.value = '';
   updateCategorySelect(movie?.category || '');
 
   if (movie) {
@@ -554,38 +525,17 @@ function openMovieModal(movie = null) {
     document.getElementById('movieCategory').value = movie.category;
     document.getElementById('movieRating').value = movie.rating;
     document.getElementById('movieHd').value = movie.hd.toString();
-    selectedPosterDataUrl = String(movie.poster || '').startsWith('data:image/') ? movie.poster : '';
-    document.getElementById('moviePoster').value = selectedPosterDataUrl ? '' : movie.poster;
     document.getElementById('movieVideo').value = movie.video;
     document.getElementById('movieDescription').value = movie.description;
     form.dataset.editingId = movie.id;
-    
-    // Show poster preview
-    updatePosterPreview(movie.poster);
   } else {
-    title.textContent = 'Yangi kino qo\'shish';
+    title.textContent = 'Yangi kino q\'oshish';
     form.reset();
     delete form.dataset.editingId;
-    updatePosterPreview('');
   }
 
   updateDescriptionCounter();
   modal.classList.add('active');
-}
-
-// Update poster preview
-function updatePosterPreview(url) {
-  const img = document.getElementById('posterPreviewImg');
-  const placeholder = document.getElementById('posterPlaceholder');
-  
-  if (url) {
-    img.src = url;
-    img.style.display = 'block';
-    placeholder.style.display = 'none';
-  } else {
-    img.style.display = 'none';
-    placeholder.style.display = 'block';
-  }
 }
 
 function updateHeaderImagePreview(url) {
@@ -602,74 +552,6 @@ function updateHeaderImagePreview(url) {
     img.hidden = true;
     placeholder.hidden = false;
   }
-}
-
-function readPosterFile(file) {
-  if (!file.type.startsWith('image/')) {
-    return Promise.reject(new Error('Faqat rasm fayl tanlang.'));
-  }
-
-  // Check file size (10MB limit)
-  if (file.size > MAX_FILE_SIZE) {
-    return Promise.reject(new Error('Rasm hajmi juda katta. Maksimal hajm: 10MB.'));
-  }
-
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Rasmni o\'qib bo\'lmadi.'));
-    reader.onload = () => {
-      const image = new Image();
-      image.onerror = () => resolve(String(reader.result || ''));
-      image.onload = () => {
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) {
-          resolve(String(reader.result || ''));
-          return;
-        }
-
-        let scale = Math.min(1, POSTER_MAX_WIDTH / image.width, POSTER_MAX_HEIGHT / image.height);
-        let dataUrl = '';
-
-        // Enhanced quality poster with better dimensions and progressive compression
-        canvas.width = Math.min(POSTER_MAX_WIDTH, Math.max(1, Math.round(image.width * scale)));
-        canvas.height = Math.min(POSTER_MAX_HEIGHT, Math.max(1, Math.round(image.height * scale)));
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-        // Determine best format based on image characteristics
-        const hasTransparency = file.type === 'image/png' || file.type === 'image/gif' || file.type === 'image/webp';
-        const preferWebP = hasTransparency || file.type === 'image/webp';
-        
-        // Progressive quality reduction with format optimization
-        const formats = preferWebP ? 
-          [{ mime: 'image/webp', qualities: [0.95, 0.92, 0.88, 0.84, 0.80, 0.76, 0.70] }] :
-          [{ mime: 'image/jpeg', qualities: [0.95, 0.92, 0.88, 0.84, 0.80, 0.76, 0.70] }];
-
-        for (const format of formats) {
-          for (const quality of format.qualities) {
-            dataUrl = canvas.toDataURL(format.mime, quality);
-
-            if (dataUrl.length <= POSTER_MAX_DATA_URL_LENGTH) {
-              resolve(dataUrl);
-              return;
-            }
-
-            // Reduce scale if still too large
-            scale *= 0.85;
-            canvas.width = Math.max(1, Math.round(canvas.width * scale));
-            canvas.height = Math.max(1, Math.round(canvas.height * scale));
-            context.clearRect(0, 0, canvas.width, canvas.height);
-            context.drawImage(image, 0, 0, canvas.width, canvas.height);
-          }
-        }
-
-        reject(new Error('Rasm hajmi katta. Iltimos, kichikroq ablojka tanlang.'));
-      };
-      image.src = String(reader.result || '');
-    };
-    reader.readAsDataURL(file);
-  });
 }
 
 function loadImageFromDataUrl(dataUrl) {
@@ -897,13 +779,11 @@ async function handleMovieSubmit(e) {
 
   const form = e.target;
   const submitButton = form.querySelector('button[type="submit"]');
-  const posterValue = selectedPosterDataUrl || document.getElementById('moviePoster').value.trim();
   const movieData = {
     name: document.getElementById('movieName').value.trim(),
     category: document.getElementById('movieCategory').value,
     rating: parseFloat(document.getElementById('movieRating').value) || 0,
     hd: document.getElementById('movieHd').value === 'true',
-    poster: posterValue,
     video: document.getElementById('movieVideo').value,
     description: document.getElementById('movieDescription').value
   };
@@ -928,10 +808,6 @@ async function handleMovieSubmit(e) {
     if (!currentMovie || nextQuality !== currentQuality) {
       updatePayload.quality = nextQuality;
     }
-    if (!currentMovie || hasMovieFieldChanged(movieData.poster, currentMovie.poster)) {
-      updatePayload.posterImage = movieData.poster;
-    }
-
     const descriptionChanged = !currentMovie || hasMovieFieldChanged(movieData.description, currentMovie.description);
     if (descriptionChanged) {
       if (movieData.description.length > MOVIE_DESCRIPTION_MAX_LENGTH) {
@@ -1685,4 +1561,3 @@ init();
 // Expose functions for inline handlers
 window.editMovie = editMovie;
 window.deleteMovie = deleteMovie;
-window.updatePosterPreview = updatePosterPreview;
