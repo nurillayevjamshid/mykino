@@ -1158,6 +1158,14 @@ async function saveHeaderSettings() {
     const headerCrop = getHeaderCropSettings();
     if (headerCrop) updatePayload.headerCrop = headerCrop;
 
+    // Debug: kino ma'lumotlarini tekshirish
+    console.log('[DEBUG] Header save - Movie before:', {
+      id: movie.id,
+      poster: movie.poster?.slice(0, 50) + '...',
+      headerImage: movie.headerImage?.slice(0, 50) + '...'
+    });
+    console.log('[DEBUG] Header save - Payload:', Object.keys(updatePayload));
+
     const response = await fetch(`${API_URL}/movie-update`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -1170,7 +1178,22 @@ async function saveHeaderSettings() {
     }
 
     showNotification('Header Section bazaga saqlandi!');
+
+    // Debug: response ma'lumotlarini tekshirish
+    console.log('[DEBUG] Header save - Response movie:', {
+      posterImage: result?.movie?.posterImage?.slice(0, 50) + '...',
+      headerImage: result?.movie?.headerImage?.slice(0, 50) + '...'
+    });
+
     await fetchMovies();
+
+    // Debug: fetchMovies dan keyin ma'lumotni tekshirish
+    const updatedMovie = movies.find(m => sameMovieId(m.id, movie.id));
+    console.log('[DEBUG] Header save - After fetchMovies:', {
+      poster: updatedMovie?.poster?.slice(0, 50) + '...',
+      headerImage: updatedMovie?.headerImage?.slice(0, 50) + '...'
+    });
+
     renderHeaderMovies();
 
     // Formani tozalash - yangi kino qo'shishga tayyorlash
