@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f131a">
   <title>My Kino - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20260501-header-crop">
+  <link rel="stylesheet" href="/admin/admin.css?v=20260501-partial-update">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -283,6 +283,10 @@
         <div class="form-group">
           <label>Tavsif</label>
           <textarea id="movieDescription" class="form-textarea" rows="3"></textarea>
+          <div class="description-meta">
+            <small class="form-hint">Maksimal 4000 ta belgi.</small>
+            <small id="movieDescriptionCounter" class="description-counter">0/4000</small>
+          </div>
         </div>
         
         <div class="modal-actions">
@@ -326,6 +330,6 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20260501-header-crop"></script>
+  <script src="/admin/admin.js?v=20260501-partial-update"></script>
 </body>
 </html>

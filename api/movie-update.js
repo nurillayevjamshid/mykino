@@ -29,6 +29,12 @@ function trimString(value) {
   return String(value || "").trim();
 }
 
+const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
+
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object || {}, key);
+}
+
 function safeRating(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 0;
@@ -59,19 +65,41 @@ module.exports = async function handler(request, response) {
       return;
     }
 
-    const updates = {
-      title: body.title,
-      genre: body.genre || body.category,
-      rating: body.rating,
-      quality: body.quality,
-      posterImage: body.posterImage !== undefined ? body.posterImage : body.poster,
-      headerImage: body.headerImage !== undefined ? body.headerImage : (
-        body.heroPoster !== undefined ? body.heroPoster : body.headerPoster
-      ),
-      description: body.description,
-      year: body.year,
-      showInHeader: body.showInHeader,
-    };
+    const updates = {};
+    if (hasOwn(body, "title")) updates.title = body.title;
+    if (hasOwn(body, "genre") || hasOwn(body, "category")) {
+      updates.genre = hasOwn(body, "genre") ? body.genre : body.category;
+    }
+    if (hasOwn(body, "rating")) updates.rating = body.rating;
+    if (hasOwn(body, "quality")) updates.quality = body.quality;
+    if (hasOwn(body, "posterImage")) updates.posterImage = body.posterImage;
+    if (!hasOwn(body, "posterImage") && hasOwn(body, "poster")) updates.poster = body.poster;
+    if (hasOwn(body, "headerImage")) {
+      updates.headerImage = body.headerImage;
+    } else if (hasOwn(body, "heroPoster")) {
+      updates.heroPoster = body.heroPoster;
+    } else if (hasOwn(body, "headerPoster")) {
+      updates.headerPoster = body.headerPoster;
+    } else if (hasOwn(body, "heroImage")) {
+      updates.heroImage = body.heroImage;
+    }
+    if (hasOwn(body, "headerCrop")) {
+      updates.headerCrop = body.headerCrop && typeof body.headerCrop === "object" ? body.headerCrop : null;
+    }
+    if (hasOwn(body, "description")) {
+      const description = trimString(body.description);
+      if (description.length > MOVIE_DESCRIPTION_MAX_LENGTH) {
+        response.status(400).json({
+          ok: false,
+          code: "DESCRIPTION_TOO_LONG",
+          error: `Tavsif juda uzun. Maksimal: ${MOVIE_DESCRIPTION_MAX_LENGTH} ta belgi.`,
+        });
+        return;
+      }
+      updates.description = description;
+    }
+    if (hasOwn(body, "year")) updates.year = body.year;
+    if (hasOwn(body, "showInHeader")) updates.showInHeader = body.showInHeader;
 
     const saved = await updateCatalogMovieMetadata(id, updates);
     const metadata = await getDriveFileMetadata(id, "id,name,mimeType,thumbnailLink,webViewLink");
@@ -97,6 +125,7 @@ module.exports = async function handler(request, response) {
         heroPoster: trimString(override.headerImage),
         showInHeader: Boolean(override.showInHeader),
         heroFeatured: Boolean(override.showInHeader),
+        headerCrop: override.headerCrop || null,
         description: trimString(override.description),
         year: override.year || "",
       },

@@ -12,11 +12,12 @@ let headerCropPreviewFrame = 0;
 const API_URL = '/api';
 const POSTER_MAX_WIDTH = 240;
 const POSTER_MAX_HEIGHT = 360;
-const POSTER_MAX_DATA_URL_LENGTH = 28000;
+const POSTER_MAX_DATA_URL_LENGTH = 18000;
 const HEADER_IMAGE_RATIO = 16 / 9;
 const HEADER_IMAGE_MAX_WIDTH = 520;
 const HEADER_IMAGE_MAX_HEIGHT = 293;
 const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 12000;
+const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -41,6 +42,7 @@ function normalizeMovieFromApi(movie) {
     poster: movie.posterImage || movie.poster || movie.thumbnail || '',
     headerImage: movie.headerImage || movie.heroPoster || movie.headerPoster || movie.heroImage || '',
     showInHeader: Boolean(movie.showInHeader || movie.heroFeatured),
+    headerCrop: movie.headerCrop || null,
     video: movie.streamUrl || movie.videoUrl || movie.telegramFileId || '',
     description: movie.description || '',
     year: movie.year || '',
@@ -252,6 +254,7 @@ function bindEvents() {
   // Forms
   document.getElementById('movieForm')?.addEventListener('submit', handleMovieSubmit);
   document.getElementById('categoryForm')?.addEventListener('submit', handleCategorySubmit);
+  document.getElementById('movieDescription')?.addEventListener('input', updateDescriptionCounter);
 
   // Header settings
   document.getElementById('saveHeader')?.addEventListener('click', saveHeaderSettings);
@@ -489,6 +492,7 @@ function openMovieModal(movie = null) {
     updatePosterPreview('');
   }
 
+  updateDescriptionCounter();
   modal.classList.add('active');
 }
 
@@ -723,6 +727,58 @@ function scheduleHeaderCropRender() {
   });
 }
 
+function updateDescriptionCounter() {
+  const textarea = document.getElementById('movieDescription');
+  const counter = document.getElementById('movieDescriptionCounter');
+  if (!textarea || !counter) return;
+
+  const length = textarea.value.length;
+  counter.textContent = `${length}/${MOVIE_DESCRIPTION_MAX_LENGTH}`;
+  counter.classList.toggle('is-over', length > MOVIE_DESCRIPTION_MAX_LENGTH);
+}
+
+function showDescriptionLimitError() {
+  showNotification(`Tavsif juda uzun. Maksimal: ${MOVIE_DESCRIPTION_MAX_LENGTH} ta belgi.`, 'error');
+}
+
+function hasMovieFieldChanged(nextValue, currentValue) {
+  return String(nextValue ?? '') !== String(currentValue ?? '');
+}
+
+function hasRatingChanged(nextValue, currentValue) {
+  const next = Number(nextValue || 0);
+  const current = Number(currentValue || 0);
+  return Math.abs(next - current) > 0.001;
+}
+
+function getHeaderCropSettings() {
+  if (!headerCropState?.image) return null;
+
+  const zoom = Number(document.getElementById('headerCropZoom')?.value || 1);
+  const panX = Number(document.getElementById('headerCropX')?.value || 0);
+  const panY = Number(document.getElementById('headerCropY')?.value || 0);
+  const crop = getHeaderCropRect();
+
+  return {
+    ratio: '16:9',
+    source: {
+      width: Math.round(headerCropState.width),
+      height: Math.round(headerCropState.height)
+    },
+    crop: {
+      x: Math.round(crop.x),
+      y: Math.round(crop.y),
+      width: Math.round(crop.width),
+      height: Math.round(crop.height)
+    },
+    transform: {
+      zoom: Number(zoom.toFixed(2)),
+      x: Math.round(panX),
+      y: Math.round(panY)
+    }
+  };
+}
+
 // Close Movie Modal
 function closeMovieModal() {
   document.getElementById('movieModal').classList.remove('active');
@@ -748,6 +804,41 @@ async function handleMovieSubmit(e) {
   if (form.dataset.editingId) {
     // Edit existing - call API
     const id = form.dataset.editingId;
+    const currentMovie = movies.find(movie => sameMovieId(movie.id, id));
+    const updatePayload = { id };
+    const nextQuality = movieData.hd ? 'HD' : 'SD';
+    const currentQuality = currentMovie?.hd ? 'HD' : 'SD';
+
+    if (!currentMovie || hasMovieFieldChanged(movieData.name, currentMovie.name)) {
+      updatePayload.title = movieData.name;
+    }
+    if (!currentMovie || hasMovieFieldChanged(movieData.category, currentMovie.category)) {
+      updatePayload.genre = movieData.category;
+    }
+    if (!currentMovie || hasRatingChanged(movieData.rating, currentMovie.rating)) {
+      updatePayload.rating = movieData.rating;
+    }
+    if (!currentMovie || nextQuality !== currentQuality) {
+      updatePayload.quality = nextQuality;
+    }
+    if (!currentMovie || hasMovieFieldChanged(movieData.poster, currentMovie.poster)) {
+      updatePayload.posterImage = movieData.poster;
+    }
+
+    const descriptionChanged = !currentMovie || hasMovieFieldChanged(movieData.description, currentMovie.description);
+    if (descriptionChanged) {
+      if (movieData.description.length > MOVIE_DESCRIPTION_MAX_LENGTH) {
+        updateDescriptionCounter();
+        showDescriptionLimitError();
+        return;
+      }
+      updatePayload.description = movieData.description;
+    }
+
+    if (Object.keys(updatePayload).length === 1) {
+      showNotification('O\'zgarish yo\'q.');
+      return;
+    }
     
     try {
       if (submitButton) {
@@ -758,15 +849,7 @@ async function handleMovieSubmit(e) {
       const response = await fetch(`${API_URL}/movie-update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: id,
-          title: movieData.name,
-          genre: movieData.category,
-          rating: movieData.rating,
-          quality: movieData.hd ? 'HD' : 'SD',
-          posterImage: movieData.poster,
-          description: movieData.description
-        })
+        body: JSON.stringify(updatePayload)
       });
 
       const result = await response.json();
@@ -805,6 +888,12 @@ async function handleMovieSubmit(e) {
       return;
     }
   } else {
+    if (movieData.description.length > MOVIE_DESCRIPTION_MAX_LENGTH) {
+      updateDescriptionCounter();
+      showDescriptionLimitError();
+      return;
+    }
+
     // Add new
     const numericIds = movies.map(m => Number(m.id)).filter(Number.isFinite);
     const newId = Math.max(...numericIds, 0) + 1;
@@ -988,14 +1077,18 @@ async function saveHeaderSettings() {
       saveButton.textContent = 'Saqlanmoqda...';
     }
 
+    const updatePayload = {
+      id: movie.id,
+      showInHeader: true,
+      headerImage: selectedHeaderImageDataUrl
+    };
+    const headerCrop = getHeaderCropSettings();
+    if (headerCrop) updatePayload.headerCrop = headerCrop;
+
     const response = await fetch(`${API_URL}/movie-update`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: movie.id,
-        showInHeader: true,
-        headerImage: selectedHeaderImageDataUrl
-      })
+      body: JSON.stringify(updatePayload)
     });
 
     const result = await response.json().catch(() => null);
@@ -1037,7 +1130,8 @@ async function removeHeaderMovie(movieId, button) {
       body: JSON.stringify({
         id: movie.id,
         showInHeader: false,
-        headerImage: ''
+        headerImage: '',
+        headerCrop: null
       })
     });
 
