@@ -461,7 +461,7 @@ function getPosterImage(movie) {
 }
 
 function getHeaderImage(movie) {
-  return String(movie?.headerImage || movie?.posterImage || movie?.poster || "").trim();
+  return String(movie?.headerImage || movie?.heroPoster || "").trim();
 }
 
 function isDataImageValue(value) {
@@ -781,7 +781,7 @@ function normalizeMovie(movie, index = 0) {
   const sourceUrl = resolveAppUrl(postUrl || movie?.sourceUrl || movie?.webViewLink || "");
   const posterImage = resolveAppUrl(rawPoster) || buildGeneratedPosterDataUrl({ title, year: movie?.year || "", quality });
   const headerImage = isDataImageValue(rawHeaderImage) ? resolveAppUrl(rawHeaderImage) : "";
-  const showInHeader = toBooleanFlag(movie?.showInHeader) && (!rawHeaderImage || Boolean(headerImage));
+  const showInHeader = toBooleanFlag(movie?.showInHeader) && Boolean(headerImage);
   const normalized = {
     ...movie,
     id: safeId,

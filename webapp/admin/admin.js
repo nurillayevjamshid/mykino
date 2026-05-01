@@ -62,6 +62,7 @@ async function fetchMovies() {
     
     renderMovies();
     updateHeaderMovieSelect();
+    renderHeaderMovies();
   } catch (error) {
     console.error('Error fetching movies:', error);
     showNotification('Kinolarni yuklashda xatolik!', 'error');
@@ -274,6 +275,13 @@ function bindEvents() {
       selectedHeaderImageDataUrl = '';
       updateHeaderImagePreview('');
     }
+  });
+  document.getElementById('headerMoviesList')?.addEventListener('click', async (e) => {
+    const button = e.target.closest('[data-header-action="remove"]');
+    if (!button) return;
+    const movieId = button.dataset.movieId;
+    if (!movieId) return;
+    await removeHeaderMovie(movieId, button);
   });
 
   // Poster URL input - live preview
@@ -776,6 +784,49 @@ function updateHeaderMovieSelect(preferredValue = '') {
   select.value = movies.some(movie => sameMovieId(movie.id, currentValue)) ? currentValue : '';
 }
 
+function getHeaderMovies() {
+  return movies.filter(movie => movie.showInHeader && movie.headerImage);
+}
+
+function renderHeaderMovies() {
+  const list = document.getElementById('headerMoviesList');
+  const count = document.getElementById('headerMoviesCount');
+  if (!list) return;
+
+  const headerMovies = getHeaderMovies();
+  if (count) count.textContent = `${headerMovies.length} ta`;
+
+  if (!headerMovies.length) {
+    list.innerHTML = `
+      <div class="header-empty-state">
+        <strong>Hozircha kino yo'q</strong>
+        <span>Kino tanlab 16:9 rasm yuklang va saqlang.</span>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = headerMovies.map(movie => `
+    <article class="header-movie-card">
+      <img class="header-movie-thumb" src="${escapeHtml(movie.headerImage)}" alt="${escapeHtml(movie.name)}">
+      <div class="header-movie-info">
+        <strong>${escapeHtml(movie.name || 'Kino')}</strong>
+        <span>${escapeHtml([movie.year || '', movie.category || movie.quality || 'HD'].filter(Boolean).join(' - '))}</span>
+      </div>
+      <button
+        type="button"
+        class="btn-icon header-remove"
+        data-header-action="remove"
+        data-movie-id="${escapeHtml(movie.id)}"
+        title="Headerdan olib tashlash"
+        aria-label="${escapeHtml(movie.name || 'Kino')} headerdan olib tashlash"
+      >
+        &times;
+      </button>
+    </article>
+  `).join('');
+}
+
 // Load Header Settings
 function loadHeaderSettings() {
   const selectedMovie = movies.find(movie => movie.showInHeader && movie.headerImage)
@@ -789,6 +840,7 @@ function loadHeaderSettings() {
 
   const fileInput = document.getElementById('headerImageFile');
   if (fileInput) fileInput.value = '';
+  renderHeaderMovies();
 }
 
 // Save Header Settings
@@ -832,6 +884,7 @@ async function saveHeaderSettings() {
     showNotification('Header Section bazaga saqlandi!');
     await fetchMovies();
     updateHeaderMovieSelect(movie.id);
+    renderHeaderMovies();
     const savedMovie = movies.find(item => sameMovieId(item.id, movie.id));
     selectedHeaderImageDataUrl = savedMovie?.headerImage || selectedHeaderImageDataUrl;
     updateHeaderImagePreview(selectedHeaderImageDataUrl);
@@ -842,6 +895,46 @@ async function saveHeaderSettings() {
       saveButton.disabled = false;
       saveButton.textContent = 'Saqlash';
     }
+  }
+}
+
+async function removeHeaderMovie(movieId, button) {
+  const movie = movies.find(item => sameMovieId(item.id, movieId));
+  if (!movie) return;
+
+  if (!confirm(`"${movie.name || 'Kino'}" headerdan olib tashlansinmi?`)) {
+    return;
+  }
+
+  try {
+    if (button) button.disabled = true;
+    const response = await fetch(`${API_URL}/movie-update`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: movie.id,
+        showInHeader: false,
+        headerImage: ''
+      })
+    });
+
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.error || 'Kino headerdan olib tashlanmadi.');
+    }
+
+    showNotification('Kino headerdan olib tashlandi.');
+    await fetchMovies();
+    const select = document.getElementById('headerMovieSelect');
+    if (select?.value && sameMovieId(select.value, movie.id)) {
+      selectedHeaderImageDataUrl = '';
+      updateHeaderImagePreview('');
+    }
+    renderHeaderMovies();
+  } catch (error) {
+    showNotification(error.message || 'Headerni yangilashda xatolik!', 'error');
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
