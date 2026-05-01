@@ -156,19 +156,24 @@ async function uploadHeaderImage(base64Data, movieId, movieName) {
     description: `Header image for movie: ${movieName || movieId}`,
   };
 
-  // Multipart upload
+  // Multipart upload (to'g'ri binary formatda)
   const boundary = `----HeaderImageBoundary${Date.now()}`;
-  const delimiter = `\r\n--${boundary}\r\n`;
-  const closeDelimiter = `\r\n--${boundary}--`;
 
-  const multipartBody =
-    delimiter +
+  // Metadata qismi (string)
+  const metadataPart = Buffer.from(
+    `--${boundary}\r\n` +
     "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
     JSON.stringify(metadata) +
-    delimiter +
-    `Content-Type: ${mimeType}\r\n\r\n` +
-    buffer.toString("binary") +
-    closeDelimiter;
+    `\r\n--${boundary}\r\n` +
+    `Content-Type: ${mimeType}\r\n\r\n`,
+    "utf8"
+  );
+
+  // Yakuniy chegara
+  const endPart = Buffer.from(`\r\n--${boundary}--`, "utf8");
+
+  // Barcha qismlarni birlashtirish
+  const multipartBody = Buffer.concat([metadataPart, buffer, endPart]);
 
   const uploadUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true";
   const uploadResponse = await authorizedFetch(uploadUrl, {
