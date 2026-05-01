@@ -3,6 +3,7 @@
 // Data storage
 let movies = [];
 let categories = [];
+let headerSection = []; // Alohida header section data
 let selectedPosterDataUrl = '';
 let selectedHeaderImageDataUrl = '';
 let headerCropState = null;
@@ -66,16 +67,35 @@ async function fetchMovies() {
     const response = await fetch(`${API_URL}/movies`);
     if (!response.ok) throw new Error('Failed to fetch movies');
     const data = await response.json();
-    
+
     movies = data.map(normalizeMovieFromApi).filter(movie => movie.id);
     syncCategoriesFromMovies();
-    
+
     renderMovies();
     updateHeaderMovieSelect();
-    renderHeaderMovies();
+    // Headerlarni alohida yuklash
+    await fetchHeaderSection();
   } catch (error) {
     console.error('Error fetching movies:', error);
     showNotification('Kinolarni yuklashda xatolik!', 'error');
+  }
+}
+
+// Fetch header section from separate API
+async function fetchHeaderSection() {
+  try {
+    const response = await fetch(`${API_URL}/header-section`);
+    if (!response.ok) {
+      console.error('Failed to fetch header section');
+      headerSection = [];
+      return;
+    }
+    const data = await response.json();
+    headerSection = data.headers || [];
+    renderHeaderMovies();
+  } catch (error) {
+    console.error('Error fetching header section:', error);
+    headerSection = [];
   }
 }
 
@@ -1043,8 +1063,25 @@ function updateHeaderMovieSelect(preferredValue = '') {
   select.value = movies.some(movie => sameMovieId(movie.id, currentValue)) ? currentValue : '';
 }
 
+// Header section dan faqat active headerlarni olish (movie ma'lumotlari bilan)
 function getHeaderMovies() {
-  return movies.filter(movie => movie.showInHeader && movie.headerImage);
+  return headerSection
+    .filter(header => header.isActive !== false && header.headerImageUrl)
+    .map(header => {
+      // Movie ma'lumotlarini topish
+      const movie = movies.find(m => sameMovieId(m.id, header.movieId));
+      return {
+        ...header,
+        movieId: header.movieId,
+        id: header.movieId, // Compatibility uchun
+        name: header.title || movie?.name || 'Kino',
+        headerImage: header.headerImageUrl,
+        year: header.year || movie?.year || '',
+        category: header.category || movie?.category || '',
+        quality: movie?.quality || 'HD',
+        cropSettings: header.cropSettings,
+      };
+    });
 }
 
 function renderHeaderMovies() {
@@ -1065,21 +1102,21 @@ function renderHeaderMovies() {
     return;
   }
 
-  list.innerHTML = headerMovies.map(movie => `
+  list.innerHTML = headerMovies.map(header => `
     <article class="header-movie-card">
-      <img class="header-movie-thumb" src="${escapeHtml(movie.headerImage)}" alt="${escapeHtml(movie.name)}">
+      <img class="header-movie-thumb" src="${escapeHtml(header.headerImage)}" alt="${escapeHtml(header.name)}">
       <div class="header-movie-info">
-        <strong>${escapeHtml(movie.name || 'Kino')}</strong>
-        <span>${escapeHtml([movie.year || '', movie.category || movie.quality || 'HD'].filter(Boolean).join(' - '))}</span>
+        <strong>${escapeHtml(header.name || 'Kino')}</strong>
+        <span>${escapeHtml([header.year || '', header.category || header.quality || 'HD'].filter(Boolean).join(' - '))}</span>
       </div>
       <div class="header-movie-actions">
         <button
           type="button"
           class="btn-icon header-edit"
           data-header-action="edit"
-          data-movie-id="${escapeHtml(movie.id)}"
+          data-movie-id="${escapeHtml(header.movieId)}"
           title="Tahrirlash"
-          aria-label="${escapeHtml(movie.name || 'Kino')}ni tahrirlash"
+          aria-label="${escapeHtml(header.name || 'Kino')}ni tahrirlash"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1090,9 +1127,9 @@ function renderHeaderMovies() {
           type="button"
           class="btn-icon header-remove"
           data-header-action="remove"
-          data-movie-id="${escapeHtml(movie.id)}"
+          data-movie-id="${escapeHtml(header.movieId)}"
           title="Headerdan olib tashlash"
-          aria-label="${escapeHtml(movie.name || 'Kino')}ni headerdan olib tashlash"
+          aria-label="${escapeHtml(header.name || 'Kino')}ni headerdan olib tashlash"
         >
           &times;
         </button>
@@ -1150,25 +1187,23 @@ async function saveHeaderSettings() {
       saveButton.textContent = 'Saqlanmoqda...';
     }
 
-    // Yangi alohida header-image API ishlatish
+    // Yangi header-section API ishlatish (base64 yuboriladi, server Google Drive ga yuklaydi)
     const updatePayload = {
       movieId: movie.id,
-      showInHeader: true,
-      headerImage: selectedHeaderImageDataUrl
+      title: movie.name || '',
+      year: movie.year || '',
+      category: movie.category || '',
+      rating: movie.rating || '',
+      isActive: true,
+      headerImage: selectedHeaderImageDataUrl  // Base64 - server yuklaydi
     };
     const headerCrop = getHeaderCropSettings();
-    if (headerCrop) updatePayload.headerCrop = headerCrop;
+    if (headerCrop) updatePayload.cropSettings = headerCrop;
 
-    // Debug: kino ma'lumotlarini tekshirish
-    console.log('[DEBUG] Header save - Movie before:', {
-      id: movie.id,
-      poster: movie.poster?.slice(0, 50) + '...',
-      headerImage: movie.headerImage?.slice(0, 50) + '...'
-    });
-    console.log('[DEBUG] Header save - Payload (alohida header-image):', Object.keys(updatePayload));
+    console.log('[DEBUG] Header save - Movie:', movie.id, 'poster unchanged');
 
-    // Alohida header-image API dan foydalanish
-    const response = await fetch(`${API_URL}/header-image`, {
+    // Yangi header-section API
+    const response = await fetch(`${API_URL}/header-section`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatePayload)
@@ -1179,22 +1214,11 @@ async function saveHeaderSettings() {
       throw new Error(result?.error || 'Header Section saqlanmadi.');
     }
 
-    showNotification('Header Section alohida saqlandi!');
+    showNotification('Header saqlandi (rasm alohida storage ga)!');
+    console.log('[DEBUG] Header saved, fileId:', result?.header?.headerImageFileId);
 
-    // Debug: response ma'lumotlarini tekshirish
-    console.log('[DEBUG] Header save - Response:', {
-      movieId: result?.movieId,
-      hasHeaderImage: Boolean(result?.header?.headerImage)
-    });
-
-    await fetchMovies();
-
-    // Debug: fetchMovies dan keyin ma'lumotni tekshirish
-    const updatedMovie = movies.find(m => sameMovieId(m.id, movie.id));
-    console.log('[DEBUG] Header save - After fetchMovies:', {
-      poster: updatedMovie?.poster?.slice(0, 50) + '...',
-      headerImage: updatedMovie?.headerImage?.slice(0, 50) + '...'
-    });
+    // Headerlarni qayta yuklash
+    await fetchHeaderSection();
 
     renderHeaderMovies();
 
@@ -1247,18 +1271,15 @@ function closeDeleteConfirmModal() {
 }
 
 async function confirmRemoveHeaderMovie(movieId, button) {
-  const movie = movies.find(item => sameMovieId(item.id, movieId));
-  if (!movie) return;
-
   try {
     if (button) button.disabled = true;
 
-    // Alohida header-image API dan foydalanib o'chirish
-    const response = await fetch(`${API_URL}/header-image`, {
+    // Yangi header-section API dan foydalanib o'chirish (soft delete)
+    const response = await fetch(`${API_URL}/header-section`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        movieId: movie.id
+        movieId: movieId
       })
     });
 
@@ -1267,13 +1288,8 @@ async function confirmRemoveHeaderMovie(movieId, button) {
       throw new Error(result?.error || 'Kino headerdan olib tashlanmadi.');
     }
 
-    showNotification('Kino headerdan olib tashlandi (alohida bo\'limdan).');
-    await fetchMovies();
-    const select = document.getElementById('headerMovieSelect');
-    if (select?.value && sameMovieId(select.value, movie.id)) {
-      selectedHeaderImageDataUrl = '';
-      updateHeaderImagePreview('');
-    }
+    showNotification('Kino headerdan olib tashlandi (isActive=false).');
+    await fetchHeaderSection();  // Header-section ni qayta yuklash
     renderHeaderMovies();
   } catch (error) {
     showNotification(error.message || 'Headerni yangilashda xatolik!', 'error');
@@ -1525,27 +1541,25 @@ async function handleEditHeaderSubmit(e) {
       saveButton.textContent = 'Saqlanmoqda...';
     }
 
+    // Yangi header-section API ishlatish
     const updatePayload = {
       movieId: movie.id,
-      showInHeader: true
+      title: movie.name || '',
+      year: movie.year || '',
+      category: movie.category || '',
+      rating: movie.rating || '',
+      isActive: true
     };
 
     // Faqat yangi rasm tanlangan bo'lsa yangilash
-    if (editHeaderSelectedImageDataUrl && editHeaderSelectedImageDataUrl !== movie.headerImage) {
-      updatePayload.headerImage = editHeaderSelectedImageDataUrl;
+    if (editHeaderSelectedImageDataUrl) {
+      updatePayload.headerImage = editHeaderSelectedImageDataUrl;  // Base64
       const headerCrop = getEditHeaderCropSettings();
-      if (headerCrop) updatePayload.headerCrop = headerCrop;
+      if (headerCrop) updatePayload.cropSettings = headerCrop;
     }
 
-    // Agar hech narsa o'zgarmagan bo'lsa
-    if (Object.keys(updatePayload).length === 1) {
-      showNotification('O\'zgarish yo\'q.');
-      closeEditHeaderModal();
-      return;
-    }
-
-    // Alohida header-image API dan foydalanish
-    const response = await fetch(`${API_URL}/header-image`, {
+    // Yangi header-section API
+    const response = await fetch(`${API_URL}/header-section`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatePayload)
@@ -1556,8 +1570,8 @@ async function handleEditHeaderSubmit(e) {
       throw new Error(result?.error || 'Header rasmi saqlanmadi.');
     }
 
-    showNotification('Header rasmi alohida saqlandi!');
-    await fetchMovies();
+    showNotification('Header rasmi saqlandi (alohida storage)!');
+    await fetchHeaderSection();  // Yangi header-section dan yuklash
     renderHeaderMovies();
     closeEditHeaderModal();
   } catch (error) {
