@@ -8,6 +8,12 @@ let selectedHeaderImageDataUrl = '';
 let headerCropState = null;
 let headerCropPreviewFrame = 0;
 
+// Edit header modal state
+let editHeaderSelectedImageDataUrl = '';
+let editHeaderCropState = null;
+let editHeaderCropPreviewFrame = 0;
+let deleteTargetMovieId = '';
+
 // API base URL
 const API_URL = '/api';
 const POSTER_MAX_WIDTH = 240;
@@ -290,11 +296,58 @@ function bindEvents() {
     renderHeaderCrop({ notify: true });
   });
   document.getElementById('headerMoviesList')?.addEventListener('click', async (e) => {
-    const button = e.target.closest('[data-header-action="remove"]');
+    const button = e.target.closest('[data-header-action]');
     if (!button) return;
     const movieId = button.dataset.movieId;
     if (!movieId) return;
-    await removeHeaderMovie(movieId, button);
+
+    const action = button.dataset.headerAction;
+    if (action === 'remove') {
+      // Delete confirmation modal ochish
+      deleteTargetMovieId = movieId;
+      document.getElementById('deleteConfirmMovieId').value = movieId;
+      document.getElementById('deleteConfirmModal').classList.add('active');
+    } else if (action === 'edit') {
+      // Edit modal ochish
+      openEditHeaderModal(movieId);
+    }
+  });
+
+  // Delete confirmation modal
+  document.getElementById('closeDeleteConfirmModal')?.addEventListener('click', closeDeleteConfirmModal);
+  document.getElementById('cancelDelete')?.addEventListener('click', closeDeleteConfirmModal);
+  document.getElementById('confirmDelete')?.addEventListener('click', async () => {
+    if (!deleteTargetMovieId) return;
+    const button = document.querySelector(`[data-header-action="remove"][data-movie-id="${deleteTargetMovieId}"]`);
+    await confirmRemoveHeaderMovie(deleteTargetMovieId, button);
+    closeDeleteConfirmModal();
+  });
+
+  // Edit header modal
+  document.getElementById('closeEditHeaderModal')?.addEventListener('click', closeEditHeaderModal);
+  document.getElementById('cancelEditHeader')?.addEventListener('click', closeEditHeaderModal);
+  document.getElementById('editHeaderForm')?.addEventListener('submit', handleEditHeaderSubmit);
+  document.getElementById('editHeaderImageFile')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await startEditHeaderCrop(file);
+      renderEditHeaderCrop();
+    } catch (error) {
+      showNotification(error.message || 'Header rasmini o\'qib bo\'lmadi.', 'error');
+      e.target.value = '';
+      editHeaderSelectedImageDataUrl = '';
+      clearEditHeaderCropState();
+      updateEditHeaderImagePreview('');
+    }
+  });
+  ['editHeaderCropZoom', 'editHeaderCropX', 'editHeaderCropY'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', scheduleEditHeaderCropRender);
+  });
+  document.getElementById('editApplyHeaderCrop')?.addEventListener('click', () => {
+    if (!editHeaderCropState) return;
+    renderEditHeaderCrop({ notify: true });
   });
 
   // Poster URL input - live preview
@@ -1014,16 +1067,31 @@ function renderHeaderMovies() {
         <strong>${escapeHtml(movie.name || 'Kino')}</strong>
         <span>${escapeHtml([movie.year || '', movie.category || movie.quality || 'HD'].filter(Boolean).join(' - '))}</span>
       </div>
-      <button
-        type="button"
-        class="btn-icon header-remove"
-        data-header-action="remove"
-        data-movie-id="${escapeHtml(movie.id)}"
-        title="Headerdan olib tashlash"
-        aria-label="${escapeHtml(movie.name || 'Kino')} headerdan olib tashlash"
-      >
-        &times;
-      </button>
+      <div class="header-movie-actions">
+        <button
+          type="button"
+          class="btn-icon header-edit"
+          data-header-action="edit"
+          data-movie-id="${escapeHtml(movie.id)}"
+          title="Tahrirlash"
+          aria-label="${escapeHtml(movie.name || 'Kino')}ni tahrirlash"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="btn-icon header-remove"
+          data-header-action="remove"
+          data-movie-id="${escapeHtml(movie.id)}"
+          title="Headerdan olib tashlash"
+          aria-label="${escapeHtml(movie.name || 'Kino')}ni headerdan olib tashlash"
+        >
+          &times;
+        </button>
+      </div>
     </article>
   `).join('');
 }
@@ -1098,12 +1166,19 @@ async function saveHeaderSettings() {
 
     showNotification('Header Section bazaga saqlandi!');
     await fetchMovies();
-    updateHeaderMovieSelect(movie.id);
     renderHeaderMovies();
-    const savedMovie = movies.find(item => sameMovieId(item.id, movie.id));
-    selectedHeaderImageDataUrl = savedMovie?.headerImage || selectedHeaderImageDataUrl;
+
+    // Formani tozalash - yangi kino qo'shishga tayyorlash
+    const select = document.getElementById('headerMovieSelect');
+    const fileInput = document.getElementById('headerImageFile');
+
+    if (select) select.value = '';
+    if (fileInput) fileInput.value = '';
+
+    selectedHeaderImageDataUrl = '';
     clearHeaderCropState();
-    updateHeaderImagePreview(selectedHeaderImageDataUrl);
+    updateHeaderImagePreview('');
+    updateHeaderMovieSelect();
   } catch (error) {
     showNotification(error.message || 'Header Section saqlashda xatolik!', 'error');
   } finally {
@@ -1115,12 +1190,23 @@ async function saveHeaderSettings() {
 }
 
 async function removeHeaderMovie(movieId, button) {
+  // Bu funksiya endi ishlatilmaydi - o'rniga delete confirmation modal ishlatiladi
   const movie = movies.find(item => sameMovieId(item.id, movieId));
   if (!movie) return;
 
-  if (!confirm(`"${movie.name || 'Kino'}" headerdan olib tashlansinmi?`)) {
-    return;
-  }
+  deleteTargetMovieId = movieId;
+  document.getElementById('deleteConfirmMovieId').value = movieId;
+  document.getElementById('deleteConfirmModal').classList.add('active');
+}
+
+function closeDeleteConfirmModal() {
+  document.getElementById('deleteConfirmModal').classList.remove('active');
+  deleteTargetMovieId = '';
+}
+
+async function confirmRemoveHeaderMovie(movieId, button) {
+  const movie = movies.find(item => sameMovieId(item.id, movieId));
+  if (!movie) return;
 
   try {
     if (button) button.disabled = true;
@@ -1129,9 +1215,7 @@ async function removeHeaderMovie(movieId, button) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: movie.id,
-        showInHeader: false,
-        headerImage: '',
-        headerCrop: null
+        showInHeader: false
       })
     });
 
@@ -1152,6 +1236,292 @@ async function removeHeaderMovie(movieId, button) {
     showNotification(error.message || 'Headerni yangilashda xatolik!', 'error');
   } finally {
     if (button) button.disabled = false;
+  }
+}
+
+// Edit Header Modal Functions
+function openEditHeaderModal(movieId) {
+  const movie = movies.find(item => sameMovieId(item.id, movieId));
+  if (!movie) return;
+
+  document.getElementById('editHeaderMovieId').value = movieId;
+  document.getElementById('editHeaderMovieName').textContent = movie.name || 'Kino';
+  document.getElementById('editHeaderModalTitle').textContent = `${movie.name || 'Kino'} - Header rasmini tahrirlash`;
+
+  // Hozirgi rasmni ko'rsatish
+  editHeaderSelectedImageDataUrl = movie.headerImage || '';
+  updateEditHeaderImagePreview(editHeaderSelectedImageDataUrl);
+
+  // Formani tozalash
+  const fileInput = document.getElementById('editHeaderImageFile');
+  if (fileInput) fileInput.value = '';
+  clearEditHeaderCropState();
+
+  document.getElementById('editHeaderModal').classList.add('active');
+}
+
+function closeEditHeaderModal() {
+  document.getElementById('editHeaderModal').classList.remove('active');
+  editHeaderSelectedImageDataUrl = '';
+  clearEditHeaderCropState();
+}
+
+function updateEditHeaderImagePreview(url) {
+  const img = document.getElementById('editHeaderImagePreviewImg');
+  const placeholder = document.getElementById('editHeaderImagePlaceholder');
+  if (!img || !placeholder) return;
+
+  if (url) {
+    img.src = url;
+    img.hidden = false;
+    placeholder.hidden = true;
+  } else {
+    img.removeAttribute('src');
+    img.hidden = true;
+    placeholder.hidden = false;
+  }
+}
+
+async function startEditHeaderCrop(file) {
+  if (!file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Faqat rasm fayl tanlang.'));
+  }
+
+  const dataUrl = await readFileAsDataUrl(file, 'Header rasmini o\'qib bo\'lmadi.');
+  const image = await loadImageFromDataUrl(dataUrl);
+  if (image.width <= image.height) {
+    throw new Error('Faqat gorizontal rasm tanlang.');
+  }
+
+  editHeaderCropState = { image, width: image.width, height: image.height };
+  resetEditHeaderCropControls();
+  const controls = document.getElementById('editHeaderCropControls');
+  if (controls) controls.hidden = false;
+}
+
+function clearEditHeaderCropState() {
+  editHeaderCropState = null;
+  window.cancelAnimationFrame(editHeaderCropPreviewFrame);
+  editHeaderCropPreviewFrame = 0;
+  const controls = document.getElementById('editHeaderCropControls');
+  if (controls) controls.hidden = true;
+  const size = document.getElementById('editHeaderCropSize');
+  if (size) size.textContent = '16:9 crop tayyor';
+}
+
+function resetEditHeaderCropControls() {
+  const zoom = document.getElementById('editHeaderCropZoom');
+  const x = document.getElementById('editHeaderCropX');
+  const y = document.getElementById('editHeaderCropY');
+  if (zoom) zoom.value = '1';
+  if (x) x.value = '0';
+  if (y) y.value = '0';
+}
+
+function getEditHeaderCropRect() {
+  const image = editHeaderCropState.image;
+  const zoom = Math.max(1, Number(document.getElementById('editHeaderCropZoom')?.value || 1));
+  const panX = Number(document.getElementById('editHeaderCropX')?.value || 0) / 100;
+  const panY = Number(document.getElementById('editHeaderCropY')?.value || 0) / 100;
+  const sourceRatio = image.width / image.height;
+  let cropWidth = image.width;
+  let cropHeight = image.height;
+
+  if (sourceRatio > HEADER_IMAGE_RATIO) {
+    cropWidth = image.height * HEADER_IMAGE_RATIO;
+  } else if (sourceRatio < HEADER_IMAGE_RATIO) {
+    cropHeight = image.width / HEADER_IMAGE_RATIO;
+  }
+
+  cropWidth /= zoom;
+  cropHeight /= zoom;
+  const maxX = Math.max(0, image.width - cropWidth);
+  const maxY = Math.max(0, image.height - cropHeight);
+  const x = Math.min(maxX, Math.max(0, maxX / 2 + panX * maxX / 2));
+  const y = Math.min(maxY, Math.max(0, maxY / 2 + panY * maxY / 2));
+
+  return { x, y, width: cropWidth, height: cropHeight };
+}
+
+function encodeEditHeaderCrop() {
+  if (!editHeaderCropState?.image) {
+    throw new Error('Avval rasm tanlang.');
+  }
+
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Brauzer rasmni crop qila olmadi.');
+
+  const crop = getEditHeaderCropRect();
+  const widths = [HEADER_IMAGE_MAX_WIDTH, 440, 360, 300, 260, 220];
+  const formats = [
+    { mime: 'image/webp', qualities: [0.72, 0.58, 0.44, 0.32, 0.24] },
+    { mime: 'image/jpeg', qualities: [0.68, 0.52, 0.38, 0.28, 0.2] }
+  ];
+
+  let fallback = '';
+  for (const width of widths) {
+    canvas.width = width;
+    canvas.height = Math.round(width / HEADER_IMAGE_RATIO);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(
+      editHeaderCropState.image,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    for (const format of formats) {
+      for (const quality of format.qualities) {
+        const dataUrl = canvas.toDataURL(format.mime, quality);
+        if (!dataUrl.startsWith(`data:${format.mime}`)) continue;
+        fallback = dataUrl;
+        if (dataUrl.length <= HEADER_IMAGE_MAX_DATA_URL_LENGTH) {
+          return dataUrl;
+        }
+      }
+    }
+  }
+
+  if (fallback && fallback.length <= 18000) return fallback;
+  throw new Error('Header rasmi hajmi katta. Cropni yaqinroq qiling yoki oddiyroq rasm tanlang.');
+}
+
+function updateEditHeaderCropSize(dataUrl) {
+  const size = document.getElementById('editHeaderCropSize');
+  if (!size) return;
+  const kb = Math.ceil(dataUrl.length / 1024);
+  const format = dataUrl.startsWith('data:image/webp') ? 'WEBP' : 'JPEG';
+  size.textContent = `${format}, ${kb} KB, 16:9`;
+}
+
+function renderEditHeaderCrop(options = {}) {
+  if (!editHeaderCropState) return;
+  editHeaderSelectedImageDataUrl = encodeEditHeaderCrop();
+  updateEditHeaderImagePreview(editHeaderSelectedImageDataUrl);
+  updateEditHeaderCropSize(editHeaderSelectedImageDataUrl);
+  if (options.notify) showNotification('Crop qo\'llandi.');
+}
+
+function scheduleEditHeaderCropRender() {
+  window.cancelAnimationFrame(editHeaderCropPreviewFrame);
+  editHeaderCropPreviewFrame = window.requestAnimationFrame(() => {
+    try {
+      renderEditHeaderCrop();
+    } catch (error) {
+      showNotification(error.message || 'Crop qilishda xatolik.', 'error');
+    }
+  });
+}
+
+function getEditHeaderCropSettings() {
+  if (!editHeaderCropState?.image) return null;
+
+  const zoom = Number(document.getElementById('editHeaderCropZoom')?.value || 1);
+  const panX = Number(document.getElementById('editHeaderCropX')?.value || 0);
+  const panY = Number(document.getElementById('editHeaderCropY')?.value || 0);
+  const crop = getEditHeaderCropRect();
+
+  return {
+    ratio: '16:9',
+    source: {
+      width: Math.round(editHeaderCropState.width),
+      height: Math.round(editHeaderCropState.height)
+    },
+    crop: {
+      x: Math.round(crop.x),
+      y: Math.round(crop.y),
+      width: Math.round(crop.width),
+      height: Math.round(crop.height)
+    },
+    transform: {
+      zoom: Number(zoom.toFixed(2)),
+      x: Math.round(panX),
+      y: Math.round(panY)
+    }
+  };
+}
+
+async function handleEditHeaderSubmit(e) {
+  e.preventDefault();
+
+  const movieId = document.getElementById('editHeaderMovieId')?.value || '';
+  const movie = movies.find(item => sameMovieId(item.id, movieId));
+  if (!movie) {
+    showNotification('Kino topilmadi.', 'error');
+    return;
+  }
+
+  const saveButton = document.getElementById('saveEditHeader');
+
+  // Yangi rasm tanlangan bo'lsa crop qilish
+  if (editHeaderCropState) {
+    try {
+      renderEditHeaderCrop();
+    } catch (error) {
+      showNotification(error.message || 'Crop qilishda xatolik.', 'error');
+      return;
+    }
+  }
+
+  // Agar yangi rasm tanlanmagan bo'lsa va hozirgi rasm ham yo'q bo'lsa xato
+  if (!editHeaderSelectedImageDataUrl && !movie.headerImage) {
+    showNotification('Header rasmi tanlanmagan.', 'error');
+    return;
+  }
+
+  try {
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.textContent = 'Saqlanmoqda...';
+    }
+
+    const updatePayload = {
+      id: movie.id,
+      showInHeader: true
+    };
+
+    // Faqat yangi rasm tanlangan bo'lsa yangilash
+    if (editHeaderSelectedImageDataUrl && editHeaderSelectedImageDataUrl !== movie.headerImage) {
+      updatePayload.headerImage = editHeaderSelectedImageDataUrl;
+      const headerCrop = getEditHeaderCropSettings();
+      if (headerCrop) updatePayload.headerCrop = headerCrop;
+    }
+
+    // Agar hech narsa o'zgarmagan bo'lsa
+    if (Object.keys(updatePayload).length === 1) {
+      showNotification('O\'zgarish yo\'q.');
+      closeEditHeaderModal();
+      return;
+    }
+
+    const response = await fetch(`${API_URL}/movie-update`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatePayload)
+    });
+
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.error || 'Header rasmi saqlanmadi.');
+    }
+
+    showNotification('Header rasmi saqlandi!');
+    await fetchMovies();
+    renderHeaderMovies();
+    closeEditHeaderModal();
+  } catch (error) {
+    showNotification(error.message || 'Header rasmini saqlashda xatolik!', 'error');
+  } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = 'Saqlash';
+    }
   }
 }
 

@@ -309,7 +309,7 @@
           <label>Kategoriya nomi</label>
           <input type="text" id="categoryName" class="form-input" required>
         </div>
-        
+
         <div class="form-group">
           <label>Ikonka</label>
           <select id="categoryIcon" class="form-select">
@@ -321,12 +321,86 @@
             <option value="📺">📺 Serial</option>
           </select>
         </div>
-        
+
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" id="cancelCategory">Bekor qilish</button>
           <button type="submit" class="btn btn-primary">Saqlash</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Edit Header Movie Modal -->
+  <div class="modal" id="editHeaderModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="editHeaderModalTitle">Header rasmini tahrirlash</h3>
+        <button class="modal-close" id="closeEditHeaderModal">&times;</button>
+      </div>
+      <form class="modal-form" id="editHeaderForm">
+        <input type="hidden" id="editHeaderMovieId">
+
+        <div class="form-group">
+          <label>Kino nomi</label>
+          <div id="editHeaderMovieName" class="form-input" style="background: var(--bg-elevated); cursor: not-allowed;" readonly></div>
+        </div>
+
+        <div class="form-group">
+          <label>Hozirgi header rasmi</label>
+          <div class="header-image-preview" id="editHeaderImagePreview">
+            <img src="" alt="Header rasmi" id="editHeaderImagePreviewImg" hidden>
+            <span class="header-image-placeholder" id="editHeaderImagePlaceholder">Rasm yo'q</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="editHeaderImageFile">Yangi rasm tanlash (ixtiyoriy)</label>
+          <input type="file" id="editHeaderImageFile" class="form-input" accept="image/png,image/jpeg,image/webp">
+          <small class="form-hint">Yangi rasm tanlamasangiz, hozirgi rasm saqlanib qoladi.</small>
+        </div>
+
+        <div class="header-crop-controls" id="editHeaderCropControls" hidden>
+          <div class="crop-control">
+            <label for="editHeaderCropZoom">Zoom</label>
+            <input type="range" id="editHeaderCropZoom" min="1" max="3" value="1" step="0.01">
+          </div>
+          <div class="crop-control">
+            <label for="editHeaderCropX">Chap / o'ng</label>
+            <input type="range" id="editHeaderCropX" min="-100" max="100" value="0" step="1">
+          </div>
+          <div class="crop-control">
+            <label for="editHeaderCropY">Yuqori / past</label>
+            <input type="range" id="editHeaderCropY" min="-100" max="100" value="0" step="1">
+          </div>
+          <div class="crop-actions">
+            <button type="button" class="btn btn-secondary" id="editApplyHeaderCrop">Cropni qo'llash</button>
+            <span id="editHeaderCropSize">16:9 crop tayyor</span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelEditHeader">Bekor qilish</button>
+          <button type="submit" class="btn btn-primary" id="saveEditHeader">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal" id="deleteConfirmModal">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Tasdiqlash</h3>
+        <button class="modal-close" id="closeDeleteConfirmModal">&times;</button>
+      </div>
+      <div class="modal-form">
+        <p style="margin-bottom: 20px; color: var(--text);">Haqiqatan ham bu kinoni Header Section'dan olib tashlamoqchimisiz?</p>
+        <input type="hidden" id="deleteConfirmMovieId">
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelDelete">Bekor qilish</button>
+          <button type="button" class="btn btn-danger" id="confirmDelete">Ha, olib tashlash</button>
+        </div>
+      </div>
     </div>
   </div>
 

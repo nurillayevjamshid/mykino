@@ -457,7 +457,8 @@ function toBooleanFlag(value) {
 }
 
 function getPosterImage(movie) {
-  return String(movie?.posterImage || movie?.poster || "").trim();
+  // PosterImage asosiy, agar yo'q bo'lsa headerImage ishlatiladi (header section kinolari uchun)
+  return String(movie?.posterImage || movie?.poster || movie?.headerImage || movie?.heroPoster || "").trim();
 }
 
 function getHeaderImage(movie) {

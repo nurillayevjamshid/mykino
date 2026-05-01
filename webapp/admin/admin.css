@@ -755,7 +755,7 @@ body {
 
 .header-movie-card {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr) 36px;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   padding: 10px;
@@ -795,9 +795,52 @@ body {
   font-size: 12px;
 }
 
+.header-movie-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-edit {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.header-edit:hover {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
 .header-remove {
-  font-size: 22px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
   line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.header-remove:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .header-empty-state {
@@ -1222,12 +1265,23 @@ body {
   }
 
   .header-movie-card {
-    grid-template-columns: 104px minmax(0, 1fr) 32px;
+    grid-template-columns: 104px minmax(0, 1fr) auto;
     gap: 10px;
   }
 
   .header-movie-thumb {
     width: 104px;
+  }
+
+  .header-edit,
+  .header-remove {
+    width: 28px;
+    height: 28px;
+  }
+
+  .header-edit svg {
+    width: 14px;
+    height: 14px;
   }
 
   .form-group {
