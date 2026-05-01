@@ -583,6 +583,17 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   if (updates.posterImage !== undefined || updates.poster !== undefined) {
     next.posterImage = trimString(updates.posterImage !== undefined ? updates.posterImage : updates.poster);
   }
+  if (updates.headerImage !== undefined || updates.heroPoster !== undefined || updates.headerPoster !== undefined || updates.heroImage !== undefined) {
+    next.headerImage = trimString(
+      updates.headerImage !== undefined
+        ? updates.headerImage
+        : updates.heroPoster !== undefined
+          ? updates.heroPoster
+          : updates.headerPoster !== undefined
+            ? updates.headerPoster
+            : updates.heroImage
+    );
+  }
   if (updates.description !== undefined) next.description = trimString(updates.description);
   if (updates.year !== undefined) {
     const numericYear = Number(updates.year);

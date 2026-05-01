@@ -65,6 +65,9 @@ module.exports = async function handler(request, response) {
       rating: body.rating,
       quality: body.quality,
       posterImage: body.posterImage !== undefined ? body.posterImage : body.poster,
+      headerImage: body.headerImage !== undefined ? body.headerImage : (
+        body.heroPoster !== undefined ? body.heroPoster : body.headerPoster
+      ),
       description: body.description,
       year: body.year,
       showInHeader: body.showInHeader,
@@ -90,6 +93,10 @@ module.exports = async function handler(request, response) {
         quality: trimString(override.quality) || "HD",
         posterImage,
         poster: posterImage,
+        headerImage: trimString(override.headerImage),
+        heroPoster: trimString(override.headerImage),
+        showInHeader: Boolean(override.showInHeader),
+        heroFeatured: Boolean(override.showInHeader),
         description: trimString(override.description),
         year: override.year || "",
       },

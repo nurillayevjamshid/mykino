@@ -4,12 +4,18 @@
 let movies = [];
 let categories = [];
 let selectedPosterDataUrl = '';
+let selectedHeaderImageDataUrl = '';
 
 // API base URL
 const API_URL = '/api';
 const POSTER_MAX_WIDTH = 240;
 const POSTER_MAX_HEIGHT = 360;
 const POSTER_MAX_DATA_URL_LENGTH = 28000;
+const HEADER_IMAGE_RATIO = 16 / 9;
+const HEADER_IMAGE_RATIO_TOLERANCE = 0.025;
+const HEADER_IMAGE_MAX_WIDTH = 960;
+const HEADER_IMAGE_MAX_HEIGHT = 540;
+const HEADER_IMAGE_MAX_DATA_URL_LENGTH = 180000;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -32,6 +38,8 @@ function normalizeMovieFromApi(movie) {
     rating: Number(movie.rating || 0),
     hd: String(movie.quality || 'HD').toUpperCase() !== 'SD',
     poster: movie.posterImage || movie.poster || movie.thumbnail || '',
+    headerImage: movie.headerImage || movie.heroPoster || movie.headerPoster || movie.heroImage || '',
+    showInHeader: Boolean(movie.showInHeader || movie.heroFeatured),
     video: movie.streamUrl || movie.videoUrl || movie.telegramFileId || '',
     description: movie.description || '',
     year: movie.year || '',
@@ -53,6 +61,7 @@ async function fetchMovies() {
     syncCategoriesFromMovies();
     
     renderMovies();
+    updateHeaderMovieSelect();
   } catch (error) {
     console.error('Error fetching movies:', error);
     showNotification('Kinolarni yuklashda xatolik!', 'error');
@@ -119,7 +128,7 @@ const themeToggle = document.getElementById('themeToggle');
 const sectionTitles = {
   movies: 'Kinolar',
   categories: 'Kategoriyalar',
-  header: 'Sozlamalar'
+  header: 'Header Section'
 };
 
 // Theme management - Light mode as default
@@ -245,10 +254,26 @@ function bindEvents() {
   // Header settings
   document.getElementById('saveHeader')?.addEventListener('click', saveHeaderSettings);
   document.getElementById('resetHeader')?.addEventListener('click', loadHeaderSettings);
+  document.getElementById('headerMovieSelect')?.addEventListener('change', (e) => {
+    const movie = movies.find(item => sameMovieId(item.id, e.target.value));
+    selectedHeaderImageDataUrl = movie?.headerImage || '';
+    const fileInput = document.getElementById('headerImageFile');
+    if (fileInput) fileInput.value = '';
+    updateHeaderImagePreview(selectedHeaderImageDataUrl);
+  });
+  document.getElementById('headerImageFile')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // Color picker
-  document.getElementById('primaryColor')?.addEventListener('input', (e) => {
-    document.querySelector('.color-value').textContent = e.target.value;
+    try {
+      selectedHeaderImageDataUrl = await readHeaderImageFile(file);
+      updateHeaderImagePreview(selectedHeaderImageDataUrl);
+    } catch (error) {
+      showNotification(error.message || 'Header rasmini o\'qib bo\'lmadi.', 'error');
+      e.target.value = '';
+      selectedHeaderImageDataUrl = '';
+      updateHeaderImagePreview('');
+    }
   });
 
   // Poster URL input - live preview
@@ -464,6 +489,22 @@ function updatePosterPreview(url) {
   }
 }
 
+function updateHeaderImagePreview(url) {
+  const img = document.getElementById('headerImagePreviewImg');
+  const placeholder = document.getElementById('headerImagePlaceholder');
+  if (!img || !placeholder) return;
+
+  if (url) {
+    img.src = url;
+    img.hidden = false;
+    placeholder.hidden = true;
+  } else {
+    img.removeAttribute('src');
+    img.hidden = true;
+    placeholder.hidden = false;
+  }
+}
+
 function readPosterFile(file) {
   if (!file.type.startsWith('image/')) {
     return Promise.reject(new Error('Faqat rasm fayl tanlang.'));
@@ -502,6 +543,59 @@ function readPosterFile(file) {
         }
 
         reject(new Error('Rasm hajmi katta. Iltimos, kichikroq ablojka tanlang.'));
+      };
+      image.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function readHeaderImageFile(file) {
+  if (!file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Faqat rasm fayl tanlang.'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Header rasmini o\'qib bo\'lmadi.'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error('Rasm fayli ochilmadi.'));
+      image.onload = () => {
+        const ratio = image.width / image.height;
+        const isHorizontal = image.width > image.height;
+        const isSixteenNine = Math.abs(ratio - HEADER_IMAGE_RATIO) <= HEADER_IMAGE_RATIO_TOLERANCE;
+        if (!isHorizontal || !isSixteenNine) {
+          reject(new Error('Faqat gorizontal 16:9 formatdagi rasm tanlang.'));
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) {
+          resolve(String(reader.result || ''));
+          return;
+        }
+
+        let scale = Math.min(1, HEADER_IMAGE_MAX_WIDTH / image.width, HEADER_IMAGE_MAX_HEIGHT / image.height);
+        let dataUrl = '';
+
+        for (const quality of [0.82, 0.72, 0.62, 0.52]) {
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+          if (dataUrl.length <= HEADER_IMAGE_MAX_DATA_URL_LENGTH) {
+            resolve(dataUrl);
+            return;
+          }
+
+          scale *= 0.82;
+        }
+
+        reject(new Error('Header rasmi hajmi katta. Iltimos, kichikroq 16:9 rasm tanlang.'));
       };
       image.src = String(reader.result || '');
     };
@@ -666,28 +760,89 @@ function updateCategorySelect(preferredValue = '') {
   select.value = currentValue;
 }
 
+function updateHeaderMovieSelect(preferredValue = '') {
+  const select = document.getElementById('headerMovieSelect');
+  if (!select) return;
+
+  const currentValue = preferredValue || select.value || movies.find(movie => movie.showInHeader)?.id || '';
+  select.innerHTML = '<option value="">Kino tanlang</option>' +
+    movies.map(movie => {
+      const title = movie.name || movie.code || 'Kino';
+      const code = movie.code ? ` (${movie.code})` : '';
+      const marker = movie.showInHeader ? ' - Header' : '';
+      return `<option value="${escapeHtml(movie.id)}">${escapeHtml(title + code + marker)}</option>`;
+    }).join('');
+
+  select.value = movies.some(movie => sameMovieId(movie.id, currentValue)) ? currentValue : '';
+}
+
 // Load Header Settings
 function loadHeaderSettings() {
-  const settings = JSON.parse(localStorage.getItem('headerSettings') || '{}');
-  
-  document.getElementById('logoUrl').value = settings.logoUrl || '';
-  document.getElementById('headerTitle').value = settings.title || 'My Kino';
-  document.getElementById('headerSubtitle').value = settings.subtitle || '';
-  document.getElementById('primaryColor').value = settings.primaryColor || '#ffc73a';
-  document.querySelector('.color-value').textContent = settings.primaryColor || '#ffc73a';
+  const selectedMovie = movies.find(movie => movie.showInHeader && movie.headerImage)
+    || movies.find(movie => movie.showInHeader)
+    || null;
+  const selectedMovieId = selectedMovie?.id || document.getElementById('headerMovieSelect')?.value || '';
+
+  updateHeaderMovieSelect(selectedMovieId);
+  selectedHeaderImageDataUrl = selectedMovie?.headerImage || '';
+  updateHeaderImagePreview(selectedHeaderImageDataUrl);
+
+  const fileInput = document.getElementById('headerImageFile');
+  if (fileInput) fileInput.value = '';
 }
 
 // Save Header Settings
-function saveHeaderSettings() {
-  const settings = {
-    logoUrl: document.getElementById('logoUrl').value,
-    title: document.getElementById('headerTitle').value,
-    subtitle: document.getElementById('headerSubtitle').value,
-    primaryColor: document.getElementById('primaryColor').value
-  };
+async function saveHeaderSettings() {
+  const select = document.getElementById('headerMovieSelect');
+  const saveButton = document.getElementById('saveHeader');
+  const movieId = select?.value || '';
+  const movie = movies.find(item => sameMovieId(item.id, movieId));
 
-  localStorage.setItem('headerSettings', JSON.stringify(settings));
-  showNotification('Sozlamalar saqlandi!');
+  if (!movie) {
+    showNotification('Avval kino tanlang.', 'error');
+    return;
+  }
+
+  if (!selectedHeaderImageDataUrl) {
+    showNotification('16:9 header rasmini tanlang.', 'error');
+    return;
+  }
+
+  try {
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.textContent = 'Saqlanmoqda...';
+    }
+
+    const response = await fetch(`${API_URL}/movie-update`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: movie.id,
+        showInHeader: true,
+        headerImage: selectedHeaderImageDataUrl
+      })
+    });
+
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.error || 'Header Section saqlanmadi.');
+    }
+
+    showNotification('Header Section bazaga saqlandi!');
+    await fetchMovies();
+    updateHeaderMovieSelect(movie.id);
+    const savedMovie = movies.find(item => sameMovieId(item.id, movie.id));
+    selectedHeaderImageDataUrl = savedMovie?.headerImage || selectedHeaderImageDataUrl;
+    updateHeaderImagePreview(selectedHeaderImageDataUrl);
+  } catch (error) {
+    showNotification(error.message || 'Header Section saqlashda xatolik!', 'error');
+  } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = 'Saqlash';
+    }
+  }
 }
 
 // Show Notification
