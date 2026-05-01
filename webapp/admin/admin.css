@@ -642,6 +642,50 @@ body {
   padding: 16px;
 }
 
+.header-crop-controls {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+}
+
+.crop-control {
+  display: grid;
+  gap: 8px;
+}
+
+.crop-control label {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.crop-control input[type="range"] {
+  width: 100%;
+  accent-color: var(--primary);
+}
+
+.crop-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.crop-actions .btn {
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
+#headerCropSize {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .header-saved-panel {
   background: var(--bg-card);
   border: 1px solid var(--border);

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f131a">
   <title>My Kino - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=2">
+  <link rel="stylesheet" href="/admin/admin.css?v=20260501-header-crop">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -180,6 +180,24 @@
                 </div>
                 <input type="file" id="headerImageFile" class="form-input" accept="image/png,image/jpeg,image/webp">
                 <small class="form-hint">Gorizontal rasm tanlang. Rasm 16:9 formatda siqilib saqlanadi.</small>
+                <div class="header-crop-controls" id="headerCropControls" hidden>
+                  <div class="crop-control">
+                    <label for="headerCropZoom">Zoom</label>
+                    <input type="range" id="headerCropZoom" min="1" max="3" value="1" step="0.01">
+                  </div>
+                  <div class="crop-control">
+                    <label for="headerCropX">Chap / o'ng</label>
+                    <input type="range" id="headerCropX" min="-100" max="100" value="0" step="1">
+                  </div>
+                  <div class="crop-control">
+                    <label for="headerCropY">Yuqori / past</label>
+                    <input type="range" id="headerCropY" min="-100" max="100" value="0" step="1">
+                  </div>
+                  <div class="crop-actions">
+                    <button type="button" class="btn btn-secondary" id="applyHeaderCrop">Cropni qo'llash</button>
+                    <span id="headerCropSize">16:9 crop tayyor</span>
+                  </div>
+                </div>
               </div>
 
               <div class="form-actions">
@@ -308,6 +326,6 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20260501-header-fix"></script>
+  <script src="/admin/admin.js?v=20260501-header-crop"></script>
 </body>
 </html>
