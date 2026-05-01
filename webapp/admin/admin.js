@@ -1172,13 +1172,25 @@ async function saveHeaderSettings() {
     const select = document.getElementById('headerMovieSelect');
     const fileInput = document.getElementById('headerImageFile');
 
-    if (select) select.value = '';
+    // Selectni tozalash - avval options yangilab, keyin bo'sh qiymat qo'yish
+    if (select) {
+      select.innerHTML = '<option value="">Kino tanlang</option>' +
+        movies.map(movie => {
+          const title = movie.name || movie.code || 'Kino';
+          const code = movie.code ? ` (${movie.code})` : '';
+          const marker = movie.showInHeader ? ' - Header' : '';
+          return `<option value="${escapeHtml(movie.id)}">${escapeHtml(title + code + marker)}</option>`;
+        }).join('');
+      select.value = '';
+    }
+
+    // File inputni tozalash
     if (fileInput) fileInput.value = '';
 
+    // Rasm state'ini tozalash
     selectedHeaderImageDataUrl = '';
     clearHeaderCropState();
     updateHeaderImagePreview('');
-    updateHeaderMovieSelect();
   } catch (error) {
     showNotification(error.message || 'Header Section saqlashda xatolik!', 'error');
   } finally {
