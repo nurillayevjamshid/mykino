@@ -13,7 +13,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from .config import Settings, load_settings
-from .keyboards import start_menu
+from .keyboards import join_inline_keyboard, start_menu
 from .storage import load_movies, parse_movie_caption, search_movies, upsert_movie, upsert_user
 from .webserver import create_web_app
 
@@ -148,6 +148,19 @@ async def _show_feedback_placeholder(message: Message) -> None:
     await message.answer("Murojaat qoldirish bo'limi tez orada ishga tushadi.")
 
 
+async def _check_subscription(bot: Bot, user_id: int, settings: Settings) -> bool:
+    """Checks if the user is a member of the required channel."""
+    if not settings.content_channel_id:
+        return True
+    try:
+        member = await bot.get_chat_member(chat_id=settings.content_channel_id, user_id=user_id)
+        return member.status in {"creator", "administrator", "member"}
+    except Exception as e:
+        logging.warning("Subscription check failed for user %s: %s", user_id, e)
+        # If the bot is not an admin or channel is private/invalid, we allow the user to proceed
+        return True
+
+
 async def _send_start_menu(message: Message, settings: Settings) -> None:
     await message.answer(
         "Assalomu alaykum, My Kino botiga xush kelibsiz.\n"
@@ -159,7 +172,23 @@ async def _send_start_menu(message: Message, settings: Settings) -> None:
 
 @router.message(CommandStart())
 async def start(message: Message, settings: Settings) -> None:
-    upsert_user(settings.users_path, message.from_user)
+    try:
+        user_record = upsert_user(settings.users_path, message.from_user)
+        logging.info("User /start: %s (New: %s)", message.from_user.id, user_record.get("firstSeenAt") == user_record.get("lastSeenAt"))
+    except Exception as e:
+        logging.error("Failed to upsert user %s: %s", message.from_user.id, e)
+
+    # Mandatory subscription check
+    if settings.content_channel_id:
+        is_subscribed = await _check_subscription(message.bot, message.from_user.id, settings)
+        if not is_subscribed:
+            channel_url = f"https://t.me/{settings.content_channel_username}" if settings.content_channel_username else None
+            await message.answer(
+                "<b>Botdan foydalanish uchun kanalimizga obuna bo'ling!</b>\n\n"
+                "Obuna bo'lgach, qaytadan /start buyrug'ini yuboring.",
+                reply_markup=join_inline_keyboard(channel_url)
+            )
+            return
 
     movie_id = _watch_id_from_start(message.text)
     if movie_id:
@@ -233,6 +262,16 @@ async def movie_search(message: Message, settings: Settings) -> None:
 @router.callback_query(F.data == "feedback:soon")
 async def feedback_callback(callback: CallbackQuery) -> None:
     await callback.answer("Murojaat qoldirish bo'limi tez orada ishga tushadi.", show_alert=True)
+
+
+@router.callback_query(F.data == "check_sub")
+async def check_sub_callback(callback: CallbackQuery, settings: Settings) -> None:
+    is_subscribed = await _check_subscription(callback.bot, callback.from_user.id, settings)
+    if is_subscribed:
+        await callback.message.delete()
+        await _send_start_menu(callback.message, settings)
+    else:
+        await callback.answer("Siz hali kanalga a'zo bo'lmadingiz!", show_alert=True)
 
 
 @router.channel_post()
