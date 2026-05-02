@@ -131,6 +131,100 @@ async function authorizedFetch(url, options = {}) {
   });
 }
 
+async function getOrCreateFolder(parentFolderId, folderName) {
+  const searchUrl = `https://www.googleapis.com/drive/v3/files?q='${parentFolderId}'+in+parents+and+name='${folderName}'+and+mimeType='application/vnd.google-apps.folder'+and+trashed=false&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+  const searchResponse = await authorizedFetch(searchUrl);
+  const searchData = await searchResponse.json().catch(() => ({ files: [] }));
+
+  if (searchData.files?.[0]) {
+    return searchData.files[0].id;
+  }
+
+  const createUrl = "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true";
+  const createResponse = await authorizedFetch(createUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: folderName,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [parentFolderId],
+    }),
+  });
+
+  const folder = await createResponse.json().catch(() => null);
+  if (!folder?.id) {
+    throw new Error(`Folder yaratib bo'lmadi: ${folderName}`);
+  }
+
+  return folder.id;
+}
+
+async function uploadImageToDrive(base64Data, fileNamePrefix, movieName = "") {
+  const { folderId } = getDriveConfig();
+  
+  // Base64 dan binary ga o'tkazish
+  const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, "");
+  const buffer = Buffer.from(base64Content, "base64");
+
+  // Rasm turini aniqlash
+  const mimeMatch = base64Data.match(/^data:(image\/\w+);base64,/);
+  const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+  const extension = mimeType === "image/png" ? "png" : "jpg";
+
+  // Papkani olish (assets papkasi ichiga saqlaymiz)
+  const assetsFolderId = await getOrCreateFolder(folderId, "app-assets");
+
+  // File metadata
+  const fileName = `${fileNamePrefix}-${Date.now()}.${extension}`;
+  const metadata = {
+    name: fileName,
+    mimeType: mimeType,
+    parents: [assetsFolderId],
+    description: `Image for movie: ${movieName}`,
+  };
+
+  const boundary = `----ImageBoundary${Date.now()}`;
+  const metadataPart = Buffer.from(
+    `--${boundary}\r\n` +
+    "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
+    JSON.stringify(metadata) +
+    `\r\n--${boundary}\r\n` +
+    `Content-Type: ${mimeType}\r\n\r\n`,
+    "utf8"
+  );
+  const endPart = Buffer.from(`\r\n--${boundary}--`, "utf8");
+  const multipartBody = Buffer.concat([metadataPart, buffer, endPart]);
+
+  const uploadUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true";
+  const uploadResponse = await authorizedFetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": `multipart/related; boundary=${boundary}`,
+    },
+    body: multipartBody,
+  });
+
+  const file = await uploadResponse.json().catch(() => null);
+  if (!file?.id) {
+    throw new Error("Rasm Drive'ga yuklanmadi.");
+  }
+
+  // Public access berish
+  await authorizedFetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions?supportsAllDrives=true`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      role: "reader",
+      type: "anyone",
+    }),
+  });
+
+  return {
+    fileId: file.id,
+    directUrl: `https://drive.google.com/uc?export=view&id=${file.id}`,
+  };
+}
+
 async function driveFetch(pathname, options = {}) {
   const normalizedPath = pathname ? `/${String(pathname).replace(/^\/+/, "")}` : "";
   const url = new URL(`${DRIVE_API_BASE}${normalizedPath}`);
@@ -441,14 +535,7 @@ function buildCatalogFallbackDescription(visibleDescription, override, updates =
   addCandidate(compact);
 
   for (const candidate of candidates) {
-    // Katta Base64 rasmlarni description ichiga saqlashga urinmaslik (chunki 28KB ga sig'maydi)
-    const cleanedCandidate = { ...candidate };
-    if (isDataImageValue(cleanedCandidate.posterImage)) delete cleanedCandidate.posterImage;
-    if (isDataImageValue(cleanedCandidate.headerImage)) delete cleanedCandidate.headerImage;
-    if (isDataImageValue(cleanedCandidate.poster)) delete cleanedCandidate.poster;
-    if (isDataImageValue(cleanedCandidate.heroPoster)) delete cleanedCandidate.heroPoster;
-
-    const description = buildEmbeddedMovieDescription(visibleDescription, cleanedCandidate, DRIVE_DESCRIPTION_MAX_LENGTH);
+    const description = buildEmbeddedMovieDescription(visibleDescription, candidate, DRIVE_DESCRIPTION_MAX_LENGTH);
     if (description.length <= DRIVE_DESCRIPTION_MAX_LENGTH) return description;
   }
 
@@ -676,7 +763,26 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   }
 
   const driveFile = await getDriveFileMetadata(normalizedFileId, "id,name,mimeType,description");
+  const movieName = driveFile.name || "";
   const embedded = extractEmbeddedMovieMetadata(driveFile.description || "");
+
+  // Base64 rasmlarni Drive'ga yuklash
+  if (isDataImageValue(updates.posterImage)) {
+    const upload = await uploadImageToDrive(updates.posterImage, "poster", movieName);
+    updates.posterImage = upload.directUrl;
+  }
+  if (isDataImageValue(updates.headerImage)) {
+    const upload = await uploadImageToDrive(updates.headerImage, "header", movieName);
+    updates.headerImage = upload.directUrl;
+  }
+  if (isDataImageValue(updates.poster)) {
+    const upload = await uploadImageToDrive(updates.poster, "poster", movieName);
+    updates.poster = upload.directUrl;
+  }
+  if (isDataImageValue(updates.heroPoster)) {
+    const upload = await uploadImageToDrive(updates.heroPoster, "header", movieName);
+    updates.heroPoster = upload.directUrl;
+  }
 
   const metadataState = await readCatalogMetadata();
   const metadata = normalizeCatalogMetadata(metadataState.data);
