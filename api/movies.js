@@ -88,6 +88,14 @@ async function readHeaderMetadataFile(fileId) {
   }
 }
 
+async function getHeaderImagesMap() {
+  try {
+    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    if (!folderId) return {};
+
+    const file = await findHeaderMetadataFile(folderId);
+    if (!file) return {};
+
     const data = await readHeaderMetadataFile(file.id);
     const headers = Array.isArray(data.headers) ? data.headers : [];
     const map = {};
