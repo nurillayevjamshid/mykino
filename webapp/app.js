@@ -760,7 +760,22 @@ function normalizeMovie(movie, index = 0) {
   const safeId = String(movie?.id || movie?.code || `movie-${index + 1}`);
   const title = String(movie?.title || `Kino ${index + 1}`).trim();
   const rawPoster = String(movie?.posterImage || movie?.poster || movie?.thumbnail || (fileId ? buildDriveThumbnailUrl(fileId) : "")).trim();
+  const sourceType = String(movie?.sourceType || "").trim();
+  const fileName = String(movie?.fileName || movie?.name || "").trim();
+  const sourceUrl = getMovieVideoUrl(movie);
+
+  const normalized = {
+    id: safeId,
+    title,
+    description: sanitizePublicDescription(movie?.description),
+    genre: sanitizePublicGenre(movie?.genre || movie?.category),
+    rating: Number(movie?.rating) || 0,
+    year: movie?.year || "",
+    hd: toBooleanFlag(movie?.hd ?? movie?.quality === "HD"),
+    code: String(movie?.code || "").trim(),
+    posterImage: resolveAppUrl(rawPoster),
     isPremium: Boolean(movie?.isPremium),
+    isTop: Boolean(movie?.isTop),
     sourceType,
     fileId,
     driveFileId: String(movie?.driveFileId || movie?.fileId || movie?.googleDriveFileId || "").trim(),
@@ -2043,6 +2058,7 @@ async function loadMovies() {
 
   syncWatchedCount();
   applyCopy();
+  renderMovies();
 
   if (location.hash === "#profile") {
     renderProfileModal();
@@ -2066,12 +2082,10 @@ async function silentReloadMovies() {
 
     const newMovies = payload.map((movie, index) => normalizeMovie(movie, index));
 
-    // Only update if movies actually changed
-      movies = newMovies;
-      renderMovies();
-      syncWatchedCount();
-      applyCopy();
-    }
+    movies = newMovies;
+    renderMovies();
+    syncWatchedCount();
+    applyCopy();
   } catch (error) {
     // Background refresh should never disturb the viewing experience.
   }
