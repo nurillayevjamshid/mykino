@@ -452,11 +452,15 @@ function renderCategories() {
 function renderUsers() {
   const tbody = document.getElementById('subscribersTableBody');
   const countBadge = document.getElementById('subscribersCount');
+  const sidebarCountBadge = document.getElementById('sidebarSubscribersCount');
   if (!tbody) return;
 
-  // Update count badge
+  // Update count badges
   if (countBadge) {
     countBadge.textContent = `${users.length} ta obunachi`;
+  }
+  if (sidebarCountBadge) {
+    sidebarCountBadge.textContent = users.length;
   }
 
   if (users.length === 0) {
