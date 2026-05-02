@@ -294,6 +294,22 @@ async function deleteHeader(movieId) {
   return true;
 }
 
+async function clearAllHeaders() {
+  const folderId = getEnv("GOOGLE_DRIVE_FOLDER_ID");
+  const file = await findMetadataFile(folderId);
+  if (!file) return;
+
+  const data = await readMetadataFile(file.id);
+  data.headers = data.headers || [];
+
+  data.headers.forEach(h => {
+    h.isActive = false;
+    h.updatedAt = new Date().toISOString();
+  });
+
+  await writeMetadataFile(folderId, data, file.id);
+}
+
 // Handler
 module.exports = async function handler(request, response) {
   setCors(response);
@@ -394,6 +410,16 @@ module.exports = async function handler(request, response) {
           raw += chunk;
         }
         body = raw ? JSON.parse(raw) : {};
+      }
+
+      const clearAll = body.clearAll === true;
+      if (clearAll) {
+        await clearAllHeaders();
+        response.status(200).json({
+          ok: true,
+          message: "Barcha headerlar tozalandi.",
+        });
+        return;
       }
 
       const movieId = String(body.movieId || "").trim();
