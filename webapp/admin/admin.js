@@ -367,6 +367,11 @@ function renderMovies() {
         <img src="${escapeHtml(movie.poster || 'https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image')}" 
              alt="${escapeHtml(movie.name)}" class="movie-poster">
       </td>
+      <td>
+        ${movie.headerImage ? `
+          <img src="${escapeHtml(movie.headerImage)}" alt="Header" class="movie-header-preview" style="width: 80px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);">
+        ` : '<span style="color:var(--text-muted); font-size: 11px;">Yo\'q</span>'}
+      </td>
       <td><strong>${escapeHtml(movie.name)}</strong><br><small style="color:var(--text-muted)">${escapeHtml(movie.code || '')}</small></td>
       <td>${escapeHtml(movie.year || '-')}</td>
       <td>${escapeHtml(getCategoryName(movie.category))}</td>
