@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover - optional local dependency
     CachedSession = ClientSession
 
 from .config import Settings
-from .storage import load_movies
+from .storage import load_movies, load_users
 
 
 def get_env(key: str, default: str = "") -> str:
@@ -164,6 +164,9 @@ def create_web_app(settings: Settings) -> web.Application:
     async def movies(_: web.Request) -> web.Response:
         return json_response(load_movies(settings.movies_path))
 
+    async def users(_: web.Request) -> web.Response:
+        return json_response(load_users(settings.users_path))
+
     async def youtube_movies(_: web.Request) -> web.Response:
         response = json_response(await fetch_youtube_movies())
         response.headers["Cache-Control"] = "s-maxage=60, stale-while-revalidate=300"
@@ -217,6 +220,7 @@ def create_web_app(settings: Settings) -> web.Application:
 
     app.router.add_get("/", index)
     app.router.add_get("/api/movies", movies)
+    app.router.add_get("/api/users", users)
     app.router.add_get("/api/youtube/movies", youtube_movies)
     app.router.add_get("/api/video-url/{fileId}", video_url)
     app.router.add_get("/api/stream/{fileId}", stream_video)
