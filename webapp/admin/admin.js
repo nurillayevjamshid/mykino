@@ -321,7 +321,48 @@ function bindEvents() {
   document.getElementById('headerMovieSelect')?.addEventListener('change', (e) => {
     const movie = movies.find(item => sameMovieId(item.id, e.target.value));
     selectedHeaderImageDataUrl = movie?.headerImage || '';
+    // Reset inputs
+    const fileInput = document.getElementById('headerImageFile');
+    const urlInput = document.getElementById('headerImageUrl');
+    if (fileInput) fileInput.value = '';
+    if (urlInput) urlInput.value = (selectedHeaderImageDataUrl.startsWith('http') ? selectedHeaderImageDataUrl : '');
+    
+    clearHeaderCropState();
     updateHeaderImagePreview(selectedHeaderImageDataUrl);
+  });
+
+  document.getElementById('headerImageFile')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // Clear URL input
+      const urlInput = document.getElementById('headerImageUrl');
+      if (urlInput) urlInput.value = '';
+      
+      await startHeaderCrop(file);
+      renderHeaderCrop();
+    } catch (error) {
+      showNotification(error.message || 'Header rasmini o\'qib bo\'lmadi.', 'error');
+      e.target.value = '';
+      selectedHeaderImageDataUrl = '';
+      clearHeaderCropState();
+      updateHeaderImagePreview('');
+    }
+  });
+
+  document.getElementById('headerImageUrl')?.addEventListener('input', (e) => {
+    const url = e.target.value.trim();
+    if (url) {
+      // Clear file input and crop state
+      const fileInput = document.getElementById('headerImageFile');
+      if (fileInput) fileInput.value = '';
+      clearHeaderCropState();
+      selectedHeaderImageDataUrl = url;
+      updateHeaderImagePreview(url);
+    } else {
+      updateHeaderImagePreview('');
+    }
   });
   ['headerCropZoom', 'headerCropX', 'headerCropY'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', scheduleHeaderCropRender);
@@ -1174,14 +1215,15 @@ async function saveHeaderSettings() {
   const saveButton = document.getElementById('saveHeader');
   const movieId = select?.value || '';
   const movie = movies.find(item => sameMovieId(item.id, movieId));
+  const urlValue = document.getElementById('headerImageUrl')?.value.trim();
 
   if (!movie) {
     showNotification('Avval kino tanlang.', 'error');
     return;
   }
 
-  if (!selectedHeaderImageDataUrl) {
-    showNotification('16:9 header rasmini tanlang.', 'error');
+  if (!selectedHeaderImageDataUrl && !urlValue) {
+    showNotification('16:9 header rasmini tanlang yoki URL kiriting.', 'error');
     return;
   }
 
@@ -1207,10 +1249,13 @@ async function saveHeaderSettings() {
       year: movie.year || '',
       category: movie.category || '',
       rating: movie.rating || '',
-      isActive: true
+      isActive: true,
+      headerImage: selectedHeaderImageDataUrl.startsWith('data:') ? selectedHeaderImageDataUrl : null,
+      headerImageUrl: urlValue || (selectedHeaderImageDataUrl.startsWith('http') ? selectedHeaderImageDataUrl : null)
     };
 
-    console.log('[DEBUG] Header save - Movie:', movie.id, 'poster unchanged');
+    const headerCrop = getHeaderCropSettings();
+    if (headerCrop) updatePayload.cropSettings = headerCrop;
 
     // Yangi header-section API
     const response = await fetch(`${API_URL}/header-section`, {
@@ -1323,7 +1368,10 @@ function openEditHeaderModal(movieId) {
 
   // Formani tozalash
   const fileInput = document.getElementById('editHeaderImageFile');
+  const urlInput = document.getElementById('editHeaderImageUrl');
   if (fileInput) fileInput.value = '';
+  if (urlInput) urlInput.value = (editHeaderSelectedImageDataUrl.startsWith('http') ? editHeaderSelectedImageDataUrl : '');
+  
   clearEditHeaderCropState();
 
   document.getElementById('editHeaderModal').classList.add('active');
@@ -1534,6 +1582,7 @@ async function handleEditHeaderSubmit(e) {
   }
 
   const saveButton = document.getElementById('saveEditHeader');
+  const urlValue = document.getElementById('editHeaderImageUrl')?.value.trim();
 
   // Yangi rasm tanlangan bo'lsa crop qilish
   if (editHeaderCropState) {
@@ -1546,8 +1595,8 @@ async function handleEditHeaderSubmit(e) {
   }
 
   // Agar yangi rasm tanlanmagan bo'lsa va hozirgi rasm ham yo'q bo'lsa xato
-  if (!editHeaderSelectedImageDataUrl && !movie.headerImage) {
-    showNotification('Header rasmi tanlanmagan.', 'error');
+  if (!editHeaderSelectedImageDataUrl && !urlValue && !movie.headerImage) {
+    showNotification('Header rasmini tanlang yoki URL kiriting.', 'error');
     return;
   }
 
@@ -1564,15 +1613,13 @@ async function handleEditHeaderSubmit(e) {
       year: movie.year || '',
       category: movie.category || '',
       rating: movie.rating || '',
-      isActive: true
+      isActive: true,
+      headerImage: editHeaderSelectedImageDataUrl.startsWith('data:') ? editHeaderSelectedImageDataUrl : null,
+      headerImageUrl: urlValue || (editHeaderSelectedImageDataUrl.startsWith('http') ? editHeaderSelectedImageDataUrl : null)
     };
 
-    // Faqat yangi rasm tanlangan bo'lsa yangilash
-    if (editHeaderSelectedImageDataUrl) {
-      updatePayload.headerImage = editHeaderSelectedImageDataUrl;  // Base64
-      const headerCrop = getEditHeaderCropSettings();
-      if (headerCrop) updatePayload.cropSettings = headerCrop;
-    }
+    const headerCrop = getEditHeaderCropSettings();
+    if (headerCrop) updatePayload.cropSettings = headerCrop;
 
     // Yangi header-section API
     const response = await fetch(`${API_URL}/header-section`, {
