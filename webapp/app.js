@@ -2228,8 +2228,8 @@ function initSplashScreen() {
 }
 
 async function initApp() {
-  initSplashScreen();
   await loadAppSettings();
+  initSplashScreen();
   loadMovies();
   startMoviesPolling();
 }
