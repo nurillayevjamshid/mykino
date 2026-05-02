@@ -19,6 +19,7 @@ class Settings:
     web_port: int
     content_channel_username: str
     content_channel_id: int | None
+    feedback_group_id: int | None
     contact_username: str
     movies_path: Path
     users_path: Path
@@ -41,6 +42,11 @@ def load_settings() -> Settings:
         content_channel_id=(
             int(os.getenv("CONTENT_CHANNEL_ID", "0"))
             if os.getenv("CONTENT_CHANNEL_ID", "0").strip().lstrip("-").isdigit()
+            else None
+        ),
+        feedback_group_id=(
+            int(os.getenv("FEEDBACK_GROUP_ID", "0"))
+            if os.getenv("FEEDBACK_GROUP_ID", "0").strip().lstrip("-").isdigit()
             else None
         ),
         contact_username=os.getenv("CONTACT_USERNAME", "support"),

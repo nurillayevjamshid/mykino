@@ -29,7 +29,7 @@ def start_menu(webapp_url: str) -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(
                     text="Murojaat qoldirish",
-                    callback_data="feedback:soon",
+                    callback_data="feedback:start",
                 ),
             ],
         ],
