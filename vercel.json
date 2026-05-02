@@ -62,6 +62,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/settings.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "webapp/**",
       "use": "@vercel/static"
     }
