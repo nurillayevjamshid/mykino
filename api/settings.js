@@ -1,23 +1,4 @@
-const fs = require("fs");
-const path = require("path");
-const { setCors } = require("./_lib/google-drive");
-
-const SETTINGS_PATH = path.join(__dirname, "..", "data", "settings.json");
-
-function readSettings() {
-  try {
-    return JSON.parse(fs.readFileSync(SETTINGS_PATH, "utf-8"));
-  } catch {
-    return { splashImageUrl: "" };
-  }
-}
-
-function writeSettings(data) {
-  const current = readSettings();
-  const merged = { ...current, ...data };
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(merged, null, 2), "utf-8");
-  return merged;
-}
+const { setCors, readCatalogMetadata, writeCatalogMetadata } = require("./_lib/google-drive");
 
 module.exports = async function handler(request, response) {
   setCors(response);
@@ -27,22 +8,33 @@ module.exports = async function handler(request, response) {
     return;
   }
 
-  if (request.method === "GET") {
-    const settings = readSettings();
-    response.status(200).json(settings);
-    return;
-  }
+  try {
+    const metadataState = await readCatalogMetadata();
+    const settings = metadataState.data.settings || {};
 
-  if (request.method === "POST") {
-    try {
-      const body = request.body || {};
-      const updated = writeSettings(body);
-      response.status(200).json({ ok: true, ...updated });
-    } catch (err) {
-      response.status(500).json({ ok: false, error: err.message });
+    if (request.method === "GET") {
+      response.status(200).json({ splashImageUrl: settings.splashImageUrl || "" });
+      return;
     }
-    return;
-  }
 
-  response.status(405).json({ ok: false, error: "Method not allowed" });
+    if (request.method === "POST") {
+      let body;
+      if (typeof request.body === "string") {
+        body = JSON.parse(request.body);
+      } else {
+        body = request.body || {};
+      }
+
+      // Update settings in metadata
+      metadataState.data.settings = { ...settings, ...body };
+      await writeCatalogMetadata(metadataState.data, metadataState.file);
+
+      response.status(200).json({ ok: true, splashImageUrl: metadataState.data.settings.splashImageUrl });
+      return;
+    }
+
+    response.status(405).json({ ok: false, error: "Method not allowed" });
+  } catch (err) {
+    response.status(500).json({ ok: false, error: err.message });
+  }
 };
