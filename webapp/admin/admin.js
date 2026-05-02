@@ -3,6 +3,7 @@
 // Data storage
 let movies = [];
 let categories = [];
+let users = [];
 let selectedPosterDataUrl = '';
 let deleteTargetMovieId = '';
 
@@ -126,7 +127,8 @@ const themeToggle = document.getElementById('themeToggle');
 // Section titles
 const sectionTitles = {
   movies: 'Kinolar',
-  categories: 'Kategoriyalar'
+  categories: 'Kategoriyalar',
+  subscribers: 'Obunachilar'
 };
 
 // Theme management - Light mode as default
@@ -152,10 +154,28 @@ async function init() {
   applyTheme(savedTheme);
   loadCategories();
   await fetchMovies();
+  await fetchUsers();
   renderCategories();
   updateCategorySelect();
   bindEvents();
   createSidebarOverlay();
+}
+
+// Fetch users from API
+async function fetchUsers() {
+  try {
+    const response = await fetch(`${API_URL}/users`);
+    if (!response.ok) throw new Error('Failed to fetch users');
+    const data = await response.json();
+
+    users = Array.isArray(data) ? data : [];
+    renderUsers();
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    // Don't show notification on error, just leave empty
+    users = [];
+    renderUsers();
+  }
 }
 
 // Create sidebar overlay for mobile
@@ -243,6 +263,7 @@ function bindEvents() {
   document.getElementById('cancelMovie')?.addEventListener('click', closeMovieModal);
   document.getElementById('closeCategoryModal')?.addEventListener('click', closeCategoryModal);
   document.getElementById('cancelCategory')?.addEventListener('click', closeCategoryModal);
+  document.getElementById('closeWatchedMoviesModal')?.addEventListener('click', closeWatchedMoviesModal);
 
   // Forms
   document.getElementById('movieForm')?.addEventListener('submit', handleMovieSubmit);
@@ -425,6 +446,121 @@ function renderCategories() {
       <div class="category-count">${cat.count} ta kino</div>
     </div>
   `).join('');
+}
+
+// Render Users (Subscribers)
+function renderUsers() {
+  const tbody = document.getElementById('subscribersTableBody');
+  const countBadge = document.getElementById('subscribersCount');
+  if (!tbody) return;
+
+  // Update count badge
+  if (countBadge) {
+    countBadge.textContent = `${users.length} ta obunachi`;
+  }
+
+  if (users.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6">
+          <div class="empty-state">
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <h3>Hozircha obunachilar yo'q</h3>
+            <p>Foydalanuvchilar botni ishlatganlarida shu yerda ko'rinadi</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = users.map(user => {
+    const username = user.username || '';
+    const firstName = user.firstName || '';
+    const lastName = user.lastName || '';
+    const fullName = [firstName, lastName].filter(Boolean).join(' ') || '-';
+    const phone = user.phone || '';
+    const watchedMovies = user.watchedMovies || [];
+    const watchedCount = watchedMovies.length;
+
+    // Format date
+    const lastSeen = user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleString('uz-UZ') : '-';
+
+    // Create username link if available
+    const usernameDisplay = username
+      ? `<a href="https://t.me/${escapeHtml(username)}" target="_blank" class="username-link">@${escapeHtml(username)}</a>`
+      : '-';
+
+    return `
+    <tr data-user-id="${escapeHtml(String(user.id))}">
+      <td>${escapeHtml(String(user.id))}</td>
+      <td>${usernameDisplay}</td>
+      <td>${escapeHtml(fullName)}</td>
+      <td>${phone ? escapeHtml(phone) : '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-watched" onclick="showWatchedMovies(${user.id})" title="Ko'rgan kinolarni ko'rish">
+          ${watchedCount} ta kino
+        </button>
+      </td>
+      <td>${escapeHtml(lastSeen)}</td>
+    </tr>
+  `}).join('');
+}
+
+// Show Watched Movies Modal
+function showWatchedMovies(userId) {
+  const user = users.find(u => u.id === userId || String(u.id) === String(userId));
+  if (!user) return;
+
+  const modal = document.getElementById('watchedMoviesModal');
+  const title = document.getElementById('watchedMoviesTitle');
+  const list = document.getElementById('watchedMoviesList');
+
+  if (!modal || !title || !list) return;
+
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || `User ${user.id}`;
+  title.textContent = `${escapeHtml(fullName)} - Ko'rgan kinolar`;
+
+  const watchedMovies = user.watchedMovies || [];
+
+  if (watchedMovies.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
+          <line x1="7" y1="2" x2="7" y2="22"></line>
+          <line x1="17" y1="2" x2="17" y2="22"></line>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+        </svg>
+        <h3>Hali kino ko'rmagan</h3>
+        <p>Bu foydalanuvchi hali hech qanday kino ko'rmagan</p>
+      </div>
+    `;
+  } else {
+    list.innerHTML = watchedMovies.map(movie => `
+      <div class="watched-movie-item">
+        <img src="${escapeHtml(movie.poster || 'https://via.placeholder.com/60x90/1a1f2e/ffc73a?text=No+Image')}" alt="${escapeHtml(movie.title || 'Kino')}" class="watched-movie-poster">
+        <div class="watched-movie-info">
+          <h4>${escapeHtml(movie.title || 'Noma\'lum kino')}</h4>
+          <p>${movie.year ? escapeHtml(String(movie.year)) : ''} ${movie.genre ? '· ' + escapeHtml(movie.genre) : ''}</p>
+          <span class="badge ${movie.quality === 'HD' ? 'badge-hd' : 'badge-sd'}">${escapeHtml(movie.quality || 'HD')}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  modal.classList.add('active');
+}
+
+// Close Watched Movies Modal
+function closeWatchedMoviesModal() {
+  const modal = document.getElementById('watchedMoviesModal');
+  if (modal) modal.classList.remove('active');
 }
 
 // Get Category Name
@@ -929,3 +1065,5 @@ init();
 // Expose functions for inline handlers
 window.editMovie = editMovie;
 window.deleteMovie = deleteMovie;
+window.showWatchedMovies = showWatchedMovies;
+window.closeWatchedMoviesModal = closeWatchedMoviesModal;

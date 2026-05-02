@@ -52,6 +52,17 @@
               <span class="nav-text">Kategoriya</span>
             </a>
           </li>
+          <li class="nav-item" data-section="subscribers">
+            <a href="#" class="nav-link">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span class="nav-text">Obunachilar</span>
+            </a>
+          </li>
 
         </ul>
       </nav>
@@ -144,13 +155,37 @@
               <span>+</span> Yangi kategoriya
             </button>
           </div>
-          
+
           <div class="cards-grid" id="categoriesGrid">
             <!-- Dynamic content -->
           </div>
         </section>
 
+        <!-- Subscribers Section -->
+        <section class="content-section" id="subscribersSection">
+          <div class="section-header">
+            <h2>Obunachilar ro'yxati</h2>
+            <span class="badge" id="subscribersCount">0 ta obunachi</span>
+          </div>
 
+          <div class="table-container">
+            <table class="data-table" id="subscribersTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Foydalanuvchi</th>
+                  <th>Ism</th>
+                  <th>Telefon</th>
+                  <th>Ko'rgan kinolar</th>
+                  <th>So'ngi faollik</th>
+                </tr>
+              </thead>
+              <tbody id="subscribersTableBody">
+                <!-- Dynamic content -->
+              </tbody>
+            </table>
+          </div>
+        </section>
 
       </div>
     </main>
@@ -275,9 +310,20 @@
     </div>
   </div>
 
-
-
-
+  <!-- Watched Movies Modal -->
+  <div class="modal" id="watchedMoviesModal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 id="watchedMoviesTitle">Ko'rgan kinolar</h3>
+        <button class="modal-close" id="closeWatchedMoviesModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="watchedMoviesList" class="watched-movies-list">
+          <!-- Dynamic content -->
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="/admin/admin.js?v=20260501-partial-update"></script>
 </body>
