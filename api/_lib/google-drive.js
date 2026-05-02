@@ -326,8 +326,7 @@ function isDataImageValue(value) {
 }
 
 function resolveStoredHeaderImage(value) {
-  const normalized = trimString(value);
-  return !normalized || isDataImageValue(normalized) ? normalized : "";
+  return trimString(value);
 }
 
 function roundedNumber(value, digits = 0) {
