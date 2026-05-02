@@ -267,6 +267,7 @@ function defaultMetadataPayload() {
   return {
     version: 1,
     updatedAt: "",
+    settings: {},
     movies: {},
   };
 }
@@ -277,6 +278,7 @@ function normalizeCatalogMetadata(payload) {
   return {
     version: Number(payload.version || 1) || 1,
     updatedAt: trimString(payload.updatedAt),
+    settings: payload.settings && typeof payload.settings === "object" ? payload.settings : {},
     movies: payload.movies && typeof payload.movies === "object" ? payload.movies : {},
   };
 }
@@ -890,6 +892,7 @@ module.exports = {
   getDriveMediaResponse,
   listDriveMovies,
   readCatalogMetadata,
+  writeCatalogMetadata,
   setCors,
   updateCatalogMovieMetadata,
 };
