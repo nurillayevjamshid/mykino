@@ -149,7 +149,6 @@ img {
     grid-template-columns: 1fr 200px;
     grid-template-areas:
       "header header"
-      "hero hero"
       "search categories"
       "tabs categories"
       "movies movies";
