@@ -235,7 +235,7 @@ async def web_app_data(message: Message, settings: Settings) -> None:
     await message.answer("Noma'lum mini app so'rovi.")
 
 
-@router.message(F.text)
+@router.message(StateFilter(None), F.text)
 async def movie_search(message: Message, state: FSMContext, settings: Settings) -> None:
     action = _menu_action(message.text)
     if action == "search":
