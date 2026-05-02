@@ -128,87 +128,41 @@ async function getOrCreateHeaderImagesFolder(parentFolderId) {
   return folder.id;
 }
 
-// Base64 rasmni Google Drive'ga yuklash
-async function uploadHeaderImage(base64Data, movieId, movieName) {
-  const folderId = getEnv("GOOGLE_DRIVE_FOLDER_ID");
-  if (!folderId) {
-    throw new Error("GOOGLE_DRIVE_FOLDER_ID not configured");
+// Base64 rasmni Vercel Blob'ga yuklash
+async function uploadHeaderImage(base64Data, movieId) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    throw new Error("Vercel Blob Storage tokeni (BLOB_READ_WRITE_TOKEN) topilmadi.");
   }
 
-  // Base64 dan binary ga o'tkazish
   const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, "");
   const buffer = Buffer.from(base64Content, "base64");
-
-  // Rasm turini aniqlash
   const mimeMatch = base64Data.match(/^data:(image\/\w+);base64,/);
   const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
   const extension = mimeType === "image/png" ? "png" : "jpg";
 
-  // Folder olish/yaratish
-  const imagesFolderId = await getOrCreateHeaderImagesFolder(folderId);
-
-  // File metadata
   const fileName = `header-${movieId.slice(0, 8)}-${Date.now()}.${extension}`;
-  const metadata = {
-    name: fileName,
-    mimeType: mimeType,
-    parents: [imagesFolderId],
-    description: `Header image for movie: ${movieName || movieId}`,
-  };
 
-  // Multipart upload (to'g'ri binary formatda)
-  const boundary = `----HeaderImageBoundary${Date.now()}`;
-
-  // Metadata qismi (string)
-  const metadataPart = Buffer.from(
-    `--${boundary}\r\n` +
-    "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
-    JSON.stringify(metadata) +
-    `\r\n--${boundary}\r\n` +
-    `Content-Type: ${mimeType}\r\n\r\n`,
-    "utf8"
-  );
-
-  // Yakuniy chegara
-  const endPart = Buffer.from(`\r\n--${boundary}--`, "utf8");
-
-  // Barcha qismlarni birlashtirish
-  const multipartBody = Buffer.concat([metadataPart, buffer, endPart]);
-
-  const uploadUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true";
-  const uploadResponse = await authorizedFetch(uploadUrl, {
+  const uploadResponse = await fetch(`https://blob.vercel-storage.com/${fileName}`, {
     method: "POST",
     headers: {
-      "Content-Type": `multipart/related; boundary=${boundary}`,
+      "Authorization": `Bearer ${token}`,
+      "x-api-version": "7",
+      "Content-Type": mimeType,
     },
-    body: multipartBody,
+    body: buffer,
   });
 
-  const file = await uploadResponse.json().catch(() => null);
-  if (!file?.id) {
-    throw new Error("Failed to upload header image");
+  const result = await uploadResponse.json().catch(() => null);
+  if (!uploadResponse.ok || !result?.url) {
+    throw new Error(result?.error?.message || "Header rasm Vercel Blob'ga yuklanmadi.");
   }
 
-  // Public access berish
-  await authorizedFetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions?supportsAllDrives=true`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      role: "reader",
-      type: "anyone",
-    }),
-  });
-
-  // Thumbnail URL olish
-  const getUrl = `https://www.googleapis.com/drive/v3/files/${file.id}?fields=id,thumbnailLink,webContentLink,webViewLink&supportsAllDrives=true`;
-  const getResponse = await authorizedFetch(getUrl);
-  const fileData = await getResponse.json().catch(() => ({}));
-
   return {
-    fileId: file.id,
-    thumbnailUrl: fileData.thumbnailLink,
-    webContentUrl: fileData.webContentLink,
-    directUrl: `https://drive.google.com/uc?export=view&id=${file.id}`,
+    fileId: result.url, // URL ni fileId sifatida ishlatamiz
+    thumbnailUrl: result.url,
+    webContentUrl: result.url,
+    directUrl: result.url,
   };
 }
 

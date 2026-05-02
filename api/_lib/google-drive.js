@@ -131,37 +131,12 @@ async function authorizedFetch(url, options = {}) {
   });
 }
 
-async function getOrCreateFolder(parentFolderId, folderName) {
-  const searchUrl = `https://www.googleapis.com/drive/v3/files?q='${parentFolderId}'+in+parents+and+name='${folderName}'+and+mimeType='application/vnd.google-apps.folder'+and+trashed=false&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true`;
-  const searchResponse = await authorizedFetch(searchUrl);
-  const searchData = await searchResponse.json().catch(() => ({ files: [] }));
-
-  if (searchData.files?.[0]) {
-    return searchData.files[0].id;
+async function uploadImageToVercelBlob(base64Data, fileNamePrefix) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    throw new Error("Vercel Blob Storage tokeni (BLOB_READ_WRITE_TOKEN) topilmadi. Vercel dashboard'da Blob Storage ni yoqing.");
   }
 
-  const createUrl = "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true";
-  const createResponse = await authorizedFetch(createUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: folderName,
-      mimeType: "application/vnd.google-apps.folder",
-      parents: [parentFolderId],
-    }),
-  });
-
-  const folder = await createResponse.json().catch(() => null);
-  if (!folder?.id) {
-    throw new Error(`Folder yaratib bo'lmadi: ${folderName}`);
-  }
-
-  return folder.id;
-}
-
-async function uploadImageToDrive(base64Data, fileNamePrefix, movieName = "") {
-  const { folderId } = getDriveConfig();
-  
   // Base64 dan binary ga o'tkazish
   const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, "");
   const buffer = Buffer.from(base64Content, "base64");
@@ -171,57 +146,27 @@ async function uploadImageToDrive(base64Data, fileNamePrefix, movieName = "") {
   const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
   const extension = mimeType === "image/png" ? "png" : "jpg";
 
-  // Papkani olish (assets papkasi ichiga saqlaymiz)
-  const assetsFolderId = await getOrCreateFolder(folderId, "app-assets");
-
-  // File metadata
+  // Fayl nomi
   const fileName = `${fileNamePrefix}-${Date.now()}.${extension}`;
-  const metadata = {
-    name: fileName,
-    mimeType: mimeType,
-    parents: [assetsFolderId],
-    description: `Image for movie: ${movieName}`,
-  };
 
-  const boundary = `----ImageBoundary${Date.now()}`;
-  const metadataPart = Buffer.from(
-    `--${boundary}\r\n` +
-    "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
-    JSON.stringify(metadata) +
-    `\r\n--${boundary}\r\n` +
-    `Content-Type: ${mimeType}\r\n\r\n`,
-    "utf8"
-  );
-  const endPart = Buffer.from(`\r\n--${boundary}--`, "utf8");
-  const multipartBody = Buffer.concat([metadataPart, buffer, endPart]);
-
-  const uploadUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true";
-  const uploadResponse = await authorizedFetch(uploadUrl, {
+  // Vercel Blob HTTP API orqali yuklash (multipart shart emas)
+  const uploadResponse = await fetch(`https://blob.vercel-storage.com/${fileName}`, {
     method: "POST",
     headers: {
-      "Content-Type": `multipart/related; boundary=${boundary}`,
+      "Authorization": `Bearer ${token}`,
+      "x-api-version": "7",
+      "Content-Type": mimeType,
     },
-    body: multipartBody,
+    body: buffer,
   });
 
-  const file = await uploadResponse.json().catch(() => null);
-  if (!file?.id) {
-    throw new Error("Rasm Drive'ga yuklanmadi.");
+  const result = await uploadResponse.json().catch(() => null);
+  if (!uploadResponse.ok || !result?.url) {
+    throw new Error(result?.error?.message || "Rasm Vercel Blob'ga yuklanmadi.");
   }
 
-  // Public access berish
-  await authorizedFetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions?supportsAllDrives=true`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      role: "reader",
-      type: "anyone",
-    }),
-  });
-
   return {
-    fileId: file.id,
-    directUrl: `https://drive.google.com/uc?export=view&id=${file.id}`,
+    directUrl: result.url,
   };
 }
 
@@ -766,21 +711,21 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   const movieName = driveFile.name || "";
   const embedded = extractEmbeddedMovieMetadata(driveFile.description || "");
 
-  // Base64 rasmlarni Drive'ga yuklash
+  // Base64 rasmlarni Vercel Blob'ga yuklash
   if (isDataImageValue(updates.posterImage)) {
-    const upload = await uploadImageToDrive(updates.posterImage, "poster", movieName);
+    const upload = await uploadImageToVercelBlob(updates.posterImage, "poster");
     updates.posterImage = upload.directUrl;
   }
   if (isDataImageValue(updates.headerImage)) {
-    const upload = await uploadImageToDrive(updates.headerImage, "header", movieName);
+    const upload = await uploadImageToVercelBlob(updates.headerImage, "header");
     updates.headerImage = upload.directUrl;
   }
   if (isDataImageValue(updates.poster)) {
-    const upload = await uploadImageToDrive(updates.poster, "poster", movieName);
+    const upload = await uploadImageToVercelBlob(updates.poster, "poster");
     updates.poster = upload.directUrl;
   }
   if (isDataImageValue(updates.heroPoster)) {
-    const upload = await uploadImageToDrive(updates.heroPoster, "header", movieName);
+    const upload = await uploadImageToVercelBlob(updates.heroPoster, "header");
     updates.heroPoster = upload.directUrl;
   }
 
