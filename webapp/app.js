@@ -28,9 +28,29 @@ if (tg) {
 const savedTheme = localStorage.getItem("kino_theme") || "dark";
 const themeToggle = document.querySelector(".theme-toggle");
 
-const langSelect = document.querySelector(".lang-select");
-if (langSelect) {
-  langSelect.value = savedLang;
+const langDropdown = document.querySelector("#langDropdown");
+if (langDropdown) {
+  const trigger = langDropdown.querySelector(".lang-trigger");
+  const options = langDropdown.querySelectorAll(".lang-option");
+  const currentLabel = langDropdown.querySelector(".lang-current");
+
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    langDropdown.classList.toggle("is-open");
+  });
+
+  options.forEach(option => {
+    option.addEventListener("click", () => {
+      lang = option.dataset.value;
+      localStorage.setItem("kino_lang", lang);
+      langDropdown.classList.remove("is-open");
+      applyCopy();
+    });
+  });
+
+  document.addEventListener("click", () => {
+    langDropdown.classList.remove("is-open");
+  });
 }
 
 const copy = {
@@ -1929,9 +1949,15 @@ function applyCopy() {
   document.querySelectorAll('.bottom-bar [data-filter="all"]').forEach((button) => setControlLabel(button, allLabel));
   document.querySelectorAll('[data-action="search"]').forEach((button) => setControlLabel(button, searchLabel));
   document.querySelectorAll('[data-action="categories"]').forEach((button) => setControlLabel(button, categoriesLabel));
-  if (langSelect) {
-    langSelect.value = lang;
-    langSelect.setAttribute("aria-label", lang === "ru" ? "Язык" : lang === "en" ? "Language" : "Til");
+  if (langDropdown) {
+    const currentLabel = langDropdown.querySelector(".lang-current");
+    const options = langDropdown.querySelectorAll(".lang-option");
+    if (currentLabel) {
+      currentLabel.textContent = lang.toUpperCase() === "EN" ? "ENG" : lang.toUpperCase();
+    }
+    options.forEach(opt => {
+      opt.classList.toggle("is-active", opt.dataset.value === lang);
+    });
   }
 
   searchInput.placeholder = plainLabel(t("placeholder"));
@@ -1989,11 +2015,7 @@ categoryList?.addEventListener("click", (event) => {
 
 document.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
 
-document.querySelector(".lang-select")?.addEventListener("change", (event) => {
-  lang = event.target.value;
-  localStorage.setItem("kino_lang", lang);
-  applyCopy();
-});
+// Custom dropdown handles language changes via click listeners defined above
 
 searchInput.addEventListener("input", (event) => {
   query = event.target.value.trim();
