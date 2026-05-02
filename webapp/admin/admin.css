@@ -1476,3 +1476,120 @@ body {
 .poster-upload.has-preview .poster-upload-preview {
   display: block;
 }
+
+/* Subscribers Section Styles */
+.username-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.username-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.btn-watched {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-watched:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-watched:active {
+  transform: translateY(0);
+}
+
+/* Watched Movies Modal */
+.modal-lg {
+  max-width: 600px;
+  max-height: 80vh;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(80vh - 80px);
+}
+
+.watched-movies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.watched-movie-item {
+  display: flex;
+  gap: 16px;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.watched-movie-item:hover {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.watched-movie-poster {
+  width: 60px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.watched-movie-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.watched-movie-info h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.watched-movie-info p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #subscribersTable th:nth-child(1),
+  #subscribersTable td:nth-child(1),
+  #subscribersTable th:nth-child(6),
+  #subscribersTable td:nth-child(6) {
+    display: none;
+  }
+
+  .watched-movie-poster {
+    width: 50px;
+    height: 75px;
+  }
+
+  .watched-movie-info h4 {
+    font-size: 14px;
+  }
+}
