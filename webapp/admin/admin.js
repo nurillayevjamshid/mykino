@@ -281,6 +281,11 @@ function bindEvents() {
     }
   });
 
+  document.getElementById('movieShowInHeader')?.addEventListener('change', (e) => {
+    const group = document.getElementById('headerImageGroup');
+    if (group) group.style.display = e.target.checked ? 'block' : 'none';
+  });
+
   // Logout
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
     if (confirm('Tizimdan chiqishni xohlaysizmi?')) {
@@ -452,6 +457,17 @@ function openMovieModal(movie = null) {
       selectedPosterDataUrl = poster;
     }
     updatePosterPreview(poster);
+
+    const showInHeader = Boolean(movie.showInHeader);
+    const showInHeaderCheckbox = document.getElementById('movieShowInHeader');
+    if (showInHeaderCheckbox) {
+      showInHeaderCheckbox.checked = showInHeader;
+      const group = document.getElementById('headerImageGroup');
+      if (group) group.style.display = showInHeader ? 'block' : 'none';
+    }
+    const headerImage = movie.headerImage || '';
+    const headerImageInput = document.getElementById('movieHeaderImage');
+    if (headerImageInput) headerImageInput.value = headerImage;
   } else {
     title.textContent = 'Yangi kino q\'oshish';
     form.reset();
@@ -659,7 +675,9 @@ async function handleMovieSubmit(e) {
     rating: parseFloat(document.getElementById('movieRating').value) || 0,
     hd: document.getElementById('movieHd').value === 'true',
     description: document.getElementById('movieDescription').value,
-    posterImage: selectedPosterDataUrl || document.getElementById('moviePosterUrl').value.trim()
+    posterImage: selectedPosterDataUrl || document.getElementById('moviePosterUrl').value.trim(),
+    showInHeader: document.getElementById('movieShowInHeader').checked,
+    headerImage: document.getElementById('movieHeaderImage').value.trim()
   };
 
   if (form.dataset.editingId) {
@@ -695,6 +713,13 @@ async function handleMovieSubmit(e) {
     const finalPoster = selectedPosterDataUrl || document.getElementById('moviePosterUrl').value.trim();
     if (finalPoster && (!currentMovie || finalPoster !== (currentMovie.posterImage || currentMovie.poster))) {
       updatePayload.posterImage = finalPoster;
+    }
+
+    if (!currentMovie || movieData.showInHeader !== Boolean(currentMovie.showInHeader)) {
+      updatePayload.showInHeader = movieData.showInHeader;
+    }
+    if (!currentMovie || hasMovieFieldChanged(movieData.headerImage, currentMovie.headerImage)) {
+      updatePayload.headerImage = movieData.headerImage;
     }
 
     if (Object.keys(updatePayload).length === 1) {
