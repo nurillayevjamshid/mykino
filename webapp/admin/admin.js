@@ -291,10 +291,26 @@ function bindEvents() {
     try {
       selectedPosterDataUrl = await readPosterFile(file);
       updatePosterPreview(selectedPosterDataUrl);
+      // File tanlanganda URL inputni tozalash
+      const urlInput = document.getElementById('moviePosterUrl');
+      if (urlInput) urlInput.value = '';
     } catch (error) {
       showNotification(error.message || 'Rasmni o\'qib bo\'lmadi.', 'error');
       e.target.value = '';
       selectedPosterDataUrl = '';
+      updatePosterPreview('');
+    }
+  });
+
+  document.getElementById('moviePosterUrl')?.addEventListener('input', (e) => {
+    const url = e.target.value.trim();
+    if (url) {
+      // URL kiritilganda File inputni tozalash
+      const fileInput = document.getElementById('moviePosterFile');
+      if (fileInput) fileInput.value = '';
+      selectedPosterDataUrl = '';
+      updatePosterPreview(url);
+    } else {
       updatePosterPreview('');
     }
   });
@@ -530,14 +546,16 @@ function openMovieModal(movie = null) {
     document.getElementById('movieCategory').value = movie.category;
     document.getElementById('movieRating').value = movie.rating;
     document.getElementById('movieHd').value = movie.hd.toString();
-    document.getElementById('movieDescription').value = movie.description;
+    document.getElementById('movieDescription').value = movie.description || '';
     form.dataset.editingId = movie.id;
-    // Show existing poster if available
-    const existingPoster = movie.posterImage || movie.poster || '';
-    if (existingPoster && existingPoster.startsWith('data:image')) {
-      selectedPosterDataUrl = existingPoster;
+
+    const poster = movie.posterImage || movie.poster || '';
+    if (poster && !poster.startsWith('data:image')) {
+      document.getElementById('moviePosterUrl').value = poster;
+    } else if (poster) {
+      selectedPosterDataUrl = poster;
     }
-    updatePosterPreview(selectedPosterDataUrl || existingPoster);
+    updatePosterPreview(poster);
   } else {
     title.textContent = 'Yangi kino q\'oshish';
     form.reset();
@@ -870,7 +888,7 @@ async function handleMovieSubmit(e) {
     rating: parseFloat(document.getElementById('movieRating').value) || 0,
     hd: document.getElementById('movieHd').value === 'true',
     description: document.getElementById('movieDescription').value,
-    posterImage: selectedPosterDataUrl
+    posterImage: selectedPosterDataUrl || document.getElementById('moviePosterUrl').value.trim()
   };
 
   if (form.dataset.editingId) {
@@ -903,8 +921,9 @@ async function handleMovieSubmit(e) {
       updatePayload.description = movieData.description;
     }
     // Add posterImage if changed or new
-    if (selectedPosterDataUrl && (!currentMovie || selectedPosterDataUrl !== (currentMovie.posterImage || currentMovie.poster))) {
-      updatePayload.posterImage = selectedPosterDataUrl;
+    const finalPoster = selectedPosterDataUrl || document.getElementById('moviePosterUrl').value.trim();
+    if (finalPoster && (!currentMovie || finalPoster !== (currentMovie.posterImage || currentMovie.poster))) {
+      updatePayload.posterImage = finalPoster;
     }
 
     if (Object.keys(updatePayload).length === 1) {
