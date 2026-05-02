@@ -207,6 +207,8 @@ let pendingSeekTime = 0;
 let youtubeAutoAdvanceTimer = null;
 let pendingResumeTime = 0;
 let lastSavedProgressSecond = -1;
+let heroActiveIndex = 0;
+let heroIntervalId = null;
 const grid = document.querySelector("#movieGrid");
 const emptyState = document.querySelector("#emptyState");
 const searchPanel = document.querySelector("#searchPanel");
@@ -787,6 +789,8 @@ function normalizeMovie(movie, index = 0) {
     sourceUrl,
     webViewLink: resolveAppUrl(String(movie?.webViewLink || "").trim()),
     mimeType: String(movie?.mimeType || "").trim(),
+    headerImage: resolveAppUrl(String(movie?.headerImage || movie?.heroPoster || "").trim()),
+    showInHeader: toBooleanFlag(movie?.showInHeader ?? movie?.heroFeatured),
   };
 
   if (!normalized.videoUrl && normalized.driveFileId) {
@@ -1001,6 +1005,73 @@ function syncNavButtons() {
   document.querySelectorAll('[data-action="categories"]').forEach((button) => {
     button.classList.toggle("is-active", !categoryPanel.hidden || activeCategory !== "all");
   });
+}
+
+function renderHeroCarousel() {
+  const heroCarousel = document.getElementById("heroCarousel");
+  const heroSlides = document.getElementById("heroSlides");
+  const heroIndicators = document.getElementById("heroIndicators");
+  
+  if (!heroCarousel || !heroSlides || !heroIndicators) return;
+
+  const featured = movies.filter(m => m.showInHeader && m.headerImage);
+
+  if (featured.length === 0) {
+    heroCarousel.hidden = true;
+    clearInterval(heroIntervalId);
+    return;
+  }
+
+  heroCarousel.hidden = false;
+  heroSlides.innerHTML = "";
+  heroIndicators.innerHTML = "";
+  heroActiveIndex = 0;
+
+  featured.forEach((movie, index) => {
+    const slide = document.createElement("div");
+    slide.className = "hero-slide";
+    slide.innerHTML = `
+      <img src="${movie.headerImage}" alt="${escapeHtml(movie.title)}" loading="${index === 0 ? 'eager' : 'lazy'}">
+      <div class="hero-content">
+        <h2>${escapeHtml(movie.title)}</h2>
+        <p>${escapeHtml(movie.genre)} · ${escapeHtml(movie.year)}</p>
+      </div>
+    `;
+    slide.addEventListener("click", () => openMovie(movie));
+    heroSlides.appendChild(slide);
+
+    const indicator = document.createElement("div");
+    indicator.className = `hero-indicator${index === 0 ? ' active' : ''}`;
+    indicator.addEventListener("click", () => {
+      heroActiveIndex = index;
+      updateHeroSlides();
+    });
+    heroIndicators.appendChild(indicator);
+  });
+
+  startHeroRotation(featured.length);
+}
+
+function updateHeroSlides() {
+  const heroSlides = document.getElementById("heroSlides");
+  const indicators = document.querySelectorAll(".hero-indicator");
+  if (!heroSlides) return;
+
+  heroSlides.style.transform = `translateX(-${heroActiveIndex * 100}%)`;
+  
+  indicators.forEach((ind, i) => {
+    ind.classList.toggle("active", i === heroActiveIndex);
+  });
+}
+
+function startHeroRotation(count) {
+  clearInterval(heroIntervalId);
+  if (count <= 1) return;
+  
+  heroIntervalId = setInterval(() => {
+    heroActiveIndex = (heroActiveIndex + 1) % count;
+    updateHeroSlides();
+  }, HERO_ROTATE_INTERVAL_MS);
 }
 
 function renderMovies() {
@@ -2050,6 +2121,7 @@ async function loadMovies() {
     }
     movies = payload.map((movie, index) => normalizeMovie(movie, index));
     movieLoadState = "ready";
+    renderHeroCarousel();
   } catch (error) {
     movies = [];
     movieLoadState = "error";
@@ -2083,6 +2155,7 @@ async function silentReloadMovies() {
     const newMovies = payload.map((movie, index) => normalizeMovie(movie, index));
 
     movies = newMovies;
+    renderHeroCarousel();
     renderMovies();
     syncWatchedCount();
     applyCopy();
