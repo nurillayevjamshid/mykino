@@ -367,6 +367,27 @@ function bindEvents() {
   ['headerCropZoom', 'headerCropX', 'headerCropY'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', scheduleHeaderCropRender);
   });
+
+  document.getElementById('clearAllHeadersBtn')?.addEventListener('click', async () => {
+    if (!confirm('DIQQAT: Barcha header kinolarini tozalab tashlamoqchimisiz? Buni ortga qaytarib bo\'lmaydi.')) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/header-section`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearAll: true })
+      });
+      
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.ok) throw new Error(result?.error || 'Tozalashda xatolik.');
+      
+      showNotification('Barcha headerlar tozalandi.');
+      await fetchHeaderSection();
+      renderHeaderMovies();
+    } catch (error) {
+      showNotification(error.message || 'Xatolik!', 'error');
+    }
+  });
   document.getElementById('applyHeaderCrop')?.addEventListener('click', () => {
     if (!headerCropState) return;
     renderHeaderCrop({ notify: true });
@@ -1326,6 +1347,8 @@ function closeDeleteConfirmModal() {
 }
 
 async function confirmRemoveHeaderMovie(movieId, button) {
+  if (!confirm('Ushbu kinoni headerdan olib tashlamoqchimisiz?')) return;
+  
   try {
     if (button) button.disabled = true;
 
