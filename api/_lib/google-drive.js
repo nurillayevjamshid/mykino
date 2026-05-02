@@ -441,7 +441,14 @@ function buildCatalogFallbackDescription(visibleDescription, override, updates =
   addCandidate(compact);
 
   for (const candidate of candidates) {
-    const description = buildEmbeddedMovieDescription(visibleDescription, candidate, DRIVE_DESCRIPTION_MAX_LENGTH);
+    // Katta Base64 rasmlarni description ichiga saqlashga urinmaslik (chunki 28KB ga sig'maydi)
+    const cleanedCandidate = { ...candidate };
+    if (isDataImageValue(cleanedCandidate.posterImage)) delete cleanedCandidate.posterImage;
+    if (isDataImageValue(cleanedCandidate.headerImage)) delete cleanedCandidate.headerImage;
+    if (isDataImageValue(cleanedCandidate.poster)) delete cleanedCandidate.poster;
+    if (isDataImageValue(cleanedCandidate.heroPoster)) delete cleanedCandidate.heroPoster;
+
+    const description = buildEmbeddedMovieDescription(visibleDescription, cleanedCandidate, DRIVE_DESCRIPTION_MAX_LENGTH);
     if (description.length <= DRIVE_DESCRIPTION_MAX_LENGTH) return description;
   }
 

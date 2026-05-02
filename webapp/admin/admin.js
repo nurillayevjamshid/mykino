@@ -305,25 +305,7 @@ function bindEvents() {
   document.getElementById('headerMovieSelect')?.addEventListener('change', (e) => {
     const movie = movies.find(item => sameMovieId(item.id, e.target.value));
     selectedHeaderImageDataUrl = movie?.headerImage || '';
-    const fileInput = document.getElementById('headerImageFile');
-    if (fileInput) fileInput.value = '';
-    clearHeaderCropState();
     updateHeaderImagePreview(selectedHeaderImageDataUrl);
-  });
-  document.getElementById('headerImageFile')?.addEventListener('change', async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      await startHeaderCrop(file);
-      renderHeaderCrop();
-    } catch (error) {
-      showNotification(error.message || 'Header rasmini o\'qib bo\'lmadi.', 'error');
-      e.target.value = '';
-      selectedHeaderImageDataUrl = '';
-      clearHeaderCropState();
-      updateHeaderImagePreview('');
-    }
   });
   ['headerCropZoom', 'headerCropX', 'headerCropY'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', scheduleHeaderCropRender);
@@ -1199,18 +1181,15 @@ async function saveHeaderSettings() {
       saveButton.textContent = 'Saqlanmoqda...';
     }
 
-    // Yangi header-section API ishlatish (base64 yuboriladi, server Google Drive ga yuklaydi)
+    // Yangi header-section API ishlatish
     const updatePayload = {
       movieId: movie.id,
       title: movie.name || '',
       year: movie.year || '',
       category: movie.category || '',
       rating: movie.rating || '',
-      isActive: true,
-      headerImage: selectedHeaderImageDataUrl  // Base64 - server yuklaydi
+      isActive: true
     };
-    const headerCrop = getHeaderCropSettings();
-    if (headerCrop) updatePayload.cropSettings = headerCrop;
 
     console.log('[DEBUG] Header save - Movie:', movie.id, 'poster unchanged');
 
