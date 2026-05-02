@@ -108,6 +108,10 @@
       "dest": "/api/users.js"
     },
     {
+      "src": "/api/settings",
+      "dest": "/api/settings.js"
+    },
+    {
       "src": "/admin",
       "dest": "/webapp/admin/index.html"
     },
