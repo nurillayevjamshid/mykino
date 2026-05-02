@@ -88,16 +88,15 @@ async function readHeaderMetadataFile(fileId) {
   }
 }
 
-async function getHeaderImagesMap() {
-  try {
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-    if (!folderId) return {};
-
-    const file = await findHeaderMetadataFile(folderId);
-    if (!file) return {};
-
     const data = await readHeaderMetadataFile(file.id);
-    return data.headers || {};
+    const headers = Array.isArray(data.headers) ? data.headers : [];
+    const map = {};
+    headers.forEach(h => {
+      if (h.isActive !== false) {
+        map[h.movieId] = h;
+      }
+    });
+    return map;
   } catch (error) {
     console.error("[movies] Error reading header images:", error);
     return {};
@@ -128,13 +127,14 @@ module.exports = async function handler(request, response) {
     const moviesWithHeaders = movies.map((movie) => {
       const headerData = headerImagesMap[movie.id];
       if (headerData) {
+        const hImage = headerData.headerImageUrl || headerData.headerImage || movie.headerImage;
         return {
           ...movie,
-          headerImage: headerData.headerImage || movie.headerImage,
-          showInHeader: headerData.showInHeader !== false,
-          headerCrop: headerData.headerCrop || movie.headerCrop,
-          heroPoster: headerData.headerImage || movie.heroPoster,
-          heroFeatured: headerData.showInHeader !== false,
+          headerImage: hImage,
+          showInHeader: headerData.isActive !== false,
+          headerCrop: headerData.cropSettings || headerData.headerCrop || movie.headerCrop,
+          heroPoster: hImage || movie.heroPoster,
+          heroFeatured: headerData.isActive !== false,
         };
       }
       return movie;
