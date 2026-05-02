@@ -290,11 +290,17 @@ async def process_feedback_message(message: Message, state: FSMContext, settings
             user_info += f" (@{message.from_user.username})"
         user_info += f"\nID: <code>{message.from_user.id}</code>\n"
         
-        await message.bot.send_message(
-            chat_id=settings.feedback_group_id,
-            text=f"<b>Yangi murojaat!</b>\n{user_info}\n<b>Xabar:</b>"
-        )
-        await message.send_copy(chat_id=settings.feedback_group_id)
+        if message.text:
+            await message.bot.send_message(
+                chat_id=settings.feedback_group_id,
+                text=f"<b>Yangi murojaat!</b>\n{user_info}\n<b>Xabar:</b> {message.text}"
+            )
+        else:
+            await message.bot.send_message(
+                chat_id=settings.feedback_group_id,
+                text=f"<b>Yangi murojaat!</b>\n{user_info}\n<b>Xabar:</b>"
+            )
+            await message.send_copy(chat_id=settings.feedback_group_id)
         
         await message.answer("Taklifiz uchun rahmat. Ko'rib chiqamiz va bartaraf etamiz")
         await _send_start_menu(message, settings)
