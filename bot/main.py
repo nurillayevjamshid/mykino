@@ -9,8 +9,10 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, StateFilter
 from aiogram.types import CallbackQuery, Message
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 from .config import Settings, load_settings
 from .keyboards import join_inline_keyboard, start_menu
@@ -20,6 +22,8 @@ from .webserver import create_web_app
 
 router = Router()
 
+class FeedbackState(StatesGroup):
+    waiting_for_message = State()
 
 def _normalize_menu_text(text: str | None) -> str:
     cleaned = "".join(ch if ch.isalnum() else " " for ch in (text or "").casefold())
@@ -144,8 +148,9 @@ async def _show_contact(message: Message, settings: Settings) -> None:
     await message.answer(f"Savollar uchun: @{settings.contact_username}")
 
 
-async def _show_feedback_placeholder(message: Message) -> None:
-    await message.answer("Murojaat qoldirish bo'limi tez orada ishga tushadi.")
+async def _show_feedback_placeholder(message: Message, state: FSMContext) -> None:
+    await state.set_state(FeedbackState.waiting_for_message)
+    await message.answer("Murojaatingizni yozib yuboring. Adminga yetkazamiz. Bosh menyuga qaytish uchun /start ni bosing.")
 
 
 async def _check_subscription(bot: Bot, user_id: int, settings: Settings) -> bool:
@@ -208,8 +213,8 @@ async def contact(message: Message, settings: Settings) -> None:
 
 
 @router.message(F.text.in_({"Murojaat qoldiring", "Murojaat qoldirish"}))
-async def feedback(message: Message) -> None:
-    await _show_feedback_placeholder(message)
+async def feedback(message: Message, state: FSMContext) -> None:
+    await _show_feedback_placeholder(message, state)
 
 
 @router.message(F.web_app_data)
@@ -228,7 +233,7 @@ async def web_app_data(message: Message, settings: Settings) -> None:
 
 
 @router.message(F.text)
-async def movie_search(message: Message, settings: Settings) -> None:
+async def movie_search(message: Message, state: FSMContext, settings: Settings) -> None:
     action = _menu_action(message.text)
     if action == "search":
         await _show_search_hint(message)
@@ -237,7 +242,7 @@ async def movie_search(message: Message, settings: Settings) -> None:
         await _show_contact(message, settings)
         return
     if action == "feedback":
-        await _show_feedback_placeholder(message)
+        await _show_feedback_placeholder(message, state)
         return
     if action in {"watch", "profile"}:
         await message.answer("Mini appni ochish uchun menyudagi tugmadan foydalaning.")
@@ -259,9 +264,69 @@ async def movie_search(message: Message, settings: Settings) -> None:
     await message.answer("\n".join(lines))
 
 
-@router.callback_query(F.data == "feedback:soon")
-async def feedback_callback(callback: CallbackQuery) -> None:
-    await callback.answer("Murojaat qoldirish bo'limi tez orada ishga tushadi.", show_alert=True)
+@router.callback_query(F.data == "feedback:start")
+async def feedback_callback(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.message.delete()
+    await _show_feedback_placeholder(callback.message, state)
+
+@router.message(StateFilter(FeedbackState.waiting_for_message))
+async def process_feedback_message(message: Message, state: FSMContext, settings: Settings) -> None:
+    if message.text == "/start":
+        await state.clear()
+        await start(message, settings)
+        return
+
+    if not settings.feedback_group_id:
+        await message.answer("Murojaat tizimi sozlanmagan. Iltimos keyinroq urinib ko'ring.")
+        await state.clear()
+        return
+
+    try:
+        user_info = f"Kimdan: {message.from_user.full_name}"
+        if message.from_user.username:
+            user_info += f" (@{message.from_user.username})"
+        user_info += f"\nID: <code>{message.from_user.id}</code>\n"
+        
+        await message.bot.send_message(
+            chat_id=settings.feedback_group_id,
+            text=f"<b>Yangi murojaat!</b>\n{user_info}\n<b>Xabar:</b>"
+        )
+        await message.send_copy(chat_id=settings.feedback_group_id)
+        
+        await message.answer("Murojaatingiz adminga yetkazildi! Javobni shu yerda kutishingiz mumkin.")
+    except Exception as e:
+        logging.error("Failed to forward feedback to group %s: %s", settings.feedback_group_id, e)
+        await message.answer("Murojaatni yuborishda xatolik yuz berdi.")
+    finally:
+        await state.clear()
+
+@router.message(F.reply_to_message)
+async def admin_reply_handler(message: Message, settings: Settings) -> None:
+    if not settings.feedback_group_id or message.chat.id != settings.feedback_group_id:
+        return
+    
+    # We need to extract the user ID from the previous message
+    reply = message.reply_to_message
+    if reply.from_user.id != message.bot.id:
+        return
+        
+    lines = reply.text.splitlines() if reply.text else []
+    user_id = None
+    for line in lines:
+        if line.startswith("ID:"):
+            import re
+            match = re.search(r"ID:\s*(\d+)", line)
+            if match:
+                user_id = int(match.group(1))
+                break
+            
+    if user_id:
+        try:
+            await message.send_copy(chat_id=user_id)
+            await message.answer("Javob foydalanuvchiga yuborildi.")
+        except Exception as e:
+            logging.error("Failed to send reply to %s: %s", user_id, e)
+            await message.answer("Javob yuborishda xatolik. Foydalanuvchi botni bloklagan bo'lishi mumkin.")
 
 
 @router.callback_query(F.data == "check_sub")
