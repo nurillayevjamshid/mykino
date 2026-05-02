@@ -192,9 +192,7 @@ let movies = [];
 let activeFilter = "all";
 let activeCategory = "all";
 let query = "";
-let heroCarouselMovies = [];
-let heroCarouselIndex = 0;
-let heroCarouselTimer = null;
+
 let watchedCount = Number(localStorage.getItem("kino_watched_count") || "0");
 let activeMovie = null;
 let videoLoadTimer = null;
@@ -213,10 +211,7 @@ const grid = document.querySelector("#movieGrid");
 const emptyState = document.querySelector("#emptyState");
 const searchPanel = document.querySelector("#searchPanel");
 const searchInput = document.querySelector("#searchInput");
-const heroCarousel = document.querySelector("#heroCarousel");
-const heroCarouselTrack = document.querySelector("#heroCarouselTrack");
-const heroCarouselTitle = document.querySelector("#heroCarouselTitle");
-const heroCarouselDots = document.querySelector("#heroCarouselDots");
+
 const categoryPanel = document.querySelector("#categoryPanel");
 const categoryList = document.querySelector("#categoryList");
 const movieModal = document.querySelector("#movieModal");
@@ -461,9 +456,7 @@ function getPosterImage(movie) {
   return String(movie?.posterImage || movie?.poster || movie?.headerImage || movie?.heroPoster || "").trim();
 }
 
-function getHeaderImage(movie) {
-  return String(movie?.headerImage || movie?.heroPoster || "").trim();
-}
+
 
 function isDataImageValue(value) {
   return String(value || "").trim().startsWith("data:image/");
@@ -476,12 +469,7 @@ function posterStyle(movie) {
   return `style="--poster-image: url('${poster}')"`;
 }
 
-function heroPosterStyle(movie) {
-  const source = getHeaderImage(movie);
-  if (!source) return "";
-  const poster = String(source).replaceAll("'", "%27").replaceAll(")", "%29");
-  return `style="--poster-image: url('${poster}')"`;
-}
+
 
 function safeUrl(value) {
   try {
@@ -772,35 +760,7 @@ function normalizeMovie(movie, index = 0) {
   const safeId = String(movie?.id || movie?.code || `movie-${index + 1}`);
   const title = String(movie?.title || `Kino ${index + 1}`).trim();
   const rawPoster = String(movie?.posterImage || movie?.poster || movie?.thumbnail || (fileId ? buildDriveThumbnailUrl(fileId) : "")).trim();
-  const rawHeaderImage = String(movie?.headerImage || movie?.heroPoster || movie?.headerPoster || movie?.heroImage || "").trim();
-  const description = sanitizePublicDescription(movie?.description || "Kino tavsifi kiritilmagan.");
-  const sourceType = String(movie?.sourceType || (fileId ? "catalog" : "catalog")).trim();
-  const genre = sanitizePublicGenre(movie?.genre || "Kino");
-  const quality = String(movie?.quality || "HD").trim().toUpperCase();
-  const rating = Number(movie?.rating || 0);
-  const fileName = String(movie?.fileName || movie?.name || "").trim();
-  const sourceUrl = resolveAppUrl(postUrl || movie?.sourceUrl || movie?.webViewLink || "");
-  const posterImage = resolveAppUrl(rawPoster) || buildGeneratedPosterDataUrl({ title, year: movie?.year || "", quality });
-  const headerImage = isDataImageValue(rawHeaderImage) ? resolveAppUrl(rawHeaderImage) : "";
-  const showInHeader = toBooleanFlag(movie?.showInHeader) && Boolean(headerImage);
-  const normalized = {
-    ...movie,
-    id: safeId,
-    code: String(movie?.code || safeId).trim().toUpperCase(),
-    title,
-    posterImage,
-    headerImage,
-    poster: posterImage,
-    heroPoster: headerImage,
-    description,
-    genre,
-    quality,
-    rating: Number.isFinite(rating) ? rating : 0,
-    year: movie?.year || "",
-    isTop: Boolean(movie?.isTop),
     isPremium: Boolean(movie?.isPremium),
-    showInHeader,
-    heroFeatured: showInHeader,
     sourceType,
     fileId,
     driveFileId: String(movie?.driveFileId || movie?.fileId || movie?.googleDriveFileId || "").trim(),
@@ -1012,88 +972,7 @@ function renderCategories() {
   }
 }
 
-function clearHeroCarouselTimer() {
-  if (heroCarouselTimer) {
-    window.clearInterval(heroCarouselTimer);
-    heroCarouselTimer = null;
-  }
-}
 
-function getHeroCarouselSourceMovies() {
-  const sourceMovies = getViewerMovies();
-  return sourceMovies.filter((movie) => movie?.showInHeader && getHeaderImage(movie)).slice(0, 6);
-}
-
-function updateHeroCarouselView() {
-  if (!heroCarousel || !heroCarouselTitle || !heroCarouselDots) return;
-  const activeMovie = heroCarouselMovies[heroCarouselIndex] || null;
-
-  if (!activeMovie) {
-    heroCarousel.hidden = true;
-    heroCarouselTitle.textContent = "";
-    heroCarousel.setAttribute("aria-label", "Tavsiya etilgan kinolar");
-    return;
-  }
-
-  heroCarousel.hidden = false;
-  heroCarouselTitle.textContent = activeMovie.title || "My Kino";
-  heroCarousel.setAttribute("aria-label", `${activeMovie.title || "Kino"} ${plainLabel(t("watch"))}`);
-
-  heroCarouselTrack?.querySelectorAll(".hero-carousel__slide").forEach((slide, index) => {
-    slide.classList.toggle("is-active", index === heroCarouselIndex);
-  });
-
-  heroCarouselDots?.querySelectorAll("[data-hero-index]").forEach((button, index) => {
-    const isActive = index === heroCarouselIndex;
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-current", isActive ? "true" : "false");
-  });
-}
-
-function startHeroCarouselTimer() {
-  clearHeroCarouselTimer();
-  if (heroCarouselMovies.length <= 1) return;
-  heroCarouselTimer = window.setInterval(() => {
-    heroCarouselIndex = (heroCarouselIndex + 1) % heroCarouselMovies.length;
-    updateHeroCarouselView();
-  }, HERO_ROTATE_INTERVAL_MS);
-}
-
-function renderHeroCarousel(preferredMovieId = "") {
-  if (!heroCarousel || !heroCarouselTrack || !heroCarouselDots) return;
-
-  const nextMovies = movieLoadState === "ready" ? getHeroCarouselSourceMovies() : [];
-  const activeMovieId = preferredMovieId || heroCarouselMovies[heroCarouselIndex]?.id;
-  heroCarouselMovies = nextMovies;
-
-  if (!heroCarouselMovies.length) {
-    heroCarousel.hidden = true;
-    heroCarouselTrack.innerHTML = "";
-    heroCarouselDots.innerHTML = "";
-    clearHeroCarouselTimer();
-    return;
-  }
-
-  const preservedIndex = heroCarouselMovies.findIndex((movie) => String(movie.id) === String(activeMovieId || ""));
-  heroCarouselIndex = preservedIndex >= 0 ? preservedIndex : Math.min(heroCarouselIndex, heroCarouselMovies.length - 1);
-
-  heroCarouselTrack.innerHTML = heroCarouselMovies.map((movie, index) => `
-    <span class="hero-carousel__slide${index === heroCarouselIndex ? " is-active" : ""}" ${heroPosterStyle(movie)}></span>
-  `).join("");
-
-  heroCarouselDots.innerHTML = heroCarouselMovies.map((movie, index) => `
-    <button
-      class="hero-carousel__dot${index === heroCarouselIndex ? " is-active" : ""}"
-      type="button"
-      data-hero-index="${index}"
-      aria-label="${escapeHtml(movie.title || `Kino ${index + 1}`)}"
-      aria-current="${index === heroCarouselIndex ? "true" : "false"}"
-    ></button>
-  `).join("");
-
-  updateHeroCarouselView();
-  startHeroCarouselTimer();
-}
 
 function syncNavButtons() {
   document.querySelectorAll('[data-filter="all"]').forEach((button) => {
@@ -1991,7 +1870,7 @@ function applyCopy() {
   document.documentElement.lang = lang;
   setRangeFill(videoSeek, Number(videoSeek.value || 0), 1000);
   setRangeFill(videoVolume, Number(videoVolume.value || 100), 100);
-  updateHeroCarouselView();
+
   applyTelegramUser();
   renderCategories();
   renderProfileModal();
@@ -2016,34 +1895,11 @@ categoryList?.addEventListener("click", (event) => {
   setCategory(button.dataset.category || "all");
 });
 
-heroCarousel?.addEventListener("click", (event) => {
-  const dotButton = event.target.closest("[data-hero-index]");
-  if (dotButton) {
-    heroCarouselIndex = Number(dotButton.dataset.heroIndex || 0) || 0;
-    updateHeroCarouselView();
-    startHeroCarouselTimer();
-    return;
-  }
 
-  const movie = heroCarouselMovies[heroCarouselIndex];
-  if (movie) openMovie(movie);
-});
 
-heroCarousel?.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" || event.key === " ") {
-    event.preventDefault();
-    const movie = heroCarouselMovies[heroCarouselIndex];
-    if (movie) openMovie(movie);
-  }
-});
 
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) {
-    clearHeroCarouselTimer();
-    return;
-  }
-  startHeroCarouselTimer();
-});
+
+
 
 document.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
 
@@ -2184,7 +2040,7 @@ async function loadMovies() {
     movieLoadState = "error";
     movieLoadError = t("loadErrorText");
   }
-  renderHeroCarousel();
+
   syncWatchedCount();
   applyCopy();
 
@@ -2211,24 +2067,7 @@ async function silentReloadMovies() {
     const newMovies = payload.map((movie, index) => normalizeMovie(movie, index));
 
     // Only update if movies actually changed
-    const currentMoviesJson = JSON.stringify(movies.map((m) => ({
-      id: m.id,
-      posterImage: m.posterImage,
-      headerImage: m.headerImage,
-      showInHeader: m.showInHeader,
-      title: m.title,
-    })));
-    const newMoviesJson = JSON.stringify(newMovies.map((m) => ({
-      id: m.id,
-      posterImage: m.posterImage,
-      headerImage: m.headerImage,
-      showInHeader: m.showInHeader,
-      title: m.title,
-    })));
-
-    if (currentMoviesJson !== newMoviesJson) {
       movies = newMovies;
-      renderHeroCarousel();
       renderMovies();
       syncWatchedCount();
       applyCopy();
