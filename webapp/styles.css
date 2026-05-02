@@ -158,6 +158,8 @@ img {
 
   .topbar {
     grid-area: header;
+    position: relative;
+    z-index: 100;
   }
 
   .search-panel {
@@ -2596,6 +2598,8 @@ html[data-theme="light"] .brand-panel {
   background: transparent;
   border: 0;
   box-shadow: none;
+  position: relative;
+  z-index: 100;
 }
 
 .topbar-controls {
@@ -3383,6 +3387,7 @@ body.is-modal-open {
   visibility: hidden;
   transform: translateY(10px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 50;
 }
 
 .lang-dropdown.is-open .lang-options {
