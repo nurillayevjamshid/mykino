@@ -24,6 +24,26 @@ def save_movies(path: Path, movies: list[dict[str, Any]]) -> None:
         file.write("\n")
 
 
+def load_settings_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"splashImageUrl": ""}
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            return json.load(file)
+    except (json.JSONDecodeError, ValueError):
+        return {"splashImageUrl": ""}
+
+
+def save_settings_json(path: Path, data: dict[str, Any]) -> dict[str, Any]:
+    current = load_settings_json(path)
+    current.update(data)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as file:
+        json.dump(current, file, ensure_ascii=False, indent=2)
+        file.write("\n")
+    return current
+
+
 def load_users(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []

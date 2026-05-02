@@ -128,7 +128,8 @@ const themeToggle = document.getElementById('themeToggle');
 const sectionTitles = {
   movies: 'Kinolar',
   categories: 'Kategoriyalar',
-  subscribers: 'Obunachilar'
+  subscribers: 'Obunachilar',
+  settings: 'Sozlamalar'
 };
 
 // Theme management - Light mode as default
@@ -155,6 +156,7 @@ async function init() {
   loadCategories();
   await fetchMovies();
   await fetchUsers();
+  await loadSplashSettings();
   renderCategories();
   updateCategorySelect();
   bindEvents();
@@ -323,6 +325,21 @@ function bindEvents() {
       }
     });
   });
+
+  // Splash image settings
+  document.getElementById('splashImageUrl')?.addEventListener('input', (e) => {
+    const url = e.target.value.trim();
+    const preview = document.getElementById('splashPreview');
+    const previewImg = document.getElementById('splashPreviewImg');
+    if (url && previewImg) {
+      previewImg.src = url;
+      if (preview) preview.style.display = 'block';
+    } else {
+      if (preview) preview.style.display = 'none';
+    }
+  });
+
+  document.getElementById('saveSplashBtn')?.addEventListener('click', saveSplashSettings);
 }
 
 // Switch Section
@@ -1065,6 +1082,61 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+// Splash Settings
+async function loadSplashSettings() {
+  try {
+    const response = await fetch(`${API_URL}/settings`);
+    if (!response.ok) return;
+    const data = await response.json();
+    const splashUrl = data.splashImageUrl || '';
+    const input = document.getElementById('splashImageUrl');
+    if (input && splashUrl) {
+      input.value = splashUrl;
+      const preview = document.getElementById('splashPreview');
+      const previewImg = document.getElementById('splashPreviewImg');
+      if (previewImg) {
+        previewImg.src = splashUrl;
+        if (preview) preview.style.display = 'block';
+      }
+    }
+  } catch (e) {
+    console.log('Settings not available:', e.message);
+  }
+}
+
+async function saveSplashSettings() {
+  const url = document.getElementById('splashImageUrl')?.value.trim() || '';
+  const btn = document.getElementById('saveSplashBtn');
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Saqlanmoqda...';
+    }
+
+    const response = await fetch(`${API_URL}/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ splashImageUrl: url })
+    });
+
+    const result = await response.json();
+    if (result.ok) {
+      showNotification('Sozlamalar saqlandi!');
+    } else {
+      showNotification('Xatolik: ' + (result.error || 'Noma\'lum'), 'error');
+    }
+  } catch (e) {
+    console.error('Save settings error:', e);
+    showNotification('Serverga ulanishda xatolik!', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Saqlash';
+    }
+  }
+}
 
 // Initialize
 checkAuth();

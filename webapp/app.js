@@ -2193,5 +2193,42 @@ function startMoviesPolling() {
   }, 60000);
 }
 
-loadMovies();
-startMoviesPolling();
+async function loadAppSettings() {
+  try {
+    const response = await fetch(buildApiUrl("/api/settings"));
+    if (response.ok) {
+      const data = await response.json();
+      if (data.splashImageUrl) {
+        const splashImg = document.querySelector("#splashScreen img");
+        if (splashImg) splashImg.src = data.splashImageUrl;
+      }
+    }
+  } catch (e) {
+    // Ignore error, use default
+  }
+}
+
+function initSplashScreen() {
+  const splashScreen = document.getElementById("splashScreen");
+  const appShell = document.getElementById("appShell");
+  
+  if (splashScreen && appShell) {
+    setTimeout(() => {
+      splashScreen.classList.add("fade-out");
+      appShell.style.opacity = "1";
+      appShell.style.pointerEvents = "auto";
+      setTimeout(() => {
+        splashScreen.classList.add("hidden");
+      }, 500); // Wait for fade out animation
+    }, 2500);
+  }
+}
+
+async function initApp() {
+  initSplashScreen();
+  await loadAppSettings();
+  loadMovies();
+  startMoviesPolling();
+}
+
+initApp();

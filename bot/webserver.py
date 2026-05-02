@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover - optional local dependency
     CachedSession = ClientSession
 
 from .config import Settings
-from .storage import load_movies, load_users
+from .storage import load_movies, load_users, load_settings_json, save_settings_json
 
 
 def get_env(key: str, default: str = "") -> str:
@@ -218,13 +218,29 @@ def create_web_app(settings: Settings) -> web.Application:
     async def health(_: web.Request) -> web.Response:
         return json_response({"ok": True, "mode": "local-bot"})
 
+    async def get_settings(_: web.Request) -> web.Response:
+        settings_data = load_settings_json(settings.webapp_dir.parent / "data" / "settings.json")
+        return json_response(settings_data)
+
+    async def post_settings(request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+            settings_path = settings.webapp_dir.parent / "data" / "settings.json"
+            updated = save_settings_json(settings_path, body)
+            return json_response({"ok": True, **updated})
+        except Exception as e:
+            return json_response({"ok": False, "error": str(e)}, status=500)
+
     app.router.add_get("/", index)
     app.router.add_get("/api/movies", movies)
     app.router.add_get("/api/users", users)
+    app.router.add_get("/api/settings", get_settings)
+    app.router.add_post("/api/settings", post_settings)
     app.router.add_get("/api/youtube/movies", youtube_movies)
     app.router.add_get("/api/video-url/{fileId}", video_url)
     app.router.add_get("/api/stream/{fileId}", stream_video)
     app.router.add_get("/api/video-stream/{fileId}", stream_video)
     app.router.add_get("/health", health)
     app.router.add_static("/static", settings.webapp_dir)
+    app.router.add_static("/admin", settings.webapp_dir / "admin")
     return app
