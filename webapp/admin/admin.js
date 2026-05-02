@@ -479,13 +479,15 @@ function renderUsers() {
     return;
   }
 
+
   tbody.innerHTML = users.map(user => {
+    const userId = String(user.id || '');
     const username = user.username || '';
     const firstName = user.firstName || '';
     const lastName = user.lastName || '';
     const fullName = [firstName, lastName].filter(Boolean).join(' ') || '-';
     const phone = user.phone || '';
-    const watchedMovies = user.watchedMovies || [];
+    const watchedMovies = user.watchedMovies || user.watched_movies || [];
     const watchedCount = watchedMovies.length;
 
     // Format date
@@ -497,23 +499,24 @@ function renderUsers() {
       : '-';
 
     return `
-    <tr data-user-id="${escapeHtml(String(user.id))}">
-      <td>${escapeHtml(String(user.id))}</td>
+    <tr data-user-id="${escapeHtml(userId)}">
+      <td><small style="color:var(--text-muted)">${escapeHtml(userId)}</small></td>
       <td>${usernameDisplay}</td>
-      <td>${escapeHtml(fullName)}</td>
-      <td>${phone ? escapeHtml(phone) : '-'}</td>
+      <td><strong>${escapeHtml(fullName)}</strong></td>
+      <td>${phone ? `<code>${escapeHtml(phone)}</code>` : '<span style="color:var(--text-muted)">-</span>'}</td>
       <td>
-        <button class="btn btn-sm btn-watched" onclick="showWatchedMovies(${user.id})" title="Ko'rgan kinolarni ko'rish">
+        <button class="btn-watched" onclick="showWatchedMovies('${escapeHtml(userId)}')" title="Ko'rgan kinolarni ko'rish">
           ${watchedCount} ta kino
         </button>
       </td>
-      <td>${escapeHtml(lastSeen)}</td>
+      <td><small style="color:var(--text-muted)">${escapeHtml(lastSeen)}</small></td>
     </tr>
   `}).join('');
 }
 
+
 // Show Watched Movies Modal
-function showWatchedMovies(userId) {
+window.showWatchedMovies = function(userId) {
   const user = users.find(u => u.id === userId || String(u.id) === String(userId));
   if (!user) return;
 
@@ -557,8 +560,9 @@ function showWatchedMovies(userId) {
   modal.classList.add('active');
 }
 
+
 // Close Watched Movies Modal
-function closeWatchedMoviesModal() {
+window.closeWatchedMoviesModal = function() {
   const modal = document.getElementById('watchedMoviesModal');
   if (modal) modal.classList.remove('active');
 }

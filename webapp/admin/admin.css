@@ -1593,3 +1593,132 @@ body {
     font-size: 14px;
   }
 }
+
+/* Subscribers Table Styles */
+.username-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.username-link:hover {
+  text-decoration: underline;
+  color: var(--primary-dark);
+}
+
+.btn-watched {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border: 1px solid transparent;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-watched:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.badge-hd {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.badge-sd {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+/* Watched Movies Modal Content */
+.watched-movies-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.watched-movie-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  transition: transform 0.2s ease;
+}
+
+.watched-movie-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.watched-movie-poster {
+  width: 60px;
+  height: 90px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.watched-movie-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.watched-movie-info h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.watched-movie-info p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.watched-movie-info .badge {
+  align-self: flex-start;
+  font-size: 10px;
+  padding: 2px 8px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Modal Sizes */
+.modal-sm { max-width: 400px; }
+.modal-lg { max-width: 800px; }
+
+/* Description Counter Error State */
+.description-counter.is-over {
+  color: var(--danger);
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
