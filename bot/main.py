@@ -150,7 +150,10 @@ async def _show_contact(message: Message, settings: Settings) -> None:
 
 async def _show_feedback_placeholder(message: Message, state: FSMContext) -> None:
     await state.set_state(FeedbackState.waiting_for_message)
-    await message.answer("Murojaatingizni yozib yuboring. Adminga yetkazamiz. Bosh menyuga qaytish uchun /start ni bosing.")
+    await message.answer(
+        "Assalomu alaykum talab va takliflarizni yozib qoldiring. "
+        "Qisqa fursadda talab va taklifingizni bartaraf qilishga harakat qilamiz"
+    )
 
 
 async def _check_subscription(bot: Bot, user_id: int, settings: Settings) -> bool:
@@ -293,10 +296,12 @@ async def process_feedback_message(message: Message, state: FSMContext, settings
         )
         await message.send_copy(chat_id=settings.feedback_group_id)
         
-        await message.answer("Murojaatingiz adminga yetkazildi! Javobni shu yerda kutishingiz mumkin.")
+        await message.answer("Taklifiz uchun rahmat. Ko'rib chiqamiz va bartaraf etamiz")
+        await _send_start_menu(message, settings)
     except Exception as e:
         logging.error("Failed to forward feedback to group %s: %s", settings.feedback_group_id, e)
         await message.answer("Murojaatni yuborishda xatolik yuz berdi.")
+        await _send_start_menu(message, settings)
     finally:
         await state.clear()
 
