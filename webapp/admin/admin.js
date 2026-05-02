@@ -619,11 +619,11 @@ function readFileAsDataUrl(file, errorMessage) {
 
 function readPosterFile(file) {
   if (!file.type.startsWith('image/')) {
-    return Promise.reject(new Error('Faqat rasm fayl tanlang (JPG, PNG, WEBP, GIF, va h.k.).'));
+    return Promise.reject(new Error('Faqat rasm fayl tanlang (JPG, PNG, WEBP, GIF).'));
   }
 
   if (file.size > POSTER_MAX_FILE_SIZE) {
-    return Promise.reject(new Error('Rasm hajmi juda katta. Maksimal: 5MB.'));
+    return Promise.reject(new Error('Rasm fayli hajmi juda katta. Maksimal: 5MB.'));
   }
 
   return new Promise((resolve, reject) => {
@@ -632,7 +632,7 @@ function readPosterFile(file) {
     reader.onload = () => {
       const dataUrl = String(reader.result || '');
       const image = new Image();
-      image.onerror = () => resolve(dataUrl); // Return as-is if can't load
+      image.onerror = () => resolve(dataUrl);
       image.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -641,16 +641,16 @@ function readPosterFile(file) {
           return;
         }
 
-        // Max dimensions for poster - preserve aspect ratio
-        const MAX_POSTER_WIDTH = 1200;
-        const MAX_POSTER_HEIGHT = 1800;
+        // Poster uchun optimal o'lchamlar (Metadata sig'ishi uchun)
+        const TARGET_WIDTH = 600;
+        const TARGET_HEIGHT = 900;
 
         let width = image.width;
         let height = image.height;
 
-        // Only resize if image is very large
-        if (width > MAX_POSTER_WIDTH || height > MAX_POSTER_HEIGHT) {
-          const scale = Math.min(MAX_POSTER_WIDTH / width, MAX_POSTER_HEIGHT / height);
+        // Proporsiyani saqlab qolgan holda kichraytirish
+        if (width > TARGET_WIDTH || height > TARGET_HEIGHT) {
+          const scale = Math.min(TARGET_WIDTH / width, TARGET_HEIGHT / height);
           width = Math.round(width * scale);
           height = Math.round(height * scale);
         }
@@ -659,12 +659,15 @@ function readPosterFile(file) {
         canvas.height = height;
         ctx.drawImage(image, 0, 0, width, height);
 
-        // Export as JPEG with good quality, or WebP if source was WebP/PNG with transparency
-        const isTransparent = file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/gif';
-        const outputFormat = isTransparent ? 'image/webp' : 'image/jpeg';
-        const quality = isTransparent ? 0.92 : 0.90;
-
-        resolve(canvas.toDataURL(outputFormat, quality));
+        // JPEG formatida kuchliroq siqish (0.7 sifat - yetarli darajada tiniq va hajmi kichik)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        
+        // Agar hali ham juda katta bo'lsa (masalan 20KB dan oshsa), yanada siqish
+        if (compressedDataUrl.length > 25000) {
+           resolve(canvas.toDataURL('image/jpeg', 0.5));
+        } else {
+           resolve(compressedDataUrl);
+        }
       };
       image.src = dataUrl;
     };
