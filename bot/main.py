@@ -178,8 +178,9 @@ async def _send_start_menu(message: Message, settings: Settings) -> None:
     )
 
 
-@router.message(CommandStart())
-async def start(message: Message, settings: Settings) -> None:
+@router.message(CommandStart(), StateFilter("*"))
+async def start(message: Message, state: FSMContext, settings: Settings) -> None:
+    await state.clear()
     try:
         user_record = upsert_user(settings.users_path, message.from_user)
         logging.info("User /start: %s (New: %s)", message.from_user.id, user_record.get("firstSeenAt") == user_record.get("lastSeenAt"))
@@ -274,10 +275,6 @@ async def feedback_callback(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(StateFilter(FeedbackState.waiting_for_message))
 async def process_feedback_message(message: Message, state: FSMContext, settings: Settings) -> None:
-    if message.text == "/start":
-        await state.clear()
-        await start(message, settings)
-        return
 
     if not settings.feedback_group_id:
         await message.answer("Murojaat tizimi sozlanmagan. Iltimos keyinroq urinib ko'ring.")
