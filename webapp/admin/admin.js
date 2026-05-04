@@ -24,6 +24,27 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+function normalizeImageUrlInput(value) {
+  const pasted = String(value || '').trim().replace(/^["']+|["']+$/g, '');
+  const protocolMatch = pasted.match(/https?:\/\/.+/i);
+  const raw = protocolMatch ? protocolMatch[0].trim() : pasted;
+  if (!raw) return '';
+  if (raw.startsWith('//')) return `https:${raw}`;
+  if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
+    return `https://${raw}`;
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      return new URL(raw).href;
+    } catch {
+      return raw;
+    }
+  }
+
+  return raw;
+}
+
 function sameMovieId(left, right) {
   return String(left) === String(right);
 }
@@ -328,15 +349,7 @@ function bindEvents() {
 
   // Splash image settings
   document.getElementById('splashImageUrl')?.addEventListener('input', (e) => {
-    const url = e.target.value.trim();
-    const preview = document.getElementById('splashPreview');
-    const previewImg = document.getElementById('splashPreviewImg');
-    if (url && previewImg) {
-      previewImg.src = url;
-      if (preview) preview.style.display = 'block';
-    } else {
-      if (preview) preview.style.display = 'none';
-    }
+    updateSplashPreview(e.target.value);
   });
 
   document.getElementById('saveSplashBtn')?.addEventListener('click', saveSplashSettings);
@@ -1084,21 +1097,31 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Splash Settings
+function updateSplashPreview(value) {
+  const url = normalizeImageUrlInput(value);
+  const preview = document.getElementById('splashPreview');
+  const previewImg = document.getElementById('splashPreviewImg');
+  if (!preview || !previewImg) return;
+
+  if (url) {
+    previewImg.src = url;
+    preview.style.display = 'block';
+  } else {
+    previewImg.removeAttribute('src');
+    preview.style.display = 'none';
+  }
+}
+
 async function loadSplashSettings() {
   try {
     const response = await fetch(`${API_URL}/settings`);
     if (!response.ok) return;
     const data = await response.json();
-    const splashUrl = data.splashImageUrl || '';
+    const splashUrl = normalizeImageUrlInput(data.splashImageUrl || '');
     const input = document.getElementById('splashImageUrl');
-    if (input && splashUrl) {
+    if (input) {
       input.value = splashUrl;
-      const preview = document.getElementById('splashPreview');
-      const previewImg = document.getElementById('splashPreviewImg');
-      if (previewImg) {
-        previewImg.src = splashUrl;
-        if (preview) preview.style.display = 'block';
-      }
+      updateSplashPreview(splashUrl);
     }
   } catch (e) {
     console.log('Settings not available:', e.message);
@@ -1106,8 +1129,10 @@ async function loadSplashSettings() {
 }
 
 async function saveSplashSettings() {
-  const url = document.getElementById('splashImageUrl')?.value.trim() || '';
+  const input = document.getElementById('splashImageUrl');
+  const url = normalizeImageUrlInput(input?.value || '');
   const btn = document.getElementById('saveSplashBtn');
+  if (input) input.value = url;
 
   try {
     if (btn) {
