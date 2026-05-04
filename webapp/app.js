@@ -1051,13 +1051,20 @@ function renderHeroCarousel() {
   heroCarousel.hidden = false;
   heroSlides.innerHTML = "";
   heroIndicators.innerHTML = "";
-  heroActiveIndex = 0;
+  
+  // Infinite loop logic: Clone first and last slides if multiple items
+  const hasMultiple = featured.length > 1;
+  const slides = hasMultiple 
+    ? [featured[featured.length - 1], ...featured, featured[0]] 
+    : featured;
+  
+  heroActiveIndex = hasMultiple ? 1 : 0;
 
-  featured.forEach((movie, index) => {
+  slides.forEach((movie, index) => {
     const slide = document.createElement("div");
     slide.className = "hero-slide";
     slide.innerHTML = `
-      <img src="${movie.headerImage}" alt="${escapeHtml(movie.title)}" loading="${index === 0 ? 'eager' : 'lazy'}">
+      <img src="${movie.headerImage}" alt="${escapeHtml(movie.title)}" loading="${(hasMultiple ? index === 1 : index === 0) ? 'eager' : 'lazy'}">
       <div class="hero-content">
         <h2>${escapeHtml(movie.title)}</h2>
         <p>${escapeHtml(movie.genre)} · ${escapeHtml(movie.year)}</p>
@@ -1065,29 +1072,71 @@ function renderHeroCarousel() {
     `;
     slide.addEventListener("click", () => openMovie(movie));
     heroSlides.appendChild(slide);
+  });
 
+  // Render indicators (only for real slides)
+  featured.forEach((_, index) => {
     const indicator = document.createElement("div");
     indicator.className = `hero-indicator${index === 0 ? ' active' : ''}`;
     indicator.addEventListener("click", () => {
-      heroActiveIndex = index;
+      heroActiveIndex = index + (hasMultiple ? 1 : 0);
       updateHeroSlides();
+      startHeroRotation(featured.length); // Reset timer on manual click
     });
     heroIndicators.appendChild(indicator);
   });
 
+  // Handle jump for infinite loop
+  if (hasMultiple) {
+    heroSlides.ontransitionend = () => {
+      if (heroActiveIndex === 0) {
+        heroActiveIndex = featured.length;
+        updateHeroSlides(true);
+      } else if (heroActiveIndex === featured.length + 1) {
+        heroActiveIndex = 1;
+        updateHeroSlides(true);
+      }
+    };
+  }
+
+  updateHeroSlides(true);
   startHeroRotation(featured.length);
 }
 
-function updateHeroSlides() {
+function updateHeroSlides(instant = false) {
   const heroSlides = document.getElementById("heroSlides");
   const indicators = document.querySelectorAll(".hero-indicator");
   if (!heroSlides) return;
 
+  const featured = movies.filter(m => m.showInHeader && m.headerImage);
+  const count = featured.length;
+  const hasMultiple = count > 1;
+
+  if (instant) {
+    heroSlides.style.transition = "none";
+  } else {
+    heroSlides.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
+  }
+
   heroSlides.style.transform = `translateX(-${heroActiveIndex * 100}%)`;
   
+  // Sync indicators
+  let displayIndex = hasMultiple ? heroActiveIndex - 1 : heroActiveIndex;
+  if (hasMultiple) {
+    if (heroActiveIndex === 0) displayIndex = count - 1;
+    if (heroActiveIndex === count + 1) displayIndex = 0;
+  }
+
   indicators.forEach((ind, i) => {
-    ind.classList.toggle("active", i === heroActiveIndex);
+    ind.classList.toggle("active", i === displayIndex);
   });
+  
+  // Reset transition property after instant jump
+  if (instant) {
+    // Force reflow
+    heroSlides.offsetHeight; 
+    heroSlides.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
+  }
 }
 
 function startHeroRotation(count) {
@@ -1095,7 +1144,7 @@ function startHeroRotation(count) {
   if (count <= 1) return;
   
   heroIntervalId = setInterval(() => {
-    heroActiveIndex = (heroActiveIndex + 1) % count;
+    heroActiveIndex++;
     updateHeroSlides();
   }, HERO_ROTATE_INTERVAL_MS);
 }
