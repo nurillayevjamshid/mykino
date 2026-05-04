@@ -1013,9 +1013,8 @@ function syncNavButtons() {
 function renderHeroCarousel() {
   const heroCarousel = document.getElementById("heroCarousel");
   const heroSlides = document.getElementById("heroSlides");
-  const heroIndicators = document.getElementById("heroIndicators");
   
-  if (!heroCarousel || !heroSlides || !heroIndicators) return;
+  if (!heroCarousel || !heroSlides) return;
 
   const featured = movies.filter(m => m.showInHeader && m.headerImage);
 
@@ -1027,7 +1026,7 @@ function renderHeroCarousel() {
 
   heroCarousel.hidden = false;
   heroSlides.innerHTML = "";
-  if (heroIndicators) heroIndicators.innerHTML = "";
+
   
   // Infinite loop logic: Clone first and last slides if multiple items
   const hasMultiple = featured.length > 1;
