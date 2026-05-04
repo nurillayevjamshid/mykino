@@ -233,7 +233,8 @@ img {
 
 /* Hero Carousel */
 .hero-carousel {
-  width: 100%;
+  width: calc(100% + 10px);
+  margin-inline: -5px;
   aspect-ratio: 16 / 9;
   position: relative;
   overflow: hidden;
