@@ -271,13 +271,21 @@ function bindEvents() {
     }
   });
 
+  // Add Category
+  document.getElementById('addCategoryBtn')?.addEventListener('click', () => {
+    openCategoryModal();
+  });
+
   // Modal closes
   document.getElementById('closeMovieModal')?.addEventListener('click', closeMovieModal);
   document.getElementById('cancelMovie')?.addEventListener('click', closeMovieModal);
+  document.getElementById('closeCategoryModal')?.addEventListener('click', closeCategoryModal);
+  document.getElementById('cancelCategory')?.addEventListener('click', closeCategoryModal);
   document.getElementById('closeWatchedMoviesModal')?.addEventListener('click', closeWatchedMoviesModal);
 
   // Forms
   document.getElementById('movieForm')?.addEventListener('submit', handleMovieSubmit);
+  document.getElementById('categoryForm')?.addEventListener('submit', handleCategorySubmit);
   document.getElementById('movieDescription')?.addEventListener('input', updateDescriptionCounter);
 
   // Poster file upload
@@ -378,7 +386,7 @@ function renderMovies() {
   if (movies.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6">
+        <td colspan="7">
           <div class="empty-state">
             <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
@@ -412,6 +420,7 @@ function renderMovies() {
       </td>
       <td><strong>${escapeHtml(movie.name)}</strong><br><small style="color:var(--text-muted)">${escapeHtml(movie.code || '')}</small></td>
       <td>${escapeHtml(movie.year || '-')}</td>
+      <td>${escapeHtml(getCategoryName(movie.category))}</td>
       <td>
         <span class="rating">⭐ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>
       </td>
@@ -431,6 +440,36 @@ function renderMovies() {
         </div>
       </td>
     </tr>
+  `).join('');
+}
+
+// Render Categories
+function renderCategories() {
+  const grid = document.getElementById('categoriesGrid');
+  if (!grid) return;
+
+  if (categories.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+        </svg>
+        <h3>Hozircha kategoriyalar yo'q</h3>
+        <p>Yangi kategoriya qo'shish uchun tugmani bosing</p>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = categories.map(cat => `
+    <div class="category-card" data-id="${escapeHtml(cat.id)}">
+      <div class="category-icon">${escapeHtml(cat.icon)}</div>
+      <div class="category-name">${escapeHtml(cat.name)}</div>
+      <div class="category-count">${cat.count} ta kino</div>
+    </div>
   `).join('');
 }
 
@@ -557,12 +596,20 @@ window.closeWatchedMoviesModal = function() {
   if (modal) modal.classList.remove('active');
 }
 
+// Get Category Name
+function getCategoryName(id) {
+  const value = String(id || '').trim();
+  const cat = categories.find(c => String(c.id) === value || c.name.toLowerCase() === value.toLowerCase());
+  return cat ? cat.name : value;
+}
+
 // Open Movie Modal
 function openMovieModal(movie = null) {
   const modal = document.getElementById('movieModal');
   const title = document.getElementById('movieModalTitle');
   const form = document.getElementById('movieForm');
   const posterFileInput = document.getElementById('moviePosterFile');
+  updateCategorySelect(movie?.category || '');
 
   // Reset poster state
   selectedPosterDataUrl = '';
@@ -571,6 +618,7 @@ function openMovieModal(movie = null) {
   if (movie) {
     title.textContent = 'Kino tahrirlash';
     document.getElementById('movieName').value = movie.name;
+    document.getElementById('movieCategory').value = movie.category;
     document.getElementById('movieRating').value = movie.rating;
     document.getElementById('movieHd').value = movie.hd.toString();
     document.getElementById('movieDescription').value = movie.description || '';
@@ -797,6 +845,7 @@ async function handleMovieSubmit(e) {
   const submitButton = form.querySelector('button[type="submit"]');
   const movieData = {
     name: document.getElementById('movieName').value.trim(),
+    category: document.getElementById('movieCategory').value,
     rating: parseFloat(document.getElementById('movieRating').value) || 0,
     hd: document.getElementById('movieHd').value === 'true',
     description: document.getElementById('movieDescription').value,
@@ -815,6 +864,9 @@ async function handleMovieSubmit(e) {
 
     if (!currentMovie || hasMovieFieldChanged(movieData.name, currentMovie.name)) {
       updatePayload.title = movieData.name;
+    }
+    if (!currentMovie || hasMovieFieldChanged(movieData.category, currentMovie.category)) {
+      updatePayload.genre = movieData.category;
     }
     if (!currentMovie || hasRatingChanged(movieData.rating, currentMovie.rating)) {
       updatePayload.rating = movieData.rating;
@@ -871,6 +923,7 @@ async function handleMovieSubmit(e) {
         closeMovieModal();
         showNotification('Kino bazada yangilandi!');
         await fetchMovies();
+        renderCategories();
         return;
         // Update local data
         const index = movies.findIndex(m => m.id === id);
@@ -909,7 +962,9 @@ async function handleMovieSubmit(e) {
     showNotification('Kino qo\'shildi! (lokal)');
   }
 
+  updateCategoryCounts();
   renderMovies();
+  renderCategories();
   closeMovieModal();
 }
 
@@ -925,9 +980,54 @@ function editMovie(id) {
 function deleteMovie(id) {
   if (confirm('Bu kinoni o\'chirishni xohlaysizmi?')) {
     movies = movies.filter(m => !sameMovieId(m.id, id));
+    updateCategoryCounts();
     renderMovies();
+    renderCategories();
     showNotification('Kino o\'chirildi!');
   }
+}
+
+// Open Category Modal
+function openCategoryModal() {
+  document.getElementById('categoryModal').classList.add('active');
+}
+
+// Close Category Modal
+function closeCategoryModal() {
+  document.getElementById('categoryModal').classList.remove('active');
+  document.getElementById('categoryForm').reset();
+}
+
+// Handle Category Submit
+function handleCategorySubmit(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('categoryName').value;
+  const icon = document.getElementById('categoryIcon').value;
+
+  const categoryIds = categories.map(c => Number(c.id)).filter(Number.isFinite);
+  const newId = Math.max(...categoryIds, 0) + 1;
+  categories.push({ id: newId, name, icon, count: 0 });
+
+  renderCategories();
+  updateCategorySelect();
+  closeCategoryModal();
+  showNotification('Kategoriya qo\'shildi!');
+}
+
+// Update Category Select in Movie Form
+function updateCategorySelect(preferredValue = '') {
+  const select = document.getElementById('movieCategory');
+  if (!select) return;
+
+  const currentValue = preferredValue || select.value;
+  if (currentValue && !categories.some(c => c.name.toLowerCase() === String(currentValue).toLowerCase())) {
+    categories.push({ id: currentValue, name: currentValue, icon: '🎬', count: 0 });
+  }
+
+  select.innerHTML = '<option value="">Tanlang</option>' +
+    categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+  select.value = currentValue;
 }
 
 // Show Notification
