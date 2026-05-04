@@ -890,9 +890,11 @@ module.exports = {
   getDriveConfig,
   getDriveFileMetadata,
   getDriveMediaResponse,
+  isServiceAccountStorageQuotaError,
   listDriveMovies,
   readCatalogMetadata,
   writeCatalogMetadata,
   setCors,
+  updateDriveFileMetadata,
   updateCatalogMovieMetadata,
 };
