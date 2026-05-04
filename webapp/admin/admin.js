@@ -183,10 +183,13 @@ async function init() {
 async function fetchUsers() {
   try {
     const response = await fetch(`${API_URL}/users`);
+    console.log('Users API response status:', response.status);
     if (!response.ok) throw new Error('Failed to fetch users');
     const data = await response.json();
+    console.log('Users API data:', data);
 
     users = Array.isArray(data) ? data : [];
+    console.log('Users loaded:', users.length);
     renderUsers();
   } catch (error) {
     console.error('Error fetching users:', error);
