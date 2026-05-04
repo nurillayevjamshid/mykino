@@ -143,6 +143,7 @@ const themeToggle = document.getElementById('themeToggle');
 // Section titles
 const sectionTitles = {
   movies: 'Kinolar',
+  categories: 'Kategoriyalar',
   subscribers: 'Obunachilar',
   settings: 'Sozlamalar'
 };
@@ -168,9 +169,12 @@ function toggleTheme() {
 // Initialize
 async function init() {
   applyTheme(savedTheme);
+  loadCategories();
   await fetchMovies();
   await fetchUsers();
   await loadSplashSettings();
+  renderCategories();
+  updateCategorySelect();
   bindEvents();
   createSidebarOverlay();
 }
