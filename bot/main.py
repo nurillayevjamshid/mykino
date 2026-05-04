@@ -10,12 +10,12 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, StateFilter
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import BotCommand, CallbackQuery, Message, MenuButtonWebApp, WebAppInfo
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from .config import Settings, load_settings
-from .keyboards import join_inline_keyboard, start_menu
+from .keyboards import join_inline_keyboard, main_menu, start_menu
 from .storage import load_movies, parse_movie_caption, search_movies, upsert_movie, upsert_user
 from .webserver import create_web_app
 
@@ -174,7 +174,12 @@ async def _send_start_menu(message: Message, settings: Settings) -> None:
         "Assalomu alaykum, My Kino botiga xush kelibsiz.\n"
         "Biz bilan vaqtingiz chog' va maroqli o'tishini tilab qolamiz.\n"
         "Biz siz uchun doim xizmatdamiz.",
-        reply_markup=start_menu(settings.webapp_url),
+        reply_markup=main_menu(settings.webapp_url),
+    )
+    # Also send inline menu for immediate action if needed
+    await message.answer(
+        "Tezkor bo'limlar:",
+        reply_markup=start_menu(settings.webapp_url)
     )
 
 
@@ -379,6 +384,21 @@ async def main() -> None:
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
+
+    # Set bot commands and menu button
+    try:
+        await bot.set_my_commands([
+            BotCommand(command="start", description="Botni ishga tushirish / Menyuni ochish"),
+        ])
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="Kino ko'rish",
+                web_app=WebAppInfo(url=settings.webapp_url)
+            )
+        )
+        logging.info("Bot commands and menu button configured.")
+    except Exception as e:
+        logging.error("Failed to set bot commands/menu: %s", e)
 
     dispatcher = Dispatcher()
     dispatcher.include_router(router)

@@ -3,6 +3,8 @@ from __future__ import annotations
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
     WebAppInfo,
 )
 
@@ -33,6 +35,30 @@ def start_menu(webapp_url: str) -> InlineKeyboardMarkup:
                 ),
             ],
         ],
+    )
+
+
+def main_menu(webapp_url: str) -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(
+                    text="Kino ko'rish",
+                    web_app=WebAppInfo(url=webapp_url),
+                ),
+            ],
+            [
+                KeyboardButton(
+                    text="Profilga kirish",
+                    web_app=WebAppInfo(url=f"{webapp_url}/#profile"),
+                ),
+                KeyboardButton(
+                    text="Murojaat qoldirish",
+                ),
+            ],
+        ],
+        resize_keyboard=True,
+        persistent=True,
     )
 
 
