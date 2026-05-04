@@ -46,13 +46,14 @@ module.exports = async function handler(request, response) {
 
     // Normalize user data for the admin panel
     const normalizedUsers = users.map(user => ({
-      id: user.id || user.user_id || 0,
+      id: user.telegram_id || user.id || user.user_id || 0,
+      telegram_id: user.telegram_id || user.id || user.user_id || 0,
       username: user.username || "",
-      firstName: user.firstName || user.first_name || "",
-      lastName: user.lastName || user.last_name || "",
+      firstName: user.first_name || user.firstName || "",
+      lastName: user.last_name || user.lastName || "",
       phone: user.phone || "",
-      firstSeenAt: user.firstSeenAt || user.first_seen_at || null,
-      lastSeenAt: user.lastSeenAt || user.last_seen_at || null,
+      firstSeenAt: user.started_at || user.firstSeenAt || user.first_seen_at || null,
+      started_at: user.started_at || null,
       watchedMovies: user.watchedMovies || user.watched_movies || [],
     }));
 
