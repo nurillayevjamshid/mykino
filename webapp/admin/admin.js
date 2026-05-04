@@ -25,7 +25,9 @@ function escapeHtml(value) {
 }
 
 function normalizeImageUrlInput(value) {
-  const raw = String(value || '').trim();
+  const pasted = String(value || '').trim().replace(/^["']+|["']+$/g, '');
+  const protocolMatch = pasted.match(/https?:\/\/.+/i);
+  const raw = protocolMatch ? protocolMatch[0].trim() : pasted;
   if (!raw) return '';
   if (raw.startsWith('//')) return `https:${raw}`;
   if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {

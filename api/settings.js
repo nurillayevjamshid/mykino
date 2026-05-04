@@ -1,4 +1,16 @@
-const { setCors, readCatalogMetadata, writeCatalogMetadata } = require("./_lib/google-drive");
+const {
+  getDriveConfig,
+  getDriveFileMetadata,
+  isServiceAccountStorageQuotaError,
+  setCors,
+  readCatalogMetadata,
+  updateDriveFileMetadata,
+  writeCatalogMetadata,
+} = require("./_lib/google-drive");
+
+const SETTINGS_META_START = "[MY_KINO_SETTINGS]";
+const SETTINGS_META_END = "[/MY_KINO_SETTINGS]";
+const DRIVE_DESCRIPTION_MAX_LENGTH = 28000;
 
 async function readRequestBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
@@ -25,8 +37,14 @@ function trimString(value) {
   return String(value || "").trim();
 }
 
+function normalizeRawUrl(value) {
+  const raw = trimString(value).replace(/^["']+|["']+$/g, "");
+  const protocolMatch = raw.match(/https?:\/\/.+/i);
+  return protocolMatch ? protocolMatch[0].trim() : raw;
+}
+
 function normalizePublicImageUrl(value) {
-  const raw = trimString(value);
+  const raw = normalizeRawUrl(value);
   if (!raw) return "";
   if (raw.startsWith("//")) return `https:${raw}`;
   if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
@@ -60,6 +78,87 @@ function readStoredPublicImageUrl(value) {
   }
 }
 
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object || {}, key);
+}
+
+function extractFolderSettings(description) {
+  const rawDescription = String(description || "");
+  const startIndex = rawDescription.indexOf(SETTINGS_META_START);
+  const endIndex = rawDescription.indexOf(SETTINGS_META_END);
+  if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) return {};
+
+  const jsonText = rawDescription
+    .slice(startIndex + SETTINGS_META_START.length, endIndex)
+    .trim();
+
+  try {
+    const parsed = JSON.parse(jsonText);
+    const settings = parsed?.settings && typeof parsed.settings === "object" ? parsed.settings : parsed;
+    return settings && typeof settings === "object" ? settings : {};
+  } catch {
+    return {};
+  }
+}
+
+function buildFolderDescriptionWithSettings(description, settings) {
+  const rawDescription = String(description || "");
+  const block = [
+    SETTINGS_META_START,
+    JSON.stringify({ version: 1, settings }),
+    SETTINGS_META_END,
+  ].join("\n");
+  const startIndex = rawDescription.indexOf(SETTINGS_META_START);
+  const endIndex = rawDescription.indexOf(SETTINGS_META_END);
+  const hasExistingBlock = startIndex !== -1 && endIndex !== -1 && endIndex > startIndex;
+  const prefix = hasExistingBlock ? rawDescription.slice(0, startIndex).trimEnd() : rawDescription.trimEnd();
+  const suffix = hasExistingBlock ? rawDescription.slice(endIndex + SETTINGS_META_END.length).trimStart() : "";
+  const nextDescription = [prefix, block, suffix].filter(Boolean).join("\n\n");
+
+  if (nextDescription.length > DRIVE_DESCRIPTION_MAX_LENGTH) {
+    const error = new Error("Sozlamalarni Drive papka descriptioniga saqlash uchun joy yetmadi.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return nextDescription;
+}
+
+async function readFolderSettings() {
+  const { folderId } = getDriveConfig();
+  const folder = await getDriveFileMetadata(folderId, "id,name,description");
+  return extractFolderSettings(folder.description);
+}
+
+async function writeFolderSettings(nextSettings) {
+  const { folderId } = getDriveConfig();
+  const folder = await getDriveFileMetadata(folderId, "id,name,description");
+  const currentSettings = extractFolderSettings(folder.description);
+  const settings = { ...currentSettings, ...nextSettings };
+  const description = buildFolderDescriptionWithSettings(folder.description, settings);
+
+  await updateDriveFileMetadata(
+    folderId,
+    { description },
+    "id,name,description,modifiedTime",
+  );
+
+  return settings;
+}
+
+async function readPersistedSettings(settings) {
+  if (hasOwn(settings, "splashImageUrl")) {
+    return { splashImageUrl: readStoredPublicImageUrl(settings.splashImageUrl) };
+  }
+
+  try {
+    const folderSettings = await readFolderSettings();
+    return { splashImageUrl: readStoredPublicImageUrl(folderSettings.splashImageUrl) };
+  } catch {
+    return { splashImageUrl: "" };
+  }
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
   response.setHeader("Cache-Control", "no-store, max-age=0");
@@ -74,7 +173,7 @@ module.exports = async function handler(request, response) {
     const settings = metadataState.data.settings || {};
 
     if (request.method === "GET") {
-      response.status(200).json({ splashImageUrl: readStoredPublicImageUrl(settings.splashImageUrl || "") });
+      response.status(200).json(await readPersistedSettings(settings));
       return;
     }
 
@@ -84,7 +183,15 @@ module.exports = async function handler(request, response) {
 
       // Update settings in metadata
       metadataState.data.settings = { ...settings, splashImageUrl };
-      await writeCatalogMetadata(metadataState.data, metadataState.file);
+      try {
+        await writeCatalogMetadata(metadataState.data, metadataState.file);
+      } catch (error) {
+        if (!isServiceAccountStorageQuotaError(error)) {
+          throw error;
+        }
+
+        await writeFolderSettings(metadataState.data.settings);
+      }
 
       response.status(200).json({ ok: true, splashImageUrl });
       return;
@@ -92,6 +199,6 @@ module.exports = async function handler(request, response) {
 
     response.status(405).json({ ok: false, error: "Method not allowed" });
   } catch (err) {
-    response.status(500).json({ ok: false, error: err.message });
+    response.status(err.statusCode || 500).json({ ok: false, error: err.message });
   }
 };
