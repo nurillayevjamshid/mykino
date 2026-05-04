@@ -230,7 +230,7 @@ let lastSavedProgressSecond = -1;
 let heroActiveIndex = 0;
 let heroIntervalId = null;
 const grid = document.querySelector("#movieGrid");
-
+const emptyState = document.querySelector("#emptyState");
 const searchPanel = document.querySelector("#searchPanel");
 const searchInput = document.querySelector("#searchInput");
 
@@ -963,7 +963,34 @@ function clearMovieProgress(movie) {
   updateWatchedMovieProgress(movie, 0);
 }
 
+function updateWatchedMovieProgress(movie, progress) {
+  // Mock logic if this was previously empty
+}
 
+function setEmptyState(title, text) {
+  emptyState.querySelector("strong").textContent = title;
+  emptyState.querySelector("span").textContent = text;
+}
+
+function updateEmptyState(list) {
+  if (movieLoadState === "loading") {
+    emptyState.hidden = false;
+    emptyState.classList.add("loading-state");
+    setEmptyState(t("loadingTitle"), t("loadingText"));
+    return;
+  }
+
+  emptyState.classList.remove("loading-state");
+
+  if (movieLoadState === "error") {
+    emptyState.hidden = false;
+    setEmptyState(t("loadErrorTitle"), movieLoadError || t("loadErrorText"));
+    return;
+  }
+
+  emptyState.hidden = list.length > 0;
+  if (!list.length) setEmptyState(t("emptyTitle"), t("emptyText"));
+}
 
 function buildCategoryOptions() {
   const map = new Map();
@@ -1013,8 +1040,9 @@ function syncNavButtons() {
 function renderHeroCarousel() {
   const heroCarousel = document.getElementById("heroCarousel");
   const heroSlides = document.getElementById("heroSlides");
+  const heroIndicators = document.getElementById("heroIndicators");
   
-  if (!heroCarousel || !heroSlides) return;
+  if (!heroCarousel || !heroSlides || !heroIndicators) return;
 
   const featured = movies.filter(m => m.showInHeader && m.headerImage);
 
@@ -1026,8 +1054,7 @@ function renderHeroCarousel() {
 
   heroCarousel.hidden = false;
   heroSlides.innerHTML = "";
-
-  
+  heroIndicators.innerHTML = "";
   // Infinite loop logic: Clone first and last slides if multiple items
   const hasMultiple = featured.length > 1;
   const slides = hasMultiple 
@@ -1048,6 +1075,18 @@ function renderHeroCarousel() {
     `;
     slide.addEventListener("click", () => openMovie(movie));
     heroSlides.appendChild(slide);
+  });
+
+  // Render indicators (only for real slides)
+  featured.forEach((_, index) => {
+    const indicator = document.createElement("div");
+    indicator.className = `hero-indicator${index === 0 ? ' active' : ''}`;
+    indicator.addEventListener("click", () => {
+      heroActiveIndex = index + (hasMultiple ? 1 : 0);
+      updateHeroSlides();
+      startHeroRotation(featured.length); // Reset timer on manual click
+    });
+    heroIndicators.appendChild(indicator);
   });
 
 
@@ -1071,7 +1110,12 @@ function renderHeroCarousel() {
 
 function updateHeroSlides(instant = false) {
   const heroSlides = document.getElementById("heroSlides");
+  const indicators = document.querySelectorAll(".hero-indicator");
   if (!heroSlides) return;
+
+  const featured = movies.filter(m => m.showInHeader && m.headerImage);
+  const count = featured.length;
+  const hasMultiple = count > 1;
 
   if (instant) {
     heroSlides.style.transition = "none";
@@ -1081,6 +1125,17 @@ function updateHeroSlides(instant = false) {
 
   heroSlides.style.transform = `translateX(-${heroActiveIndex * 100}%)`;
   
+  // Sync indicators
+  let displayIndex = hasMultiple ? heroActiveIndex - 1 : heroActiveIndex;
+  if (hasMultiple) {
+    if (heroActiveIndex === 0) displayIndex = count - 1;
+    if (heroActiveIndex === count + 1) displayIndex = 0;
+  }
+
+  indicators.forEach((ind, i) => {
+    ind.classList.toggle("active", i === displayIndex);
+  });
+
   if (instant) {
     heroSlides.offsetHeight; 
     heroSlides.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
@@ -1100,8 +1155,7 @@ function startHeroRotation(count) {
 function renderMovies() {
   const list = movieLoadState === "ready" ? filteredMovies() : [];
   grid.innerHTML = "";
-
-
+  updateEmptyState(list);
   for (const movie of list) {
     const card = document.createElement("article");
     card.className = "movie-card";
