@@ -18,6 +18,24 @@
           "value": "no-store, max-age=0"
         }
       ]
+    },
+    {
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/admin/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
     }
   ],
   "builds": [
@@ -59,6 +77,10 @@
     },
     {
       "src": "api/users.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/settings.js",
       "use": "@vercel/node"
     },
     {
