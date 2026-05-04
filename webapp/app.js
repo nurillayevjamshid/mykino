@@ -504,6 +504,10 @@ function safeUrl(value) {
 function resolveAppUrl(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
+  if (raw.startsWith("//")) return `https:${raw}`;
+  if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
+    return `https://${raw}`;
+  }
   if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
   if (raw.startsWith("/")) return buildApiUrl(raw);
   return raw;
@@ -2193,18 +2197,63 @@ function startMoviesPolling() {
   }, 60000);
 }
 
+function waitForImageReady(image, timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    if (!image) {
+      resolve(false);
+      return;
+    }
+
+    if (image.complete && image.naturalWidth > 0) {
+      resolve(true);
+      return;
+    }
+
+    let settled = false;
+    let timeoutId = 0;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      image.removeEventListener("load", onLoad);
+      image.removeEventListener("error", onError);
+      resolve(ok);
+    };
+    const onLoad = () => finish(true);
+    const onError = () => finish(false);
+
+    image.addEventListener("load", onLoad, { once: true });
+    image.addEventListener("error", onError, { once: true });
+    timeoutId = window.setTimeout(() => finish(false), timeoutMs);
+  });
+}
+
 async function loadAppSettings() {
+  let timeoutId = 0;
   try {
-    const response = await fetch(buildApiUrl("/api/settings"));
+    await resolveApiBase();
+    const controller = new AbortController();
+    timeoutId = window.setTimeout(() => controller.abort(), 3500);
+    const response = await fetch(buildApiUrl("/api/settings"), {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
     if (response.ok) {
       const data = await response.json();
-      if (data.splashImageUrl) {
+      const splashImageUrl = resolveAppUrl(data.splashImageUrl || "");
+      if (splashImageUrl) {
         const splashImg = document.querySelector("#splashScreen img");
-        if (splashImg) splashImg.src = data.splashImageUrl;
+        if (splashImg) {
+          splashImg.src = splashImageUrl;
+          await waitForImageReady(splashImg);
+        }
       }
     }
   } catch (e) {
     // Ignore error, use default
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 }
 
@@ -2225,8 +2274,8 @@ function initSplashScreen() {
 }
 
 async function initApp() {
-  initSplashScreen();
   await loadAppSettings();
+  initSplashScreen();
   loadMovies();
   startMoviesPolling();
 }
