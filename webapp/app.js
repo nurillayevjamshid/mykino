@@ -475,13 +475,7 @@ function toBooleanFlag(value) {
 
 function getPosterImage(movie) {
   // PosterImage asosiy, agar yo'q bo'lsa headerImage ishlatiladi (header section kinolari uchun)
-  // Vercel blob URL commented out - using local img/poster.webp instead
-  const poster = String(movie?.posterImage || movie?.poster || movie?.headerImage || movie?.heroPoster || "").trim();
-  // If poster is from vercel blob or empty, use local fallback
-  if (!poster || /blob\.vercel-storage\.com/i.test(poster)) {
-    return "img/poster.webp";
-  }
-  return poster;
+  return String(movie?.posterImage || movie?.poster || movie?.headerImage || movie?.heroPoster || "").trim();
 }
 
 
@@ -511,15 +505,14 @@ function resolveAppUrl(value) {
   const pasted = String(value || "").trim().replace(/^["']+|["']+$/g, "");
   const protocolMatch = pasted.match(/https?:\/\/.+/i);
   const raw = protocolMatch ? protocolMatch[0].trim() : pasted;
-  if (!raw) return "img/poster.webp";
+  if (!raw) return "";
   if (raw.startsWith("//")) return `https:${raw}`;
-  // Vercel blob URL handling - commented out, using local poster instead
-  // if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
-  //   return `https://${raw}`;
-  // }
+  if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
+    return `https://${raw}`;
+  }
   if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
   if (raw.startsWith("/")) return buildApiUrl(raw);
-  return "img/poster.webp";
+  return raw;
 }
 
 function sanitizePublicGenre(value) {
@@ -794,7 +787,7 @@ function normalizeMovie(movie, index = 0) {
   const postUrl = getMoviePostUrl(movie);
   const safeId = String(movie?.id || movie?.code || `movie-${index + 1}`);
   const title = String(movie?.title || `Kino ${index + 1}`).trim();
-  const rawPoster = String(movie?.posterImage || movie?.poster || movie?.thumbnail || (fileId ? buildDriveThumbnailUrl(fileId) : "img/poster.webp")).trim();
+  const rawPoster = String(movie?.posterImage || movie?.poster || movie?.thumbnail || (fileId ? buildDriveThumbnailUrl(fileId) : "")).trim();
   const sourceType = String(movie?.sourceType || "").trim();
   const fileName = String(movie?.fileName || movie?.name || "").trim();
   const sourceUrl = getMovieVideoUrl(movie);

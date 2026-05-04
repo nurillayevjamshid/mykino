@@ -30,10 +30,9 @@ function normalizeImageUrlInput(value) {
   const raw = protocolMatch ? protocolMatch[0].trim() : pasted;
   if (!raw) return '';
   if (raw.startsWith('//')) return `https:${raw}`;
-  // Vercel blob URL handling - commented out
-  // if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
-  //   return `https://${raw}`;
-  // }
+  if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
+    return `https://${raw}`;
+  }
 
   if (/^https?:\/\//i.test(raw)) {
     try {
