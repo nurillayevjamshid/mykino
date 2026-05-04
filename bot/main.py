@@ -161,11 +161,17 @@ async def _check_subscription(bot: Bot, user_id: int, settings: Settings) -> boo
     if not settings.content_channel_id:
         return True
     try:
-        member = await bot.get_chat_member(chat_id=settings.content_channel_id, user_id=user_id)
+        # Set a short timeout for the subscription check
+        member = await asyncio.wait_for(
+            bot.get_chat_member(chat_id=settings.content_channel_id, user_id=user_id),
+            timeout=3.0
+        )
         return member.status in {"creator", "administrator", "member"}
+    except asyncio.TimeoutError:
+        logging.warning("Subscription check timed out for user %s", user_id)
+        return True
     except Exception as e:
         logging.warning("Subscription check failed for user %s: %s", user_id, e)
-        # If the bot is not an admin or channel is private/invalid, we allow the user to proceed
         return True
 
 
@@ -180,6 +186,7 @@ async def _send_start_menu(message: Message, settings: Settings) -> None:
 
 @router.message(CommandStart(), StateFilter("*"))
 async def start(message: Message, state: FSMContext, settings: Settings) -> None:
+    logging.info("Start handler triggered for user %s", message.from_user.id)
     await state.clear()
     try:
         user_record = upsert_user(settings.users_path, message.from_user)
@@ -382,6 +389,7 @@ async def main() -> None:
 
     runner = await start_web_server(create_web_app(settings), settings.web_host, settings.web_port)
     try:
+        await bot.delete_webhook(drop_pending_updates=True)
         await dispatcher.start_polling(bot, settings=settings)
     finally:
         await runner.cleanup()
