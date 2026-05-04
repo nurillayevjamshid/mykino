@@ -317,7 +317,34 @@ img {
   margin: 0;
 }
 
+.hero-indicators {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  gap: 5px;
+  z-index: 3;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
+.hero-indicator {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-indicator.active {
+  width: 18px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
 
 .topbar-controls {
   display: flex;
@@ -992,9 +1019,18 @@ html[data-theme="light"] .card-watch-button {
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
     0 8px 20px rgba(255, 187, 42, 0.2);
 }
-
-
-
+.empty-state {
+  margin: 40px 0;
+  padding: 40px 24px;
+  border-radius: 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 180px;
+}
 .empty-state.loading-state::before {
   content: '';
   width: 48px;
