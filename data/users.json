@@ -1,74 +1,32 @@
 [
   {
-    "id": 123456789,
+    "telegram_id": 123456789,
     "username": "newuser",
-    "firstName": "New",
-    "lastName": "User",
-    "phone": "+998901234567",
-    "watchedMovies": [
-      {
-        "id": "1",
-        "title": "Avatar: The Way of Water",
-        "poster": "https://image.tmdb.org/t/p/w500/t6Sna4vYp6pS39vS7aU66mS0p3Y.jpg",
-        "year": "2022",
-        "genre": "Action, Sci-Fi",
-        "quality": "HD"
-      },
-      {
-        "title": "Spider-Man: Across the Spider-Verse",
-        "poster": "https://image.tmdb.org/t/p/w500/8Vt4m9rYj11R36ghnOaVBTm6p0u.jpg",
-        "year": "2023",
-        "genre": "Animation, Action",
-        "quality": "HD"
-      }
-    ],
-    "firstSeenAt": "2026-05-02T09:42:22.699527+00:00",
-    "lastSeenAt": "2026-05-02T16:45:22.699527+00:00"
+    "first_name": "New",
+    "started_at": "2026-05-02"
   },
   {
-    "id": 547116084,
+    "telegram_id": 547116084,
     "username": "Mirjalol4D",
-    "firstName": "Mirjalol",
-    "lastName": "",
-    "watchedMovies": [],
-    "firstSeenAt": "2026-04-29T08:28:58.579188+00:00",
-    "lastSeenAt": "2026-04-29T08:28:58.579188+00:00"
+    "first_name": "Mirjalol",
+    "started_at": "2026-04-29"
   },
   {
-    "id": 679291909,
+    "telegram_id": 679291909,
     "username": "nurillaevv",
-    "firstName": "Жам Нуриллаев",
-    "lastName": "Nurillayev",
-    "phone": "+998991234455",
-    "watchedMovies": [
-      {
-        "id": "10",
-        "title": "Oppenheimer",
-        "poster": "https://image.tmdb.org/t/p/w500/8Gxv8S7HaU0STqOVvIu79T39C2p.jpg",
-        "year": "2023",
-        "genre": "Drama, History",
-        "quality": "HD"
-      }
-    ],
-    "firstSeenAt": "2026-04-29T07:11:58.575204+00:00",
-    "lastSeenAt": "2026-05-04T08:21:27.007267+00:00"
+    "first_name": "Жам Нуриллаев",
+    "started_at": "2026-04-29"
   },
   {
-    "id": 7158891995,
+    "telegram_id": 7158891995,
     "username": "jamnurillaev",
-    "firstName": "Jam N",
-    "lastName": "",
-    "phone": "+998334445566",
-    "watchedMovies": [],
-    "firstSeenAt": "2026-04-30T06:04:00.130641+00:00",
-    "lastSeenAt": "2026-05-04T06:49:56.659456+00:00"
+    "first_name": "Jam N",
+    "started_at": "2026-04-30"
   },
   {
-    "id": 7500614168,
+    "telegram_id": 7500614168,
     "username": "jam_nurillaev",
-    "firstName": "Jam Nurillaev",
-    "lastName": "",
-    "firstSeenAt": "2026-05-04T06:49:56.672642+00:00",
-    "lastSeenAt": "2026-05-04T06:49:56.672642+00:00"
+    "first_name": "Jam Nurillaev",
+    "started_at": "2026-05-04"
   }
 ]

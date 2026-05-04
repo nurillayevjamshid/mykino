@@ -510,17 +510,18 @@ function renderUsers() {
 
 
   tbody.innerHTML = users.map(user => {
-    const userId = String(user.id || '');
+    // Support both new format (telegram_id, first_name) and old format (id, firstName)
+    const userId = String(user.telegram_id || user.id || '');
     const username = user.username || '';
-    const firstName = user.firstName || '';
-    const lastName = user.lastName || '';
+    const firstName = user.first_name || user.firstName || '';
+    const lastName = user.last_name || user.lastName || '';
     const fullName = [firstName, lastName].filter(Boolean).join(' ') || '-';
     const phone = user.phone || '';
     const watchedMovies = user.watchedMovies || user.watched_movies || [];
     const watchedCount = watchedMovies.length;
 
-    // Format date
-    const lastSeen = user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleString('uz-UZ') : '-';
+    // Format date - support both new (started_at) and old (firstSeenAt) formats
+    const startedAt = user.started_at || (user.firstSeenAt ? user.firstSeenAt.slice(0, 10) : '-');
 
     // Create username link if available
     const usernameDisplay = username
@@ -538,7 +539,7 @@ function renderUsers() {
           ${watchedCount} ta kino
         </button>
       </td>
-      <td><small style="color:var(--text-muted)">${escapeHtml(lastSeen)}</small></td>
+      <td><small style="color:var(--text-muted)">${escapeHtml(startedAt)}</small></td>
     </tr>
   `}).join('');
 }
@@ -546,7 +547,7 @@ function renderUsers() {
 
 // Show Watched Movies Modal
 window.showWatchedMovies = function(userId) {
-  const user = users.find(u => u.id === userId || String(u.id) === String(userId));
+  const user = users.find(u => u.telegram_id === userId || u.id === userId || String(u.telegram_id) === String(userId) || String(u.id) === String(userId));
   if (!user) return;
 
   const modal = document.getElementById('watchedMoviesModal');
@@ -555,7 +556,9 @@ window.showWatchedMovies = function(userId) {
 
   if (!modal || !title || !list) return;
 
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || `User ${user.id}`;
+  const firstName = user.first_name || user.firstName || '';
+  const lastName = user.last_name || user.lastName || '';
+  const fullName = [firstName, lastName].filter(Boolean).join(' ') || `User ${user.telegram_id || user.id}`;
   title.textContent = `${escapeHtml(fullName)} - Ko'rgan kinolar`;
 
   const watchedMovies = user.watchedMovies || [];
