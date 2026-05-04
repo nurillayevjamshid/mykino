@@ -71,23 +71,27 @@ def upsert_user(path: Path, user: Any) -> dict[str, Any] | None:
     users = load_users(path)
     now = datetime.now(timezone.utc).isoformat()
     key = str(user_id)
-    existing_index = next((index for index, item in enumerate(users) if str(item.get("id")) == key), None)
+    # Check by telegram_id first, fallback to id for backwards compatibility
+    existing_index = next((index for index, item in enumerate(users) if str(item.get("telegram_id")) == key or str(item.get("id")) == key), None)
     existing = users[existing_index] if existing_index is not None else {}
     record = {
-        "id": int(user_id),
+        "telegram_id": int(user_id),
         "username": getattr(user, "username", None) or existing.get("username", ""),
-        "firstName": getattr(user, "first_name", None) or existing.get("firstName", ""),
-        "lastName": getattr(user, "last_name", None) or existing.get("lastName", ""),
-        "firstSeenAt": existing.get("firstSeenAt") or now,
-        "lastSeenAt": now,
+        "first_name": getattr(user, "first_name", None) or existing.get("first_name", existing.get("firstName", "")),
+        "started_at": existing.get("started_at") or existing.get("firstSeenAt") or now[:10],  # Format: 2026-05-04
     }
 
     if existing_index is None:
         users.append(record)
     else:
-        users[existing_index] = {**existing, **record}
+        # Merge with existing, keeping watchedMovies and other data
+        merged = {**existing, **record}
+        # Migrate old field names if present
+        if "firstSeenAt" in existing and not existing.get("started_at"):
+            merged["started_at"] = existing["firstSeenAt"][:10]
+        users[existing_index] = merged
 
-    save_users(path, sorted(users, key=lambda item: int(item.get("id", 0))))
+    save_users(path, sorted(users, key=lambda item: int(item.get("telegram_id", item.get("id", 0)))))
     return record
 
 

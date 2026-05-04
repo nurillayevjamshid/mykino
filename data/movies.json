@@ -41,5 +41,30 @@
     "telegramVideoFileId": "",
     "sourceUrl": "https://t.me/mdtsitsibtaryyarbeaa/2",
     "telegramPostUrl": "https://t.me/mdtsitsibtaryyarbeaa/2"
+  },
+  {
+    "code": "AVATAR3OLO2",
+    "title": "📹 Avatar 3: olov va kul filmi",
+    "year": "",
+    "genre": "Kino",
+    "rating": 0.0,
+    "quality": "HD",
+    "isTop": false,
+    "isPremium": false,
+    "poster": "",
+    "posterImage": "",
+    "headerImage": "",
+    "showInHeader": false,
+    "streamUrl": "",
+    "description": "Kino botda ko’rish oson: https://t.me/mykinoplay_bot",
+    "sourceType": "telegram_channel",
+    "telegramChatId": -1003972534445,
+    "telegramMessageId": 2,
+    "telegramFileId": "BAACAgQAAyEFAATsyBCtAAMCafiq--jV-6HOKQsOAwV_RtaMjy0AAmoKAAJXu8RT0F13lKHVPrU7BA",
+    "telegramVideoFileId": "BAACAgQAAyEFAATsyBCtAAMCafiq--jV-6HOKQsOAwV_RtaMjy0AAmoKAAJXu8RT0F13lKHVPrU7BA",
+    "video_file_id": "BAACAgQAAyEFAATsyBCtAAMCafiq--jV-6HOKQsOAwV_RtaMjy0AAmoKAAJXu8RT0F13lKHVPrU7BA",
+    "sourceUrl": "https://t.me/mykinoplay/2",
+    "telegramPostUrl": "https://t.me/mykinoplay/2",
+    "id": 4
   }
 ]
