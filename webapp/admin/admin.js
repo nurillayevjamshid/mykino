@@ -417,7 +417,9 @@ function renderMovies() {
   const tbody = document.getElementById('moviesTableBody');
   if (!tbody) return;
 
-  if (movies.length === 0) {
+  const moviesToRender = currentSearchQuery ? filteredMovies : movies;
+
+  if (moviesToRender.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="8">
