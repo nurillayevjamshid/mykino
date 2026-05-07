@@ -204,7 +204,10 @@ async function fetchUsers() {
 
 // Create sidebar overlay for mobile
 function createSidebarOverlay() {
-  const overlay = document.createElement('div');
+  let overlay = document.getElementById('sidebarOverlay');
+  if (overlay) return; // Already created
+  
+  overlay = document.createElement('div');
   overlay.className = 'sidebar-overlay';
   overlay.id = 'sidebarOverlay';
   overlay.addEventListener('click', () => {
@@ -258,10 +261,7 @@ function bindEvents() {
     openMovieModal();
   });
 
-  themeToggle?.addEventListener('click', () => {
-    const currentTheme = document.documentElement.dataset.theme || 'dark';
-    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
-  });
+  themeToggle?.addEventListener('click', toggleTheme);
 
   // Table row actions - event delegation
   document.getElementById('moviesTableBody')?.addEventListener('click', (e) => {
@@ -292,7 +292,10 @@ function bindEvents() {
   document.getElementById('cancelMovie')?.addEventListener('click', closeMovieModal);
   document.getElementById('closeCategoryModal')?.addEventListener('click', closeCategoryModal);
   document.getElementById('cancelCategory')?.addEventListener('click', closeCategoryModal);
-  document.getElementById('closeWatchedMoviesModal')?.addEventListener('click', closeWatchedMoviesModal);
+  document.getElementById('closeWatchedMoviesModal')?.addEventListener('click', () => {
+    const modal = document.getElementById('watchedMoviesModal');
+    if (modal) modal.classList.remove('active');
+  });
 
   // Forms
   document.getElementById('movieForm')?.addEventListener('submit', handleMovieSubmit);
@@ -623,12 +626,6 @@ window.showWatchedMovies = function(userId) {
 }
 
 
-// Close Watched Movies Modal
-window.closeWatchedMoviesModal = function() {
-  const modal = document.getElementById('watchedMoviesModal');
-  if (modal) modal.classList.remove('active');
-}
-
 // Get Category Name
 function getCategoryName(id) {
   const value = String(id || '').trim();
@@ -838,7 +835,6 @@ async function startHeaderCrop(file) {
 
 
 
-
 function updateDescriptionCounter() {
   const textarea = document.getElementById('movieDescription');
   const counter = document.getElementById('movieDescriptionCounter');
@@ -867,7 +863,8 @@ function hasRatingChanged(nextValue, currentValue) {
 
 // Close Movie Modal
 function closeMovieModal() {
-  document.getElementById('movieModal').classList.remove('active');
+  const modal = document.getElementById('movieModal');
+  if (modal) modal.classList.remove('active');
 }
 
 // Handle Movie Submit
@@ -958,12 +955,6 @@ async function handleMovieSubmit(e) {
         await fetchMovies();
         renderCategories();
         return;
-        // Update local data
-        const index = movies.findIndex(m => m.id === id);
-        if (index !== -1) {
-          movies[index] = { ...movies[index], ...movieData };
-        }
-        showNotification('Kino bazada yangilandi! ✅');
       } else {
         if (submitButton) {
           submitButton.disabled = false;
@@ -991,7 +982,7 @@ async function handleMovieSubmit(e) {
     // Add new
     const numericIds = movies.map(m => Number(m.id)).filter(Number.isFinite);
     const newId = Math.max(...numericIds, 0) + 1;
-    movies.push({ id: newId, ...movieData });
+    movies.push({ id: String(newId), ...movieData });
     showNotification('Kino qo\'shildi! (lokal)');
   }
 
@@ -1022,13 +1013,16 @@ function deleteMovie(id) {
 
 // Open Category Modal
 function openCategoryModal() {
-  document.getElementById('categoryModal').classList.add('active');
+  const modal = document.getElementById('categoryModal');
+  if (modal) modal.classList.add('active');
 }
 
 // Close Category Modal
 function closeCategoryModal() {
-  document.getElementById('categoryModal').classList.remove('active');
-  document.getElementById('categoryForm').reset();
+  const modal = document.getElementById('categoryModal');
+  if (modal) modal.classList.remove('active');
+  const form = document.getElementById('categoryForm');
+  if (form) form.reset();
 }
 
 // Handle Category Submit
@@ -1197,4 +1191,3 @@ init();
 window.editMovie = editMovie;
 window.deleteMovie = deleteMovie;
 window.showWatchedMovies = showWatchedMovies;
-window.closeWatchedMoviesModal = closeWatchedMoviesModal;
