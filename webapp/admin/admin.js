@@ -484,17 +484,13 @@ function renderMovies() {
     return;
   }
 
-<<<<<<< HEAD
   // Update movie count in section header
   const sectionHeader = document.querySelector('#moviesSection .section-header h2');
   if (sectionHeader) {
     sectionHeader.textContent = `Kinolar ro'yxati (${movies.length})`;
   }
 
-  tbody.innerHTML = movies.map(movie => `
-=======
   tbody.innerHTML = moviesToRender.map(movie => `
->>>>>>> a594a341b0b480001a64e0673c9b8f25d61e6693
     <tr data-id="${escapeHtml(movie.id)}">
       <td>
         <img src="${escapeHtml(movie.poster || 'https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image')}" 
