@@ -6,6 +6,8 @@ let categories = [];
 let users = [];
 let selectedPosterDataUrl = '';
 let deleteTargetMovieId = '';
+let filteredMovies = [];
+let currentSearchQuery = '';
 
 // API base URL
 const API_URL = '/api';
@@ -96,6 +98,7 @@ async function fetchMovies() {
     const data = await response.json();
 
     movies = data.map(normalizeMovieFromApi).filter(movie => movie.id);
+    filteredMovies = [...movies];
     syncCategoriesFromMovies();
 
     renderMovies();
@@ -239,7 +242,10 @@ async function fetchUsers() {
 
 // Create sidebar overlay for mobile
 function createSidebarOverlay() {
-  const overlay = document.createElement('div');
+  let overlay = document.getElementById('sidebarOverlay');
+  if (overlay) return; // Already created
+  
+  overlay = document.createElement('div');
   overlay.className = 'sidebar-overlay';
   overlay.id = 'sidebarOverlay';
   overlay.addEventListener('click', () => {
@@ -283,14 +289,23 @@ function bindEvents() {
     }
   });
 
+  // Search Movies
+  document.getElementById('movieSearchInput')?.addEventListener('input', (e) => {
+    filterMovies(e.target.value);
+  });
+
   // Add Movie
   document.getElementById('addMovieBtn')?.addEventListener('click', () => {
     openMovieModal();
   });
 
+<<<<<<< HEAD
   themeToggle?.addEventListener('click', () => {
     toggleTheme();
   });
+=======
+  themeToggle?.addEventListener('click', toggleTheme);
+>>>>>>> a594a341b0b480001a64e0673c9b8f25d61e6693
 
   // Table row actions - event delegation
   document.getElementById('moviesTableBody')?.addEventListener('click', (e) => {
@@ -321,7 +336,10 @@ function bindEvents() {
   document.getElementById('cancelMovie')?.addEventListener('click', closeMovieModal);
   document.getElementById('closeCategoryModal')?.addEventListener('click', closeCategoryModal);
   document.getElementById('cancelCategory')?.addEventListener('click', closeCategoryModal);
-  document.getElementById('closeWatchedMoviesModal')?.addEventListener('click', closeWatchedMoviesModal);
+  document.getElementById('closeWatchedMoviesModal')?.addEventListener('click', () => {
+    const modal = document.getElementById('watchedMoviesModal');
+    if (modal) modal.classList.remove('active');
+  });
 
   // Forms
   document.getElementById('movieForm')?.addEventListener('submit', handleMovieSubmit);
@@ -418,28 +436,47 @@ function switchSection(section) {
   }
 }
 
+// Filter movies based on search query
+function filterMovies(query) {
+  currentSearchQuery = query.toLowerCase().trim();
+  
+  if (!currentSearchQuery) {
+    filteredMovies = [...movies];
+  } else {
+    filteredMovies = movies.filter(movie => {
+      const searchFields = [
+        movie.name || '',
+        movie.code || '',
+        movie.category || '',
+        movie.year || '',
+        movie.description || ''
+      ].join(' ').toLowerCase();
+      
+      return searchFields.includes(currentSearchQuery);
+    });
+  }
+  
+  renderMovies();
+}
+
 // Render Movies
 function renderMovies() {
   const tbody = document.getElementById('moviesTableBody');
   if (!tbody) return;
 
-  if (movies.length === 0) {
+  const moviesToRender = currentSearchQuery ? filteredMovies : movies;
+
+  if (moviesToRender.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="8">
           <div class="empty-state">
             <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
-              <line x1="7" y1="2" x2="7" y2="22"></line>
-              <line x1="17" y1="2" x2="17" y2="22"></line>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <line x1="2" y1="7" x2="7" y2="7"></line>
-              <line x1="2" y1="17" x2="7" y2="17"></line>
-              <line x1="17" y1="17" x2="22" y2="17"></line>
-              <line x1="17" y1="7" x2="22" y2="7"></line>
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
             </svg>
-            <h3>Hozircha kinolar yo'q</h3>
-            <p>Yangi kino qo'shish uchun "Yangi kino qo'shish" tugmasini bosing</p>
+            <h3>${currentSearchQuery ? 'Qidiruv natijalari topilmadi' : 'Hozircha kinolar yo'q'}</h3>
+            <p>${currentSearchQuery ? `"${currentSearchQuery}" bo'yicha kino topilmadi` : 'Yangi kino qo'shish uchun "Yangi kino qo'shish" tugmasini bosing'}</p>
           </div>
         </td>
       </tr>
@@ -447,6 +484,7 @@ function renderMovies() {
     return;
   }
 
+<<<<<<< HEAD
   // Update movie count in section header
   const sectionHeader = document.querySelector('#moviesSection .section-header h2');
   if (sectionHeader) {
@@ -454,6 +492,9 @@ function renderMovies() {
   }
 
   tbody.innerHTML = movies.map(movie => `
+=======
+  tbody.innerHTML = moviesToRender.map(movie => `
+>>>>>>> a594a341b0b480001a64e0673c9b8f25d61e6693
     <tr data-id="${escapeHtml(movie.id)}">
       <td>
         <img src="${escapeHtml(movie.poster || 'https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image')}" 
@@ -638,12 +679,6 @@ window.showWatchedMovies = function(userId) {
   modal.classList.add('active');
 }
 
-
-// Close Watched Movies Modal
-window.closeWatchedMoviesModal = function() {
-  const modal = document.getElementById('watchedMoviesModal');
-  if (modal) modal.classList.remove('active');
-}
 
 // Get Category Name
 function getCategoryName(id) {
@@ -854,7 +889,6 @@ async function startHeaderCrop(file) {
 
 
 
-
 function updateDescriptionCounter() {
   const textarea = document.getElementById('movieDescription');
   const counter = document.getElementById('movieDescriptionCounter');
@@ -883,7 +917,8 @@ function hasRatingChanged(nextValue, currentValue) {
 
 // Close Movie Modal
 function closeMovieModal() {
-  document.getElementById('movieModal').classList.remove('active');
+  const modal = document.getElementById('movieModal');
+  if (modal) modal.classList.remove('active');
 }
 
 // Handle Movie Submit
@@ -973,6 +1008,10 @@ async function handleMovieSubmit(e) {
         showNotification('Kino bazada yangilandi! ✅');
         await fetchMovies();
         renderCategories();
+<<<<<<< HEAD
+=======
+        return;
+>>>>>>> a594a341b0b480001a64e0673c9b8f25d61e6693
       } else {
         if (submitButton) {
           submitButton.disabled = false;
@@ -1000,7 +1039,7 @@ async function handleMovieSubmit(e) {
     // Add new
     const numericIds = movies.map(m => Number(m.id)).filter(Number.isFinite);
     const newId = Math.max(...numericIds, 0) + 1;
-    movies.push({ id: newId, ...movieData });
+    movies.push({ id: String(newId), ...movieData });
     showNotification('Kino qo\'shildi! (lokal)');
   }
 
@@ -1031,13 +1070,16 @@ function deleteMovie(id) {
 
 // Open Category Modal
 function openCategoryModal() {
-  document.getElementById('categoryModal').classList.add('active');
+  const modal = document.getElementById('categoryModal');
+  if (modal) modal.classList.add('active');
 }
 
 // Close Category Modal
 function closeCategoryModal() {
-  document.getElementById('categoryModal').classList.remove('active');
-  document.getElementById('categoryForm').reset();
+  const modal = document.getElementById('categoryModal');
+  if (modal) modal.classList.remove('active');
+  const form = document.getElementById('categoryForm');
+  if (form) form.reset();
 }
 
 // Handle Category Submit
@@ -1206,4 +1248,3 @@ init();
 window.editMovie = editMovie;
 window.deleteMovie = deleteMovie;
 window.showWatchedMovies = showWatchedMovies;
-window.closeWatchedMoviesModal = closeWatchedMoviesModal;

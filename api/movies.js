@@ -20,12 +20,26 @@ module.exports = async function handler(request, response) {
   response.setHeader("Cache-Control", "no-store, max-age=0");
 
   try {
-    const movies = await listDriveMovies();
+    let movies = [];
+    try {
+      movies = await listDriveMovies();
+    } catch (driveError) {
+      console.error("Google Drive error, falling back to local JSON:", driveError.message);
+      const fs = require("fs");
+      const path = require("path");
+      const localPath = path.join(process.cwd(), "data", "movies.json");
+      if (fs.existsSync(localPath)) {
+        const rawData = fs.readFileSync(localPath, "utf8");
+        movies = JSON.parse(rawData);
+      } else {
+        throw driveError;
+      }
+    }
     response.status(200).json(movies);
   } catch (error) {
     response.status(error.statusCode || 500).json({
       ok: false,
-      code: error.code || "GOOGLE_DRIVE_MOVIES_FAILED",
+      code: error.code || "MOVIES_LOAD_FAILED",
       error: error.message || "Katalog yuklanmadi.",
     });
   }
