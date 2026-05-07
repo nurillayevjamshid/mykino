@@ -72,9 +72,27 @@ function normalizeMovieFromApi(movie) {
 
 // Fetch movies from API
 async function fetchMovies() {
+  // Show loading state
+  const tbody = document.getElementById('moviesTableBody');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8">
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Kinolar yuklanmoqda...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
   try {
     const response = await fetch(`${API_URL}/movies`);
-    if (!response.ok) throw new Error('Failed to fetch movies');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.error || `Server xatolik: ${response.status}`);
+    }
     const data = await response.json();
 
     movies = data.map(normalizeMovieFromApi).filter(movie => movie.id);
@@ -83,7 +101,27 @@ async function fetchMovies() {
     renderMovies();
   } catch (error) {
     console.error('Error fetching movies:', error);
-    showNotification('Kinolarni yuklashda xatolik!', 'error');
+    movies = [];
+    // Show error state in table
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8">
+            <div class="empty-state error-state">
+              <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <h3>Kinolarni yuklashda xatolik!</h3>
+              <p>${escapeHtml(error.message)}</p>
+              <button class="btn btn-primary" onclick="fetchMovies()" style="margin-top: 12px;">Qayta urinish</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    showNotification('Kinolarni yuklashda xatolik: ' + error.message, 'error');
   }
 }
 
@@ -251,8 +289,7 @@ function bindEvents() {
   });
 
   themeToggle?.addEventListener('click', () => {
-    const currentTheme = document.documentElement.dataset.theme || 'dark';
-    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+    toggleTheme();
   });
 
   // Table row actions - event delegation
@@ -389,7 +426,7 @@ function renderMovies() {
   if (movies.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7">
+        <td colspan="8">
           <div class="empty-state">
             <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
@@ -410,11 +447,17 @@ function renderMovies() {
     return;
   }
 
+  // Update movie count in section header
+  const sectionHeader = document.querySelector('#moviesSection .section-header h2');
+  if (sectionHeader) {
+    sectionHeader.textContent = `Kinolar ro'yxati (${movies.length})`;
+  }
+
   tbody.innerHTML = movies.map(movie => `
     <tr data-id="${escapeHtml(movie.id)}">
       <td>
         <img src="${escapeHtml(movie.poster || 'https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image')}" 
-             alt="${escapeHtml(movie.name)}" class="movie-poster">
+             alt="${escapeHtml(movie.name)}" class="movie-poster" onerror="this.src='https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image'">
       </td>
       <td>
         ${movie.headerImage ? `
@@ -927,16 +970,9 @@ async function handleMovieSubmit(e) {
           submitButton.textContent = 'Saqlash';
         }
         closeMovieModal();
-        showNotification('Kino bazada yangilandi!');
+        showNotification('Kino bazada yangilandi! ✅');
         await fetchMovies();
         renderCategories();
-        return;
-        // Update local data
-        const index = movies.findIndex(m => m.id === id);
-        if (index !== -1) {
-          movies[index] = { ...movies[index], ...movieData };
-        }
-        showNotification('Kino bazada yangilandi! ✅');
       } else {
         if (submitButton) {
           submitButton.disabled = false;
