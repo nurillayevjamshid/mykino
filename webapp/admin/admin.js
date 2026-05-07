@@ -6,6 +6,8 @@ let categories = [];
 let users = [];
 let selectedPosterDataUrl = '';
 let deleteTargetMovieId = '';
+let filteredMovies = [];
+let currentSearchQuery = '';
 
 // API base URL
 const API_URL = '/api';
@@ -78,6 +80,7 @@ async function fetchMovies() {
     const data = await response.json();
 
     movies = data.map(normalizeMovieFromApi).filter(movie => movie.id);
+    filteredMovies = [...movies];
     syncCategoriesFromMovies();
 
     renderMovies();
@@ -245,6 +248,11 @@ function bindEvents() {
     }
   });
 
+  // Search Movies
+  document.getElementById('movieSearchInput')?.addEventListener('input', (e) => {
+    filterMovies(e.target.value);
+  });
+
   // Add Movie
   document.getElementById('addMovieBtn')?.addEventListener('click', () => {
     openMovieModal();
@@ -381,6 +389,29 @@ function switchSection(section) {
   }
 }
 
+// Filter movies based on search query
+function filterMovies(query) {
+  currentSearchQuery = query.toLowerCase().trim();
+  
+  if (!currentSearchQuery) {
+    filteredMovies = [...movies];
+  } else {
+    filteredMovies = movies.filter(movie => {
+      const searchFields = [
+        movie.name || '',
+        movie.code || '',
+        movie.category || '',
+        movie.year || '',
+        movie.description || ''
+      ].join(' ').toLowerCase();
+      
+      return searchFields.includes(currentSearchQuery);
+    });
+  }
+  
+  renderMovies();
+}
+
 // Render Movies
 function renderMovies() {
   const tbody = document.getElementById('moviesTableBody');
@@ -389,20 +420,14 @@ function renderMovies() {
   if (movies.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7">
+        <td colspan="8">
           <div class="empty-state">
             <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
-              <line x1="7" y1="2" x2="7" y2="22"></line>
-              <line x1="17" y1="2" x2="17" y2="22"></line>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <line x1="2" y1="7" x2="7" y2="7"></line>
-              <line x1="2" y1="17" x2="7" y2="17"></line>
-              <line x1="17" y1="17" x2="22" y2="17"></line>
-              <line x1="17" y1="7" x2="22" y2="7"></line>
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
             </svg>
-            <h3>Hozircha kinolar yo'q</h3>
-            <p>Yangi kino qo'shish uchun "Yangi kino qo'shish" tugmasini bosing</p>
+            <h3>${currentSearchQuery ? 'Qidiruv natijalari topilmadi' : 'Hozircha kinolar yo'q'}</h3>
+            <p>${currentSearchQuery ? `"${currentSearchQuery}" bo'yicha kino topilmadi` : 'Yangi kino qo'shish uchun "Yangi kino qo'shish" tugmasini bosing'}</p>
           </div>
         </td>
       </tr>
@@ -410,7 +435,7 @@ function renderMovies() {
     return;
   }
 
-  tbody.innerHTML = movies.map(movie => `
+  tbody.innerHTML = moviesToRender.map(movie => `
     <tr data-id="${escapeHtml(movie.id)}">
       <td>
         <img src="${escapeHtml(movie.poster || 'https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image')}" 
