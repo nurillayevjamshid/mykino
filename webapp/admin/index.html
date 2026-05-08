@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f131a">
   <title>My Kino - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20260507-admin-fix">
+  <link rel="stylesheet" href="/admin/admin.css?v=20260508-movies-only">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -40,39 +40,6 @@
               <span class="nav-text">Kinolar</span>
             </a>
           </li>
-          <li class="nav-item" data-section="categories">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-              </svg>
-              <span class="nav-text">Kategoriya</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="subscribers">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span class="nav-text">Obunachilar</span>
-              <span class="badge sidebar-badge" id="sidebarSubscribersCount" style="margin-left: auto; font-size: 10px; padding: 2px 8px;">0</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="settings">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.6[...]"/>
-              </svg>
-              <span class="nav-text">Sozlamalar</span>
-            </a>
-          </li>
-
         </ul>
       </nav>
 
@@ -125,7 +92,7 @@
 
       <!-- Content Area -->
       <div class="content-wrapper">
-        
+
         <!-- Movies Section -->
         <section class="content-section active" id="moviesSection">
           <div class="section-header">
@@ -137,7 +104,7 @@
               </button>
             </div>
           </div>
-          
+
           <div class="table-container">
             <table class="data-table">
               <thead>
@@ -156,68 +123,6 @@
                 <!-- Dynamic content -->
               </tbody>
             </table>
-          </div>
-        </section>
-
-        <!-- Categories Section -->
-        <section class="content-section" id="categoriesSection">
-          <div class="section-header">
-            <h2>Kategoriyalar</h2>
-            <button class="btn btn-primary" id="addCategoryBtn">
-              <span>+</span> Yangi kategoriya
-            </button>
-          </div>
-
-          <div class="cards-grid" id="categoriesGrid">
-            <!-- Dynamic content -->
-          </div>
-        </section>
-
-        <!-- Subscribers Section -->
-        <section class="content-section" id="subscribersSection">
-          <div class="section-header">
-            <h2>Obunachilar ro'yxati</h2>
-            <span class="badge" id="subscribersCount">0 ta obunachi</span>
-          </div>
-
-          <div class="table-container">
-            <table class="data-table" id="subscribersTable">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Foydalanuvchi</th>
-                  <th>Ism</th>
-                  <th>Telefon</th>
-                  <th>Ko'rgan kinolar</th>
-                  <th>Qo'shilgan sana</th>
-                </tr>
-              </thead>
-              <tbody id="subscribersTableBody">
-                <!-- Dynamic content -->
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Settings Section -->
-        <section class="content-section" id="settingsSection">
-          <div class="section-header">
-            <h2>Sozlamalar</h2>
-          </div>
-
-          <div class="settings-grid">
-            <div class="settings-card">
-              <h3>Kirish ablojkasi (Splash Screen)</h3>
-              <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 13px;">Mini app ochilganda 2.5 soniya ko'rsatiladigan kirish rasmi. Rasm URL linkini kiriting (Vercel Blob yoki b[...]
-              <div class="form-group">
-                <label>Rasm URL</label>
-                <input type="text" id="splashImageUrl" class="form-control" inputmode="url" autocomplete="url" placeholder="https://... rasm linki">
-              </div>
-              <div class="splash-preview" id="splashPreview" style="margin-top: 12px; display: none;">
-                <img id="splashPreviewImg" style="max-width: 200px; max-height: 350px; border-radius: 12px; border: 2px solid var(--border); object-fit: cover;" alt="Splash preview">
-              </div>
-              <button class="btn btn-primary" id="saveSplashBtn" style="margin-top: 16px;">Saqlash</button>
-            </div>
           </div>
         </section>
 
@@ -249,7 +154,7 @@
             </select>
           </div>
         </div>
-        
+
         <div class="form-row">
           <div class="form-group">
             <label>Reyting</label>
@@ -263,7 +168,7 @@
             </select>
           </div>
         </div>
-        
+
         <div class="form-group">
           <label>Ablojka (Poster)</label>
           <div class="poster-upload" id="posterUploadArea">
@@ -293,7 +198,7 @@
             <input type="text" id="movieHeaderImage" class="form-input" placeholder="Header rasm linkini kiriting (16:9 tavsiya etiladi)...">
           </div>
         </div>
-        
+
         <div class="form-group">
           <label>Tavsif</label>
           <textarea id="movieDescription" class="form-textarea" rows="3"></textarea>
@@ -302,7 +207,7 @@
             <small id="movieDescriptionCounter" class="description-counter">0/4000</small>
           </div>
         </div>
-        
+
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" id="cancelMovie">Bekor qilish</button>
           <button type="submit" class="btn btn-primary">Saqlash</button>
@@ -311,54 +216,6 @@
     </div>
   </div>
 
-  <!-- Add Category Modal -->
-  <div class="modal" id="categoryModal">
-    <div class="modal-content modal-sm">
-      <div class="modal-header">
-        <h3>Yangi kategoriya</h3>
-        <button class="modal-close" id="closeCategoryModal">&times;</button>
-      </div>
-      <form class="modal-form" id="categoryForm">
-        <div class="form-group">
-          <label>Kategoriya nomi</label>
-          <input type="text" id="categoryName" class="form-input" required>
-        </div>
-
-        <div class="form-group">
-          <label>Ikonka</label>
-          <select id="categoryIcon" class="form-select">
-            <option value="🎬">🎬 Kino</option>
-            <option value="😂">😂 Comedy</option>
-            <option value="💀">💀 Horror</option>
-            <option value="❤️">❤️ Romance</option>
-            <option value="🚀">🚀 Action</option>
-            <option value="📺">📺 Serial</option>
-          </select>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="cancelCategory">Bekor qilish</button>
-          <button type="submit" class="btn btn-primary">Saqlash</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Watched Movies Modal -->
-  <div class="modal" id="watchedMoviesModal">
-    <div class="modal-content modal-lg">
-      <div class="modal-header">
-        <h3 id="watchedMoviesTitle">Ko'rgan kinolar</h3>
-        <button class="modal-close" id="closeWatchedMoviesModal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div id="watchedMoviesList" class="watched-movies-list">
-          <!-- Dynamic content -->
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="/admin/admin.js?v=20260507-admin-fix"></script>
+  <script src="/admin/admin.js?v=20260508-movies-only"></script>
 </body>
 </html>
