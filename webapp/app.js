@@ -2250,66 +2250,6 @@ function startMoviesPolling() {
   }, 60000);
 }
 
-function waitForImageReady(image, timeoutMs = 3000) {
-  return new Promise((resolve) => {
-    if (!image) {
-      resolve(false);
-      return;
-    }
-
-    if (image.complete && image.naturalWidth > 0) {
-      resolve(true);
-      return;
-    }
-
-    let settled = false;
-    let timeoutId = 0;
-    const finish = (ok) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeoutId);
-      image.removeEventListener("load", onLoad);
-      image.removeEventListener("error", onError);
-      resolve(ok);
-    };
-    const onLoad = () => finish(true);
-    const onError = () => finish(false);
-
-    image.addEventListener("load", onLoad, { once: true });
-    image.addEventListener("error", onError, { once: true });
-    timeoutId = window.setTimeout(() => finish(false), timeoutMs);
-  });
-}
-
-async function loadAppSettings() {
-  let timeoutId = 0;
-  try {
-    await resolveApiBase();
-    const controller = new AbortController();
-    timeoutId = window.setTimeout(() => controller.abort(), 3500);
-    const response = await fetch(buildApiUrl("/api/settings"), {
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-    });
-    if (response.ok) {
-      const data = await response.json();
-      const splashImageUrl = resolveAppUrl(data.splashImageUrl || "");
-      if (splashImageUrl) {
-        const splashImg = document.querySelector("#splashScreen img");
-        if (splashImg) {
-          splashImg.src = splashImageUrl;
-          await waitForImageReady(splashImg);
-        }
-      }
-    }
-  } catch (e) {
-    // Ignore error, use default
-  } finally {
-    window.clearTimeout(timeoutId);
-  }
-}
-
 function initSplashScreen() {
   const splashScreen = document.getElementById("splashScreen");
   const appShell = document.getElementById("appShell");
@@ -2329,8 +2269,7 @@ function initSplashScreen() {
   }
 }
 
-async function initApp() {
-  await loadAppSettings();
+function initApp() {
   initSplashScreen();
   loadMovies();
   startMoviesPolling();
