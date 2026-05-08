@@ -99,8 +99,13 @@
             <h2>Kinolar ro'yxati</h2>
             <div class="search-container">
               <input type="text" id="movieSearchInput" class="search-input" placeholder="Kino nomi, kod yoki kategoriya bo'yicha qidirish...">
-              <button class="btn btn-primary" id="addMovieBtn">
-                <span>+</span> Yangi kino qo'shish
+              <button class="btn btn-secondary" id="refreshMoviesBtn" title="Qayta yuklash">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span>Yangilash</span>
               </button>
             </div>
           </div>
@@ -134,7 +139,7 @@
   <div class="modal" id="movieModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 id="movieModalTitle">Yangi kino qo'shish</h3>
+        <h3 id="movieModalTitle">Kino tahrirlash</h3>
         <button class="modal-close" id="closeMovieModal">&times;</button>
       </div>
       <form class="modal-form" id="movieForm">
@@ -145,13 +150,8 @@
           </div>
           <div class="form-group">
             <label>Category</label>
-            <select id="movieCategory" class="form-select" required>
-              <option value="">Tanlang</option>
-              <option value="action">Action</option>
-              <option value="comedy">Comedy</option>
-              <option value="drama">Drama</option>
-              <option value="horror">Horror</option>
-            </select>
+            <input type="text" id="movieCategory" class="form-input" list="movieCategoryOptions" required placeholder="Janrni tanlang yoki kiriting">
+            <datalist id="movieCategoryOptions"></datalist>
           </div>
         </div>
 
