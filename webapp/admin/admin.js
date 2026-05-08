@@ -24,6 +24,24 @@ function sameMovieId(left, right) {
   return String(left) === String(right);
 }
 
+function refreshCategoryDatalist() {
+  const datalist = document.getElementById('movieCategoryOptions');
+  if (!datalist) return;
+
+  const seen = new Set();
+  const options = [];
+  for (const movie of movies) {
+    const name = String(movie.category || '').trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    options.push(name);
+  }
+  options.sort((a, b) => a.localeCompare(b, 'uz'));
+  datalist.innerHTML = options.map(value => `<option value="${escapeHtml(value)}"></option>`).join('');
+}
+
 function normalizeMovieFromApi(movie) {
   return {
     id: String(movie.id || movie.fileId || movie.driveFileId || ''),
@@ -69,6 +87,7 @@ async function fetchMovies() {
     filteredMovies = [...movies];
 
     renderMovies();
+    refreshCategoryDatalist();
   } catch (error) {
     console.error('Error fetching movies:', error);
     movies = [];
@@ -163,13 +182,16 @@ function bindEvents() {
     filterMovies(e.target.value);
   });
 
-  // Add Movie
-  document.getElementById('addMovieBtn')?.addEventListener('click', () => openMovieModal());
+  // Refresh button
+  document.getElementById('refreshMoviesBtn')?.addEventListener('click', async () => {
+    await fetchMovies();
+    showNotification('Ro\'yxat yangilandi.');
+  });
 
   // Theme toggle
   themeToggle?.addEventListener('click', toggleTheme);
 
-  // Table row actions - event delegation
+  // Table row actions - event delegation (only edit, no delete)
   document.getElementById('moviesTableBody')?.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-icon');
     if (!btn) return;
@@ -179,7 +201,6 @@ function bindEvents() {
     if (!movieId || !action) return;
 
     if (action === 'edit') editMovie(movieId);
-    else if (action === 'delete') deleteMovie(movieId);
   });
 
   // Modal closes
@@ -319,7 +340,6 @@ function renderMovies() {
       <td>
         <div class="actions">
           <button class="btn-icon edit" data-action="edit" data-movie-id="${escapeHtml(movie.id)}" title="Tahrirlash">✏️</button>
-          <button class="btn-icon delete" data-action="delete" data-movie-id="${escapeHtml(movie.id)}" title="O'chirish">🗑️</button>
         </div>
       </td>
     </tr>
@@ -327,7 +347,8 @@ function renderMovies() {
 }
 
 // Open Movie Modal
-function openMovieModal(movie = null) {
+function openMovieModal(movie) {
+  if (!movie) return;
   const modal = document.getElementById('movieModal');
   const title = document.getElementById('movieModalTitle');
   const form = document.getElementById('movieForm');
@@ -336,38 +357,33 @@ function openMovieModal(movie = null) {
   selectedPosterDataUrl = '';
   if (posterFileInput) posterFileInput.value = '';
 
-  if (movie) {
-    title.textContent = 'Kino tahrirlash';
-    document.getElementById('movieName').value = movie.name;
-    document.getElementById('movieCategory').value = movie.category;
-    document.getElementById('movieRating').value = movie.rating;
-    document.getElementById('movieHd').value = movie.hd.toString();
-    document.getElementById('movieDescription').value = movie.description || '';
-    form.dataset.editingId = movie.id;
+  title.textContent = 'Kino tahrirlash';
+  document.getElementById('movieName').value = movie.name;
+  document.getElementById('movieCategory').value = movie.category;
+  document.getElementById('movieRating').value = movie.rating;
+  document.getElementById('movieHd').value = movie.hd.toString();
+  document.getElementById('movieDescription').value = movie.description || '';
+  form.dataset.editingId = movie.id;
 
-    const poster = movie.poster || '';
-    if (poster && !poster.startsWith('data:image')) {
-      document.getElementById('moviePosterUrl').value = poster;
-    } else if (poster) {
-      selectedPosterDataUrl = poster;
-    }
-    updatePosterPreview(poster);
-
-    const showInHeader = Boolean(movie.showInHeader);
-    const showInHeaderCheckbox = document.getElementById('movieShowInHeader');
-    if (showInHeaderCheckbox) {
-      showInHeaderCheckbox.checked = showInHeader;
-      const group = document.getElementById('headerImageGroup');
-      if (group) group.style.display = showInHeader ? 'block' : 'none';
-    }
-    const headerImageInput = document.getElementById('movieHeaderImage');
-    if (headerImageInput) headerImageInput.value = movie.headerImage || '';
+  const poster = movie.poster || '';
+  if (poster && !poster.startsWith('data:image')) {
+    document.getElementById('moviePosterUrl').value = poster;
+  } else if (poster) {
+    selectedPosterDataUrl = poster;
   } else {
-    title.textContent = 'Yangi kino qo\'shish';
-    form.reset();
-    delete form.dataset.editingId;
-    updatePosterPreview('');
+    document.getElementById('moviePosterUrl').value = '';
   }
+  updatePosterPreview(poster);
+
+  const showInHeader = Boolean(movie.showInHeader);
+  const showInHeaderCheckbox = document.getElementById('movieShowInHeader');
+  if (showInHeaderCheckbox) {
+    showInHeaderCheckbox.checked = showInHeader;
+    const group = document.getElementById('headerImageGroup');
+    if (group) group.style.display = showInHeader ? 'block' : 'none';
+  }
+  const headerImageInput = document.getElementById('movieHeaderImage');
+  if (headerImageInput) headerImageInput.value = movie.headerImage || '';
 
   updateDescriptionCounter();
   modal.classList.add('active');
@@ -471,15 +487,20 @@ function closeMovieModal() {
   document.getElementById('movieModal')?.classList.remove('active');
 }
 
-// Handle Movie Submit
+// Handle Movie Submit (edit only - movies originate from Google Drive)
 async function handleMovieSubmit(e) {
   e.preventDefault();
 
   const form = e.target;
+  if (!form.dataset.editingId) {
+    showNotification('Yangi kino qo\'shish faqat Google Drive papkasiga fayl yuklash orqali amalga oshiriladi.', 'error');
+    return;
+  }
+
   const submitButton = form.querySelector('button[type="submit"]');
   const movieData = {
     name: document.getElementById('movieName').value.trim(),
-    category: document.getElementById('movieCategory').value,
+    category: document.getElementById('movieCategory').value.trim(),
     rating: parseFloat(document.getElementById('movieRating').value) || 0,
     hd: document.getElementById('movieHd').value === 'true',
     description: document.getElementById('movieDescription').value,
@@ -488,7 +509,7 @@ async function handleMovieSubmit(e) {
     headerImage: document.getElementById('movieHeaderImage').value.trim()
   };
 
-  if (form.dataset.editingId) {
+  {
     const id = form.dataset.editingId;
     const currentMovie = movies.find(movie => sameMovieId(movie.id, id));
     const updatePayload = { id };
@@ -563,20 +584,6 @@ async function handleMovieSubmit(e) {
         submitButton.textContent = 'Saqlash';
       }
     }
-  } else {
-    if (movieData.description.length > MOVIE_DESCRIPTION_MAX_LENGTH) {
-      updateDescriptionCounter();
-      showDescriptionLimitError();
-      return;
-    }
-
-    // Add new (local only for now - TODO: API)
-    const numericIds = movies.map(m => Number(m.id)).filter(Number.isFinite);
-    const newId = Math.max(...numericIds, 0) + 1;
-    movies.push({ id: String(newId), ...movieData, poster: movieData.posterImage });
-    showNotification('Kino qo\'shildi! (lokal)');
-    renderMovies();
-    closeMovieModal();
   }
 }
 
@@ -584,15 +591,6 @@ async function handleMovieSubmit(e) {
 function editMovie(id) {
   const movie = movies.find(m => sameMovieId(m.id, id));
   if (movie) openMovieModal(movie);
-}
-
-// Delete Movie (local only for now - TODO: API)
-function deleteMovie(id) {
-  if (confirm('Bu kinoni o\'chirishni xohlaysizmi?')) {
-    movies = movies.filter(m => !sameMovieId(m.id, id));
-    renderMovies();
-    showNotification('Kino o\'chirildi! (lokal)');
-  }
 }
 
 // Show Notification
@@ -661,4 +659,3 @@ init();
 // Expose for inline handlers / retry buttons
 window.fetchMovies = fetchMovies;
 window.editMovie = editMovie;
-window.deleteMovie = deleteMovie;
