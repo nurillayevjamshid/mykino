@@ -68,6 +68,7 @@
 
 html {
   min-height: 100%;
+  overflow-x: clip;
   background:
     linear-gradient(180deg, #121827 0%, #180f17 52%, #0b1018 100%);
 }
@@ -75,6 +76,7 @@ html {
 body {
   min-height: 100%;
   margin: 0;
+  overflow-x: clip;
   color: var(--text);
   background:
     linear-gradient(135deg, rgba(255, 199, 58, 0.08) 0%, transparent 34%),
@@ -172,6 +174,7 @@ img {
 
 .app-shell {
   width: min(100%, 590px);
+  max-width: 100vw;
   min-height: 100vh;
   margin: 0 auto;
   padding: max(18px, env(safe-area-inset-top)) 16px 108px;
@@ -179,6 +182,7 @@ img {
   display: grid;
   grid-template-columns: 1fr;
   gap: 14px;
+  overflow-x: clip;
 }
 
 @media (min-width: 768px) {
