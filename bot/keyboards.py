@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -7,23 +9,33 @@ from aiogram.types import (
 )
 
 
+def _bust(url: str, anchor: str = "") -> str:
+    sep = "&" if "?" in url else "?"
+    cache_param = f"v={int(time.time())}"
+    if anchor:
+        return f"{url}{sep}{cache_param}{anchor}"
+    return f"{url}{sep}{cache_param}"
+
+
 def start_menu(webapp_url: str) -> InlineKeyboardMarkup:
+    main_url = _bust(webapp_url)
+    profile_url = _bust(webapp_url, anchor="#profile")
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
                     text="Kino ko'rish",
-                    web_app=WebAppInfo(url=webapp_url),
+                    web_app=WebAppInfo(url=main_url),
                 ),
             ],
             [
                 InlineKeyboardButton(
                     text="Profilga kirish",
-                    web_app=WebAppInfo(url=f"{webapp_url}/#profile"),
+                    web_app=WebAppInfo(url=profile_url),
                 ),
                 InlineKeyboardButton(
                     text="Oxirgi ko'rilgan kinolar",
-                    web_app=WebAppInfo(url=f"{webapp_url}/#profile"),
+                    web_app=WebAppInfo(url=profile_url),
                 ),
             ],
             [
