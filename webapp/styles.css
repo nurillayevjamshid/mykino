@@ -2147,6 +2147,11 @@ html[data-theme="light"] .brand-panel {
   object-fit: cover;
 }
 
+.profile-trigger__photo[hidden],
+.profile-trigger__initials[hidden] {
+  display: none;
+}
+
 .profile-trigger__initials {
   display: grid;
   place-items: center;
