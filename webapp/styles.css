@@ -4109,12 +4109,62 @@ html[data-theme="light"] .theme-toggle .theme-toggle__icon--sun {
 }
 
 /* ============================================================
-   Topbar
+   Topbar — floating glass pill (matches bottom-bar)
    ============================================================ */
 
+:root {
+  --topbar-top: max(env(safe-area-inset-top), 12px);
+  --topbar-height: 56px;
+}
+
+.topbar {
+  position: absolute;
+  top: var(--topbar-top);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: calc(var(--muvi-shell-max) - 24px);
+  height: var(--topbar-height);
+  margin: 0 !important;
+  padding: 0 12px 0 16px !important;
+  border-radius: 999px;
+  background: var(--c-bottom-glass);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-pill);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+}
+
+html[data-theme="dark"] .topbar {
+  background: rgba(15, 15, 17, 0.85);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .topbar.is-scrolled {
-  background: linear-gradient(180deg, var(--c-bg) 0%, rgba(0, 0, 0, 0) 100%);
-  border-bottom: 1px solid var(--c-border);
+  background: var(--c-bottom-glass);
+  border-color: var(--c-border);
+  box-shadow: var(--c-shadow-pill);
+}
+
+html[data-theme="dark"] .topbar.is-scrolled {
+  background: rgba(15, 15, 17, 0.92);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Hero starts 3px below topbar bottom; grid mirrors when hero hidden */
+.hero {
+  margin-top: calc(var(--topbar-top) + var(--topbar-height) + 3px) !important;
+}
+
+.hero[hidden] + .movie-grid {
+  padding-top: calc(var(--topbar-top) + var(--topbar-height) + 12px) !important;
+}
+
+.hero:not([hidden]) + .movie-grid {
+  margin-top: 8px;
 }
 
 /* ============================================================
