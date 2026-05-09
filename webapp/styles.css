@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color-scheme: dark;
   --bg-0: #090c12;
   --bg-1: #101521;
@@ -457,9 +457,9 @@ html[data-theme="light"] .brand {
 .icon-button {
   position: relative;
   z-index: 1;
-  width: 56px;
-  height: 56px;
-  border-radius: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
   color: var(--text);
   display: grid;
   place-items: center;
@@ -614,15 +614,17 @@ html[data-theme="light"] .brand {
 }
 
 .search-box {
-  min-height: 52px;
-  padding: 0 20px;
-  border-radius: 22px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .search-box .icon-svg {
+  width: 18px;
+  height: 18px;
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -633,7 +635,7 @@ html[data-theme="light"] .brand {
   outline: 0;
   color: var(--text);
   background: transparent;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .search-box input::placeholder {
@@ -1191,21 +1193,21 @@ html[data-theme="light"] .card-watch-button {
 .bottom-bar {
   position: fixed;
   left: 50%;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: max(14px, env(safe-area-inset-bottom));
   z-index: 15;
-  width: min(calc(100% - 28px), 340px);
-  padding: 10px;
+  width: min(calc(100% - 28px), 280px);
+  padding: 8px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: 6px;
   transform: translateX(-50%);
-  border-radius: 28px;
+  border-radius: 24px;
 }
 
 .bottom-bar__button {
   position: relative;
   z-index: 1;
-  min-height: 52px;
+  min-height: 40px;
   border-radius: 999px;
   color: rgba(255, 255, 255, 0.72);
   display: grid;
@@ -1214,6 +1216,11 @@ html[data-theme="light"] .card-watch-button {
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: all 0.2s ease;
+}
+
+.bottom-bar__button .icon-svg {
+  width: 18px;
+  height: 18px;
 }
 
 .bottom-bar__button:hover {
@@ -1254,7 +1261,7 @@ html[data-theme="light"] .bottom-bar {
   .app-shell {
     padding-left: 12px;
     padding-right: 12px;
-    padding-bottom: 96px;
+    padding-bottom: 92px;
   }
 
   .topbar {
@@ -1264,38 +1271,38 @@ html[data-theme="light"] .bottom-bar {
   }
 
   .brand-panel {
-    min-height: 74px;
-    padding: 12px 14px;
+    min-height: 64px;
+    padding: 10px 12px;
   }
 
   .brand-logo {
-    height: 48px;
+    height: 40px;
   }
 
   .icon-button {
-    width: 50px;
-    height: 50px;
-    border-radius: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
   }
 
   .lang-select {
-    min-height: 40px;
-    padding: 0 28px 0 10px;
-    font-size: 13px;
+    min-height: 36px;
+    padding: 0 26px 0 10px;
+    font-size: 12px;
     background-position: right 10px center;
   }
 
   .theme-toggle {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .tab__label {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .bottom-bar__button {
-    min-height: 46px;
+    min-height: 38px;
   }
 
   .movie-card {
@@ -1305,78 +1312,6 @@ html[data-theme="light"] .bottom-bar {
   .card-copy h2 {
     font-size: 17px;
   }
-}
-
-  .topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .brand-panel {
-    min-height: 74px;
-    padding: 12px 14px;
-  }
-
-  .brand-logo {
-    height: 48px;
-  }
-
-  .icon-button {
-    width: 50px;
-    height: 50px;
-    border-radius: 18px;
-  }
-
-  .lang-select {
-    min-height: 40px;
-    padding: 0 28px 0 10px;
-    font-size: 13px;
-    background-position: right 10px center;
-  }
-
-  .theme-toggle {
-    width: 40px;
-    height: 40px;
-  }
-
-  .tab__label {
-    font-size: 13px;
-  }
-
-  .bottom-bar__button {
-    min-height: 48px;
-  }
-
-  .movie-card {
-    height: 320px;
-  }
-
-  .card-copy h2 {
-    font-size: 17px;
-  }
-}
-
-  .bottom-bar__button {
-    min-height: 48px;
-  }
-}
-
-.bottom-bar__button {
-  position: relative;
-  z-index: 1;
-  min-height: 52px;
-  border-radius: 18px;
-  color: rgba(255, 255, 255, 0.72);
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.bottom-bar__button.is-active {
-  color: #15110a;
-  background: linear-gradient(180deg, #ffd76a, #f1b21d);
 }
 
 dialog {
@@ -2009,614 +1944,6 @@ dialog::backdrop {
   }
 }
 
-  .brand-panel {
-    min-height: 74px;
-    padding: 12px 14px;
-  }
-
-  .brand-logo {
-    height: 48px;
-  }
-
-  .icon-button {
-    width: 50px;
-    height: 50px;
-    border-radius: 18px;
-  }
-
-  .lang-select {
-    min-height: 40px;
-    padding: 0 28px 0 10px;
-    font-size: 13px;
-    background-position: right 10px center;
-  }
-
-  .theme-toggle {
-    width: 40px;
-    height: 40px;
-  }
-
-  .tab__label {
-    font-size: 13px;
-  }
-
-  .bottom-bar__button {
-    min-height: 48px;
-  }
-
-  .movie-card {
-    height: 320px;
-  }
-
-  .card-copy h2 {
-    font-size: 17px;
-  }
-
-  .movie-grid {
-    gap: 16px 12px;
-  }
-
-  .movie-card {
-    border-radius: 24px;
-  }
-
-  .movie-card::after {
-    border-radius: 23px;
-  }
-
-  .card-copy {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    padding: 14px;
-    border-radius: 20px;
-  }
-
-  .card-copy p {
-    font-size: 14px;
-  }
-
-  .card-watch-button {
-    min-height: 36px;
-    margin-top: 10px;
-  }
-
-  .play-float {
-    width: 64px;
-    height: 64px;
-    font-size: 28px;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-  }
-
-  .watch-button,
-  .ghost-button {
-    width: 100%;
-  }
-
-  .video-player__stage {
-    padding-left: 0;
-    padding-right: 0;
-    gap: 12px;
-  }
-
-  .video-mount {
-    width: 100%;
-    border-radius: 0;
-  }
-
-  .video-mount video,
-  .video-mount iframe {
-    max-height: calc(100dvh - 280px);
-  }
-
-  .video-player__controls {
-    width: 100%;
-    padding: 14px 12px;
-    border-radius: 0;
-  }
-
-  .video-progress-panel {
-    gap: 10px;
-  }
-
-  .video-time {
-    font-size: 13px;
-  }
-
-  .video-command-row {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .video-volume-pill,
-  .video-extra-controls {
-    width: 100%;
-    justify-self: stretch;
-  }
-
-  .video-main-controls {
-    justify-content: center;
-  }
-
-  .video-extra-controls {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .bottom-bar {
-    width: min(calc(100% - 24px), 308px);
-    bottom: max(12px, env(safe-area-inset-bottom));
-  }
-}
-
-  .topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .brand-panel {
-    min-height: 74px;
-    padding: 12px 14px;
-  }
-
-  .brand-logo {
-    height: 48px;
-  }
-
-  .icon-button {
-    width: 50px;
-    height: 50px;
-    border-radius: 18px;
-  }
-
-  .lang-select {
-    min-height: 40px;
-    padding: 0 28px 0 10px;
-    font-size: 13px;
-    background-position: right 10px center;
-  }
-
-  .theme-toggle {
-    width: 40px;
-    height: 40px;
-  }
-
-  .tab__label {
-    font-size: 13px;
-  }
-
-  .bottom-bar__button {
-    min-height: 48px;
-  }
-
-  .movie-card {
-    height: 320px;
-  }
-
-  .card-copy h2 {
-    font-size: 17px;
-  }
-}
-
-  .topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .brand-panel {
-    min-height: 74px;
-    padding: 12px 14px;
-  }
-
-  .brand-logo {
-    height: 48px;
-  }
-
-  .icon-button {
-    width: 50px;
-    height: 50px;
-    border-radius: 18px;
-  }
-
-  .lang-select {
-    min-height: 40px;
-    padding: 0 28px 0 10px;
-    font-size: 13px;
-    background-position: right 10px center;
-  }
-
-  .theme-toggle {
-    width: 40px;
-    height: 40px;
-  }
-
-  .movie-grid {
-    gap: 16px 12px;
-  }
-
-  .movie-card {
-    height: 352px;
-    border-radius: 24px;
-  }
-
-  .movie-card::after {
-    border-radius: 23px;
-  }
-
-  .card-copy {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    padding: 14px;
-    border-radius: 20px;
-  }
-
-  .card-copy h2 {
-    font-size: 19px;
-  }
-
-  .card-copy p {
-    font-size: 14px;
-  }
-
-  .card-watch-button {
-    min-height: 36px;
-    margin-top: 10px;
-  }
-
-  .play-float {
-    width: 64px;
-    height: 64px;
-    font-size: 28px;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-  }
-
-  .watch-button,
-  .ghost-button {
-    width: 100%;
-  }
-
-  .video-player__stage {
-    padding-left: 0;
-    padding-right: 0;
-    gap: 12px;
-  }
-
-  .video-mount {
-    width: 100%;
-    border-radius: 0;
-  }
-
-  .video-mount video,
-  .video-mount iframe {
-    max-height: calc(100dvh - 280px);
-  }
-
-  .video-player__controls {
-    width: 100%;
-    padding: 14px 12px;
-    border-radius: 0;
-  }
-
-  .video-progress-panel {
-    gap: 10px;
-  }
-
-  .video-time {
-    font-size: 13px;
-  }
-
-  .video-command-row {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .video-volume-pill,
-  .video-extra-controls {
-    width: 100%;
-    justify-self: stretch;
-  }
-
-  .video-main-controls {
-    justify-content: center;
-  }
-
-  .video-extra-controls {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .bottom-bar {
-    width: min(calc(100% - 24px), 308px);
-    bottom: max(12px, env(safe-area-inset-bottom));
-  }
-}
-
-  .brand-panel {
-    min-height: 74px;
-    padding: 12px 14px;
-  }
-
-  .brand-logo {
-    height: 48px;
-  }
-
-  .icon-button {
-    width: 50px;
-    height: 50px;
-    border-radius: 18px;
-  }
-
-  .lang-select {
-    min-height: 40px;
-    padding: 0 28px 0 10px;
-    font-size: 13px;
-    background-position: right 10px center;
-  }
-
-  .theme-toggle {
-    width: 40px;
-    height: 40px;
-  }
-
-  .category-panel {
-    top: 160px;
-    padding: 10px;
-  }
-
-  .category-chip {
-    min-height: 32px;
-    padding: 0 12px;
-    font-size: 12px;
-  }
-
-  .movie-grid {
-    gap: 16px 12px;
-  }
-
-  .movie-card {
-    height: 352px;
-    border-radius: 24px;
-  }
-
-  .movie-card::after {
-    border-radius: 23px;
-  }
-
-  .card-copy {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    padding: 14px;
-    border-radius: 20px;
-  }
-
-  .card-copy h2 {
-    font-size: 19px;
-  }
-
-  .card-copy p {
-    font-size: 14px;
-  }
-
-  .card-watch-button {
-    min-height: 36px;
-    margin-top: 10px;
-  }
-
-  .play-float {
-    width: 64px;
-    height: 64px;
-    font-size: 28px;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-  }
-
-  .watch-button,
-  .ghost-button {
-    width: 100%;
-  }
-
-  .video-player__stage {
-    padding-left: 0;
-    padding-right: 0;
-    gap: 12px;
-  }
-
-  .video-mount {
-    width: 100%;
-    border-radius: 0;
-  }
-
-  .video-mount video,
-  .video-mount iframe {
-    max-height: calc(100dvh - 280px);
-  }
-
-  .video-player__controls {
-    width: 100%;
-    padding: 14px 12px;
-    border-radius: 0;
-  }
-
-  .video-progress-panel {
-    gap: 10px;
-  }
-
-  .video-time {
-    font-size: 13px;
-  }
-
-  .video-command-row {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .video-volume-pill,
-  .video-extra-controls {
-    width: 100%;
-    justify-self: stretch;
-  }
-
-  .video-main-controls {
-    justify-content: center;
-  }
-
-  .video-extra-controls {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .bottom-bar {
-    width: min(calc(100% - 24px), 308px);
-    bottom: max(12px, env(safe-area-inset-bottom));
-  }
-}
-
-  .brand-panel {
-    min-height: 74px;
-    padding: 12px 14px;
-  }
-
-  .brand-logo {
-    height: 48px;
-  }
-
-  .icon-button {
-    width: 50px;
-    height: 50px;
-    border-radius: 18px;
-  }
-
-  .language-row {
-    padding: 6px;
-  }
-
-  .language-row__mark {
-    width: 40px;
-    height: 40px;
-  }
-
-  .lang {
-    min-height: 40px;
-    padding: 0 10px;
-    font-size: 14px;
-  }
-
-  .movie-grid {
-    gap: 16px 12px;
-  }
-
-  .movie-card {
-    height: 352px;
-    border-radius: 24px;
-  }
-
-  .movie-card::after {
-    border-radius: 23px;
-  }
-
-  .card-copy {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    padding: 14px;
-    border-radius: 20px;
-  }
-
-  .card-copy h2 {
-    font-size: 19px;
-  }
-
-  .card-copy p {
-    font-size: 14px;
-  }
-
-  .card-watch-button {
-    min-height: 36px;
-    margin-top: 10px;
-  }
-
-  .play-float {
-    width: 64px;
-    height: 64px;
-    font-size: 28px;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-  }
-
-  .watch-button,
-  .ghost-button {
-    width: 100%;
-  }
-
-  .video-player__stage {
-    padding-left: 0;
-    padding-right: 0;
-    gap: 12px;
-  }
-
-  .video-mount {
-    width: 100%;
-    border-radius: 0;
-  }
-
-  .video-mount video,
-  .video-mount iframe {
-    max-height: calc(100dvh - 280px);
-  }
-
-  .video-player__controls {
-    width: 100%;
-    padding: 14px 12px;
-    border-radius: 0;
-  }
-
-  .video-progress-panel {
-    gap: 10px;
-  }
-
-  .video-time {
-    font-size: 13px;
-  }
-
-  .video-command-row {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .video-volume-pill,
-  .video-extra-controls {
-    width: 100%;
-    justify-self: stretch;
-  }
-
-  .video-main-controls {
-    justify-content: center;
-  }
-
-  .video-extra-controls {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .bottom-bar {
-    width: min(calc(100% - 24px), 308px);
-    bottom: max(12px, env(safe-area-inset-bottom));
-  }
-}
 
 @media (max-width: 400px) {
   .movie-grid {
@@ -2838,10 +2165,10 @@ html[data-theme="light"] .brand-panel {
 
 .tab {
   min-width: 0;
-  min-height: 52px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 0 10px;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   text-align: center;
 }
 
