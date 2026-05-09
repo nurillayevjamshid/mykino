@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0f131a" />
   <title>My Kino</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/static/styles.css?v=20260509-compact-mobile" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260509-strip-hero-search-cat" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -74,65 +74,6 @@
       </div>
     </header>
     
-    <section class="hero-carousel" id="heroCarousel" hidden>
-      <div class="hero-slides" id="heroSlides"></div>
-      <div class="hero-indicators" id="heroIndicators"></div>
-    </section>
-
-    <section class="category-panel glass-panel" id="categoryPanel" aria-label="Kategoriyalar" hidden>
-      <div class="category-list" id="categoryList"></div>
-    </section>
-
-    <section class="search-panel" id="searchPanel" hidden>
-      <label class="search-box glass-panel">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M20 20l-3.5-3.5"></path>
-        </svg>
-        <input id="searchInput" type="search" placeholder="Kino qidirish" autocomplete="off" />
-      </label>
-    </section>
-
-
-
-    <nav class="quick-tabs" aria-label="Kino bo'limlari">
-      <button class="tab is-active" type="button" data-filter="all">
-        <span class="tab__icon" aria-hidden="true">
-          <svg class="icon-svg" viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="16" rx="4"></rect>
-            <path d="M8 4v16"></path>
-            <path d="M16 4v16"></path>
-            <path d="M3 9h5"></path>
-            <path d="M16 9h5"></path>
-            <path d="M3 15h5"></path>
-            <path d="M16 15h5"></path>
-            <path d="M8 12h8"></path>
-          </svg>
-        </span>
-        <span class="tab__label">Barchasi</span>
-      </button>
-      <button class="tab" type="button" data-action="search">
-        <span class="tab__icon" aria-hidden="true">
-          <svg class="icon-svg" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7"></circle>
-            <path d="M20 20l-3.5-3.5"></path>
-          </svg>
-        </span>
-        <span class="tab__label">Qidirish</span>
-      </button>
-      <button class="tab" type="button" data-action="categories">
-        <span class="tab__icon" aria-hidden="true">
-          <svg class="icon-svg" viewBox="0 0 24 24">
-            <rect x="3" y="4" width="7" height="7" rx="2"></rect>
-            <rect x="14" y="4" width="7" height="7" rx="2"></rect>
-            <rect x="3" y="14" width="7" height="7" rx="2"></rect>
-            <rect x="14" y="14" width="7" height="7" rx="2"></rect>
-          </svg>
-        </span>
-        <span class="tab__label">Kategoriya</span>
-      </button>
-    </nav>
-
     <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
 
     <div class="empty-state glass-panel" id="emptyState" hidden>
@@ -362,7 +303,7 @@
     </div>
   </section>
 
-  <script src="/static/app.js?v=20260509-category-rows"></script>
+  <script src="/static/app.js?v=20260509-strip-hero-search-cat"></script>
 </body>
 
 </html>
