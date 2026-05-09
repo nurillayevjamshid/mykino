@@ -21,12 +21,11 @@ const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor("#0f131a");
-  tg.setBackgroundColor("#0b1018");
 }
 
-const savedTheme = localStorage.getItem("kino_theme") || "dark";
+const savedTheme = localStorage.getItem("kino_theme") || "light";
 const themeToggle = document.querySelector(".theme-toggle");
+const WISHLIST_STORAGE_KEY = "kino_wishlist_v1";
 
 const langDropdown = document.querySelector("#langDropdown");
 if (langDropdown) {
@@ -308,17 +307,23 @@ function setRangeFill(node, value, maxValue) {
 }
 
 function applyTheme(theme) {
-  const nextTheme = theme === "light" ? "light" : "dark";
+  const nextTheme = theme === "dark" ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", nextTheme);
   if (themeToggle) {
     themeToggle.dataset.theme = nextTheme;
+    themeToggle.setAttribute(
+      "aria-label",
+      nextTheme === "dark" ? "Kunduzgi rejim" : "Kechki rejim",
+    );
   }
+  const headerHex = nextTheme === "light" ? "#fafafb" : "#050505";
+  const bgHex = nextTheme === "light" ? "#f7f7f8" : "#050505";
   if (themeColorMeta) {
-    themeColorMeta.setAttribute("content", nextTheme === "light" ? "#faf7ff" : "#0f131a");
+    themeColorMeta.setAttribute("content", headerHex);
   }
   if (tg) {
-    tg.setHeaderColor(nextTheme === "light" ? "#faf7ff" : "#0f131a");
-    tg.setBackgroundColor(nextTheme === "light" ? "#f7f3ff" : "#0b1018");
+    try { tg.setHeaderColor(headerHex); } catch {}
+    try { tg.setBackgroundColor(bgHex); } catch {}
   }
 }
 
@@ -438,12 +443,43 @@ function getMovieCategory(movie) {
   return normalizeCategoryValue(movie?.genre || "kino");
 }
 
+function readWishlist() {
+  try {
+    const payload = JSON.parse(localStorage.getItem(WISHLIST_STORAGE_KEY) || "[]");
+    return Array.isArray(payload) ? payload.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeWishlist(ids) {
+  try {
+    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids));
+  } catch {}
+}
+
+function isInWishlist(id) {
+  return readWishlist().includes(String(id));
+}
+
+function toggleWishlist(id) {
+  const key = String(id);
+  const list = readWishlist();
+  const idx = list.indexOf(key);
+  if (idx >= 0) list.splice(idx, 1);
+  else list.push(key);
+  writeWishlist(list);
+  return idx < 0;
+}
+
 function filteredMovies() {
+  const wishlistIds = activeFilter === "favorites" ? new Set(readWishlist()) : null;
   return getViewerMovies().filter((movie) => {
     const matchesFilter =
       activeFilter === "all" ||
       (activeFilter === "top" && movie.isTop) ||
-      (activeFilter === "premium" && movie.isPremium);
+      (activeFilter === "premium" && movie.isPremium) ||
+      (activeFilter === "favorites" && wishlistIds.has(String(movie.id)));
     const matchesCategory = activeCategory === "all" || getMovieCategory(movie) === activeCategory;
     const haystack = `${movie.title} ${movie.genre || ""} ${movie.year || ""} ${movie.code || ""}`.toLowerCase();
     return matchesFilter && matchesCategory && haystack.includes(query.toLowerCase());
@@ -1035,32 +1071,22 @@ function syncNavButtons() {
   document.querySelectorAll('[data-action="categories"]').forEach((button) => {
     button.classList.toggle("is-active", (categoryPanel && !categoryPanel.hidden) || activeCategory !== "all");
   });
+
+  document.querySelectorAll('[data-action="favorites"]').forEach((button) => {
+    button.classList.toggle("is-active", activeFilter === "favorites");
+  });
 }
 
 let heroFeaturedMovie = null;
+let heroSlides = [];
 
-function pickHeroMovie() {
-  const featured = movies.filter((m) => m && m.showInHeader && (m.headerImage || getPosterImage(m)));
-  if (featured.length) return featured[0];
-  const list = getViewerMovies();
-  return list[0] || null;
+function pickHeroSlides() {
+  return movies.filter((m) => m && m.showInHeader && (m.headerImage || getPosterImage(m)));
 }
 
-function renderHeroCarousel() {
-  const heroSection = document.getElementById("heroSection");
-  if (!heroSection) return;
-
-  const isHomeView = activeFilter === "all" && activeCategory === "all" && !query;
-  const movie = pickHeroMovie();
-
-  if (!movie || !isHomeView || movieLoadState !== "ready") {
-    heroSection.hidden = true;
-    heroFeaturedMovie = null;
-    return;
-  }
-
+function renderHeroSlide(movie) {
+  if (!movie) return;
   heroFeaturedMovie = movie;
-  heroSection.hidden = false;
 
   const heroBackdrop = document.getElementById("heroBackdrop");
   const heroShimmer = document.getElementById("heroShimmer");
@@ -1070,13 +1096,18 @@ function renderHeroCarousel() {
 
   const imageUrl = String(movie.headerImage || getPosterImage(movie) || "").trim();
   if (heroBackdrop) {
-    heroBackdrop.classList.remove("is-loaded");
     if (imageUrl) {
       const safeUrlValue = imageUrl.replaceAll("'", "%27");
-      heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
+      heroBackdrop.classList.remove("is-loaded");
       const probe = new Image();
-      probe.onload = () => heroBackdrop.classList.add("is-loaded");
-      probe.onerror = () => heroBackdrop.classList.add("is-loaded");
+      probe.onload = () => {
+        heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
+        heroBackdrop.classList.add("is-loaded");
+      };
+      probe.onerror = () => {
+        heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
+        heroBackdrop.classList.add("is-loaded");
+      };
       probe.src = imageUrl;
     } else {
       heroBackdrop.style.backgroundImage = "linear-gradient(135deg, #1f1f1f, #050505)";
@@ -1091,6 +1122,64 @@ function renderHeroCarousel() {
     heroDescription.textContent = desc || fallback;
   }
   if (heroPlayLabel) heroPlayLabel.textContent = plainLabel(t("watch"));
+
+  renderHeroDots();
+}
+
+function renderHeroDots() {
+  const heroSection = document.getElementById("heroSection");
+  if (!heroSection) return;
+  let dots = heroSection.querySelector(".hero__dots");
+  if (heroSlides.length <= 1) {
+    if (dots) dots.remove();
+    return;
+  }
+  if (!dots) {
+    dots = document.createElement("div");
+    dots.className = "hero__dots";
+    heroSection.append(dots);
+  }
+  dots.innerHTML = heroSlides
+    .map((_, idx) => `<span class="hero__dot${idx === heroActiveIndex ? " is-active" : ""}"></span>`)
+    .join("");
+}
+
+function startHeroAutoRotate() {
+  stopHeroAutoRotate();
+  if (heroSlides.length <= 1) return;
+  heroIntervalId = window.setInterval(() => {
+    heroActiveIndex = (heroActiveIndex + 1) % heroSlides.length;
+    renderHeroSlide(heroSlides[heroActiveIndex]);
+  }, HERO_ROTATE_INTERVAL_MS);
+}
+
+function stopHeroAutoRotate() {
+  if (heroIntervalId) {
+    window.clearInterval(heroIntervalId);
+    heroIntervalId = null;
+  }
+}
+
+function renderHeroCarousel() {
+  const heroSection = document.getElementById("heroSection");
+  if (!heroSection) return;
+
+  const isHomeView = activeFilter === "all" && activeCategory === "all" && !query;
+  const slides = pickHeroSlides();
+
+  if (!slides.length || !isHomeView || movieLoadState !== "ready") {
+    heroSection.hidden = true;
+    heroFeaturedMovie = null;
+    heroSlides = [];
+    stopHeroAutoRotate();
+    return;
+  }
+
+  heroSlides = slides;
+  if (heroActiveIndex >= heroSlides.length) heroActiveIndex = 0;
+  heroSection.hidden = false;
+  renderHeroSlide(heroSlides[heroActiveIndex]);
+  startHeroAutoRotate();
 }
 
 function attachHeroBindings() {
@@ -1124,18 +1213,35 @@ function createMovieCard(movie) {
   if (genreText) metaParts.push(`<span class="card-meta__sep">·</span><span class="card-meta__genre">${escapeHtml(genreText)}</span>`);
   else if (yearText) metaParts.push(`<span class="card-meta__sep">·</span><span class="card-meta__genre">${escapeHtml(yearText)}</span>`);
 
+  const inWishlist = isInWishlist(movie.id);
   card.innerHTML = `
     <span class="poster" ${posterStyle(movie)}>
       <span class="card-badges">
         <span class="badge">${escapeHtml(movie.quality || "HD")}</span>
         <span class="rating"><span>&#9733;</span> ${escapeHtml(ratingText)}</span>
       </span>
+      <button class="wishlist-toggle${inWishlist ? " is-active" : ""}" type="button" aria-pressed="${inWishlist ? "true" : "false"}" aria-label="Sevimlilarga qo'shish" data-wishlist-id="${escapeHtml(movie.id)}">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+        </svg>
+      </button>
     </span>
     <span class="card-copy">
       <h2>${escapeHtml(movie.title)}</h2>
       <p class="card-meta">${metaParts.join("")}</p>
     </span>
   `;
+  const wishlistBtn = card.querySelector(".wishlist-toggle");
+  wishlistBtn?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    const isActive = toggleWishlist(movie.id);
+    wishlistBtn.classList.toggle("is-active", isActive);
+    wishlistBtn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    if (activeFilter === "favorites") {
+      renderMovies();
+    }
+  });
   card.addEventListener("click", () => openMovie(movie));
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -1967,7 +2073,7 @@ function closeVideoPlayer() {
 
 function setFilter(filter) {
   activeFilter = filter;
-  if (filter === "all") {
+  if (filter === "all" || filter === "favorites") {
     activeCategory = "all";
     query = "";
     if (searchInput) searchInput.value = "";
@@ -2109,8 +2215,10 @@ document.querySelectorAll("[data-action='profile']").forEach((button) => {
 
 document.querySelectorAll("[data-action='favorites']").forEach((button) => {
   button.addEventListener("click", () => {
-    renderProfileModal();
-    profileModal.showModal();
+    setFilter("favorites");
+    if (searchPanel) searchPanel.hidden = true;
+    if (categoryPanel) categoryPanel.hidden = true;
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
 

@@ -1,29 +1,37 @@
 <!doctype html>
-<html lang="uz">
+<html lang="uz" data-theme="light">
 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f131a" />
-  <title>My Kino</title>
+  <meta name="theme-color" content="#fafafb" />
+  <title>Kino Play</title>
   <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260509-dark-polish" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260509-themes-and-wishlist" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
 <body>
   <div id="splashScreen" class="splash-screen">
-    <img src="/static/assets/splash.jpg" alt="My Kino Play" />
+    <img src="/static/assets/splash.jpg?v=20260509" alt="Kino Play" />
     <div class="splash-overlay"></div>
   </div>
   <main class="app-shell" id="appShell" style="opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon" aria-hidden="true">M</div>
-        <span class="brand-text">MUVI</span>
+      <div class="brand" aria-label="Kino Play">
+        <span class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32" class="brand-logo__svg">
+            <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+            <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="brand-text__top">KINO</span>
+          <span class="brand-text__bottom">PLAY</span>
+        </span>
       </div>
       <div class="topbar-controls">
         <div class="lang-dropdown" id="langDropdown">
@@ -48,12 +56,12 @@
             </button>
           </div>
         </div>
-        <button class="theme-toggle icon-button" type="button" data-theme="dark" aria-label="Mavzu" hidden>
-          <svg class="icon-svg icon-svg--sun" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="5"></circle>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+        <button class="theme-toggle" type="button" data-theme="light" aria-label="Kunduzgi/Kechki rejim">
+          <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
           </svg>
-          <svg class="icon-svg icon-svg--moon" viewBox="0 0 24 24" aria-hidden="true">
+          <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
