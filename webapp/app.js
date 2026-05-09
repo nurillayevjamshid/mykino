@@ -23,6 +23,12 @@ if (tg) {
   tg.expand();
   tg.setHeaderColor("#0f131a");
   tg.setBackgroundColor("#0b1018");
+  if (typeof tg.requestFullscreen === "function") {
+    try { tg.requestFullscreen(); } catch (_) { /* older clients */ }
+  }
+  if (typeof tg.disableVerticalSwipes === "function") {
+    try { tg.disableVerticalSwipes(); } catch (_) { /* older clients */ }
+  }
 }
 
 const savedTheme = localStorage.getItem("kino_theme") || "dark";
