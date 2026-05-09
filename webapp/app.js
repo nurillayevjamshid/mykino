@@ -1152,41 +1152,98 @@ function startHeroRotation(count) {
   }, HERO_ROTATE_INTERVAL_MS);
 }
 
-function renderMovies() {
-  const list = movieLoadState === "ready" ? filteredMovies() : [];
-  grid.innerHTML = "";
-  updateEmptyState(list);
-  for (const movie of list) {
-    const card = document.createElement("article");
-    card.className = "movie-card";
-    card.tabIndex = 0;
-    card.setAttribute("role", "button");
-    card.setAttribute("aria-label", movie.title);
-    card.innerHTML = `
-      <span class="poster" ${posterStyle(movie)}></span>
-      <span class="card-badges">
-        <span class="badge">${escapeHtml(movie.quality || "HD")}</span>
-        <span class="rating"><span>&#9733;</span> ${formatRating(movie.rating)}</span>
-      </span>
-      <span class="play-float">&#9654;</span>
-      <span class="card-copy">
-        <h2>${escapeHtml(movie.title)}</h2>
-      </span>
+function createMovieCard(movie) {
+  const card = document.createElement("article");
+  card.className = "movie-card";
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", movie.title);
+  card.innerHTML = `
+    <span class="poster" ${posterStyle(movie)}></span>
+    <span class="card-badges">
+      <span class="badge">${escapeHtml(movie.quality || "HD")}</span>
+      <span class="rating"><span>&#9733;</span> ${formatRating(movie.rating)}</span>
+    </span>
+    <span class="play-float">&#9654;</span>
+    <span class="card-copy">
+      <h2>${escapeHtml(movie.title)}</h2>
+    </span>
+  `;
+  card.querySelector(".card-copy").insertAdjacentHTML("beforeend", '<button class="card-watch-button" type="button"></button>');
+  card.querySelector(".card-watch-button").textContent = plainLabel(t("watch"));
+  card.addEventListener("click", () => openMovie(movie));
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openMovie(movie);
+    }
+  });
+  card.querySelector(".card-watch-button").addEventListener("click", (event) => {
+    event.stopPropagation();
+    openVideoPlayer(movie);
+  });
+  return card;
+}
+
+function buildHomeCategoryGroups() {
+  const groups = new Map();
+  for (const movie of getViewerMovies()) {
+    const rawGenre = String(movie?.genre || "").trim();
+    const value = normalizeCategoryValue(rawGenre || "kino");
+    if (!value) continue;
+    const label = rawGenre || "Kino";
+    if (!groups.has(value)) groups.set(value, { value, label, movies: [] });
+    groups.get(value).movies.push(movie);
+  }
+  return [...groups.values()];
+}
+
+function renderHomeRows() {
+  const groups = buildHomeCategoryGroups();
+  const moreLabel = plainLabel(t("categories"));
+  for (const group of groups) {
+    if (!group.movies.length) continue;
+    const section = document.createElement("section");
+    section.className = "category-row";
+    section.innerHTML = `
+      <header class="category-row__head">
+        <h3 class="category-row__title">${escapeHtml(group.label)}</h3>
+        <button class="category-row__more" type="button" data-category="${escapeHtml(group.value)}" aria-label="${escapeHtml(group.label)} - ${escapeHtml(moreLabel)}">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="9 6 15 12 9 18"></polyline>
+          </svg>
+        </button>
+      </header>
+      <div class="category-row__list" role="list"></div>
     `;
-    card.querySelector(".card-copy").insertAdjacentHTML("beforeend", '<button class="card-watch-button" type="button"></button>');
-    card.querySelector(".card-watch-button").textContent = plainLabel(t("watch"));
-    card.addEventListener("click", () => openMovie(movie));
-    card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openMovie(movie);
-      }
+    const list = section.querySelector(".category-row__list");
+    for (const movie of group.movies) {
+      list.append(createMovieCard(movie));
+    }
+    section.querySelector(".category-row__more").addEventListener("click", () => {
+      setCategory(group.value);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     });
-    card.querySelector(".card-watch-button").addEventListener("click", (event) => {
-      event.stopPropagation();
-      openVideoPlayer(movie);
-    });
-    grid.append(card);
+    grid.append(section);
+  }
+  return groups.length;
+}
+
+function renderMovies() {
+  const isHomeView = activeFilter === "all" && activeCategory === "all" && !query;
+  grid.innerHTML = "";
+
+  if (isHomeView && movieLoadState === "ready") {
+    grid.classList.add("is-home");
+    const rowCount = renderHomeRows();
+    updateEmptyState(rowCount > 0 ? getViewerMovies() : []);
+  } else {
+    grid.classList.remove("is-home");
+    const list = movieLoadState === "ready" ? filteredMovies() : [];
+    updateEmptyState(list);
+    for (const movie of list) {
+      grid.append(createMovieCard(movie));
+    }
   }
 
   renderCategories();
@@ -2250,6 +2307,66 @@ function startMoviesPolling() {
   }, 60000);
 }
 
+function waitForImageReady(image, timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    if (!image) {
+      resolve(false);
+      return;
+    }
+
+    if (image.complete && image.naturalWidth > 0) {
+      resolve(true);
+      return;
+    }
+
+    let settled = false;
+    let timeoutId = 0;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      image.removeEventListener("load", onLoad);
+      image.removeEventListener("error", onError);
+      resolve(ok);
+    };
+    const onLoad = () => finish(true);
+    const onError = () => finish(false);
+
+    image.addEventListener("load", onLoad, { once: true });
+    image.addEventListener("error", onError, { once: true });
+    timeoutId = window.setTimeout(() => finish(false), timeoutMs);
+  });
+}
+
+async function loadAppSettings() {
+  let timeoutId = 0;
+  try {
+    await resolveApiBase();
+    const controller = new AbortController();
+    timeoutId = window.setTimeout(() => controller.abort(), 3500);
+    const response = await fetch(buildApiUrl("/api/settings"), {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const splashImageUrl = resolveAppUrl(data.splashImageUrl || "");
+      if (splashImageUrl) {
+        const splashImg = document.querySelector("#splashScreen img");
+        if (splashImg) {
+          splashImg.src = splashImageUrl;
+          await waitForImageReady(splashImg);
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore error, use default
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 function initSplashScreen() {
   const splashScreen = document.getElementById("splashScreen");
   const appShell = document.getElementById("appShell");
@@ -2269,7 +2386,8 @@ function initSplashScreen() {
   }
 }
 
-function initApp() {
+async function initApp() {
+  await loadAppSettings();
   initSplashScreen();
   loadMovies();
   startMoviesPolling();
