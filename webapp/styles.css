@@ -4154,9 +4154,16 @@ html[data-theme="dark"] .topbar.is-scrolled {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Hero starts 3px below topbar bottom; grid mirrors when hero hidden */
+/* Hero — sized to fit between topbar and category rows */
 .hero {
   margin-top: calc(var(--topbar-top) + var(--topbar-height) + 3px) !important;
+  height: 420px !important;
+}
+
+@media (max-width: 380px) {
+  .hero {
+    height: 380px !important;
+  }
 }
 
 .hero[hidden] + .movie-grid {
@@ -4164,7 +4171,15 @@ html[data-theme="dark"] .topbar.is-scrolled {
 }
 
 .hero:not([hidden]) + .movie-grid {
-  margin-top: 8px;
+  margin-top: 4px;
+}
+
+.hero__inner {
+  bottom: 24px;
+}
+
+.hero__dots {
+  bottom: 10px;
 }
 
 /* ============================================================
