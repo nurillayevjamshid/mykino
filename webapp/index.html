@@ -7,7 +7,10 @@
   <meta name="theme-color" content="#0f131a" />
   <title>My Kino</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/static/styles.css?v=20260509-fix-topbar-icons" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v=20260509-muvi-redesign" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -19,27 +22,14 @@
   <main class="app-shell" id="appShell" style="opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
     <header class="topbar">
       <div class="brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polygon points="10 8 16 12 10 16 10 8" fill="currentColor"></polygon>
-          </svg>
-        </div>
-        <div class="brand-text">
-          <span class="brand-text__top">KINO</span>
-          <span class="brand-text__bottom">PLAY</span>
-        </div>
+        <div class="brand-icon" aria-hidden="true">M</div>
+        <span class="brand-text">MUVI</span>
       </div>
       <div class="topbar-controls">
         <div class="lang-dropdown" id="langDropdown">
           <button class="lang-trigger" type="button" aria-label="Tilni tanlash">
-            <svg class="icon-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-            </svg>
             <span class="lang-current">UZ</span>
-            <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
@@ -58,7 +48,7 @@
             </button>
           </div>
         </div>
-        <button class="theme-toggle icon-button" type="button" data-theme="dark" aria-label="Mavzu">
+        <button class="theme-toggle icon-button" type="button" data-theme="dark" aria-label="Mavzu" hidden>
           <svg class="icon-svg icon-svg--sun" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="5"></circle>
             <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
@@ -67,13 +57,32 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
-        <button class="icon-button icon-button--top profile-trigger" type="button" data-action="profile" aria-label="Profil">
-          <img class="profile-trigger__photo" id="headerAvatarPhoto" alt="Telegram user" hidden />
-          <span class="profile-trigger__initials" id="headerAvatar">KI</span>
-        </button>
       </div>
     </header>
-    
+
+    <section class="hero" id="heroSection" hidden>
+      <div class="hero__bg" id="heroBackdrop"></div>
+      <div class="hero__shimmer" id="heroShimmer"></div>
+      <div class="hero__gradient"></div>
+      <div class="hero__inner">
+        <h1 class="hero__title" id="heroTitle"></h1>
+        <p class="hero__desc" id="heroDescription"></p>
+        <div class="hero__actions">
+          <button class="hero__play" id="heroPlayButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+            <span id="heroPlayLabel">Ko'rish</span>
+          </button>
+          <button class="hero__info" id="heroInfoButton" type="button" aria-label="Batafsil">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
     <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
 
     <div class="empty-state glass-panel" id="emptyState" hidden>
@@ -81,33 +90,44 @@
       <span>Boshqa nom, janr yoki kod bilan urinib ko'ring.</span>
     </div>
 
-    <nav class="bottom-bar glass-panel" aria-label="Mini app menyusi">
-      <button class="bottom-bar__button" type="button" data-filter="all" aria-label="Barchasi" title="Barchasi">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="16" rx="4"></rect>
-          <path d="M8 4v16"></path>
-          <path d="M16 4v16"></path>
-          <path d="M3 9h5"></path>
-          <path d="M16 9h5"></path>
-          <path d="M3 15h5"></path>
-          <path d="M16 15h5"></path>
-          <path d="M8 12h8"></path>
-        </svg>
-      </button>
-      <button class="bottom-bar__button" type="button" data-action="search" aria-label="Qidirish" title="Qidirish">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M20 20l-3.5-3.5"></path>
-        </svg>
-      </button>
-      <button class="bottom-bar__button" type="button" data-action="categories" aria-label="Kategoriya" title="Kategoriya">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="3" y="4" width="7" height="7" rx="2"></rect>
-          <rect x="14" y="4" width="7" height="7" rx="2"></rect>
-          <rect x="3" y="14" width="7" height="7" rx="2"></rect>
-          <rect x="14" y="14" width="7" height="7" rx="2"></rect>
-        </svg>
-      </button>
+    <nav class="bottom-bar" aria-label="Mini app menyusi">
+      <div class="bottom-bar__inner">
+        <button class="bottom-bar__button is-active" type="button" data-filter="all" aria-label="Asosiy" title="Asosiy">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12 12 4l9 8"></path>
+            <path d="M5 10v10h14V10"></path>
+            <path d="M10 20v-6h4v6"></path>
+          </svg>
+          <span class="bottom-bar__label">Asosiy</span>
+        </button>
+        <button class="bottom-bar__button" type="button" data-action="categories" aria-label="Katalog" title="Katalog">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+          </svg>
+          <span class="bottom-bar__label">Katalog</span>
+        </button>
+        <button class="bottom-bar__button" type="button" data-action="search" aria-label="Qidiruv" title="Qidiruv">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+          </svg>
+          <span class="bottom-bar__label">Qidiruv</span>
+        </button>
+        <button class="bottom-bar__button" type="button" data-action="favorites" aria-label="Sevimlilar" title="Sevimlilar">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span class="bottom-bar__label">Sevimlilar</span>
+        </button>
+        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
+          <span class="bottom-bar__avatar">
+            <img class="profile-trigger__photo" id="headerAvatarPhoto" alt="Telegram user" hidden />
+            <span class="profile-trigger__initials" id="headerAvatar">KI</span>
+          </span>
+          <span class="bottom-bar__label">Profil</span>
+        </button>
+      </div>
     </nav>
   </main>
 
