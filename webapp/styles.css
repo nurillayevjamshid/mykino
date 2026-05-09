@@ -814,6 +814,8 @@ html[data-theme="light"] .tab.is-active {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding: 4px 16px 8px;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 
 .category-row__list::-webkit-scrollbar {
