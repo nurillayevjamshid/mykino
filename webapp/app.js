@@ -1029,11 +1029,11 @@ function syncNavButtons() {
   });
 
   document.querySelectorAll('[data-action="search"]').forEach((button) => {
-    button.classList.toggle("is-active", !searchPanel.hidden || Boolean(query));
+    button.classList.toggle("is-active", (searchPanel && !searchPanel.hidden) || Boolean(query));
   });
 
   document.querySelectorAll('[data-action="categories"]').forEach((button) => {
-    button.classList.toggle("is-active", !categoryPanel.hidden || activeCategory !== "all");
+    button.classList.toggle("is-active", (categoryPanel && !categoryPanel.hidden) || activeCategory !== "all");
   });
 }
 
@@ -2007,10 +2007,10 @@ function setFilter(filter) {
   activeFilter = filter;
   if (filter === "all") {
     activeCategory = "all";
-    searchPanel.hidden = true;
-    categoryPanel.hidden = true;
     query = "";
-    searchInput.value = "";
+    if (searchInput) searchInput.value = "";
+    if (searchPanel) searchPanel.hidden = true;
+    if (categoryPanel) categoryPanel.hidden = true;
   }
   renderMovies();
 }
@@ -2029,20 +2029,22 @@ function toggleTheme() {
 }
 
 function toggleSearchPanel(forceOpen) {
+  if (!searchPanel) return;
   const nextState = typeof forceOpen === "boolean" ? forceOpen : searchPanel.hidden;
   searchPanel.hidden = !nextState;
   if (nextState) {
-    categoryPanel.hidden = true;
-    searchInput.focus();
+    if (categoryPanel) categoryPanel.hidden = true;
+    if (searchInput) searchInput.focus();
   }
   syncNavButtons();
 }
 
 function toggleCategoryPanel(forceOpen) {
+  if (!categoryPanel) return;
   const nextState = typeof forceOpen === "boolean" ? forceOpen : categoryPanel.hidden;
   categoryPanel.hidden = !nextState;
   if (nextState) {
-    searchPanel.hidden = true;
+    if (searchPanel) searchPanel.hidden = true;
   }
   syncNavButtons();
 }
@@ -2074,7 +2076,7 @@ function applyCopy() {
     });
   }
 
-  searchInput.placeholder = plainLabel(t("placeholder"));
+  if (searchInput) searchInput.placeholder = plainLabel(t("placeholder"));
   if (movieLaterButton) movieLaterButton.textContent = plainLabel(t("later"));
   if (videoLoading) {
     const label = videoLoading.querySelector("b");
@@ -2131,7 +2133,7 @@ document.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
 
 // Custom dropdown handles language changes via click listeners defined above
 
-searchInput.addEventListener("input", (event) => {
+searchInput?.addEventListener("input", (event) => {
   query = event.target.value.trim();
   renderMovies();
 });
