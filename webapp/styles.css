@@ -4871,3 +4871,47 @@ html[data-theme="light"] .icon-button--top {
   padding-left: 24px;
   padding-right: 24px;
 }
+
+/* ============================================================
+   Mini App scroll lock — body locked, content scrolls only
+   Telegram Mini App'da qo'l bilan tortganda oynani siljitmaslik
+   ============================================================ */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+/* Topbar header — viewport ga nisbatan fixed, scroll bilan siljimaydi */
+.topbar {
+  position: fixed;
+}
+
+/* Bottom bar allaqachon fixed — qo'shimcha himoya */
+.bottom-bar {
+  position: fixed;
+}
+
+/* Har bir kategoriya ichidagi gorizontal scroll — vertikal scrollni
+   tortib ketmasligi uchun overscroll cheklanadi */
+.category-row__list {
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: none;
+  touch-action: pan-x;
+}
