@@ -1037,119 +1037,77 @@ function syncNavButtons() {
   });
 }
 
+let heroFeaturedMovie = null;
+
+function pickHeroMovie() {
+  const featured = movies.filter((m) => m && m.showInHeader && (m.headerImage || getPosterImage(m)));
+  if (featured.length) return featured[0];
+  const list = getViewerMovies();
+  return list[0] || null;
+}
+
 function renderHeroCarousel() {
-  const heroCarousel = document.getElementById("heroCarousel");
-  const heroSlides = document.getElementById("heroSlides");
-  const heroIndicators = document.getElementById("heroIndicators");
-  
-  if (!heroCarousel || !heroSlides || !heroIndicators) return;
+  const heroSection = document.getElementById("heroSection");
+  if (!heroSection) return;
 
-  const featured = movies.filter(m => m.showInHeader && m.headerImage);
+  const isHomeView = activeFilter === "all" && activeCategory === "all" && !query;
+  const movie = pickHeroMovie();
 
-  if (featured.length === 0) {
-    heroCarousel.hidden = true;
-    clearInterval(heroIntervalId);
+  if (!movie || !isHomeView || movieLoadState !== "ready") {
+    heroSection.hidden = true;
+    heroFeaturedMovie = null;
     return;
   }
 
-  heroCarousel.hidden = false;
-  heroSlides.innerHTML = "";
-  heroIndicators.innerHTML = "";
-  // Infinite loop logic: Clone first and last slides if multiple items
-  const hasMultiple = featured.length > 1;
-  const slides = hasMultiple 
-    ? [featured[featured.length - 1], ...featured, featured[0]] 
-    : featured;
-  
-  heroActiveIndex = hasMultiple ? 1 : 0;
+  heroFeaturedMovie = movie;
+  heroSection.hidden = false;
 
-  slides.forEach((movie, index) => {
-    const slide = document.createElement("div");
-    slide.className = "hero-slide";
-    slide.innerHTML = `
-      <img src="${movie.headerImage}" alt="${escapeHtml(movie.title)}" loading="${(hasMultiple ? index === 1 : index === 0) ? 'eager' : 'lazy'}">
-      <div class="hero-content">
-        <h2>${escapeHtml(movie.title)}</h2>
-        <p>${escapeHtml(movie.genre)} · ${escapeHtml(movie.year)}</p>
-      </div>
-    `;
-    slide.addEventListener("click", () => openMovie(movie));
-    heroSlides.appendChild(slide);
-  });
+  const heroBackdrop = document.getElementById("heroBackdrop");
+  const heroShimmer = document.getElementById("heroShimmer");
+  const heroTitle = document.getElementById("heroTitle");
+  const heroDescription = document.getElementById("heroDescription");
+  const heroPlayLabel = document.getElementById("heroPlayLabel");
 
-  // Render indicators (only for real slides)
-  featured.forEach((_, index) => {
-    const indicator = document.createElement("div");
-    indicator.className = `hero-indicator${index === 0 ? ' active' : ''}`;
-    indicator.addEventListener("click", () => {
-      heroActiveIndex = index + (hasMultiple ? 1 : 0);
-      updateHeroSlides();
-      startHeroRotation(featured.length); // Reset timer on manual click
+  const imageUrl = String(movie.headerImage || getPosterImage(movie) || "").trim();
+  if (heroBackdrop) {
+    heroBackdrop.classList.remove("is-loaded");
+    if (imageUrl) {
+      const safeUrlValue = imageUrl.replaceAll("'", "%27");
+      heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
+      const probe = new Image();
+      probe.onload = () => heroBackdrop.classList.add("is-loaded");
+      probe.onerror = () => heroBackdrop.classList.add("is-loaded");
+      probe.src = imageUrl;
+    } else {
+      heroBackdrop.style.backgroundImage = "linear-gradient(135deg, #1f1f1f, #050505)";
+      heroBackdrop.classList.add("is-loaded");
+    }
+  }
+  if (heroShimmer) heroShimmer.hidden = false;
+  if (heroTitle) heroTitle.textContent = movie.title || "";
+  if (heroDescription) {
+    const desc = String(movie.description || "").trim();
+    const fallback = [movie.genre, movie.year].filter(Boolean).join(" · ");
+    heroDescription.textContent = desc || fallback;
+  }
+  if (heroPlayLabel) heroPlayLabel.textContent = plainLabel(t("watch"));
+}
+
+function attachHeroBindings() {
+  const heroPlay = document.getElementById("heroPlayButton");
+  const heroInfo = document.getElementById("heroInfoButton");
+  if (heroPlay && !heroPlay.dataset.bound) {
+    heroPlay.dataset.bound = "1";
+    heroPlay.addEventListener("click", () => {
+      if (heroFeaturedMovie) openVideoPlayer(heroFeaturedMovie);
     });
-    heroIndicators.appendChild(indicator);
-  });
-
-
-
-  // Handle jump for infinite loop
-  if (hasMultiple) {
-    heroSlides.ontransitionend = () => {
-      if (heroActiveIndex === 0) {
-        heroActiveIndex = featured.length;
-        updateHeroSlides(true);
-      } else if (heroActiveIndex === featured.length + 1) {
-        heroActiveIndex = 1;
-        updateHeroSlides(true);
-      }
-    };
   }
-
-  updateHeroSlides(true);
-  startHeroRotation(featured.length);
-}
-
-function updateHeroSlides(instant = false) {
-  const heroSlides = document.getElementById("heroSlides");
-  const indicators = document.querySelectorAll(".hero-indicator");
-  if (!heroSlides) return;
-
-  const featured = movies.filter(m => m.showInHeader && m.headerImage);
-  const count = featured.length;
-  const hasMultiple = count > 1;
-
-  if (instant) {
-    heroSlides.style.transition = "none";
-  } else {
-    heroSlides.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
+  if (heroInfo && !heroInfo.dataset.bound) {
+    heroInfo.dataset.bound = "1";
+    heroInfo.addEventListener("click", () => {
+      if (heroFeaturedMovie) openMovie(heroFeaturedMovie);
+    });
   }
-
-  heroSlides.style.transform = `translateX(-${heroActiveIndex * 100}%)`;
-  
-  // Sync indicators
-  let displayIndex = hasMultiple ? heroActiveIndex - 1 : heroActiveIndex;
-  if (hasMultiple) {
-    if (heroActiveIndex === 0) displayIndex = count - 1;
-    if (heroActiveIndex === count + 1) displayIndex = 0;
-  }
-
-  indicators.forEach((ind, i) => {
-    ind.classList.toggle("active", i === displayIndex);
-  });
-
-  if (instant) {
-    heroSlides.offsetHeight; 
-    heroSlides.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
-  }
-}
-
-function startHeroRotation(count) {
-  clearInterval(heroIntervalId);
-  if (count <= 1) return;
-  
-  heroIntervalId = setInterval(() => {
-    heroActiveIndex++;
-    updateHeroSlides();
-  }, HERO_ROTATE_INTERVAL_MS);
 }
 
 function createMovieCard(movie) {
@@ -1158,29 +1116,32 @@ function createMovieCard(movie) {
   card.tabIndex = 0;
   card.setAttribute("role", "button");
   card.setAttribute("aria-label", movie.title);
+  const ratingText = formatRating(movie.rating);
+  const genreText = String(movie.genre || "").trim();
+  const yearText = String(movie.year || "").trim();
+  const metaParts = [];
+  if (ratingText && ratingText !== "0.0") metaParts.push(`<span class="card-meta__star">&#9733;</span><span>${escapeHtml(ratingText)}</span>`);
+  if (genreText) metaParts.push(`<span class="card-meta__sep">·</span><span class="card-meta__genre">${escapeHtml(genreText)}</span>`);
+  else if (yearText) metaParts.push(`<span class="card-meta__sep">·</span><span class="card-meta__genre">${escapeHtml(yearText)}</span>`);
+
   card.innerHTML = `
-    <span class="poster" ${posterStyle(movie)}></span>
-    <span class="card-badges">
-      <span class="badge">${escapeHtml(movie.quality || "HD")}</span>
-      <span class="rating"><span>&#9733;</span> ${formatRating(movie.rating)}</span>
+    <span class="poster" ${posterStyle(movie)}>
+      <span class="card-badges">
+        <span class="badge">${escapeHtml(movie.quality || "HD")}</span>
+        <span class="rating"><span>&#9733;</span> ${escapeHtml(ratingText)}</span>
+      </span>
     </span>
-    <span class="play-float">&#9654;</span>
     <span class="card-copy">
       <h2>${escapeHtml(movie.title)}</h2>
+      <p class="card-meta">${metaParts.join("")}</p>
     </span>
   `;
-  card.querySelector(".card-copy").insertAdjacentHTML("beforeend", '<button class="card-watch-button" type="button"></button>');
-  card.querySelector(".card-watch-button").textContent = plainLabel(t("watch"));
   card.addEventListener("click", () => openMovie(movie));
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       openMovie(movie);
     }
-  });
-  card.querySelector(".card-watch-button").addEventListener("click", (event) => {
-    event.stopPropagation();
-    openVideoPlayer(movie);
   });
   return card;
 }
@@ -1248,6 +1209,7 @@ function renderMovies() {
 
   renderCategories();
   syncNavButtons();
+  renderHeroCarousel();
 }
 
 function renderProfileHistory() {
@@ -2144,6 +2106,15 @@ document.querySelectorAll("[data-action='profile']").forEach((button) => {
     profileModal.showModal();
   });
 });
+
+document.querySelectorAll("[data-action='favorites']").forEach((button) => {
+  button.addEventListener("click", () => {
+    renderProfileModal();
+    profileModal.showModal();
+  });
+});
+
+attachHeroBindings();
 
 clearHistoryButton?.addEventListener("click", () => {
   clearWatchedHistory();
