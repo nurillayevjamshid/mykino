@@ -21,6 +21,7 @@ const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 if (tg) {
   tg.ready();
   tg.expand();
+  tg.disableVerticalSwipes?.();
 }
 
 const savedTheme = localStorage.getItem("kino_theme") || "light";
@@ -1289,7 +1290,7 @@ function renderHomeRows() {
     }
     section.querySelector(".category-row__more").addEventListener("click", () => {
       setCategory(group.value);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
     });
     grid.append(section);
   }
@@ -2218,7 +2219,7 @@ document.querySelectorAll("[data-action='favorites']").forEach((button) => {
     setFilter("favorites");
     if (searchPanel) searchPanel.hidden = true;
     if (categoryPanel) categoryPanel.hidden = true;
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
 
