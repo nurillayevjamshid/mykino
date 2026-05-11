@@ -231,11 +231,89 @@ def create_web_app(settings: Settings) -> web.Application:
         except Exception as e:
             return json_response({"ok": False, "error": str(e)}, status=500)
 
+    def _settings_path() -> Any:
+        return settings.webapp_dir.parent / "data" / "settings.json"
+
+    def _normalize_channel(item: Any) -> dict[str, Any] | None:
+        if not isinstance(item, dict):
+            return None
+        username = str(item.get("username") or "").strip().lstrip("@")
+        chat_id = str(item.get("id") or item.get("chatId") or "").strip()
+        title = str(item.get("title") or "").strip() or username
+        invite = str(item.get("inviteUrl") or item.get("url") or "").strip()
+        if not username and not chat_id:
+            return None
+        if not invite and username:
+            invite = f"https://t.me/{username}"
+        return {
+            "id": chat_id,
+            "username": username,
+            "title": title or username or chat_id,
+            "inviteUrl": invite,
+        }
+
+    async def get_required_channels(_: web.Request) -> web.Response:
+        data = load_settings_json(_settings_path())
+        channels = data.get("requiredChannels") or []
+        normalized = [c for c in (_normalize_channel(item) for item in channels) if c]
+        return json_response({"ok": True, "channels": normalized})
+
+    async def post_required_channels(request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+        except Exception:
+            return json_response({"ok": False, "error": "Invalid JSON"}, status=400)
+
+        path = _settings_path()
+        data = load_settings_json(path)
+        existing = [c for c in (_normalize_channel(item) for item in (data.get("requiredChannels") or [])) if c]
+
+        if isinstance(body, dict) and "channels" in body:
+            items = body.get("channels") or []
+            normalized = [c for c in (_normalize_channel(item) for item in items) if c]
+            existing = normalized
+        else:
+            channel = _normalize_channel(body)
+            if not channel:
+                return json_response({"ok": False, "error": "username yoki id kerak."}, status=400)
+            key = (channel["username"].lower(), channel["id"])
+            existing = [c for c in existing if (c["username"].lower(), c["id"]) != key]
+            existing.append(channel)
+
+        save_settings_json(path, {"requiredChannels": existing})
+        return json_response({"ok": True, "channels": existing})
+
+    async def delete_required_channel(request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        target_username = str(body.get("username") or "").strip().lstrip("@").lower()
+        target_id = str(body.get("id") or "").strip()
+        if not target_username and not target_id:
+            return json_response({"ok": False, "error": "username yoki id kerak."}, status=400)
+
+        path = _settings_path()
+        data = load_settings_json(path)
+        existing = [c for c in (_normalize_channel(item) for item in (data.get("requiredChannels") or [])) if c]
+        filtered = [
+            c for c in existing
+            if not (
+                (target_username and c["username"].lower() == target_username)
+                or (target_id and c["id"] == target_id)
+            )
+        ]
+        save_settings_json(path, {"requiredChannels": filtered})
+        return json_response({"ok": True, "channels": filtered})
+
     app.router.add_get("/", index)
     app.router.add_get("/api/movies", movies)
     app.router.add_get("/api/users", users)
     app.router.add_get("/api/settings", get_settings)
     app.router.add_post("/api/settings", post_settings)
+    app.router.add_get("/api/required-channels", get_required_channels)
+    app.router.add_post("/api/required-channels", post_required_channels)
+    app.router.add_delete("/api/required-channels", delete_required_channel)
     app.router.add_get("/api/youtube/movies", youtube_movies)
     app.router.add_get("/api/video-url/{fileId}", video_url)
     app.router.add_get("/api/stream/{fileId}", stream_video)

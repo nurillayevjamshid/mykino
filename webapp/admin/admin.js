@@ -1,10 +1,21 @@
-// Admin Panel JavaScript - Movies only
+// Admin Panel JavaScript - Movies, Required channels, Subscribers
 
 // Data storage
 let movies = [];
 let filteredMovies = [];
 let currentSearchQuery = '';
 let selectedPosterDataUrl = '';
+
+let requiredChannels = [];
+let usersList = [];
+let filteredUsers = [];
+let userSearchQuery = '';
+
+const SECTION_TITLES = {
+  movies: 'Kinolar',
+  subscription: 'Majburiy obuna',
+  users: 'Obunachilar',
+};
 
 // Modal kategoriyalari uchun: tanlangan + mavjudlar ro'yxati
 const selectedCategories = new Set();
@@ -196,6 +207,279 @@ async function init() {
   createSidebarOverlay();
 }
 
+function switchSection(name) {
+  const sections = {
+    movies: 'moviesSection',
+    subscription: 'subscriptionSection',
+    users: 'usersSection',
+  };
+  const targetId = sections[name];
+  if (!targetId) return;
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.section === name);
+  });
+  document.querySelectorAll('.content-section').forEach(section => {
+    section.classList.toggle('active', section.id === targetId);
+  });
+
+  const title = document.getElementById('pageTitle');
+  if (title) title.textContent = SECTION_TITLES[name] || 'Admin';
+
+  if (name === 'subscription') fetchRequiredChannels();
+  if (name === 'users') fetchUsers();
+
+  if (window.innerWidth <= 768) {
+    document.querySelector('.sidebar')?.classList.remove('open');
+    document.getElementById('menuToggle')?.classList.remove('active');
+    document.getElementById('sidebarOverlay')?.classList.remove('active');
+  }
+}
+
+// ------------- Required channels -------------
+async function fetchRequiredChannels() {
+  const tbody = document.getElementById('channelsTableBody');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5">
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Kanallar yuklanmoqda...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/required-channels`);
+    if (!response.ok) throw new Error(`Server xatolik: ${response.status}`);
+    const data = await response.json();
+    requiredChannels = Array.isArray(data.channels) ? data.channels : [];
+    renderRequiredChannels();
+  } catch (error) {
+    console.error('Error fetching channels:', error);
+    requiredChannels = [];
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5">
+            <div class="empty-state error-state">
+              <h3>Kanallarni yuklashda xatolik!</h3>
+              <p>${escapeHtml(error.message)}</p>
+              <button class="btn btn-primary" onclick="fetchRequiredChannels()" style="margin-top: 12px;">Qayta urinish</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
+
+function renderRequiredChannels() {
+  const tbody = document.getElementById('channelsTableBody');
+  if (!tbody) return;
+
+  if (requiredChannels.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5">
+          <div class="empty-state">
+            <h3>Majburiy obuna kanali hozircha yo'q</h3>
+            <p>Yuqoridagi formadan kanal qo'shing.</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = requiredChannels.map(ch => `
+    <tr>
+      <td><strong>${escapeHtml(ch.title || ch.username || '-')}</strong></td>
+      <td>${ch.username ? '@' + escapeHtml(ch.username) : '-'}</td>
+      <td>${escapeHtml(ch.id || '-')}</td>
+      <td>${ch.inviteUrl ? `<a href="${escapeHtml(ch.inviteUrl)}" target="_blank" rel="noopener">${escapeHtml(ch.inviteUrl)}</a>` : '-'}</td>
+      <td>
+        <div class="actions">
+          <button class="btn-icon delete" data-action="delete-channel"
+            data-username="${escapeHtml(ch.username || '')}"
+            data-id="${escapeHtml(ch.id || '')}"
+            title="O'chirish">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function addRequiredChannel(event) {
+  event.preventDefault();
+  const form = event.target;
+  const submitButton = form.querySelector('button[type="submit"]');
+
+  const payload = {
+    username: document.getElementById('channelUsername').value.trim().replace(/^@/, ''),
+    title: document.getElementById('channelTitle').value.trim(),
+    id: document.getElementById('channelChatId').value.trim(),
+    inviteUrl: document.getElementById('channelInviteUrl').value.trim(),
+  };
+
+  if (!payload.username && !payload.id) {
+    showNotification('Username yoki kanal ID kerak.', 'error');
+    return;
+  }
+
+  try {
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Saqlanmoqda...';
+    }
+    const response = await fetch(`${API_URL}/required-channels`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.error || 'Kanal qo\'shilmadi.');
+
+    requiredChannels = Array.isArray(result.channels) ? result.channels : requiredChannels;
+    renderRequiredChannels();
+    form.reset();
+    showNotification('Kanal qo\'shildi.');
+  } catch (error) {
+    console.error('Add channel error:', error);
+    showNotification('Xatolik: ' + error.message, 'error');
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = '+ Kanal qo\'shish';
+    }
+  }
+}
+
+async function deleteRequiredChannel(username, chatId) {
+  if (!confirm('Ushbu kanalni majburiy obuna ro\'yxatidan o\'chirasizmi?')) return;
+
+  try {
+    const response = await fetch(`${API_URL}/required-channels`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, id: chatId }),
+    });
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.error || 'O\'chirishda xatolik.');
+    requiredChannels = Array.isArray(result.channels) ? result.channels : [];
+    renderRequiredChannels();
+    showNotification('Kanal o\'chirildi.');
+  } catch (error) {
+    console.error('Delete channel error:', error);
+    showNotification('Xatolik: ' + error.message, 'error');
+  }
+}
+
+// ------------- Subscribers -------------
+function normalizeUser(record) {
+  return {
+    telegram_id: record.telegram_id || record.id || record.telegramId || '',
+    username: record.username || '',
+    first_name: record.first_name || record.firstName || record.firstSeenName || '',
+    started_at: record.started_at || (record.firstSeenAt ? String(record.firstSeenAt).slice(0, 10) : ''),
+  };
+}
+
+async function fetchUsers() {
+  const tbody = document.getElementById('usersTableBody');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5">
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Obunachilar yuklanmoqda...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/users`);
+    if (!response.ok) throw new Error(`Server xatolik: ${response.status}`);
+    const data = await response.json();
+    const list = Array.isArray(data) ? data : (Array.isArray(data?.users) ? data.users : []);
+    usersList = list.map(normalizeUser);
+    filteredUsers = [...usersList];
+    renderUsers();
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    usersList = [];
+    filteredUsers = [];
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5">
+            <div class="empty-state error-state">
+              <h3>Obunachilarni yuklashda xatolik!</h3>
+              <p>${escapeHtml(error.message)}</p>
+              <button class="btn btn-primary" onclick="fetchUsers()" style="margin-top: 12px;">Qayta urinish</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
+
+function filterUsers(query) {
+  userSearchQuery = String(query || '').toLowerCase().trim();
+  if (!userSearchQuery) {
+    filteredUsers = [...usersList];
+  } else {
+    filteredUsers = usersList.filter(u => {
+      const haystack = [u.first_name, u.username, String(u.telegram_id), u.started_at].join(' ').toLowerCase();
+      return haystack.includes(userSearchQuery);
+    });
+  }
+  renderUsers();
+}
+
+function renderUsers() {
+  const tbody = document.getElementById('usersTableBody');
+  if (!tbody) return;
+
+  const list = userSearchQuery ? filteredUsers : usersList;
+
+  const sectionHeader = document.querySelector('#usersSection .section-header h2');
+  if (sectionHeader) {
+    sectionHeader.textContent = `Obunachilar ro'yxati (${usersList.length})`;
+  }
+
+  if (list.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5">
+          <div class="empty-state">
+            <h3>${userSearchQuery ? 'Qidiruv natijasi yo\'q' : 'Obunachilar hali yo\'q'}</h3>
+            <p>${userSearchQuery ? `"${escapeHtml(userSearchQuery)}" bo'yicha topilmadi` : 'Foydalanuvchilar /start bosishi bilan bu yerda ko\'rinadi.'}</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = list.map((user, index) => `
+    <tr>
+      <td>${index + 1}</td>
+      <td><strong>${escapeHtml(user.first_name || '-')}</strong></td>
+      <td>${user.username ? '@' + escapeHtml(user.username) : '-'}</td>
+      <td><code>${escapeHtml(String(user.telegram_id || '-'))}</code></td>
+      <td>${escapeHtml(user.started_at || '-')}</td>
+    </tr>
+  `).join('');
+}
+
 // Create sidebar overlay for mobile
 function createSidebarOverlay() {
   if (document.getElementById('sidebarOverlay')) return;
@@ -244,6 +528,34 @@ function bindEvents() {
 
   // Theme toggle
   themeToggle?.addEventListener('click', toggleTheme);
+
+  // Sidebar navigation
+  document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const name = item.dataset.section;
+      if (name) switchSection(name);
+    });
+  });
+
+  // Required channels: add form
+  document.getElementById('channelForm')?.addEventListener('submit', addRequiredChannel);
+
+  // Required channels: delete via delegation
+  document.getElementById('channelsTableBody')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action="delete-channel"]');
+    if (!btn) return;
+    deleteRequiredChannel(btn.dataset.username || '', btn.dataset.id || '');
+  });
+
+  // Users search + refresh
+  document.getElementById('userSearchInput')?.addEventListener('input', (e) => {
+    filterUsers(e.target.value);
+  });
+  document.getElementById('refreshUsersBtn')?.addEventListener('click', async () => {
+    await fetchUsers();
+    showNotification('Ro\'yxat yangilandi.');
+  });
 
   // Table row actions - event delegation (only edit, no delete)
   document.getElementById('moviesTableBody')?.addEventListener('click', (e) => {
@@ -766,3 +1078,5 @@ init();
 // Expose for inline handlers / retry buttons
 window.fetchMovies = fetchMovies;
 window.editMovie = editMovie;
+window.fetchRequiredChannels = fetchRequiredChannels;
+window.fetchUsers = fetchUsers;

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f131a">
   <title>My Kino - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20260511-multi-cats">
+  <link rel="stylesheet" href="/admin/admin.css?v=20260511-sub-users">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -38,6 +38,26 @@
                 <line x1="2" y1="12" x2="22" y2="12"></line>
               </svg>
               <span class="nav-text">Kinolar</span>
+            </a>
+          </li>
+          <li class="nav-item" data-section="subscription">
+            <a href="#" class="nav-link">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2L12 12.5"></path>
+                <path d="M22 2L15 22l-4-9-9-4 20-7z"></path>
+              </svg>
+              <span class="nav-text">Majburiy obuna</span>
+            </a>
+          </li>
+          <li class="nav-item" data-section="users">
+            <a href="#" class="nav-link">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span class="nav-text">Obunachilar</span>
             </a>
           </li>
         </ul>
@@ -125,6 +145,96 @@
                 </tr>
               </thead>
               <tbody id="moviesTableBody">
+                <!-- Dynamic content -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Majburiy obuna Section -->
+        <section class="content-section" id="subscriptionSection">
+          <div class="section-header">
+            <h2>Majburiy obuna kanallar</h2>
+            <p class="form-hint">Mini app ochishdan oldin foydalanuvchi obuna bo'lishi shart bo'lgan Telegram kanallar ro'yxati.</p>
+          </div>
+
+          <div class="card-block">
+            <form id="channelForm" class="channel-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Kanal username</label>
+                  <input type="text" id="channelUsername" class="form-input" placeholder="masalan: my_kino_uz" required>
+                  <small class="form-hint">@ belgisiz yozing.</small>
+                </div>
+                <div class="form-group">
+                  <label>Kanal nomi (ixtiyoriy)</label>
+                  <input type="text" id="channelTitle" class="form-input" placeholder="My Kino">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Kanal ID (ixtiyoriy)</label>
+                  <input type="text" id="channelChatId" class="form-input" placeholder="-1001234567890">
+                  <small class="form-hint">Private kanal uchun chat ID.</small>
+                </div>
+                <div class="form-group">
+                  <label>Taklif link (ixtiyoriy)</label>
+                  <input type="text" id="channelInviteUrl" class="form-input" placeholder="https://t.me/...">
+                </div>
+              </div>
+              <div class="modal-actions" style="margin-top: 8px;">
+                <button type="submit" class="btn btn-primary">+ Kanal qo'shish</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="table-container" style="margin-top: 20px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Kanal</th>
+                  <th>Username</th>
+                  <th>Chat ID</th>
+                  <th>Link</th>
+                  <th>Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="channelsTableBody">
+                <!-- Dynamic content -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Obunachilar Section -->
+        <section class="content-section" id="usersSection">
+          <div class="section-header">
+            <h2>Obunachilar ro'yxati</h2>
+            <div class="search-container">
+              <input type="text" id="userSearchInput" class="search-input" placeholder="Ism, username yoki ID bo'yicha qidirish...">
+              <button class="btn btn-secondary" id="refreshUsersBtn" title="Qayta yuklash">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span>Yangilash</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Ism</th>
+                  <th>Username</th>
+                  <th>Telegram ID</th>
+                  <th>/start sanasi</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
                 <!-- Dynamic content -->
               </tbody>
             </table>
@@ -221,6 +331,6 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20260511-multi-cats"></script>
+  <script src="/admin/admin.js?v=20260511-sub-users"></script>
 </body>
 </html>

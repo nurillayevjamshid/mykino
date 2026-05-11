@@ -955,6 +955,23 @@ body {
   display: block;
 }
 
+/* Card block (used for forms in sections) */
+.card-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.channel-form .form-group {
+  margin-bottom: 12px;
+}
+
+.channel-form .form-row {
+  margin-bottom: 0;
+}
+
 /* Sidebar overlay (mobile) */
 .sidebar-overlay {
   display: none;
