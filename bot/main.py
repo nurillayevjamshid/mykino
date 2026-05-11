@@ -15,7 +15,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from .config import Settings, load_settings
-from .keyboards import join_inline_keyboard, start_menu
+from .keyboards import start_menu
 from .storage import load_movies, parse_movie_caption, search_movies, upsert_movie, upsert_user
 from .webserver import create_web_app
 
@@ -189,22 +189,9 @@ async def start(message: Message, state: FSMContext, settings: Settings) -> None
     logging.info("Start handler triggered for user %s", message.from_user.id)
     await state.clear()
     try:
-        user_record = upsert_user(settings.users_path, message.from_user)
-        logging.info("User /start: %s (New: %s)", message.from_user.id, user_record.get("firstSeenAt") == user_record.get("lastSeenAt"))
+        upsert_user(settings.users_path, message.from_user)
     except Exception as e:
         logging.error("Failed to upsert user %s: %s", message.from_user.id, e)
-
-    # Mandatory subscription check
-    if settings.content_channel_id:
-        is_subscribed = await _check_subscription(message.bot, message.from_user.id, settings)
-        if not is_subscribed:
-            channel_url = f"https://t.me/{settings.content_channel_username}" if settings.content_channel_username else None
-            await message.answer(
-                "<b>Botdan foydalanish uchun kanalimizga obuna bo'ling!</b>\n\n"
-                "Obuna bo'lgach, qaytadan /start buyrug'ini yuboring.",
-                reply_markup=join_inline_keyboard(channel_url)
-            )
-            return
 
     movie_id = _watch_id_from_start(message.text)
     if movie_id:
