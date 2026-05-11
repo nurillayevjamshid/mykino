@@ -2139,7 +2139,7 @@ function setFilter(filter) {
     activeCategory = "all";
     query = "";
     if (searchInput) searchInput.value = "";
-    if (searchPanel) searchPanel.hidden = true;
+    setSearchPanelOpen(false);
     if (categoryPanel) categoryPanel.hidden = true;
   }
   renderMovies();
@@ -2174,11 +2174,17 @@ function syncTopbarSearchLayout() {
   topbarSearch.style.setProperty("--topbar-search-panel-width", `${panelWidth}px`);
 }
 
+function setSearchPanelOpen(nextState) {
+  if (!searchPanel) return;
+  searchPanel.hidden = !nextState;
+  topbarSearch?.classList.toggle("is-open", nextState);
+}
+
 function toggleSearchPanel(forceOpen) {
   if (!searchPanel) return;
   const nextState = typeof forceOpen === "boolean" ? forceOpen : searchPanel.hidden;
   if (nextState) syncTopbarSearchLayout();
-  searchPanel.hidden = !nextState;
+  setSearchPanelOpen(nextState);
   if (nextState) {
     if (categoryPanel) categoryPanel.hidden = true;
     if (searchInput) searchInput.focus();
@@ -2191,7 +2197,7 @@ function toggleCategoryPanel(forceOpen) {
   const nextState = typeof forceOpen === "boolean" ? forceOpen : categoryPanel.hidden;
   categoryPanel.hidden = !nextState;
   if (nextState) {
-    if (searchPanel) searchPanel.hidden = true;
+    setSearchPanelOpen(false);
   }
   syncNavButtons();
 }
@@ -2301,7 +2307,7 @@ syncTopbarSearchLayout();
 document.addEventListener("click", (event) => {
   if (searchPanel.hidden || !topbarSearch) return;
   if (topbarSearch.contains(event.target) || event.target.closest("[data-action='search']")) return;
-  searchPanel.hidden = true;
+  setSearchPanelOpen(false);
   syncNavButtons();
 });
 
@@ -2315,7 +2321,7 @@ document.querySelectorAll("[data-action='profile']").forEach((button) => {
 document.querySelectorAll("[data-action='favorites']").forEach((button) => {
   button.addEventListener("click", () => {
     setFilter("favorites");
-    if (searchPanel) searchPanel.hidden = true;
+    setSearchPanelOpen(false);
     if (categoryPanel) categoryPanel.hidden = true;
     document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
   });
