@@ -604,6 +604,104 @@ body {
   color: var(--text-muted);
 }
 
+.form-hint-inline {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+.category-multiselect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+}
+
+.category-chips:empty::before {
+  content: "Hozircha kategoriya yo'q. Pastdan qo'shing.";
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.category-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.category-chip.is-selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.category-chip.is-selected:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: #fff;
+}
+
+.category-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 14px;
+  line-height: 1;
+  margin-left: 2px;
+  cursor: pointer;
+  border: none;
+  color: inherit;
+}
+
+.category-chip__remove:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.category-add {
+  display: flex;
+  gap: 8px;
+}
+
+.category-add .form-input {
+  flex: 1;
+}
+
+.category-add .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 /* Modal */
 .modal {
   display: none;

@@ -6,6 +6,10 @@ let filteredMovies = [];
 let currentSearchQuery = '';
 let selectedPosterDataUrl = '';
 
+// Modal kategoriyalari uchun: tanlangan + mavjudlar ro'yxati
+const selectedCategories = new Set();
+let availableCategories = [];
+
 // API base URL
 const API_URL = '/api';
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
@@ -24,22 +28,72 @@ function sameMovieId(left, right) {
   return String(left) === String(right);
 }
 
-function refreshCategoryDatalist() {
-  const datalist = document.getElementById('movieCategoryOptions');
-  if (!datalist) return;
+function splitCategories(value) {
+  return String(value || '')
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean);
+}
 
+function joinCategories(values) {
   const seen = new Set();
-  const options = [];
-  for (const movie of movies) {
-    const name = String(movie.category || '').trim();
-    if (!name) continue;
-    const key = name.toLowerCase();
+  const result = [];
+  for (const value of values) {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    options.push(name);
+    result.push(trimmed);
   }
-  options.sort((a, b) => a.localeCompare(b, 'uz'));
-  datalist.innerHTML = options.map(value => `<option value="${escapeHtml(value)}"></option>`).join('');
+  return result.join(', ');
+}
+
+function collectKnownCategories() {
+  const seen = new Set();
+  const names = [];
+  for (const movie of movies) {
+    for (const name of splitCategories(movie.category)) {
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      names.push(name);
+    }
+  }
+  names.sort((a, b) => a.localeCompare(b, 'uz'));
+  return names;
+}
+
+function syncAvailableCategories() {
+  const seen = new Set();
+  const merged = [];
+  const push = (name) => {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(trimmed);
+  };
+  for (const name of collectKnownCategories()) push(name);
+  for (const name of availableCategories) push(name);
+  for (const name of selectedCategories) push(name);
+  merged.sort((a, b) => a.localeCompare(b, 'uz'));
+  availableCategories = merged;
+}
+
+function renderCategoryChips() {
+  const container = document.getElementById('movieCategoryChips');
+  if (!container) return;
+  syncAvailableCategories();
+
+  const selectedLower = new Set([...selectedCategories].map(name => name.toLowerCase()));
+  container.innerHTML = availableCategories
+    .map(name => {
+      const isSelected = selectedLower.has(name.toLowerCase());
+      return `<button type="button" class="category-chip${isSelected ? ' is-selected' : ''}" data-category="${escapeHtml(name)}">${escapeHtml(name)}</button>`;
+    })
+    .join('');
 }
 
 function normalizeMovieFromApi(movie) {
@@ -87,7 +141,7 @@ async function fetchMovies() {
     filteredMovies = [...movies];
 
     renderMovies();
-    refreshCategoryDatalist();
+    syncAvailableCategories();
   } catch (error) {
     console.error('Error fetching movies:', error);
     movies = [];
@@ -210,6 +264,46 @@ function bindEvents() {
   // Forms
   document.getElementById('movieForm')?.addEventListener('submit', handleMovieSubmit);
   document.getElementById('movieDescription')?.addEventListener('input', updateDescriptionCounter);
+
+  // Kategoriya chiplari: tanlash/olib tashlash
+  document.getElementById('movieCategoryChips')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.category-chip');
+    if (!chip) return;
+    const name = chip.dataset.category;
+    if (!name) return;
+    const key = name.toLowerCase();
+    const match = [...selectedCategories].find(item => item.toLowerCase() === key);
+    if (match) {
+      selectedCategories.delete(match);
+    } else {
+      selectedCategories.add(name);
+    }
+    renderCategoryChips();
+  });
+
+  // Yangi kategoriya qo'shish
+  const addCategory = () => {
+    const input = document.getElementById('movieCategoryNew');
+    if (!input) return;
+    const name = String(input.value || '').trim();
+    if (!name) return;
+    const key = name.toLowerCase();
+    const existing = availableCategories.find(item => item.toLowerCase() === key);
+    const finalName = existing || name;
+    if (!availableCategories.some(item => item.toLowerCase() === key)) {
+      availableCategories.push(finalName);
+    }
+    selectedCategories.add(finalName);
+    input.value = '';
+    renderCategoryChips();
+  };
+  document.getElementById('addCategoryBtn')?.addEventListener('click', addCategory);
+  document.getElementById('movieCategoryNew')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addCategory();
+    }
+  });
 
   // Poster file upload
   document.getElementById('moviePosterFile')?.addEventListener('change', async (e) => {
@@ -359,7 +453,15 @@ function openMovieModal(movie) {
 
   title.textContent = 'Kino tahrirlash';
   document.getElementById('movieName').value = movie.name;
-  document.getElementById('movieCategory').value = movie.category;
+
+  selectedCategories.clear();
+  for (const name of splitCategories(movie.category)) {
+    selectedCategories.add(name);
+  }
+  const newCategoryInput = document.getElementById('movieCategoryNew');
+  if (newCategoryInput) newCategoryInput.value = '';
+  renderCategoryChips();
+
   document.getElementById('movieRating').value = movie.rating;
   document.getElementById('movieHd').value = movie.hd.toString();
   document.getElementById('movieDescription').value = movie.description || '';
@@ -498,9 +600,14 @@ async function handleMovieSubmit(e) {
   }
 
   const submitButton = form.querySelector('button[type="submit"]');
+  const categoryString = joinCategories([...selectedCategories]);
+  if (!categoryString) {
+    showNotification('Kamida bitta kategoriya tanlang.', 'error');
+    return;
+  }
   const movieData = {
     name: document.getElementById('movieName').value.trim(),
-    category: document.getElementById('movieCategory').value.trim(),
+    category: categoryString,
     rating: parseFloat(document.getElementById('movieRating').value) || 0,
     hd: document.getElementById('movieHd').value === 'true',
     description: document.getElementById('movieDescription').value,
