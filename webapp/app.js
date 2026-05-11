@@ -445,8 +445,29 @@ function normalizeCategoryValue(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function splitMovieGenres(value) {
+  return String(value || "")
+    .split(",")
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
 function getMovieCategory(movie) {
   return normalizeCategoryValue(movie?.genre || "kino");
+}
+
+function getMovieCategoryValues(movie) {
+  const parts = splitMovieGenres(movie?.genre);
+  if (!parts.length) return [normalizeCategoryValue("kino")];
+  const seen = new Set();
+  const values = [];
+  for (const part of parts) {
+    const value = normalizeCategoryValue(part);
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    values.push(value);
+  }
+  return values.length ? values : [normalizeCategoryValue("kino")];
 }
 
 function readWishlist() {
@@ -535,7 +556,7 @@ function filteredMovies() {
       (activeFilter === "top" && movie.isTop) ||
       (activeFilter === "premium" && movie.isPremium) ||
       (activeFilter === "favorites" && wishlistIds.has(String(movie.id)));
-    const matchesCategory = activeCategory === "all" || getMovieCategory(movie) === activeCategory;
+    const matchesCategory = activeCategory === "all" || getMovieCategoryValues(movie).includes(activeCategory);
     const haystack = `${movie.title} ${movie.genre || ""} ${movie.year || ""} ${movie.code || ""}`.toLowerCase();
     return matchesFilter && matchesCategory && haystack.includes(query.toLowerCase());
   });
@@ -1067,10 +1088,11 @@ function buildCategoryOptions() {
   map.set("all", plainLabel(t("all")));
 
   for (const movie of getViewerMovies()) {
-    const rawGenre = String(movie?.genre || "").trim();
-    const value = normalizeCategoryValue(rawGenre);
-    if (!rawGenre || !value || map.has(value)) continue;
-    map.set(value, rawGenre);
+    for (const rawGenre of splitMovieGenres(movie?.genre)) {
+      const value = normalizeCategoryValue(rawGenre);
+      if (!rawGenre || !value || map.has(value)) continue;
+      map.set(value, rawGenre);
+    }
   }
 
   return [...map.entries()].map(([value, label]) => ({ value, label }));
@@ -1289,12 +1311,15 @@ function createMovieCard(movie) {
 function buildHomeCategoryGroups() {
   const groups = new Map();
   for (const movie of getViewerMovies()) {
-    const rawGenre = String(movie?.genre || "").trim();
-    const value = normalizeCategoryValue(rawGenre || "kino");
-    if (!value) continue;
-    const label = rawGenre || "Kino";
-    if (!groups.has(value)) groups.set(value, { value, label, movies: [] });
-    groups.get(value).movies.push(movie);
+    const parts = splitMovieGenres(movie?.genre);
+    const list = parts.length ? parts : ["Kino"];
+    for (const rawGenre of list) {
+      const value = normalizeCategoryValue(rawGenre || "kino");
+      if (!value) continue;
+      const label = rawGenre || "Kino";
+      if (!groups.has(value)) groups.set(value, { value, label, movies: [] });
+      groups.get(value).movies.push(movie);
+    }
   }
   return [...groups.values()];
 }
