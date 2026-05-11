@@ -2646,7 +2646,12 @@ html[data-theme="light"] .brand-panel {
 }
 
 .topbar-controls {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+  min-width: 0;
 }
 
 .lang-select {
@@ -2664,9 +2669,46 @@ html[data-theme="light"] .brand-panel {
   border-radius: 14px;
 }
 
+.icon-button.is-active {
+  color: #15110a;
+  border-color: rgba(255, 199, 58, 0.6);
+  background: linear-gradient(180deg, #ffd15c, #f4b628);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 8px 20px rgba(255, 187, 42, 0.25);
+}
+
 .profile-trigger {
   overflow: hidden;
   padding: 0;
+}
+
+.topbar-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  z-index: 120;
+}
+
+.topbar-search__panel {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 8px);
+  width: clamp(180px, 52vw, 300px);
+  margin: 0;
+  z-index: 130;
+}
+
+.topbar-search__panel[hidden] {
+  display: none;
+}
+
+.topbar-search__panel .search-box {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 14px;
+}
+
+.topbar-search__panel .search-box input {
+  font-size: 14px;
 }
 
 .profile-trigger__photo,
@@ -2714,7 +2756,6 @@ html[data-theme="light"] .brand-panel {
   text-overflow: ellipsis;
 }
 
-.search-panel,
 .category-panel {
   position: sticky;
   top: 90px;
@@ -2722,7 +2763,6 @@ html[data-theme="light"] .brand-panel {
   margin-bottom: 0;
 }
 
-.search-panel[hidden],
 .category-panel[hidden] {
   display: none;
 }
@@ -2774,7 +2814,11 @@ html[data-theme="light"] .brand-panel {
     max-width: 152px;
   }
 
-  .search-panel,
+  .topbar-search__panel {
+    right: -104px;
+    width: min(56vw, 220px);
+  }
+
   .category-panel {
     top: 82px;
   }
@@ -3099,6 +3143,15 @@ html[data-theme="light"] .icon-button--top {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 14px 26px rgba(124, 58, 237, 0.22);
+}
+
+html[data-theme="light"] .icon-button.is-active {
+  color: #0f131a;
+  border-color: rgba(255, 199, 58, 0.6);
+  background: linear-gradient(180deg, #ffd15c, #f4b628);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 8px 20px rgba(255, 187, 42, 0.25);
 }
 
 html[data-theme="light"] .profile-trigger__photo {

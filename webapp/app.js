@@ -233,6 +233,7 @@ const grid = document.querySelector("#movieGrid");
 const emptyState = document.querySelector("#emptyState");
 const searchPanel = document.querySelector("#searchPanel");
 const searchInput = document.querySelector("#searchInput");
+const topbarSearch = document.querySelector(".topbar-search");
 
 const categoryPanel = document.querySelector("#categoryPanel");
 const categoryList = document.querySelector("#categoryList");
@@ -2054,6 +2055,13 @@ document.querySelectorAll("[data-action='search']").forEach((button) => {
   button.addEventListener("click", () => toggleSearchPanel());
 });
 
+document.querySelectorAll("[data-action='catalog']").forEach((button) => {
+  button.addEventListener("click", () => {
+    setFilter("all");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+});
+
 document.querySelectorAll("[data-action='categories']").forEach((button) => {
   button.addEventListener("click", () => toggleCategoryPanel());
 });
@@ -2077,6 +2085,13 @@ document.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
 searchInput.addEventListener("input", (event) => {
   query = event.target.value.trim();
   renderMovies();
+});
+
+document.addEventListener("click", (event) => {
+  if (searchPanel.hidden || !topbarSearch) return;
+  if (topbarSearch.contains(event.target) || event.target.closest("[data-action='search']")) return;
+  searchPanel.hidden = true;
+  syncNavButtons();
 });
 
 document.querySelectorAll("[data-action='profile']").forEach((button) => {
