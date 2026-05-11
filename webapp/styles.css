@@ -4900,6 +4900,10 @@ body {
      viewport o'rniga .app-shell bilan birga skroll qilib ketadi.
      will-change: scroll-position xavfsiz hint — containing block yaratmaydi. */
   will-change: scroll-position;
+  /* touch-action: manipulation — double-tap-zoom delay'ni o'chiradi va
+     touch'ga javob (sensitivity) tezroq bo'ladi. Pan-x va pan-y ikkalasi
+     ham ruxsat etilgan, faqat zoom va non-standard gestures bloklanadi. */
+  touch-action: manipulation;
   /* Scroll snappier bo'lishi uchun smooth olib tashlandi */
 }
 
@@ -4914,11 +4918,23 @@ body {
 }
 
 /* Har bir kategoriya ichidagi gorizontal scroll — vertikal scrollni
-   tortib ketmasligi uchun overscroll cheklanadi */
+   tortib ketmasligi uchun overscroll cheklanadi.
+   touch-action: pan-x olib tashlandi — chunki ota .app-shell'da
+   "manipulation" bor, va parent-child intersection qoidasi bo'yicha
+   pan-x ∩ manipulation = pan-x bo'lib qolardi, ya'ni kategoriya ustida
+   vertikal scroll ishlamasdi. Endi ikkalasi ham ruxsat etiladi. */
 .category-row__list {
   overscroll-behavior-x: contain;
   overscroll-behavior-y: none;
-  touch-action: pan-x;
+}
+
+/* Movie card va tugmalarda tez javob — tap delay yo'q */
+.movie-card,
+.bottom-bar__button,
+.wishlist-toggle,
+.hero__play,
+.hero__info {
+  touch-action: manipulation;
 }
 
 /* ============================================================
