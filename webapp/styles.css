@@ -4894,12 +4894,13 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  /* GPU compositing — Telegram WebView'da scroll silliq va tezroq bo'ladi */
-  transform: translateZ(0);
+  overscroll-behavior-y: contain;
+  /* MUHIM: transform/will-change: transform qo'shilmaydi — chunki ular fixed
+     pozitsiyali bolalarning containing block'ini buzib, topbar/bottom-bar
+     viewport o'rniga .app-shell bilan birga skroll qilib ketadi.
+     will-change: scroll-position xavfsiz hint — containing block yaratmaydi. */
   will-change: scroll-position;
-  /* scroll-behavior smooth olib tashlandi — finger scroll snappier bo'ladi.
-     Programmatic scrollTo() chaqiruvlarda behavior: "smooth" parametri o'zi yetarli. */
+  /* Scroll snappier bo'lishi uchun smooth olib tashlandi */
 }
 
 /* Topbar header — viewport ga nisbatan fixed, scroll bilan siljimaydi */
