@@ -4060,7 +4060,7 @@ html[data-theme="dark"] .app-shell {
 .theme-toggle {
   display: inline-flex !important;
   width: 32px;
-  height: 28px;
+  height: 32px;
   padding: 0;
   border-radius: 999px;
   align-items: center;
@@ -4183,11 +4183,11 @@ html[data-theme="dark"] .topbar.is-scrolled {
 }
 
 /* ============================================================
-   Lang trigger — match theme-toggle size (32x28 pill)
+   Lang trigger — match theme-toggle (32x32 circle)
    ============================================================ */
 .lang-trigger {
   width: 32px;
-  height: 28px;
+  height: 32px;
   padding: 0;
   gap: 0;
   justify-content: center;
