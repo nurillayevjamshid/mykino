@@ -1164,30 +1164,69 @@ html[data-theme="light"] .card-watch-button {
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
     0 8px 20px rgba(255, 187, 42, 0.2);
 }
-.empty-state {
-  margin: 40px 0;
-  padding: 40px 24px;
-  border-radius: 28px;
+.app-footer {
+  margin: 28px 0 12px;
+  padding: 24px 20px 28px;
+  border-radius: 24px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
-  min-height: 180px;
-}
-.empty-state.loading-state::before {
-  content: '';
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #ffd15c;
-  border-radius: 50%;
-  animation: loadingSpin 1s linear infinite;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
 }
 
-@keyframes loadingSpin {
-  to { transform: rotate(360deg); }
+.app-footer__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  font-size: 13px;
+  color: #ffd15c;
+}
+
+.app-footer__logo {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd15c;
+}
+
+.app-footer__logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.app-footer__tagline {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.app-footer__copy {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.02em;
+}
+
+html[data-theme="light"] .app-footer {
+  background: rgba(15, 19, 26, 0.04);
+  border-color: rgba(15, 19, 26, 0.08);
+  color: rgba(15, 19, 26, 0.72);
+}
+
+html[data-theme="light"] .app-footer__tagline {
+  color: rgba(15, 19, 26, 0.78);
+}
+
+html[data-theme="light"] .app-footer__copy {
+  color: rgba(15, 19, 26, 0.5);
 }
 
 

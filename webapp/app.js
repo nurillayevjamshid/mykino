@@ -94,6 +94,8 @@ const copy = {
     videoLoading: "Video yuklanmoqda...",
     openSource: "Manbani ochish",
     newMovie: "Yangi",
+    footerTagline: "Eng sara kinolar mini-ilovasi",
+    footerCopy: "© 2026 Kino Play. Barcha huquqlar himoyalangan.",
   },
   ru: {
     all: "Все",
@@ -135,6 +137,8 @@ const copy = {
     videoLoading: "Видео загружается...",
     openSource: "Открыть источник",
     newMovie: "Новинка",
+    footerTagline: "Мини-приложение лучших фильмов",
+    footerCopy: "© 2026 Kino Play. Все права защищены.",
   },
   en: {
     all: "All",
@@ -176,6 +180,8 @@ const copy = {
     videoLoading: "Video is loading...",
     openSource: "Open source",
     newMovie: "New",
+    footerTagline: "Mini app for the best movies",
+    footerCopy: "© 2026 Kino Play. All rights reserved.",
   },
 };
 
@@ -230,7 +236,6 @@ let lastSavedProgressSecond = -1;
 let heroActiveIndex = 0;
 let heroIntervalId = null;
 const grid = document.querySelector("#movieGrid");
-const emptyState = document.querySelector("#emptyState");
 const searchPanel = document.querySelector("#searchPanel");
 const searchInput = document.querySelector("#searchInput");
 
@@ -1053,30 +1058,9 @@ function updateWatchedMovieProgress(movie, progress) {
   // Mock logic if this was previously empty
 }
 
-function setEmptyState(title, text) {
-  emptyState.querySelector("strong").textContent = title;
-  emptyState.querySelector("span").textContent = text;
-}
+function setEmptyState(_title, _text) {}
 
-function updateEmptyState(list) {
-  if (movieLoadState === "loading") {
-    emptyState.hidden = false;
-    emptyState.classList.add("loading-state");
-    setEmptyState(t("loadingTitle"), t("loadingText"));
-    return;
-  }
-
-  emptyState.classList.remove("loading-state");
-
-  if (movieLoadState === "error") {
-    emptyState.hidden = false;
-    setEmptyState(t("loadErrorTitle"), movieLoadError || t("loadErrorText"));
-    return;
-  }
-
-  emptyState.hidden = list.length > 0;
-  if (!list.length) setEmptyState(t("emptyTitle"), t("emptyText"));
-}
+function updateEmptyState(_list) {}
 
 function buildCategoryOptions() {
   const map = new Map();
@@ -2210,8 +2194,10 @@ function applyCopy() {
   setStateLabel(videoMuteButton, videoMuteButton.dataset.state || "sound", plainLabel(t("mute")));
   videoSpeed.setAttribute("aria-label", plainLabel(t("speed")));
   syncFullscreenButton();
-  emptyState.querySelector("strong").textContent = plainLabel(t("emptyTitle"));
-  emptyState.querySelector("span").textContent = plainLabel(t("emptyText"));
+  const footerTagline = document.querySelector("#footerTagline");
+  if (footerTagline) footerTagline.textContent = plainLabel(t("footerTagline"));
+  const footerCopy = document.querySelector("#footerCopy");
+  if (footerCopy) footerCopy.textContent = plainLabel(t("footerCopy"));
   profileName.textContent = plainLabel(t("profile"));
   document.documentElement.lang = lang;
   setRangeFill(videoSeek, Number(videoSeek.value || 0), 1000);
