@@ -457,6 +457,55 @@ function writeWishlist(ids) {
   try {
     localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids));
   } catch {}
+  // Telegram CloudStorage'ga ham yozamiz — sessiyalar va qurilmalar orasida saqlanadi.
+  // Telegram WebView ba'zi holatlarda localStorage'ni tozalab yuboradi, shuning uchun
+  // bu nusxa wishlist'ni qaytib ochilganda ham yo'qotmaslik uchun zarur.
+  pushWishlistToCloud(ids);
+}
+
+function pushWishlistToCloud(ids) {
+  try {
+    if (tg && tg.CloudStorage && typeof tg.CloudStorage.setItem === "function") {
+      tg.CloudStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids), () => {});
+    }
+  } catch {}
+}
+
+function syncWishlistFromCloud() {
+  return new Promise((resolve) => {
+    try {
+      if (!tg || !tg.CloudStorage || typeof tg.CloudStorage.getItem !== "function") {
+        resolve(false);
+        return;
+      }
+      tg.CloudStorage.getItem(WISHLIST_STORAGE_KEY, (err, value) => {
+        if (err || !value) {
+          // Cloud bo'sh — lokaldagi (agar bor bo'lsa) ni cloud'ga itarib qo'yamiz
+          const localIds = readWishlist();
+          if (localIds.length) pushWishlistToCloud(localIds);
+          resolve(false);
+          return;
+        }
+        try {
+          const cloudIds = JSON.parse(value);
+          if (Array.isArray(cloudIds)) {
+            const localIds = readWishlist();
+            const merged = Array.from(new Set([...localIds.map(String), ...cloudIds.map(String)]));
+            localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(merged));
+            // Cloud bilan farq bo'lsa, yangilab qo'yamiz
+            if (merged.length !== cloudIds.length) {
+              pushWishlistToCloud(merged);
+            }
+            resolve(true);
+            return;
+          }
+        } catch {}
+        resolve(false);
+      });
+    } catch {
+      resolve(false);
+    }
+  });
 }
 
 function isInWishlist(id) {
@@ -2324,6 +2373,9 @@ document.addEventListener("keydown", (event) => {
 
 async function loadMovies() {
   await resolveApiBase();
+  // Wishlist'ni Telegram CloudStorage'dan tiklash — sessiyalar orasida saqlanishi uchun.
+  // Bu loadMovies bilan parallel ketishi mumkin; render qilishdan oldin tugashi yetarli.
+  const wishlistSyncPromise = syncWishlistFromCloud();
   movieLoadState = "loading";
   movieLoadError = "";
   renderMovies();
@@ -2349,6 +2401,14 @@ async function loadMovies() {
   syncWatchedCount();
   applyCopy();
   renderMovies();
+
+  // Wishlist cloud sync tugagach, agar yangi qiziqlar qo'shilgan bo'lsa
+  // — kartochkalardagi yurak ikonkalarini va favorites ro'yxatini yangilab qo'yamiz.
+  wishlistSyncPromise.then((didMerge) => {
+    if (didMerge) {
+      renderMovies();
+    }
+  }).catch(() => {});
 
   if (location.hash === "#profile") {
     renderProfileModal();
