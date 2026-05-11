@@ -4895,7 +4895,11 @@ body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  scroll-behavior: smooth;
+  /* GPU compositing — Telegram WebView'da scroll silliq va tezroq bo'ladi */
+  transform: translateZ(0);
+  will-change: scroll-position;
+  /* scroll-behavior smooth olib tashlandi — finger scroll snappier bo'ladi.
+     Programmatic scrollTo() chaqiruvlarda behavior: "smooth" parametri o'zi yetarli. */
 }
 
 /* Topbar header — viewport ga nisbatan fixed, scroll bilan siljimaydi */
@@ -4914,4 +4918,25 @@ body {
   overscroll-behavior-x: contain;
   overscroll-behavior-y: none;
   touch-action: pan-x;
+}
+
+/* ============================================================
+   Hero card — yumshoq burchakli card ko'rinishi
+   ============================================================ */
+.hero {
+  margin-left: 12px !important;
+  margin-right: 12px !important;
+  width: calc(100% - 24px) !important;
+  border-radius: 22px !important;
+}
+
+/* ============================================================
+   Movie card — meta (rating + janr) yashirildi
+   Foydalanuvchi so'roviga ko'ra "9.9 · Kino" turidagi matnlar olib tashlandi
+   ============================================================ */
+.movie-card .card-meta {
+  display: none !important;
+}
+.movie-card .card-copy {
+  padding-bottom: 4px;
 }
