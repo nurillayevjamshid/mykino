@@ -239,6 +239,8 @@ const grid = document.querySelector("#movieGrid");
 const searchPanel = document.querySelector("#searchPanel");
 const searchInput = document.querySelector("#searchInput");
 const topbarSearch = document.querySelector(".topbar-search");
+const topbarBrand = document.querySelector(".brand");
+const topbarSearchTrigger = document.querySelector(".topbar-search__trigger");
 
 const categoryPanel = document.querySelector("#categoryPanel");
 const categoryList = document.querySelector("#categoryList");
@@ -2156,9 +2158,26 @@ function toggleTheme() {
   localStorage.setItem("kino_theme", newTheme);
 }
 
+function syncTopbarSearchLayout() {
+  if (!topbarSearch || !topbarSearchTrigger) return;
+  const fallbackWidth = 168;
+  const triggerWidth = topbarSearchTrigger.offsetWidth || 32;
+  let panelWidth = fallbackWidth;
+
+  if (topbarBrand) {
+    const brandRect = topbarBrand.getBoundingClientRect();
+    const triggerRect = topbarSearchTrigger.getBoundingClientRect();
+    panelWidth = Math.round(triggerRect.right - brandRect.right - 10);
+  }
+
+  panelWidth = Math.max(triggerWidth + 88, panelWidth);
+  topbarSearch.style.setProperty("--topbar-search-panel-width", `${panelWidth}px`);
+}
+
 function toggleSearchPanel(forceOpen) {
   if (!searchPanel) return;
   const nextState = typeof forceOpen === "boolean" ? forceOpen : searchPanel.hidden;
+  if (nextState) syncTopbarSearchLayout();
   searchPanel.hidden = !nextState;
   if (nextState) {
     if (categoryPanel) categoryPanel.hidden = true;
@@ -2274,6 +2293,10 @@ searchInput?.addEventListener("input", (event) => {
   query = event.target.value.trim();
   renderMovies();
 });
+
+window.addEventListener("resize", syncTopbarSearchLayout);
+window.addEventListener("orientationchange", syncTopbarSearchLayout);
+syncTopbarSearchLayout();
 
 document.addEventListener("click", (event) => {
   if (searchPanel.hidden || !topbarSearch) return;
