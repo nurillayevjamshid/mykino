@@ -3502,34 +3502,56 @@ body::before {
 }
 
 .category-row__more {
-  width: auto;
-  height: auto;
-  padding: 4px 6px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: 0;
   background: transparent;
-  color: var(--muvi-accent);
-  font-size: 12px;
-  font-weight: 700;
+  color: #fff;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  border-radius: 8px;
-  letter-spacing: 0.01em;
-  transition: opacity 0.2s ease;
+  justify-content: center;
+  border-radius: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .category-row__more::before {
-  content: "Hammasi";
+  content: none;
 }
 
 .category-row__more svg {
-  display: none;
+  display: block;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.category-row__more:hover {
-  opacity: 0.78;
+.category-row__more:hover,
+.category-row__more:focus-visible {
+  opacity: 0.7;
   background: transparent;
   border-color: transparent;
+}
+
+.category-row__more:active {
+  transform: scale(0.9);
+}
+
+html[data-theme="light"] .category-row__more {
+  background: transparent;
+  border-color: transparent;
+  color: #0f131a;
+}
+
+html[data-theme="light"] .category-row__more:hover,
+html[data-theme="light"] .category-row__more:focus-visible {
+  background: transparent;
+  border-color: transparent;
+  opacity: 0.7;
 }
 
 .category-row__list {
@@ -4274,13 +4296,18 @@ html[data-theme="dark"] .lang-options {
 }
 
 .category-row__more {
-  color: var(--c-accent);
+  color: #fff;
   font-weight: 700;
 }
 
 .category-row__more:hover {
-  color: var(--c-accent-strong);
-  opacity: 1;
+  color: #fff;
+  opacity: 0.7;
+}
+
+html[data-theme="light"] .category-row__more,
+html[data-theme="light"] .category-row__more:hover {
+  color: #0f131a;
 }
 
 /* ============================================================
