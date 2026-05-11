@@ -4183,12 +4183,25 @@ html[data-theme="dark"] .topbar.is-scrolled {
 }
 
 /* ============================================================
-   Lang trigger
+   Lang trigger — match theme-toggle size (32x28 pill)
    ============================================================ */
 .lang-trigger {
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
   background: var(--c-surface-2);
   border-color: var(--c-border);
   color: var(--c-text);
+}
+
+.lang-trigger .icon-chevron {
+  display: none;
+}
+
+.lang-current {
+  min-width: 0;
 }
 
 .lang-trigger:hover {
