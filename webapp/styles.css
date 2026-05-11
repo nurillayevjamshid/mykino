@@ -5093,3 +5093,83 @@ body {
 .movie-card .card-copy {
   padding-bottom: 4px;
 }
+
+/* ============================================================
+   Topbar search — match nearby controls and open inside header gap
+   ============================================================ */
+.topbar-search {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  --topbar-search-panel-width: 168px;
+}
+
+.topbar-search__trigger {
+  position: relative;
+  z-index: 2;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-surface-2) !important;
+  border: 1px solid var(--c-border) !important;
+  color: var(--c-text) !important;
+  box-shadow: none !important;
+}
+
+.topbar-search__trigger .icon-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.topbar-search__trigger:hover,
+.topbar-search__trigger.is-active {
+  color: var(--c-text) !important;
+  background: var(--c-surface-3) !important;
+  border-color: var(--c-border-strong) !important;
+  box-shadow: none !important;
+  transform: translateY(-1px);
+}
+
+.topbar-search__panel {
+  top: 0;
+  right: 18px;
+  width: min(calc(var(--topbar-search-panel-width) - 18px), calc(100vw - 42px));
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.topbar-search__panel .search-box {
+  min-height: 32px !important;
+  height: 32px;
+  padding: 0 16px !important;
+  border-radius: 999px !important;
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.topbar-search__panel .search-box .icon-svg {
+  display: none;
+}
+
+.topbar-search__panel .search-box input {
+  font-size: 14px;
+  color: var(--c-text);
+}
+
+.topbar-search__panel .search-box input::placeholder {
+  color: var(--c-text-mute);
+}
