@@ -2308,8 +2308,10 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
   });
 });
 
-// ===== Music view (Audius API) =====
-const AUDIUS_APP_NAME = "KinoPlay";
+// ===== Music view (iTunes Search API) =====
+const ITUNES_SEARCH = "https://itunes.apple.com/search";
+const ITUNES_LOOKUP = "https://itunes.apple.com/lookup";
+const ITUNES_RSS = "https://rss.applemarketingtools.com/api/v2/us/music/most-played/30/songs.json";
 const TOP_ARTIST_NAMES = [
   "Xcho",
   "Miyagi",
@@ -2362,32 +2364,19 @@ const musicPlayerSeek = document.getElementById("musicPlayerSeek");
 const musicPlayerCurrent = document.getElementById("musicPlayerCurrent");
 const musicPlayerDuration = document.getElementById("musicPlayerDuration");
 
-let audiusHost = null;
 let currentTracks = [];
 let currentTrackId = null;
 let searchDebounce = null;
 
-async function resolveAudiusHost() {
-  if (audiusHost) return audiusHost;
-  const res = await fetch("https://api.audius.co");
-  if (!res.ok) throw new Error("Audius host olishda xatolik");
-  const json = await res.json();
-  const hosts = json.data || [];
-  if (!hosts.length) throw new Error("Audius hostlari topilmadi");
-  audiusHost = hosts[Math.floor(Math.random() * hosts.length)];
-  return audiusHost;
+async function itunesFetch(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`iTunes API: ${res.status}`);
+  return res.json();
 }
 
-async function audiusFetch(path) {
-  const host = await resolveAudiusHost();
-  const sep = path.includes("?") ? "&" : "?";
-  const url = `${host}${path}${sep}app_name=${AUDIUS_APP_NAME}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    if (audiusHost) audiusHost = null;
-    throw new Error(`Audius API: ${res.status}`);
-  }
-  return res.json();
+function upgradeArtwork(url, size = 600) {
+  if (!url) return "";
+  return url.replace(/\/\d+x\d+bb\.(jpg|png)/i, `/${size}x${size}bb.$1`);
 }
 
 function formatDuration(seconds) {
@@ -2405,17 +2394,17 @@ function formatPlays(n) {
 }
 
 function mapTrack(t) {
-  const artwork = t.artwork || {};
-  const cover = artwork["480x480"] || artwork["150x150"] || artwork["1000x1000"] || "";
+  if (!t) return null;
   return {
-    id: t.id,
-    title: t.title || "Untitled",
-    artist: t.user?.name || "Noma'lum",
-    artistHandle: t.user?.handle || "",
-    artistImage: t.user?.profile_picture?.["150x150"] || t.user?.profile_picture?.["480x480"] || "",
-    cover,
-    duration: t.duration || 0,
-    playCount: t.play_count || 0,
+    id: String(t.trackId || t.id || ""),
+    title: t.trackName || t.title || "Untitled",
+    artist: t.artistName || "Noma'lum",
+    artistId: t.artistId ? String(t.artistId) : "",
+    cover: upgradeArtwork(t.artworkUrl100 || t.artworkUrl60 || "", 600),
+    coverSmall: t.artworkUrl100 || t.artworkUrl60 || "",
+    duration: Math.round((t.trackTimeMillis || 0) / 1000),
+    previewUrl: t.previewUrl || "",
+    album: t.collectionName || "",
   };
 }
 
@@ -2431,35 +2420,26 @@ function renderHero(track) {
   if (!track) return;
   if (musicHeroTitle) musicHeroTitle.textContent = track.title;
   if (musicHeroArtist) musicHeroArtist.textContent = track.artist;
-  if (musicHeroPlays) musicHeroPlays.textContent = formatPlays(track.playCount);
+  if (musicHeroPlays) musicHeroPlays.textContent = track.album || "Top Hit";
   if (musicHeroBg && track.cover) musicHeroBg.style.backgroundImage = `url('${track.cover}')`;
   musicView.dataset.heroId = track.id;
 }
 
 let topArtistsCache = null;
 
-function mapUser(u) {
-  const pp = u.profile_picture || {};
-  return {
-    id: u.id,
-    handle: u.handle,
-    name: u.name || u.handle,
-    image: pp["480x480"] || pp["150x150"] || pp["1000x1000"] || "",
-    followers: u.follower_count || 0,
-  };
-}
-
 async function loadTopArtists() {
   if (topArtistsCache) return topArtistsCache;
   const results = await Promise.all(TOP_ARTIST_NAMES.map(async (name) => {
     try {
-      const json = await audiusFetch(`/v1/users/search?query=${encodeURIComponent(name)}`);
-      const list = (json.data || []).map(mapUser);
-      // pick highest-follower match
-      list.sort((a, b) => (b.followers || 0) - (a.followers || 0));
-      const best = list[0];
-      if (best) best.displayName = name;
-      return best || null;
+      const url = `${ITUNES_SEARCH}?term=${encodeURIComponent(name)}&attribute=artistTerm&entity=song&limit=1`;
+      const json = await itunesFetch(url);
+      const r = (json.results || [])[0];
+      if (!r) return null;
+      return {
+        id: String(r.artistId || ""),
+        name,
+        image: upgradeArtwork(r.artworkUrl100 || "", 400),
+      };
     } catch (err) {
       return null;
     }
@@ -2481,10 +2461,10 @@ async function renderTopArtists() {
     const artists = await loadTopArtists();
     if (!artists.length) return;
     musicArtistsEl.innerHTML = artists.map((a) => `
-      <button class="music-artist" type="button" data-artist-id="${a.id}" data-artist-name="${escapeHtml(a.displayName || a.name)}" data-artist-image="${escapeHtml(a.image)}">
+      <button class="music-artist" type="button" data-artist-id="${a.id}" data-artist-name="${escapeHtml(a.name)}" data-artist-image="${escapeHtml(a.image)}">
         <span class="music-artist__img" style="background-image:url('${a.image}')"></span>
-        <span class="music-artist__name">${escapeHtml(a.displayName || a.name)}</span>
-        <span class="music-artist__plays">${formatPlays(a.followers)}</span>
+        <span class="music-artist__name">${escapeHtml(a.name)}</span>
+        <span class="music-artist__plays">Mashhur</span>
       </button>
     `).join("");
   } catch (_) {}
@@ -2524,13 +2504,33 @@ function renderGenres() {
   musicGenresEl.dataset.rendered = "1";
 }
 
-async function loadTrending(genre) {
+async function loadTrending(genreTerm) {
   showMusicState("loading");
-  if (musicChartsTitle) musicChartsTitle.textContent = genre ? `${genre}` : "Top Charts";
+  if (musicChartsTitle) musicChartsTitle.textContent = genreTerm ? genreTerm : "Top Charts";
   try {
-    const path = genre ? `/v1/tracks/trending?genre=${encodeURIComponent(genre)}&time=week` : `/v1/tracks/trending?time=week`;
-    const json = await audiusFetch(path);
-    const tracks = (json.data || []).slice(0, 30).map(mapTrack);
+    let tracks = [];
+    if (genreTerm) {
+      const json = await itunesFetch(`${ITUNES_SEARCH}?term=${encodeURIComponent(genreTerm)}&entity=song&limit=30`);
+      tracks = (json.results || []).map(mapTrack).filter(Boolean);
+    } else {
+      const rss = await itunesFetch(ITUNES_RSS);
+      const items = ((rss && rss.feed && rss.feed.results) || []).slice(0, 30);
+      if (items.length) {
+        const ids = items.map((i) => i.id).join(",");
+        const lookup = await itunesFetch(`${ITUNES_LOOKUP}?id=${ids}&entity=song&limit=200`);
+        const byId = new Map();
+        for (const r of (lookup.results || [])) {
+          if (r && r.wrapperType === "track" && r.kind === "song") {
+            byId.set(String(r.trackId), mapTrack(r));
+          }
+        }
+        tracks = items.map((i) => byId.get(String(i.id))).filter(Boolean);
+      }
+      if (!tracks.length) {
+        const fallback = await itunesFetch(`${ITUNES_SEARCH}?term=top+hits&entity=song&limit=30`);
+        tracks = (fallback.results || []).map(mapTrack).filter(Boolean);
+      }
+    }
     currentTracks = tracks;
     if (tracks[0]) renderHero(tracks[0]);
     renderCharts(tracks);
@@ -2545,8 +2545,8 @@ async function searchTracks(query) {
   showMusicState("loading");
   if (musicChartsTitle) musicChartsTitle.textContent = `"${query}" bo'yicha`;
   try {
-    const json = await audiusFetch(`/v1/tracks/search?query=${encodeURIComponent(query)}`);
-    const tracks = (json.data || []).slice(0, 30).map(mapTrack);
+    const json = await itunesFetch(`${ITUNES_SEARCH}?term=${encodeURIComponent(query)}&entity=song&limit=30`);
+    const tracks = (json.results || []).map(mapTrack).filter(Boolean);
     currentTracks = tracks;
     renderCharts(tracks);
   } catch (err) {
@@ -2586,21 +2586,20 @@ async function playTrack(track) {
   currentTrackId = track.id;
   if (musicPlayerTitle) musicPlayerTitle.textContent = track.title;
   if (musicPlayerArtistEl) musicPlayerArtistEl.textContent = track.artist;
-  if (musicPlayerAlbum) musicPlayerAlbum.textContent = formatPlays(track.playCount);
+  if (musicPlayerAlbum) musicPlayerAlbum.textContent = track.album || "Preview";
   if (musicPlayerArt && track.cover) musicPlayerArt.style.backgroundImage = `url('${track.cover}')`;
   if (musicPlayerDuration) musicPlayerDuration.textContent = formatDuration(track.duration);
   if (musicPlayerSeek) { musicPlayerSeek.value = 0; }
 
   try {
-    const host = await resolveAudiusHost();
-    musicAudio.src = `${host}/v1/tracks/${track.id}/stream?app_name=${AUDIUS_APP_NAME}`;
+    if (!track.previewUrl) throw new Error("Preview yo'q");
+    musicAudio.src = track.previewUrl;
     await musicAudio.play();
     if (musicPlayerToggle) musicPlayerToggle.dataset.state = "pause";
   } catch (err) {
     if (musicPlayerToggle) musicPlayerToggle.dataset.state = "play";
   }
   openMusicPlayer();
-  // refresh charts highlight
   renderCharts(currentTracks);
 }
 
@@ -2725,23 +2724,42 @@ function showArtistState(name) {
   if (name === "empty" && artistEmptyEl) { artistEmptyEl.hidden = false; if (artistTracksEl) artistTracksEl.hidden = true; }
 }
 
+let currentArtistName = "";
+
 async function openArtistPage(artist) {
   if (!artistPage || !artist) return;
   currentArtistId = artist.id;
+  currentArtistName = artist.name;
   if (artistPageName) artistPageName.textContent = artist.name;
   if (artistPageCover) artistPageCover.style.backgroundImage = artist.image ? `url('${artist.image}')` : "linear-gradient(135deg, #1f1f2e, #050505)";
   if (artistPageMeta) artistPageMeta.textContent = "Yuklanmoqda...";
   if (artistTracksEl) artistTracksEl.innerHTML = "";
   artistPage.hidden = false;
   showArtistState("loading");
-  await loadArtistTracks(artist.id);
+  await loadArtistTracks(artist.name, artist.id);
 }
 
-async function loadArtistTracks(artistId) {
+async function loadArtistTracks(artistName, artistId) {
   showArtistState("loading");
   try {
-    const json = await audiusFetch(`/v1/users/${artistId}/tracks?limit=50&sort=plays`);
-    const tracks = (json.data || []).map(mapTrack);
+    const url = `${ITUNES_SEARCH}?term=${encodeURIComponent(artistName)}&attribute=artistTerm&entity=song&limit=50`;
+    const json = await itunesFetch(url);
+    let tracks = (json.results || [])
+      .filter((r) => r && r.kind === "song")
+      .map(mapTrack)
+      .filter(Boolean);
+    if (artistId) {
+      const filtered = tracks.filter((t) => String(t.artistId) === String(artistId));
+      if (filtered.length) tracks = filtered;
+    }
+    // de-dupe by title
+    const seen = new Set();
+    tracks = tracks.filter((t) => {
+      const key = t.title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     artistTracks = tracks;
     if (artistPageMeta) artistPageMeta.textContent = `${tracks.length} trek`;
     if (!tracks.length) { showArtistState("empty"); return; }
@@ -2753,7 +2771,7 @@ async function loadArtistTracks(artistId) {
             <span class="music-chart__cover" style="background-image:url('${t.cover}')"></span>
             <span class="music-chart__meta">
               <span class="music-chart__title">${escapeHtml(t.title)}</span>
-              <span class="music-chart__artist">${formatPlays(t.playCount)}</span>
+              <span class="music-chart__artist">${escapeHtml(t.album || t.artist)}</span>
             </span>
             <span class="music-chart__dur">${formatDuration(t.duration)}</span>
             <span class="music-chart__play" aria-hidden="true">
@@ -2774,10 +2792,11 @@ function closeArtistPage() {
   if (!artistPage) return;
   artistPage.hidden = true;
   currentArtistId = null;
+  currentArtistName = "";
 }
 
 artistPageBack?.addEventListener("click", closeArtistPage);
-artistRetryBtn?.addEventListener("click", () => { if (currentArtistId) loadArtistTracks(currentArtistId); });
+artistRetryBtn?.addEventListener("click", () => { if (currentArtistName) loadArtistTracks(currentArtistName, currentArtistId); });
 artistPage?.addEventListener("click", (event) => {
   const btn = event.target.closest("[data-artist-track-id]");
   if (!btn) return;
