@@ -2310,6 +2310,18 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
 
 // ===== Music view (Audius API) =====
 const AUDIUS_APP_NAME = "KinoPlay";
+const TOP_ARTIST_NAMES = [
+  "Xcho",
+  "Miyagi",
+  "Morgenshtern",
+  "Billie Eilish",
+  "Selena Gomez",
+  "The Weeknd",
+  "Travis Scott",
+  "Drake",
+  "Post Malone",
+  "Dua Lipa",
+];
 const MUSIC_GENRES = [
   { name: "Electronic", bg: "linear-gradient(135deg, #5564f5, #2c3aa6)" },
   { name: "Pop", bg: "linear-gradient(135deg, #d6c9a3, #a89674)" },
@@ -2424,23 +2436,58 @@ function renderHero(track) {
   musicView.dataset.heroId = track.id;
 }
 
-function renderArtists(tracks) {
+let topArtistsCache = null;
+
+function mapUser(u) {
+  const pp = u.profile_picture || {};
+  return {
+    id: u.id,
+    handle: u.handle,
+    name: u.name || u.handle,
+    image: pp["480x480"] || pp["150x150"] || pp["1000x1000"] || "",
+    followers: u.follower_count || 0,
+  };
+}
+
+async function loadTopArtists() {
+  if (topArtistsCache) return topArtistsCache;
+  const results = await Promise.all(TOP_ARTIST_NAMES.map(async (name) => {
+    try {
+      const json = await audiusFetch(`/v1/users/search?query=${encodeURIComponent(name)}`);
+      const list = (json.data || []).map(mapUser);
+      // pick highest-follower match
+      list.sort((a, b) => (b.followers || 0) - (a.followers || 0));
+      const best = list[0];
+      if (best) best.displayName = name;
+      return best || null;
+    } catch (err) {
+      return null;
+    }
+  }));
+  topArtistsCache = results.filter(Boolean);
+  return topArtistsCache;
+}
+
+async function renderTopArtists() {
   if (!musicArtistsEl) return;
-  const seen = new Set();
-  const artists = [];
-  for (const t of tracks) {
-    if (!t.artistHandle || seen.has(t.artistHandle)) continue;
-    seen.add(t.artistHandle);
-    artists.push(t);
-    if (artists.length >= 10) break;
-  }
-  musicArtistsEl.innerHTML = artists.map((a) => `
-    <div class="music-artist">
-      <span class="music-artist__img" style="background-image:url('${a.artistImage || a.cover}')"></span>
-      <span class="music-artist__name">${escapeHtml(a.artist)}</span>
-      <span class="music-artist__plays">${formatPlays(a.playCount)}</span>
+  musicArtistsEl.innerHTML = TOP_ARTIST_NAMES.map((n) => `
+    <div class="music-artist" data-artist-placeholder>
+      <span class="music-artist__img" style="background:rgba(255,255,255,0.06)"></span>
+      <span class="music-artist__name">${escapeHtml(n)}</span>
+      <span class="music-artist__plays">...</span>
     </div>
   `).join("");
+  try {
+    const artists = await loadTopArtists();
+    if (!artists.length) return;
+    musicArtistsEl.innerHTML = artists.map((a) => `
+      <button class="music-artist" type="button" data-artist-id="${a.id}" data-artist-name="${escapeHtml(a.displayName || a.name)}" data-artist-image="${escapeHtml(a.image)}">
+        <span class="music-artist__img" style="background-image:url('${a.image}')"></span>
+        <span class="music-artist__name">${escapeHtml(a.displayName || a.name)}</span>
+        <span class="music-artist__plays">${formatPlays(a.followers)}</span>
+      </button>
+    `).join("");
+  } catch (_) {}
 }
 
 function renderCharts(tracks) {
@@ -2486,7 +2533,6 @@ async function loadTrending(genre) {
     const tracks = (json.data || []).slice(0, 30).map(mapTrack);
     currentTracks = tracks;
     if (tracks[0]) renderHero(tracks[0]);
-    renderArtists(tracks);
     renderCharts(tracks);
   } catch (err) {
     if (musicErrorText) musicErrorText.textContent = err.message || "Tarmoqni tekshiring va qayta urinib ko'ring.";
@@ -2502,7 +2548,6 @@ async function searchTracks(query) {
     const json = await audiusFetch(`/v1/tracks/search?query=${encodeURIComponent(query)}`);
     const tracks = (json.data || []).slice(0, 30).map(mapTrack);
     currentTracks = tracks;
-    renderArtists(tracks);
     renderCharts(tracks);
   } catch (err) {
     if (musicErrorText) musicErrorText.textContent = err.message || "Qidiruvda xatolik.";
@@ -2514,6 +2559,7 @@ function renderMusicView() {
   renderGenres();
   if (!musicView.dataset.rendered) {
     loadTrending();
+    renderTopArtists();
     musicView.dataset.rendered = "1";
   }
 }
@@ -2588,6 +2634,15 @@ musicView?.addEventListener("click", (event) => {
     loadTrending(genreBtn.dataset.genre);
     return;
   }
+  const artistBtn = event.target.closest("[data-artist-id]");
+  if (artistBtn) {
+    openArtistPage({
+      id: artistBtn.dataset.artistId,
+      name: artistBtn.dataset.artistName,
+      image: artistBtn.dataset.artistImage,
+    });
+    return;
+  }
   if (event.target.closest("#musicHeroPlay")) {
     const heroTrack = currentTracks.find((t) => t.id === musicView.dataset.heroId) || currentTracks[0];
     if (heroTrack) playTrack(heroTrack);
@@ -2644,6 +2699,94 @@ musicPlayerSeek?.addEventListener("input", (event) => {
   if (!musicAudio?.duration) return;
   const pct = Number(event.target.value) / 1000;
   musicAudio.currentTime = pct * musicAudio.duration;
+});
+
+// ===== Artist page =====
+const artistPage = document.getElementById("artistPage");
+const artistPageBack = document.getElementById("artistPageBack");
+const artistPageCover = document.getElementById("artistPageCover");
+const artistPageName = document.getElementById("artistPageName");
+const artistPageMeta = document.getElementById("artistPageMeta");
+const artistTracksEl = document.getElementById("artistTracks");
+const artistLoadingEl = document.getElementById("artistLoading");
+const artistErrorEl = document.getElementById("artistError");
+const artistErrorText = document.getElementById("artistErrorText");
+const artistEmptyEl = document.getElementById("artistEmpty");
+const artistRetryBtn = document.getElementById("artistRetryBtn");
+
+let artistTracks = [];
+let currentArtistId = null;
+
+function showArtistState(name) {
+  [artistLoadingEl, artistErrorEl, artistEmptyEl].forEach((el) => { if (el) el.hidden = true; });
+  if (artistTracksEl) artistTracksEl.hidden = false;
+  if (name === "loading" && artistLoadingEl) { artistLoadingEl.hidden = false; if (artistTracksEl) artistTracksEl.hidden = true; }
+  if (name === "error" && artistErrorEl) { artistErrorEl.hidden = false; if (artistTracksEl) artistTracksEl.hidden = true; }
+  if (name === "empty" && artistEmptyEl) { artistEmptyEl.hidden = false; if (artistTracksEl) artistTracksEl.hidden = true; }
+}
+
+async function openArtistPage(artist) {
+  if (!artistPage || !artist) return;
+  currentArtistId = artist.id;
+  if (artistPageName) artistPageName.textContent = artist.name;
+  if (artistPageCover) artistPageCover.style.backgroundImage = artist.image ? `url('${artist.image}')` : "linear-gradient(135deg, #1f1f2e, #050505)";
+  if (artistPageMeta) artistPageMeta.textContent = "Yuklanmoqda...";
+  if (artistTracksEl) artistTracksEl.innerHTML = "";
+  artistPage.hidden = false;
+  showArtistState("loading");
+  await loadArtistTracks(artist.id);
+}
+
+async function loadArtistTracks(artistId) {
+  showArtistState("loading");
+  try {
+    const json = await audiusFetch(`/v1/users/${artistId}/tracks?limit=50&sort=plays`);
+    const tracks = (json.data || []).map(mapTrack);
+    artistTracks = tracks;
+    if (artistPageMeta) artistPageMeta.textContent = `${tracks.length} trek`;
+    if (!tracks.length) { showArtistState("empty"); return; }
+    if (artistTracksEl) {
+      artistTracksEl.innerHTML = tracks.map((t, idx) => `
+        <li>
+          <button class="music-chart ${t.id === currentTrackId ? "is-playing" : ""}" type="button" data-artist-track-id="${t.id}">
+            <span class="music-chart__rank">${String(idx + 1).padStart(2, "0")}</span>
+            <span class="music-chart__cover" style="background-image:url('${t.cover}')"></span>
+            <span class="music-chart__meta">
+              <span class="music-chart__title">${escapeHtml(t.title)}</span>
+              <span class="music-chart__artist">${formatPlays(t.playCount)}</span>
+            </span>
+            <span class="music-chart__dur">${formatDuration(t.duration)}</span>
+            <span class="music-chart__play" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+            </span>
+          </button>
+        </li>
+      `).join("");
+    }
+    showArtistState("data");
+  } catch (err) {
+    if (artistErrorText) artistErrorText.textContent = err.message || "Yuklab bo'lmadi.";
+    showArtistState("error");
+  }
+}
+
+function closeArtistPage() {
+  if (!artistPage) return;
+  artistPage.hidden = true;
+  currentArtistId = null;
+}
+
+artistPageBack?.addEventListener("click", closeArtistPage);
+artistRetryBtn?.addEventListener("click", () => { if (currentArtistId) loadArtistTracks(currentArtistId); });
+artistPage?.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-artist-track-id]");
+  if (!btn) return;
+  const id = btn.dataset.artistTrackId;
+  const track = artistTracks.find((t) => t.id === id);
+  if (track) {
+    currentTracks = artistTracks;
+    playTrack(track);
+  }
 });
 
 document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => {
