@@ -3817,6 +3817,7 @@ html[data-theme="light"] .card-copy {
 }
 
 .bottom-bar__inner {
+  --bottom-nav-icon-size: 24px;
   height: 60px;
   border-radius: 999px;
   background: rgba(18, 18, 18, 0.7);
@@ -3862,48 +3863,15 @@ html[data-theme="light"] .card-copy {
 }
 
 .bottom-bar__button .icon-svg {
-  width: 22px;
-  height: 22px;
+  width: var(--bottom-nav-icon-size);
+  height: var(--bottom-nav-icon-size);
 }
 
-.bottom-bar__button .cinema-nav-icon {
-  width: 25px;
-  height: 25px;
-  overflow: visible;
-}
-
+.bottom-bar__button .movie-nav-icon,
 .bottom-bar__button .music-nav-icon {
-  width: 25px;
-  height: 25px;
   fill: currentColor;
   stroke: none;
   overflow: visible;
-}
-
-.bottom-bar__button .cinema-nav-icon__stroke {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 4.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.bottom-bar__button .cinema-nav-icon__stripe {
-  stroke-width: 3.2;
-}
-
-.bottom-bar__button .cinema-nav-icon__fill {
-  fill: currentColor;
-  stroke: none;
-}
-
-.bottom-bar__button .cinema-nav-icon__cut {
-  fill: #ffffff;
-  stroke: none;
-}
-
-html[data-theme="dark"] .bottom-bar__button .cinema-nav-icon__cut {
-  fill: #141416;
 }
 
 .bottom-bar__label {
@@ -3915,8 +3883,8 @@ html[data-theme="dark"] .bottom-bar__button .cinema-nav-icon__cut {
 }
 
 .bottom-bar__avatar {
-  width: 22px;
-  height: 22px;
+  width: var(--bottom-nav-icon-size);
+  height: var(--bottom-nav-icon-size);
   border-radius: 50%;
   overflow: hidden;
   border: 1.5px solid rgba(255, 255, 255, 0.4);
