@@ -5627,3 +5627,81 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   background: #fff;
 }
 .music-chart__play { position: relative; }
+
+.artist-page {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: #0a0a10;
+  color: #f5f6fa;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 120px;
+}
+.artist-page[hidden] { display: none; }
+.artist-page__top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #0a0a10 80%, rgba(10,10,16,0));
+}
+.artist-page__back {
+  width: 38px; height: 38px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  color: #f5f6fa;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.artist-page__back svg { width: 18px; height: 18px; }
+.artist-page__breadcrumb {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8b8fa0;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.artist-page__hero {
+  position: relative;
+  margin: 4px 16px 18px;
+  height: 220px;
+  border-radius: 22px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.artist-page__cover {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.artist-page__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10,10,16,0.1) 0%, rgba(10,10,16,0.9) 100%);
+}
+.artist-page__heading {
+  position: absolute;
+  left: 0; right: 0; bottom: 16px;
+  padding: 0 20px;
+}
+.artist-page__heading h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.artist-page__heading p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #c8cad6;
+}
+.artist-page__tracks { margin: 0 16px; }
