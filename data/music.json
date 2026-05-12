@@ -1,0 +1,22 @@
+[
+  { "id": "m1", "title": "Blinding Lights", "artist": "The Weeknd", "category": "Pop", "youtubeId": "4NRXx6U8ABQ" },
+  { "id": "m2", "title": "Save Your Tears", "artist": "The Weeknd", "category": "Pop", "youtubeId": "XXYlFuWEuKI" },
+  { "id": "m3", "title": "Bad Guy", "artist": "Billie Eilish", "category": "Pop", "youtubeId": "DyDfgMOUjCI" },
+  { "id": "m4", "title": "Lovely", "artist": "Billie Eilish", "category": "Pop", "youtubeId": "V1Pl8CzNzCw" },
+  { "id": "m5", "title": "God's Plan", "artist": "Drake", "category": "Hip-Hop", "youtubeId": "xpVfcZ0ZcFM" },
+  { "id": "m6", "title": "In My Feelings", "artist": "Drake", "category": "Hip-Hop", "youtubeId": "DRS_PpOrUZ4" },
+  { "id": "m7", "title": "Sicko Mode", "artist": "Travis Scott", "category": "Hip-Hop", "youtubeId": "6ONRf7h3Mdk" },
+  { "id": "m8", "title": "Goosebumps", "artist": "Travis Scott", "category": "Hip-Hop", "youtubeId": "Dst9gZkq1a8" },
+  { "id": "m9", "title": "Sunflower", "artist": "Post Malone", "category": "Hip-Hop", "youtubeId": "ApXoWvfEYVU" },
+  { "id": "m10", "title": "Circles", "artist": "Post Malone", "category": "Pop", "youtubeId": "wXhTHyIgQ_U" },
+  { "id": "m11", "title": "Levitating", "artist": "Dua Lipa", "category": "Pop", "youtubeId": "TUVcZfQe-Kw" },
+  { "id": "m12", "title": "New Rules", "artist": "Dua Lipa", "category": "Pop", "youtubeId": "k2qgadSvNyU" },
+  { "id": "m13", "title": "Anti-Hero", "artist": "Taylor Swift", "category": "Pop", "youtubeId": "b1kbLwvqugk" },
+  { "id": "m14", "title": "Shape of You", "artist": "Ed Sheeran", "category": "Pop", "youtubeId": "JGwWNGJdvx8" },
+  { "id": "m15", "title": "Perfect", "artist": "Ed Sheeran", "category": "Pop", "youtubeId": "2Vv-BfVoq4g" },
+  { "id": "m16", "title": "drivers license", "artist": "Olivia Rodrigo", "category": "Pop", "youtubeId": "ZmDBbnmKpqQ" },
+  { "id": "m17", "title": "As It Was", "artist": "Harry Styles", "category": "Pop", "youtubeId": "H5v3kku4y6Q" },
+  { "id": "m18", "title": "Heat Waves", "artist": "Glass Animals", "category": "Indie", "youtubeId": "mRD0-GxqHVo" },
+  { "id": "m19", "title": "Stay", "artist": "The Kid LAROI & Justin Bieber", "category": "Pop", "youtubeId": "kTJczUoc26U" },
+  { "id": "m20", "title": "Industry Baby", "artist": "Lil Nas X", "category": "Hip-Hop", "youtubeId": "UTHLKHL_whs" }
+]
