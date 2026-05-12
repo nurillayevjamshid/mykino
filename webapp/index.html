@@ -368,11 +368,7 @@
 
   <section class="music-view" id="musicView" hidden aria-label="Musiqa">
     <header class="music-topbar">
-      <nav class="music-tabs" id="musicTabs">
-        <button type="button" class="music-tab is-active" data-music-tab="music">Music</button>
-        <button type="button" class="music-tab" data-music-tab="podcast">Podcast</button>
-        <button type="button" class="music-tab" data-music-tab="live">Jonli</button>
-      </nav>
+      <h1 class="music-topbar__title">Musiqa</h1>
       <button class="icon-button icon-button--top music-search-btn" type="button" aria-label="Qidirish" id="musicSearchBtn">
         <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="11" cy="11" r="7"></circle>
@@ -390,144 +386,54 @@
       <button type="button" class="music-search-clear" id="musicSearchClear" aria-label="Tozalash">&times;</button>
     </div>
 
-    <section class="music-hero" id="musicHero">
-      <div class="music-hero__bg" id="musicHeroBg"></div>
-      <div class="music-hero__gradient"></div>
-      <div class="music-hero__content">
-        <span class="music-hero__eyebrow">Trending New Hits</span>
-        <h1 class="music-hero__title" id="musicHeroTitle">In My Feelings</h1>
-        <div class="music-hero__meta">
-          <strong id="musicHeroArtist">Camila Cabello</strong>
-          <span id="musicHeroPlays">63M tinglovlar</span>
-        </div>
-        <div class="music-hero__actions">
-          <button class="music-hero__play" type="button" id="musicHeroPlay">
-            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
-            <span>Tinglash</span>
-          </button>
-          <button class="music-hero__like" type="button" aria-label="Sevimli">
-            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section class="music-section">
-      <div class="music-section__head">
-        <h2>Top Artists</h2>
-        <button type="button" class="music-link">Hammasi</button>
-      </div>
-      <div class="music-artists" id="musicArtists"></div>
-    </section>
-
-    <section class="music-section" id="musicChartsSection">
-      <div class="music-section__head">
-        <h2 id="musicChartsTitle">Top Charts</h2>
-        <button type="button" class="music-link" id="musicReloadBtn">Yangilash</button>
-      </div>
-      <div class="music-state music-state--loading" id="musicLoading" hidden>
-        <span class="music-spinner" aria-hidden="true"></span>
-        <span>Yuklanmoqda...</span>
-      </div>
-      <div class="music-state music-state--error" id="musicError" hidden>
-        <strong>Yuklab bo'lmadi</strong>
-        <span id="musicErrorText">Tarmoqni tekshiring va qayta urinib ko'ring.</span>
-        <button type="button" class="music-link" id="musicRetryBtn">Qayta urinish</button>
-      </div>
-      <ol class="music-charts" id="musicCharts"></ol>
-      <div class="music-state music-state--empty" id="musicEmpty" hidden>
-        <span>Hech narsa topilmadi</span>
-      </div>
-    </section>
-
-    <section class="music-section">
-      <div class="music-section__head">
-        <h2>Janrlar</h2>
-      </div>
-      <div class="music-genres" id="musicGenres"></div>
-    </section>
-
-    <div class="music-view__spacer"></div>
-  </section>
-
-  <section class="artist-page" id="artistPage" hidden aria-label="Artist sahifasi">
-    <header class="artist-page__top">
-      <button type="button" class="artist-page__back" id="artistPageBack" aria-label="Orqaga">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6"></path>
-        </svg>
-      </button>
-      <span class="artist-page__breadcrumb">Artist</span>
-      <span></span>
-    </header>
-    <div class="artist-page__hero">
-      <div class="artist-page__cover" id="artistPageCover"></div>
-      <div class="artist-page__overlay"></div>
-      <div class="artist-page__heading">
-        <h1 id="artistPageName">Artist</h1>
-        <p id="artistPageMeta">0 trek</p>
-      </div>
+    <div class="music-filters">
+      <div class="music-filter-label">Kategoriya</div>
+      <div class="music-filter-row" id="musicCategoryRow"></div>
+      <div class="music-filter-label">Ijrochi</div>
+      <div class="music-filter-row" id="musicArtistRow"></div>
     </div>
-    <div class="music-state music-state--loading" id="artistLoading" hidden>
+
+    <div class="music-state music-state--loading" id="musicLoading" hidden>
       <span class="music-spinner" aria-hidden="true"></span>
-      <span>Treklar yuklanmoqda...</span>
+      <span>Yuklanmoqda...</span>
     </div>
-    <div class="music-state music-state--error" id="artistError" hidden>
+    <div class="music-state music-state--error" id="musicError" hidden>
       <strong>Yuklab bo'lmadi</strong>
-      <span id="artistErrorText">Tarmoqni tekshiring va qayta urinib ko'ring.</span>
-      <button type="button" class="music-link" id="artistRetryBtn">Qayta urinish</button>
+      <span id="musicErrorText">Tarmoqni tekshiring va qayta urinib ko'ring.</span>
+      <button type="button" class="music-link" id="musicRetryBtn">Qayta urinish</button>
     </div>
-    <ol class="music-charts artist-page__tracks" id="artistTracks"></ol>
-    <div class="music-state music-state--empty" id="artistEmpty" hidden>
-      <span>Treklar topilmadi</span>
+    <div class="music-state music-state--empty" id="musicEmpty" hidden>
+      <span>Hech narsa topilmadi</span>
     </div>
+
+    <ol class="music-list" id="musicList"></ol>
     <div class="music-view__spacer"></div>
   </section>
 
   <script src="https://www.youtube.com/iframe_api"></script>
 
-  <section class="music-player" id="musicPlayer" hidden aria-label="Musiqa player" aria-hidden="true">
-    <button type="button" class="music-player__close" id="musicPlayerClose" aria-label="Yopish">
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
-    </button>
-    <div class="music-player__art" id="musicPlayerArt">
-      <div class="music-player__yt" id="ytPlayerWrap"><div id="ytPlayer"></div></div>
+  <div class="mini-player" id="miniPlayer" hidden aria-hidden="true">
+    <div class="mini-player__yt" id="miniPlayerYt"><div id="ytPlayer"></div></div>
+    <div class="mini-player__meta">
+      <strong id="miniPlayerTitle">—</strong>
+      <span id="miniPlayerArtist">—</span>
+      <div class="mini-player__progress">
+        <span id="miniPlayerTime">0:00</span>
+        <div class="mini-player__bar"><div class="mini-player__bar-fill" id="miniPlayerBarFill"></div></div>
+      </div>
     </div>
-    <div class="music-player__meta">
-      <h3 id="musicPlayerTitle">Butterfly Effect</h3>
-      <p id="musicPlayerArtist">Travis Scott</p>
-      <span id="musicPlayerAlbum">Best of 2020</span>
-    </div>
-    <div class="music-player__progress">
-      <span id="musicPlayerCurrent">0:00</span>
-      <input type="range" id="musicPlayerSeek" min="0" max="1000" value="350" aria-label="Progress" />
-      <span id="musicPlayerDuration">3:45</span>
-    </div>
-    <div class="music-player__controls">
-      <button type="button" class="music-player__btn" aria-label="Shuffle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"></path><path d="M4 20 21 3"></path><path d="M21 16v5h-5"></path><path d="m15 15 6 6"></path><path d="M4 4l5 5"></path></svg>
+    <div class="mini-player__actions">
+      <button type="button" class="mini-player__btn mini-player__btn--play" id="miniPlayerToggle" aria-label="Play" data-state="play">
+        <svg class="mini-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+        <svg class="mini-icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path></svg>
       </button>
-      <button type="button" class="music-player__btn" aria-label="Oldingi">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6z"></path><path d="M20 6 9 12l11 6z"></path></svg>
-      </button>
-      <button type="button" class="music-player__btn music-player__btn--play" id="musicPlayerToggle" aria-label="Play" data-state="play">
-        <svg class="music-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
-        <svg class="music-icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path></svg>
-      </button>
-      <button type="button" class="music-player__btn" aria-label="Keyingi">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2z"></path><path d="M4 6 15 12 4 18z"></path></svg>
-      </button>
-      <button type="button" class="music-player__btn" aria-label="Repeat">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="m7 22-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>
+      <button type="button" class="mini-player__btn" id="miniPlayerClose" aria-label="Yopish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
       </button>
     </div>
-  </section>
+  </div>
 
-  <script src="/static/app.js?v=20260512-youtube"></script>
+  <script src="/static/app.js?v=20260512-curated-music"></script>
 </body>
 
 </html>

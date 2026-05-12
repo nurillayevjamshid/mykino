@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f131a">
   <title>My Kino - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20260511-sub-users">
+  <link rel="stylesheet" href="/admin/admin.css?v=20260512-music">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -47,6 +47,16 @@
                 <path d="M22 2L15 22l-4-9-9-4 20-7z"></path>
               </svg>
               <span class="nav-text">Majburiy obuna</span>
+            </a>
+          </li>
+          <li class="nav-item" data-section="music">
+            <a href="#" class="nav-link">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+              </svg>
+              <span class="nav-text">Musiqa</span>
             </a>
           </li>
           <li class="nav-item" data-section="users">
@@ -202,6 +212,78 @@
               <tbody id="channelsTableBody">
                 <!-- Dynamic content -->
               </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Musiqa Section -->
+        <section class="content-section" id="musicSection">
+          <div class="section-header">
+            <h2>Musiqa katalogi</h2>
+            <p class="form-hint">Mini app'dagi musiqa bo'limiga qo'shiqlar qo'shing. YouTube havola, nom va ijrochi yetarli.</p>
+          </div>
+
+          <div class="card-block">
+            <form id="musicForm" class="channel-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Qo'shiq nomi</label>
+                  <input type="text" id="musicTitle" class="form-input" placeholder="Blinding Lights" required>
+                </div>
+                <div class="form-group">
+                  <label>Ijrochi</label>
+                  <input type="text" id="musicArtist" class="form-input" placeholder="The Weeknd" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Kategoriya</label>
+                  <input type="text" id="musicCategory" class="form-input" placeholder="Pop, Hip-Hop, Indie..." list="musicCategoryList">
+                  <datalist id="musicCategoryList">
+                    <option value="Pop"></option>
+                    <option value="Hip-Hop"></option>
+                    <option value="R&B"></option>
+                    <option value="Electronic"></option>
+                    <option value="Rock"></option>
+                    <option value="Indie"></option>
+                    <option value="Latin"></option>
+                    <option value="K-Pop"></option>
+                  </datalist>
+                </div>
+                <div class="form-group">
+                  <label>YouTube link</label>
+                  <input type="text" id="musicLink" class="form-input" placeholder="https://www.youtube.com/watch?v=..." required>
+                  <small class="form-hint" id="musicLinkHint">Video ID havoladan avtomatik ajratiladi.</small>
+                </div>
+              </div>
+              <div class="modal-actions" style="margin-top: 8px; gap: 10px;">
+                <button type="submit" class="btn btn-primary">+ Qo'shiq qo'shish</button>
+                <button type="button" id="musicExportBtn" class="btn btn-secondary">JSON eksport</button>
+                <button type="button" id="musicReloadBtn" class="btn btn-secondary">Yangilash</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="section-header" style="margin-top: 24px;">
+            <h2 style="font-size: 18px;">Qo'shiqlar ro'yxati</h2>
+            <div class="search-container">
+              <input type="text" id="musicSearchAdminInput" class="search-input" placeholder="Nom yoki ijrochi bo'yicha qidirish...">
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Cover</th>
+                  <th>Nomi</th>
+                  <th>Ijrochi</th>
+                  <th>Kategoriya</th>
+                  <th>Video ID</th>
+                  <th>Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="musicTableBody"></tbody>
             </table>
           </div>
         </section>

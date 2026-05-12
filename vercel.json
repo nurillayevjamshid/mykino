@@ -35,6 +35,7 @@
   "builds": [
     { "src": "api/movies.js", "use": "@vercel/node" },
     { "src": "api/movie-update.js", "use": "@vercel/node" },
+    { "src": "api/music.js", "use": "@vercel/node" },
     { "src": "api/settings.js", "use": "@vercel/node" },
     { "src": "api/required-channels.js", "use": "@vercel/node" },
     { "src": "api/users.js", "use": "@vercel/node" },
@@ -46,6 +47,7 @@
   "routes": [
     { "src": "/api/movies", "dest": "/api/movies.js" },
     { "src": "/api/movie-update", "dest": "/api/movie-update.js" },
+    { "src": "/api/music", "dest": "/api/music.js" },
     { "src": "/api/settings", "dest": "/api/settings.js" },
     { "src": "/api/required-channels", "dest": "/api/required-channels.js" },
     { "src": "/api/users", "dest": "/api/users.js" },

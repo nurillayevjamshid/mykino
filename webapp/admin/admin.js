@@ -14,6 +14,7 @@ let userSearchQuery = '';
 const SECTION_TITLES = {
   movies: 'Kinolar',
   subscription: 'Majburiy obuna',
+  music: 'Musiqa',
   users: 'Obunachilar',
 };
 
@@ -211,6 +212,7 @@ function switchSection(name) {
   const sections = {
     movies: 'moviesSection',
     subscription: 'subscriptionSection',
+    music: 'musicSection',
     users: 'usersSection',
   };
   const targetId = sections[name];
@@ -228,6 +230,7 @@ function switchSection(name) {
 
   if (name === 'subscription') fetchRequiredChannels();
   if (name === 'users') fetchUsers();
+  if (name === 'music') fetchMusic();
 
   if (window.innerWidth <= 768) {
     document.querySelector('.sidebar')?.classList.remove('open');
@@ -1080,3 +1083,177 @@ window.fetchMovies = fetchMovies;
 window.editMovie = editMovie;
 window.fetchRequiredChannels = fetchRequiredChannels;
 window.fetchUsers = fetchUsers;
+
+// ===== Musiqa =====
+const MUSIC_LOCAL_KEY = 'kino_admin_music_v1';
+let musicTracks = [];
+let musicSearchQueryAdmin = '';
+
+function extractYoutubeId(input) {
+  const value = String(input || '').trim();
+  if (!value) return '';
+  if (/^[\w-]{10,12}$/.test(value)) return value;
+  const patterns = [
+    /[?&]v=([\w-]{10,12})/,
+    /youtu\.be\/([\w-]{10,12})/,
+    /youtube\.com\/embed\/([\w-]{10,12})/,
+    /youtube\.com\/shorts\/([\w-]{10,12})/,
+    /music\.youtube\.com\/watch\?v=([\w-]{10,12})/,
+  ];
+  for (const re of patterns) {
+    const m = re.exec(value);
+    if (m) return m[1];
+  }
+  return '';
+}
+
+function readLocalMusic() {
+  try {
+    const raw = localStorage.getItem(MUSIC_LOCAL_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (_) { return []; }
+}
+
+function writeLocalMusic(list) {
+  try { localStorage.setItem(MUSIC_LOCAL_KEY, JSON.stringify(list)); } catch (_) {}
+}
+
+function dedupeMusic(list) {
+  const seen = new Map();
+  for (const t of list) {
+    if (!t || !t.title || !t.artist || !t.youtubeId) continue;
+    const key = `${String(t.title).toLowerCase()}|${String(t.artist).toLowerCase()}|${t.youtubeId}`;
+    if (!seen.has(key)) seen.set(key, t);
+  }
+  return Array.from(seen.values());
+}
+
+async function fetchMusic() {
+  const tbody = document.getElementById('musicTableBody');
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="loading-state"><div class="loading-spinner"></div><p>Yuklanmoqda...</p></div></td></tr>`;
+  }
+  let seed = [];
+  try {
+    const res = await fetch('/api/music');
+    if (res.ok) {
+      const json = await res.json();
+      seed = Array.isArray(json.tracks) ? json.tracks : [];
+    }
+  } catch (_) {}
+  const local = readLocalMusic();
+  musicTracks = dedupeMusic([...seed, ...local]);
+  renderMusicTable();
+}
+
+function renderMusicTable() {
+  const tbody = document.getElementById('musicTableBody');
+  if (!tbody) return;
+  const q = musicSearchQueryAdmin.toLowerCase();
+  const list = q
+    ? musicTracks.filter(t => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q))
+    : musicTracks;
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><h3>Qo'shiqlar yo'q</h3><p>Yangi qo'shiq qo'shing yoki qidiruvni tozalang.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(t => `
+    <tr>
+      <td><img src="https://i.ytimg.com/vi/${escapeHtml(t.youtubeId)}/mqdefault.jpg" alt="" style="width:60px;height:34px;object-fit:cover;border-radius:6px;"></td>
+      <td><strong>${escapeHtml(t.title)}</strong></td>
+      <td>${escapeHtml(t.artist)}</td>
+      <td><span class="badge">${escapeHtml(t.category || 'Boshqa')}</span></td>
+      <td><code>${escapeHtml(t.youtubeId)}</code></td>
+      <td>
+        <a class="btn btn-secondary" href="https://www.youtube.com/watch?v=${escapeHtml(t.youtubeId)}" target="_blank" rel="noopener">Ochish</a>
+        <button class="btn btn-danger" data-music-delete="${escapeHtml(t.youtubeId)}|${escapeHtml(t.title)}|${escapeHtml(t.artist)}">O'chirish</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function addMusicTrack(payload) {
+  const local = readLocalMusic();
+  const next = dedupeMusic([...local, payload]);
+  writeLocalMusic(next);
+  try {
+    await fetch('/api/music', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ track: payload }),
+    });
+  } catch (_) {}
+  await fetchMusic();
+}
+
+function deleteMusicTrack(youtubeId, title, artist) {
+  const key = `${title.toLowerCase()}|${artist.toLowerCase()}|${youtubeId}`;
+  const local = readLocalMusic().filter(t => `${(t.title||'').toLowerCase()}|${(t.artist||'').toLowerCase()}|${t.youtubeId}` !== key);
+  writeLocalMusic(local);
+  musicTracks = musicTracks.filter(t => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}` !== key);
+  renderMusicTable();
+  showNotification("Qo'shiq olib tashlandi (faqat brauzer xotirasidan).");
+}
+
+function exportMusicJSON() {
+  const json = JSON.stringify(musicTracks, null, 2);
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(json).then(
+      () => showNotification('JSON clipboardga nusxalandi.'),
+      () => fallbackDownloadJson(json),
+    );
+  } else {
+    fallbackDownloadJson(json);
+  }
+}
+
+function fallbackDownloadJson(json) {
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'music.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+document.getElementById('musicForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const title = document.getElementById('musicTitle').value.trim();
+  const artist = document.getElementById('musicArtist').value.trim();
+  const category = document.getElementById('musicCategory').value.trim() || 'Boshqa';
+  const link = document.getElementById('musicLink').value.trim();
+  const youtubeId = extractYoutubeId(link);
+  const hint = document.getElementById('musicLinkHint');
+  if (!youtubeId) {
+    if (hint) { hint.textContent = "YouTube link noto'g'ri."; hint.style.color = '#ff6b6b'; }
+    return;
+  }
+  if (hint) { hint.textContent = `Video ID: ${youtubeId}`; hint.style.color = ''; }
+  addMusicTrack({ title, artist, category, youtubeId });
+  e.target.reset();
+});
+
+document.getElementById('musicLink')?.addEventListener('input', (e) => {
+  const hint = document.getElementById('musicLinkHint');
+  if (!hint) return;
+  const id = extractYoutubeId(e.target.value);
+  if (id) { hint.textContent = `Video ID: ${id}`; hint.style.color = ''; }
+  else { hint.textContent = 'Video ID havoladan avtomatik ajratiladi.'; hint.style.color = ''; }
+});
+
+document.getElementById('musicExportBtn')?.addEventListener('click', exportMusicJSON);
+document.getElementById('musicReloadBtn')?.addEventListener('click', fetchMusic);
+document.getElementById('musicSearchAdminInput')?.addEventListener('input', (e) => {
+  musicSearchQueryAdmin = e.target.value.trim();
+  renderMusicTable();
+});
+document.getElementById('musicTableBody')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-music-delete]');
+  if (!btn) return;
+  const [youtubeId, title, artist] = btn.dataset.musicDelete.split('|');
+  if (confirm(`O'chirilsinmi: ${title} — ${artist}?`)) deleteMusicTrack(youtubeId, title, artist);
+});
+
+window.fetchMusic = fetchMusic;

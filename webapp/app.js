@@ -2308,207 +2308,142 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
   });
 });
 
-// ===== Music view (YouTube Data API v3) =====
-const YT_API_KEY = "AIzaSyBc9YGGNbcjKZZa8oczQ6m_1gwUYNignDk";
-const YT_API = "https://www.googleapis.com/youtube/v3";
-const TOP_ARTIST_NAMES = [
-  "Xcho",
-  "Miyagi",
-  "Morgenshtern",
-  "Billie Eilish",
-  "Selena Gomez",
-  "The Weeknd",
-  "Travis Scott",
-  "Drake",
-  "Post Malone",
-  "Dua Lipa",
-];
-const MUSIC_GENRES = [
-  { name: "Electronic", bg: "linear-gradient(135deg, #5564f5, #2c3aa6)" },
-  { name: "Pop", bg: "linear-gradient(135deg, #d6c9a3, #a89674)" },
-  { name: "Alternative", bg: "linear-gradient(135deg, #c8694a, #8a3f25)" },
-  { name: "Hip-Hop/Rap", bg: "linear-gradient(135deg, #d8a256, #a8722e)" },
-  { name: "Classical", bg: "linear-gradient(135deg, #d6b3c1, #a47889)" },
-  { name: "Rock", bg: "linear-gradient(135deg, #d97a52, #8a4326)" },
-];
-
+// ===== Music view (curated catalog + YouTube IFrame player) =====
+const MUSIC_LOCAL_KEY = "kino_admin_music_v1";
 const musicView = document.getElementById("musicView");
-const musicPlayer = document.getElementById("musicPlayer");
-const musicHeroBg = document.getElementById("musicHeroBg");
-const musicHeroTitle = document.getElementById("musicHeroTitle");
-const musicHeroArtist = document.getElementById("musicHeroArtist");
-const musicHeroPlays = document.getElementById("musicHeroPlays");
-const musicArtistsEl = document.getElementById("musicArtists");
-const musicChartsEl = document.getElementById("musicCharts");
-const musicChartsTitle = document.getElementById("musicChartsTitle");
-const musicGenresEl = document.getElementById("musicGenres");
+const musicSearchBtn = document.getElementById("musicSearchBtn");
+const musicSearchBar = document.getElementById("musicSearchBar");
+const musicSearchInput = document.getElementById("musicSearchInput");
+const musicSearchClear = document.getElementById("musicSearchClear");
+const musicCategoryRow = document.getElementById("musicCategoryRow");
+const musicArtistRow = document.getElementById("musicArtistRow");
+const musicListEl = document.getElementById("musicList");
 const musicLoadingEl = document.getElementById("musicLoading");
 const musicErrorEl = document.getElementById("musicError");
 const musicErrorText = document.getElementById("musicErrorText");
 const musicEmptyEl = document.getElementById("musicEmpty");
 const musicRetryBtn = document.getElementById("musicRetryBtn");
-const musicReloadBtn = document.getElementById("musicReloadBtn");
-const musicSearchBtn = document.getElementById("musicSearchBtn");
-const musicSearchBar = document.getElementById("musicSearchBar");
-const musicSearchInput = document.getElementById("musicSearchInput");
-const musicSearchClear = document.getElementById("musicSearchClear");
-const musicPlayerArt = document.getElementById("musicPlayerArt");
-const musicPlayerTitle = document.getElementById("musicPlayerTitle");
-const musicPlayerArtistEl = document.getElementById("musicPlayerArtist");
-const musicPlayerAlbum = document.getElementById("musicPlayerAlbum");
-const musicPlayerToggle = document.getElementById("musicPlayerToggle");
-const musicPlayerClose = document.getElementById("musicPlayerClose");
-const musicPlayerSeek = document.getElementById("musicPlayerSeek");
-const musicPlayerCurrent = document.getElementById("musicPlayerCurrent");
-const musicPlayerDuration = document.getElementById("musicPlayerDuration");
 
-let currentTracks = [];
-let currentTrackId = null;
-let searchDebounce = null;
+const miniPlayer = document.getElementById("miniPlayer");
+const miniPlayerTitle = document.getElementById("miniPlayerTitle");
+const miniPlayerArtistEl = document.getElementById("miniPlayerArtist");
+const miniPlayerToggle = document.getElementById("miniPlayerToggle");
+const miniPlayerClose = document.getElementById("miniPlayerClose");
+const miniPlayerBarFill = document.getElementById("miniPlayerBarFill");
+const miniPlayerTime = document.getElementById("miniPlayerTime");
 
-async function ytFetch(path) {
-  const sep = path.includes("?") ? "&" : "?";
-  const res = await fetch(`${YT_API}${path}${sep}key=${YT_API_KEY}`);
-  if (!res.ok) {
-    let msg = `YouTube API: ${res.status}`;
-    try { const j = await res.json(); if (j?.error?.message) msg = j.error.message; } catch (_) {}
-    throw new Error(msg);
+let musicAllTracks = [];
+let musicCategory = "all";
+let musicArtist = "all";
+let musicQuery = "";
+let musicSearchDebounce = null;
+let musicCurrentTrackKey = "";
+
+function trackKey(t) {
+  return `${(t.title || "").toLowerCase()}|${(t.artist || "").toLowerCase()}|${t.youtubeId || ""}`;
+}
+
+function dedupeTracks(list) {
+  const seen = new Map();
+  for (const t of list) {
+    if (!t || !t.title || !t.artist || !t.youtubeId) continue;
+    const key = trackKey(t);
+    if (!seen.has(key)) seen.set(key, t);
   }
-  return res.json();
+  return Array.from(seen.values());
 }
 
-function parseISODuration(iso) {
-  const m = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(iso || "");
-  if (!m) return 0;
-  return (Number(m[1] || 0) * 3600) + (Number(m[2] || 0) * 60) + Number(m[3] || 0);
+function readLocalMusic() {
+  try {
+    const raw = localStorage.getItem(MUSIC_LOCAL_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (_) { return []; }
 }
 
-function formatDuration(seconds) {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "0:00";
+function escapeMusicHtml(str) {
+  return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+}
+
+function formatMusicTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function formatPlays(n) {
-  if (!Number.isFinite(n) || n <= 0) return "0 tinglovlar";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M tinglovlar`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K tinglovlar`;
-  return `${n} tinglovlar`;
-}
-
-function mapVideo(v) {
-  if (!v) return null;
-  const s = v.snippet || {};
-  const cd = v.contentDetails || {};
-  const id = typeof v.id === "string" ? v.id : (v.id?.videoId || v.id?.channelId || "");
-  const thumbs = s.thumbnails || {};
-  const cover = thumbs.maxres?.url || thumbs.standard?.url || thumbs.high?.url || thumbs.medium?.url || thumbs.default?.url || (id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : "");
-  let title = s.title || "Untitled";
-  let artist = s.channelTitle || "";
-  // Clean up "Artist - Topic" channel naming
-  artist = artist.replace(/\s*-\s*Topic\s*$/i, "");
-  return {
-    id,
-    videoId: id,
-    title,
-    artist,
-    cover,
-    duration: parseISODuration(cd.duration),
-    album: "YouTube Music",
-  };
-}
-
 function showMusicState(name) {
   [musicLoadingEl, musicErrorEl, musicEmptyEl].forEach((el) => { if (el) el.hidden = true; });
-  if (musicChartsEl) musicChartsEl.hidden = false;
-  if (name === "loading" && musicLoadingEl) { musicLoadingEl.hidden = false; if (musicChartsEl) musicChartsEl.hidden = true; }
-  if (name === "error" && musicErrorEl) { musicErrorEl.hidden = false; if (musicChartsEl) musicChartsEl.hidden = true; }
-  if (name === "empty" && musicEmptyEl) { musicEmptyEl.hidden = false; if (musicChartsEl) musicChartsEl.hidden = true; }
+  if (musicListEl) musicListEl.hidden = false;
+  if (name === "loading" && musicLoadingEl) { musicLoadingEl.hidden = false; if (musicListEl) musicListEl.hidden = true; }
+  if (name === "error" && musicErrorEl) { musicErrorEl.hidden = false; if (musicListEl) musicListEl.hidden = true; }
+  if (name === "empty" && musicEmptyEl) { musicEmptyEl.hidden = false; if (musicListEl) musicListEl.hidden = true; }
 }
 
-function renderHero(track) {
-  if (!track) return;
-  if (musicHeroTitle) musicHeroTitle.textContent = track.title;
-  if (musicHeroArtist) musicHeroArtist.textContent = track.artist;
-  if (musicHeroPlays) musicHeroPlays.textContent = track.album || "Top Hit";
-  if (musicHeroBg && track.cover) musicHeroBg.style.backgroundImage = `url('${track.cover}')`;
-  musicView.dataset.heroId = track.id;
-}
-
-let topArtistsCache = null;
-const TOP_ARTISTS_CACHE_KEY = "yt_top_artists_v2";
-
-async function loadTopArtists() {
-  if (topArtistsCache) return topArtistsCache;
+async function loadMusicCatalog() {
+  showMusicState("loading");
+  let seed = [];
   try {
-    const raw = localStorage.getItem(TOP_ARTISTS_CACHE_KEY);
-    if (raw) {
-      const obj = JSON.parse(raw);
-      if (obj && obj.ts && Date.now() - obj.ts < 7 * 86400 * 1000 && Array.isArray(obj.data)) {
-        topArtistsCache = obj.data;
-        return topArtistsCache;
-      }
-    }
-  } catch (_) {}
-  const results = await Promise.all(TOP_ARTIST_NAMES.map(async (name) => {
-    try {
-      const json = await ytFetch(`/search?part=snippet&type=channel&maxResults=1&q=${encodeURIComponent(name)}`);
-      const item = (json.items || [])[0];
-      if (!item) return null;
-      const s = item.snippet || {};
-      const t = s.thumbnails || {};
-      return {
-        id: item.id?.channelId || "",
-        name,
-        image: t.high?.url || t.medium?.url || t.default?.url || "",
-      };
-    } catch (err) {
-      return null;
-    }
-  }));
-  topArtistsCache = results.filter(Boolean);
-  try { localStorage.setItem(TOP_ARTISTS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: topArtistsCache })); } catch (_) {}
-  return topArtistsCache;
+    const res = await fetch("/api/music", { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    seed = Array.isArray(json.tracks) ? json.tracks : [];
+  } catch (err) {
+    if (musicErrorText) musicErrorText.textContent = err.message || "Yuklab bo'lmadi.";
+    showMusicState("error");
+    return;
+  }
+  const local = readLocalMusic();
+  musicAllTracks = dedupeTracks([...seed, ...local]);
+  renderMusicFilters();
+  renderMusicList();
 }
 
-async function renderTopArtists() {
-  if (!musicArtistsEl) return;
-  musicArtistsEl.innerHTML = TOP_ARTIST_NAMES.map((n) => `
-    <div class="music-artist" data-artist-placeholder>
-      <span class="music-artist__img" style="background:rgba(255,255,255,0.06)"></span>
-      <span class="music-artist__name">${escapeHtml(n)}</span>
-      <span class="music-artist__plays">...</span>
-    </div>
-  `).join("");
-  try {
-    const artists = await loadTopArtists();
-    if (!artists.length) return;
-    musicArtistsEl.innerHTML = artists.map((a) => `
-      <button class="music-artist" type="button" data-artist-id="${a.id}" data-artist-name="${escapeHtml(a.name)}" data-artist-image="${escapeHtml(a.image)}">
-        <span class="music-artist__img" style="background-image:url('${a.image}')"></span>
-        <span class="music-artist__name">${escapeHtml(a.name)}</span>
-        <span class="music-artist__plays">Mashhur</span>
-      </button>
-    `).join("");
-  } catch (_) {}
+function uniqSorted(values) {
+  const set = new Set(values.filter(Boolean));
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
-function renderCharts(tracks) {
-  if (!musicChartsEl) return;
-  if (!tracks.length) { showMusicState("empty"); return; }
+function renderMusicFilters() {
+  if (musicCategoryRow) {
+    const cats = uniqSorted(musicAllTracks.map((t) => t.category));
+    musicCategoryRow.innerHTML = [`<button class="music-chip ${musicCategory === "all" ? "is-active" : ""}" type="button" data-music-cat="all">Hammasi</button>`]
+      .concat(cats.map((c) => `<button class="music-chip ${musicCategory === c ? "is-active" : ""}" type="button" data-music-cat="${escapeMusicHtml(c)}">${escapeMusicHtml(c)}</button>`))
+      .join("");
+  }
+  if (musicArtistRow) {
+    const artists = uniqSorted(musicAllTracks.map((t) => t.artist));
+    musicArtistRow.innerHTML = [`<button class="music-chip ${musicArtist === "all" ? "is-active" : ""}" type="button" data-music-artist="all">Hammasi</button>`]
+      .concat(artists.map((a) => `<button class="music-chip ${musicArtist === a ? "is-active" : ""}" type="button" data-music-artist="${escapeMusicHtml(a)}">${escapeMusicHtml(a)}</button>`))
+      .join("");
+  }
+}
+
+function filteredMusicTracks() {
+  const q = musicQuery.toLowerCase();
+  return musicAllTracks.filter((t) => {
+    if (musicCategory !== "all" && t.category !== musicCategory) return false;
+    if (musicArtist !== "all" && t.artist !== musicArtist) return false;
+    if (q && !(t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function renderMusicList() {
+  if (!musicListEl) return;
+  const list = filteredMusicTracks();
+  if (!list.length) { showMusicState("empty"); return; }
   showMusicState("data");
-  musicChartsEl.innerHTML = tracks.map((t, idx) => `
+  musicListEl.innerHTML = list.map((t) => `
     <li>
-      <button class="music-chart ${t.id === currentTrackId ? "is-playing" : ""}" type="button" data-track-id="${t.id}">
-        <span class="music-chart__rank">${String(idx + 1).padStart(2, "0")}</span>
-        <span class="music-chart__cover" style="background-image:url('${t.cover}')"></span>
-        <span class="music-chart__meta">
-          <span class="music-chart__title">${escapeHtml(t.title)}</span>
-          <span class="music-chart__artist">${escapeHtml(t.artist)}</span>
+      <button class="music-row ${trackKey(t) === musicCurrentTrackKey ? "is-playing" : ""}" type="button" data-music-row="${escapeMusicHtml(t.youtubeId)}">
+        <span class="music-row__cover" style="background-image:url('https://i.ytimg.com/vi/${escapeMusicHtml(t.youtubeId)}/mqdefault.jpg')"></span>
+        <span class="music-row__meta">
+          <span class="music-row__title">${escapeMusicHtml(t.title)}</span>
+          <span class="music-row__sub">${escapeMusicHtml(t.artist)}</span>
         </span>
-        <span class="music-chart__dur">${formatDuration(t.duration)}</span>
-        <span class="music-chart__play" aria-hidden="true">
+        <span class="music-row__cat">${escapeMusicHtml(t.category || "Boshqa")}</span>
+        <span class="music-row__play" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
         </span>
       </button>
@@ -2516,76 +2451,9 @@ function renderCharts(tracks) {
   `).join("");
 }
 
-function escapeHtml(str) {
-  return String(str ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-}
-
-function renderGenres() {
-  if (!musicGenresEl || musicGenresEl.dataset.rendered === "1") return;
-  musicGenresEl.innerHTML = MUSIC_GENRES.map((g) => `
-    <button class="music-genre" type="button" data-genre="${escapeHtml(g.name)}" style="background:${g.bg}">${g.name}</button>
-  `).join("");
-  musicGenresEl.dataset.rendered = "1";
-}
-
-async function ytSearchVideos(query, maxResults = 25) {
-  const json = await ytFetch(`/search?part=snippet&type=video&videoCategoryId=10&maxResults=${maxResults}&q=${encodeURIComponent(query)}`);
-  const items = (json.items || []).filter((i) => i.id?.videoId);
-  if (!items.length) return [];
-  const ids = items.map((i) => i.id.videoId).join(",");
-  const detail = await ytFetch(`/videos?part=snippet,contentDetails&id=${ids}`);
-  const order = new Map(items.map((i, idx) => [i.id.videoId, idx]));
-  const tracks = (detail.items || []).map(mapVideo).filter(Boolean);
-  tracks.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
-  return tracks;
-}
-
-async function loadTrending(genreTerm) {
-  showMusicState("loading");
-  if (musicChartsTitle) musicChartsTitle.textContent = genreTerm ? genreTerm : "Top Charts";
-  try {
-    let tracks = [];
-    if (genreTerm) {
-      tracks = await ytSearchVideos(`${genreTerm} music`, 25);
-    } else {
-      const json = await ytFetch(`/videos?part=snippet,contentDetails&chart=mostPopular&videoCategoryId=10&regionCode=US&maxResults=30`);
-      tracks = (json.items || []).map(mapVideo).filter(Boolean);
-    }
-    currentTracks = tracks;
-    if (tracks[0]) renderHero(tracks[0]);
-    renderCharts(tracks);
-  } catch (err) {
-    if (musicErrorText) musicErrorText.textContent = err.message || "Tarmoqni tekshiring va qayta urinib ko'ring.";
-    showMusicState("error");
-  }
-}
-
-async function searchTracks(query) {
-  if (!query.trim()) { loadTrending(); return; }
-  showMusicState("loading");
-  if (musicChartsTitle) musicChartsTitle.textContent = `"${query}" bo'yicha`;
-  try {
-    const tracks = await ytSearchVideos(query, 25);
-    currentTracks = tracks;
-    renderCharts(tracks);
-  } catch (err) {
-    if (musicErrorText) musicErrorText.textContent = err.message || "Qidiruvda xatolik.";
-    showMusicState("error");
-  }
-}
-
-function renderMusicView() {
-  renderGenres();
-  if (!musicView.dataset.rendered) {
-    loadTrending();
-    renderTopArtists();
-    musicView.dataset.rendered = "1";
-  }
-}
-
 function openMusicView() {
   if (!musicView) return;
-  renderMusicView();
+  if (!musicAllTracks.length) loadMusicCatalog();
   musicView.hidden = false;
   document.body.style.overflow = "hidden";
   document.querySelectorAll(".bottom-bar [data-action='categories']").forEach((b) => b.classList.add("is-active"));
@@ -2596,138 +2464,98 @@ function closeMusicView() {
   if (!musicView) return;
   musicView.hidden = true;
   document.body.style.overflow = "";
-  closeMusicPlayer();
-  ytPause();
 }
 
-// ===== YouTube IFrame player =====
+// ----- YouTube IFrame Player -----
 let ytPlayer = null;
 let ytReady = false;
-let ytPendingVideoId = null;
+let ytPendingId = null;
 let ytProgressTimer = null;
 
 window.onYouTubeIframeAPIReady = function () {
   try {
     ytPlayer = new YT.Player("ytPlayer", {
-      height: "100%",
-      width: "100%",
-      playerVars: {
-        playsinline: 1,
-        controls: 0,
-        autoplay: 0,
-        modestbranding: 1,
-        rel: 0,
-        iv_load_policy: 3,
-      },
+      height: "100%", width: "100%",
+      playerVars: { playsinline: 1, controls: 0, autoplay: 0, modestbranding: 1, rel: 0, iv_load_policy: 3 },
       events: {
         onReady: () => {
           ytReady = true;
-          if (musicPlayer) musicPlayer.classList.add("is-yt-ready");
-          if (ytPendingVideoId) {
-            ytPlayer.loadVideoById(ytPendingVideoId);
-            ytPendingVideoId = null;
-          }
+          if (ytPendingId) { try { ytPlayer.loadVideoById(ytPendingId); } catch (_) {} ytPendingId = null; }
         },
         onStateChange: (e) => {
-          if (!musicPlayerToggle) return;
-          const S = window.YT && YT.PlayerState;
-          if (!S) return;
-          if (e.data === S.PLAYING) musicPlayerToggle.dataset.state = "pause";
-          else if (e.data === S.PAUSED || e.data === S.ENDED) musicPlayerToggle.dataset.state = "play";
-          if (e.data === S.ENDED) {
-            const idx = currentTracks.findIndex((t) => t.id === currentTrackId);
-            const next = currentTracks[idx + 1];
-            if (next) playTrack(next);
-          }
-        },
-        onError: () => {
-          if (musicPlayerToggle) musicPlayerToggle.dataset.state = "play";
+          if (!miniPlayerToggle || !window.YT) return;
+          const S = YT.PlayerState;
+          if (e.data === S.PLAYING) miniPlayerToggle.dataset.state = "pause";
+          else if (e.data === S.PAUSED || e.data === S.ENDED) miniPlayerToggle.dataset.state = "play";
         },
       },
     });
   } catch (_) {}
 };
 
-function ytPause() {
-  try { if (ytReady && ytPlayer?.pauseVideo) ytPlayer.pauseVideo(); } catch (_) {}
-}
-
-function startYtProgress() {
+function startMiniProgress() {
   if (ytProgressTimer) return;
   ytProgressTimer = setInterval(() => {
     if (!ytReady || !ytPlayer?.getCurrentTime) return;
     try {
-      const cur = ytPlayer.getCurrentTime();
-      const dur = ytPlayer.getDuration();
-      if (musicPlayerCurrent) musicPlayerCurrent.textContent = formatDuration(cur);
-      if (musicPlayerDuration && dur) musicPlayerDuration.textContent = formatDuration(dur);
-      if (musicPlayerSeek && dur) musicPlayerSeek.value = Math.round((cur / dur) * 1000);
+      const cur = ytPlayer.getCurrentTime() || 0;
+      const dur = ytPlayer.getDuration() || 0;
+      if (miniPlayerTime) miniPlayerTime.textContent = formatMusicTime(cur);
+      if (miniPlayerBarFill && dur > 0) miniPlayerBarFill.style.width = `${Math.min(100, (cur / dur) * 100)}%`;
     } catch (_) {}
   }, 500);
 }
 
-async function playTrack(track) {
+function playMusicTrack(track) {
   if (!track) return;
-  currentTrackId = track.id;
-  if (musicPlayerTitle) musicPlayerTitle.textContent = track.title;
-  if (musicPlayerArtistEl) musicPlayerArtistEl.textContent = track.artist;
-  if (musicPlayerAlbum) musicPlayerAlbum.textContent = track.album || "YouTube Music";
-  if (musicPlayerArt && track.cover) musicPlayerArt.style.backgroundImage = `url('${track.cover}')`;
-  if (musicPlayerDuration) musicPlayerDuration.textContent = formatDuration(track.duration);
-  if (musicPlayerSeek) musicPlayerSeek.value = 0;
-
+  musicCurrentTrackKey = trackKey(track);
+  if (miniPlayerTitle) miniPlayerTitle.textContent = track.title;
+  if (miniPlayerArtistEl) miniPlayerArtistEl.textContent = track.artist;
+  if (miniPlayerBarFill) miniPlayerBarFill.style.width = "0%";
+  if (miniPlayerTime) miniPlayerTime.textContent = "0:00";
   if (ytReady && ytPlayer?.loadVideoById) {
-    try { ytPlayer.loadVideoById(track.videoId); } catch (_) {}
+    try { ytPlayer.loadVideoById(track.youtubeId); } catch (_) {}
   } else {
-    ytPendingVideoId = track.videoId;
+    ytPendingId = track.youtubeId;
   }
-  startYtProgress();
-  openMusicPlayer();
-  renderCharts(currentTracks);
+  startMiniProgress();
+  showMiniPlayer();
+  renderMusicList();
 }
 
-function openMusicPlayer() {
-  if (!musicPlayer) return;
-  musicPlayer.hidden = false;
-  requestAnimationFrame(() => musicPlayer.setAttribute("aria-hidden", "false"));
+function showMiniPlayer() {
+  if (!miniPlayer) return;
+  miniPlayer.hidden = false;
+  requestAnimationFrame(() => miniPlayer.setAttribute("aria-hidden", "false"));
 }
 
-function closeMusicPlayer() {
-  if (!musicPlayer) return;
-  musicPlayer.setAttribute("aria-hidden", "true");
-  setTimeout(() => { musicPlayer.hidden = true; }, 280);
+function hideMiniPlayer() {
+  if (!miniPlayer) return;
+  miniPlayer.setAttribute("aria-hidden", "true");
+  try { if (ytReady && ytPlayer?.pauseVideo) ytPlayer.pauseVideo(); } catch (_) {}
+  setTimeout(() => { miniPlayer.hidden = true; }, 340);
 }
 
 musicView?.addEventListener("click", (event) => {
-  const tab = event.target.closest("[data-music-tab]");
-  if (tab) {
-    musicView.querySelectorAll(".music-tab").forEach((t) => t.classList.toggle("is-active", t === tab));
+  const catBtn = event.target.closest("[data-music-cat]");
+  if (catBtn) {
+    musicCategory = catBtn.dataset.musicCat;
+    renderMusicFilters();
+    renderMusicList();
     return;
   }
-  const chartBtn = event.target.closest("[data-track-id]");
-  if (chartBtn) {
-    const id = chartBtn.dataset.trackId;
-    const track = currentTracks.find((t) => t.id === id);
-    if (track) playTrack(track);
+  const artBtn = event.target.closest("[data-music-artist]");
+  if (artBtn) {
+    musicArtist = artBtn.dataset.musicArtist;
+    renderMusicFilters();
+    renderMusicList();
     return;
   }
-  const genreBtn = event.target.closest("[data-genre]");
-  if (genreBtn) {
-    loadTrending(genreBtn.dataset.genre);
-    return;
-  }
-  const artistBtn = event.target.closest("[data-artist-id]");
-  if (artistBtn) {
-    openArtistPage({
-      id: artistBtn.dataset.artistId,
-      name: artistBtn.dataset.artistName,
-      image: artistBtn.dataset.artistImage,
-    });
-    return;
-  }
-  if (event.target.closest("#musicHeroPlay")) {
-    const heroTrack = currentTracks.find((t) => t.id === musicView.dataset.heroId) || currentTracks[0];
-    if (heroTrack) playTrack(heroTrack);
+  const row = event.target.closest("[data-music-row]");
+  if (row) {
+    const id = row.dataset.musicRow;
+    const track = musicAllTracks.find((t) => t.youtubeId === id);
+    if (track) playMusicTrack(track);
   }
 });
 
@@ -2737,155 +2565,32 @@ musicSearchBtn?.addEventListener("click", () => {
   musicSearchBar.hidden = !willOpen;
   if (willOpen) musicSearchInput?.focus();
 });
-
-musicSearchInput?.addEventListener("input", (event) => {
-  const q = event.target.value;
-  clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(() => searchTracks(q), 350);
+musicSearchInput?.addEventListener("input", (e) => {
+  clearTimeout(musicSearchDebounce);
+  musicSearchDebounce = setTimeout(() => {
+    musicQuery = e.target.value.trim();
+    renderMusicList();
+  }, 200);
 });
-
 musicSearchClear?.addEventListener("click", () => {
   if (musicSearchInput) musicSearchInput.value = "";
-  loadTrending();
+  musicQuery = "";
+  renderMusicList();
 });
+musicRetryBtn?.addEventListener("click", loadMusicCatalog);
 
-musicRetryBtn?.addEventListener("click", () => loadTrending());
-musicReloadBtn?.addEventListener("click", () => loadTrending());
-
-musicPlayerClose?.addEventListener("click", () => { ytPause(); closeMusicPlayer(); });
-musicPlayerToggle?.addEventListener("click", () => {
+miniPlayerToggle?.addEventListener("click", () => {
   if (!ytReady || !ytPlayer) return;
   try {
-    const S = window.YT && YT.PlayerState;
     const state = ytPlayer.getPlayerState();
-    if (state === S?.PLAYING) ytPlayer.pauseVideo();
+    if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
     else ytPlayer.playVideo();
   } catch (_) {}
 });
-musicPlayerSeek?.addEventListener("input", (event) => {
-  if (!ytReady || !ytPlayer?.seekTo) return;
-  try {
-    const dur = ytPlayer.getDuration() || 0;
-    if (dur > 0) ytPlayer.seekTo((Number(event.target.value) / 1000) * dur, true);
-  } catch (_) {}
-});
+miniPlayerClose?.addEventListener("click", hideMiniPlayer);
 
-// ===== Artist page =====
-const artistPage = document.getElementById("artistPage");
-const artistPageBack = document.getElementById("artistPageBack");
-const artistPageCover = document.getElementById("artistPageCover");
-const artistPageName = document.getElementById("artistPageName");
-const artistPageMeta = document.getElementById("artistPageMeta");
-const artistTracksEl = document.getElementById("artistTracks");
-const artistLoadingEl = document.getElementById("artistLoading");
-const artistErrorEl = document.getElementById("artistError");
-const artistErrorText = document.getElementById("artistErrorText");
-const artistEmptyEl = document.getElementById("artistEmpty");
-const artistRetryBtn = document.getElementById("artistRetryBtn");
-
-let artistTracks = [];
-let currentArtistId = null;
-
-function showArtistState(name) {
-  [artistLoadingEl, artistErrorEl, artistEmptyEl].forEach((el) => { if (el) el.hidden = true; });
-  if (artistTracksEl) artistTracksEl.hidden = false;
-  if (name === "loading" && artistLoadingEl) { artistLoadingEl.hidden = false; if (artistTracksEl) artistTracksEl.hidden = true; }
-  if (name === "error" && artistErrorEl) { artistErrorEl.hidden = false; if (artistTracksEl) artistTracksEl.hidden = true; }
-  if (name === "empty" && artistEmptyEl) { artistEmptyEl.hidden = false; if (artistTracksEl) artistTracksEl.hidden = true; }
-}
-
-let currentArtistName = "";
-
-async function openArtistPage(artist) {
-  if (!artistPage || !artist) return;
-  currentArtistId = artist.id;
-  currentArtistName = artist.name;
-  if (artistPageName) artistPageName.textContent = artist.name;
-  if (artistPageCover) artistPageCover.style.backgroundImage = artist.image ? `url('${artist.image}')` : "linear-gradient(135deg, #1f1f2e, #050505)";
-  if (artistPageMeta) artistPageMeta.textContent = "Yuklanmoqda...";
-  if (artistTracksEl) artistTracksEl.innerHTML = "";
-  artistPage.hidden = false;
-  showArtistState("loading");
-  await loadArtistTracks(artist.name, artist.id);
-}
-
-async function loadArtistTracks(artistName, artistId) {
-  showArtistState("loading");
-  try {
-    let tracks = [];
-    if (artistId) {
-      const json = await ytFetch(`/search?part=snippet&type=video&videoCategoryId=10&order=viewCount&maxResults=25&channelId=${encodeURIComponent(artistId)}`);
-      const items = (json.items || []).filter((i) => i.id?.videoId);
-      if (items.length) {
-        const ids = items.map((i) => i.id.videoId).join(",");
-        const detail = await ytFetch(`/videos?part=snippet,contentDetails&id=${ids}`);
-        tracks = (detail.items || []).map(mapVideo).filter(Boolean);
-      }
-    }
-    if (!tracks.length) {
-      tracks = await ytSearchVideos(`${artistName} official`, 25);
-    }
-    const seen = new Set();
-    tracks = tracks.filter((t) => {
-      const key = t.title.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    artistTracks = tracks;
-    if (artistPageMeta) artistPageMeta.textContent = `${tracks.length} trek`;
-    if (!tracks.length) { showArtistState("empty"); return; }
-    if (artistTracksEl) {
-      artistTracksEl.innerHTML = tracks.map((t, idx) => `
-        <li>
-          <button class="music-chart ${t.id === currentTrackId ? "is-playing" : ""}" type="button" data-artist-track-id="${t.id}">
-            <span class="music-chart__rank">${String(idx + 1).padStart(2, "0")}</span>
-            <span class="music-chart__cover" style="background-image:url('${t.cover}')"></span>
-            <span class="music-chart__meta">
-              <span class="music-chart__title">${escapeHtml(t.title)}</span>
-              <span class="music-chart__artist">${escapeHtml(t.album || t.artist)}</span>
-            </span>
-            <span class="music-chart__dur">${formatDuration(t.duration)}</span>
-            <span class="music-chart__play" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
-            </span>
-          </button>
-        </li>
-      `).join("");
-    }
-    showArtistState("data");
-  } catch (err) {
-    if (artistErrorText) artistErrorText.textContent = err.message || "Yuklab bo'lmadi.";
-    showArtistState("error");
-  }
-}
-
-function closeArtistPage() {
-  if (!artistPage) return;
-  artistPage.hidden = true;
-  currentArtistId = null;
-  currentArtistName = "";
-}
-
-artistPageBack?.addEventListener("click", closeArtistPage);
-artistRetryBtn?.addEventListener("click", () => { if (currentArtistName) loadArtistTracks(currentArtistName, currentArtistId); });
-artistPage?.addEventListener("click", (event) => {
-  const btn = event.target.closest("[data-artist-track-id]");
-  if (!btn) return;
-  const id = btn.dataset.artistTrackId;
-  const track = artistTracks.find((t) => t.id === id);
-  if (track) {
-    currentTracks = artistTracks;
-    playTrack(track);
-  }
-});
-
-document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => {
-  b.addEventListener("click", closeMusicView);
-});
-document.querySelectorAll(".bottom-bar [data-action='favorites'], .bottom-bar [data-action='catalog'], .bottom-bar [data-action='profile']").forEach((b) => {
-  b.addEventListener("click", closeMusicView);
-});
+document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.addEventListener("click", closeMusicView));
+document.querySelectorAll(".bottom-bar [data-action='favorites'], .bottom-bar [data-action='catalog'], .bottom-bar [data-action='profile']").forEach((b) => b.addEventListener("click", closeMusicView));
 
 categoryList?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-category]");
