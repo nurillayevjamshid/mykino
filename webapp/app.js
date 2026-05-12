@@ -2308,93 +2308,214 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
   });
 });
 
-// ===== Music view =====
-const MUSIC_DATA = {
-  hero: {
-    title: "In My Feelings",
-    artist: "Camila Cabello",
-    plays: "63M tinglovlar",
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=70",
-  },
-  artists: [
-    { name: "Travis Scott", plays: "44M", img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=300&q=60" },
-    { name: "Billie Eilish", plays: "203M", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=60" },
-    { name: "The Kid", plays: "63M", img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=300&q=60" },
-    { name: "Kanye", plays: "15M", img: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=300&q=60" },
-    { name: "Nicki Minaj", plays: "190M", img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=60" },
-    { name: "Starboy", plays: "100M", img: "https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=300&q=60" },
-  ],
-  charts: [
-    { title: "Havana", artist: "Camila Cabello", duration: "3:45", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=300&q=60" },
-    { title: "Jesus is King", artist: "Kanye West", duration: "3:45", cover: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=300&q=60" },
-    { title: "Closer", artist: "The Chainsmokers", duration: "3:45", cover: "https://images.unsplash.com/photo-1471478331149-c72f17e33c73?auto=format&fit=crop&w=300&q=60" },
-    { title: "Lean On", artist: "Major Lazer ft DJ Snake", duration: "3:45", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=300&q=60" },
-    { title: "Butterfly Effect", artist: "Travis Scott", duration: "3:45", cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=300&q=60" },
-    { title: "Blinding Lights", artist: "The Weeknd", duration: "3:20", cover: "https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=300&q=60" },
-    { title: "Bad Guy", artist: "Billie Eilish", duration: "3:14", cover: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=60" },
-  ],
-  genres: [
-    { name: "Dance Beat", bg: "linear-gradient(135deg, #5564f5, #2c3aa6)" },
-    { name: "Electro Pop", bg: "linear-gradient(135deg, #d6c9a3, #a89674)" },
-    { name: "Alternative Indie", bg: "linear-gradient(135deg, #c8694a, #8a3f25)" },
-    { name: "Hip Hop", bg: "linear-gradient(135deg, #d8a256, #a8722e)" },
-    { name: "Classical Period", bg: "linear-gradient(135deg, #d6b3c1, #a47889)" },
-    { name: "Hip Hop Rap", bg: "linear-gradient(135deg, #d97a52, #8a4326)" },
-  ],
-};
+// ===== Music view (Audius API) =====
+const AUDIUS_APP_NAME = "KinoPlay";
+const MUSIC_GENRES = [
+  { name: "Electronic", bg: "linear-gradient(135deg, #5564f5, #2c3aa6)" },
+  { name: "Pop", bg: "linear-gradient(135deg, #d6c9a3, #a89674)" },
+  { name: "Alternative", bg: "linear-gradient(135deg, #c8694a, #8a3f25)" },
+  { name: "Hip-Hop/Rap", bg: "linear-gradient(135deg, #d8a256, #a8722e)" },
+  { name: "Classical", bg: "linear-gradient(135deg, #d6b3c1, #a47889)" },
+  { name: "Rock", bg: "linear-gradient(135deg, #d97a52, #8a4326)" },
+];
 
 const musicView = document.getElementById("musicView");
 const musicPlayer = document.getElementById("musicPlayer");
 const musicHeroBg = document.getElementById("musicHeroBg");
+const musicHeroTitle = document.getElementById("musicHeroTitle");
+const musicHeroArtist = document.getElementById("musicHeroArtist");
+const musicHeroPlays = document.getElementById("musicHeroPlays");
 const musicArtistsEl = document.getElementById("musicArtists");
 const musicChartsEl = document.getElementById("musicCharts");
+const musicChartsTitle = document.getElementById("musicChartsTitle");
 const musicGenresEl = document.getElementById("musicGenres");
+const musicLoadingEl = document.getElementById("musicLoading");
+const musicErrorEl = document.getElementById("musicError");
+const musicErrorText = document.getElementById("musicErrorText");
+const musicEmptyEl = document.getElementById("musicEmpty");
+const musicRetryBtn = document.getElementById("musicRetryBtn");
+const musicReloadBtn = document.getElementById("musicReloadBtn");
+const musicSearchBtn = document.getElementById("musicSearchBtn");
+const musicSearchBar = document.getElementById("musicSearchBar");
+const musicSearchInput = document.getElementById("musicSearchInput");
+const musicSearchClear = document.getElementById("musicSearchClear");
+const musicAudio = document.getElementById("musicAudio");
 const musicPlayerArt = document.getElementById("musicPlayerArt");
 const musicPlayerTitle = document.getElementById("musicPlayerTitle");
 const musicPlayerArtistEl = document.getElementById("musicPlayerArtist");
+const musicPlayerAlbum = document.getElementById("musicPlayerAlbum");
 const musicPlayerToggle = document.getElementById("musicPlayerToggle");
 const musicPlayerClose = document.getElementById("musicPlayerClose");
+const musicPlayerSeek = document.getElementById("musicPlayerSeek");
+const musicPlayerCurrent = document.getElementById("musicPlayerCurrent");
+const musicPlayerDuration = document.getElementById("musicPlayerDuration");
+
+let audiusHost = null;
+let currentTracks = [];
+let currentTrackId = null;
+let searchDebounce = null;
+
+async function resolveAudiusHost() {
+  if (audiusHost) return audiusHost;
+  const res = await fetch("https://api.audius.co");
+  if (!res.ok) throw new Error("Audius host olishda xatolik");
+  const json = await res.json();
+  const hosts = json.data || [];
+  if (!hosts.length) throw new Error("Audius hostlari topilmadi");
+  audiusHost = hosts[Math.floor(Math.random() * hosts.length)];
+  return audiusHost;
+}
+
+async function audiusFetch(path) {
+  const host = await resolveAudiusHost();
+  const sep = path.includes("?") ? "&" : "?";
+  const url = `${host}${path}${sep}app_name=${AUDIUS_APP_NAME}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    if (audiusHost) audiusHost = null;
+    throw new Error(`Audius API: ${res.status}`);
+  }
+  return res.json();
+}
+
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatPlays(n) {
+  if (!Number.isFinite(n) || n <= 0) return "0 tinglovlar";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M tinglovlar`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K tinglovlar`;
+  return `${n} tinglovlar`;
+}
+
+function mapTrack(t) {
+  const artwork = t.artwork || {};
+  const cover = artwork["480x480"] || artwork["150x150"] || artwork["1000x1000"] || "";
+  return {
+    id: t.id,
+    title: t.title || "Untitled",
+    artist: t.user?.name || "Noma'lum",
+    artistHandle: t.user?.handle || "",
+    artistImage: t.user?.profile_picture?.["150x150"] || t.user?.profile_picture?.["480x480"] || "",
+    cover,
+    duration: t.duration || 0,
+    playCount: t.play_count || 0,
+  };
+}
+
+function showMusicState(name) {
+  [musicLoadingEl, musicErrorEl, musicEmptyEl].forEach((el) => { if (el) el.hidden = true; });
+  if (musicChartsEl) musicChartsEl.hidden = false;
+  if (name === "loading" && musicLoadingEl) { musicLoadingEl.hidden = false; if (musicChartsEl) musicChartsEl.hidden = true; }
+  if (name === "error" && musicErrorEl) { musicErrorEl.hidden = false; if (musicChartsEl) musicChartsEl.hidden = true; }
+  if (name === "empty" && musicEmptyEl) { musicEmptyEl.hidden = false; if (musicChartsEl) musicChartsEl.hidden = true; }
+}
+
+function renderHero(track) {
+  if (!track) return;
+  if (musicHeroTitle) musicHeroTitle.textContent = track.title;
+  if (musicHeroArtist) musicHeroArtist.textContent = track.artist;
+  if (musicHeroPlays) musicHeroPlays.textContent = formatPlays(track.playCount);
+  if (musicHeroBg && track.cover) musicHeroBg.style.backgroundImage = `url('${track.cover}')`;
+  musicView.dataset.heroId = track.id;
+}
+
+function renderArtists(tracks) {
+  if (!musicArtistsEl) return;
+  const seen = new Set();
+  const artists = [];
+  for (const t of tracks) {
+    if (!t.artistHandle || seen.has(t.artistHandle)) continue;
+    seen.add(t.artistHandle);
+    artists.push(t);
+    if (artists.length >= 10) break;
+  }
+  musicArtistsEl.innerHTML = artists.map((a) => `
+    <div class="music-artist">
+      <span class="music-artist__img" style="background-image:url('${a.artistImage || a.cover}')"></span>
+      <span class="music-artist__name">${escapeHtml(a.artist)}</span>
+      <span class="music-artist__plays">${formatPlays(a.playCount)}</span>
+    </div>
+  `).join("");
+}
+
+function renderCharts(tracks) {
+  if (!musicChartsEl) return;
+  if (!tracks.length) { showMusicState("empty"); return; }
+  showMusicState("data");
+  musicChartsEl.innerHTML = tracks.map((t, idx) => `
+    <li>
+      <button class="music-chart ${t.id === currentTrackId ? "is-playing" : ""}" type="button" data-track-id="${t.id}">
+        <span class="music-chart__rank">${String(idx + 1).padStart(2, "0")}</span>
+        <span class="music-chart__cover" style="background-image:url('${t.cover}')"></span>
+        <span class="music-chart__meta">
+          <span class="music-chart__title">${escapeHtml(t.title)}</span>
+          <span class="music-chart__artist">${escapeHtml(t.artist)}</span>
+        </span>
+        <span class="music-chart__dur">${formatDuration(t.duration)}</span>
+        <span class="music-chart__play" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+        </span>
+      </button>
+    </li>
+  `).join("");
+}
+
+function escapeHtml(str) {
+  return String(str ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+function renderGenres() {
+  if (!musicGenresEl || musicGenresEl.dataset.rendered === "1") return;
+  musicGenresEl.innerHTML = MUSIC_GENRES.map((g) => `
+    <button class="music-genre" type="button" data-genre="${escapeHtml(g.name)}" style="background:${g.bg}">${g.name}</button>
+  `).join("");
+  musicGenresEl.dataset.rendered = "1";
+}
+
+async function loadTrending(genre) {
+  showMusicState("loading");
+  if (musicChartsTitle) musicChartsTitle.textContent = genre ? `${genre}` : "Top Charts";
+  try {
+    const path = genre ? `/v1/tracks/trending?genre=${encodeURIComponent(genre)}&time=week` : `/v1/tracks/trending?time=week`;
+    const json = await audiusFetch(path);
+    const tracks = (json.data || []).slice(0, 30).map(mapTrack);
+    currentTracks = tracks;
+    if (tracks[0]) renderHero(tracks[0]);
+    renderArtists(tracks);
+    renderCharts(tracks);
+  } catch (err) {
+    if (musicErrorText) musicErrorText.textContent = err.message || "Tarmoqni tekshiring va qayta urinib ko'ring.";
+    showMusicState("error");
+  }
+}
+
+async function searchTracks(query) {
+  if (!query.trim()) { loadTrending(); return; }
+  showMusicState("loading");
+  if (musicChartsTitle) musicChartsTitle.textContent = `"${query}" bo'yicha`;
+  try {
+    const json = await audiusFetch(`/v1/tracks/search?query=${encodeURIComponent(query)}`);
+    const tracks = (json.data || []).slice(0, 30).map(mapTrack);
+    currentTracks = tracks;
+    renderArtists(tracks);
+    renderCharts(tracks);
+  } catch (err) {
+    if (musicErrorText) musicErrorText.textContent = err.message || "Qidiruvda xatolik.";
+    showMusicState("error");
+  }
+}
 
 function renderMusicView() {
-  if (!musicView || musicView.dataset.rendered === "1") return;
-  if (musicHeroBg) musicHeroBg.style.backgroundImage = `url('${MUSIC_DATA.hero.image}')`;
-
-  if (musicArtistsEl) {
-    musicArtistsEl.innerHTML = MUSIC_DATA.artists.map((a, idx) => `
-      <button class="music-artist" type="button" data-music-artist="${idx}">
-        <span class="music-artist__img" style="background-image:url('${a.img}')"></span>
-        <span class="music-artist__name">${a.name}</span>
-        <span class="music-artist__plays">${a.plays} Plays</span>
-      </button>
-    `).join("");
+  renderGenres();
+  if (!musicView.dataset.rendered) {
+    loadTrending();
+    musicView.dataset.rendered = "1";
   }
-
-  if (musicChartsEl) {
-    musicChartsEl.innerHTML = MUSIC_DATA.charts.map((c, idx) => `
-      <li>
-        <button class="music-chart" type="button" data-music-chart="${idx}">
-          <span class="music-chart__rank">${String(idx + 1).padStart(2, "0")}</span>
-          <span class="music-chart__cover" style="background-image:url('${c.cover}')"></span>
-          <span class="music-chart__meta">
-            <span class="music-chart__title">${c.title}</span>
-            <span class="music-chart__artist">${c.artist}</span>
-          </span>
-          <span class="music-chart__dur">${c.duration}</span>
-          <span class="music-chart__play" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
-          </span>
-        </button>
-      </li>
-    `).join("");
-  }
-
-  if (musicGenresEl) {
-    musicGenresEl.innerHTML = MUSIC_DATA.genres.map((g) => `
-      <button class="music-genre" type="button" style="background:${g.bg}">${g.name}</button>
-    `).join("");
-  }
-
-  musicView.dataset.rendered = "1";
 }
 
 function openMusicView() {
@@ -2411,25 +2532,42 @@ function closeMusicView() {
   musicView.hidden = true;
   document.body.style.overflow = "";
   closeMusicPlayer();
+  if (musicAudio) { musicAudio.pause(); }
 }
 
-function openMusicPlayer(track) {
-  if (!musicPlayer) return;
-  if (track) {
-    if (musicPlayerTitle) musicPlayerTitle.textContent = track.title;
-    if (musicPlayerArtistEl) musicPlayerArtistEl.textContent = track.artist;
-    if (musicPlayerArt && track.cover) musicPlayerArt.style.backgroundImage = `url('${track.cover}')`;
+async function playTrack(track) {
+  if (!track || !musicAudio) return;
+  currentTrackId = track.id;
+  if (musicPlayerTitle) musicPlayerTitle.textContent = track.title;
+  if (musicPlayerArtistEl) musicPlayerArtistEl.textContent = track.artist;
+  if (musicPlayerAlbum) musicPlayerAlbum.textContent = formatPlays(track.playCount);
+  if (musicPlayerArt && track.cover) musicPlayerArt.style.backgroundImage = `url('${track.cover}')`;
+  if (musicPlayerDuration) musicPlayerDuration.textContent = formatDuration(track.duration);
+  if (musicPlayerSeek) { musicPlayerSeek.value = 0; }
+
+  try {
+    const host = await resolveAudiusHost();
+    musicAudio.src = `${host}/v1/tracks/${track.id}/stream?app_name=${AUDIUS_APP_NAME}`;
+    await musicAudio.play();
+    if (musicPlayerToggle) musicPlayerToggle.dataset.state = "pause";
+  } catch (err) {
+    if (musicPlayerToggle) musicPlayerToggle.dataset.state = "play";
   }
+  openMusicPlayer();
+  // refresh charts highlight
+  renderCharts(currentTracks);
+}
+
+function openMusicPlayer() {
+  if (!musicPlayer) return;
   musicPlayer.hidden = false;
   requestAnimationFrame(() => musicPlayer.setAttribute("aria-hidden", "false"));
-  if (musicPlayerToggle) musicPlayerToggle.dataset.state = "pause";
 }
 
 function closeMusicPlayer() {
   if (!musicPlayer) return;
   musicPlayer.setAttribute("aria-hidden", "true");
   setTimeout(() => { musicPlayer.hidden = true; }, 280);
-  if (musicPlayerToggle) musicPlayerToggle.dataset.state = "play";
 }
 
 musicView?.addEventListener("click", (event) => {
@@ -2438,25 +2576,74 @@ musicView?.addEventListener("click", (event) => {
     musicView.querySelectorAll(".music-tab").forEach((t) => t.classList.toggle("is-active", t === tab));
     return;
   }
-  const chartBtn = event.target.closest("[data-music-chart]");
+  const chartBtn = event.target.closest("[data-track-id]");
   if (chartBtn) {
-    const idx = Number(chartBtn.dataset.musicChart);
-    openMusicPlayer(MUSIC_DATA.charts[idx]);
+    const id = chartBtn.dataset.trackId;
+    const track = currentTracks.find((t) => t.id === id);
+    if (track) playTrack(track);
+    return;
+  }
+  const genreBtn = event.target.closest("[data-genre]");
+  if (genreBtn) {
+    loadTrending(genreBtn.dataset.genre);
     return;
   }
   if (event.target.closest("#musicHeroPlay")) {
-    openMusicPlayer({
-      title: MUSIC_DATA.hero.title,
-      artist: MUSIC_DATA.hero.artist,
-      cover: MUSIC_DATA.hero.image,
-    });
+    const heroTrack = currentTracks.find((t) => t.id === musicView.dataset.heroId) || currentTracks[0];
+    if (heroTrack) playTrack(heroTrack);
   }
 });
 
+musicSearchBtn?.addEventListener("click", () => {
+  if (!musicSearchBar) return;
+  const willOpen = musicSearchBar.hidden;
+  musicSearchBar.hidden = !willOpen;
+  if (willOpen) musicSearchInput?.focus();
+});
+
+musicSearchInput?.addEventListener("input", (event) => {
+  const q = event.target.value;
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => searchTracks(q), 350);
+});
+
+musicSearchClear?.addEventListener("click", () => {
+  if (musicSearchInput) musicSearchInput.value = "";
+  loadTrending();
+});
+
+musicRetryBtn?.addEventListener("click", () => loadTrending());
+musicReloadBtn?.addEventListener("click", () => loadTrending());
+
 musicPlayerClose?.addEventListener("click", closeMusicPlayer);
 musicPlayerToggle?.addEventListener("click", () => {
-  if (!musicPlayerToggle) return;
-  musicPlayerToggle.dataset.state = musicPlayerToggle.dataset.state === "pause" ? "play" : "pause";
+  if (!musicAudio || !musicPlayerToggle) return;
+  if (musicAudio.paused) {
+    musicAudio.play().then(() => { musicPlayerToggle.dataset.state = "pause"; }).catch(() => {});
+  } else {
+    musicAudio.pause();
+    musicPlayerToggle.dataset.state = "play";
+  }
+});
+
+musicAudio?.addEventListener("timeupdate", () => {
+  if (!musicAudio.duration) return;
+  if (musicPlayerCurrent) musicPlayerCurrent.textContent = formatDuration(musicAudio.currentTime);
+  if (musicPlayerSeek) musicPlayerSeek.value = Math.round((musicAudio.currentTime / musicAudio.duration) * 1000);
+});
+musicAudio?.addEventListener("loadedmetadata", () => {
+  if (musicPlayerDuration) musicPlayerDuration.textContent = formatDuration(musicAudio.duration);
+});
+musicAudio?.addEventListener("ended", () => {
+  if (musicPlayerToggle) musicPlayerToggle.dataset.state = "play";
+  const idx = currentTracks.findIndex((t) => t.id === currentTrackId);
+  const next = currentTracks[idx + 1];
+  if (next) playTrack(next);
+});
+musicPlayerSeek?.addEventListener("input", (event) => {
+  if (!musicAudio?.duration) return;
+  const pct = Number(event.target.value) / 1000;
+  musicAudio.currentTime = pct * musicAudio.duration;
 });
 
 document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => {
