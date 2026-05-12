@@ -2298,7 +2298,172 @@ document.querySelectorAll("[data-action='catalog']").forEach((button) => {
 });
 
 document.querySelectorAll("[data-action='categories']").forEach((button) => {
-  button.addEventListener("click", () => toggleCategoryPanel());
+  button.addEventListener("click", (event) => {
+    if (button.closest(".bottom-bar")) {
+      event.preventDefault();
+      openMusicView();
+      return;
+    }
+    toggleCategoryPanel();
+  });
+});
+
+// ===== Music view =====
+const MUSIC_DATA = {
+  hero: {
+    title: "In My Feelings",
+    artist: "Camila Cabello",
+    plays: "63M tinglovlar",
+    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=70",
+  },
+  artists: [
+    { name: "Travis Scott", plays: "44M", img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=300&q=60" },
+    { name: "Billie Eilish", plays: "203M", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=60" },
+    { name: "The Kid", plays: "63M", img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=300&q=60" },
+    { name: "Kanye", plays: "15M", img: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=300&q=60" },
+    { name: "Nicki Minaj", plays: "190M", img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=60" },
+    { name: "Starboy", plays: "100M", img: "https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=300&q=60" },
+  ],
+  charts: [
+    { title: "Havana", artist: "Camila Cabello", duration: "3:45", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=300&q=60" },
+    { title: "Jesus is King", artist: "Kanye West", duration: "3:45", cover: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=300&q=60" },
+    { title: "Closer", artist: "The Chainsmokers", duration: "3:45", cover: "https://images.unsplash.com/photo-1471478331149-c72f17e33c73?auto=format&fit=crop&w=300&q=60" },
+    { title: "Lean On", artist: "Major Lazer ft DJ Snake", duration: "3:45", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=300&q=60" },
+    { title: "Butterfly Effect", artist: "Travis Scott", duration: "3:45", cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=300&q=60" },
+    { title: "Blinding Lights", artist: "The Weeknd", duration: "3:20", cover: "https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=300&q=60" },
+    { title: "Bad Guy", artist: "Billie Eilish", duration: "3:14", cover: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=60" },
+  ],
+  genres: [
+    { name: "Dance Beat", bg: "linear-gradient(135deg, #5564f5, #2c3aa6)" },
+    { name: "Electro Pop", bg: "linear-gradient(135deg, #d6c9a3, #a89674)" },
+    { name: "Alternative Indie", bg: "linear-gradient(135deg, #c8694a, #8a3f25)" },
+    { name: "Hip Hop", bg: "linear-gradient(135deg, #d8a256, #a8722e)" },
+    { name: "Classical Period", bg: "linear-gradient(135deg, #d6b3c1, #a47889)" },
+    { name: "Hip Hop Rap", bg: "linear-gradient(135deg, #d97a52, #8a4326)" },
+  ],
+};
+
+const musicView = document.getElementById("musicView");
+const musicPlayer = document.getElementById("musicPlayer");
+const musicHeroBg = document.getElementById("musicHeroBg");
+const musicArtistsEl = document.getElementById("musicArtists");
+const musicChartsEl = document.getElementById("musicCharts");
+const musicGenresEl = document.getElementById("musicGenres");
+const musicPlayerArt = document.getElementById("musicPlayerArt");
+const musicPlayerTitle = document.getElementById("musicPlayerTitle");
+const musicPlayerArtistEl = document.getElementById("musicPlayerArtist");
+const musicPlayerToggle = document.getElementById("musicPlayerToggle");
+const musicPlayerClose = document.getElementById("musicPlayerClose");
+
+function renderMusicView() {
+  if (!musicView || musicView.dataset.rendered === "1") return;
+  if (musicHeroBg) musicHeroBg.style.backgroundImage = `url('${MUSIC_DATA.hero.image}')`;
+
+  if (musicArtistsEl) {
+    musicArtistsEl.innerHTML = MUSIC_DATA.artists.map((a, idx) => `
+      <button class="music-artist" type="button" data-music-artist="${idx}">
+        <span class="music-artist__img" style="background-image:url('${a.img}')"></span>
+        <span class="music-artist__name">${a.name}</span>
+        <span class="music-artist__plays">${a.plays} Plays</span>
+      </button>
+    `).join("");
+  }
+
+  if (musicChartsEl) {
+    musicChartsEl.innerHTML = MUSIC_DATA.charts.map((c, idx) => `
+      <li>
+        <button class="music-chart" type="button" data-music-chart="${idx}">
+          <span class="music-chart__rank">${String(idx + 1).padStart(2, "0")}</span>
+          <span class="music-chart__cover" style="background-image:url('${c.cover}')"></span>
+          <span class="music-chart__meta">
+            <span class="music-chart__title">${c.title}</span>
+            <span class="music-chart__artist">${c.artist}</span>
+          </span>
+          <span class="music-chart__dur">${c.duration}</span>
+          <span class="music-chart__play" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+          </span>
+        </button>
+      </li>
+    `).join("");
+  }
+
+  if (musicGenresEl) {
+    musicGenresEl.innerHTML = MUSIC_DATA.genres.map((g) => `
+      <button class="music-genre" type="button" style="background:${g.bg}">${g.name}</button>
+    `).join("");
+  }
+
+  musicView.dataset.rendered = "1";
+}
+
+function openMusicView() {
+  if (!musicView) return;
+  renderMusicView();
+  musicView.hidden = false;
+  document.body.style.overflow = "hidden";
+  document.querySelectorAll(".bottom-bar [data-action='categories']").forEach((b) => b.classList.add("is-active"));
+  document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.classList.remove("is-active"));
+}
+
+function closeMusicView() {
+  if (!musicView) return;
+  musicView.hidden = true;
+  document.body.style.overflow = "";
+  closeMusicPlayer();
+}
+
+function openMusicPlayer(track) {
+  if (!musicPlayer) return;
+  if (track) {
+    if (musicPlayerTitle) musicPlayerTitle.textContent = track.title;
+    if (musicPlayerArtistEl) musicPlayerArtistEl.textContent = track.artist;
+    if (musicPlayerArt && track.cover) musicPlayerArt.style.backgroundImage = `url('${track.cover}')`;
+  }
+  musicPlayer.hidden = false;
+  requestAnimationFrame(() => musicPlayer.setAttribute("aria-hidden", "false"));
+  if (musicPlayerToggle) musicPlayerToggle.dataset.state = "pause";
+}
+
+function closeMusicPlayer() {
+  if (!musicPlayer) return;
+  musicPlayer.setAttribute("aria-hidden", "true");
+  setTimeout(() => { musicPlayer.hidden = true; }, 280);
+  if (musicPlayerToggle) musicPlayerToggle.dataset.state = "play";
+}
+
+musicView?.addEventListener("click", (event) => {
+  const tab = event.target.closest("[data-music-tab]");
+  if (tab) {
+    musicView.querySelectorAll(".music-tab").forEach((t) => t.classList.toggle("is-active", t === tab));
+    return;
+  }
+  const chartBtn = event.target.closest("[data-music-chart]");
+  if (chartBtn) {
+    const idx = Number(chartBtn.dataset.musicChart);
+    openMusicPlayer(MUSIC_DATA.charts[idx]);
+    return;
+  }
+  if (event.target.closest("#musicHeroPlay")) {
+    openMusicPlayer({
+      title: MUSIC_DATA.hero.title,
+      artist: MUSIC_DATA.hero.artist,
+      cover: MUSIC_DATA.hero.image,
+    });
+  }
+});
+
+musicPlayerClose?.addEventListener("click", closeMusicPlayer);
+musicPlayerToggle?.addEventListener("click", () => {
+  if (!musicPlayerToggle) return;
+  musicPlayerToggle.dataset.state = musicPlayerToggle.dataset.state === "pause" ? "play" : "pause";
+});
+
+document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => {
+  b.addEventListener("click", closeMusicView);
+});
+document.querySelectorAll(".bottom-bar [data-action='favorites'], .bottom-bar [data-action='catalog'], .bottom-bar [data-action='profile']").forEach((b) => {
+  b.addEventListener("click", closeMusicView);
 });
 
 categoryList?.addEventListener("click", (event) => {
