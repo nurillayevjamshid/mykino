@@ -3869,9 +3869,17 @@ html[data-theme="light"] .card-copy {
 
 .bottom-bar__button .movie-nav-icon,
 .bottom-bar__button .music-nav-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.95;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+
+.bottom-bar__button .nav-icon-fill {
   fill: currentColor;
   stroke: none;
-  overflow: visible;
 }
 
 .bottom-bar__label {
