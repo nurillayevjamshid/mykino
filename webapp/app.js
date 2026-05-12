@@ -56,6 +56,8 @@ if (langDropdown) {
 const copy = {
   uz: {
     all: "Barchasi",
+    homeNav: "Kino",
+    musicNav: "Musiqa",
     top: "Top",
     premium: "Premium",
     search: "Qidirish",
@@ -99,6 +101,8 @@ const copy = {
   },
   ru: {
     all: "Все",
+    homeNav: "Kino",
+    musicNav: "Музыка",
     top: "Топ",
     premium: "Премиум",
     search: "Поиск",
@@ -142,6 +146,8 @@ const copy = {
   },
   en: {
     all: "All",
+    homeNav: "Kino",
+    musicNav: "Music",
     top: "Top",
     premium: "Premium",
     search: "Search",
@@ -186,6 +192,8 @@ const copy = {
 };
 
 const fallbackCopy = {
+  homeNav: "Kino",
+  musicNav: "Musiqa",
   loadingTitle: "Kinolar yuklanmoqda...",
   loadingText: "Katalog tayyorlanmoqda.",
   loadErrorTitle: "Katalog yuklanmadi",
@@ -2204,6 +2212,8 @@ function toggleCategoryPanel(forceOpen) {
 
 function applyCopy() {
   const allLabel = plainLabel(t("all"));
+  const homeNavLabel = plainLabel(t("homeNav"));
+  const musicNavLabel = plainLabel(t("musicNav"));
   const searchLabel = plainLabel(t("search"));
   const categoriesLabel = plainLabel(t("categories"));
 
@@ -2215,9 +2225,21 @@ function applyCopy() {
   if (searchTabLabel) searchTabLabel.textContent = searchLabel;
   if (categoriesTabLabel) categoriesTabLabel.textContent = categoriesLabel;
 
-  document.querySelectorAll('.bottom-bar [data-filter="all"]').forEach((button) => setControlLabel(button, allLabel));
+  document.querySelectorAll('.bottom-bar [data-filter="all"]').forEach((button) => {
+    setControlLabel(button, homeNavLabel);
+    const label = button.querySelector(".bottom-bar__label");
+    if (label) label.textContent = homeNavLabel;
+  });
   document.querySelectorAll('[data-action="search"]').forEach((button) => setControlLabel(button, searchLabel));
-  document.querySelectorAll('[data-action="categories"]').forEach((button) => setControlLabel(button, categoriesLabel));
+  document.querySelectorAll('[data-action="categories"]').forEach((button) => {
+    if (button.closest(".bottom-bar")) return;
+    setControlLabel(button, categoriesLabel);
+  });
+  document.querySelectorAll('.bottom-bar [data-action="categories"]').forEach((button) => {
+    setControlLabel(button, musicNavLabel);
+    const label = button.querySelector(".bottom-bar__label");
+    if (label) label.textContent = musicNavLabel;
+  });
   if (langDropdown) {
     const currentLabel = langDropdown.querySelector(".lang-current");
     const options = langDropdown.querySelectorAll(".lang-option");

@@ -3866,6 +3866,46 @@ html[data-theme="light"] .card-copy {
   height: 22px;
 }
 
+.bottom-bar__button .cinema-nav-icon {
+  width: 25px;
+  height: 25px;
+  overflow: visible;
+}
+
+.bottom-bar__button .music-nav-icon {
+  width: 25px;
+  height: 25px;
+  fill: currentColor;
+  stroke: none;
+  overflow: visible;
+}
+
+.bottom-bar__button .cinema-nav-icon__stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bottom-bar__button .cinema-nav-icon__stripe {
+  stroke-width: 3.2;
+}
+
+.bottom-bar__button .cinema-nav-icon__fill {
+  fill: currentColor;
+  stroke: none;
+}
+
+.bottom-bar__button .cinema-nav-icon__cut {
+  fill: #ffffff;
+  stroke: none;
+}
+
+html[data-theme="dark"] .bottom-bar__button .cinema-nav-icon__cut {
+  fill: #141416;
+}
+
 .bottom-bar__label {
   font-size: 9px;
   font-weight: 700;
