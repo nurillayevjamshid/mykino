@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260511-multi-cats" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260512-music-nav" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -129,20 +129,26 @@
 
     <nav class="bottom-bar" aria-label="Mini app menyusi">
       <div class="bottom-bar__inner">
-        <button class="bottom-bar__button is-active" type="button" data-filter="all" aria-label="Asosiy" title="Asosiy">
-          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12 12 4l9 8"></path>
-            <path d="M5 10v10h14V10"></path>
-            <path d="M10 20v-6h4v6"></path>
+        <button class="bottom-bar__button is-active" type="button" data-filter="all" aria-label="Kino" title="Kino">
+          <svg class="icon-svg cinema-nav-icon" viewBox="0 0 64 64" aria-hidden="true">
+            <path class="cinema-nav-icon__stroke" d="M18 8c12 7 19 18 21 33"></path>
+            <path class="cinema-nav-icon__stroke" d="M30 5c12 8 19 20 20 36"></path>
+            <path class="cinema-nav-icon__stroke cinema-nav-icon__stripe" d="m20 18 14-8"></path>
+            <path class="cinema-nav-icon__stroke cinema-nav-icon__stripe" d="m24 30 18-11"></path>
+            <path class="cinema-nav-icon__fill" d="M36 20a19 19 0 1 1 0 38 19 19 0 0 1 0-38Z"></path>
+            <circle class="cinema-nav-icon__cut" cx="36" cy="39" r="4"></circle>
+            <circle class="cinema-nav-icon__cut" cx="36" cy="27" r="5"></circle>
+            <circle class="cinema-nav-icon__cut" cx="48" cy="39" r="5"></circle>
+            <circle class="cinema-nav-icon__cut" cx="36" cy="51" r="5"></circle>
+            <circle class="cinema-nav-icon__cut" cx="24" cy="39" r="5"></circle>
           </svg>
-          <span class="bottom-bar__label">Asosiy</span>
+          <span class="bottom-bar__label">Kino</span>
         </button>
-        <button class="bottom-bar__button" type="button" data-action="categories" aria-label="Katalog" title="Katalog">
-          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+        <button class="bottom-bar__button" type="button" data-action="categories" aria-label="Musiqa" title="Musiqa">
+          <svg class="icon-svg music-nav-icon" viewBox="0 0 64 64" aria-hidden="true">
+            <path d="M31.4 6h7.2v10.1c0 4.9 2.6 8.7 8.4 13.3 8.3 6.6 11.2 15.9 7.9 25.9-.5 1.5-1.1 2.8-1.8 4h-5.3c2.7-6.2 2.1-13.3-1.9-18.8-2-2.8-4.4-5-7.3-7.1v17.7c0 6.9-7.2 12.5-16.1 12.5s-16.1-5.6-16.1-12.5 7.2-12.5 16.1-12.5c3.3 0 6.4.8 8.9 2.2V6Z"></path>
           </svg>
-          <span class="bottom-bar__label">Katalog</span>
+          <span class="bottom-bar__label">Musiqa</span>
         </button>
         <button class="bottom-bar__button" type="button" data-action="catalog" aria-label="TV" title="TV">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -361,7 +367,7 @@
     </div>
   </section>
 
-  <script src="/static/app.js?v=20260511-multi-cats"></script>
+  <script src="/static/app.js?v=20260512-music-nav"></script>
 </body>
 
 </html>
