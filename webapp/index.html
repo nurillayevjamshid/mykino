@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260512-itunes" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260512-youtube" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -486,7 +486,7 @@
     <div class="music-view__spacer"></div>
   </section>
 
-  <audio id="musicAudio" preload="none"></audio>
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <section class="music-player" id="musicPlayer" hidden aria-label="Musiqa player" aria-hidden="true">
     <button type="button" class="music-player__close" id="musicPlayerClose" aria-label="Yopish">
@@ -494,7 +494,9 @@
         <polyline points="6 9 12 15 18 9"></polyline>
       </svg>
     </button>
-    <div class="music-player__art" id="musicPlayerArt"></div>
+    <div class="music-player__art" id="musicPlayerArt">
+      <div class="music-player__yt" id="ytPlayerWrap"><div id="ytPlayer"></div></div>
+    </div>
     <div class="music-player__meta">
       <h3 id="musicPlayerTitle">Butterfly Effect</h3>
       <p id="musicPlayerArtist">Travis Scott</p>
@@ -525,7 +527,7 @@
     </div>
   </section>
 
-  <script src="/static/app.js?v=20260512-itunes"></script>
+  <script src="/static/app.js?v=20260512-youtube"></script>
 </body>
 
 </html>

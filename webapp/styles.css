@@ -5480,12 +5480,26 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
 .music-player__close svg { width: 22px; height: 22px; }
 .music-player__art {
   align-self: center;
-  width: 180px;
-  height: 180px;
+  width: 220px;
+  height: 220px;
   border-radius: 16px;
   background-size: cover;
   background-position: center;
   box-shadow: 0 16px 30px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+}
+.music-player__yt {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+.music-player.is-yt-ready .music-player__yt { display: block; }
+.music-player__yt iframe,
+.music-player__yt > div {
+  width: 100% !important;
+  height: 100% !important;
+  border: 0;
 }
 .music-player__meta { text-align: center; display: flex; flex-direction: column; gap: 2px; }
 .music-player__meta h3 { margin: 0; font-size: 22px; font-weight: 800; }

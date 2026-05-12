@@ -2308,10 +2308,9 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
   });
 });
 
-// ===== Music view (iTunes Search API) =====
-const ITUNES_SEARCH = "https://itunes.apple.com/search";
-const ITUNES_LOOKUP = "https://itunes.apple.com/lookup";
-const ITUNES_RSS = "https://rss.applemarketingtools.com/api/v2/us/music/most-played/30/songs.json";
+// ===== Music view (YouTube Data API v3) =====
+const YT_API_KEY = "AIzaSyBc9YGGNbcjKZZa8oczQ6m_1gwUYNignDk";
+const YT_API = "https://www.googleapis.com/youtube/v3";
 const TOP_ARTIST_NAMES = [
   "Xcho",
   "Miyagi",
@@ -2353,7 +2352,6 @@ const musicSearchBtn = document.getElementById("musicSearchBtn");
 const musicSearchBar = document.getElementById("musicSearchBar");
 const musicSearchInput = document.getElementById("musicSearchInput");
 const musicSearchClear = document.getElementById("musicSearchClear");
-const musicAudio = document.getElementById("musicAudio");
 const musicPlayerArt = document.getElementById("musicPlayerArt");
 const musicPlayerTitle = document.getElementById("musicPlayerTitle");
 const musicPlayerArtistEl = document.getElementById("musicPlayerArtist");
@@ -2368,15 +2366,21 @@ let currentTracks = [];
 let currentTrackId = null;
 let searchDebounce = null;
 
-async function itunesFetch(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`iTunes API: ${res.status}`);
+async function ytFetch(path) {
+  const sep = path.includes("?") ? "&" : "?";
+  const res = await fetch(`${YT_API}${path}${sep}key=${YT_API_KEY}`);
+  if (!res.ok) {
+    let msg = `YouTube API: ${res.status}`;
+    try { const j = await res.json(); if (j?.error?.message) msg = j.error.message; } catch (_) {}
+    throw new Error(msg);
+  }
   return res.json();
 }
 
-function upgradeArtwork(url, size = 600) {
-  if (!url) return "";
-  return url.replace(/\/\d+x\d+bb\.(jpg|png)/i, `/${size}x${size}bb.$1`);
+function parseISODuration(iso) {
+  const m = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(iso || "");
+  if (!m) return 0;
+  return (Number(m[1] || 0) * 3600) + (Number(m[2] || 0) * 60) + Number(m[3] || 0);
 }
 
 function formatDuration(seconds) {
@@ -2393,18 +2397,25 @@ function formatPlays(n) {
   return `${n} tinglovlar`;
 }
 
-function mapTrack(t) {
-  if (!t) return null;
+function mapVideo(v) {
+  if (!v) return null;
+  const s = v.snippet || {};
+  const cd = v.contentDetails || {};
+  const id = typeof v.id === "string" ? v.id : (v.id?.videoId || v.id?.channelId || "");
+  const thumbs = s.thumbnails || {};
+  const cover = thumbs.maxres?.url || thumbs.standard?.url || thumbs.high?.url || thumbs.medium?.url || thumbs.default?.url || (id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : "");
+  let title = s.title || "Untitled";
+  let artist = s.channelTitle || "";
+  // Clean up "Artist - Topic" channel naming
+  artist = artist.replace(/\s*-\s*Topic\s*$/i, "");
   return {
-    id: String(t.trackId || t.id || ""),
-    title: t.trackName || t.title || "Untitled",
-    artist: t.artistName || "Noma'lum",
-    artistId: t.artistId ? String(t.artistId) : "",
-    cover: upgradeArtwork(t.artworkUrl100 || t.artworkUrl60 || "", 600),
-    coverSmall: t.artworkUrl100 || t.artworkUrl60 || "",
-    duration: Math.round((t.trackTimeMillis || 0) / 1000),
-    previewUrl: t.previewUrl || "",
-    album: t.collectionName || "",
+    id,
+    videoId: id,
+    title,
+    artist,
+    cover,
+    duration: parseISODuration(cd.duration),
+    album: "YouTube Music",
   };
 }
 
@@ -2426,25 +2437,38 @@ function renderHero(track) {
 }
 
 let topArtistsCache = null;
+const TOP_ARTISTS_CACHE_KEY = "yt_top_artists_v2";
 
 async function loadTopArtists() {
   if (topArtistsCache) return topArtistsCache;
+  try {
+    const raw = localStorage.getItem(TOP_ARTISTS_CACHE_KEY);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && obj.ts && Date.now() - obj.ts < 7 * 86400 * 1000 && Array.isArray(obj.data)) {
+        topArtistsCache = obj.data;
+        return topArtistsCache;
+      }
+    }
+  } catch (_) {}
   const results = await Promise.all(TOP_ARTIST_NAMES.map(async (name) => {
     try {
-      const url = `${ITUNES_SEARCH}?term=${encodeURIComponent(name)}&attribute=artistTerm&entity=song&limit=1`;
-      const json = await itunesFetch(url);
-      const r = (json.results || [])[0];
-      if (!r) return null;
+      const json = await ytFetch(`/search?part=snippet&type=channel&maxResults=1&q=${encodeURIComponent(name)}`);
+      const item = (json.items || [])[0];
+      if (!item) return null;
+      const s = item.snippet || {};
+      const t = s.thumbnails || {};
       return {
-        id: String(r.artistId || ""),
+        id: item.id?.channelId || "",
         name,
-        image: upgradeArtwork(r.artworkUrl100 || "", 400),
+        image: t.high?.url || t.medium?.url || t.default?.url || "",
       };
     } catch (err) {
       return null;
     }
   }));
   topArtistsCache = results.filter(Boolean);
+  try { localStorage.setItem(TOP_ARTISTS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: topArtistsCache })); } catch (_) {}
   return topArtistsCache;
 }
 
@@ -2504,32 +2528,28 @@ function renderGenres() {
   musicGenresEl.dataset.rendered = "1";
 }
 
+async function ytSearchVideos(query, maxResults = 25) {
+  const json = await ytFetch(`/search?part=snippet&type=video&videoCategoryId=10&maxResults=${maxResults}&q=${encodeURIComponent(query)}`);
+  const items = (json.items || []).filter((i) => i.id?.videoId);
+  if (!items.length) return [];
+  const ids = items.map((i) => i.id.videoId).join(",");
+  const detail = await ytFetch(`/videos?part=snippet,contentDetails&id=${ids}`);
+  const order = new Map(items.map((i, idx) => [i.id.videoId, idx]));
+  const tracks = (detail.items || []).map(mapVideo).filter(Boolean);
+  tracks.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  return tracks;
+}
+
 async function loadTrending(genreTerm) {
   showMusicState("loading");
   if (musicChartsTitle) musicChartsTitle.textContent = genreTerm ? genreTerm : "Top Charts";
   try {
     let tracks = [];
     if (genreTerm) {
-      const json = await itunesFetch(`${ITUNES_SEARCH}?term=${encodeURIComponent(genreTerm)}&entity=song&limit=30`);
-      tracks = (json.results || []).map(mapTrack).filter(Boolean);
+      tracks = await ytSearchVideos(`${genreTerm} music`, 25);
     } else {
-      const rss = await itunesFetch(ITUNES_RSS);
-      const items = ((rss && rss.feed && rss.feed.results) || []).slice(0, 30);
-      if (items.length) {
-        const ids = items.map((i) => i.id).join(",");
-        const lookup = await itunesFetch(`${ITUNES_LOOKUP}?id=${ids}&entity=song&limit=200`);
-        const byId = new Map();
-        for (const r of (lookup.results || [])) {
-          if (r && r.wrapperType === "track" && r.kind === "song") {
-            byId.set(String(r.trackId), mapTrack(r));
-          }
-        }
-        tracks = items.map((i) => byId.get(String(i.id))).filter(Boolean);
-      }
-      if (!tracks.length) {
-        const fallback = await itunesFetch(`${ITUNES_SEARCH}?term=top+hits&entity=song&limit=30`);
-        tracks = (fallback.results || []).map(mapTrack).filter(Boolean);
-      }
+      const json = await ytFetch(`/videos?part=snippet,contentDetails&chart=mostPopular&videoCategoryId=10&regionCode=US&maxResults=30`);
+      tracks = (json.items || []).map(mapVideo).filter(Boolean);
     }
     currentTracks = tracks;
     if (tracks[0]) renderHero(tracks[0]);
@@ -2545,8 +2565,7 @@ async function searchTracks(query) {
   showMusicState("loading");
   if (musicChartsTitle) musicChartsTitle.textContent = `"${query}" bo'yicha`;
   try {
-    const json = await itunesFetch(`${ITUNES_SEARCH}?term=${encodeURIComponent(query)}&entity=song&limit=30`);
-    const tracks = (json.results || []).map(mapTrack).filter(Boolean);
+    const tracks = await ytSearchVideos(query, 25);
     currentTracks = tracks;
     renderCharts(tracks);
   } catch (err) {
@@ -2578,27 +2597,91 @@ function closeMusicView() {
   musicView.hidden = true;
   document.body.style.overflow = "";
   closeMusicPlayer();
-  if (musicAudio) { musicAudio.pause(); }
+  ytPause();
+}
+
+// ===== YouTube IFrame player =====
+let ytPlayer = null;
+let ytReady = false;
+let ytPendingVideoId = null;
+let ytProgressTimer = null;
+
+window.onYouTubeIframeAPIReady = function () {
+  try {
+    ytPlayer = new YT.Player("ytPlayer", {
+      height: "100%",
+      width: "100%",
+      playerVars: {
+        playsinline: 1,
+        controls: 0,
+        autoplay: 0,
+        modestbranding: 1,
+        rel: 0,
+        iv_load_policy: 3,
+      },
+      events: {
+        onReady: () => {
+          ytReady = true;
+          if (musicPlayer) musicPlayer.classList.add("is-yt-ready");
+          if (ytPendingVideoId) {
+            ytPlayer.loadVideoById(ytPendingVideoId);
+            ytPendingVideoId = null;
+          }
+        },
+        onStateChange: (e) => {
+          if (!musicPlayerToggle) return;
+          const S = window.YT && YT.PlayerState;
+          if (!S) return;
+          if (e.data === S.PLAYING) musicPlayerToggle.dataset.state = "pause";
+          else if (e.data === S.PAUSED || e.data === S.ENDED) musicPlayerToggle.dataset.state = "play";
+          if (e.data === S.ENDED) {
+            const idx = currentTracks.findIndex((t) => t.id === currentTrackId);
+            const next = currentTracks[idx + 1];
+            if (next) playTrack(next);
+          }
+        },
+        onError: () => {
+          if (musicPlayerToggle) musicPlayerToggle.dataset.state = "play";
+        },
+      },
+    });
+  } catch (_) {}
+};
+
+function ytPause() {
+  try { if (ytReady && ytPlayer?.pauseVideo) ytPlayer.pauseVideo(); } catch (_) {}
+}
+
+function startYtProgress() {
+  if (ytProgressTimer) return;
+  ytProgressTimer = setInterval(() => {
+    if (!ytReady || !ytPlayer?.getCurrentTime) return;
+    try {
+      const cur = ytPlayer.getCurrentTime();
+      const dur = ytPlayer.getDuration();
+      if (musicPlayerCurrent) musicPlayerCurrent.textContent = formatDuration(cur);
+      if (musicPlayerDuration && dur) musicPlayerDuration.textContent = formatDuration(dur);
+      if (musicPlayerSeek && dur) musicPlayerSeek.value = Math.round((cur / dur) * 1000);
+    } catch (_) {}
+  }, 500);
 }
 
 async function playTrack(track) {
-  if (!track || !musicAudio) return;
+  if (!track) return;
   currentTrackId = track.id;
   if (musicPlayerTitle) musicPlayerTitle.textContent = track.title;
   if (musicPlayerArtistEl) musicPlayerArtistEl.textContent = track.artist;
-  if (musicPlayerAlbum) musicPlayerAlbum.textContent = track.album || "Preview";
+  if (musicPlayerAlbum) musicPlayerAlbum.textContent = track.album || "YouTube Music";
   if (musicPlayerArt && track.cover) musicPlayerArt.style.backgroundImage = `url('${track.cover}')`;
   if (musicPlayerDuration) musicPlayerDuration.textContent = formatDuration(track.duration);
-  if (musicPlayerSeek) { musicPlayerSeek.value = 0; }
+  if (musicPlayerSeek) musicPlayerSeek.value = 0;
 
-  try {
-    if (!track.previewUrl) throw new Error("Preview yo'q");
-    musicAudio.src = track.previewUrl;
-    await musicAudio.play();
-    if (musicPlayerToggle) musicPlayerToggle.dataset.state = "pause";
-  } catch (err) {
-    if (musicPlayerToggle) musicPlayerToggle.dataset.state = "play";
+  if (ytReady && ytPlayer?.loadVideoById) {
+    try { ytPlayer.loadVideoById(track.videoId); } catch (_) {}
+  } else {
+    ytPendingVideoId = track.videoId;
   }
+  startYtProgress();
   openMusicPlayer();
   renderCharts(currentTracks);
 }
@@ -2669,35 +2752,22 @@ musicSearchClear?.addEventListener("click", () => {
 musicRetryBtn?.addEventListener("click", () => loadTrending());
 musicReloadBtn?.addEventListener("click", () => loadTrending());
 
-musicPlayerClose?.addEventListener("click", closeMusicPlayer);
+musicPlayerClose?.addEventListener("click", () => { ytPause(); closeMusicPlayer(); });
 musicPlayerToggle?.addEventListener("click", () => {
-  if (!musicAudio || !musicPlayerToggle) return;
-  if (musicAudio.paused) {
-    musicAudio.play().then(() => { musicPlayerToggle.dataset.state = "pause"; }).catch(() => {});
-  } else {
-    musicAudio.pause();
-    musicPlayerToggle.dataset.state = "play";
-  }
-});
-
-musicAudio?.addEventListener("timeupdate", () => {
-  if (!musicAudio.duration) return;
-  if (musicPlayerCurrent) musicPlayerCurrent.textContent = formatDuration(musicAudio.currentTime);
-  if (musicPlayerSeek) musicPlayerSeek.value = Math.round((musicAudio.currentTime / musicAudio.duration) * 1000);
-});
-musicAudio?.addEventListener("loadedmetadata", () => {
-  if (musicPlayerDuration) musicPlayerDuration.textContent = formatDuration(musicAudio.duration);
-});
-musicAudio?.addEventListener("ended", () => {
-  if (musicPlayerToggle) musicPlayerToggle.dataset.state = "play";
-  const idx = currentTracks.findIndex((t) => t.id === currentTrackId);
-  const next = currentTracks[idx + 1];
-  if (next) playTrack(next);
+  if (!ytReady || !ytPlayer) return;
+  try {
+    const S = window.YT && YT.PlayerState;
+    const state = ytPlayer.getPlayerState();
+    if (state === S?.PLAYING) ytPlayer.pauseVideo();
+    else ytPlayer.playVideo();
+  } catch (_) {}
 });
 musicPlayerSeek?.addEventListener("input", (event) => {
-  if (!musicAudio?.duration) return;
-  const pct = Number(event.target.value) / 1000;
-  musicAudio.currentTime = pct * musicAudio.duration;
+  if (!ytReady || !ytPlayer?.seekTo) return;
+  try {
+    const dur = ytPlayer.getDuration() || 0;
+    if (dur > 0) ytPlayer.seekTo((Number(event.target.value) / 1000) * dur, true);
+  } catch (_) {}
 });
 
 // ===== Artist page =====
@@ -2742,17 +2812,19 @@ async function openArtistPage(artist) {
 async function loadArtistTracks(artistName, artistId) {
   showArtistState("loading");
   try {
-    const url = `${ITUNES_SEARCH}?term=${encodeURIComponent(artistName)}&attribute=artistTerm&entity=song&limit=50`;
-    const json = await itunesFetch(url);
-    let tracks = (json.results || [])
-      .filter((r) => r && r.kind === "song")
-      .map(mapTrack)
-      .filter(Boolean);
+    let tracks = [];
     if (artistId) {
-      const filtered = tracks.filter((t) => String(t.artistId) === String(artistId));
-      if (filtered.length) tracks = filtered;
+      const json = await ytFetch(`/search?part=snippet&type=video&videoCategoryId=10&order=viewCount&maxResults=25&channelId=${encodeURIComponent(artistId)}`);
+      const items = (json.items || []).filter((i) => i.id?.videoId);
+      if (items.length) {
+        const ids = items.map((i) => i.id.videoId).join(",");
+        const detail = await ytFetch(`/videos?part=snippet,contentDetails&id=${ids}`);
+        tracks = (detail.items || []).map(mapVideo).filter(Boolean);
+      }
     }
-    // de-dupe by title
+    if (!tracks.length) {
+      tracks = await ytSearchVideos(`${artistName} official`, 25);
+    }
     const seen = new Set();
     tracks = tracks.filter((t) => {
       const key = t.title.toLowerCase();
