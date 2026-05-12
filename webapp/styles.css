@@ -5552,3 +5552,78 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
 .music-player__btn .music-icon-pause { display: none; }
 .music-player__btn[data-state="pause"] .music-icon-play { display: none; }
 .music-player__btn[data-state="pause"] .music-icon-pause { display: inline-block; }
+
+.music-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 14px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+}
+.music-search-bar[hidden] { display: none; }
+.music-search-bar .icon-svg {
+  width: 16px; height: 16px;
+  fill: none; stroke: #8b8fa0; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.music-search-bar input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: #f5f6fa;
+  font-size: 14px;
+  font-family: inherit;
+}
+.music-search-bar input::placeholder { color: #6b6f7d; }
+.music-search-clear {
+  background: transparent;
+  border: 0;
+  color: #8b8fa0;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.music-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  background: #14141d;
+  border-radius: 16px;
+  color: #8b8fa0;
+  font-size: 13px;
+  text-align: center;
+}
+.music-state[hidden] { display: none !important; }
+.music-state:not([hidden]) { display: flex; }
+.music-state--error strong { color: #ff7676; font-size: 14px; }
+.music-state .music-link { color: #6c7cff; }
+
+.music-spinner {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.12);
+  border-top-color: #6c7cff;
+  animation: musicSpin 0.8s linear infinite;
+}
+@keyframes musicSpin { to { transform: rotate(360deg); } }
+
+.music-chart.is-playing { background: rgba(108,124,255,0.12); }
+.music-chart.is-playing .music-chart__title { color: #6c7cff; }
+.music-chart.is-playing .music-chart__play svg { opacity: 0; }
+.music-chart.is-playing .music-chart__play::after {
+  content: "";
+  position: absolute;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  background: #fff;
+}
+.music-chart__play { position: relative; }

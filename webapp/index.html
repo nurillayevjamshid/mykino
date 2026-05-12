@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260512-music-section" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260512-audius" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -373,13 +373,22 @@
         <button type="button" class="music-tab" data-music-tab="podcast">Podcast</button>
         <button type="button" class="music-tab" data-music-tab="live">Jonli</button>
       </nav>
-      <button class="icon-button icon-button--top music-search-btn" type="button" aria-label="Qidirish">
+      <button class="icon-button icon-button--top music-search-btn" type="button" aria-label="Qidirish" id="musicSearchBtn">
         <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="11" cy="11" r="7"></circle>
           <path d="M20 20l-3.5-3.5"></path>
         </svg>
       </button>
     </header>
+
+    <div class="music-search-bar" id="musicSearchBar" hidden>
+      <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="M20 20l-3.5-3.5"></path>
+      </svg>
+      <input id="musicSearchInput" type="search" placeholder="Trek yoki ijrochi qidirish" autocomplete="off" />
+      <button type="button" class="music-search-clear" id="musicSearchClear" aria-label="Tozalash">&times;</button>
+    </div>
 
     <section class="music-hero" id="musicHero">
       <div class="music-hero__bg" id="musicHeroBg"></div>
@@ -413,24 +422,37 @@
       <div class="music-artists" id="musicArtists"></div>
     </section>
 
-    <section class="music-section">
+    <section class="music-section" id="musicChartsSection">
       <div class="music-section__head">
-        <h2>Top Charts</h2>
-        <button type="button" class="music-link">Hammasi</button>
+        <h2 id="musicChartsTitle">Top Charts</h2>
+        <button type="button" class="music-link" id="musicReloadBtn">Yangilash</button>
+      </div>
+      <div class="music-state music-state--loading" id="musicLoading" hidden>
+        <span class="music-spinner" aria-hidden="true"></span>
+        <span>Yuklanmoqda...</span>
+      </div>
+      <div class="music-state music-state--error" id="musicError" hidden>
+        <strong>Yuklab bo'lmadi</strong>
+        <span id="musicErrorText">Tarmoqni tekshiring va qayta urinib ko'ring.</span>
+        <button type="button" class="music-link" id="musicRetryBtn">Qayta urinish</button>
       </div>
       <ol class="music-charts" id="musicCharts"></ol>
+      <div class="music-state music-state--empty" id="musicEmpty" hidden>
+        <span>Hech narsa topilmadi</span>
+      </div>
     </section>
 
     <section class="music-section">
       <div class="music-section__head">
         <h2>Janrlar</h2>
-        <button type="button" class="music-link">Hammasi</button>
       </div>
       <div class="music-genres" id="musicGenres"></div>
     </section>
 
     <div class="music-view__spacer"></div>
   </section>
+
+  <audio id="musicAudio" preload="none"></audio>
 
   <section class="music-player" id="musicPlayer" hidden aria-label="Musiqa player" aria-hidden="true">
     <button type="button" class="music-player__close" id="musicPlayerClose" aria-label="Yopish">
@@ -469,7 +491,7 @@
     </div>
   </section>
 
-  <script src="/static/app.js?v=20260512-music-section"></script>
+  <script src="/static/app.js?v=20260512-audius"></script>
 </body>
 
 </html>
