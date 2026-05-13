@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260513-music-navbars" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260513-music-redesign" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -128,6 +128,11 @@
     </footer>
 
     <section class="music-view" id="musicView" hidden aria-label="Musiqa">
+      <section class="music-carousel" id="musicCarousel" aria-label="Tavsiya etilgan treklar">
+        <div class="music-carousel__track" id="musicCarouselTrack"></div>
+        <div class="music-carousel__dots" id="musicCarouselDots"></div>
+      </section>
+
       <div class="music-search-bar" id="musicSearchBar">
         <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="11" cy="11" r="7"></circle>
@@ -411,6 +416,48 @@
 
   <script src="https://www.youtube.com/iframe_api"></script>
 
+  <section class="music-fullplayer" id="musicFullPlayer" hidden aria-hidden="true" aria-label="Music Player">
+    <header class="music-fullplayer__top">
+      <button class="music-fullplayer__close" type="button" data-music-fp-close aria-label="Yopish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <strong class="music-fullplayer__heading">Music Player</strong>
+      <span class="music-fullplayer__spacer" aria-hidden="true"></span>
+    </header>
+    <div class="music-fullplayer__art" id="musicFullPlayerArt"></div>
+    <div class="music-fullplayer__info">
+      <h2 id="musicFullPlayerTitle">—</h2>
+      <p id="musicFullPlayerArtist">—</p>
+    </div>
+    <div class="music-fullplayer__progress">
+      <span id="musicFullPlayerCur">0:00</span>
+      <div class="music-fullplayer__bar" id="musicFullPlayerBar">
+        <div class="music-fullplayer__bar-fill" id="musicFullPlayerBarFill"></div>
+      </div>
+      <span id="musicFullPlayerDur">0:00</span>
+    </div>
+    <div class="music-fullplayer__controls">
+      <button class="music-fullplayer__ctl" type="button" data-music-fp-prev aria-label="Oldingi">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M6 5h2v14H6z"></path>
+          <path d="M20 5v14l-11-7z"></path>
+        </svg>
+      </button>
+      <button class="music-fullplayer__ctl music-fullplayer__ctl--primary" type="button" id="musicFullPlayerToggle" data-music-fp-toggle aria-label="Play" data-state="play">
+        <svg class="mfp-icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
+        <svg class="mfp-icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path></svg>
+      </button>
+      <button class="music-fullplayer__ctl" type="button" data-music-fp-next aria-label="Keyingi">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M16 5h2v14h-2z"></path>
+          <path d="M4 5v14l11-7z"></path>
+        </svg>
+      </button>
+    </div>
+  </section>
+
   <div class="mini-player" id="miniPlayer" aria-hidden="true">
     <div class="mini-player__yt" id="miniPlayerYt"><div id="ytPlayer"></div></div>
     <div class="mini-player__meta">
@@ -432,7 +479,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260513-music-navbars"></script>
+  <script src="/static/app.js?v=20260513-music-redesign"></script>
 </body>
 
 </html>
