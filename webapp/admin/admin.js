@@ -1134,17 +1134,25 @@ async function fetchMusic() {
   if (tbody) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="loading-state"><div class="loading-spinner"></div><p>Yuklanmoqda...</p></div></td></tr>`;
   }
-  let seed = [];
+  let serverList = [];
+  let storage = 'seed';
   try {
-    const res = await fetch('/api/music');
+    const res = await fetch('/api/music', { cache: 'no-store' });
     if (res.ok) {
       const json = await res.json();
-      seed = Array.isArray(json.tracks) ? json.tracks : [];
+      serverList = Array.isArray(json.tracks) ? json.tracks : [];
+      storage = json.storage || 'seed';
     }
   } catch (_) {}
-  const local = readLocalMusic();
-  musicTracks = dedupeMusic([...seed, ...local]);
+  musicTracks = dedupeMusic(serverList);
   renderMusicTable();
+  const summary = document.getElementById('musicStorageSummary');
+  if (summary) {
+    summary.textContent = storage === 'kv'
+      ? `Persistent KV ulangan · ${musicTracks.length} ta qo'shiq`
+      : `Faqat seed (KV sozlanmagan) · ${musicTracks.length} ta qo'shiq`;
+    summary.style.color = storage === 'kv' ? '#3ecf8e' : '#ffb84d';
+  }
 }
 
 function renderMusicTable() {
@@ -1174,26 +1182,38 @@ function renderMusicTable() {
 }
 
 async function addMusicTrack(payload) {
-  const local = readLocalMusic();
-  const next = dedupeMusic([...local, payload]);
-  writeLocalMusic(next);
   try {
-    await fetch('/api/music', {
+    const res = await fetch('/api/music', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ track: payload }),
     });
-  } catch (_) {}
-  await fetchMusic();
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    musicTracks = dedupeMusic(Array.isArray(json.tracks) ? json.tracks : []);
+    renderMusicTable();
+    showNotification(`"${payload.title}" qo'shildi.`);
+  } catch (err) {
+    showNotification(`Qo'shishda xato: ${err.message}`, 'error');
+  }
 }
 
-function deleteMusicTrack(youtubeId, title, artist) {
+async function deleteMusicTrack(youtubeId, title, artist) {
   const key = `${title.toLowerCase()}|${artist.toLowerCase()}|${youtubeId}`;
-  const local = readLocalMusic().filter(t => `${(t.title||'').toLowerCase()}|${(t.artist||'').toLowerCase()}|${t.youtubeId}` !== key);
-  writeLocalMusic(local);
-  musicTracks = musicTracks.filter(t => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}` !== key);
-  renderMusicTable();
-  showNotification("Qo'shiq olib tashlandi (faqat brauzer xotirasidan).");
+  try {
+    const res = await fetch('/api/music', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', key }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    musicTracks = dedupeMusic(Array.isArray(json.tracks) ? json.tracks : []);
+    renderMusicTable();
+    showNotification("Qo'shiq o'chirildi.");
+  } catch (err) {
+    showNotification(`O'chirishda xato: ${err.message}`, 'error');
+  }
 }
 
 function exportMusicJSON() {
