@@ -2455,7 +2455,8 @@ function openMusicView() {
   if (!musicView) return;
   if (!musicAllTracks.length) loadMusicCatalog();
   musicView.hidden = false;
-  document.body.style.overflow = "hidden";
+  document.body.classList.add("is-music");
+  window.scrollTo({ top: 0, behavior: "smooth" });
   document.querySelectorAll(".bottom-bar [data-action='categories']").forEach((b) => b.classList.add("is-active"));
   document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.classList.remove("is-active"));
 }
@@ -2463,7 +2464,7 @@ function openMusicView() {
 function closeMusicView() {
   if (!musicView) return;
   musicView.hidden = true;
-  document.body.style.overflow = "";
+  document.body.classList.remove("is-music");
 }
 
 // ----- YouTube IFrame Player -----
