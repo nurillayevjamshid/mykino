@@ -1950,7 +1950,6 @@ function createVideoElement(src, movie, options = {}) {
   video.playsInline = true;
   video.preload = preload;
   video.autoplay = true;
-  video.poster = getPosterImage(movie);
   video.setAttribute("playsinline", "");
   video.setAttribute("webkit-playsinline", "");
   video.setAttribute("controlsList", "nodownload");
