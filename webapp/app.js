@@ -2405,18 +2405,48 @@ function uniqSorted(values) {
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
+function firstCoverFor(predicate) {
+  const t = musicAllTracks.find(predicate);
+  return t && t.youtubeId ? `https://i.ytimg.com/vi/${t.youtubeId}/mqdefault.jpg` : "";
+}
+
+function musicCardHtml({ active, dataAttr, value, label, cover }) {
+  const bg = cover
+    ? `background-image:url('${cover}')`
+    : "";
+  return `<button class="music-card ${active ? "is-active" : ""}" type="button" ${dataAttr}="${escapeMusicHtml(value)}">
+    <span class="music-card__img" style="${bg}"></span>
+    <span class="music-card__overlay"></span>
+    <span class="music-card__label">${escapeMusicHtml(label)}</span>
+  </button>`;
+}
+
 function renderMusicFilters() {
   if (musicCategoryRow) {
     const cats = uniqSorted(musicAllTracks.map((t) => t.category));
-    musicCategoryRow.innerHTML = [`<button class="music-chip ${musicCategory === "all" ? "is-active" : ""}" type="button" data-music-cat="all">Hammasi</button>`]
-      .concat(cats.map((c) => `<button class="music-chip ${musicCategory === c ? "is-active" : ""}" type="button" data-music-cat="${escapeMusicHtml(c)}">${escapeMusicHtml(c)}</button>`))
-      .join("");
+    const items = [
+      musicCardHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", cover: firstCoverFor(() => true) }),
+    ].concat(cats.map((c) => musicCardHtml({
+      active: musicCategory === c,
+      dataAttr: "data-music-cat",
+      value: c,
+      label: c,
+      cover: firstCoverFor((t) => t.category === c),
+    })));
+    musicCategoryRow.innerHTML = items.join("");
   }
   if (musicArtistRow) {
     const artists = uniqSorted(musicAllTracks.map((t) => t.artist));
-    musicArtistRow.innerHTML = [`<button class="music-chip ${musicArtist === "all" ? "is-active" : ""}" type="button" data-music-artist="all">Hammasi</button>`]
-      .concat(artists.map((a) => `<button class="music-chip ${musicArtist === a ? "is-active" : ""}" type="button" data-music-artist="${escapeMusicHtml(a)}">${escapeMusicHtml(a)}</button>`))
-      .join("");
+    const items = [
+      musicCardHtml({ active: musicArtist === "all", dataAttr: "data-music-artist", value: "all", label: "Hammasi", cover: firstCoverFor(() => true) }),
+    ].concat(artists.map((a) => musicCardHtml({
+      active: musicArtist === a,
+      dataAttr: "data-music-artist",
+      value: a,
+      label: a,
+      cover: firstCoverFor((t) => t.artist === a),
+    })));
+    musicArtistRow.innerHTML = items.join("");
   }
 }
 
