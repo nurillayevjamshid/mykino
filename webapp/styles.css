@@ -1593,7 +1593,8 @@ dialog::backdrop {
 
 .player-overlay__tap {
   position: absolute;
-  inset: 0;
+  top: 64px;
+  bottom: 96px;
   z-index: 1;
   pointer-events: auto;
   background: transparent;
@@ -1603,8 +1604,82 @@ dialog::backdrop {
   -webkit-tap-highlight-color: transparent;
 }
 
-.player-overlay[data-visible="false"] .player-overlay__tap {
-  background: transparent;
+.player-overlay__tap--left {
+  left: 0;
+  right: 50%;
+}
+
+.player-overlay__tap--right {
+  left: 50%;
+  right: 0;
+}
+
+.player-skip-feedback {
+  position: absolute;
+  top: 50%;
+  left: 22%;
+  z-index: 2;
+  transform: translate(-50%, -50%) scale(0.6);
+  width: 110px;
+  height: 110px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+
+.player-skip-feedback--right {
+  left: auto;
+  right: 22%;
+  transform: translate(50%, -50%) scale(0.6);
+}
+
+.player-skip-feedback.is-active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.player-skip-feedback--right.is-active {
+  transform: translate(50%, -50%) scale(1);
+}
+
+.player-skip-feedback svg {
+  width: 36px;
+  height: 36px;
+  position: absolute;
+  opacity: 0.7;
+}
+
+.player-skip-feedback span {
+  font-size: 14px;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.player-buffering {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.player-buffering[hidden] {
+  display: none;
+}
+
+.player-buffering span {
+  width: 56px;
+  height: 56px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: videoSpin 850ms linear infinite;
 }
 
 .player-overlay__top,
@@ -1781,6 +1856,105 @@ dialog::backdrop {
   border: 0;
   border-radius: 50%;
   background: #fff;
+}
+
+.player-overlay__volume {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-overlay__volume {
+    display: flex;
+  }
+}
+
+.player-overlay__volume-icon {
+  width: 20px;
+  height: 20px;
+  color: #fff;
+  opacity: 0.92;
+}
+
+.player-overlay__volume-range {
+  --range-fill: 100%;
+  appearance: slider-vertical;
+  -webkit-appearance: slider-vertical;
+  width: 6px;
+  height: 130px;
+  background: transparent;
+  writing-mode: bt-lr;
+  cursor: pointer;
+}
+
+.player-overlay__volume-range::-webkit-slider-runnable-track {
+  width: 6px;
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.player-overlay__volume-range::-moz-range-track {
+  width: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.player-overlay__volume-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 0;
+}
+
+.player-overlay__volume-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-overlay__brightness {
+    display: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .video-progress__range::-webkit-slider-runnable-track {
+    height: 4px;
+    transition: height 120ms ease;
+  }
+  .video-progress__range:hover::-webkit-slider-runnable-track {
+    height: 6px;
+  }
+  .video-progress__range::-webkit-slider-thumb {
+    width: 0;
+    height: 0;
+    margin-top: 0;
+    transition: width 120ms ease, height 120ms ease, margin-top 120ms ease;
+  }
+  .video-progress__range:hover::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+  }
+  .player-action-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
 }
 
 .player-overlay__bottom {
@@ -1966,7 +2140,7 @@ dialog::backdrop {
   place-items: center;
   align-content: center;
   gap: 14px;
-  background: radial-gradient(circle at center, rgba(255, 199, 58, 0.06), rgba(0, 0, 0, 0.6) 48%);
+  background: rgba(0, 0, 0, 0.35);
   pointer-events: none;
 }
 

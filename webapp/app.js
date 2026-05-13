@@ -295,7 +295,13 @@ const videoLockButton = document.querySelector("#videoLockButton");
 const videoLockRelease = document.querySelector("#videoLockRelease");
 const videoAudioButton = document.querySelector("#videoAudioButton");
 const playerOverlay = document.querySelector("#playerOverlay");
-const videoTapZone = document.querySelector("#videoTapZone");
+const videoTapZoneLeft = document.querySelector("#videoTapZoneLeft");
+const videoTapZoneRight = document.querySelector("#videoTapZoneRight");
+const videoSkipFeedbackLeft = document.querySelector("#videoSkipFeedbackLeft");
+const videoSkipFeedbackRight = document.querySelector("#videoSkipFeedbackRight");
+const videoBuffering = document.querySelector("#videoBuffering");
+const videoVolume = document.querySelector("#videoVolume");
+const videoPipButton = document.querySelector("#videoPipButton");
 const playerToast = document.querySelector("#playerToast");
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -303,6 +309,12 @@ let currentSpeed = 1;
 let isPlayerLocked = false;
 let controlsHideTimer = null;
 let toastHideTimer = null;
+let currentVolume = 1;
+let lastTapTime = 0;
+let lastTapSide = "";
+let skipFeedbackTimer = null;
+let wakeLockSentinel = null;
+let videoErrorRetried = false;
 
 function t(key) {
   return copy[lang][key] || fallbackCopy[key] || key;
@@ -1683,6 +1695,93 @@ function showPlayerToast(message) {
   toastHideTimer = window.setTimeout(() => { playerToast.hidden = true; }, 1200);
 }
 
+function showSkipFeedback(side) {
+  const el = side === "left" ? videoSkipFeedbackLeft : videoSkipFeedbackRight;
+  if (!el) return;
+  el.classList.add("is-active");
+  if (skipFeedbackTimer) window.clearTimeout(skipFeedbackTimer);
+  skipFeedbackTimer = window.setTimeout(() => {
+    videoSkipFeedbackLeft?.classList.remove("is-active");
+    videoSkipFeedbackRight?.classList.remove("is-active");
+  }, 500);
+}
+
+function handleTapZone(side, event) {
+  if (isPlayerLocked) return;
+  event.stopPropagation();
+  const now = Date.now();
+  const isDoubleTap = now - lastTapTime < 320 && lastTapSide === side;
+  lastTapTime = now;
+  lastTapSide = side;
+  if (isDoubleTap) {
+    playerCore.seekBy(side === "left" ? -10 : 10);
+    showSkipFeedback(side);
+    setControlsVisible(true);
+    return;
+  }
+  const visible = playerOverlay.dataset.visible !== "false";
+  setControlsVisible(!visible);
+}
+
+function showBuffering(show) {
+  if (!videoBuffering) return;
+  videoBuffering.hidden = !show;
+}
+
+function setVolume(value) {
+  const v = getActiveVideoEl();
+  const normalized = Math.max(0, Math.min(1, Number(value) / 100));
+  currentVolume = normalized;
+  if (v) {
+    v.volume = normalized;
+    v.muted = normalized === 0;
+  }
+  if (activeYouTubePlayer) {
+    activeYouTubePlayer.setVolume(Math.round(normalized * 100));
+    if (normalized === 0) activeYouTubePlayer.mute();
+    else activeYouTubePlayer.unMute();
+  }
+  if (videoVolume) {
+    setRangeFill(videoVolume, Math.round(normalized * 100), 100);
+  }
+}
+
+async function requestWakeLock() {
+  if (!("wakeLock" in navigator)) return;
+  try {
+    wakeLockSentinel = await navigator.wakeLock.request("screen");
+    wakeLockSentinel.addEventListener("release", () => { wakeLockSentinel = null; });
+  } catch {}
+}
+
+function releaseWakeLock() {
+  if (wakeLockSentinel) {
+    wakeLockSentinel.release?.().catch(() => {});
+    wakeLockSentinel = null;
+  }
+}
+
+async function togglePictureInPicture() {
+  const v = getActiveVideoEl();
+  if (!v) return;
+  try {
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture();
+    } else if (document.pictureInPictureEnabled && typeof v.requestPictureInPicture === "function") {
+      await v.requestPictureInPicture();
+    }
+  } catch {
+    showPlayerToast("PiP qo'llab-quvvatlanmaydi");
+  }
+}
+
+function updatePipButtonVisibility() {
+  if (!videoPipButton) return;
+  const v = getActiveVideoEl();
+  const supported = Boolean(v) && Boolean(document.pictureInPictureEnabled) && typeof v?.requestPictureInPicture === "function";
+  videoPipButton.hidden = !supported;
+}
+
 function syncActiveMovieProgress(force = false) {
   if (!activeYouTubePlayer || !activeMovie || !window.YT?.PlayerState) return;
   const state = activeYouTubePlayer.getPlayerState();
@@ -1997,16 +2096,36 @@ function createVideoElement(src, movie, options = {}) {
   video.setAttribute("webkit-playsinline", "");
   video.setAttribute("controlsList", "nodownload");
   video.addEventListener("timeupdate", updateHtml5VideoControls);
-  video.addEventListener("play", () => { setStateLabel(videoToggleButton, "pause", plainLabel(t("pause"))); scheduleControlsHide(); });
-  video.addEventListener("pause", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); });
-  video.addEventListener("ended", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); });
-  video.addEventListener("loadedmetadata", () => { video.playbackRate = currentSpeed; updateHtml5VideoControls(); });
+  video.addEventListener("play", () => { setStateLabel(videoToggleButton, "pause", plainLabel(t("pause"))); scheduleControlsHide(); requestWakeLock(); });
+  video.addEventListener("pause", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); releaseWakeLock(); });
+  video.addEventListener("ended", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); releaseWakeLock(); });
+  video.addEventListener("loadedmetadata", () => {
+    video.playbackRate = currentSpeed;
+    video.volume = currentVolume;
+    if (pendingResumeTime >= WATCH_PROGRESS_MIN_SECONDS && pendingResumeTime < (video.duration || Infinity) - 5) {
+      try { video.currentTime = pendingResumeTime; } catch {}
+      pendingResumeTime = 0;
+    }
+    updateHtml5VideoControls();
+    updatePipButtonVisibility();
+  });
   video.addEventListener("ratechange", () => {
     if (Math.abs(video.playbackRate - currentSpeed) > 0.001 && SPEED_OPTIONS.includes(video.playbackRate)) {
       currentSpeed = video.playbackRate;
       updateSpeedLabel();
     }
   });
+  video.addEventListener("waiting", () => showBuffering(true));
+  video.addEventListener("stalled", () => showBuffering(true));
+  video.addEventListener("canplay", () => showBuffering(false));
+  video.addEventListener("playing", () => showBuffering(false));
+  video.addEventListener("error", () => {
+    if (videoErrorRetried) return;
+    videoErrorRetried = true;
+    try { video.load(); video.play().catch(() => {}); } catch {}
+  });
+  video.addEventListener("enterpictureinpicture", () => updatePipButtonVisibility());
+  video.addEventListener("leavepictureinpicture", () => updatePipButtonVisibility());
   let startupDone = false;
   let fallbackMounted = false;
   const finishStartup = () => {
@@ -2208,8 +2327,11 @@ async function openVideoPlayer(movie) {
   currentSpeed = 1;
   updateSpeedLabel();
   setPlayerLocked(false);
+  videoErrorRetried = false;
   if (videoBrightness) { videoBrightness.value = "100"; applyBrightness(100); }
+  if (videoVolume) { videoVolume.value = "100"; setVolume(100); }
   setControlsVisible(true);
+  if (videoPipButton) videoPipButton.hidden = true;
 
   const youtubeUrl = getYouTubeVideoUrl(movie);
   if (youtubeUrl) {
@@ -2269,9 +2391,15 @@ function closeVideoPlayer() {
   clearVideoLoadTimer();
   if (controlsHideTimer) { window.clearTimeout(controlsHideTimer); controlsHideTimer = null; }
   if (toastHideTimer) { window.clearTimeout(toastHideTimer); toastHideTimer = null; }
+  if (skipFeedbackTimer) { window.clearTimeout(skipFeedbackTimer); skipFeedbackTimer = null; }
+  videoSkipFeedbackLeft?.classList.remove("is-active");
+  videoSkipFeedbackRight?.classList.remove("is-active");
+  showBuffering(false);
+  releaseWakeLock();
   setPlayerLocked(false);
   if (playerToast) playerToast.hidden = true;
-  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  if (document.pictureInPictureElement) document.exitPictureInPicture?.().catch(() => {});
+  if (getFullscreenElement()) exitDocFullscreen();
   destroyYouTubePlayer();
   const video = videoMount.querySelector("video");
   const iframe = videoMount.querySelector("iframe");
@@ -3075,12 +3203,13 @@ videoBrightness?.addEventListener("input", () => {
   applyBrightness(videoBrightness.value);
   setControlsVisible(true);
 });
-videoTapZone?.addEventListener("click", (e) => {
-  if (isPlayerLocked) return;
-  e.stopPropagation();
-  const visible = playerOverlay.dataset.visible !== "false";
-  setControlsVisible(!visible);
+videoVolume?.addEventListener("input", () => {
+  setVolume(videoVolume.value);
+  setControlsVisible(true);
 });
+videoPipButton?.addEventListener("click", (e) => { e.stopPropagation(); togglePictureInPicture(); });
+videoTapZoneLeft?.addEventListener("click", (e) => handleTapZone("left", e));
+videoTapZoneRight?.addEventListener("click", (e) => handleTapZone("right", e));
 videoSeek.addEventListener("input", () => {
   setRangeFill(videoSeek, Number(videoSeek.value || 0), 1000);
   setControlsVisible(true);
@@ -3127,8 +3256,64 @@ videoExternalLink?.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !videoPlayer.hidden) {
-    closeVideoPlayer();
+  if (videoPlayer.hidden) return;
+  const target = event.target;
+  const isTyping = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+  if (isTyping && event.key !== "Escape") return;
+  if (event.key === "Escape") { closeVideoPlayer(); return; }
+  if (isPlayerLocked) return;
+  switch (event.key) {
+    case " ":
+    case "k":
+    case "K":
+      event.preventDefault();
+      playerCore.togglePlay();
+      setControlsVisible(true);
+      break;
+    case "ArrowLeft":
+    case "j":
+    case "J":
+      event.preventDefault();
+      playerCore.seekBy(-10);
+      showSkipFeedback("left");
+      setControlsVisible(true);
+      break;
+    case "ArrowRight":
+    case "l":
+    case "L":
+      event.preventDefault();
+      playerCore.seekBy(10);
+      showSkipFeedback("right");
+      setControlsVisible(true);
+      break;
+    case "ArrowUp":
+      event.preventDefault();
+      setVolume(Math.min(100, Math.round(currentVolume * 100) + 5));
+      setControlsVisible(true);
+      break;
+    case "ArrowDown":
+      event.preventDefault();
+      setVolume(Math.max(0, Math.round(currentVolume * 100) - 5));
+      setControlsVisible(true);
+      break;
+    case "f":
+    case "F":
+      event.preventDefault();
+      toggleVideoFullscreen();
+      break;
+    case "m":
+    case "M":
+      event.preventDefault();
+      setVolume(currentVolume > 0 ? 0 : 100);
+      setControlsVisible(true);
+      break;
+    case "p":
+    case "P":
+      event.preventDefault();
+      togglePictureInPicture();
+      break;
+    default:
+      break;
   }
 });
 
