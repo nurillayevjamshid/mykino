@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260512-youtube" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260513-music-navbars" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -127,6 +127,40 @@
       <p class="app-footer__copy" id="footerCopy">&copy; 2026 Kino Play. Barcha huquqlar himoyalangan.</p>
     </footer>
 
+    <section class="music-view" id="musicView" hidden aria-label="Musiqa">
+      <div class="music-search-bar" id="musicSearchBar">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input id="musicSearchInput" type="search" placeholder="Trek yoki ijrochi qidirish" autocomplete="off" />
+        <button type="button" class="music-search-clear" id="musicSearchClear" aria-label="Tozalash">&times;</button>
+      </div>
+
+      <div class="music-filters">
+        <div class="music-filter-label">Kategoriya</div>
+        <div class="music-filter-row" id="musicCategoryRow"></div>
+        <div class="music-filter-label">Ijrochi</div>
+        <div class="music-filter-row" id="musicArtistRow"></div>
+      </div>
+
+      <div class="music-state music-state--loading" id="musicLoading" hidden>
+        <span class="music-spinner" aria-hidden="true"></span>
+        <span>Yuklanmoqda...</span>
+      </div>
+      <div class="music-state music-state--error" id="musicError" hidden>
+        <strong>Yuklab bo'lmadi</strong>
+        <span id="musicErrorText">Tarmoqni tekshiring va qayta urinib ko'ring.</span>
+        <button type="button" class="music-link" id="musicRetryBtn">Qayta urinish</button>
+      </div>
+      <div class="music-state music-state--empty" id="musicEmpty" hidden>
+        <span>Hech narsa topilmadi</span>
+      </div>
+
+      <ol class="music-list" id="musicList"></ol>
+      <div class="music-view__spacer"></div>
+    </section>
+
     <nav class="bottom-bar" aria-label="Mini app menyusi">
       <div class="bottom-bar__inner">
         <button class="bottom-bar__button is-active" type="button" data-filter="all" aria-label="Kino" title="Kino">
@@ -157,11 +191,20 @@
           </svg>
           <span class="bottom-bar__label">TV</span>
         </button>
-        <button class="bottom-bar__button" type="button" data-action="favorites" aria-label="Sevimlilar" title="Sevimlilar">
+        <button class="bottom-bar__button bottom-bar__button--movie-only" type="button" data-action="favorites" aria-label="Sevimlilar" title="Sevimlilar">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
           </svg>
           <span class="bottom-bar__label">Sevimlilar</span>
+        </button>
+        <button class="bottom-bar__button bottom-bar__button--music-only" type="button" data-action="playlist" aria-label="Playlist" title="Playlist">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="14" y2="6"></line>
+            <line x1="3" y1="12" x2="14" y2="12"></line>
+            <line x1="3" y1="18" x2="10" y2="18"></line>
+            <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
+          </svg>
+          <span class="bottom-bar__label">Playlist</span>
         </button>
         <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
           <span class="bottom-bar__avatar">
@@ -366,50 +409,6 @@
     </div>
   </section>
 
-  <section class="music-view" id="musicView" hidden aria-label="Musiqa">
-    <header class="music-topbar">
-      <h1 class="music-topbar__title">Musiqa</h1>
-      <button class="icon-button icon-button--top music-search-btn" type="button" aria-label="Qidirish" id="musicSearchBtn">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M20 20l-3.5-3.5"></path>
-        </svg>
-      </button>
-    </header>
-
-    <div class="music-search-bar" id="musicSearchBar" hidden>
-      <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="11" cy="11" r="7"></circle>
-        <path d="M20 20l-3.5-3.5"></path>
-      </svg>
-      <input id="musicSearchInput" type="search" placeholder="Trek yoki ijrochi qidirish" autocomplete="off" />
-      <button type="button" class="music-search-clear" id="musicSearchClear" aria-label="Tozalash">&times;</button>
-    </div>
-
-    <div class="music-filters">
-      <div class="music-filter-label">Kategoriya</div>
-      <div class="music-filter-row" id="musicCategoryRow"></div>
-      <div class="music-filter-label">Ijrochi</div>
-      <div class="music-filter-row" id="musicArtistRow"></div>
-    </div>
-
-    <div class="music-state music-state--loading" id="musicLoading" hidden>
-      <span class="music-spinner" aria-hidden="true"></span>
-      <span>Yuklanmoqda...</span>
-    </div>
-    <div class="music-state music-state--error" id="musicError" hidden>
-      <strong>Yuklab bo'lmadi</strong>
-      <span id="musicErrorText">Tarmoqni tekshiring va qayta urinib ko'ring.</span>
-      <button type="button" class="music-link" id="musicRetryBtn">Qayta urinish</button>
-    </div>
-    <div class="music-state music-state--empty" id="musicEmpty" hidden>
-      <span>Hech narsa topilmadi</span>
-    </div>
-
-    <ol class="music-list" id="musicList"></ol>
-    <div class="music-view__spacer"></div>
-  </section>
-
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <div class="mini-player" id="miniPlayer" aria-hidden="true">
@@ -433,7 +432,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260512-curated-music"></script>
+  <script src="/static/app.js?v=20260513-music-navbars"></script>
 </body>
 
 </html>
