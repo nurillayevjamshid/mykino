@@ -273,136 +273,125 @@
   </dialog>
 
   <section class="video-player" id="videoPlayer" role="dialog" aria-modal="true" aria-label="Video player" hidden>
-    <header class="video-player__topbar">
-      <button class="video-player__close" type="button" data-video-close aria-label="Orqaga">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m15 18-6-6 6-6"></path>
-        </svg>
-      </button>
-      <div class="video-player__title">
-        <strong id="videoTitle">Kino</strong>
-        <span id="videoSourceLabel">Video manba</span>
+    <div class="video-mount" id="videoMount"></div>
+    <div class="video-brightness-overlay" id="videoBrightnessOverlay" aria-hidden="true"></div>
+
+    <div class="video-loading" id="videoLoading" role="status">
+      <span></span>
+      <b>Video yuklanmoqda...</b>
+    </div>
+
+    <div class="video-fallback" id="videoFallback" hidden>
+      <strong id="videoFallbackText" hidden></strong>
+      <a id="videoExternalLink" target="_blank" rel="noreferrer" hidden>Manbani ochish</a>
+    </div>
+
+    <div class="player-overlay" id="playerOverlay" data-visible="true">
+      <button class="player-overlay__tap" id="videoTapZone" type="button" aria-label="Toggle controls"></button>
+
+      <div class="player-overlay__top">
+        <div class="player-overlay__title-wrap">
+          <strong class="player-overlay__title" id="videoTitle">Kino</strong>
+          <span class="sr-only" id="videoSourceLabel">Video manba</span>
+        </div>
+        <button class="player-overlay__icon-btn" type="button" data-video-close aria-label="Yopish">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
       </div>
-      <button class="video-player__close" type="button" data-video-close aria-label="Yopish">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M18 6 6 18"></path>
-          <path d="m6 6 12 12"></path>
-        </svg>
-      </button>
-    </header>
 
-    <div class="video-player__stage">
-      <div class="video-loading" id="videoLoading" role="status">
-        <span></span>
-        <b>Video yuklanmoqda...</b>
+      <div class="player-overlay__brightness">
+        <svg class="player-overlay__brightness-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+        </svg>
+        <input class="player-overlay__brightness-range" id="videoBrightness" type="range" min="20" max="100" value="100" step="1" aria-label="Brightness" orient="vertical" />
       </div>
 
-      <div class="video-mount" id="videoMount"></div>
+      <div class="player-overlay__center">
+        <button class="player-center-btn" id="videoBackButton" type="button" aria-label="-10 soniya">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M24 8a16 16 0 1 0 11.31 4.69"></path>
+            <path d="M24 2 18 8l6 6"></path>
+          </svg>
+          <span class="player-center-btn__num">10</span>
+        </button>
+        <button class="player-center-btn player-center-btn--primary" id="videoToggleButton" type="button" data-state="play" aria-label="Play">
+          <svg class="icon-state icon-state--play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M8 5v14l11-7z"></path>
+          </svg>
+          <svg class="icon-state icon-state--pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M6 5h4v14H6zM14 5h4v14h-4z"></path>
+          </svg>
+        </button>
+        <button class="player-center-btn" id="videoForwardButton" type="button" aria-label="+10 soniya">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M24 8a16 16 0 1 1-11.31 4.69"></path>
+            <path d="M24 2l6 6-6 6"></path>
+          </svg>
+          <span class="player-center-btn__num">10</span>
+        </button>
+      </div>
 
-      <button class="video-player__center-action" id="videoCenterAction" type="button" hidden aria-label="Play">
-        <svg class="icon-svg icon-svg--solid" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m8 6 10 6-10 6z"></path>
-        </svg>
-      </button>
-
-      <div class="video-player__controls glass-panel" id="videoControls" hidden>
-        <div class="video-progress-panel">
+      <div class="player-overlay__bottom">
+        <div class="player-overlay__progress">
+          <input class="video-progress__range" id="videoSeek" type="range" min="0" max="1000" value="0" step="1" aria-label="Video progress" />
           <span class="video-time" id="videoCurrentTime">0:00</span>
-          <input class="video-progress__range" id="videoSeek" type="range" min="0" max="1000" value="0" step="1"
-            aria-label="Video progress" />
+          <span class="video-time-sep">/</span>
           <span class="video-time" id="videoDuration">0:00</span>
         </div>
-
-        <div class="video-command-row">
-          <div class="video-volume-pill">
-            <button class="player-inline-button" id="videoMuteButton" type="button" aria-label="Mute"
-              data-state="sound">
-              <svg class="icon-svg icon-state icon-state--sound" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M11 5 6 9H3v6h3l5 4z"></path>
-                <path d="M16 9a5 5 0 0 1 0 6"></path>
-                <path d="M18.5 6.5a8.5 8.5 0 0 1 0 11"></path>
-              </svg>
-              <svg class="icon-svg icon-state icon-state--mute" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M11 5 6 9H3v6h3l5 4z"></path>
-                <path d="m16 9 5 6"></path>
-                <path d="m21 9-5 6"></path>
-              </svg>
-            </button>
-            <input class="video-volume__range" id="videoVolume" type="range" min="0" max="100" value="100" step="1"
-              aria-label="Volume" />
-            <span class="video-volume__value" id="videoVolumeValue">100%</span>
-          </div>
-
-          <div class="video-main-controls">
-            <button class="player-icon-button" id="videoBackButton" type="button" aria-label="-10 sekund">
-              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M11 8 7 12l4 4"></path>
-                <path d="M5 12a7 7 0 1 0 2-4.9"></path>
-              </svg>
-              <span class="player-icon-button__badge">10</span>
-            </button>
-            <button class="player-icon-button player-icon-button--primary" id="videoToggleButton" type="button"
-              aria-label="Play" data-state="play">
-              <svg class="icon-svg icon-svg--solid icon-state icon-state--play" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m8 6 10 6-10 6z"></path>
-              </svg>
-              <svg class="icon-svg icon-svg--solid icon-state icon-state--pause" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6h2v12H9z"></path>
-                <path d="M13 6h2v12h-2z"></path>
-              </svg>
-            </button>
-            <button class="player-icon-button" id="videoForwardButton" type="button" aria-label="+10 sekund">
-              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m13 8 4 4-4 4"></path>
-                <path d="M19 12a7 7 0 1 1-2-4.9"></path>
-              </svg>
-              <span class="player-icon-button__badge">10</span>
-            </button>
-          </div>
-
-          <div class="video-extra-controls">
-            <button class="player-inline-button" id="videoPrevButton" type="button" aria-label="Oldingi kino">
-              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M11 19 2 12l9-7v14z"></path>
-                <path d="M22 19 13 12l9-7v14z"></path>
-              </svg>
-            </button>
-            <button class="player-inline-button" id="videoNextButton" type="button" aria-label="Keyingi kino">
-              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m13 5 9 7-9 7V5z"></path>
-                <path d="m2 5 9 7-9 7V5z"></path>
-              </svg>
-            </button>
-            <label class="video-speed-wrap">
-              <span class="sr-only">Speed</span>
-              <select class="video-speed" id="videoSpeed" aria-label="Speed">
-                <option value="1">1x</option>
-              </select>
-            </label>
-            <button class="player-inline-button" id="videoFullscreenButton" type="button" aria-label="Full"
-              data-state="enter">
-              <svg class="icon-svg icon-state icon-state--enter" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8 3H4v4"></path>
-                <path d="M16 3h4v4"></path>
-                <path d="M4 16v5h4"></path>
-                <path d="M20 16v5h-4"></path>
-              </svg>
-              <svg class="icon-svg icon-state icon-state--exit" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 9H4V4"></path>
-                <path d="M15 9h5V4"></path>
-                <path d="M4 20v-5h5"></path>
-                <path d="M20 20v-5h-5"></path>
-              </svg>
-            </button>
-          </div>
+        <div class="player-overlay__actions">
+          <button class="player-action-btn" id="videoSpeedButton" type="button" aria-label="Speed">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3a9 9 0 1 0 9 9"></path>
+              <path d="M12 7v5l3 3"></path>
+            </svg>
+            <span>Speed <em id="videoSpeedLabel">(1x)</em></span>
+          </button>
+          <button class="player-action-btn" id="videoLockButton" type="button" aria-label="Lock screen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="4" y="11" width="16" height="10" rx="2"></rect>
+              <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+            </svg>
+            <span>Lock</span>
+          </button>
+          <button class="player-action-btn" id="videoAudioButton" type="button" aria-label="Audio &amp; Subtitles">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+              <path d="M7 15h3M14 15h3M7 11h10"></path>
+            </svg>
+            <span>Audio &amp; Subtitles</span>
+          </button>
+          <button class="player-action-btn" id="videoFullscreenButton" type="button" aria-label="Fullscreen" data-state="enter">
+            <svg class="icon-state icon-state--enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 3H4v4"></path>
+              <path d="M16 3h4v4"></path>
+              <path d="M4 16v5h4"></path>
+              <path d="M20 16v5h-4"></path>
+            </svg>
+            <svg class="icon-state icon-state--exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 9H4V4"></path>
+              <path d="M15 9h5V4"></path>
+              <path d="M4 20v-5h5"></path>
+              <path d="M20 20v-5h-5"></path>
+            </svg>
+            <span>Fullscreen</span>
+          </button>
         </div>
       </div>
-
-      <div class="video-fallback" id="videoFallback" hidden>
-        <strong id="videoFallbackText" hidden></strong>
-        <a id="videoExternalLink" target="_blank" rel="noreferrer" hidden>Manbani ochish</a>
-      </div>
     </div>
+
+    <button class="player-lock-release" id="videoLockRelease" type="button" hidden aria-label="Unlock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="11" width="16" height="10" rx="2"></rect>
+        <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+      </svg>
+      <span>Unlock</span>
+    </button>
+
+    <div class="player-toast" id="playerToast" hidden></div>
   </section>
 
   <script src="https://www.youtube.com/iframe_api"></script>
