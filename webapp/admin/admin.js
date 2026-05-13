@@ -1148,10 +1148,11 @@ async function fetchMusic() {
   renderMusicTable();
   const summary = document.getElementById('musicStorageSummary');
   if (summary) {
-    summary.textContent = storage === 'kv'
-      ? `Persistent KV ulangan · ${musicTracks.length} ta qo'shiq`
-      : `Faqat seed (KV sozlanmagan) · ${musicTracks.length} ta qo'shiq`;
-    summary.style.color = storage === 'kv' ? '#3ecf8e' : '#ffb84d';
+    const isPersistent = storage === 'redis' || storage === 'kv';
+    summary.textContent = isPersistent
+      ? `Persistent Redis ulangan · ${musicTracks.length} ta qo'shiq`
+      : `Faqat seed (Redis sozlanmagan) · ${musicTracks.length} ta qo'shiq`;
+    summary.style.color = isPersistent ? '#3ecf8e' : '#ffb84d';
   }
 }
 
