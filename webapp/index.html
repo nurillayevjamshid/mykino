@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260513-music-redesign" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260513-music-cat-cards" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -133,20 +133,11 @@
         <div class="music-carousel__dots" id="musicCarouselDots"></div>
       </section>
 
-      <div class="music-search-bar" id="musicSearchBar">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M20 20l-3.5-3.5"></path>
-        </svg>
-        <input id="musicSearchInput" type="search" placeholder="Trek yoki ijrochi qidirish" autocomplete="off" />
-        <button type="button" class="music-search-clear" id="musicSearchClear" aria-label="Tozalash">&times;</button>
-      </div>
-
       <div class="music-filters">
         <div class="music-filter-label">Kategoriya</div>
-        <div class="music-filter-row" id="musicCategoryRow"></div>
+        <div class="music-card-row" id="musicCategoryRow"></div>
         <div class="music-filter-label">Ijrochi</div>
-        <div class="music-filter-row" id="musicArtistRow"></div>
+        <div class="music-card-row" id="musicArtistRow"></div>
       </div>
 
       <div class="music-state music-state--loading" id="musicLoading" hidden>
@@ -479,7 +470,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260513-music-redesign"></script>
+  <script src="/static/app.js?v=20260513-music-cat-cards"></script>
 </body>
 
 </html>

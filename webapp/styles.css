@@ -5773,6 +5773,73 @@ body.is-music .bottom-bar__button--music-only { display: flex; }
   box-shadow: 0 6px 14px -8px rgba(76,89,227,0.7);
 }
 
+.music-card-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px 2px 8px;
+  scroll-snap-type: x mandatory;
+}
+.music-card-row::-webkit-scrollbar { display: none; }
+
+.music-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: 170px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: #14141d;
+  cursor: pointer;
+  scroll-snap-align: start;
+  padding: 0;
+  isolation: isolate;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.music-card:active { transform: scale(0.97); }
+.music-card__img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: #1c1d2b;
+  transition: transform 0.3s ease;
+}
+.music-card:hover .music-card__img { transform: scale(1.06); }
+.music-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10,10,16,0) 30%, rgba(10,10,16,0.85) 100%);
+}
+.music-card__label {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.music-card.is-active {
+  border-color: #6c7cff;
+  box-shadow: 0 8px 20px -10px rgba(108,124,255,0.85), 0 0 0 2px rgba(108,124,255,0.45);
+}
+.music-card.is-active .music-card__overlay {
+  background: linear-gradient(180deg, rgba(76,89,227,0.18) 0%, rgba(10,10,16,0.85) 100%);
+}
+
 .music-list {
   list-style: none;
   margin: 8px 16px 0;
@@ -6318,6 +6385,13 @@ html[data-theme="light"] .music-chip {
   color: #1a1d2e;
 }
 html[data-theme="light"] .music-filter-label { color: #5a6076; }
+html[data-theme="light"] .music-card {
+  background: #f1f3fa;
+  border-color: rgba(15,23,42,0.08);
+}
+html[data-theme="light"] .music-card.is-active {
+  box-shadow: 0 8px 20px -10px rgba(76,89,227,0.6), 0 0 0 2px rgba(108,124,255,0.5);
+}
 html[data-theme="light"] .music-search-bar {
   background: rgba(15,23,42,0.05);
   border-color: rgba(15,23,42,0.08);
