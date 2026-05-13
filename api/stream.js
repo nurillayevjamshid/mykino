@@ -46,3 +46,5 @@ module.exports = async function handler(request, response) {
     });
   }
 };
+
+module.exports.config = { maxDuration: 60 };
