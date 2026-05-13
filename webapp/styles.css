@@ -5211,11 +5211,12 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
 .music-view {
   background: #0a0a10;
   color: #f5f6fa;
-  padding: 8px 0 24px;
+  padding: 0 0 24px;
   font-family: inherit;
   border-radius: 18px;
-  margin: 0 0 12px;
+  margin: calc(var(--topbar-top) + var(--topbar-height) + 5px) 0 12px;
 }
+.music-view > :first-child { margin-top: 0 !important; }
 .music-view[hidden] { display: none; }
 body.is-music .hero,
 body.is-music .movie-grid,
