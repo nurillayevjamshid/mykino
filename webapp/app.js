@@ -280,21 +280,29 @@ const videoFallbackText = document.querySelector("#videoFallbackText");
 const videoExternalLink = document.querySelector("#videoExternalLink");
 const videoTitle = document.querySelector("#videoTitle");
 const videoSourceLabel = document.querySelector("#videoSourceLabel");
-const videoControls = document.querySelector("#videoControls");
-const videoCenterAction = document.querySelector("#videoCenterAction");
-const videoPrevButton = document.querySelector("#videoPrevButton");
 const videoBackButton = document.querySelector("#videoBackButton");
 const videoToggleButton = document.querySelector("#videoToggleButton");
 const videoForwardButton = document.querySelector("#videoForwardButton");
-const videoNextButton = document.querySelector("#videoNextButton");
-const videoSpeed = document.querySelector("#videoSpeed");
-const videoMuteButton = document.querySelector("#videoMuteButton");
 const videoFullscreenButton = document.querySelector("#videoFullscreenButton");
 const videoSeek = document.querySelector("#videoSeek");
 const videoCurrentTime = document.querySelector("#videoCurrentTime");
 const videoDuration = document.querySelector("#videoDuration");
-const videoVolume = document.querySelector("#videoVolume");
-const videoVolumeValue = document.querySelector("#videoVolumeValue");
+const videoBrightness = document.querySelector("#videoBrightness");
+const videoBrightnessOverlay = document.querySelector("#videoBrightnessOverlay");
+const videoSpeedButton = document.querySelector("#videoSpeedButton");
+const videoSpeedLabel = document.querySelector("#videoSpeedLabel");
+const videoLockButton = document.querySelector("#videoLockButton");
+const videoLockRelease = document.querySelector("#videoLockRelease");
+const videoAudioButton = document.querySelector("#videoAudioButton");
+const playerOverlay = document.querySelector("#playerOverlay");
+const videoTapZone = document.querySelector("#videoTapZone");
+const playerToast = document.querySelector("#playerToast");
+
+const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+let currentSpeed = 1;
+let isPlayerLocked = false;
+let controlsHideTimer = null;
+let toastHideTimer = null;
 
 function t(key) {
   return copy[lang][key] || fallbackCopy[key] || key;
@@ -1519,28 +1527,15 @@ function clearYouTubeAutoAdvanceTimer() {
 
 function setCustomVideoMode(isActive) {
   videoMount.classList.toggle("is-youtube-custom", isActive);
-  videoControls.hidden = !isActive;
-  videoCenterAction.hidden = !isActive;
   if (!isActive) {
-    setControlLabel(videoPrevButton, plainLabel(t("previous")));
-    videoPrevButton.disabled = true;
-    setControlLabel(videoBackButton, plainLabel(t("back10")));
+    setControlLabel(videoBackButton, "-10s");
     setStateLabel(videoToggleButton, "play", plainLabel(t("play")));
-    setControlLabel(videoForwardButton, plainLabel(t("forward10")));
-    setControlLabel(videoNextButton, plainLabel(t("next")));
-    videoNextButton.disabled = true;
-    setStateLabel(videoMuteButton, "sound", plainLabel(t("mute")));
+    setControlLabel(videoForwardButton, "+10s");
     setStateLabel(videoFullscreenButton, document.fullscreenElement ? "exit" : "enter", plainLabel(document.fullscreenElement ? t("exitFull") : t("full")));
-    setControlLabel(videoCenterAction, plainLabel(t("play")));
     videoSeek.value = "0";
-    videoSpeed.innerHTML = '<option value="1">1x</option>';
-    videoSpeed.setAttribute("aria-label", plainLabel(t("speed")));
-    videoVolume.value = "100";
-    videoVolumeValue.textContent = "100%";
     videoCurrentTime.textContent = "0:00";
     videoDuration.textContent = "0:00";
     setRangeFill(videoSeek, 0, 1000);
-    setRangeFill(videoVolume, 100, 100);
     isAdjustingSeek = false;
     pendingSeekTime = 0;
   }
@@ -1560,35 +1555,137 @@ function syncFullscreenButton() {
 }
 
 function syncPlaylistNavigationButtons() {
-  const currentIndex = findMovieIndex(activeMovie);
-  const visibleMovies = getViewerMovies();
-  videoPrevButton.disabled = currentIndex <= 0;
-  videoNextButton.disabled = currentIndex === -1 || currentIndex >= visibleMovies.length - 1;
-  setControlLabel(videoPrevButton, plainLabel(t("previous")));
-  setControlLabel(videoNextButton, plainLabel(t("next")));
+  // playlist navigation removed (no prev/next buttons in new player UI)
 }
 
 function syncSpeedOptions() {
-  const rates = activeYouTubePlayer?.getAvailablePlaybackRates?.() || [1];
-  const uniqueRates = [...new Set(rates.map((rate) => Number(rate)).filter((rate) => Number.isFinite(rate) && rate > 0))];
-  const safeRates = uniqueRates.length ? uniqueRates.sort((a, b) => a - b) : [1];
-  const currentRate = Number(activeYouTubePlayer?.getPlaybackRate?.() || 1);
-  const existingValues = [...videoSpeed.options].map((option) => option.value);
-  const nextValues = safeRates.map((rate) => String(rate));
+  updateSpeedLabel();
+}
 
-  if (existingValues.join("|") === nextValues.join("|")) {
-    videoSpeed.value = nextValues.includes(String(currentRate)) ? String(currentRate) : nextValues[0];
-    return;
-  }
+function updateSpeedLabel() {
+  if (!videoSpeedLabel) return;
+  const formatted = Number.isInteger(currentSpeed) ? `${currentSpeed}x` : `${currentSpeed}x`;
+  videoSpeedLabel.textContent = `(${formatted})`;
+}
 
-  videoSpeed.innerHTML = "";
-  for (const rate of safeRates) {
-    const option = document.createElement("option");
-    option.value = String(rate);
-    option.textContent = `${rate}x`;
-    if (Math.abs(rate - currentRate) < 0.001) option.selected = true;
-    videoSpeed.append(option);
+function cycleSpeed() {
+  const idx = SPEED_OPTIONS.indexOf(currentSpeed);
+  const nextIdx = (idx + 1) % SPEED_OPTIONS.length;
+  currentSpeed = SPEED_OPTIONS[nextIdx];
+  playerCore.setRate(currentSpeed);
+  updateSpeedLabel();
+  showPlayerToast(`${currentSpeed}x`);
+}
+
+function getActiveVideoEl() {
+  return videoMount.querySelector("video");
+}
+
+const playerCore = {
+  isYouTube() { return Boolean(activeYouTubePlayer); },
+  el() { return getActiveVideoEl(); },
+  togglePlay() {
+    if (this.isYouTube()) return toggleYouTubePlayback();
+    const v = this.el();
+    if (!v) return;
+    if (v.paused) v.play().catch(() => {}); else v.pause();
+  },
+  seekBy(delta) {
+    if (this.isYouTube()) return seekYouTubeBy(delta);
+    const v = this.el();
+    if (!v) return;
+    const duration = Number(v.duration) || 0;
+    const next = Math.max(0, duration ? Math.min(duration, v.currentTime + delta) : v.currentTime + delta);
+    v.currentTime = next;
+  },
+  setRate(rate) {
+    if (this.isYouTube()) { activeYouTubePlayer?.setPlaybackRate?.(rate); return; }
+    const v = this.el();
+    if (v) v.playbackRate = rate;
+  },
+  getCurrent() {
+    if (this.isYouTube()) return Number(activeYouTubePlayer?.getCurrentTime?.() || 0);
+    return Number(this.el()?.currentTime || 0);
+  },
+  getDuration() {
+    if (this.isYouTube()) return Number(activeYouTubePlayer?.getDuration?.() || 0);
+    return Number(this.el()?.duration || 0);
+  },
+  seekTo(seconds) {
+    if (this.isYouTube()) { activeYouTubePlayer?.seekTo?.(seconds, true); return; }
+    const v = this.el();
+    if (v) v.currentTime = seconds;
+  },
+  isPaused() {
+    if (this.isYouTube()) {
+      const state = Number(activeYouTubePlayer?.getPlayerState?.() ?? -1);
+      return state !== 1;
+    }
+    const v = this.el();
+    return !v || v.paused;
+  },
+};
+
+function updateHtml5VideoControls() {
+  const v = getActiveVideoEl();
+  if (!v || activeYouTubePlayer) return;
+  const duration = Number(v.duration) || 0;
+  const currentTime = isAdjustingSeek ? pendingSeekTime : Number(v.currentTime) || 0;
+  const progressValue = duration ? Math.max(0, Math.min(1000, Math.round((currentTime / duration) * 1000))) : 0;
+  if (!isAdjustingSeek) videoSeek.value = String(progressValue);
+  videoCurrentTime.textContent = formatPlaybackTime(currentTime);
+  videoDuration.textContent = formatPlaybackTime(duration);
+  setRangeFill(videoSeek, progressValue, 1000);
+  const isPlaying = !v.paused && !v.ended;
+  setStateLabel(videoToggleButton, isPlaying ? "pause" : "play", plainLabel(isPlaying ? t("pause") : t("play")));
+  syncFullscreenButton();
+  if (activeMovie && duration) {
+    const rounded = Math.floor(currentTime);
+    if (rounded !== lastSavedProgressSecond && rounded % 5 === 0) {
+      lastSavedProgressSecond = rounded;
+      saveMovieProgress(activeMovie, currentTime, duration);
+    }
   }
+}
+
+function applyBrightness(value) {
+  const normalized = Math.max(0.2, Math.min(1, Number(value) / 100));
+  videoPlayer.style.setProperty("--player-brightness", String(normalized));
+}
+
+function setPlayerLocked(locked) {
+  isPlayerLocked = Boolean(locked);
+  videoPlayer.classList.toggle("is-locked", isPlayerLocked);
+  if (videoLockRelease) videoLockRelease.hidden = !isPlayerLocked;
+  if (isPlayerLocked) {
+    setControlsVisible(false);
+  } else {
+    setControlsVisible(true);
+    scheduleControlsHide();
+  }
+}
+
+function setControlsVisible(visible) {
+  if (!playerOverlay) return;
+  playerOverlay.dataset.visible = visible ? "true" : "false";
+  if (visible) scheduleControlsHide();
+}
+
+function scheduleControlsHide() {
+  if (controlsHideTimer) window.clearTimeout(controlsHideTimer);
+  controlsHideTimer = window.setTimeout(() => {
+    if (!isPlayerLocked && !playerCore.isPaused()) {
+      setControlsVisible(false);
+    }
+  }, 3500);
+}
+
+function showPlayerToast(message) {
+  if (!playerToast) return;
+  playerToast.textContent = message;
+  playerToast.hidden = false;
+  if (toastHideTimer) window.clearTimeout(toastHideTimer);
+  toastHideTimer = window.setTimeout(() => { playerToast.hidden = true; }, 1200);
 }
 
 function syncActiveMovieProgress(force = false) {
@@ -1619,22 +1716,15 @@ function updateYouTubeControls() {
   const isMuted = Boolean(activeYouTubePlayer.isMuted?.()) || currentVolume === 0;
 
   if (!isAdjustingSeek) videoSeek.value = String(progressValue);
-  videoVolume.value = String(currentVolume);
-  videoVolumeValue.textContent = `${currentVolume}%`;
   videoCurrentTime.textContent = formatPlaybackTime(currentTime);
   videoDuration.textContent = formatPlaybackTime(duration);
   setRangeFill(videoSeek, progressValue, 1000);
-  setRangeFill(videoVolume, currentVolume, 100);
-  setControlLabel(videoBackButton, plainLabel(t("back10")));
   setStateLabel(videoToggleButton, isPlaying ? "pause" : "play", plainLabel(isPlaying ? t("pause") : t("play")));
-  setControlLabel(videoForwardButton, plainLabel(t("forward10")));
-  setControlLabel(videoCenterAction, plainLabel(t("play")));
-  videoCenterAction.hidden = isPlaying;
-  setStateLabel(videoMuteButton, isMuted ? "mute" : "sound", plainLabel(isMuted ? t("unmute") : t("mute")));
   syncFullscreenButton();
-  syncPlaylistNavigationButtons();
-  if ([...videoSpeed.options].some((option) => option.value === String(Number(activeYouTubePlayer.getPlaybackRate?.() || 1)))) {
-    videoSpeed.value = String(Number(activeYouTubePlayer.getPlaybackRate?.() || 1));
+  const ytRate = Number(activeYouTubePlayer.getPlaybackRate?.() || 1);
+  if (Math.abs(ytRate - currentSpeed) > 0.001 && SPEED_OPTIONS.includes(ytRate)) {
+    currentSpeed = ytRate;
+    updateSpeedLabel();
   }
   syncActiveMovieProgress();
 }
@@ -1724,9 +1814,6 @@ function updateYouTubeVolume(value) {
   activeYouTubePlayer.setVolume(safeVolume);
   if (safeVolume === 0) activeYouTubePlayer.mute();
   else activeYouTubePlayer.unMute();
-  videoVolume.value = String(safeVolume);
-  videoVolumeValue.textContent = `${safeVolume}%`;
-  setRangeFill(videoVolume, safeVolume, 100);
   updateYouTubeControls();
 }
 
@@ -1753,7 +1840,7 @@ function toggleVideoFullscreen() {
     document.exitFullscreen?.();
     return;
   }
-  videoMount.requestFullscreen?.();
+  videoPlayer.requestFullscreen?.();
 }
 
 async function mountYouTubePlayer(videoUrl, movie, options = {}) {
@@ -1804,7 +1891,7 @@ async function mountYouTubePlayer(videoUrl, movie, options = {}) {
           setVideoLoading(false);
           lastSavedProgressSecond = -1;
           startYouTubeProgressTimer();
-          activeYouTubePlayer.setVolume(Number(videoVolume.value || 100));
+          activeYouTubePlayer.setVolume(100);
           syncSpeedOptions();
           syncPlaylistNavigationButtons();
           if (pendingResumeTime >= WATCH_PROGRESS_MIN_SECONDS) {
@@ -1859,7 +1946,7 @@ function createVideoElement(src, movie, options = {}) {
   } = normalizedOptions;
   const video = document.createElement("video");
   video.src = src;
-  video.controls = true;
+  video.controls = false;
   video.playsInline = true;
   video.preload = preload;
   video.autoplay = true;
@@ -1867,6 +1954,17 @@ function createVideoElement(src, movie, options = {}) {
   video.setAttribute("playsinline", "");
   video.setAttribute("webkit-playsinline", "");
   video.setAttribute("controlsList", "nodownload");
+  video.addEventListener("timeupdate", updateHtml5VideoControls);
+  video.addEventListener("play", () => { setStateLabel(videoToggleButton, "pause", plainLabel(t("pause"))); scheduleControlsHide(); });
+  video.addEventListener("pause", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); });
+  video.addEventListener("ended", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); });
+  video.addEventListener("loadedmetadata", () => { video.playbackRate = currentSpeed; updateHtml5VideoControls(); });
+  video.addEventListener("ratechange", () => {
+    if (Math.abs(video.playbackRate - currentSpeed) > 0.001 && SPEED_OPTIONS.includes(video.playbackRate)) {
+      currentSpeed = video.playbackRate;
+      updateSpeedLabel();
+    }
+  });
   let startupDone = false;
   let fallbackMounted = false;
   const finishStartup = () => {
@@ -2065,6 +2163,11 @@ async function openVideoPlayer(movie) {
   videoTitle.textContent = movie.title || "Kino";
   videoPlayer.hidden = false;
   document.body.classList.add("is-player-open");
+  currentSpeed = 1;
+  updateSpeedLabel();
+  setPlayerLocked(false);
+  if (videoBrightness) { videoBrightness.value = "100"; applyBrightness(100); }
+  setControlsVisible(true);
 
   const youtubeUrl = getYouTubeVideoUrl(movie);
   if (youtubeUrl) {
@@ -2122,6 +2225,11 @@ async function openVideoPlayer(movie) {
 function closeVideoPlayer() {
   activeVideoRequest += 1;
   clearVideoLoadTimer();
+  if (controlsHideTimer) { window.clearTimeout(controlsHideTimer); controlsHideTimer = null; }
+  if (toastHideTimer) { window.clearTimeout(toastHideTimer); toastHideTimer = null; }
+  setPlayerLocked(false);
+  if (playerToast) playerToast.hidden = true;
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
   destroyYouTubePlayer();
   const video = videoMount.querySelector("video");
   const iframe = videoMount.querySelector("iframe");
@@ -2258,14 +2366,9 @@ function applyCopy() {
     if (label) label.textContent = t("videoLoading");
   }
   if (videoExternalLink) videoExternalLink.textContent = t("openSource");
-  setControlLabel(videoPrevButton, plainLabel(t("previous")));
-  setControlLabel(videoBackButton, plainLabel(t("back10")));
+  setControlLabel(videoBackButton, "-10s");
   setStateLabel(videoToggleButton, videoToggleButton.dataset.state || "play", plainLabel(t("play")));
-  setControlLabel(videoCenterAction, plainLabel(t("play")));
-  setControlLabel(videoForwardButton, plainLabel(t("forward10")));
-  setControlLabel(videoNextButton, plainLabel(t("next")));
-  setStateLabel(videoMuteButton, videoMuteButton.dataset.state || "sound", plainLabel(t("mute")));
-  videoSpeed.setAttribute("aria-label", plainLabel(t("speed")));
+  setControlLabel(videoForwardButton, "+10s");
   syncFullscreenButton();
   const footerTagline = document.querySelector("#footerTagline");
   if (footerTagline) footerTagline.textContent = plainLabel(t("footerTagline"));
@@ -2274,7 +2377,6 @@ function applyCopy() {
   profileName.textContent = plainLabel(t("profile"));
   document.documentElement.lang = lang;
   setRangeFill(videoSeek, Number(videoSeek.value || 0), 1000);
-  setRangeFill(videoVolume, Number(videoVolume.value || 100), 100);
 
   applyTelegramUser();
   renderCategories();
@@ -2900,18 +3002,47 @@ movieModal?.addEventListener("close", () => {
 });
 
 document.querySelector("[data-close-profile]").addEventListener("click", () => profileModal.close());
-videoToggleButton.addEventListener("click", toggleYouTubePlayback);
-videoCenterAction.addEventListener("click", toggleYouTubePlayback);
-videoPrevButton.addEventListener("click", () => playMovieAtIndex(findMovieIndex(activeMovie) - 1));
-videoBackButton.addEventListener("click", () => seekYouTubeBy(-10));
-videoForwardButton.addEventListener("click", () => seekYouTubeBy(10));
-videoNextButton.addEventListener("click", () => playNextMovie());
-videoMuteButton.addEventListener("click", toggleYouTubeMute);
-videoFullscreenButton.addEventListener("click", toggleVideoFullscreen);
+videoToggleButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.togglePlay(); setControlsVisible(true); });
+videoBackButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(-10); setControlsVisible(true); });
+videoForwardButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(10); setControlsVisible(true); });
+videoFullscreenButton.addEventListener("click", (e) => { e.stopPropagation(); toggleVideoFullscreen(); setControlsVisible(true); });
+videoSpeedButton?.addEventListener("click", (e) => { e.stopPropagation(); cycleSpeed(); setControlsVisible(true); });
+videoLockButton?.addEventListener("click", (e) => { e.stopPropagation(); setPlayerLocked(true); showPlayerToast("Bloklandi"); });
+videoLockRelease?.addEventListener("click", (e) => { e.stopPropagation(); setPlayerLocked(false); });
+videoAudioButton?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setControlsVisible(true);
+  const v = getActiveVideoEl();
+  const textTracks = v?.textTracks;
+  const tracks = textTracks ? Array.from(textTracks) : [];
+  if (!tracks.length) {
+    showPlayerToast("Audio/subtitle tayyor emas");
+    return;
+  }
+  let activeIdx = tracks.findIndex((tr) => tr.mode === "showing");
+  if (activeIdx >= 0) tracks[activeIdx].mode = "disabled";
+  const nextIdx = (activeIdx + 1) % (tracks.length + 1);
+  if (nextIdx < tracks.length) {
+    tracks[nextIdx].mode = "showing";
+    showPlayerToast(tracks[nextIdx].label || tracks[nextIdx].language || `Track ${nextIdx + 1}`);
+  } else {
+    showPlayerToast("Subtitle: o'chirildi");
+  }
+});
+videoBrightness?.addEventListener("input", () => {
+  applyBrightness(videoBrightness.value);
+  setControlsVisible(true);
+});
+videoTapZone?.addEventListener("click", (e) => {
+  if (isPlayerLocked) return;
+  e.stopPropagation();
+  const visible = playerOverlay.dataset.visible !== "false";
+  setControlsVisible(!visible);
+});
 videoSeek.addEventListener("input", () => {
   setRangeFill(videoSeek, Number(videoSeek.value || 0), 1000);
-  if (!activeYouTubePlayer) return;
-  const duration = Number(activeYouTubePlayer.getDuration?.() || 0);
+  setControlsVisible(true);
+  const duration = playerCore.getDuration();
   if (!duration) return;
   isAdjustingSeek = true;
   pendingSeekTime = (Number(videoSeek.value) / 1000) * duration;
@@ -2919,28 +3050,13 @@ videoSeek.addEventListener("input", () => {
   videoDuration.textContent = formatPlaybackTime(duration);
 });
 videoSeek.addEventListener("change", () => {
-  if (!activeYouTubePlayer) {
-    isAdjustingSeek = false;
-    return;
-  }
-  const duration = Number(activeYouTubePlayer.getDuration?.() || 0);
-  if (!duration) {
-    isAdjustingSeek = false;
-    return;
-  }
+  const duration = playerCore.getDuration();
+  if (!duration) { isAdjustingSeek = false; return; }
   pendingSeekTime = (Number(videoSeek.value) / 1000) * duration;
-  activeYouTubePlayer.seekTo(pendingSeekTime, true);
+  playerCore.seekTo(pendingSeekTime);
   isAdjustingSeek = false;
-  updateYouTubeControls();
-});
-videoVolume.addEventListener("input", () => {
-  setRangeFill(videoVolume, Number(videoVolume.value || 0), 100);
-  updateYouTubeVolume(videoVolume.value);
-});
-videoSpeed.addEventListener("change", () => {
-  if (!activeYouTubePlayer) return;
-  activeYouTubePlayer.setPlaybackRate(Number(videoSpeed.value));
-  syncSpeedOptions();
+  if (activeYouTubePlayer) updateYouTubeControls();
+  else updateHtml5VideoControls();
 });
 document.addEventListener("fullscreenchange", syncFullscreenButton);
 
