@@ -1549,11 +1549,6 @@ function formatPlaybackTime(seconds) {
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}` : `${minutes}:${String(secs).padStart(2, "0")}`;
 }
 
-function syncFullscreenButton() {
-  const isFullscreen = Boolean(document.fullscreenElement);
-  setStateLabel(videoFullscreenButton, isFullscreen ? "exit" : "enter", plainLabel(isFullscreen ? t("exitFull") : t("full")));
-}
-
 function syncPlaylistNavigationButtons() {
   // playlist navigation removed (no prev/next buttons in new player UI)
 }
@@ -1835,12 +1830,60 @@ function playNextMovie() {
   return playMovieAtIndex(currentIndex + 1);
 }
 
+function getFullscreenElement() {
+  return document.fullscreenElement
+    || document.webkitFullscreenElement
+    || document.webkitCurrentFullScreenElement
+    || document.mozFullScreenElement
+    || document.msFullscreenElement
+    || null;
+}
+
+function exitDocFullscreen() {
+  const fn = document.exitFullscreen
+    || document.webkitExitFullscreen
+    || document.webkitCancelFullScreen
+    || document.mozCancelFullScreen
+    || document.msExitFullscreen;
+  if (fn) {
+    try { Promise.resolve(fn.call(document)).catch(() => {}); } catch {}
+  }
+}
+
+function requestElFullscreen(el) {
+  if (!el) return false;
+  const fn = el.requestFullscreen
+    || el.webkitRequestFullscreen
+    || el.webkitRequestFullScreen
+    || el.mozRequestFullScreen
+    || el.msRequestFullscreen;
+  if (!fn) return false;
+  try {
+    Promise.resolve(fn.call(el)).catch(() => {});
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function toggleVideoFullscreen() {
-  if (document.fullscreenElement) {
-    document.exitFullscreen?.();
+  if (getFullscreenElement()) {
+    exitDocFullscreen();
     return;
   }
-  videoPlayer.requestFullscreen?.();
+  if (requestElFullscreen(videoPlayer)) return;
+  const v = getActiveVideoEl();
+  if (v?.webkitEnterFullscreen) {
+    try { v.webkitEnterFullscreen(); } catch {}
+    return;
+  }
+  if (requestElFullscreen(v)) return;
+  showPlayerToast("Fullscreen qo'llab-quvvatlanmaydi");
+}
+
+function syncFullscreenButton() {
+  const isFullscreen = Boolean(getFullscreenElement());
+  setStateLabel(videoFullscreenButton, isFullscreen ? "exit" : "enter", plainLabel(isFullscreen ? t("exitFull") : t("full")));
 }
 
 async function mountYouTubePlayer(videoUrl, movie, options = {}) {
@@ -3058,6 +3101,9 @@ videoSeek.addEventListener("change", () => {
   else updateHtml5VideoControls();
 });
 document.addEventListener("fullscreenchange", syncFullscreenButton);
+document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
+document.addEventListener("mozfullscreenchange", syncFullscreenButton);
+document.addEventListener("MSFullscreenChange", syncFullscreenButton);
 
 document.addEventListener("click", (event) => {
   const watchTarget = event.target.closest("#watchButton");
