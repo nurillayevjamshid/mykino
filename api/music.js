@@ -3,23 +3,29 @@ const path = require("path");
 const { setCors } = require("./_lib/google-drive");
 
 const SEED_FILE = path.join(process.cwd(), "data", "music.json");
-const KV_KEY = "music:tracks:v1";
+const REDIS_KEY = "music:tracks:v1";
 
-let kvClient = null;
-function getKv() {
-  if (kvClient !== null) return kvClient;
-  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-    kvClient = false;
-    return false;
+let redisPromise = null;
+async function getRedis() {
+  const url = process.env.REDIS_URL || process.env.KV_URL || "";
+  if (!url) return null;
+  if (redisPromise) {
+    try { const c = await redisPromise; if (c?.isOpen) return c; } catch (_) {}
+    redisPromise = null;
   }
+  redisPromise = (async () => {
+    const { createClient } = require("redis");
+    const client = createClient({ url });
+    client.on("error", (err) => console.error("redis error:", err.message));
+    await client.connect();
+    return client;
+  })();
   try {
-    const { kv } = require("@vercel/kv");
-    kvClient = kv;
-    return kv;
+    return await redisPromise;
   } catch (err) {
-    console.warn("@vercel/kv yuklanmadi:", err.message);
-    kvClient = false;
-    return false;
+    console.warn("redis ulanishi muvaffaqiyatsiz:", err.message);
+    redisPromise = null;
+    return null;
   }
 }
 
@@ -78,34 +84,36 @@ function dedupe(tracks) {
   return Array.from(seen.values());
 }
 
-async function readKvTracks() {
-  const kv = getKv();
-  if (!kv) return null;
+async function readRedisTracks() {
+  const client = await getRedis();
+  if (!client) return null;
   try {
-    const value = await kv.get(KV_KEY);
-    if (Array.isArray(value)) return value.map(normalize).filter(Boolean);
+    const raw = await client.get(REDIS_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list.map(normalize).filter(Boolean) : [];
   } catch (err) {
-    console.warn("KV get xatolik:", err.message);
+    console.warn("redis get xatolik:", err.message);
+    return null;
   }
-  return null;
 }
 
-async function writeKvTracks(list) {
-  const kv = getKv();
-  if (!kv) return false;
+async function writeRedisTracks(list) {
+  const client = await getRedis();
+  if (!client) return false;
   try {
-    await kv.set(KV_KEY, list);
+    await client.set(REDIS_KEY, JSON.stringify(list));
     return true;
   } catch (err) {
-    console.warn("KV set xatolik:", err.message);
+    console.warn("redis set xatolik:", err.message);
     return false;
   }
 }
 
 async function loadAll() {
   const seed = readSeed().map(normalize).filter(Boolean);
-  const kvList = await readKvTracks();
-  if (kvList) return dedupe([...seed, ...kvList]);
+  const stored = await readRedisTracks();
+  if (stored) return dedupe([...seed, ...stored]);
   return dedupe(seed);
 }
 
@@ -120,6 +128,10 @@ async function readBody(request) {
   return raw ? JSON.parse(raw) : {};
 }
 
+function isRedisEnabled() {
+  return Boolean(process.env.REDIS_URL || process.env.KV_URL);
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
   if (request.method === "OPTIONS") { response.status(204).end(); return; }
@@ -128,8 +140,7 @@ module.exports = async function handler(request, response) {
   if (request.method === "GET") {
     try {
       const tracks = await loadAll();
-      const kvOn = Boolean(getKv());
-      response.status(200).json({ ok: true, tracks, storage: kvOn ? "kv" : "seed" });
+      response.status(200).json({ ok: true, tracks, storage: isRedisEnabled() ? "redis" : "seed" });
     } catch (err) {
       response.status(500).json({ ok: false, code: "MUSIC_LOAD_FAILED", error: err.message || "Yuklab bo'lmadi." });
     }
@@ -140,28 +151,26 @@ module.exports = async function handler(request, response) {
     try {
       const body = await readBody(request);
 
-      // Delete operation
+      if (!isRedisEnabled()) {
+        response.status(503).json({ ok: false, code: "REDIS_DISABLED", error: "Vercel Redis sozlanmagan. Vercel dashboard'da Redis yarating va loyihaga ulang." });
+        return;
+      }
+
       if (body.action === "delete" && body.key) {
-        const kv = getKv();
-        if (!kv) { response.status(503).json({ ok: false, code: "KV_DISABLED", error: "Vercel KV sozlanmagan." }); return; }
-        const current = (await readKvTracks()) || [];
+        const current = (await readRedisTracks()) || [];
         const next = current.filter((t) => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}` !== String(body.key).toLowerCase());
-        await writeKvTracks(next);
+        await writeRedisTracks(next);
         response.status(200).json({ ok: true, tracks: await loadAll() });
         return;
       }
 
-      // Replace all operation
       if (body.action === "replace" && Array.isArray(body.tracks)) {
-        const kv = getKv();
-        if (!kv) { response.status(503).json({ ok: false, code: "KV_DISABLED", error: "Vercel KV sozlanmagan." }); return; }
         const normalized = body.tracks.map(normalize).filter(Boolean);
-        await writeKvTracks(dedupe(normalized));
+        await writeRedisTracks(dedupe(normalized));
         response.status(200).json({ ok: true, tracks: await loadAll() });
         return;
       }
 
-      // Default: add single/multiple tracks
       const incoming = Array.isArray(body.tracks) ? body.tracks : (body.track ? [body.track] : []);
       const normalized = incoming.map(normalize).filter(Boolean);
       if (!normalized.length) {
@@ -169,17 +178,11 @@ module.exports = async function handler(request, response) {
         return;
       }
 
-      const kv = getKv();
-      if (!kv) {
-        response.status(503).json({ ok: false, code: "KV_DISABLED", error: "Vercel KV sozlanmagan. Vercel dashboard'da KV yarating va loyihaga ulang." });
-        return;
-      }
-
-      const existingKv = (await readKvTracks()) || [];
-      const merged = dedupe([...existingKv, ...normalized]);
-      const ok = await writeKvTracks(merged);
+      const existing = (await readRedisTracks()) || [];
+      const merged = dedupe([...existing, ...normalized]);
+      const ok = await writeRedisTracks(merged);
       if (!ok) {
-        response.status(500).json({ ok: false, code: "KV_WRITE_FAILED", error: "KV ga yozish muvaffaqiyatsiz." });
+        response.status(500).json({ ok: false, code: "REDIS_WRITE_FAILED", error: "Redis ga yozish muvaffaqiyatsiz." });
         return;
       }
       response.status(200).json({ ok: true, tracks: await loadAll() });
