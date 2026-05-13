@@ -5874,8 +5874,8 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
   opacity: 0;
 }
-.mini-player[hidden] { display: none; }
-.mini-player[aria-hidden="false"] { transform: translateY(0); opacity: 1; }
+.mini-player[aria-hidden="true"] { pointer-events: none; }
+.mini-player[aria-hidden="false"] { transform: translateY(0); opacity: 1; pointer-events: auto; }
 
 .mini-player__yt {
   flex: 0 0 auto;
