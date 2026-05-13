@@ -9,7 +9,10 @@
       "Bash(git merge *)",
       "Bash(node -e \"const fs=require\\('fs'\\);const p='webapp/app.js';let s=fs.readFileSync\\(p,'utf8'\\);const start=s.indexOf\\('// ===== Music view \\(YouTube Data API v3\\) ====='\\);const end=s.indexOf\\('\\\\ncategoryList?.addEventListener'\\);if\\(start>=0&&end>start\\){s=s.slice\\(0,start\\)+'// __MUSIC_PLACEHOLDER__\\\\n\\\\n'+s.slice\\(end+1\\);fs.writeFileSync\\(p,s\\);console.log\\('ok','removed',\\(end-start\\),'bytes'\\);}else{console.log\\('not found',start,end\\);}\")",
       "Bash(node --check webapp/app.js)",
-      "Bash(node --check api/music.js)"
+      "Bash(node --check api/music.js)",
+      "Bash(node --check api/_lib/google-drive.js)",
+      "Bash(node --check webapp/admin/admin.js)",
+      "Bash(npm install *)"
     ]
   }
 }
