@@ -2405,19 +2405,31 @@ function uniqSorted(values) {
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
-function firstCoverFor(predicate) {
-  const t = musicAllTracks.find(predicate);
-  return t && t.youtubeId ? `https://i.ytimg.com/vi/${t.youtubeId}/mqdefault.jpg` : "";
+const MUSIC_CATEGORY_ICONS = {
+  all: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  pop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><circle cx="12" cy="14" r="6"/><path d="M8 2h8"/></svg>',
+  rap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="3" height="8" rx="1"/><rect x="10" y="4" width="3" height="14" rx="1"/><rect x="16" y="8" width="3" height="10" rx="1"/></svg>',
+  rock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l3 6-3 12 6-6 6 6-3-12 3-6-6 4z"/></svg>',
+  jazz: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v10"/><circle cx="10" cy="15" r="4"/><path d="M14 3l6 3"/></svg>',
+  classic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V8l8-4 8 4v12"/><path d="M8 20v-6m4 6v-6m4 6v-6"/></svg>',
+  electronic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>',
+  uzbek: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.5 6h6l-5 4 2 7-5.5-4-5.5 4 2-7-5-4h6z"/></svg>',
+  folk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V8l10-3v10"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="15" r="3"/></svg>',
+  hiphop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="3" height="8" rx="1"/><rect x="10" y="4" width="3" height="14" rx="1"/><rect x="16" y="8" width="3" height="10" rx="1"/></svg>',
+};
+
+const MUSIC_ARTIST_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>';
+const MUSIC_DEFAULT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+
+function musicCategoryIcon(value) {
+  const key = String(value || "").toLowerCase().replace(/[^a-z]/g, "");
+  return MUSIC_CATEGORY_ICONS[key] || MUSIC_DEFAULT_ICON;
 }
 
-function musicCardHtml({ active, dataAttr, value, label, cover }) {
-  const bg = cover
-    ? `background-image:url('${cover}')`
-    : "";
-  return `<button class="music-card ${active ? "is-active" : ""}" type="button" ${dataAttr}="${escapeMusicHtml(value)}">
-    <span class="music-card__img" style="${bg}"></span>
-    <span class="music-card__overlay"></span>
-    <span class="music-card__label">${escapeMusicHtml(label)}</span>
+function musicChipHtml({ active, dataAttr, value, label, icon }) {
+  return `<button class="music-chip ${active ? "is-active" : ""}" type="button" ${dataAttr}="${escapeMusicHtml(value)}">
+    <span class="music-chip__icon" aria-hidden="true">${icon}</span>
+    <span class="music-chip__label">${escapeMusicHtml(label)}</span>
   </button>`;
 }
 
@@ -2425,26 +2437,26 @@ function renderMusicFilters() {
   if (musicCategoryRow) {
     const cats = uniqSorted(musicAllTracks.map((t) => t.category));
     const items = [
-      musicCardHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", cover: firstCoverFor(() => true) }),
-    ].concat(cats.map((c) => musicCardHtml({
+      musicChipHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", icon: musicCategoryIcon("all") }),
+    ].concat(cats.map((c) => musicChipHtml({
       active: musicCategory === c,
       dataAttr: "data-music-cat",
       value: c,
       label: c,
-      cover: firstCoverFor((t) => t.category === c),
+      icon: musicCategoryIcon(c),
     })));
     musicCategoryRow.innerHTML = items.join("");
   }
   if (musicArtistRow) {
     const artists = uniqSorted(musicAllTracks.map((t) => t.artist));
     const items = [
-      musicCardHtml({ active: musicArtist === "all", dataAttr: "data-music-artist", value: "all", label: "Hammasi", cover: firstCoverFor(() => true) }),
-    ].concat(artists.map((a) => musicCardHtml({
+      musicChipHtml({ active: musicArtist === "all", dataAttr: "data-music-artist", value: "all", label: "Hammasi", icon: MUSIC_ARTIST_ICON }),
+    ].concat(artists.map((a) => musicChipHtml({
       active: musicArtist === a,
       dataAttr: "data-music-artist",
       value: a,
       label: a,
-      cover: firstCoverFor((t) => t.artist === a),
+      icon: MUSIC_ARTIST_ICON,
     })));
     musicArtistRow.innerHTML = items.join("");
   }
