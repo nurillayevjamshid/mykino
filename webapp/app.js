@@ -2480,13 +2480,23 @@ window.onYouTubeIframeAPIReady = function () {
       events: {
         onReady: () => {
           ytReady = true;
-          if (ytPendingId) { try { ytPlayer.loadVideoById(ytPendingId); } catch (_) {} ytPendingId = null; }
+          if (ytPendingId) {
+            try {
+              ytPlayer.loadVideoById(ytPendingId);
+              ytPlayer.playVideo?.();
+            } catch (_) {}
+            ytPendingId = null;
+          }
         },
         onStateChange: (e) => {
           if (!miniPlayerToggle || !window.YT) return;
           const S = YT.PlayerState;
           if (e.data === S.PLAYING) miniPlayerToggle.dataset.state = "pause";
           else if (e.data === S.PAUSED || e.data === S.ENDED) miniPlayerToggle.dataset.state = "play";
+        },
+        onError: (e) => {
+          console.warn("YT player error", e?.data);
+          if (musicErrorText) musicErrorText.textContent = "Bu trekni o'ynatib bo'lmadi (embed cheklangan). Boshqasini tanlang.";
         },
       },
     });
@@ -2513,19 +2523,22 @@ function playMusicTrack(track) {
   if (miniPlayerArtistEl) miniPlayerArtistEl.textContent = track.artist;
   if (miniPlayerBarFill) miniPlayerBarFill.style.width = "0%";
   if (miniPlayerTime) miniPlayerTime.textContent = "0:00";
+  showMiniPlayer();
   if (ytReady && ytPlayer?.loadVideoById) {
-    try { ytPlayer.loadVideoById(track.youtubeId); } catch (_) {}
+    try {
+      ytPlayer.loadVideoById(track.youtubeId);
+      if (ytPlayer.playVideo) ytPlayer.playVideo();
+    } catch (_) {}
   } else {
     ytPendingId = track.youtubeId;
   }
   startMiniProgress();
-  showMiniPlayer();
   renderMusicList();
 }
 
 function showMiniPlayer() {
   if (!miniPlayer) return;
-  miniPlayer.hidden = false;
+  miniPlayer.removeAttribute("hidden");
   requestAnimationFrame(() => miniPlayer.setAttribute("aria-hidden", "false"));
 }
 
@@ -2533,7 +2546,6 @@ function hideMiniPlayer() {
   if (!miniPlayer) return;
   miniPlayer.setAttribute("aria-hidden", "true");
   try { if (ytReady && ytPlayer?.pauseVideo) ytPlayer.pauseVideo(); } catch (_) {}
-  setTimeout(() => { miniPlayer.hidden = true; }, 340);
 }
 
 musicView?.addEventListener("click", (event) => {
