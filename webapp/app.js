@@ -1579,10 +1579,12 @@ function openMovie(movie) {
   modalPoster.style.backgroundImage = posterImage
     ? `url('${posterImage.replaceAll("'", "%27")}'), linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)`
     : "linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)";
-  modalMeta.innerHTML = `
-    <span><b>${escapeHtml(t("genreLabel"))}</b>${escapeHtml(movie.genre || "Kino")}</span>
-    <span><b>${escapeHtml(t("ratingLabel"))}</b>${escapeHtml(formatRating(movie.rating))}</span>
-  `;
+  const genreText = String(movie.genre || "Kino").trim();
+  const ratingText = formatRating(movie.rating);
+  const metaItems = [];
+  if (genreText) metaItems.push(`<span class="modal-meta__chip">${escapeHtml(genreText)}</span>`);
+  if (ratingText) metaItems.push(`<span class="modal-meta__chip modal-meta__chip--rating"><span aria-hidden="true">&#9733;</span>${escapeHtml(ratingText)}</span>`);
+  modalMeta.innerHTML = metaItems.join("");
   modalTitle.textContent = movie.title;
   modalDescription.textContent = movie.description;
   watchButton.textContent = plainLabel(t("watch"));

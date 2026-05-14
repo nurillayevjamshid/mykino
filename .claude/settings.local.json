@@ -12,7 +12,9 @@
       "Bash(node --check api/music.js)",
       "Bash(node --check api/_lib/google-drive.js)",
       "Bash(node --check webapp/admin/admin.js)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" add -A)",
+      "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" commit -m \"Movie detail: show full poster and put genre/rating/like/dislike on one row\")"
     ]
   }
 }
