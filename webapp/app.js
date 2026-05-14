@@ -635,9 +635,40 @@ function isDataImageValue(value) {
 function posterStyle(movie) {
   const source = getPosterImage(movie);
   if (!source) return "";
-  const poster = source.replaceAll("'", "%27").replaceAll(")", "%29");
-  return `style="--poster-image: url('${poster}')"`;
+  const poster = source.replaceAll("'", "%27").replaceAll(")", "%29").replaceAll('"', "%22");
+  return `data-poster="${poster}"`;
 }
+
+const lazyPosterObserver = (() => {
+  if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return null;
+  const io = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const el = entry.target;
+      const url = el.getAttribute("data-poster");
+      if (url) {
+        el.style.setProperty("--poster-image", `url('${url}')`);
+        el.removeAttribute("data-poster");
+      }
+      io.unobserve(el);
+    }
+  }, { rootMargin: "300px 0px", threshold: 0.01 });
+
+  const mo = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.hasAttribute && node.hasAttribute("data-poster")) io.observe(node);
+        const inner = node.querySelectorAll ? node.querySelectorAll("[data-poster]") : [];
+        for (const child of inner) io.observe(child);
+      }
+    }
+  });
+  if (document.body) mo.observe(document.body, { childList: true, subtree: true });
+  else document.addEventListener("DOMContentLoaded", () => mo.observe(document.body, { childList: true, subtree: true }), { once: true });
+
+  return io;
+})();
 
 
 
