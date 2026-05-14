@@ -1,8 +1,34 @@
 const { Readable } = require("stream");
-const { getDriveMediaResponse, setCors } = require("./_lib/google-drive");
+const { getDriveMediaResponse, getAccessToken, setCors } = require("./_lib/google-drive");
+
+const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
 
 function getFileId(request) {
   return String(request.query?.fileId || request.query?.id || "").trim();
+}
+
+async function resolveDriveDirectUrl(fileId) {
+  const token = await getAccessToken();
+  const url = new URL(`${DRIVE_API_BASE}/${encodeURIComponent(fileId)}`);
+  url.searchParams.set("alt", "media");
+  url.searchParams.set("supportsAllDrives", "true");
+
+  const upstream = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Range: "bytes=0-0",
+    },
+    redirect: "manual",
+  });
+
+  try { upstream.body?.cancel?.(); } catch (_) {}
+
+  if (upstream.status >= 300 && upstream.status < 400) {
+    const location = upstream.headers.get("location");
+    if (location) return location;
+  }
+  return null;
 }
 
 module.exports = async function handler(request, response) {
@@ -12,7 +38,7 @@ module.exports = async function handler(request, response) {
     return;
   }
 
-  if (request.method !== "GET") {
+  if (request.method !== "GET" && request.method !== "HEAD") {
     response.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", error: "Faqat GET ishlaydi." });
     return;
   }
@@ -22,6 +48,22 @@ module.exports = async function handler(request, response) {
     if (!fileId) {
       response.status(400).json({ ok: false, code: "FILE_ID_MISSING", error: "fileId ko'rsatilmagan." });
       return;
+    }
+
+    const forceProxy = String(request.query?.proxy || "") === "1";
+
+    if (!forceProxy) {
+      try {
+        const directUrl = await resolveDriveDirectUrl(fileId);
+        if (directUrl) {
+          response.setHeader("Cache-Control", "public, max-age=300");
+          response.setHeader("Location", directUrl);
+          response.status(302).end();
+          return;
+        }
+      } catch (_) {
+        // fall through to proxy mode
+      }
     }
 
     const headers = {};
