@@ -460,24 +460,46 @@ function applyTelegramUser() {
   }
   const profileButtonLabel = displayName ? `${displayName} profili` : "Profil";
   document.querySelectorAll("[data-action='profile']").forEach((button) => setControlLabel(button, profileButtonLabel));
-  if (user.photo_url) {
-    avatarPhoto.src = user.photo_url;
-    avatarPhoto.hidden = false;
-    avatar.hidden = true;
-    if (headerAvatarPhoto) {
-      headerAvatarPhoto.src = user.photo_url;
-      headerAvatarPhoto.hidden = false;
-    }
-    if (headerAvatar) {
-      headerAvatar.hidden = true;
-    }
-    if (topbarAvatarPhoto) {
-      topbarAvatarPhoto.src = user.photo_url;
-      topbarAvatarPhoto.hidden = false;
-    }
-    if (topbarAvatarInitials) {
-      topbarAvatarInitials.hidden = true;
-    }
+  const photoUrl = user.photo_url || (user.id ? `/api/user-photo?userId=${encodeURIComponent(user.id)}` : "");
+  if (photoUrl) {
+    const applyPhoto = (src) => {
+      avatarPhoto.src = src;
+      avatarPhoto.hidden = false;
+      avatar.hidden = true;
+      if (headerAvatarPhoto) {
+        headerAvatarPhoto.src = src;
+        headerAvatarPhoto.hidden = false;
+      }
+      if (headerAvatar) headerAvatar.hidden = true;
+      if (topbarAvatarPhoto) {
+        topbarAvatarPhoto.src = src;
+        topbarAvatarPhoto.hidden = false;
+      }
+      if (topbarAvatarInitials) topbarAvatarInitials.hidden = true;
+    };
+    const revertToInitials = () => {
+      avatarPhoto.hidden = true;
+      avatarPhoto.removeAttribute("src");
+      avatar.hidden = false;
+      if (headerAvatarPhoto) {
+        headerAvatarPhoto.hidden = true;
+        headerAvatarPhoto.removeAttribute("src");
+      }
+      if (headerAvatar) headerAvatar.hidden = false;
+      if (topbarAvatarPhoto) {
+        topbarAvatarPhoto.hidden = true;
+        topbarAvatarPhoto.removeAttribute("src");
+      }
+      if (topbarAvatarInitials) topbarAvatarInitials.hidden = false;
+    };
+    const onError = () => {
+      avatarPhoto.removeEventListener("error", onError);
+      revertToInitials();
+    };
+    avatarPhoto.addEventListener("error", onError, { once: true });
+    if (topbarAvatarPhoto) topbarAvatarPhoto.addEventListener("error", onError, { once: true });
+    if (headerAvatarPhoto) headerAvatarPhoto.addEventListener("error", onError, { once: true });
+    applyPhoto(photoUrl);
   } else {
     avatarPhoto.hidden = true;
     avatarPhoto.removeAttribute("src");
