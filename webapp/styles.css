@@ -3864,7 +3864,7 @@ html[data-theme="light"] .category-row__more:focus-visible {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 4px 6px 14px;
+  padding: 4px 24px 14px;
 }
 
 .category-row__list::-webkit-scrollbar {
@@ -5230,8 +5230,8 @@ html[data-theme="light"] .icon-button--top {
 
 /* Movies row scrollbar in dark mode left edge fix */
 .category-row__list {
-  padding-left: 6px;
-  padding-right: 6px;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 /* ============================================================
