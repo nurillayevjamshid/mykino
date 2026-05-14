@@ -156,10 +156,24 @@ def create_web_app(settings: Settings) -> web.Application:
             raise
         return set_cors(response)
 
-    app = web.Application(middlewares=[cors_middleware])
+    @web.middleware
+    async def static_cache_middleware(request: web.Request, handler):
+        response = await handler(request)
+        path = request.path
+        if path.startswith("/static/") or path.startswith("/admin/"):
+            if "Cache-Control" not in response.headers:
+                if request.query.get("v"):
+                    response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+                else:
+                    response.headers["Cache-Control"] = "public, max-age=3600"
+        return response
+
+    app = web.Application(middlewares=[cors_middleware, static_cache_middleware])
 
     async def index(_: web.Request) -> web.FileResponse:
-        return web.FileResponse(settings.webapp_dir / "index.html")
+        response = web.FileResponse(settings.webapp_dir / "index.html")
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
 
     async def movies(_: web.Request) -> web.Response:
         return json_response(load_movies(settings.movies_path))
