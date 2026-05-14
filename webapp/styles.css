@@ -2248,6 +2248,38 @@ html[data-theme="light"] .modal-meta__chip {
   display: none !important;
 }
 
+.video-player.is-native-controls .player-overlay__brightness,
+.video-player.is-native-controls .player-overlay__volume,
+.video-player.is-native-controls .player-overlay__center,
+.video-player.is-native-controls .player-overlay__bottom,
+.video-player.is-native-controls .player-overlay__tap,
+.video-player.is-native-controls .player-skip-feedback,
+.video-player.is-native-controls .player-buffering,
+.video-player.is-native-controls .player-lock-release,
+.video-player.is-native-controls .video-brightness-overlay {
+  display: none !important;
+}
+
+.video-player.is-native-controls .player-overlay {
+  background: transparent !important;
+  pointer-events: none;
+}
+
+.video-player.is-native-controls .player-overlay__top {
+  pointer-events: auto;
+}
+
+.video-player.is-native-controls .video-mount,
+.video-player.is-native-controls .video-mount video {
+  width: 100%;
+  height: 100%;
+}
+
+.video-player.is-native-controls .video-mount video {
+  object-fit: contain;
+  background: #000;
+}
+
 .player-toast {
   position: absolute;
   z-index: 8;
