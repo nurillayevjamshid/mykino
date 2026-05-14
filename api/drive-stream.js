@@ -17,7 +17,6 @@ async function resolveDriveDirectUrl(fileId) {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
-      Range: "bytes=0-0",
     },
     redirect: "manual",
   });
