@@ -2250,9 +2250,11 @@ function createVideoElement(src, movie, options = {}) {
     startupTimeout = 9000,
     preload = "auto",
   } = normalizedOptions;
+  const useNativeControls = isMobileViewingContext();
+  videoPlayer.classList.toggle("is-native-controls", useNativeControls);
   const video = document.createElement("video");
   video.src = src;
-  video.controls = false;
+  video.controls = useNativeControls;
   video.playsInline = true;
   video.preload = preload;
   video.autoplay = true;
@@ -2576,6 +2578,7 @@ function closeVideoPlayer() {
   videoExternalLink.textContent = t("openSource");
   setVideoLoading(false);
   videoPlayer.hidden = true;
+  videoPlayer.classList.remove("is-native-controls");
   document.body.classList.remove("is-player-open");
 }
 
