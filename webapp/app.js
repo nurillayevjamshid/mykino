@@ -1492,6 +1492,9 @@ function openMovie(movie) {
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });
   document.body.classList.add("is-modal-open");
+  if (!history.state || !history.state.movieDetail) {
+    history.pushState({ movieDetail: true }, "");
+  }
 }
 
 function setVideoLoading(isLoading) {
@@ -3169,6 +3172,13 @@ movieModal?.addEventListener("close", () => {
   document.body.classList.remove("is-modal-open");
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });
+  if (history.state && history.state.movieDetail) {
+    history.back();
+  }
+});
+
+window.addEventListener("popstate", () => {
+  if (movieModal?.open) movieModal.close();
 });
 
 document.querySelector("[data-close-profile]").addEventListener("click", () => profileModal.close());
