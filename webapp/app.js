@@ -269,6 +269,8 @@ const profileName = document.querySelector("#profileName");
 const profileUsername = document.querySelector("#profileUsername");
 const headerAvatar = document.querySelector("#headerAvatar");
 const headerAvatarPhoto = document.querySelector("#headerAvatarPhoto");
+const topbarAvatarInitials = document.querySelector("#topbarAvatarInitials");
+const topbarAvatarPhoto = document.querySelector("#topbarAvatarPhoto");
 const avatar = document.querySelector("#avatar");
 const avatarPhoto = document.querySelector("#avatarPhoto");
 const viewCount = document.querySelector("#viewCount");
@@ -433,6 +435,14 @@ function applyTelegramUser() {
       headerAvatarPhoto.hidden = true;
       headerAvatarPhoto.removeAttribute("src");
     }
+    if (topbarAvatarInitials) {
+      topbarAvatarInitials.textContent = "KI";
+      topbarAvatarInitials.hidden = false;
+    }
+    if (topbarAvatarPhoto) {
+      topbarAvatarPhoto.hidden = true;
+      topbarAvatarPhoto.removeAttribute("src");
+    }
     return;
   }
 
@@ -445,6 +455,10 @@ function applyTelegramUser() {
   if (headerAvatar) {
     headerAvatar.textContent = initials;
     headerAvatar.hidden = false;
+  }
+  if (topbarAvatarInitials) {
+    topbarAvatarInitials.textContent = initials;
+    topbarAvatarInitials.hidden = false;
   }
   const profileButtonLabel = displayName ? `${displayName} profili` : "Profil";
   document.querySelectorAll("[data-action='profile']").forEach((button) => setControlLabel(button, profileButtonLabel));
@@ -459,6 +473,13 @@ function applyTelegramUser() {
     if (headerAvatar) {
       headerAvatar.hidden = true;
     }
+    if (topbarAvatarPhoto) {
+      topbarAvatarPhoto.src = user.photo_url;
+      topbarAvatarPhoto.hidden = false;
+    }
+    if (topbarAvatarInitials) {
+      topbarAvatarInitials.hidden = true;
+    }
   } else {
     avatarPhoto.hidden = true;
     avatarPhoto.removeAttribute("src");
@@ -469,6 +490,13 @@ function applyTelegramUser() {
     }
     if (headerAvatar) {
       headerAvatar.hidden = false;
+    }
+    if (topbarAvatarPhoto) {
+      topbarAvatarPhoto.hidden = true;
+      topbarAvatarPhoto.removeAttribute("src");
+    }
+    if (topbarAvatarInitials) {
+      topbarAvatarInitials.hidden = false;
     }
   }
 }
