@@ -2350,15 +2350,9 @@ function createVideoElement(src, movie, options = {}) {
       pendingResumeTime = 0;
     }
     updateHtml5VideoControls();
-    scheduleCodecCheck(video, movie, 3000);
   });
   video.addEventListener("resize", () => {
     if (video.videoWidth > 0 && video.videoHeight > 0) hideCodecError();
-  });
-  video.addEventListener("timeupdate", () => {
-    if (video.currentTime > 1.5 && video.videoWidth === 0 && video.videoHeight === 0 && !video.paused) {
-      showCodecError(movie);
-    }
   });
   video.addEventListener("ratechange", () => {
     if (Math.abs(video.playbackRate - currentSpeed) > 0.001 && SPEED_OPTIONS.includes(video.playbackRate)) {
