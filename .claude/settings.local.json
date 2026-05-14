@@ -14,7 +14,12 @@
       "Bash(node --check webapp/admin/admin.js)",
       "Bash(npm install *)",
       "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" add -A)",
-      "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" commit -m \"Movie detail: show full poster and put genre/rating/like/dislike on one row\")"
+      "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" commit -m \"Movie detail: show full poster and put genre/rating/like/dislike on one row\")",
+      "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" push origin claude/cranky-borg-bab877)",
+      "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" push origin claude/cranky-borg-bab877:main)",
+      "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" fetch origin main)",
+      "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" log origin/main..HEAD --oneline)",
+      "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" commit -m \"Reactions: persist via anon client ID fallback and fix rating chip height\")"
     ]
   }
 }

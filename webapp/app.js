@@ -1480,6 +1480,23 @@ function renderProfileModal() {
 }
 
 const REACTION_STORAGE_KEY = "mykino:reactions";
+const REACTION_CLIENT_ID_KEY = "mykino:clientId";
+
+function getReactionUserId() {
+  const tgId = getTelegramUser()?.id;
+  if (tgId) return String(tgId);
+  try {
+    let id = localStorage.getItem(REACTION_CLIENT_ID_KEY);
+    if (!id) {
+      const rand = (crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
+      id = `anon-${rand}`;
+      localStorage.setItem(REACTION_CLIENT_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return `anon-${Date.now()}`;
+  }
+}
 
 function readUserReactions() {
   try {
@@ -1510,7 +1527,7 @@ function renderReactions(movie) {
 
 async function refreshReactionCounts(movie) {
   try {
-    const userId = getTelegramUser()?.id || "";
+    const userId = getReactionUserId();
     const url = `/api/movie-reaction?id=${encodeURIComponent(movie.id)}${userId ? `&userId=${encodeURIComponent(userId)}` : ""}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return;
@@ -1528,19 +1545,7 @@ async function refreshReactionCounts(movie) {
 }
 
 async function sendReaction(movie, reaction) {
-  const userId = getTelegramUser()?.id || "";
-  if (!userId) {
-    const reactions = readUserReactions();
-    const prev = reactions[movie.id] || null;
-    const next = prev === reaction ? null : reaction;
-    if (prev === "like") movie.likes = Math.max(0, (movie.likes || 0) - 1);
-    if (prev === "dislike") movie.dislikes = Math.max(0, (movie.dislikes || 0) - 1);
-    if (next === "like") movie.likes = (movie.likes || 0) + 1;
-    if (next === "dislike") movie.dislikes = (movie.dislikes || 0) + 1;
-    writeUserReaction(movie.id, next);
-    renderReactions(movie);
-    return;
-  }
+  const userId = getReactionUserId();
   const reactions = readUserReactions();
   const prev = reactions[movie.id] || null;
   const next = prev === reaction ? null : reaction;
@@ -1583,7 +1588,7 @@ function openMovie(movie) {
   const ratingText = formatRating(movie.rating);
   const metaItems = [];
   if (genreText) metaItems.push(`<span class="modal-meta__chip">${escapeHtml(genreText)}</span>`);
-  if (ratingText) metaItems.push(`<span class="modal-meta__chip modal-meta__chip--rating"><span aria-hidden="true">&#9733;</span>${escapeHtml(ratingText)}</span>`);
+  if (ratingText) metaItems.push(`<span class="modal-meta__chip modal-meta__chip--rating">&#9733; ${escapeHtml(ratingText)}</span>`);
   modalMeta.innerHTML = metaItems.join("");
   modalTitle.textContent = movie.title;
   modalDescription.textContent = movie.description;
