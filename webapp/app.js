@@ -1668,22 +1668,14 @@ function setVideoLoading(isLoading) {
   videoLoading.hidden = !isLoading;
 }
 
-function setFallbackMessage(message = "Tomosha uchun manba tayyorlanmoqda.", sourceUrl = "") {
-  const hasMessage = Boolean(String(message || "").trim());
-  const hasLink = Boolean(String(sourceUrl || "").trim());
-  videoFallback.hidden = !hasMessage && !hasLink;
+function setFallbackMessage() {
+  videoFallback.hidden = true;
   if (videoFallbackText) {
-    videoFallbackText.textContent = hasMessage ? message : "";
-    videoFallbackText.hidden = !hasMessage;
+    videoFallbackText.textContent = "";
+    videoFallbackText.hidden = true;
   }
-  if (sourceUrl) {
-    videoExternalLink.href = sourceUrl;
-    videoExternalLink.textContent = t("openSource");
-    videoExternalLink.hidden = false;
-  } else {
-    videoExternalLink.hidden = true;
-    videoExternalLink.removeAttribute("href");
-  }
+  videoExternalLink.hidden = true;
+  videoExternalLink.removeAttribute("href");
 }
 
 function clearVideoLoadTimer() {
