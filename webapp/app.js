@@ -285,6 +285,8 @@ const videoLoading = document.querySelector("#videoLoading");
 const videoFallback = document.querySelector("#videoFallback");
 const videoFallbackText = document.querySelector("#videoFallbackText");
 const videoExternalLink = document.querySelector("#videoExternalLink");
+const videoCodecError = document.querySelector("#videoCodecError");
+const videoCodecErrorLink = document.querySelector("#videoCodecErrorLink");
 const videoTitle = document.querySelector("#videoTitle");
 const videoSourceLabel = document.querySelector("#videoSourceLabel");
 const videoBackButton = document.querySelector("#videoBackButton");
@@ -1638,6 +1640,42 @@ function syncDescriptionToggle() {
 
 let preloadVideoEl = null;
 let preloadVideoUrl = "";
+let codecCheckTimer = null;
+
+function hideCodecError() {
+  if (codecCheckTimer) { window.clearTimeout(codecCheckTimer); codecCheckTimer = null; }
+  if (videoCodecError) videoCodecError.hidden = true;
+  if (videoCodecErrorLink) {
+    videoCodecErrorLink.hidden = true;
+    videoCodecErrorLink.removeAttribute("href");
+  }
+}
+
+function showCodecError(movie) {
+  if (!videoCodecError) return;
+  videoCodecError.hidden = false;
+  const tgLink = movie?.sourceUrl && /^https?:\/\/(t\.me|telegram\.me)\//i.test(String(movie.sourceUrl)) ? movie.sourceUrl : "";
+  if (videoCodecErrorLink) {
+    if (tgLink) {
+      videoCodecErrorLink.href = tgLink;
+      videoCodecErrorLink.hidden = false;
+    } else {
+      videoCodecErrorLink.removeAttribute("href");
+      videoCodecErrorLink.hidden = true;
+    }
+  }
+}
+
+function scheduleCodecCheck(video, movie, delay = 2500) {
+  if (codecCheckTimer) window.clearTimeout(codecCheckTimer);
+  codecCheckTimer = window.setTimeout(() => {
+    codecCheckTimer = null;
+    if (!video || !video.isConnected) return;
+    if (video.videoWidth === 0 && video.videoHeight === 0 && (video.duration || 0) > 0 && !video.paused) {
+      showCodecError(movie);
+    }
+  }, delay);
+}
 
 function stopMoviePreload() {
   if (!preloadVideoEl) return;
@@ -2312,6 +2350,15 @@ function createVideoElement(src, movie, options = {}) {
       pendingResumeTime = 0;
     }
     updateHtml5VideoControls();
+    scheduleCodecCheck(video, movie, 3000);
+  });
+  video.addEventListener("resize", () => {
+    if (video.videoWidth > 0 && video.videoHeight > 0) hideCodecError();
+  });
+  video.addEventListener("timeupdate", () => {
+    if (video.currentTime > 1.5 && video.videoWidth === 0 && video.videoHeight === 0 && !video.paused) {
+      showCodecError(movie);
+    }
   });
   video.addEventListener("ratechange", () => {
     if (Math.abs(video.playbackRate - currentSpeed) > 0.001 && SPEED_OPTIONS.includes(video.playbackRate)) {
@@ -2410,6 +2457,7 @@ function renderVideoSource(videoUrl, movie, options = {}) {
   } = options;
   destroyYouTubePlayer();
   clearVideoLoadTimer();
+  hideCodecError();
   videoMount.replaceChildren();
   videoFallback.hidden = true;
   videoExternalLink.hidden = true;
@@ -2518,6 +2566,7 @@ function getInlineSourceLabel(movie) {
 async function openVideoPlayer(movie) {
   if (!movie) return;
   stopMoviePreload();
+  hideCodecError();
   const requestId = ++activeVideoRequest;
   activeMovie = movie;
   pendingResumeTime = getMovieProgressSeconds(movie);
