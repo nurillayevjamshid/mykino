@@ -1428,10 +1428,13 @@ dialog::backdrop {
 }
 
 .modal-poster {
-  height: clamp(280px, 52vh, 520px);
-  background-size: cover;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  max-height: 70dvh;
+  background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
+  background-color: #000;
   image-rendering: auto;
 }
 
@@ -1457,12 +1460,37 @@ dialog::backdrop {
   flex-wrap: wrap;
 }
 
+.modal-info-row {
+  flex-wrap: nowrap;
+}
+
 .modal-info-row .modal-meta {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.modal-meta__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.modal-meta span.modal-meta__chip--rating { color: var(--gold, #f5b301); }
+html[data-theme="light"] .modal-meta__chip {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 .modal-reactions {
@@ -4956,11 +4984,7 @@ html[data-theme="dark"] .profile-modal::backdrop {
 }
 
 .modal-poster::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 60%, var(--c-bg) 100%);
-  pointer-events: none;
+  content: none;
 }
 
 .modal-content {
