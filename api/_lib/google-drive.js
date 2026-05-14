@@ -523,6 +523,7 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const finalTitle = trimString(override?.title) || title;
   const finalQuality = trimString(override?.quality) || quality;
   const rating = override?.rating !== undefined ? safeRating(override.rating) : 0;
+  const reactionCounts = countReactions(jsonOverride?.reactions);
   const hasCustomMetadata = Boolean(
     trimString(override?.title)
     || trimString(override?.genre)
@@ -562,6 +563,8 @@ function toDriveMovie(file, index, metadataMap = {}) {
     heroFeatured: showInHeader,
     thumbnail: finalPosterImage,
     headerCrop: sanitizeHeaderCrop(override?.headerCrop),
+    likes: reactionCounts.likes,
+    dislikes: reactionCounts.dislikes,
     streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     sourceUrl: file.webViewLink || "",
@@ -816,6 +819,87 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   };
 }
 
+function countReactions(reactionsMap) {
+  let likes = 0;
+  let dislikes = 0;
+  if (reactionsMap && typeof reactionsMap === "object") {
+    for (const value of Object.values(reactionsMap)) {
+      if (value === "like") likes += 1;
+      else if (value === "dislike") dislikes += 1;
+    }
+  }
+  return { likes, dislikes };
+}
+
+async function readMovieReactionState(fileId) {
+  const normalizedFileId = trimString(fileId);
+  if (!normalizedFileId) {
+    const error = new Error("Kino ID si kerak.");
+    error.statusCode = 400;
+    error.code = "MOVIE_ID_MISSING";
+    throw error;
+  }
+  const metadataState = await readCatalogMetadata();
+  const metadata = normalizeCatalogMetadata(metadataState.data);
+  const entry = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
+    ? metadata.movies[normalizedFileId]
+    : {};
+  const reactions = entry.reactions && typeof entry.reactions === "object" ? entry.reactions : {};
+  return { metadataState, metadata, reactions };
+}
+
+async function setMovieReaction(fileId, userId, reaction) {
+  const normalizedFileId = trimString(fileId);
+  const normalizedUserId = trimString(userId);
+  if (!normalizedFileId || !normalizedUserId) {
+    const error = new Error("Kino ID va foydalanuvchi ID si kerak.");
+    error.statusCode = 400;
+    error.code = "REACTION_FIELDS_MISSING";
+    throw error;
+  }
+  const allowed = ["like", "dislike", null, ""];
+  const normalizedReaction = reaction === "like" || reaction === "dislike" ? reaction : null;
+  if (!allowed.includes(reaction) && reaction !== null && reaction !== undefined) {
+    const error = new Error("Reaction noto'g'ri.");
+    error.statusCode = 400;
+    error.code = "REACTION_INVALID";
+    throw error;
+  }
+
+  const { metadataState, metadata } = await readMovieReactionState(normalizedFileId);
+  const entry = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
+    ? metadata.movies[normalizedFileId]
+    : {};
+  const reactions = entry.reactions && typeof entry.reactions === "object" ? { ...entry.reactions } : {};
+  if (normalizedReaction) reactions[normalizedUserId] = normalizedReaction;
+  else delete reactions[normalizedUserId];
+
+  const nextEntry = { ...entry, reactions };
+  metadata.movies[normalizedFileId] = nextEntry;
+  await writeCatalogMetadata(metadata, metadataState.file);
+
+  const counts = countReactions(reactions);
+  return {
+    id: normalizedFileId,
+    userId: normalizedUserId,
+    userReaction: normalizedReaction,
+    ...counts,
+  };
+}
+
+async function getMovieReaction(fileId, userId = "") {
+  const normalizedFileId = trimString(fileId);
+  const normalizedUserId = trimString(userId);
+  const { reactions } = await readMovieReactionState(normalizedFileId);
+  const counts = countReactions(reactions);
+  return {
+    id: normalizedFileId,
+    userId: normalizedUserId,
+    userReaction: normalizedUserId ? (reactions[normalizedUserId] || null) : null,
+    ...counts,
+  };
+}
+
 async function listDriveMovies() {
   const { folderId } = getDriveConfig();
   try {
@@ -897,4 +981,6 @@ module.exports = {
   setCors,
   updateDriveFileMetadata,
   updateCatalogMovieMetadata,
+  getMovieReaction,
+  setMovieReaction,
 };

@@ -257,6 +257,11 @@ const modalPoster = document.querySelector("#modalPoster");
 const modalMeta = document.querySelector("#modalMeta");
 const modalTitle = document.querySelector("#modalTitle");
 const modalDescription = document.querySelector("#modalDescription");
+const modalDescriptionToggle = document.querySelector("#modalDescriptionToggle");
+const likeButton = document.querySelector("#likeButton");
+const dislikeButton = document.querySelector("#dislikeButton");
+const likeCountEl = document.querySelector("#likeCount");
+const dislikeCountEl = document.querySelector("#dislikeCount");
 const watchButton = document.querySelector("#watchButton");
 const movieLaterButton = document.querySelector(".modal-actions .ghost-button");
 const profileModal = document.querySelector("#profileModal");
@@ -1474,10 +1479,105 @@ function renderProfileModal() {
   renderProfileHistory();
 }
 
+const REACTION_STORAGE_KEY = "mykino:reactions";
+
+function readUserReactions() {
+  try {
+    return JSON.parse(localStorage.getItem(REACTION_STORAGE_KEY) || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeUserReaction(movieId, reaction) {
+  const map = readUserReactions();
+  if (reaction) map[movieId] = reaction;
+  else delete map[movieId];
+  try { localStorage.setItem(REACTION_STORAGE_KEY, JSON.stringify(map)); } catch {}
+}
+
+function renderReactions(movie) {
+  if (!likeCountEl || !dislikeCountEl) return;
+  const likes = Number(movie.likes || 0) || 0;
+  const dislikes = Number(movie.dislikes || 0) || 0;
+  likeCountEl.textContent = likes;
+  dislikeCountEl.textContent = dislikes;
+  const reactions = readUserReactions();
+  const current = reactions[movie.id];
+  likeButton?.classList.toggle("is-active", current === "like");
+  dislikeButton?.classList.toggle("is-active", current === "dislike");
+}
+
+async function refreshReactionCounts(movie) {
+  try {
+    const userId = getTelegramUser()?.id || "";
+    const url = `/api/movie-reaction?id=${encodeURIComponent(movie.id)}${userId ? `&userId=${encodeURIComponent(userId)}` : ""}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || data.ok === false) return;
+    movie.likes = Number(data.likes || 0) || 0;
+    movie.dislikes = Number(data.dislikes || 0) || 0;
+    if (data.userReaction === "like" || data.userReaction === "dislike") {
+      writeUserReaction(movie.id, data.userReaction);
+    } else if (data.userReaction === null) {
+      writeUserReaction(movie.id, null);
+    }
+    if (activeMovie && activeMovie.id === movie.id) renderReactions(movie);
+  } catch {}
+}
+
+async function sendReaction(movie, reaction) {
+  const userId = getTelegramUser()?.id || "";
+  if (!userId) {
+    const reactions = readUserReactions();
+    const prev = reactions[movie.id] || null;
+    const next = prev === reaction ? null : reaction;
+    if (prev === "like") movie.likes = Math.max(0, (movie.likes || 0) - 1);
+    if (prev === "dislike") movie.dislikes = Math.max(0, (movie.dislikes || 0) - 1);
+    if (next === "like") movie.likes = (movie.likes || 0) + 1;
+    if (next === "dislike") movie.dislikes = (movie.dislikes || 0) + 1;
+    writeUserReaction(movie.id, next);
+    renderReactions(movie);
+    return;
+  }
+  const reactions = readUserReactions();
+  const prev = reactions[movie.id] || null;
+  const next = prev === reaction ? null : reaction;
+  writeUserReaction(movie.id, next);
+  renderReactions({ ...movie,
+    likes: (movie.likes || 0) + (next === "like" ? 1 : 0) - (prev === "like" ? 1 : 0),
+    dislikes: (movie.dislikes || 0) + (next === "dislike" ? 1 : 0) - (prev === "dislike" ? 1 : 0),
+  });
+  try {
+    const res = await fetch("/api/movie-reaction", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: movie.id, userId, reaction: next }),
+    });
+    const data = await res.json().catch(() => null);
+    if (data && data.ok !== false) {
+      movie.likes = Number(data.likes || 0) || 0;
+      movie.dislikes = Number(data.dislikes || 0) || 0;
+      renderReactions(movie);
+    }
+  } catch {}
+}
+
+function syncDescriptionToggle() {
+  if (!modalDescription || !modalDescriptionToggle) return;
+  modalDescription.classList.add("is-collapsed");
+  modalDescriptionToggle.textContent = "Davomi";
+  requestAnimationFrame(() => {
+    const overflows = modalDescription.scrollHeight > modalDescription.clientHeight + 1;
+    modalDescriptionToggle.hidden = !overflows;
+  });
+}
+
 function openMovie(movie) {
   const posterImage = getPosterImage(movie);
   modalPoster.style.backgroundImage = posterImage
-    ? `linear-gradient(180deg, rgba(0,0,0,0) 48%, rgba(0,0,0,.32) 100%), url('${posterImage.replaceAll("'", "%27")}'), linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)`
+    ? `url('${posterImage.replaceAll("'", "%27")}'), linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)`
     : "linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)";
   modalMeta.innerHTML = `
     <span><b>${escapeHtml(t("genreLabel"))}</b>${escapeHtml(movie.genre || "Kino")}</span>
@@ -1488,6 +1588,8 @@ function openMovie(movie) {
   watchButton.textContent = plainLabel(t("watch"));
   watchButton.dataset.movieId = movie.id;
   activeMovie = movie;
+  renderReactions(movie);
+  syncDescriptionToggle();
   movieModal.showModal();
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });
@@ -1495,6 +1597,7 @@ function openMovie(movie) {
   if (!history.state || !history.state.movieDetail) {
     history.pushState({ movieDetail: true }, "");
   }
+  refreshReactionCounts(movie);
 }
 
 function setVideoLoading(isLoading) {
@@ -3166,6 +3269,21 @@ watchedMovieList?.addEventListener("click", (event) => {
 
 document.querySelectorAll("[data-close]").forEach((button) => {
   button.addEventListener("click", () => movieModal.close());
+});
+
+modalDescriptionToggle?.addEventListener("click", () => {
+  const collapsed = modalDescription.classList.toggle("is-collapsed");
+  modalDescriptionToggle.textContent = collapsed ? "Davomi" : "Yopish";
+});
+
+likeButton?.addEventListener("click", () => {
+  if (!activeMovie) return;
+  sendReaction(activeMovie, "like");
+});
+
+dislikeButton?.addEventListener("click", () => {
+  if (!activeMovie) return;
+  sendReaction(activeMovie, "dislike");
 });
 
 movieModal?.addEventListener("close", () => {
