@@ -21,7 +21,11 @@
       "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" log origin/main..HEAD --oneline)",
       "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" commit -m \"Reactions: persist via anon client ID fallback and fix rating chip height\")",
       "Bash(git revert *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(cat \"C:/Users/WESOLVE/Desktop/kino tg_bot/.vercel/project.json\" 2>/dev/null)",
+      "mcp__5e3a5518-7f51-42f6-afad-73f76b037df0__list_deployments",
+      "Bash(curl -s -o /tmp/photo.bin -w \"HTTP %{http_code}\\\\nContent-Type: %{content_type}\\\\nSize: %{size_download}\\\\n\" \"https://kino-telegram-mini-app.vercel.app/api/user-photo?userId=1\")",
+      "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/user-photo?userId=abc\" -w \"\\\\nHTTP %{http_code}\\\\n\")"
     ]
   }
 }
