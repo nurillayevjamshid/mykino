@@ -20,7 +20,8 @@
       "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" fetch origin main)",
       "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" log origin/main..HEAD --oneline)",
       "Bash(git -C \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\.claude\\\\worktrees\\\\cranky-borg-bab877\" commit -m \"Reactions: persist via anon client ID fallback and fix rating chip height\")",
-      "Bash(git revert *)"
+      "Bash(git revert *)",
+      "Bash(git commit *)"
     ]
   }
 }
