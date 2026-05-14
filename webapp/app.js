@@ -1636,6 +1636,52 @@ function syncDescriptionToggle() {
   });
 }
 
+let preloadVideoEl = null;
+let preloadVideoUrl = "";
+
+function stopMoviePreload() {
+  if (!preloadVideoEl) return;
+  try {
+    preloadVideoEl.removeAttribute("src");
+    preloadVideoEl.load();
+  } catch (_) {}
+  preloadVideoEl.remove();
+  preloadVideoEl = null;
+  preloadVideoUrl = "";
+}
+
+function startMoviePreload(movie) {
+  if (!movie) return;
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (conn?.saveData) return;
+  if (conn?.effectiveType && /^(slow-2g|2g)$/.test(conn.effectiveType)) return;
+  if (getYouTubeVideoUrl(movie)) return;
+  if (isMobileViewingContext() && !isLaunchReadyMovie(movie)) return;
+
+  let url = "";
+  const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
+  if (driveFileId) {
+    url = buildDriveStreamUrl(driveFileId);
+  } else {
+    const fid = getMovieFileId(movie);
+    if (fid) url = buildTelegramStreamUrl(fid);
+  }
+  if (!url) return;
+  if (preloadVideoEl && preloadVideoUrl === url) return;
+
+  stopMoviePreload();
+  const el = document.createElement("video");
+  el.preload = "auto";
+  el.muted = true;
+  el.playsInline = true;
+  el.setAttribute("aria-hidden", "true");
+  el.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;top:-9999px";
+  el.src = url;
+  document.body.appendChild(el);
+  preloadVideoEl = el;
+  preloadVideoUrl = url;
+}
+
 function openMovie(movie) {
   const posterImage = getPosterImage(movie);
   modalPoster.style.backgroundImage = posterImage
@@ -1662,6 +1708,7 @@ function openMovie(movie) {
     history.pushState({ movieDetail: true }, "");
   }
   refreshReactionCounts(movie);
+  startMoviePreload(movie);
 }
 
 function setVideoLoading(isLoading) {
@@ -2470,6 +2517,7 @@ function getInlineSourceLabel(movie) {
 
 async function openVideoPlayer(movie) {
   if (!movie) return;
+  stopMoviePreload();
   const requestId = ++activeVideoRequest;
   activeMovie = movie;
   pendingResumeTime = getMovieProgressSeconds(movie);
@@ -3336,6 +3384,7 @@ dislikeButton?.addEventListener("click", () => {
 });
 
 movieModal?.addEventListener("close", () => {
+  stopMoviePreload();
   document.body.classList.remove("is-modal-open");
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });

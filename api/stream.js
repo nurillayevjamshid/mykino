@@ -28,7 +28,7 @@ module.exports = async function handler(request, response) {
       const value = upstream.headers.get(header);
       if (value) response.setHeader(header, value);
     }
-    response.setHeader("Cache-Control", "private, max-age=0, no-store");
+    response.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
     response.status(upstream.status);
 
     if (upstream.body) {

@@ -35,7 +35,7 @@ module.exports = async function handler(request, response) {
 
     response.setHeader("Content-Disposition", "inline");
     if (!response.getHeader("accept-ranges")) response.setHeader("Accept-Ranges", "bytes");
-    response.setHeader("Cache-Control", "private, max-age=0, no-store");
+    response.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
     response.status(upstream.status);
 
     if (upstream.body) {
