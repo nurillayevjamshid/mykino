@@ -1713,7 +1713,7 @@ function openMovie(movie) {
 }
 
 function setVideoLoading(isLoading) {
-  videoLoading.hidden = !isLoading;
+  if (videoLoading) videoLoading.hidden = !isLoading;
 }
 
 function setFallbackMessage() {
