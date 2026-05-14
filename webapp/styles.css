@@ -6906,3 +6906,27 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
   height: 14px !important;
   margin-left: 1px;
 }
+
+/* ============================================================
+   Topbar — fonsiz (transparent) ko'rinish
+   ============================================================ */
+.topbar,
+.topbar.is-scrolled,
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .topbar.is-scrolled,
+html[data-theme="light"] .topbar,
+html[data-theme="light"] .topbar.is-scrolled {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Topbar va hero o'rtasida 8px joy */
+.hero {
+  margin-top: calc(var(--topbar-top) + var(--topbar-height) + 8px) !important;
+}
+.hero[hidden] + .movie-grid {
+  padding-top: calc(var(--topbar-top) + var(--topbar-height) + 8px) !important;
+}
