@@ -813,7 +813,7 @@ html[data-theme="light"] .tab.is-active {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 4px 16px 8px;
+  padding: 4px 8px 8px;
 }
 
 .category-row__list::-webkit-scrollbar {
@@ -1354,6 +1354,11 @@ html[data-theme="light"] .bottom-bar {
 
   .card-copy h2 {
     font-size: 17px;
+  }
+
+  .category-row {
+    margin-left: -12px;
+    margin-right: -12px;
   }
 }
 
