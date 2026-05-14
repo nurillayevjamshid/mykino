@@ -168,11 +168,42 @@ def create_web_app(settings: Settings) -> web.Application:
                     response.headers["Cache-Control"] = "public, max-age=3600"
         return response
 
-    app = web.Application(middlewares=[cors_middleware, static_cache_middleware])
+    _COMPRESSIBLE_PREFIXES = (
+        "text/",
+        "application/json",
+        "application/javascript",
+        "application/xml",
+        "image/svg+xml",
+    )
+    _SKIP_COMPRESS_PATH_PREFIXES = ("/api/stream", "/api/video-stream")
+
+    @web.middleware
+    async def compression_middleware(request: web.Request, handler):
+        response = await handler(request)
+        if any(request.path.startswith(p) for p in _SKIP_COMPRESS_PATH_PREFIXES):
+            return response
+        accept = request.headers.get("Accept-Encoding", "")
+        if "gzip" not in accept and "deflate" not in accept:
+            return response
+        ctype = (response.headers.get("Content-Type") or "").lower()
+        if any(ctype.startswith(prefix) for prefix in _COMPRESSIBLE_PREFIXES):
+            try:
+                response.enable_compression()
+            except Exception:
+                pass
+        return response
+
+    app = web.Application(middlewares=[cors_middleware, static_cache_middleware, compression_middleware])
 
     async def index(_: web.Request) -> web.FileResponse:
         response = web.FileResponse(settings.webapp_dir / "index.html")
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
+
+    async def service_worker(_: web.Request) -> web.FileResponse:
+        response = web.FileResponse(settings.webapp_dir / "sw.js")
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        response.headers["Service-Worker-Allowed"] = "/"
         return response
 
     async def movies(_: web.Request) -> web.Response:
@@ -321,6 +352,7 @@ def create_web_app(settings: Settings) -> web.Application:
         return json_response({"ok": True, "channels": filtered})
 
     app.router.add_get("/", index)
+    app.router.add_get("/sw.js", service_worker)
     app.router.add_get("/api/movies", movies)
     app.router.add_get("/api/users", users)
     app.router.add_get("/api/settings", get_settings)
