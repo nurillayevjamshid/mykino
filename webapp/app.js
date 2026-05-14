@@ -300,7 +300,6 @@ const videoSpeedButton = document.querySelector("#videoSpeedButton");
 const videoSpeedLabel = document.querySelector("#videoSpeedLabel");
 const videoLockButton = document.querySelector("#videoLockButton");
 const videoLockRelease = document.querySelector("#videoLockRelease");
-const videoAudioButton = document.querySelector("#videoAudioButton");
 const playerOverlay = document.querySelector("#playerOverlay");
 const videoTapZoneLeft = document.querySelector("#videoTapZoneLeft");
 const videoTapZoneRight = document.querySelector("#videoTapZoneRight");
@@ -308,7 +307,6 @@ const videoSkipFeedbackLeft = document.querySelector("#videoSkipFeedbackLeft");
 const videoSkipFeedbackRight = document.querySelector("#videoSkipFeedbackRight");
 const videoBuffering = document.querySelector("#videoBuffering");
 const videoVolume = document.querySelector("#videoVolume");
-const videoPipButton = document.querySelector("#videoPipButton");
 const playerToast = document.querySelector("#playerToast");
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -1933,27 +1931,6 @@ function releaseWakeLock() {
   }
 }
 
-async function togglePictureInPicture() {
-  const v = getActiveVideoEl();
-  if (!v) return;
-  try {
-    if (document.pictureInPictureElement) {
-      await document.exitPictureInPicture();
-    } else if (document.pictureInPictureEnabled && typeof v.requestPictureInPicture === "function") {
-      await v.requestPictureInPicture();
-    }
-  } catch {
-    showPlayerToast("PiP qo'llab-quvvatlanmaydi");
-  }
-}
-
-function updatePipButtonVisibility() {
-  if (!videoPipButton) return;
-  const v = getActiveVideoEl();
-  const supported = Boolean(v) && Boolean(document.pictureInPictureEnabled) && typeof v?.requestPictureInPicture === "function";
-  videoPipButton.hidden = !supported;
-}
-
 function syncActiveMovieProgress(force = false) {
   if (!activeYouTubePlayer || !activeMovie || !window.YT?.PlayerState) return;
   const state = activeYouTubePlayer.getPlayerState();
@@ -2137,18 +2114,33 @@ function requestElFullscreen(el) {
   }
 }
 
+function lockLandscapeOrientation() {
+  try {
+    const orient = screen.orientation;
+    if (orient && typeof orient.lock === "function") {
+      orient.lock("landscape").catch(() => {});
+    }
+  } catch {}
+}
+
+function unlockOrientation() {
+  try { screen.orientation?.unlock?.(); } catch {}
+}
+
 function toggleVideoFullscreen() {
   if (getFullscreenElement()) {
     exitDocFullscreen();
+    unlockOrientation();
     return;
   }
-  if (requestElFullscreen(videoPlayer)) return;
+  if (requestElFullscreen(videoPlayer)) { lockLandscapeOrientation(); return; }
   const v = getActiveVideoEl();
   if (v?.webkitEnterFullscreen) {
     try { v.webkitEnterFullscreen(); } catch {}
+    lockLandscapeOrientation();
     return;
   }
-  if (requestElFullscreen(v)) return;
+  if (requestElFullscreen(v)) { lockLandscapeOrientation(); return; }
   showPlayerToast("Fullscreen qo'llab-quvvatlanmaydi");
 }
 
@@ -2279,7 +2271,6 @@ function createVideoElement(src, movie, options = {}) {
       pendingResumeTime = 0;
     }
     updateHtml5VideoControls();
-    updatePipButtonVisibility();
   });
   video.addEventListener("ratechange", () => {
     if (Math.abs(video.playbackRate - currentSpeed) > 0.001 && SPEED_OPTIONS.includes(video.playbackRate)) {
@@ -2296,8 +2287,6 @@ function createVideoElement(src, movie, options = {}) {
     videoErrorRetried = true;
     try { video.load(); video.play().catch(() => {}); } catch {}
   });
-  video.addEventListener("enterpictureinpicture", () => updatePipButtonVisibility());
-  video.addEventListener("leavepictureinpicture", () => updatePipButtonVisibility());
   let startupDone = false;
   let fallbackMounted = false;
   const finishStartup = () => {
@@ -2503,7 +2492,6 @@ async function openVideoPlayer(movie) {
   if (videoBrightness) { videoBrightness.value = "100"; applyBrightness(100); }
   if (videoVolume) { videoVolume.value = "100"; setVolume(100); }
   setControlsVisible(true);
-  if (videoPipButton) videoPipButton.hidden = true;
 
   const youtubeUrl = getYouTubeVideoUrl(movie);
   if (youtubeUrl) {
@@ -3373,26 +3361,6 @@ videoFullscreenButton.addEventListener("click", (e) => { e.stopPropagation(); to
 videoSpeedButton?.addEventListener("click", (e) => { e.stopPropagation(); cycleSpeed(); setControlsVisible(true); });
 videoLockButton?.addEventListener("click", (e) => { e.stopPropagation(); setPlayerLocked(true); showPlayerToast("Bloklandi"); });
 videoLockRelease?.addEventListener("click", (e) => { e.stopPropagation(); setPlayerLocked(false); });
-videoAudioButton?.addEventListener("click", (e) => {
-  e.stopPropagation();
-  setControlsVisible(true);
-  const v = getActiveVideoEl();
-  const textTracks = v?.textTracks;
-  const tracks = textTracks ? Array.from(textTracks) : [];
-  if (!tracks.length) {
-    showPlayerToast("Audio/subtitle tayyor emas");
-    return;
-  }
-  let activeIdx = tracks.findIndex((tr) => tr.mode === "showing");
-  if (activeIdx >= 0) tracks[activeIdx].mode = "disabled";
-  const nextIdx = (activeIdx + 1) % (tracks.length + 1);
-  if (nextIdx < tracks.length) {
-    tracks[nextIdx].mode = "showing";
-    showPlayerToast(tracks[nextIdx].label || tracks[nextIdx].language || `Track ${nextIdx + 1}`);
-  } else {
-    showPlayerToast("Subtitle: o'chirildi");
-  }
-});
 videoBrightness?.addEventListener("input", () => {
   applyBrightness(videoBrightness.value);
   setControlsVisible(true);
@@ -3401,7 +3369,6 @@ videoVolume?.addEventListener("input", () => {
   setVolume(videoVolume.value);
   setControlsVisible(true);
 });
-videoPipButton?.addEventListener("click", (e) => { e.stopPropagation(); togglePictureInPicture(); });
 videoTapZoneLeft?.addEventListener("click", (e) => handleTapZone("left", e));
 videoTapZoneRight?.addEventListener("click", (e) => handleTapZone("right", e));
 videoSeek.addEventListener("input", () => {
@@ -3500,11 +3467,6 @@ document.addEventListener("keydown", (event) => {
       event.preventDefault();
       setVolume(currentVolume > 0 ? 0 : 100);
       setControlsVisible(true);
-      break;
-    case "p":
-    case "P":
-      event.preventDefault();
-      togglePictureInPicture();
       break;
     default:
       break;
