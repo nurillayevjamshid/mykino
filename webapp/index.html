@@ -22,8 +22,12 @@
     <div class="splash-overlay"></div>
   </div>
   <main class="app-shell" id="appShell" style="opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
-    <header class="topbar">
-      <div class="brand" aria-label="Kino Play">
+    <header class="topbar topbar--centered">
+      <button class="topbar-avatar" id="topbarAvatarButton" type="button" data-action="profile" aria-label="Profil">
+        <img class="topbar-avatar__photo" id="topbarAvatarPhoto" alt="" hidden />
+        <span class="topbar-avatar__initials" id="topbarAvatarInitials">KI</span>
+      </button>
+      <div class="brand brand--center" aria-label="Kino Play">
         <span class="brand-logo" aria-hidden="true">
           <svg viewBox="0 0 32 32" class="brand-logo__svg">
             <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
@@ -35,7 +39,7 @@
           <span class="brand-text__bottom">PLAY</span>
         </span>
       </div>
-      <div class="topbar-controls">
+      <div class="topbar-controls topbar-controls--minimal">
         <div class="topbar-search">
           <button class="icon-button icon-button--top topbar-search__trigger" type="button" data-action="search" aria-label="Qidirish">
             <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -53,37 +57,6 @@
             </label>
           </section>
         </div>
-        <div class="lang-dropdown" id="langDropdown">
-          <button class="lang-trigger" type="button" aria-label="Tilni tanlash">
-            <span class="lang-current">UZ</span>
-            <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          <div class="lang-options">
-            <button class="lang-option is-active" data-value="uz">
-              <span class="lang-radio"></span>
-              <span class="lang-name">UZ</span>
-            </button>
-            <button class="lang-option" data-value="ru">
-              <span class="lang-radio"></span>
-              <span class="lang-name">RU</span>
-            </button>
-            <button class="lang-option" data-value="en">
-              <span class="lang-radio"></span>
-              <span class="lang-name">ENG</span>
-            </button>
-          </div>
-        </div>
-        <button class="theme-toggle" type="button" data-theme="light" aria-label="Kunduzgi/Kechki rejim">
-          <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
-          </svg>
-          <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </button>
       </div>
     </header>
 
@@ -270,6 +243,40 @@
           <span>Ko'rilgan kinolar</span>
           <b id="viewCount">0</b>
         </div>
+      </div>
+
+      <div class="profile-controls">
+        <div class="lang-dropdown" id="langDropdown">
+          <button class="lang-trigger" type="button" aria-label="Tilni tanlash">
+            <span class="lang-current">UZ</span>
+            <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="lang-options">
+            <button class="lang-option is-active" data-value="uz">
+              <span class="lang-radio"></span>
+              <span class="lang-name">UZ</span>
+            </button>
+            <button class="lang-option" data-value="ru">
+              <span class="lang-radio"></span>
+              <span class="lang-name">RU</span>
+            </button>
+            <button class="lang-option" data-value="en">
+              <span class="lang-radio"></span>
+              <span class="lang-name">ENG</span>
+            </button>
+          </div>
+        </div>
+        <button class="theme-toggle" type="button" data-theme="light" aria-label="Kunduzgi/Kechki rejim">
+          <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+          </svg>
+          <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
       </div>
 
       <section class="profile-history">
