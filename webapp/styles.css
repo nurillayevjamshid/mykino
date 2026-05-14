@@ -6855,3 +6855,54 @@ html[data-theme="light"] .music-fullplayer__bar { background: rgba(15,23,42,0.12
 html[data-theme="light"] .music-fullplayer__ctl { color: #1a1d2e; }
 html[data-theme="light"] .music-fullplayer__ctl:hover { background: rgba(15,23,42,0.06); }
 html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
+
+/* ============================================================
+   Hero — Disney+ style banner: image + small circular play btn
+   Faqat poster va play tugmasi koʻrinadi
+   ============================================================ */
+.hero {
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+  margin: 8px 12px 14px !important;
+  width: calc(100% - 24px) !important;
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+.hero__gradient { display: none !important; }
+.hero__title,
+.hero__desc,
+.hero__info,
+#heroPlayLabel { display: none !important; }
+.hero__dots { display: none !important; }
+
+.hero__inner {
+  position: absolute;
+  inset: auto auto 10px 12px !important;
+  padding: 0 !important;
+  text-align: left !important;
+  align-items: flex-start !important;
+  bottom: 10px !important;
+  left: 12px !important;
+  right: auto !important;
+}
+.hero__actions {
+  gap: 0 !important;
+  justify-content: flex-start !important;
+}
+.hero__play {
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(37, 99, 235, 0.95) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.hero__play svg {
+  width: 14px !important;
+  height: 14px !important;
+  margin-left: 1px;
+}
