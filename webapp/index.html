@@ -222,9 +222,24 @@
     </button>
     <div class="modal-poster" id="modalPoster"></div>
     <div class="modal-content">
-      <div class="modal-meta" id="modalMeta"></div>
+      <div class="modal-info-row">
+        <div class="modal-meta" id="modalMeta"></div>
+        <div class="modal-reactions" id="modalReactions">
+          <button class="reaction-button reaction-button--like" id="likeButton" type="button" aria-label="Like">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11"></path><path d="M14 3.5 11 10h7.5a2 2 0 0 1 1.98 2.28l-1.1 7a2 2 0 0 1-1.98 1.72H7V10l4-6.5a2 2 0 0 1 3 0Z"></path></svg>
+            <span class="reaction-count" id="likeCount">0</span>
+          </button>
+          <button class="reaction-button reaction-button--dislike" id="dislikeButton" type="button" aria-label="Dislike">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V3"></path><path d="M10 20.5 13 14H5.5a2 2 0 0 1-1.98-2.28l1.1-7A2 2 0 0 1 6.6 3H17v11l-4 6.5a2 2 0 0 1-3 0Z"></path></svg>
+            <span class="reaction-count" id="dislikeCount">0</span>
+          </button>
+        </div>
+      </div>
       <h1 id="modalTitle"></h1>
-      <p id="modalDescription"></p>
+      <div class="modal-description-wrap">
+        <p id="modalDescription" class="modal-description is-collapsed"></p>
+        <button class="modal-description-toggle" id="modalDescriptionToggle" type="button" hidden>Davomi</button>
+      </div>
       <div class="modal-actions">
         <button class="watch-button" id="watchButton" type="button">Tomosha qilish</button>
         <button class="ghost-button" type="button" data-close>Keyinroq</button>
