@@ -4481,6 +4481,77 @@ html[data-theme="dark"] .app-shell {
 }
 
 /* ============================================================
+   Topbar avatar (Disney+ style — left side)
+   ============================================================ */
+
+.topbar-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  padding: 0;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.topbar-avatar:hover {
+  transform: translateY(-1px);
+  border-color: var(--c-border-strong);
+}
+
+.topbar-avatar__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.topbar-avatar__photo[hidden],
+.topbar-avatar__initials[hidden] {
+  display: none !important;
+}
+
+.topbar-avatar__initials {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Centered topbar layout (Disney+ style) */
+.topbar.topbar--centered {
+  display: grid !important;
+  grid-template-columns: 38px 1fr 38px;
+  align-items: center;
+  justify-content: initial;
+  gap: 12px;
+}
+
+.topbar.topbar--centered .brand--center {
+  justify-self: center;
+}
+
+.topbar.topbar--centered .topbar-controls--minimal {
+  justify-self: end;
+  flex: 0 0 auto;
+}
+
+/* Profile modal controls row */
+.profile-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0 4px;
+}
+
+/* ============================================================
    Brand logo — stacked KINO/PLAY (matches reference)
    ============================================================ */
 
