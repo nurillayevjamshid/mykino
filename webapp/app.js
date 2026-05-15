@@ -2272,44 +2272,86 @@ function isTelegramFullscreen() {
   return Boolean(tg && tg.isFullscreen);
 }
 
+let intendedFullscreen = false;
+
+function isPortraitOrientation() {
+  return window.matchMedia("(orientation: portrait)").matches;
+}
+
+function applyForceLandscape(enable) {
+  videoPlayer.classList.toggle("is-force-landscape", Boolean(enable));
+  document.body.classList.toggle("is-fake-fullscreen", Boolean(enable));
+}
+
+function refreshLandscapeView() {
+  if (!intendedFullscreen) {
+    applyForceLandscape(false);
+    return;
+  }
+  applyForceLandscape(isPortraitOrientation());
+}
+
 function isAnyFullscreen() {
-  return Boolean(getFullscreenElement()) || isTelegramFullscreen();
+  return Boolean(getFullscreenElement()) || isTelegramFullscreen() || intendedFullscreen;
+}
+
+async function tryLockLandscape() {
+  try {
+    if (screen.orientation && typeof screen.orientation.lock === "function") {
+      await screen.orientation.lock("landscape");
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+async function enterFullscreenAndLandscape() {
+  intendedFullscreen = true;
+  let entered = false;
+
+  // 1. Telegram WebApp fullscreen (Bot API 8.0+)
+  const tg = getTelegramWebApp();
+  if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
+    try { tg.requestFullscreen(); entered = true; } catch {}
+  }
+
+  // 2. Standard browser fullscreen
+  if (!entered && requestElFullscreen(videoPlayer)) {
+    entered = true;
+  }
+
+  // 3. Android orientation lock (works in fullscreen)
+  const locked = await tryLockLandscape();
+
+  // 4. Fallback CSS rotation if still portrait (iOS, Telegram mobile, etc.)
+  if (!locked) {
+    refreshLandscapeView();
+  }
+
+  syncFullscreenButton();
+}
+
+function exitFullscreenAndLandscape() {
+  intendedFullscreen = false;
+
+  const tg = getTelegramWebApp();
+  if (tg && tg.isFullscreen && typeof tg.exitFullscreen === "function") {
+    try { tg.exitFullscreen(); } catch {}
+  }
+  if (getFullscreenElement()) {
+    exitDocFullscreen();
+  }
+  unlockOrientation();
+  applyForceLandscape(false);
+  syncFullscreenButton();
 }
 
 function toggleVideoFullscreen() {
-  const tg = getTelegramWebApp();
-
-  // Try Telegram WebApp fullscreen first (Bot API 8.0+) — works in Telegram mobile/desktop
-  if (tg && typeof tg.requestFullscreen === "function") {
-    try {
-      if (tg.isFullscreen) {
-        tg.exitFullscreen?.();
-      } else {
-        tg.requestFullscreen();
-        lockLandscapeOrientation();
-      }
-      window.setTimeout(syncFullscreenButton, 200);
-      return;
-    } catch (err) {
-      console.warn("Telegram fullscreen failed:", err);
-    }
+  if (isAnyFullscreen()) {
+    exitFullscreenAndLandscape();
+  } else {
+    enterFullscreenAndLandscape();
   }
-
-  // Standard browser fullscreen
-  if (getFullscreenElement()) {
-    exitDocFullscreen();
-    unlockOrientation();
-    return;
-  }
-  if (requestElFullscreen(videoPlayer)) { lockLandscapeOrientation(); return; }
-  const v = getActiveVideoEl();
-  if (v?.webkitEnterFullscreen) {
-    try { v.webkitEnterFullscreen(); } catch {}
-    lockLandscapeOrientation();
-    return;
-  }
-  if (requestElFullscreen(v)) { lockLandscapeOrientation(); return; }
-  showPlayerToast("Fullscreen qo'llab-quvvatlanmaydi");
 }
 
 function syncFullscreenButton() {
@@ -2761,6 +2803,7 @@ function closeVideoPlayer() {
   document.body.classList.remove("is-player-open");
   if (videoPipButton) videoPipButton.classList.remove("is-active");
   exitPipIfActive();
+  if (isAnyFullscreen()) exitFullscreenAndLandscape();
 }
 
 function setFilter(filter) {
@@ -3584,6 +3627,17 @@ try {
       syncFullscreenButton();
     });
   }
+} catch {}
+
+try {
+  const portraitMQ = window.matchMedia("(orientation: portrait)");
+  const onOrientChange = () => { refreshLandscapeView(); syncFullscreenButton(); };
+  if (typeof portraitMQ.addEventListener === "function") {
+    portraitMQ.addEventListener("change", onOrientChange);
+  } else if (typeof portraitMQ.addListener === "function") {
+    portraitMQ.addListener(onOrientChange);
+  }
+  window.addEventListener("orientationchange", onOrientChange);
 } catch {}
 
 document.addEventListener("click", (event) => {
