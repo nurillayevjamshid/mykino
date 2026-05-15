@@ -16,6 +16,7 @@ const SECTION_TITLES = {
   subscription: 'Majburiy obuna',
   music: 'Musiqa',
   users: 'Obunachilar',
+  broadcast: 'Xabar yuborish',
 };
 
 // Modal kategoriyalari uchun: tanlangan + mavjudlar ro'yxati
@@ -214,6 +215,7 @@ function switchSection(name) {
     subscription: 'subscriptionSection',
     music: 'musicSection',
     users: 'usersSection',
+    broadcast: 'broadcastSection',
   };
   const targetId = sections[name];
   if (!targetId) return;
@@ -231,6 +233,7 @@ function switchSection(name) {
   if (name === 'subscription') fetchRequiredChannels();
   if (name === 'users') fetchUsers();
   if (name === 'music') fetchMusic();
+  if (name === 'broadcast') initBroadcastSection();
 
   if (window.innerWidth <= 768) {
     document.querySelector('.sidebar')?.classList.remove('open');
@@ -1073,6 +1076,136 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+// ------------- Broadcast (xabar yuborish) -------------
+let broadcastInited = false;
+
+function escapeBroadcastHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function renderBroadcastPreview() {
+  const preview = document.getElementById('broadcastPreview');
+  if (!preview) return;
+  const text = document.getElementById('broadcastText').value.trim();
+  const photo = document.getElementById('broadcastPhotoUrl').value.trim();
+  const btnText = document.getElementById('broadcastButtonText').value.trim();
+  const btnUrl = document.getElementById('broadcastButtonUrl').value.trim();
+  const asHtml = document.getElementById('broadcastParseHtml').checked;
+
+  if (!text && !photo) {
+    preview.innerHTML = '<div style="opacity:0.5;">Matn kiriting...</div>';
+    return;
+  }
+
+  const textHtml = asHtml ? text.replace(/\n/g, '<br>') : escapeBroadcastHtml(text).replace(/\n/g, '<br>');
+  const photoHtml = photo
+    ? `<div style="margin-bottom:10px;border-radius:10px;overflow:hidden;"><img src="${escapeBroadcastHtml(photo)}" style="width:100%;display:block;max-height:240px;object-fit:cover;" onerror="this.style.display='none'"></div>`
+    : '';
+  const buttonHtml = (btnText && btnUrl)
+    ? `<div style="margin-top:12px;"><div style="display:inline-block;padding:8px 16px;background:#3390ec;color:#fff;border-radius:6px;font-weight:500;font-size:13px;">${escapeBroadcastHtml(btnText)}</div></div>`
+    : '';
+  preview.innerHTML = `${photoHtml}<div>${textHtml}</div>${buttonHtml}`;
+}
+
+function updateBroadcastCharCount() {
+  const el = document.getElementById('broadcastText');
+  const count = document.getElementById('broadcastTextCount');
+  if (el && count) count.textContent = el.value.length;
+}
+
+async function loadBroadcastUserCount() {
+  const el = document.getElementById('broadcastUserCount');
+  if (!el) return;
+  try {
+    const resp = await fetch('/api/users', { headers: { Accept: 'application/json' } });
+    const data = await resp.json();
+    const list = Array.isArray(data) ? data : (Array.isArray(data?.users) ? data.users : []);
+    el.textContent = String(list.length);
+  } catch {
+    el.textContent = '?';
+  }
+}
+
+async function submitBroadcast(event) {
+  event.preventDefault();
+  const sendBtn = document.getElementById('broadcastSendBtn');
+  const resultEl = document.getElementById('broadcastResult');
+  const text = document.getElementById('broadcastText').value.trim();
+  const photoUrl = document.getElementById('broadcastPhotoUrl').value.trim();
+  const buttonText = document.getElementById('broadcastButtonText').value.trim();
+  const buttonUrl = document.getElementById('broadcastButtonUrl').value.trim();
+  const parseMode = document.getElementById('broadcastParseHtml').checked ? 'HTML' : '';
+  const silent = document.getElementById('broadcastSilent').checked;
+  const disablePreview = document.getElementById('broadcastDisablePreview').checked;
+
+  if (!text && !photoUrl) {
+    resultEl.innerHTML = '<div style="color:#d33;padding:10px;background:#fee;border-radius:8px;">Matn yoki rasm kerak.</div>';
+    return;
+  }
+  if ((buttonText && !buttonUrl) || (!buttonText && buttonUrl)) {
+    resultEl.innerHTML = '<div style="color:#d33;padding:10px;background:#fee;border-radius:8px;">Tugma uchun ham matn, ham URL kerak.</div>';
+    return;
+  }
+  if (!confirm('Barcha obunachilarga yuborilsinmi? Bekor qilib bo\'lmaydi.')) return;
+
+  const password = localStorage.getItem('adminPassword') || prompt('Admin parolini kiriting (xavfsizlik uchun):');
+  if (!password) return;
+  localStorage.setItem('adminPassword', password);
+
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Yuborilmoqda...';
+  resultEl.innerHTML = '<div style="padding:10px;background:#eef5ff;border-radius:8px;">Yuborilmoqda, kuting...</div>';
+
+  try {
+    const resp = await fetch('/api/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, text, photoUrl, buttonText, buttonUrl, parseMode, silent, disablePreview }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) {
+      if (resp.status === 401) localStorage.removeItem('adminPassword');
+      resultEl.innerHTML = `<div style="color:#d33;padding:10px;background:#fee;border-radius:8px;">Xato: ${escapeBroadcastHtml(data.error || 'Noma\'lum')}</div>`;
+    } else {
+      const errorList = Array.isArray(data.errors) && data.errors.length
+        ? `<details style="margin-top:8px;"><summary>Xatolar (${data.errors.length})</summary><pre style="font-size:11px;max-height:200px;overflow:auto;">${escapeBroadcastHtml(JSON.stringify(data.errors, null, 2))}</pre></details>`
+        : '';
+      resultEl.innerHTML = `<div style="padding:12px;background:#e8f5e9;border-radius:8px;color:#1b5e20;">
+        ✅ <strong>Tugadi.</strong> Yuborildi: <strong>${data.sent}</strong>, xato: <strong>${data.failed}</strong>, jami: ${data.total}. (${Math.round(data.elapsedMs / 100) / 10}s)
+        ${errorList}
+      </div>`;
+    }
+  } catch (error) {
+    resultEl.innerHTML = `<div style="color:#d33;padding:10px;background:#fee;border-radius:8px;">Tarmoq xatosi: ${escapeBroadcastHtml(error.message)}</div>`;
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Yuborish';
+  }
+}
+
+function initBroadcastSection() {
+  if (broadcastInited) { loadBroadcastUserCount(); return; }
+  broadcastInited = true;
+  const form = document.getElementById('broadcastForm');
+  const previewBtn = document.getElementById('broadcastPreviewBtn');
+  const text = document.getElementById('broadcastText');
+  const inputs = ['broadcastText', 'broadcastPhotoUrl', 'broadcastButtonText', 'broadcastButtonUrl', 'broadcastParseHtml'];
+  inputs.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', renderBroadcastPreview);
+    if (el) el.addEventListener('change', renderBroadcastPreview);
+  });
+  if (text) text.addEventListener('input', updateBroadcastCharCount);
+  if (previewBtn) previewBtn.addEventListener('click', renderBroadcastPreview);
+  if (form) form.addEventListener('submit', submitBroadcast);
+  renderBroadcastPreview();
+  updateBroadcastCharCount();
+  loadBroadcastUserCount();
+}
 
 // Initialize
 checkAuth();
