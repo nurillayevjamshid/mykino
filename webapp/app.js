@@ -3361,6 +3361,7 @@ window.onYouTubeIframeAPIReady = function () {
             if (miniPlayerToggle) miniPlayerToggle.dataset.state = state;
             if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = state;
           }
+          if (e.data === S.ENDED) { try { autoAdvance(); } catch (_) {} }
         },
         onError: (e) => {
           console.warn("YT player error", e?.data);
@@ -3382,7 +3383,11 @@ function startMiniProgress() {
       if (miniPlayerBarFill && dur > 0) miniPlayerBarFill.style.width = `${Math.min(100, (cur / dur) * 100)}%`;
       if (musicFullPlayerCur) musicFullPlayerCur.textContent = formatMusicTime(cur);
       if (musicFullPlayerDur && dur > 0) musicFullPlayerDur.textContent = `-${formatMusicTime(Math.max(0, dur - cur))}`;
-      if (musicFullPlayerBarFill && dur > 0) musicFullPlayerBarFill.style.width = `${Math.min(100, (cur / dur) * 100)}%`;
+      if (musicFullPlayerBarFill && dur > 0) {
+        const pct = Math.min(100, (cur / dur) * 100);
+        musicFullPlayerBarFill.style.width = `${pct}%`;
+        if (musicFullPlayerBarThumb) musicFullPlayerBarThumb.style.left = `${pct}%`;
+      }
     } catch (_) {}
   }, 500);
 }
@@ -3466,33 +3471,64 @@ musicRetryBtn?.addEventListener("click", loadMusicCatalog);
 
 const musicFullPlayer = document.getElementById("musicFullPlayer");
 const musicFullPlayerArt = document.getElementById("musicFullPlayerArt");
+const musicFullPlayerArtFallback = document.getElementById("musicFullPlayerArtFallback");
+const musicFullPlayerYtSlot = document.getElementById("musicFullPlayerYtSlot");
+const musicFullPlayerAlbum = document.getElementById("musicFullPlayerAlbum");
 const musicFullPlayerTitle = document.getElementById("musicFullPlayerTitle");
 const musicFullPlayerArtist = document.getElementById("musicFullPlayerArtist");
 const musicFullPlayerCur = document.getElementById("musicFullPlayerCur");
 const musicFullPlayerDur = document.getElementById("musicFullPlayerDur");
 const musicFullPlayerBar = document.getElementById("musicFullPlayerBar");
 const musicFullPlayerBarFill = document.getElementById("musicFullPlayerBarFill");
+const musicFullPlayerBarThumb = document.getElementById("musicFullPlayerBarThumb");
 const musicFullPlayerToggle = document.getElementById("musicFullPlayerToggle");
+const musicFullPlayerShuffle = document.getElementById("musicFullPlayerShuffle");
+const musicFullPlayerRepeat = document.getElementById("musicFullPlayerRepeat");
+const musicFullPlayerLike = document.getElementById("musicFullPlayerLike");
+const miniPlayerYtHost = document.getElementById("miniPlayerYt");
+
+let musicShuffle = false;
+let musicRepeat = "off"; // "off" | "all" | "one"
+
+function moveYtIntoFullPlayer() {
+  const el = document.getElementById("ytPlayer");
+  if (!el || !musicFullPlayerYtSlot) return;
+  if (el.parentElement !== musicFullPlayerYtSlot) musicFullPlayerYtSlot.appendChild(el);
+  musicFullPlayerArt?.classList.add("has-video");
+}
+function moveYtBackToMini() {
+  const el = document.getElementById("ytPlayer");
+  if (!el || !miniPlayerYtHost) return;
+  if (el.parentElement !== miniPlayerYtHost) miniPlayerYtHost.appendChild(el);
+  musicFullPlayerArt?.classList.remove("has-video");
+}
 
 function openMusicFullPlayer(track) {
   if (!musicFullPlayer || !track) return;
-  if (musicFullPlayerArt) musicFullPlayerArt.style.backgroundImage = `url('https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg')`;
+  if (musicFullPlayerArtFallback) musicFullPlayerArtFallback.style.backgroundImage = `url('https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg')`;
+  if (musicFullPlayerAlbum) musicFullPlayerAlbum.textContent = (track.category && track.category !== "all") ? track.category : "Music";
   if (musicFullPlayerTitle) musicFullPlayerTitle.textContent = track.title;
   if (musicFullPlayerArtist) musicFullPlayerArtist.textContent = track.artist;
   if (musicFullPlayerBarFill) musicFullPlayerBarFill.style.width = "0%";
+  if (musicFullPlayerBarThumb) musicFullPlayerBarThumb.style.left = "0%";
   if (musicFullPlayerCur) musicFullPlayerCur.textContent = "0:00";
   if (musicFullPlayerDur) musicFullPlayerDur.textContent = "0:00";
   if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+  if (musicFullPlayerLike) {
+    const inPl = readMusicPlaylist().includes(track.youtubeId);
+    musicFullPlayerLike.setAttribute("aria-pressed", inPl ? "true" : "false");
+    musicFullPlayerLike.dataset.id = track.youtubeId;
+  }
   musicFullPlayer.hidden = false;
   requestAnimationFrame(() => musicFullPlayer.setAttribute("aria-hidden", "false"));
+  moveYtIntoFullPlayer();
 }
 
 function closeMusicFullPlayer() {
   if (!musicFullPlayer) return;
   musicFullPlayer.setAttribute("aria-hidden", "true");
+  moveYtBackToMini();
   setTimeout(() => { musicFullPlayer.hidden = true; }, 280);
-  try { if (ytReady && ytPlayer?.pauseVideo) ytPlayer.pauseVideo(); } catch (_) {}
-  if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "play";
 }
 
 function currentTrackIndex() {
@@ -3503,8 +3539,25 @@ function playRelative(offset) {
   const list = filteredMusicTracks();
   if (!list.length) return;
   const cur = currentTrackIndex();
-  const next = cur < 0 ? 0 : (cur + offset + list.length) % list.length;
-  playMusicTrack(list[next]);
+  let nextIdx;
+  if (musicShuffle && list.length > 1) {
+    do { nextIdx = Math.floor(Math.random() * list.length); } while (nextIdx === cur);
+  } else {
+    nextIdx = cur < 0 ? 0 : (cur + offset + list.length) % list.length;
+  }
+  playMusicTrack(list[nextIdx]);
+}
+
+function autoAdvance() {
+  if (musicRepeat === "one") {
+    try { ytPlayer?.seekTo?.(0, true); ytPlayer?.playVideo?.(); } catch (_) {}
+    return;
+  }
+  const list = filteredMusicTracks();
+  if (!list.length) return;
+  const cur = currentTrackIndex();
+  if (musicRepeat === "off" && !musicShuffle && cur >= list.length - 1) return;
+  playRelative(1);
 }
 
 musicFullPlayer?.addEventListener("click", (e) => {
@@ -3519,6 +3572,29 @@ musicFullPlayer?.addEventListener("click", (e) => {
   }
   if (e.target.closest("[data-music-fp-prev]")) { playRelative(-1); return; }
   if (e.target.closest("[data-music-fp-next]")) { playRelative(1); return; }
+  if (e.target.closest("[data-music-fp-shuffle]")) {
+    musicShuffle = !musicShuffle;
+    if (musicFullPlayerShuffle) musicFullPlayerShuffle.setAttribute("aria-pressed", musicShuffle ? "true" : "false");
+    return;
+  }
+  if (e.target.closest("[data-music-fp-repeat]")) {
+    musicRepeat = musicRepeat === "off" ? "all" : musicRepeat === "all" ? "one" : "off";
+    if (musicFullPlayerRepeat) {
+      musicFullPlayerRepeat.dataset.repeat = musicRepeat;
+      musicFullPlayerRepeat.setAttribute("aria-pressed", musicRepeat === "off" ? "false" : "true");
+    }
+    return;
+  }
+  if (e.target.closest("#musicFullPlayerLike")) {
+    const id = musicFullPlayerLike?.dataset.id;
+    if (id) {
+      toggleMusicPlaylist(id);
+      const inPl = readMusicPlaylist().includes(id);
+      musicFullPlayerLike.setAttribute("aria-pressed", inPl ? "true" : "false");
+      renderMusicList();
+    }
+    return;
+  }
 });
 
 musicFullPlayerBar?.addEventListener("click", (e) => {

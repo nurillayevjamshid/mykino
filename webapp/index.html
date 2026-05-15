@@ -415,22 +415,58 @@
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </button>
-      <strong class="music-fullplayer__heading">Music Player</strong>
-      <span class="music-fullplayer__spacer" aria-hidden="true"></span>
+      <div class="music-fullplayer__heading">
+        <span class="music-fullplayer__eyebrow">PLAYING FROM</span>
+        <strong id="musicFullPlayerAlbum">Music</strong>
+      </div>
+      <button class="music-fullplayer__close music-fullplayer__queue" type="button" aria-label="Navbat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="15" y2="12"></line>
+          <line x1="3" y1="18" x2="12" y2="18"></line>
+        </svg>
+      </button>
     </header>
-    <div class="music-fullplayer__art" id="musicFullPlayerArt"></div>
+    <div class="music-fullplayer__art" id="musicFullPlayerArt">
+      <div class="music-fullplayer__art-fallback" id="musicFullPlayerArtFallback"></div>
+      <div class="music-fullplayer__yt-slot" id="musicFullPlayerYtSlot"></div>
+    </div>
     <div class="music-fullplayer__info">
-      <h2 id="musicFullPlayerTitle">—</h2>
-      <p id="musicFullPlayerArtist">—</p>
+      <button class="music-fullplayer__like" type="button" id="musicFullPlayerLike" aria-label="Saqlash" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </button>
+      <div class="music-fullplayer__info-text">
+        <h2 id="musicFullPlayerTitle">—</h2>
+        <p id="musicFullPlayerArtist">—</p>
+      </div>
+      <button class="music-fullplayer__more" type="button" aria-label="Boshqa">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="5" cy="12" r="2"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+          <circle cx="19" cy="12" r="2"></circle>
+        </svg>
+      </button>
     </div>
     <div class="music-fullplayer__progress">
       <span id="musicFullPlayerCur">0:00</span>
       <div class="music-fullplayer__bar" id="musicFullPlayerBar">
         <div class="music-fullplayer__bar-fill" id="musicFullPlayerBarFill"></div>
+        <div class="music-fullplayer__bar-thumb" id="musicFullPlayerBarThumb"></div>
       </div>
       <span id="musicFullPlayerDur">0:00</span>
     </div>
     <div class="music-fullplayer__controls">
+      <button class="music-fullplayer__ctl music-fullplayer__ctl--mode" type="button" id="musicFullPlayerShuffle" data-music-fp-shuffle aria-label="Aralashtirish" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="16 3 21 3 21 8"></polyline>
+          <line x1="4" y1="20" x2="21" y2="3"></line>
+          <polyline points="21 16 21 21 16 21"></polyline>
+          <line x1="15" y1="15" x2="21" y2="21"></line>
+          <line x1="4" y1="4" x2="9" y2="9"></line>
+        </svg>
+      </button>
       <button class="music-fullplayer__ctl" type="button" data-music-fp-prev aria-label="Oldingi">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M6 5h2v14H6z"></path>
@@ -445,6 +481,14 @@
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M16 5h2v14h-2z"></path>
           <path d="M4 5v14l11-7z"></path>
+        </svg>
+      </button>
+      <button class="music-fullplayer__ctl music-fullplayer__ctl--mode" type="button" id="musicFullPlayerRepeat" data-music-fp-repeat aria-label="Takrorlash" data-repeat="off">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="17 1 21 5 17 9"></polyline>
+          <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+          <polyline points="7 23 3 19 7 15"></polyline>
+          <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
         </svg>
       </button>
     </div>
