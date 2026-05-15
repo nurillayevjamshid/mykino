@@ -2083,31 +2083,27 @@ html[data-theme="light"] .modal-meta__chip {
 
 /* Force-landscape — when fullscreen requested but device is portrait
    (iOS Safari and Telegram WebApp don't support orientation lock).
-   Rotate the whole player 90° so it visually fills landscape. */
+   Dimensions are computed in JS via --fl-w / --fl-h to avoid vh/vw inaccuracy
+   inside Telegram WebApp viewport. Fallback to vh/vw if vars unset. */
 .video-player.is-force-landscape {
   position: fixed !important;
   top: 50% !important;
   left: 50% !important;
-  width: 100vh !important;
-  height: 100vw !important;
+  width: var(--fl-w, 100vh) !important;
+  height: var(--fl-h, 100vw) !important;
   transform: translate(-50%, -50%) rotate(90deg) !important;
   transform-origin: center center !important;
   z-index: 9999 !important;
   inset: auto !important;
-}
-
-@supports (height: 100dvh) {
-  .video-player.is-force-landscape {
-    width: 100dvh !important;
-    height: 100dvw !important;
-  }
+  background: #000 !important;
 }
 
 body.is-fake-fullscreen {
   overflow: hidden !important;
-  position: fixed !important;
-  width: 100%;
-  height: 100%;
+}
+
+body.is-fake-fullscreen > *:not(.video-player) {
+  visibility: hidden !important;
 }
 
 .player-toast {
