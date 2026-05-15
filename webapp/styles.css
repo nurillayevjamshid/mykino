@@ -2268,10 +2268,19 @@ html[data-theme="light"] .modal-meta__chip {
 .video-player.is-native-controls .player-overlay {
   background: transparent !important;
   pointer-events: none;
+  opacity: 1 !important;
 }
 
 .video-player.is-native-controls .player-overlay__top {
   pointer-events: auto;
+}
+
+.video-player.is-native-controls .video-mount video::-webkit-media-controls,
+.video-player.is-native-controls .video-mount video::-webkit-media-controls-enclosure,
+.video-player.is-native-controls .video-mount video::-webkit-media-controls-panel,
+.video-player.is-native-controls .video-mount video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none !important;
 }
 
 .video-player.is-native-controls .video-mount,
