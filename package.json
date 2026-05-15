@@ -6,6 +6,8 @@
     "redis": "^4.7.0"
   },
   "scripts": {
-    "check": "node --check webapp/app.js && node --check webapp/admin/admin.js && node --check api/_lib/google-drive.js && node --check api/movies.js && node --check api/movie-update.js && node --check api/settings.js && node --check api/stream.js && node --check api/telegram-file.js && node --check api/drive-stream.js && node --check api/drive-thumbnail.js && node --check api/music.js && node -e \"JSON.parse(require('fs').readFileSync('data/movies.json','utf8')); console.log('movies json ok')\""
+    "check": "node --check webapp/app.js && node --check webapp/admin/admin.js && node --check api/_lib/google-drive.js && node --check api/movies.js && node --check api/movie-update.js && node --check api/settings.js && node --check api/drive-stream.js && node --check api/drive-thumbnail.js && node --check api/music.js && node -e \"JSON.parse(require('fs').readFileSync('data/movies.json','utf8')); console.log('movies json ok')\"",
+    "faststart": "node scripts/faststart-drive.js",
+    "faststart:apply": "node scripts/faststart-drive.js --apply"
   }
 }
