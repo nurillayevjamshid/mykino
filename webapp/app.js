@@ -2278,7 +2278,7 @@ function isPortraitOrientation() {
   return window.matchMedia("(orientation: portrait)").matches;
 }
 
-const FL_INLINE_PROPS = ["position", "top", "left", "width", "height", "transform", "transformOrigin", "inset", "zIndex", "margin", "maxWidth", "maxHeight", "background"];
+const FL_INLINE_PROPS = ["position", "top", "left", "right", "bottom", "width", "height", "transform", "transformOrigin", "inset", "zIndex", "margin", "maxWidth", "maxHeight", "background"];
 
 function getAccurateViewport() {
   // window.innerWidth/Height = current visible WebView area (most accurate during fullscreen transition)
@@ -2307,18 +2307,20 @@ function applyForceLandscape(enable) {
     return;
   }
   const { w, h } = getAccurateViewport();
-  // Pre-rotation: width = visual HEIGHT after rotate(90deg), height = visual WIDTH after rotate(90deg)
-  // We want visual width = larger side (h), visual height = smaller side (w) → so set height=h, width=w? No.
-  // After translate(-50%,-50%) rotate(90deg): element's pre-rotation width spans visually as height; pre-rotation height as width.
-  // So pre-rotation height should be the LONG side (visual width), pre-rotation width should be the SHORT side (visual height).
+  // Viewport is portrait (w < h). We want to display landscape video inside it via 90° rotation.
+  // Pre-rotation: arrange content in LANDSCAPE (width=longSide, height=shortSide).
+  // After rotate(90deg) around center: element rotates to portrait visual orientation,
+  // which exactly fills the portrait viewport.
   const longSide = Math.max(w, h);
   const shortSide = Math.min(w, h);
   Object.assign(videoPlayer.style, {
     position: "fixed",
     top: "50%",
     left: "50%",
-    width: `${shortSide}px`,
-    height: `${longSide}px`,
+    right: "auto",
+    bottom: "auto",
+    width: `${longSide}px`,
+    height: `${shortSide}px`,
     transform: "translate(-50%, -50%) rotate(90deg)",
     transformOrigin: "center center",
     inset: "auto",
