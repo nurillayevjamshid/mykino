@@ -2278,9 +2278,28 @@ function isPortraitOrientation() {
   return window.matchMedia("(orientation: portrait)").matches;
 }
 
+function getAccurateViewport() {
+  const tg = getTelegramWebApp();
+  const w = window.innerWidth || document.documentElement.clientWidth || screen.width;
+  const tgH = tg && Number(tg.viewportStableHeight || tg.viewportHeight);
+  const h = (tgH && tgH > 0 ? tgH : (window.innerHeight || document.documentElement.clientHeight || screen.height));
+  return { w, h };
+}
+
 function applyForceLandscape(enable) {
-  videoPlayer.classList.toggle("is-force-landscape", Boolean(enable));
-  document.body.classList.toggle("is-fake-fullscreen", Boolean(enable));
+  if (!enable) {
+    videoPlayer.classList.remove("is-force-landscape");
+    videoPlayer.style.removeProperty("--fl-w");
+    videoPlayer.style.removeProperty("--fl-h");
+    document.body.classList.remove("is-fake-fullscreen");
+    return;
+  }
+  const { w, h } = getAccurateViewport();
+  // Rotated 90°: visual width = original viewport HEIGHT, visual height = original viewport WIDTH
+  videoPlayer.style.setProperty("--fl-w", `${h}px`);
+  videoPlayer.style.setProperty("--fl-h", `${w}px`);
+  videoPlayer.classList.add("is-force-landscape");
+  document.body.classList.add("is-fake-fullscreen");
 }
 
 function refreshLandscapeView() {
@@ -2325,7 +2344,9 @@ async function enterFullscreenAndLandscape() {
 
   // 4. Fallback CSS rotation if still portrait (iOS, Telegram mobile, etc.)
   if (!locked) {
+    // Telegram WebApp viewport expansion is asynchronous — re-apply rotation a few times
     refreshLandscapeView();
+    [80, 250, 600].forEach((delay) => window.setTimeout(refreshLandscapeView, delay));
   }
 
   syncFullscreenButton();
@@ -3621,13 +3642,16 @@ document.addEventListener("MSFullscreenChange", syncFullscreenButton);
 try {
   const tgWebApp = window.Telegram?.WebApp;
   if (tgWebApp && typeof tgWebApp.onEvent === "function") {
-    tgWebApp.onEvent("fullscreenChanged", syncFullscreenButton);
+    tgWebApp.onEvent("fullscreenChanged", () => { syncFullscreenButton(); refreshLandscapeView(); });
     tgWebApp.onEvent("fullscreenFailed", () => {
       showPlayerToast("Fullscreen qo'llab-quvvatlanmaydi");
       syncFullscreenButton();
     });
+    tgWebApp.onEvent("viewportChanged", () => { refreshLandscapeView(); });
   }
 } catch {}
+
+window.addEventListener("resize", () => { if (intendedFullscreen) refreshLandscapeView(); });
 
 try {
   const portraitMQ = window.matchMedia("(orientation: portrait)");
