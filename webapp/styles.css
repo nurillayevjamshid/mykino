@@ -6214,29 +6214,32 @@ body.is-music .bottom-bar__button--music-only { display: flex; }
 /* Floating mini player — iOS Control-Center-style compact widget */
 .mini-player {
   position: fixed;
-  left: 10px;
-  right: 10px;
-  bottom: 74px;
+  left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 60px + 7px);
+  width: calc(100% - 24px);
+  max-width: calc(var(--muvi-shell-max) - 24px);
+  height: 60px;
   z-index: 90;
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
+  grid-template-rows: 1fr auto;
   align-items: center;
-  gap: 8px 6px;
-  padding: 10px 12px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(36,36,52,0.92) 0%, rgba(22,22,34,0.92) 100%);
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 18px 36px -16px rgba(0,0,0,0.6), 0 2px 6px rgba(0,0,0,0.4);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  gap: 0 6px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(18, 18, 18, 0.7);
+  border: 1px solid var(--muvi-border);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   color: #f5f6fa;
-  transform: translateY(120%);
+  overflow: hidden;
   transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
   opacity: 0;
 }
 .mini-player[aria-hidden="true"] { pointer-events: none; }
-.mini-player[aria-hidden="false"] { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.mini-player[aria-hidden="false"] { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
 
 .mini-player__expand {
   grid-column: 1 / 2;
@@ -6344,7 +6347,7 @@ body.is-music .bottom-bar__button--music-only { display: flex; }
 
 /* Hide mini-player while full-screen player is open; keep visible on music view */
 body.fullplayer-open .mini-player[aria-hidden="false"] {
-  transform: translateY(120%);
+  transform: translateX(-50%) translateY(120%);
   opacity: 0;
   pointer-events: none;
 }
