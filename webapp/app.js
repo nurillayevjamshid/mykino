@@ -2343,7 +2343,7 @@ function refreshLandscapeView() {
 }
 
 function isAnyFullscreen() {
-  return Boolean(getFullscreenElement()) || isTelegramFullscreen() || intendedFullscreen;
+  return Boolean(getFullscreenElement()) || isTelegramFullscreen() || isIOSVideoFullscreen() || intendedFullscreen;
 }
 
 async function tryLockLandscape() {
@@ -2356,40 +2356,70 @@ async function tryLockLandscape() {
   return false;
 }
 
+function isIOSDevice() {
+  const ua = navigator.userAgent || "";
+  if (/iPad|iPhone|iPod/.test(ua)) return true;
+  // iPad on iOS 13+ identifies as Mac with touch
+  if (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) return true;
+  return false;
+}
+
+function isIOSVideoFullscreen() {
+  const v = getActiveVideoEl();
+  return Boolean(v && v.webkitDisplayingFullscreen);
+}
+
 async function enterFullscreenAndLandscape() {
   intendedFullscreen = true;
-  let entered = false;
+  const v = getActiveVideoEl();
+
+  // 1. iOS — native video fullscreen. Auto-rotates to landscape, fills entire device screen,
+  //    works inside Telegram WebApp WebView. Shows iOS native controls in fullscreen.
+  if (isIOSDevice() && v && typeof v.webkitEnterFullscreen === "function") {
+    try {
+      v.controls = true;
+      const onEnd = () => {
+        v.controls = false;
+        intendedFullscreen = false;
+        syncFullscreenButton();
+        v.removeEventListener("webkitendfullscreen", onEnd);
+      };
+      v.addEventListener("webkitendfullscreen", onEnd);
+      v.webkitEnterFullscreen();
+      syncFullscreenButton();
+      return;
+    } catch (err) {
+      console.warn("iOS native fullscreen failed:", err);
+      v.controls = false;
+    }
+  }
 
   const tg = getTelegramWebApp();
 
-  // 0. Always expand WebApp first (works on all Telegram versions, gives more viewport)
+  // 2. Telegram WebApp expand + fullscreen (Bot API 8.0+) — Android Telegram
   try { tg?.expand?.(); } catch {}
-
-  // 1. Telegram WebApp fullscreen (Bot API 8.0+) — true fullscreen, hides Telegram chrome
   if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
-    try { tg.requestFullscreen(); entered = true; } catch {}
+    try { tg.requestFullscreen(); } catch {}
   }
 
-  // 2. Standard browser fullscreen
-  if (!entered && requestElFullscreen(videoPlayer)) {
-    entered = true;
-  }
+  // 3. Standard browser fullscreen (desktop, Android Chrome)
+  requestElFullscreen(videoPlayer);
 
-  // 3. Android orientation lock (works in fullscreen)
-  const locked = await tryLockLandscape();
-
-  // 4. Fallback CSS rotation if still portrait (iOS, Telegram mobile, etc.)
-  if (!locked) {
-    // Telegram WebApp viewport expansion is asynchronous — re-apply rotation a few times
-    refreshLandscapeView();
-    [80, 250, 600, 1200].forEach((delay) => window.setTimeout(refreshLandscapeView, delay));
-  }
+  // 4. Android orientation lock — physically rotates device to landscape
+  await tryLockLandscape();
 
   syncFullscreenButton();
 }
 
 function exitFullscreenAndLandscape() {
   intendedFullscreen = false;
+
+  // iOS native video fullscreen
+  const v = getActiveVideoEl();
+  if (v && v.webkitDisplayingFullscreen && typeof v.webkitExitFullscreen === "function") {
+    try { v.webkitExitFullscreen(); } catch {}
+    v.controls = false;
+  }
 
   const tg = getTelegramWebApp();
   if (tg && tg.isFullscreen && typeof tg.exitFullscreen === "function") {
