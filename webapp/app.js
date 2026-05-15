@@ -892,6 +892,32 @@ function buildDriveStreamUrl(fileId) {
   return buildApiUrl(`/api/drive-stream/${encodeURIComponent(fileId)}`);
 }
 
+function buildDriveResolveUrl(fileId) {
+  return buildApiUrl(`/api/drive-resolve/${encodeURIComponent(fileId)}`);
+}
+
+const driveDirectUrlCache = new Map();
+const DRIVE_DIRECT_URL_TTL_MS = 25 * 60 * 1000;
+
+async function resolveDriveDirectVideoUrl(fileId) {
+  if (!fileId) return "";
+  const cached = driveDirectUrlCache.get(fileId);
+  if (cached && cached.expiresAt > Date.now()) return cached.url;
+  try {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(buildDriveResolveUrl(fileId), { signal: controller.signal });
+    window.clearTimeout(timeoutId);
+    if (!response.ok) return "";
+    const data = await response.json();
+    if (!data?.ok || !data.url) return "";
+    driveDirectUrlCache.set(fileId, { url: data.url, expiresAt: Date.now() + DRIVE_DIRECT_URL_TTL_MS });
+    return data.url;
+  } catch {
+    return "";
+  }
+}
+
 function buildDriveThumbnailUrl(fileId) {
   return buildApiUrl(`/api/drive-thumbnail/${encodeURIComponent(fileId)}`);
 }
@@ -1678,21 +1704,22 @@ function startMoviePreload(movie) {
   if (isMobileViewingContext() && !isLaunchReadyMovie(movie)) return;
 
   const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
-  const url = driveFileId ? buildDriveStreamUrl(driveFileId) : "";
-  if (!url) return;
-  if (preloadVideoEl && preloadVideoUrl === url) return;
-
-  stopMoviePreload();
-  const el = document.createElement("video");
-  el.preload = "auto";
-  el.muted = true;
-  el.playsInline = true;
-  el.setAttribute("aria-hidden", "true");
-  el.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;top:-9999px";
-  el.src = url;
-  document.body.appendChild(el);
-  preloadVideoEl = el;
-  preloadVideoUrl = url;
+  if (!driveFileId) return;
+  resolveDriveDirectVideoUrl(driveFileId).then((directUrl) => {
+    const url = directUrl || buildDriveStreamUrl(driveFileId);
+    if (preloadVideoEl && preloadVideoUrl === url) return;
+    stopMoviePreload();
+    const el = document.createElement("video");
+    el.preload = "auto";
+    el.muted = true;
+    el.playsInline = true;
+    el.setAttribute("aria-hidden", "true");
+    el.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;top:-9999px";
+    el.src = url;
+    document.body.appendChild(el);
+    preloadVideoEl = el;
+    preloadVideoUrl = url;
+  });
 }
 
 function openMovie(movie) {
@@ -2810,7 +2837,10 @@ async function openVideoPlayer(movie) {
 
   const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
   if (driveFileId) {
-    renderVideoSource(buildDriveStreamUrl(driveFileId), movie, {
+    const directUrl = await resolveDriveDirectVideoUrl(driveFileId);
+    const playbackUrl = directUrl || buildDriveStreamUrl(driveFileId);
+    if (requestId !== activeVideoRequest) return;
+    renderVideoSource(playbackUrl, movie, {
       forceVideo: true,
       originalUrl: "",
       requestId,
