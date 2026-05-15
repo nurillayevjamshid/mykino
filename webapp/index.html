@@ -408,7 +408,7 @@
     <div class="player-toast" id="playerToast" hidden></div>
   </section>
 
-  <section class="music-fullplayer" id="musicFullPlayer" hidden aria-hidden="true" aria-label="Music Player">
+  <section class="music-fullplayer" id="musicFullPlayer" aria-hidden="true" aria-label="Music Player">
     <header class="music-fullplayer__top">
       <button class="music-fullplayer__close" type="button" data-music-fp-close aria-label="Yopish">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -429,7 +429,7 @@
     </header>
     <div class="music-fullplayer__art" id="musicFullPlayerArt">
       <div class="music-fullplayer__art-fallback" id="musicFullPlayerArtFallback"></div>
-      <div class="music-fullplayer__yt-slot" id="musicFullPlayerYtSlot"></div>
+      <div class="music-fullplayer__yt-slot" id="musicFullPlayerYtSlot"><div id="ytPlayer"></div></div>
     </div>
     <div class="music-fullplayer__info">
       <button class="music-fullplayer__like" type="button" id="musicFullPlayerLike" aria-label="Saqlash" aria-pressed="false">
@@ -495,21 +495,34 @@
   </section>
 
   <div class="mini-player" id="miniPlayer" aria-hidden="true">
-    <div class="mini-player__yt" id="miniPlayerYt"><div id="ytPlayer"></div></div>
-    <div class="mini-player__meta">
-      <strong id="miniPlayerTitle">—</strong>
-      <span id="miniPlayerArtist">—</span>
-      <div class="mini-player__progress">
-        <span id="miniPlayerTime">0:00</span>
-        <div class="mini-player__bar"><div class="mini-player__bar-fill" id="miniPlayerBarFill"></div></div>
+    <button type="button" class="mini-player__expand" id="miniPlayerExpand" aria-label="Kengaytirish">
+      <div class="mini-player__art">
+        <img id="miniPlayerArt" alt="" />
       </div>
-    </div>
+      <div class="mini-player__meta">
+        <strong id="miniPlayerTitle">—</strong>
+        <span id="miniPlayerArtist">—</span>
+      </div>
+    </button>
+    <div class="mini-player__bar"><div class="mini-player__bar-fill" id="miniPlayerBarFill"></div></div>
     <div class="mini-player__actions">
+      <button type="button" class="mini-player__btn" id="miniPlayerPrev" aria-label="Oldingi">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M6 5h2v14H6z"></path>
+          <path d="M20 5v14l-11-7z"></path>
+        </svg>
+      </button>
       <button type="button" class="mini-player__btn mini-player__btn--play" id="miniPlayerToggle" aria-label="Play" data-state="play">
         <svg class="mini-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
         <svg class="mini-icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path></svg>
       </button>
-      <button type="button" class="mini-player__btn" id="miniPlayerClose" aria-label="Yopish">
+      <button type="button" class="mini-player__btn" id="miniPlayerNext" aria-label="Keyingi">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M16 5h2v14h-2z"></path>
+          <path d="M4 5v14l11-7z"></path>
+        </svg>
+      </button>
+      <button type="button" class="mini-player__btn mini-player__btn--close" id="miniPlayerClose" aria-label="Yopish">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
       </button>
     </div>

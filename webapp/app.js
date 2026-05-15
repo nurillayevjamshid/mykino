@@ -3397,6 +3397,8 @@ function playMusicTrack(track) {
   musicCurrentTrackKey = trackKey(track);
   if (miniPlayerTitle) miniPlayerTitle.textContent = track.title;
   if (miniPlayerArtistEl) miniPlayerArtistEl.textContent = track.artist;
+  const miniArt = document.getElementById("miniPlayerArt");
+  if (miniArt) miniArt.src = `https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg`;
   if (miniPlayerBarFill) miniPlayerBarFill.style.width = "0%";
   if (miniPlayerTime) miniPlayerTime.textContent = "0:00";
   showMiniPlayer();
@@ -3491,20 +3493,15 @@ let musicShuffle = false;
 let musicRepeat = "off"; // "off" | "all" | "one"
 
 function moveYtIntoFullPlayer() {
-  const el = document.getElementById("ytPlayer");
-  if (!el || !musicFullPlayerYtSlot) return;
-  if (el.parentElement !== musicFullPlayerYtSlot) musicFullPlayerYtSlot.appendChild(el);
   musicFullPlayerArt?.classList.add("has-video");
 }
 function moveYtBackToMini() {
-  const el = document.getElementById("ytPlayer");
-  if (!el || !miniPlayerYtHost) return;
-  if (el.parentElement !== miniPlayerYtHost) miniPlayerYtHost.appendChild(el);
-  musicFullPlayerArt?.classList.remove("has-video");
+  // no-op: iframe stays pinned in full-player slot so audio is not interrupted
 }
 
 function openMusicFullPlayer(track) {
   if (!musicFullPlayer || !track) return;
+  document.body.classList.add("fullplayer-open");
   if (musicFullPlayerArtFallback) musicFullPlayerArtFallback.style.backgroundImage = `url('https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg')`;
   if (musicFullPlayerAlbum) musicFullPlayerAlbum.textContent = (track.category && track.category !== "all") ? track.category : "Music";
   if (musicFullPlayerTitle) musicFullPlayerTitle.textContent = track.title;
@@ -3527,8 +3524,8 @@ function openMusicFullPlayer(track) {
 function closeMusicFullPlayer() {
   if (!musicFullPlayer) return;
   musicFullPlayer.setAttribute("aria-hidden", "true");
-  moveYtBackToMini();
-  setTimeout(() => { musicFullPlayer.hidden = true; }, 280);
+  document.body.classList.remove("fullplayer-open");
+  // Keep musicFullPlayer rendered (no display:none) so YT iframe inside keeps playing audio
 }
 
 function currentTrackIndex() {
@@ -3639,6 +3636,12 @@ miniPlayerToggle?.addEventListener("click", () => {
   } catch (_) {}
 });
 miniPlayerClose?.addEventListener("click", hideMiniPlayer);
+document.getElementById("miniPlayerPrev")?.addEventListener("click", () => playRelative(-1));
+document.getElementById("miniPlayerNext")?.addEventListener("click", () => playRelative(1));
+document.getElementById("miniPlayerExpand")?.addEventListener("click", () => {
+  const track = musicAllTracks.find((t) => trackKey(t) === musicCurrentTrackKey);
+  if (track) openMusicFullPlayer(track);
+});
 
 document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.addEventListener("click", closeMusicView));
 document.querySelectorAll(".bottom-bar [data-action='favorites'], .bottom-bar [data-action='catalog'], .bottom-bar [data-action='profile']").forEach((b) => b.addEventListener("click", closeMusicView));
