@@ -2,7 +2,11 @@ const {
   readCatalogMetadata,
   writeCatalogMetadata,
   setCors,
+  isServiceAccountStorageQuotaError,
 } = require("./_lib/google-drive");
+const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
+
+const BLOB_SETTINGS_PATHNAME = "settings/required-channels.json";
 
 async function readRequestBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
@@ -34,9 +38,51 @@ function normalizeChannel(item) {
   return { id, username, title, inviteUrl };
 }
 
-function readChannelsFromSettings(settings) {
-  const raw = Array.isArray(settings?.requiredChannels) ? settings.requiredChannels : [];
-  return raw.map(normalizeChannel).filter(Boolean);
+function dedupeChannels(list) {
+  const seen = new Set();
+  const result = [];
+  for (const ch of list) {
+    if (!ch) continue;
+    const key = `${(ch.username || "").toLowerCase()}|${ch.id || ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(ch);
+  }
+  return result;
+}
+
+async function loadChannels() {
+  const blob = await readBlobJson(BLOB_SETTINGS_PATHNAME, null);
+  if (blob && Array.isArray(blob.channels)) {
+    return dedupeChannels(blob.channels.map(normalizeChannel).filter(Boolean));
+  }
+
+  try {
+    const metadataState = await readCatalogMetadata();
+    const settings = metadataState.data?.settings || {};
+    const raw = Array.isArray(settings.requiredChannels) ? settings.requiredChannels : [];
+    return dedupeChannels(raw.map(normalizeChannel).filter(Boolean));
+  } catch {
+    return [];
+  }
+}
+
+async function saveChannels(channels) {
+  const normalized = dedupeChannels(channels.map(normalizeChannel).filter(Boolean));
+  await writeBlobJson(BLOB_SETTINGS_PATHNAME, { channels: normalized, updatedAt: new Date().toISOString() });
+
+  try {
+    const metadataState = await readCatalogMetadata();
+    const settings = metadataState.data?.settings || {};
+    metadataState.data.settings = { ...settings, requiredChannels: normalized };
+    await writeCatalogMetadata(metadataState.data, metadataState.file);
+  } catch (err) {
+    if (!isServiceAccountStorageQuotaError(err)) {
+      // Drive yozish boshqa sabab bilan ham buzilgan bo'lsa ham, Blob saqlangani uchun davom etamiz.
+    }
+  }
+
+  return normalized;
 }
 
 module.exports = async function handler(request, response) {
@@ -49,9 +95,7 @@ module.exports = async function handler(request, response) {
   }
 
   try {
-    const metadataState = await readCatalogMetadata();
-    const settings = metadataState.data.settings || {};
-    let channels = readChannelsFromSettings(settings);
+    let channels = await loadChannels();
 
     if (request.method === "GET") {
       response.status(200).json({ ok: true, channels });
@@ -60,7 +104,6 @@ module.exports = async function handler(request, response) {
 
     if (request.method === "POST") {
       const body = await readRequestBody(request);
-
       if (body && Array.isArray(body.channels)) {
         channels = body.channels.map(normalizeChannel).filter(Boolean);
       } else {
@@ -70,13 +113,12 @@ module.exports = async function handler(request, response) {
           return;
         }
         const key = `${(next.username || "").toLowerCase()}|${next.id || ""}`;
-        channels = channels.filter(c => `${(c.username || "").toLowerCase()}|${c.id || ""}` !== key);
+        channels = channels.filter((c) => `${(c.username || "").toLowerCase()}|${c.id || ""}` !== key);
         channels.push(next);
       }
 
-      metadataState.data.settings = { ...settings, requiredChannels: channels };
-      await writeCatalogMetadata(metadataState.data, metadataState.file);
-      response.status(200).json({ ok: true, channels });
+      const saved = await saveChannels(channels);
+      response.status(200).json({ ok: true, channels: saved });
       return;
     }
 
@@ -88,15 +130,14 @@ module.exports = async function handler(request, response) {
         response.status(400).json({ ok: false, error: "username yoki id kerak." });
         return;
       }
-      channels = channels.filter(c => {
+      channels = channels.filter((c) => {
         const u = (c.username || "").toLowerCase();
         const matchU = targetUsername && u === targetUsername;
         const matchId = targetId && c.id === targetId;
         return !(matchU || matchId);
       });
-      metadataState.data.settings = { ...settings, requiredChannels: channels };
-      await writeCatalogMetadata(metadataState.data, metadataState.file);
-      response.status(200).json({ ok: true, channels });
+      const saved = await saveChannels(channels);
+      response.status(200).json({ ok: true, channels: saved });
       return;
     }
 
