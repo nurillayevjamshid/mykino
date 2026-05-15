@@ -43,6 +43,7 @@
     { "src": "api/users.js", "use": "@vercel/node" },
     { "src": "api/user-photo.js", "use": "@vercel/node" },
     { "src": "api/broadcast.js", "use": "@vercel/node" },
+    { "src": "api/telegram-webhook.js", "use": "@vercel/node" },
     { "src": "api/drive-stream.js", "use": "@vercel/node" },
     { "src": "api/drive-thumbnail.js", "use": "@vercel/node" },
     { "src": "webapp/**", "use": "@vercel/static" }
@@ -57,6 +58,7 @@
     { "src": "/api/users", "dest": "/api/users.js" },
     { "src": "/api/user-photo", "dest": "/api/user-photo.js" },
     { "src": "/api/broadcast", "dest": "/api/broadcast.js" },
+    { "src": "/api/telegram-webhook", "dest": "/api/telegram-webhook.js" },
     { "src": "/api/drive-stream/(.*)", "dest": "/api/drive-stream.js?fileId=$1" },
     { "src": "/api/drive-thumbnail/(.*)", "dest": "/api/drive-thumbnail.js?fileId=$1" },
     { "src": "/admin", "dest": "/webapp/admin/index.html" },
