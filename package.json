@@ -9,5 +9,9 @@
     "check": "node --check webapp/app.js && node --check webapp/admin/admin.js && node --check api/_lib/google-drive.js && node --check api/movies.js && node --check api/movie-update.js && node --check api/settings.js && node --check api/drive-stream.js && node --check api/drive-thumbnail.js && node --check api/music.js && node --check api/broadcast.js && node -e \"JSON.parse(require('fs').readFileSync('data/movies.json','utf8')); console.log('movies json ok')\"",
     "faststart": "node scripts/faststart-drive.js",
     "faststart:apply": "node scripts/faststart-drive.js --apply"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1047.0",
+    "@aws-sdk/lib-storage": "^3.1047.0"
   }
 }
