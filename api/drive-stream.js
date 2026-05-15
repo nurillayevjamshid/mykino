@@ -3,35 +3,11 @@ const { getDriveMediaResponse, getAccessToken, setCors } = require("./_lib/googl
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
 
-const DIRECT_URL_TTL_MS = 30 * 60 * 1000;
-const directUrlCache = new Map();
-
 function getFileId(request) {
   return String(request.query?.fileId || request.query?.id || "").trim();
 }
 
-function getCachedDirectUrl(fileId) {
-  const entry = directUrlCache.get(fileId);
-  if (!entry) return null;
-  if (Date.now() > entry.expiresAt) {
-    directUrlCache.delete(fileId);
-    return null;
-  }
-  return entry.url;
-}
-
-function setCachedDirectUrl(fileId, url) {
-  directUrlCache.set(fileId, { url, expiresAt: Date.now() + DIRECT_URL_TTL_MS });
-  if (directUrlCache.size > 500) {
-    const firstKey = directUrlCache.keys().next().value;
-    if (firstKey) directUrlCache.delete(firstKey);
-  }
-}
-
 async function resolveDriveDirectUrl(fileId) {
-  const cached = getCachedDirectUrl(fileId);
-  if (cached) return cached;
-
   const token = await getAccessToken();
   const url = new URL(`${DRIVE_API_BASE}/${encodeURIComponent(fileId)}`);
   url.searchParams.set("alt", "media");
@@ -50,10 +26,7 @@ async function resolveDriveDirectUrl(fileId) {
 
   if (upstream.status >= 300 && upstream.status < 400) {
     const location = upstream.headers.get("location");
-    if (location) {
-      setCachedDirectUrl(fileId, location);
-      return location;
-    }
+    if (location) return location;
   }
   return null;
 }
@@ -83,7 +56,7 @@ module.exports = async function handler(request, response) {
       try {
         const directUrl = await resolveDriveDirectUrl(fileId);
         if (directUrl) {
-          response.setHeader("Cache-Control", "public, max-age=1500");
+          response.setHeader("Cache-Control", "public, max-age=300");
           response.setHeader("Location", directUrl);
           response.status(302).end();
           return;
