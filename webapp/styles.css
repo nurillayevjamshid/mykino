@@ -6611,17 +6611,28 @@ body.is-music .mini-player[aria-hidden="false"] {
   z-index: 2;
   display: none;
   background: #000;
+  overflow: hidden;
 }
 .music-fullplayer__art.has-video .music-fullplayer__yt-slot { display: block; }
 .music-fullplayer__art.has-video .music-fullplayer__art-fallback { opacity: 0; }
 .music-fullplayer__yt-slot iframe,
 .music-fullplayer__yt-slot > div {
   position: absolute;
-  inset: 0;
-  width: 100% !important;
-  height: 100% !important;
+  top: 50%;
+  left: 50%;
+  width: 220% !important;
+  height: 220% !important;
+  transform: translate(-50%, -50%);
   border: 0;
+  pointer-events: none;
+}
+.music-fullplayer__yt-slot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
   pointer-events: auto;
+  background: transparent;
 }
 .music-fullplayer__info {
   width: min(100%, 380px);
