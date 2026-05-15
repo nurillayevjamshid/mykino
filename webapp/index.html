@@ -357,31 +357,6 @@
             <input class="player-volume-range" id="videoVolume" type="range" min="0" max="100" value="100" step="1" aria-label="Volume" />
           </div>
 
-          <div class="player-center">
-            <button class="player-skip-btn" id="videoBackButton" type="button" aria-label="-15 soniya">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9"></circle>
-                <path d="M12 8 9 11l3 3"></path>
-              </svg>
-              <span class="player-skip-btn__num">15</span>
-            </button>
-            <button class="player-play-btn" id="videoToggleButton" type="button" data-state="play" aria-label="Play">
-              <svg class="icon-state icon-state--play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M8 5v14l11-7z"></path>
-              </svg>
-              <svg class="icon-state icon-state--pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M6 5h4v14H6zM14 5h4v14h-4z"></path>
-              </svg>
-            </button>
-            <button class="player-skip-btn" id="videoForwardButton" type="button" aria-label="+15 soniya">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9"></circle>
-                <path d="m12 8 3 3-3 3"></path>
-              </svg>
-              <span class="player-skip-btn__num">15</span>
-            </button>
-          </div>
-
           <button class="player-icon-btn player-fullscreen-btn" id="videoFullscreenButton" type="button" data-state="enter" aria-label="Fullscreen">
             <svg class="icon-state icon-state--enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M8 3H4v4"></path>
@@ -397,6 +372,36 @@
             </svg>
           </button>
         </div>
+      </div>
+
+      <!-- CENTER controls: -15 | play/pause | +15 -->
+      <div class="player-center">
+        <button class="player-skip-btn" id="videoBackButton" type="button" aria-label="-15 soniya">
+          <span class="player-skip-btn__circle">
+            <svg class="player-skip-btn__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m13 7-5 5 5 5"></path>
+              <path d="m17 7-5 5 5 5"></path>
+            </svg>
+            <span class="player-skip-btn__num">15</span>
+          </span>
+        </button>
+        <button class="player-play-btn" id="videoToggleButton" type="button" data-state="play" aria-label="Play">
+          <svg class="icon-state icon-state--play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M8 5v14l11-7z"></path>
+          </svg>
+          <svg class="icon-state icon-state--pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M6 5h4v14H6zM14 5h4v14h-4z"></path>
+          </svg>
+        </button>
+        <button class="player-skip-btn" id="videoForwardButton" type="button" aria-label="+15 soniya">
+          <span class="player-skip-btn__circle">
+            <svg class="player-skip-btn__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m11 7 5 5-5 5"></path>
+              <path d="m7 7 5 5-5 5"></path>
+            </svg>
+            <span class="player-skip-btn__num">15</span>
+          </span>
+        </button>
       </div>
     </div>
 

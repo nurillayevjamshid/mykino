@@ -1919,11 +1919,11 @@ html[data-theme="light"] .modal-meta__chip {
   background: #fff;
 }
 
-/* Controls row: Volume | Center | Fullscreen */
+/* Controls row: Volume (left) | Fullscreen (right) */
 .player-controls {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 4px 0 6px;
 }
@@ -1981,17 +1981,23 @@ html[data-theme="light"] .modal-meta__chip {
   background: #fff;
 }
 
+/* CENTER controls — absolute centered over the video */
 .player-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  pointer-events: none;
   display: flex;
   align-items: center;
-  gap: clamp(28px, 8vw, 56px);
-  justify-self: center;
+  gap: clamp(48px, 14vw, 110px);
 }
+.player-center > * { pointer-events: auto; }
 
 .player-skip-btn {
-  position: relative;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   display: grid;
   place-items: center;
   background: transparent;
@@ -2001,24 +2007,43 @@ html[data-theme="light"] .modal-meta__chip {
   -webkit-tap-highlight-color: transparent;
   padding: 0;
 }
-.player-skip-btn svg {
+
+.player-skip-btn__circle {
+  position: relative;
   width: 100%;
   height: 100%;
-}
-.player-skip-btn__num {
-  position: absolute;
-  inset: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
   display: grid;
   place-items: center;
+  box-sizing: border-box;
+}
+
+.player-skip-btn__chev {
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% - 4px));
+  opacity: 0.95;
+}
+
+.player-skip-btn__num {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 11px;
   font-weight: 700;
+  line-height: 1;
   pointer-events: none;
-  padding-top: 2px;
+  letter-spacing: 0.02em;
 }
 
 .player-play-btn {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   display: grid;
   place-items: center;
   background: transparent;
@@ -2028,9 +2053,9 @@ html[data-theme="light"] .modal-meta__chip {
   -webkit-tap-highlight-color: transparent;
   padding: 0;
 }
-.player-play-btn svg { width: 36px; height: 36px; }
+.player-play-btn svg { width: 48px; height: 48px; }
 
-.player-fullscreen-btn { justify-self: end; width: 36px; height: 36px; }
+.player-fullscreen-btn { width: 36px; height: 36px; flex-shrink: 0; }
 .player-fullscreen-btn svg { width: 20px; height: 20px; }
 
 .icon-state { display: none; }
