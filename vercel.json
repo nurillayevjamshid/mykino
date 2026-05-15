@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "regions": ["fra1"],
   "headers": [
     {
       "source": "/",
