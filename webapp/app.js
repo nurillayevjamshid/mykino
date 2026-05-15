@@ -2312,17 +2312,19 @@ function createVideoElement(src, movie, options = {}) {
     startupTimeout = 9000,
     preload = "auto",
   } = normalizedOptions;
-  const useNativeControls = isMobileViewingContext();
-  videoPlayer.classList.toggle("is-native-controls", useNativeControls);
+  videoPlayer.classList.add("is-native-controls");
   const video = document.createElement("video");
   video.src = src;
-  video.controls = useNativeControls;
+  video.controls = false;
+  video.disablePictureInPicture = true;
+  video.setAttribute("disablepictureinpicture", "");
+  video.setAttribute("disableremoteplayback", "");
+  video.setAttribute("controlsList", "nodownload nofullscreen noremoteplayback noplaybackrate");
   video.playsInline = true;
   video.preload = preload;
   video.autoplay = true;
   video.setAttribute("playsinline", "");
   video.setAttribute("webkit-playsinline", "");
-  video.setAttribute("controlsList", "nodownload");
   video.addEventListener("timeupdate", updateHtml5VideoControls);
   video.addEventListener("play", () => { setStateLabel(videoToggleButton, "pause", plainLabel(t("pause"))); scheduleControlsHide(); requestWakeLock(); });
   video.addEventListener("pause", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); releaseWakeLock(); });
