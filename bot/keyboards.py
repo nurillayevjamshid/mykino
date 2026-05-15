@@ -5,6 +5,8 @@ import time
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
     WebAppInfo,
 )
 
@@ -45,6 +47,30 @@ def start_menu(webapp_url: str) -> InlineKeyboardMarkup:
                 ),
             ],
         ],
+    )
+
+
+def main_menu(webapp_url: str) -> ReplyKeyboardMarkup:
+    main_url = _bust(webapp_url)
+    profile_url = _bust(webapp_url, anchor="#profile")
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(
+                    text="Kino ko'rish",
+                    web_app=WebAppInfo(url=main_url),
+                ),
+            ],
+            [
+                KeyboardButton(
+                    text="Profilga kirish",
+                    web_app=WebAppInfo(url=profile_url),
+                ),
+                KeyboardButton(text="Murojaat qoldirish"),
+            ],
+        ],
+        resize_keyboard=True,
+        persistent=True,
     )
 
 
