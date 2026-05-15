@@ -888,10 +888,6 @@ function buildApiUrl(path) {
   return `${runtimeApiBase}${path}`;
 }
 
-function buildTelegramStreamUrl(fileId) {
-  return buildApiUrl(`/api/stream/${encodeURIComponent(fileId)}`);
-}
-
 function buildDriveStreamUrl(fileId) {
   return buildApiUrl(`/api/drive-stream/${encodeURIComponent(fileId)}`);
 }
@@ -1050,8 +1046,6 @@ function normalizeMovie(movie, index = 0) {
 
   if (!normalized.videoUrl && normalized.driveFileId) {
     normalized.videoUrl = buildDriveStreamUrl(normalized.driveFileId);
-  } else if (!normalized.videoUrl && normalized.telegramVideoFileId) {
-    normalized.videoUrl = buildTelegramStreamUrl(normalized.telegramVideoFileId);
   }
 
   if (normalized.videoUrl) normalized.videoUrl = resolveAppUrl(normalized.videoUrl);
@@ -1683,14 +1677,8 @@ function startMoviePreload(movie) {
   if (getYouTubeVideoUrl(movie)) return;
   if (isMobileViewingContext() && !isLaunchReadyMovie(movie)) return;
 
-  let url = "";
   const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
-  if (driveFileId) {
-    url = buildDriveStreamUrl(driveFileId);
-  } else {
-    const fid = getMovieFileId(movie);
-    if (fid) url = buildTelegramStreamUrl(fid);
-  }
+  const url = driveFileId ? buildDriveStreamUrl(driveFileId) : "";
   if (!url) return;
   if (preloadVideoEl && preloadVideoUrl === url) return;
 
@@ -2827,18 +2815,6 @@ async function openVideoPlayer(movie) {
       originalUrl: "",
       requestId,
       fallbackMessage: DRIVE_STREAM_ERROR_MESSAGE,
-    });
-    return;
-  }
-
-  const fileId = getMovieFileId(movie);
-  if (fileId) {
-    const streamUrl = buildTelegramStreamUrl(fileId);
-    renderVideoSource(streamUrl, movie, {
-      forceVideo: true,
-      originalUrl: getMoviePostUrl(movie),
-      requestId,
-      fallbackMessage: TELEGRAM_STREAM_ERROR_MESSAGE,
     });
     return;
   }
