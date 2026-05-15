@@ -74,11 +74,3 @@ def main_menu(webapp_url: str) -> ReplyKeyboardMarkup:
     )
 
 
-def join_inline_keyboard(channel_url: str | None) -> InlineKeyboardMarkup:
-    buttons = []
-    if channel_url:
-        buttons.append([InlineKeyboardButton(text="Kanalga a'zo bo'lish", url=channel_url)])
-    
-    buttons.append([InlineKeyboardButton(text="Tekshirish", callback_data="check_sub")])
-    
-    return InlineKeyboardMarkup(inline_keyboard=buttons)

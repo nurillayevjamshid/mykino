@@ -156,25 +156,6 @@ async def _show_feedback_placeholder(message: Message, state: FSMContext) -> Non
     )
 
 
-async def _check_subscription(bot: Bot, user_id: int, settings: Settings) -> bool:
-    """Checks if the user is a member of the required channel."""
-    if not settings.content_channel_id:
-        return True
-    try:
-        # Set a short timeout for the subscription check
-        member = await asyncio.wait_for(
-            bot.get_chat_member(chat_id=settings.content_channel_id, user_id=user_id),
-            timeout=3.0
-        )
-        return member.status in {"creator", "administrator", "member"}
-    except asyncio.TimeoutError:
-        logging.warning("Subscription check timed out for user %s", user_id)
-        return True
-    except Exception as e:
-        logging.warning("Subscription check failed for user %s: %s", user_id, e)
-        return True
-
-
 async def _send_start_menu(message: Message, settings: Settings) -> None:
     await message.answer(
         "Assalomu alaykum, My Kino botiga xush kelibsiz.\n"
@@ -333,16 +314,6 @@ async def admin_reply_handler(message: Message, settings: Settings) -> None:
         except Exception as e:
             logging.error("Failed to send reply to %s: %s", user_id, e)
             await message.answer("Javob yuborishda xatolik. Foydalanuvchi botni bloklagan bo'lishi mumkin.")
-
-
-@router.callback_query(F.data == "check_sub")
-async def check_sub_callback(callback: CallbackQuery, settings: Settings) -> None:
-    is_subscribed = await _check_subscription(callback.bot, callback.from_user.id, settings)
-    if is_subscribed:
-        await callback.message.delete()
-        await _send_start_menu(callback.message, settings)
-    else:
-        await callback.answer("Siz hali kanalga a'zo bo'lmadingiz!", show_alert=True)
 
 
 @router.channel_post()

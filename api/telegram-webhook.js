@@ -2,7 +2,6 @@ const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
 
 const TG_API = "https://api.telegram.org";
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
-const BLOB_SUBSCRIBE_PATHNAME = "settings/required-channels.json";
 
 function getBotToken() {
   return String(process.env.BOT_TOKEN || "").trim();
@@ -101,47 +100,6 @@ async function upsertUser(telegramUser) {
   }
 }
 
-async function loadRequiredChannels() {
-  const data = await readBlobJson(BLOB_SUBSCRIBE_PATHNAME, null);
-  if (!data || !Array.isArray(data.channels)) return [];
-  return data.channels.filter((c) => c && (c.username || c.id));
-}
-
-async function isUserSubscribed(userId, channel) {
-  const token = getBotToken();
-  if (!token || !userId) return true;
-  const chatId = channel.id || (channel.username ? `@${channel.username}` : "");
-  if (!chatId) return true;
-  try {
-    const result = await tg("getChatMember", { chat_id: chatId, user_id: userId });
-    return ["creator", "administrator", "member"].includes(result?.status);
-  } catch {
-    return true;
-  }
-}
-
-async function checkAllSubscriptions(userId) {
-  const channels = await loadRequiredChannels();
-  if (!channels.length) return { ok: true, missing: [] };
-  const missing = [];
-  for (const ch of channels) {
-    const ok = await isUserSubscribed(userId, ch);
-    if (!ok) missing.push(ch);
-  }
-  return { ok: missing.length === 0, missing };
-}
-
-function buildSubscribeKeyboard(missing) {
-  const rows = missing.map((ch) => {
-    const url = ch.inviteUrl || (ch.username ? `https://t.me/${ch.username}` : "");
-    return url
-      ? [{ text: `📢 ${ch.title || ch.username || "Kanal"}`, url }]
-      : [{ text: `📢 ${ch.title || ch.username || "Kanal"}`, callback_data: "noop" }];
-  });
-  rows.push([{ text: "✅ Tekshirish", callback_data: "check_sub" }]);
-  return { inline_keyboard: rows };
-}
-
 async function sendStart(chatId) {
   await sendMessage(
     chatId,
@@ -153,14 +111,6 @@ async function sendStart(chatId) {
   await sendMessage(chatId, "Quyidagi menyudan foydalaning:", { reply_markup: mainReplyKeyboard() });
 }
 
-async function sendSubscribeGate(chatId, missing) {
-  await sendMessage(
-    chatId,
-    "Botdan foydalanish uchun avval quyidagi kanal(lar)ga obuna bo'ling, so'ng <b>Tekshirish</b>ni bosing.",
-    { reply_markup: buildSubscribeKeyboard(missing) },
-  );
-}
-
 async function handleMessage(message) {
   const chatId = message.chat?.id;
   const text = String(message.text || "").trim();
@@ -169,11 +119,6 @@ async function handleMessage(message) {
 
   if (text.startsWith("/start")) {
     await upsertUser(from);
-    const sub = await checkAllSubscriptions(from?.id);
-    if (!sub.ok) {
-      await sendSubscribeGate(chatId, sub.missing);
-      return;
-    }
     await sendStart(chatId);
     return;
   }
@@ -203,7 +148,6 @@ async function handleMessage(message) {
 async function handleCallback(callback) {
   const chatId = callback.message?.chat?.id;
   const data = String(callback.data || "");
-  const userId = callback.from?.id;
 
   if (data === "feedback:start") {
     await answerCallback(callback.id);
@@ -216,17 +160,6 @@ async function handleCallback(callback) {
           : "Talab va takliflaringizni yozib qoldiring.",
       );
     }
-    return;
-  }
-
-  if (data === "check_sub") {
-    const sub = await checkAllSubscriptions(userId);
-    if (!sub.ok) {
-      await answerCallback(callback.id, "Hali barcha kanallarga obuna bo'lmagansiz.");
-      return;
-    }
-    await answerCallback(callback.id, "Rahmat! Obuna tasdiqlandi.");
-    if (chatId) await sendStart(chatId);
     return;
   }
 
