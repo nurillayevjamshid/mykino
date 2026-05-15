@@ -1058,6 +1058,7 @@ function normalizeMovie(movie, index = 0) {
     sourceType,
     fileId,
     driveFileId: String(movie?.driveFileId || movie?.fileId || movie?.googleDriveFileId || "").trim(),
+    cdnUrl: String(movie?.cdnUrl || "").trim(),
     fileName,
     telegramVideoFileId: fileId,
     telegramFileId: fileId,
@@ -1703,10 +1704,13 @@ function startMoviePreload(movie) {
   if (getYouTubeVideoUrl(movie)) return;
   if (isMobileViewingContext() && !isLaunchReadyMovie(movie)) return;
 
+  const cdnUrl = String(movie?.cdnUrl || "").trim();
   const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
-  if (!driveFileId) return;
-  resolveDriveDirectVideoUrl(driveFileId).then((directUrl) => {
-    const url = directUrl || buildDriveStreamUrl(driveFileId);
+  if (!cdnUrl && !driveFileId) return;
+  const urlPromise = cdnUrl
+    ? Promise.resolve(cdnUrl)
+    : resolveDriveDirectVideoUrl(driveFileId).then((u) => u || buildDriveStreamUrl(driveFileId));
+  urlPromise.then((url) => {
     if (preloadVideoEl && preloadVideoUrl === url) return;
     stopMoviePreload();
     const el = document.createElement("video");
@@ -2835,10 +2839,14 @@ async function openVideoPlayer(movie) {
     return;
   }
 
+  const cdnUrl = String(movie?.cdnUrl || "").trim();
   const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
-  if (driveFileId) {
-    const directUrl = await resolveDriveDirectVideoUrl(driveFileId);
-    const playbackUrl = directUrl || buildDriveStreamUrl(driveFileId);
+  if (cdnUrl || driveFileId) {
+    let playbackUrl = cdnUrl;
+    if (!playbackUrl && driveFileId) {
+      const directUrl = await resolveDriveDirectVideoUrl(driveFileId);
+      playbackUrl = directUrl || buildDriveStreamUrl(driveFileId);
+    }
     if (requestId !== activeVideoRequest) return;
     renderVideoSource(playbackUrl, movie, {
       forceVideo: true,

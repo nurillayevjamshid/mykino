@@ -567,6 +567,7 @@ function toDriveMovie(file, index, metadataMap = {}) {
     dislikes: reactionCounts.dislikes,
     streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
+    cdnUrl: trimString(override?.cdnUrl),
     sourceUrl: file.webViewLink || "",
     webViewLink: file.webViewLink || "",
     mimeType: file.mimeType || "video/mp4",
@@ -787,6 +788,7 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
     next.year = Number.isFinite(numericYear) && numericYear > 0 ? numericYear : "";
   }
   if (updates.showInHeader !== undefined) next.showInHeader = safeBooleanFlag(updates.showInHeader);
+  if (updates.cdnUrl !== undefined) next.cdnUrl = trimString(updates.cdnUrl);
 
   const cleaned = cleanupStoredMovieOverride(next);
   metadata.movies[normalizedFileId] = cleaned;
