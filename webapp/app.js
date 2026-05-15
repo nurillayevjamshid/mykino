@@ -2263,7 +2263,39 @@ function unlockOrientation() {
   try { screen.orientation?.unlock?.(); } catch {}
 }
 
+function getTelegramWebApp() {
+  return window.Telegram?.WebApp || null;
+}
+
+function isTelegramFullscreen() {
+  const tg = getTelegramWebApp();
+  return Boolean(tg && tg.isFullscreen);
+}
+
+function isAnyFullscreen() {
+  return Boolean(getFullscreenElement()) || isTelegramFullscreen();
+}
+
 function toggleVideoFullscreen() {
+  const tg = getTelegramWebApp();
+
+  // Try Telegram WebApp fullscreen first (Bot API 8.0+) — works in Telegram mobile/desktop
+  if (tg && typeof tg.requestFullscreen === "function") {
+    try {
+      if (tg.isFullscreen) {
+        tg.exitFullscreen?.();
+      } else {
+        tg.requestFullscreen();
+        lockLandscapeOrientation();
+      }
+      window.setTimeout(syncFullscreenButton, 200);
+      return;
+    } catch (err) {
+      console.warn("Telegram fullscreen failed:", err);
+    }
+  }
+
+  // Standard browser fullscreen
   if (getFullscreenElement()) {
     exitDocFullscreen();
     unlockOrientation();
@@ -2281,8 +2313,9 @@ function toggleVideoFullscreen() {
 }
 
 function syncFullscreenButton() {
-  const isFullscreen = Boolean(getFullscreenElement());
+  const isFullscreen = isAnyFullscreen();
   setStateLabel(videoFullscreenButton, isFullscreen ? "exit" : "enter", plainLabel(isFullscreen ? t("exitFull") : t("full")));
+  videoPlayer.classList.toggle("is-tg-fullscreen", isTelegramFullscreen());
 }
 
 async function mountYouTubePlayer(videoUrl, movie, options = {}) {
@@ -3541,6 +3574,17 @@ document.addEventListener("fullscreenchange", syncFullscreenButton);
 document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
 document.addEventListener("mozfullscreenchange", syncFullscreenButton);
 document.addEventListener("MSFullscreenChange", syncFullscreenButton);
+
+try {
+  const tgWebApp = window.Telegram?.WebApp;
+  if (tgWebApp && typeof tgWebApp.onEvent === "function") {
+    tgWebApp.onEvent("fullscreenChanged", syncFullscreenButton);
+    tgWebApp.onEvent("fullscreenFailed", () => {
+      showPlayerToast("Fullscreen qo'llab-quvvatlanmaydi");
+      syncFullscreenButton();
+    });
+  }
+} catch {}
 
 document.addEventListener("click", (event) => {
   const watchTarget = event.target.closest("#watchButton");
