@@ -3315,6 +3315,7 @@ function stopMusicCarouselTimer() {
 function openMusicView() {
   if (!musicView) return;
   if (!musicAllTracks.length) loadMusicCatalog();
+  try { ensureYouTubeApi?.(); } catch (_) {}
   musicView.hidden = false;
   document.body.classList.add("is-music");
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3402,6 +3403,7 @@ function playMusicTrack(track) {
     } catch (_) {}
   } else {
     ytPendingId = track.youtubeId;
+    try { ensureYouTubeApi?.(); } catch (_) {}
   }
   startMiniProgress();
   renderMusicList();
