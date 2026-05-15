@@ -294,12 +294,14 @@ const videoFullscreenButton = document.querySelector("#videoFullscreenButton");
 const videoSeek = document.querySelector("#videoSeek");
 const videoCurrentTime = document.querySelector("#videoCurrentTime");
 const videoDuration = document.querySelector("#videoDuration");
-const videoBrightness = document.querySelector("#videoBrightness");
-const videoBrightnessOverlay = document.querySelector("#videoBrightnessOverlay");
-const videoSpeedButton = document.querySelector("#videoSpeedButton");
-const videoSpeedLabel = document.querySelector("#videoSpeedLabel");
-const videoLockButton = document.querySelector("#videoLockButton");
-const videoLockRelease = document.querySelector("#videoLockRelease");
+const videoBrightness = null;
+const videoBrightnessOverlay = null;
+const videoSpeedButton = null;
+const videoSpeedLabel = null;
+const videoLockButton = null;
+const videoLockRelease = null;
+const videoVolumeButton = document.querySelector("#videoVolumeButton");
+const videoPipButton = document.querySelector("#videoPipButton");
 const playerOverlay = document.querySelector("#playerOverlay");
 const videoTapZoneLeft = document.querySelector("#videoTapZoneLeft");
 const videoTapZoneRight = document.querySelector("#videoTapZoneRight");
@@ -1946,7 +1948,7 @@ function handleTapZone(side, event) {
   lastTapTime = now;
   lastTapSide = side;
   if (isDoubleTap) {
-    playerCore.seekBy(side === "left" ? -10 : 10);
+    playerCore.seekBy(side === "left" ? -15 : 15);
     showSkipFeedback(side);
     setControlsVisible(true);
     return;
@@ -1976,6 +1978,78 @@ function setVolume(value) {
   if (videoVolume) {
     setRangeFill(videoVolume, Math.round(normalized * 100), 100);
   }
+  updateVolumeButtonState();
+}
+
+function updateVolumeButtonState() {
+  if (!videoVolumeButton) return;
+  const isMuted = currentVolume === 0;
+  videoVolumeButton.dataset.state = isMuted ? "off" : "on";
+  videoVolumeButton.setAttribute("aria-label", isMuted ? "Ovozni yoqish" : "Ovozni o'chirish");
+}
+
+let lastNonZeroVolume = 1;
+function toggleMute() {
+  if (currentVolume > 0) {
+    lastNonZeroVolume = currentVolume;
+    setVolume(0);
+    if (videoVolume) videoVolume.value = "0";
+  } else {
+    const restore = Math.round((lastNonZeroVolume || 1) * 100);
+    setVolume(restore);
+    if (videoVolume) videoVolume.value = String(restore);
+  }
+  if (videoVolume) setRangeFill(videoVolume, Number(videoVolume.value || 0), 100);
+}
+
+/* ====== Picture-in-Picture ====== */
+function isPipSupported() {
+  if (document.pictureInPictureEnabled) return true;
+  const probe = document.createElement("video");
+  if (typeof probe.webkitSupportsPresentationMode === "function" && probe.webkitSupportsPresentationMode("picture-in-picture")) return true;
+  return false;
+}
+
+function setupPipButton() {
+  if (!videoPipButton) return;
+  if (!isPipSupported()) {
+    videoPipButton.hidden = true;
+    return;
+  }
+  videoPipButton.hidden = false;
+}
+
+async function togglePip() {
+  const v = getActiveVideoEl();
+  if (!v) return;
+  try {
+    if (document.pictureInPictureElement === v) {
+      await document.exitPictureInPicture();
+      return;
+    }
+    if (document.pictureInPictureEnabled && typeof v.requestPictureInPicture === "function") {
+      await v.requestPictureInPicture();
+      return;
+    }
+    if (typeof v.webkitSupportsPresentationMode === "function" && v.webkitSupportsPresentationMode("picture-in-picture")) {
+      const mode = v.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture";
+      v.webkitSetPresentationMode(mode);
+    }
+  } catch (err) {
+    console.warn("PiP failed:", err);
+  }
+}
+
+function exitPipIfActive() {
+  try {
+    if (document.pictureInPictureElement) {
+      document.exitPictureInPicture().catch(() => {});
+    }
+    const v = getActiveVideoEl();
+    if (v && typeof v.webkitSetPresentationMode === "function" && v.webkitPresentationMode === "picture-in-picture") {
+      v.webkitSetPresentationMode("inline");
+    }
+  } catch {}
 }
 
 async function requestWakeLock() {
@@ -2312,13 +2386,9 @@ function createVideoElement(src, movie, options = {}) {
     startupTimeout = 9000,
     preload = "auto",
   } = normalizedOptions;
-  videoPlayer.classList.add("is-native-controls");
   const video = document.createElement("video");
   video.src = src;
   video.controls = false;
-  video.disablePictureInPicture = true;
-  video.setAttribute("disablepictureinpicture", "");
-  video.setAttribute("disableremoteplayback", "");
   video.setAttribute("controlsList", "nodownload nofullscreen noremoteplayback noplaybackrate");
   video.playsInline = true;
   video.preload = preload;
@@ -2567,8 +2637,9 @@ async function openVideoPlayer(movie) {
   updateSpeedLabel();
   setPlayerLocked(false);
   videoErrorRetried = false;
-  if (videoBrightness) { videoBrightness.value = "100"; applyBrightness(100); }
   if (videoVolume) { videoVolume.value = "100"; setVolume(100); }
+  updateVolumeButtonState();
+  setupPipButton();
   setControlsVisible(true);
 
   const youtubeUrl = getYouTubeVideoUrl(movie);
@@ -2654,8 +2725,9 @@ function closeVideoPlayer() {
   videoExternalLink.textContent = t("openSource");
   setVideoLoading(false);
   videoPlayer.hidden = true;
-  videoPlayer.classList.remove("is-native-controls");
   document.body.classList.remove("is-player-open");
+  if (videoPipButton) videoPipButton.classList.remove("is-active");
+  exitPipIfActive();
 }
 
 function setFilter(filter) {
@@ -3435,16 +3507,11 @@ window.addEventListener("popstate", () => {
 
 document.querySelector("[data-close-profile]").addEventListener("click", () => profileModal.close());
 videoToggleButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.togglePlay(); setControlsVisible(true); });
-videoBackButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(-10); setControlsVisible(true); });
-videoForwardButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(10); setControlsVisible(true); });
+videoBackButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(-15); showSkipFeedback("left"); setControlsVisible(true); });
+videoForwardButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(15); showSkipFeedback("right"); setControlsVisible(true); });
 videoFullscreenButton.addEventListener("click", (e) => { e.stopPropagation(); toggleVideoFullscreen(); setControlsVisible(true); });
-videoSpeedButton?.addEventListener("click", (e) => { e.stopPropagation(); cycleSpeed(); setControlsVisible(true); });
-videoLockButton?.addEventListener("click", (e) => { e.stopPropagation(); setPlayerLocked(true); showPlayerToast("Bloklandi"); });
-videoLockRelease?.addEventListener("click", (e) => { e.stopPropagation(); setPlayerLocked(false); });
-videoBrightness?.addEventListener("input", () => {
-  applyBrightness(videoBrightness.value);
-  setControlsVisible(true);
-});
+videoVolumeButton?.addEventListener("click", (e) => { e.stopPropagation(); toggleMute(); setControlsVisible(true); });
+videoPipButton?.addEventListener("click", (e) => { e.stopPropagation(); togglePip(); setControlsVisible(true); });
 videoVolume?.addEventListener("input", () => {
   setVolume(videoVolume.value);
   setControlsVisible(true);
@@ -3515,7 +3582,7 @@ document.addEventListener("keydown", (event) => {
     case "j":
     case "J":
       event.preventDefault();
-      playerCore.seekBy(-10);
+      playerCore.seekBy(-15);
       showSkipFeedback("left");
       setControlsVisible(true);
       break;
@@ -3523,7 +3590,7 @@ document.addEventListener("keydown", (event) => {
     case "l":
     case "L":
       event.preventDefault();
-      playerCore.seekBy(10);
+      playerCore.seekBy(15);
       showSkipFeedback("right");
       setControlsVisible(true);
       break;
