@@ -15,7 +15,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from .config import Settings, load_settings
-from .keyboards import start_menu
+from .keyboards import main_menu, start_menu
 from .storage import load_movies, parse_movie_caption, search_movies, upsert_movie, upsert_user
 from .webserver import create_web_app
 
@@ -181,6 +181,10 @@ async def _send_start_menu(message: Message, settings: Settings) -> None:
         "Biz bilan vaqtingiz chog' va maroqli o'tishini tilab qolamiz.\n"
         "Biz siz uchun doim xizmatdamiz.",
         reply_markup=start_menu(settings.webapp_url),
+    )
+    await message.answer(
+        "Quyidagi menyudan foydalaning:",
+        reply_markup=main_menu(settings.webapp_url),
     )
 
 
