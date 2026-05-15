@@ -2278,26 +2278,56 @@ function isPortraitOrientation() {
   return window.matchMedia("(orientation: portrait)").matches;
 }
 
+const FL_INLINE_PROPS = ["position", "top", "left", "width", "height", "transform", "transformOrigin", "inset", "zIndex", "margin", "maxWidth", "maxHeight", "background"];
+
 function getAccurateViewport() {
+  // window.innerWidth/Height = current visible WebView area (most accurate during fullscreen transition)
   const tg = getTelegramWebApp();
-  const w = window.innerWidth || document.documentElement.clientWidth || screen.width;
-  const tgH = tg && Number(tg.viewportStableHeight || tg.viewportHeight);
-  const h = (tgH && tgH > 0 ? tgH : (window.innerHeight || document.documentElement.clientHeight || screen.height));
+  const innerW = window.innerWidth || document.documentElement.clientWidth || 0;
+  const innerH = window.innerHeight || document.documentElement.clientHeight || 0;
+  const tgH = Number(tg?.viewportHeight || 0);
+  // Use the LARGER value between innerH and tg.viewportHeight (avoids stale viewportStableHeight)
+  const w = Math.max(innerW, screen.availWidth || 0, screen.width || 0) || 393;
+  const h = Math.max(innerH, tgH, screen.availHeight || 0, screen.height || 0) || 800;
   return { w, h };
+}
+
+function clearInlineLandscape() {
+  FL_INLINE_PROPS.forEach((p) => {
+    const kebab = p.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+    videoPlayer.style.removeProperty(kebab);
+  });
 }
 
 function applyForceLandscape(enable) {
   if (!enable) {
     videoPlayer.classList.remove("is-force-landscape");
-    videoPlayer.style.removeProperty("--fl-w");
-    videoPlayer.style.removeProperty("--fl-h");
+    clearInlineLandscape();
     document.body.classList.remove("is-fake-fullscreen");
     return;
   }
   const { w, h } = getAccurateViewport();
-  // Rotated 90°: visual width = original viewport HEIGHT, visual height = original viewport WIDTH
-  videoPlayer.style.setProperty("--fl-w", `${h}px`);
-  videoPlayer.style.setProperty("--fl-h", `${w}px`);
+  // Pre-rotation: width = visual HEIGHT after rotate(90deg), height = visual WIDTH after rotate(90deg)
+  // We want visual width = larger side (h), visual height = smaller side (w) → so set height=h, width=w? No.
+  // After translate(-50%,-50%) rotate(90deg): element's pre-rotation width spans visually as height; pre-rotation height as width.
+  // So pre-rotation height should be the LONG side (visual width), pre-rotation width should be the SHORT side (visual height).
+  const longSide = Math.max(w, h);
+  const shortSide = Math.min(w, h);
+  Object.assign(videoPlayer.style, {
+    position: "fixed",
+    top: "50%",
+    left: "50%",
+    width: `${shortSide}px`,
+    height: `${longSide}px`,
+    transform: "translate(-50%, -50%) rotate(90deg)",
+    transformOrigin: "center center",
+    inset: "auto",
+    zIndex: "99999",
+    margin: "0",
+    maxWidth: "none",
+    maxHeight: "none",
+    background: "#000",
+  });
   videoPlayer.classList.add("is-force-landscape");
   document.body.classList.add("is-fake-fullscreen");
 }
@@ -2328,8 +2358,12 @@ async function enterFullscreenAndLandscape() {
   intendedFullscreen = true;
   let entered = false;
 
-  // 1. Telegram WebApp fullscreen (Bot API 8.0+)
   const tg = getTelegramWebApp();
+
+  // 0. Always expand WebApp first (works on all Telegram versions, gives more viewport)
+  try { tg?.expand?.(); } catch {}
+
+  // 1. Telegram WebApp fullscreen (Bot API 8.0+) — true fullscreen, hides Telegram chrome
   if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
     try { tg.requestFullscreen(); entered = true; } catch {}
   }
@@ -2346,7 +2380,7 @@ async function enterFullscreenAndLandscape() {
   if (!locked) {
     // Telegram WebApp viewport expansion is asynchronous — re-apply rotation a few times
     refreshLandscapeView();
-    [80, 250, 600].forEach((delay) => window.setTimeout(refreshLandscapeView, delay));
+    [80, 250, 600, 1200].forEach((delay) => window.setTimeout(refreshLandscapeView, delay));
   }
 
   syncFullscreenButton();
