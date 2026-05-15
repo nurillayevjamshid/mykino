@@ -42,7 +42,6 @@
     { "src": "api/required-channels.js", "use": "@vercel/node" },
     { "src": "api/users.js", "use": "@vercel/node" },
     { "src": "api/user-photo.js", "use": "@vercel/node" },
-    { "src": "api/stream.js", "use": "@vercel/node" },
     { "src": "api/drive-stream.js", "use": "@vercel/node" },
     { "src": "api/drive-thumbnail.js", "use": "@vercel/node" },
     { "src": "webapp/**", "use": "@vercel/static" }
@@ -56,7 +55,6 @@
     { "src": "/api/required-channels", "dest": "/api/required-channels.js" },
     { "src": "/api/users", "dest": "/api/users.js" },
     { "src": "/api/user-photo", "dest": "/api/user-photo.js" },
-    { "src": "/api/stream/(.*)", "dest": "/api/stream.js?fileId=$1" },
     { "src": "/api/drive-stream/(.*)", "dest": "/api/drive-stream.js?fileId=$1" },
     { "src": "/api/drive-thumbnail/(.*)", "dest": "/api/drive-thumbnail.js?fileId=$1" },
     { "src": "/admin", "dest": "/webapp/admin/index.html" },

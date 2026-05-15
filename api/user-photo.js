@@ -1,4 +1,8 @@
-const { setCors } = require("./telegram-file");
+function setCors(response) {
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
+}
 
 function getBotToken() {
   const token = process.env.BOT_TOKEN;
