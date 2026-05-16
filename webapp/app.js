@@ -3730,14 +3730,22 @@ document.querySelectorAll("[data-action='profile']").forEach((button) => {
 const appSidebar = document.getElementById("appSidebar");
 const sidebarBackdrop = document.getElementById("sidebarBackdrop");
 const topbarMenuButton = document.getElementById("topbarMenuButton");
-const sidebarThemeLabel = document.getElementById("sidebarThemeLabel");
+const sidebarThemeSwitch = document.getElementById("sidebarThemeSwitch");
+const sidebarLangPills = document.getElementById("sidebarLangPills");
 
-function syncSidebarThemeLabel() {
-  if (!sidebarThemeLabel) return;
+function syncSidebarSettings() {
   const cur = document.documentElement.getAttribute("data-theme") || "dark";
-  sidebarThemeLabel.textContent = cur === "dark" ? "Kunduzgi rejim" : "Kechki rejim";
+  if (sidebarThemeSwitch) {
+    sidebarThemeSwitch.setAttribute("aria-checked", cur === "dark" ? "true" : "false");
+  }
+  if (sidebarLangPills) {
+    const curLang = localStorage.getItem("kino_lang") || (typeof lang !== "undefined" ? lang : "uz");
+    sidebarLangPills.querySelectorAll(".lang-pill").forEach((p) => {
+      p.classList.toggle("is-active", p.dataset.lang === curLang);
+    });
+  }
 }
-syncSidebarThemeLabel();
+syncSidebarSettings();
 
 function setSidebarOpen(open) {
   if (!appSidebar || !sidebarBackdrop) return;
@@ -3774,34 +3782,45 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && appSidebar?.classList.contains("is-open")) setSidebarOpen(false);
 });
 
-document.querySelectorAll("[data-sidebar-action]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const action = btn.dataset.sidebarAction;
-    if (action === "home") {
-      setFilter("all");
-      document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
-    } else if (action === "favorites") {
+document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
+  el.addEventListener("click", (e) => {
+    const action = el.dataset.sidebarAction;
+    if (action === "music" || action === "tv") {
+      // anchor — let the browser navigate to /beta
+      return;
+    }
+    e.preventDefault();
+    if (action === "favorites") {
       setFilter("favorites");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
-    } else if (action === "search") {
-      setSearchPanelOpen(true);
-      setTimeout(() => document.getElementById("searchInput")?.focus(), 200);
     } else if (action === "profile") {
       renderProfileModal();
       profileModal.showModal();
-    } else if (action === "theme") {
-      toggleTheme();
-      syncSidebarThemeLabel();
-      return;
     }
     setSidebarOpen(false);
+  });
+});
+
+sidebarThemeSwitch?.addEventListener("click", () => {
+  toggleTheme();
+  syncSidebarSettings();
+});
+
+sidebarLangPills?.querySelectorAll(".lang-pill").forEach((pill) => {
+  pill.addEventListener("click", () => {
+    const next = pill.dataset.lang;
+    if (!next) return;
+    lang = next;
+    localStorage.setItem("kino_lang", next);
+    try { applyCopy(); } catch (_) {}
+    syncSidebarSettings();
   });
 });
 
 const _origApplyTheme = applyTheme;
 applyTheme = function (t) {
   _origApplyTheme(t);
-  syncSidebarThemeLabel();
+  syncSidebarSettings();
 };
 
 document.querySelectorAll("[data-action='favorites']").forEach((button) => {

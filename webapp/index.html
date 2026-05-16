@@ -15,7 +15,7 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
-  <link rel="stylesheet" href="/static/styles.css?v=20260516-sidebar" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260516-sidebar2" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -47,25 +47,26 @@
       </button>
     </div>
     <nav class="sidebar__nav">
-      <button class="sidebar__item" type="button" data-sidebar-action="home">
+      <a class="sidebar__item" href="/beta" data-sidebar-action="music">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="m3 11 9-8 9 8"></path>
-          <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"></path>
+          <path d="M9 18V5l12-2v13"></path>
+          <circle cx="6" cy="18" r="3"></circle>
+          <circle cx="18" cy="16" r="3"></circle>
         </svg>
-        <span>Bosh sahifa</span>
-      </button>
+        <span>Musiqa</span>
+      </a>
+      <a class="sidebar__item" href="/beta" data-sidebar-action="tv">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="6" width="20" height="13" rx="2"></rect>
+          <path d="m8 22 4-3 4 3"></path>
+        </svg>
+        <span>TV</span>
+      </a>
       <button class="sidebar__item" type="button" data-sidebar-action="favorites">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
         </svg>
         <span>Sevimlilar</span>
-      </button>
-      <button class="sidebar__item" type="button" data-sidebar-action="search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="m20 20-3.5-3.5"></path>
-        </svg>
-        <span>Qidirish</span>
       </button>
       <button class="sidebar__item" type="button" data-sidebar-action="profile">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -77,19 +78,45 @@
     </nav>
     <div class="sidebar__divider"></div>
     <div class="sidebar__section-title">Sozlamalar</div>
-    <nav class="sidebar__nav">
-      <button class="sidebar__item sidebar__item--toggle" type="button" data-sidebar-action="theme">
-        <svg class="sidebar__icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4"></circle>
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
-        </svg>
-        <svg class="sidebar__icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-        <span class="sidebar__item-label" id="sidebarThemeLabel">Kechki rejim</span>
-        <span class="sidebar__switch" aria-hidden="true"><span class="sidebar__switch-knob"></span></span>
-      </button>
-    </nav>
+    <div class="sidebar__settings">
+      <div class="sidebar-setting">
+        <div class="sidebar-setting__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span>Tungi rejim</span>
+        </div>
+        <button class="theme-switch" type="button" id="sidebarThemeSwitch" role="switch" aria-checked="false" aria-label="Tungi rejim">
+          <span class="theme-switch__track">
+            <svg class="theme-switch__icon theme-switch__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+            <svg class="theme-switch__icon theme-switch__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span class="theme-switch__knob"></span>
+          </span>
+        </button>
+      </div>
+
+      <div class="sidebar-setting sidebar-setting--lang">
+        <div class="sidebar-setting__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M2 12h20"></path>
+            <path d="M12 2a15 15 0 0 1 0 20"></path>
+            <path d="M12 2a15 15 0 0 0 0 20"></path>
+          </svg>
+          <span>Til</span>
+        </div>
+        <div class="lang-pills" id="sidebarLangPills" role="tablist">
+          <button class="lang-pill" type="button" data-lang="uz" role="tab">UZ</button>
+          <button class="lang-pill" type="button" data-lang="ru" role="tab">RU</button>
+          <button class="lang-pill" type="button" data-lang="en" role="tab">ENG</button>
+        </div>
+      </div>
+    </div>
     <div class="sidebar__foot">
       <span class="sidebar__foot-brand">KINO PLAY</span>
       <span class="sidebar__foot-copy">&copy; 2026</span>
@@ -98,12 +125,12 @@
 
   <main class="app-shell" id="appShell" style="opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
     <header class="topbar topbar--centered">
-      <button class="topbar-menu" id="topbarMenuButton" type="button" data-action="sidebar-open" aria-label="Menyu" aria-controls="appSidebar" aria-expanded="false">
-        <span class="topbar-menu__lines" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
-        </span>
+      <button class="icon-button icon-button--top topbar-menu" id="topbarMenuButton" type="button" data-action="sidebar-open" aria-label="Menyu" aria-controls="appSidebar" aria-expanded="false">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="7" x2="20" y2="7"></line>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="17" x2="14" y2="17"></line>
+        </svg>
       </button>
       <div class="brand brand--center" aria-label="Kino Play">
         <span class="brand-logo" aria-hidden="true">
@@ -581,7 +608,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260516-sidebar"></script>
+  <script src="/static/app.js?v=20260516-sidebar2"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
