@@ -4170,15 +4170,7 @@ async function loadAppSettings() {
       signal: controller.signal,
     });
     if (response.ok) {
-      const data = await response.json();
-      const splashImageUrl = resolveAppUrl(data.splashImageUrl || "");
-      if (splashImageUrl) {
-        const splashImg = document.querySelector("#splashScreen img");
-        if (splashImg) {
-          splashImg.src = splashImageUrl;
-          await waitForImageReady(splashImg);
-        }
-      }
+      await response.json();
     }
   } catch (e) {
     // Ignore error, use default
