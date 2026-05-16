@@ -3858,7 +3858,7 @@ html[data-theme="light"] .category-row__more:focus-visible {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 4px 8px 14px;
+  padding: 4px 16px 14px;
 }
 
 .category-row__list::-webkit-scrollbar {
@@ -5709,9 +5709,14 @@ body {
   /* Scroll snappier bo'lishi uchun smooth olib tashlandi */
 }
 
-/* Topbar header — viewport ga nisbatan fixed, scroll bilan siljimaydi */
+/* Topbar header — sticky to app-shell top; in-flow so cards don't slide under it */
 .topbar {
-  position: fixed;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--c-bg, transparent);
+  padding-top: 4px;
+  padding-bottom: 8px;
 }
 
 /* Bottom bar allaqachon fixed — qo'shimcha himoya */
