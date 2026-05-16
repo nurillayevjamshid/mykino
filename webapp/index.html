@@ -15,7 +15,7 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
-  <link rel="stylesheet" href="/static/styles.css?v=20260516-sidebar2" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260516-sidebar3" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -47,44 +47,58 @@
       </button>
     </div>
     <nav class="sidebar__nav">
-      <a class="sidebar__item" href="/beta" data-sidebar-action="music">
+      <button class="sidebar__item sidebar__item--soon" type="button" data-sidebar-action="music" aria-disabled="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M9 18V5l12-2v13"></path>
           <circle cx="6" cy="18" r="3"></circle>
           <circle cx="18" cy="16" r="3"></circle>
         </svg>
-        <span>Musiqa</span>
-      </a>
-      <a class="sidebar__item" href="/beta" data-sidebar-action="tv">
+        <span data-i18n="musicNav">Musiqa</span>
+        <span class="soon-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+          <span class="soon-badge__text" data-i18n="comingSoon">Tez kunda</span>
+        </span>
+      </button>
+      <button class="sidebar__item sidebar__item--soon" type="button" data-sidebar-action="tv" aria-disabled="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="2" y="6" width="20" height="13" rx="2"></rect>
           <path d="m8 22 4-3 4 3"></path>
         </svg>
-        <span>TV</span>
-      </a>
+        <span data-i18n="tvNav">TV</span>
+        <span class="soon-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+          <span class="soon-badge__text" data-i18n="comingSoon">Tez kunda</span>
+        </span>
+      </button>
       <button class="sidebar__item" type="button" data-sidebar-action="favorites">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
         </svg>
-        <span>Sevimlilar</span>
+        <span data-i18n="favoritesNav">Sevimlilar</span>
       </button>
       <button class="sidebar__item" type="button" data-sidebar-action="profile">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="8" r="4"></circle>
           <path d="M4 21a8 8 0 0 1 16 0"></path>
         </svg>
-        <span>Profil</span>
+        <span data-i18n="profileNav">Profil</span>
       </button>
     </nav>
     <div class="sidebar__divider"></div>
-    <div class="sidebar__section-title">Sozlamalar</div>
+    <div class="sidebar__section-title" data-i18n="settings">Sozlamalar</div>
     <div class="sidebar__settings">
       <div class="sidebar-setting">
         <div class="sidebar-setting__head">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
-          <span>Tungi rejim</span>
+          <span data-i18n="nightMode">Tungi rejim</span>
         </div>
         <button class="theme-switch" type="button" id="sidebarThemeSwitch" role="switch" aria-checked="false" aria-label="Tungi rejim">
           <span class="theme-switch__track">
@@ -108,7 +122,7 @@
             <path d="M12 2a15 15 0 0 1 0 20"></path>
             <path d="M12 2a15 15 0 0 0 0 20"></path>
           </svg>
-          <span>Til</span>
+          <span data-i18n="language">Til</span>
         </div>
         <div class="lang-pills" id="sidebarLangPills" role="tablist">
           <button class="lang-pill" type="button" data-lang="uz" role="tab">UZ</button>
@@ -251,14 +265,14 @@
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
           </svg>
-          <span class="bottom-bar__label">Sevimlilar</span>
+          <span class="bottom-bar__label" data-i18n="favoritesNav">Sevimlilar</span>
         </button>
         <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
           <span class="bottom-bar__avatar">
             <img class="profile-trigger__photo" id="headerAvatarPhoto" alt="Telegram user" hidden />
             <span class="profile-trigger__initials" id="headerAvatar">KI</span>
           </span>
-          <span class="bottom-bar__label">Profil</span>
+          <span class="bottom-bar__label" data-i18n="profileNav">Profil</span>
         </button>
       </div>
     </nav>
@@ -608,7 +622,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260516-sidebar2"></script>
+  <script src="/static/app.js?v=20260516-sidebar3"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
