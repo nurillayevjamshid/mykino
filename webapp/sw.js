@@ -1,4 +1,4 @@
-const VERSION = "v20260516-splash";
+const VERSION = "v20260516-eden1";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 
