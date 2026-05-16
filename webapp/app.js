@@ -3724,6 +3724,86 @@ document.querySelectorAll("[data-action='profile']").forEach((button) => {
   });
 });
 
+/* ============================================================
+   Sidebar drawer
+   ============================================================ */
+const appSidebar = document.getElementById("appSidebar");
+const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+const topbarMenuButton = document.getElementById("topbarMenuButton");
+const sidebarThemeLabel = document.getElementById("sidebarThemeLabel");
+
+function syncSidebarThemeLabel() {
+  if (!sidebarThemeLabel) return;
+  const cur = document.documentElement.getAttribute("data-theme") || "dark";
+  sidebarThemeLabel.textContent = cur === "dark" ? "Kunduzgi rejim" : "Kechki rejim";
+}
+syncSidebarThemeLabel();
+
+function setSidebarOpen(open) {
+  if (!appSidebar || !sidebarBackdrop) return;
+  if (open) {
+    sidebarBackdrop.hidden = false;
+    requestAnimationFrame(() => {
+      appSidebar.classList.add("is-open");
+      sidebarBackdrop.classList.add("is-open");
+    });
+    appSidebar.setAttribute("aria-hidden", "false");
+    topbarMenuButton?.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+  } else {
+    appSidebar.classList.remove("is-open");
+    sidebarBackdrop.classList.remove("is-open");
+    appSidebar.setAttribute("aria-hidden", "true");
+    topbarMenuButton?.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+    setTimeout(() => {
+      if (!appSidebar.classList.contains("is-open")) sidebarBackdrop.hidden = true;
+    }, 320);
+  }
+}
+
+document.querySelectorAll("[data-action='sidebar-open']").forEach((b) =>
+  b.addEventListener("click", () => setSidebarOpen(true))
+);
+document.querySelectorAll("[data-action='sidebar-close']").forEach((b) =>
+  b.addEventListener("click", () => setSidebarOpen(false))
+);
+sidebarBackdrop?.addEventListener("click", () => setSidebarOpen(false));
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && appSidebar?.classList.contains("is-open")) setSidebarOpen(false);
+});
+
+document.querySelectorAll("[data-sidebar-action]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const action = btn.dataset.sidebarAction;
+    if (action === "home") {
+      setFilter("all");
+      document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (action === "favorites") {
+      setFilter("favorites");
+      document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (action === "search") {
+      setSearchPanelOpen(true);
+      setTimeout(() => document.getElementById("searchInput")?.focus(), 200);
+    } else if (action === "profile") {
+      renderProfileModal();
+      profileModal.showModal();
+    } else if (action === "theme") {
+      toggleTheme();
+      syncSidebarThemeLabel();
+      return;
+    }
+    setSidebarOpen(false);
+  });
+});
+
+const _origApplyTheme = applyTheme;
+applyTheme = function (t) {
+  _origApplyTheme(t);
+  syncSidebarThemeLabel();
+};
+
 document.querySelectorAll("[data-action='favorites']").forEach((button) => {
   button.addEventListener("click", () => {
     setFilter("favorites");
