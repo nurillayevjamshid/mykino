@@ -2589,6 +2589,19 @@ html[data-theme="light"] .brand-panel {
   font-size: 14px;
 }
 
+.profile-userid {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.48);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="light"] .profile-userid {
+  color: rgba(84, 76, 112, 0.62);
+}
+
 .profile-stats {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

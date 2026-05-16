@@ -267,6 +267,7 @@ const movieLaterButton = document.querySelector(".modal-actions .ghost-button");
 const profileModal = document.querySelector("#profileModal");
 const profileName = document.querySelector("#profileName");
 const profileUsername = document.querySelector("#profileUsername");
+const profileUserId = document.querySelector("#profileUserId");
 const headerAvatar = document.querySelector("#headerAvatar");
 const headerAvatarPhoto = document.querySelector("#headerAvatarPhoto");
 const topbarAvatarInitials = document.querySelector("#topbarAvatarInitials");
@@ -423,6 +424,10 @@ function applyTelegramUser() {
   if (!user) {
     profileName.textContent = t("profile");
     profileUsername.textContent = t("noUsername");
+    if (profileUserId) {
+      profileUserId.textContent = "";
+      profileUserId.hidden = true;
+    }
     avatar.textContent = "KI";
     avatar.hidden = false;
     avatarPhoto.hidden = true;
@@ -451,6 +456,15 @@ function applyTelegramUser() {
   profileName.textContent = displayName || t("profile");
   const username = String(user.username || "").trim();
   profileUsername.textContent = username ? `@${username}` : t("noUsername");
+  if (profileUserId) {
+    if (user.id) {
+      profileUserId.textContent = `ID: ${user.id}`;
+      profileUserId.hidden = false;
+    } else {
+      profileUserId.textContent = "";
+      profileUserId.hidden = true;
+    }
+  }
   avatar.textContent = initials;
   if (headerAvatar) {
     headerAvatar.textContent = initials;
