@@ -98,6 +98,13 @@ const copy = {
     newMovie: "Yangi",
     footerTagline: "Eng sara kinolar mini-ilovasi",
     footerCopy: "© 2026 Kino Play. Barcha huquqlar himoyalangan.",
+    tvNav: "TV",
+    favoritesNav: "Sevimlilar",
+    profileNav: "Profil",
+    settings: "Sozlamalar",
+    nightMode: "Tungi rejim",
+    language: "Til",
+    comingSoon: "Tez kunda",
   },
   ru: {
     all: "Все",
@@ -143,6 +150,13 @@ const copy = {
     newMovie: "Новинка",
     footerTagline: "Мини-приложение лучших фильмов",
     footerCopy: "© 2026 Kino Play. Все права защищены.",
+    tvNav: "ТВ",
+    favoritesNav: "Избранное",
+    profileNav: "Профиль",
+    settings: "Настройки",
+    nightMode: "Тёмный режим",
+    language: "Язык",
+    comingSoon: "Скоро",
   },
   en: {
     all: "All",
@@ -188,6 +202,13 @@ const copy = {
     newMovie: "New",
     footerTagline: "Mini app for the best movies",
     footerCopy: "© 2026 Kino Play. All rights reserved.",
+    tvNav: "TV",
+    favoritesNav: "Favorites",
+    profileNav: "Profile",
+    settings: "Settings",
+    nightMode: "Dark mode",
+    language: "Language",
+    comingSoon: "Coming soon",
   },
 };
 
@@ -3056,6 +3077,12 @@ function applyCopy() {
   document.documentElement.lang = lang;
   setRangeFill(videoSeek, Number(videoSeek.value || 0), 1000);
 
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (!key) return;
+    el.textContent = plainLabel(t(key));
+  });
+
   applyTelegramUser();
   renderCategories();
   renderProfileModal();
@@ -3786,7 +3813,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
   el.addEventListener("click", (e) => {
     const action = el.dataset.sidebarAction;
     if (action === "music" || action === "tv") {
-      // anchor — let the browser navigate to /beta
+      e.preventDefault();
       return;
     }
     e.preventDefault();
