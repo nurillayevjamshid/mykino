@@ -30,6 +30,18 @@
       "headers": [
         { "key": "Cache-Control", "value": "no-store, max-age=0" }
       ]
+    },
+    {
+      "source": "/beta",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+      ]
+    },
+    {
+      "source": "/beta/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+      ]
     }
   ],
   "builds": [
@@ -63,6 +75,9 @@
     { "src": "/admin", "dest": "/webapp/admin/index.html" },
     { "src": "/admin/", "dest": "/webapp/admin/index.html" },
     { "src": "/admin/(.*)", "dest": "/webapp/admin/$1" },
+    { "src": "/beta", "dest": "/webapp/beta/index.html" },
+    { "src": "/beta/", "dest": "/webapp/beta/index.html" },
+    { "src": "/beta/(.*)", "dest": "/webapp/beta/$1" },
     { "src": "/static/(.*)", "dest": "/webapp/$1" },
     { "src": "/", "dest": "/webapp/index.html" }
   ]
