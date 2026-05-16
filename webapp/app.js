@@ -476,8 +476,10 @@ function applyTelegramUser() {
   }
   const profileButtonLabel = displayName ? `${displayName} profili` : "Profil";
   document.querySelectorAll("[data-action='profile']").forEach((button) => setControlLabel(button, profileButtonLabel));
-  const photoUrl = user.photo_url || (user.id ? `/api/user-photo?userId=${encodeURIComponent(user.id)}` : "");
-  if (photoUrl) {
+  const candidatePhotos = [];
+  if (user.photo_url) candidatePhotos.push(String(user.photo_url));
+  if (user.id) candidatePhotos.push(`/api/user-photo?userId=${encodeURIComponent(user.id)}`);
+  if (candidatePhotos.length) {
     const applyPhoto = (src) => {
       avatarPhoto.src = src;
       avatarPhoto.hidden = false;
@@ -508,14 +510,18 @@ function applyTelegramUser() {
       }
       if (topbarAvatarInitials) topbarAvatarInitials.hidden = false;
     };
-    const onError = () => {
-      avatarPhoto.removeEventListener("error", onError);
-      revertToInitials();
+    const tryNext = (index) => {
+      if (index >= candidatePhotos.length) {
+        revertToInitials();
+        return;
+      }
+      const src = candidatePhotos[index];
+      const probe = new Image();
+      probe.onload = () => applyPhoto(src);
+      probe.onerror = () => tryNext(index + 1);
+      probe.src = src;
     };
-    avatarPhoto.addEventListener("error", onError, { once: true });
-    if (topbarAvatarPhoto) topbarAvatarPhoto.addEventListener("error", onError, { once: true });
-    if (headerAvatarPhoto) headerAvatarPhoto.addEventListener("error", onError, { once: true });
-    applyPhoto(photoUrl);
+    tryNext(0);
   } else {
     avatarPhoto.hidden = true;
     avatarPhoto.removeAttribute("src");
