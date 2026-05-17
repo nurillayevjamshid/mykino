@@ -3825,8 +3825,56 @@ categoriesGrid?.addEventListener("click", (event) => {
   if (!card) return;
   const name = card.dataset.categoryName || "";
   if (!name) return;
-  closeCategoriesView();
-  try { setCategory(name); } catch (_) {}
+  openCategoryDetailView(name);
+});
+
+// ===== Category detail page =====
+const categoryDetailView = document.getElementById("categoryDetailView");
+const categoryDetailGrid = document.getElementById("categoryDetailGrid");
+const categoryDetailTitle = document.getElementById("categoryDetailTitle");
+const categoryDetailEmpty = document.getElementById("categoryDetailEmpty");
+const categoryDetailBack = document.getElementById("categoryDetailBack");
+
+function openCategoryDetailView(name) {
+  if (!categoryDetailView || !categoryDetailGrid) return;
+  const targetValue = normalizeCategoryValue(name);
+  if (categoryDetailTitle) categoryDetailTitle.textContent = name;
+  categoryDetailGrid.innerHTML = "";
+  const matched = (Array.isArray(movies) ? movies : []).filter((m) => {
+    if (!m) return false;
+    const values = getMovieCategoryValues(m);
+    return values.includes(targetValue);
+  });
+  if (!matched.length) {
+    if (categoryDetailEmpty) categoryDetailEmpty.hidden = false;
+  } else {
+    if (categoryDetailEmpty) categoryDetailEmpty.hidden = true;
+    for (const movie of matched) {
+      try { categoryDetailGrid.append(createMovieCard(movie)); } catch (_) {}
+    }
+  }
+  if (categoriesView) categoriesView.hidden = true;
+  categoryDetailView.hidden = false;
+  document.body.classList.add("is-category-detail");
+  document.body.classList.remove("is-categories");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function closeCategoryDetailView({ goHome = false } = {}) {
+  if (!categoryDetailView) return;
+  categoryDetailView.hidden = true;
+  document.body.classList.remove("is-category-detail");
+  if (goHome) return;
+  if (categoriesView) {
+    categoriesView.hidden = false;
+    document.body.classList.add("is-categories");
+  }
+}
+
+categoryDetailBack?.addEventListener("click", () => closeCategoryDetailView());
+
+document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-action='favorites'], .bottom-bar [data-action='profile']").forEach((b) => {
+  b.addEventListener("click", () => closeCategoryDetailView({ goHome: true }));
 });
 
 categoryList?.addEventListener("click", (event) => {

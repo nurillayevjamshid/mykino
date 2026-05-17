@@ -15,13 +15,13 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
-  <link rel="stylesheet" href="/static/styles.css?v=20260517-cat01" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260517-cat02" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
 <body>
   <div id="splashScreen" class="splash-screen">
-    <img src="/static/assets/splash.jpg?v=20260517-cat01" alt="My Playlist" />
+    <img src="/static/assets/splash.jpg?v=20260517-cat02" alt="My Playlist" />
     <div class="splash-overlay"></div>
   </div>
   <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
@@ -209,6 +209,19 @@
       <h2 class="categories-view__title" data-i18n="categories">Kategoriyalar</h2>
       <div class="categories-grid" id="categoriesGrid"></div>
       <p class="categories-empty" id="categoriesEmpty" hidden>Kategoriyalar hali qo'shilmagan.</p>
+    </section>
+
+    <section class="category-detail-view" id="categoryDetailView" hidden aria-label="Kategoriya kinolari">
+      <header class="category-detail-view__head">
+        <button type="button" class="category-detail-view__back" id="categoryDetailBack" aria-label="Orqaga">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 6 9 12l6 6"></path>
+          </svg>
+        </button>
+        <h2 class="category-detail-view__title" id="categoryDetailTitle"></h2>
+      </header>
+      <div class="movie-grid category-detail-view__grid" id="categoryDetailGrid"></div>
+      <p class="category-detail-view__empty" id="categoryDetailEmpty" hidden>Bu kategoriyada kinolar topilmadi.</p>
     </section>
 
     <footer class="app-footer" aria-label="Sayt ma'lumotlari">
@@ -631,7 +644,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260517-cat01"></script>
+  <script src="/static/app.js?v=20260517-cat02"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
