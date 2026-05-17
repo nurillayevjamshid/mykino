@@ -60,14 +60,72 @@ async function tryProxyFromBot() {
   }
 }
 
+async function handleUserPhoto(request, response) {
+  try {
+    const url = new URL(request.url || "/", "http://localhost");
+    const userId = (url.searchParams.get("userId") || "").trim();
+    if (!/^\d+$/.test(userId)) {
+      response.status(400).json({ ok: false, error: "userId noto'g'ri." });
+      return;
+    }
+    const token = process.env.BOT_TOKEN;
+    if (!token) {
+      response.status(500).json({ ok: false, error: "BOT_TOKEN serverda sozlanmagan." });
+      return;
+    }
+    const photosUrl = `https://api.telegram.org/bot${token}/getUserProfilePhotos?user_id=${userId}&limit=1`;
+    const photosRes = await fetch(photosUrl);
+    const photosPayload = await photosRes.json().catch(() => null);
+    if (!photosRes.ok || !photosPayload?.ok) {
+      response.status(502).json({ ok: false, error: photosPayload?.description || "getUserProfilePhotos failed" });
+      return;
+    }
+    const firstPhoto = photosPayload.result?.photos?.[0];
+    if (!firstPhoto || firstPhoto.length === 0) {
+      response.status(404).json({ ok: false, error: "No profile photo" });
+      return;
+    }
+    const target = firstPhoto[firstPhoto.length - 1];
+    if (!target?.file_id) {
+      response.status(404).json({ ok: false, error: "No file_id" });
+      return;
+    }
+    const fileRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(target.file_id)}`);
+    const filePayload = await fileRes.json().catch(() => null);
+    if (!fileRes.ok || !filePayload?.ok || !filePayload.result?.file_path) {
+      response.status(502).json({ ok: false, error: filePayload?.description || "getFile failed" });
+      return;
+    }
+    const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePayload.result.file_path}`;
+    const imgRes = await fetch(downloadUrl);
+    if (!imgRes.ok || !imgRes.body) {
+      response.status(502).json({ ok: false, error: "Telegram file download failed" });
+      return;
+    }
+    response.setHeader("Content-Type", imgRes.headers.get("content-type") || "image/jpeg");
+    response.setHeader("Cache-Control", "public, max-age=3600");
+    const buffer = Buffer.from(await imgRes.arrayBuffer());
+    response.status(200).send(buffer);
+  } catch (error) {
+    response.status(error.statusCode || 500).json({ ok: false, error: error.message || "internal error" });
+  }
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
-  response.setHeader("Cache-Control", "no-store, max-age=0");
 
   if (request.method === "OPTIONS") {
     response.status(204).end();
     return;
   }
+
+  const reqUrl = request.url || "";
+  const isPhotoRequest = /\/user-photo(?:\?|$|\.)/i.test(reqUrl) || /[?&]_photo=1/.test(reqUrl);
+  if (isPhotoRequest) {
+    return handleUserPhoto(request, response);
+  }
+
+  response.setHeader("Cache-Control", "no-store, max-age=0");
 
   try {
     if (request.method === "GET") {
