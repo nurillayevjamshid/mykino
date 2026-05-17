@@ -5867,8 +5867,8 @@ body {
 .topbar-search__panel--inline {
   position: static !important;
   display: block;
-  width: calc(100% - 24px) !important;
-  margin: 6px 12px 0 !important;
+  width: calc(100% - 30px) !important;
+  margin: 6px 15px 0 !important;
   padding: 0 !important;
   z-index: 1 !important;
   background: transparent !important;
