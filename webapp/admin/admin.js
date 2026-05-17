@@ -1329,16 +1329,22 @@ async function fetchCategories() {
   const tbody = document.getElementById('categoriesTableBody');
   if (tbody) tbody.innerHTML = `<tr><td colspan="4"><div class="loading-state"><div class="loading-spinner"></div><p>Yuklanmoqda...</p></div></td></tr>`;
   try {
+    if (!movies.length) { try { await fetchMovies(); } catch (_) {} }
     const res = await fetch('/api/categories', { cache: 'no-store' });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
     categoriesList = Array.isArray(json.categories) ? json.categories : [];
+    const movieCats = collectKnownCategories();
+    const datalist = document.getElementById('categoryNameList');
+    if (datalist) {
+      datalist.innerHTML = movieCats.map((name) => `<option value="${escapeHtml(name)}"></option>`).join('');
+    }
     const summary = document.getElementById('categoriesStorageSummary');
     if (summary) {
       const ok = json.storage === 'redis';
       summary.textContent = ok
-        ? `Redis ulangan · ${categoriesList.length} ta kategoriya`
-        : `Redis sozlanmagan · ${categoriesList.length} ta kategoriya`;
+        ? `Redis ulangan · ${categoriesList.length} ta saqlangan, ${movieCats.length} ta kinolarda`
+        : `Redis sozlanmagan · ${categoriesList.length} ta saqlangan`;
       summary.style.color = ok ? '#3ecf8e' : '#ffb84d';
     }
     renderCategoriesTable();
@@ -1350,21 +1356,49 @@ async function fetchCategories() {
 function renderCategoriesTable() {
   const tbody = document.getElementById('categoriesTableBody');
   if (!tbody) return;
-  if (!categoriesList.length) {
-    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><h3>Kategoriyalar yo'q</h3><p>Yuqoridagi formadan birinchi kategoriyani qo'shing.</p></div></td></tr>`;
+  const savedByKey = new Map(categoriesList.map((c) => [c.name.toLowerCase(), c]));
+  const movieCats = collectKnownCategories();
+  const rows = [];
+  for (const name of movieCats) {
+    const key = name.toLowerCase();
+    if (savedByKey.has(key)) {
+      rows.push({ ...savedByKey.get(key), source: 'both' });
+      savedByKey.delete(key);
+    } else {
+      rows.push({ id: '', name, image: '', source: 'movie' });
+    }
+  }
+  for (const c of savedByKey.values()) rows.push({ ...c, source: 'saved' });
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><h3>Kategoriyalar yo'q</h3><p>Avval kinolar admin paneldan kategoriya bilan qo'shilishi kerak, yoki yuqoridagi formadan qo'lda kategoriya qo'shing.</p></div></td></tr>`;
     return;
   }
-  tbody.innerHTML = categoriesList.map((c) => `
-    <tr>
-      <td>${c.image ? `<img src="${escapeHtml(c.image)}" alt="" style="width:60px;height:42px;object-fit:cover;border-radius:6px;">` : '<span style="color:var(--text-muted);font-size:11px;">Yo\'q</span>'}</td>
-      <td><strong>${escapeHtml(c.name)}</strong></td>
-      <td><code>${escapeHtml(c.id)}</code></td>
-      <td>
-        <button class="btn btn-secondary" data-cat-edit="${escapeHtml(c.id)}">Tahrirlash</button>
-        <button class="btn btn-danger" data-cat-delete="${escapeHtml(c.id)}">O'chirish</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = rows.map((c) => {
+    const imageCell = c.image
+      ? `<img src="${escapeHtml(c.image)}" alt="" style="width:60px;height:42px;object-fit:cover;border-radius:6px;">`
+      : '<span style="color:var(--text-muted);font-size:11px;">Rasm yo\'q</span>';
+    const statusBadge = c.source === 'movie'
+      ? '<span class="badge" style="background:#fff3cd;color:#856404;">Kinolarda</span>'
+      : c.source === 'saved'
+        ? '<span class="badge" style="background:#d1e7dd;color:#0f5132;">Saqlangan</span>'
+        : '<span class="badge" style="background:#cfe2ff;color:#084298;">Ikkalasi</span>';
+    const editKey = c.id ? `data-cat-edit="${escapeHtml(c.id)}"` : `data-cat-attach="${escapeHtml(c.name)}"`;
+    const editLabel = c.image ? 'Tahrirlash' : 'Rasm yuklash';
+    const deleteBtn = c.id
+      ? `<button class="btn btn-danger" data-cat-delete="${escapeHtml(c.id)}">O'chirish</button>`
+      : '';
+    return `
+      <tr>
+        <td>${imageCell}</td>
+        <td><strong>${escapeHtml(c.name)}</strong> ${statusBadge}</td>
+        <td><code>${escapeHtml(c.id || '—')}</code></td>
+        <td>
+          <button class="btn btn-secondary" ${editKey}>${editLabel}</button>
+          ${deleteBtn}
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 async function saveCategory(payload, editId) {
@@ -1443,6 +1477,20 @@ document.getElementById('categoryResetBtn')?.addEventListener('click', resetCate
 document.getElementById('categoriesReloadBtn')?.addEventListener('click', fetchCategories);
 
 document.getElementById('categoriesTableBody')?.addEventListener('click', async (e) => {
+  const attachBtn = e.target.closest('[data-cat-attach]');
+  if (attachBtn) {
+    const name = attachBtn.dataset.catAttach || '';
+    document.getElementById('categoryEditId').value = '';
+    document.getElementById('categoryName').value = name;
+    document.getElementById('categoryImageUrl').value = '';
+    categoryUploadedUrl = '';
+    setCategoryPreview('');
+    const submit = document.getElementById('categorySubmitBtn');
+    if (submit) submit.textContent = "+ Rasm bilan saqlash";
+    document.getElementById('categoryImageFile')?.focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
   const editBtn = e.target.closest('[data-cat-edit]');
   const delBtn = e.target.closest('[data-cat-delete]');
   if (editBtn) {

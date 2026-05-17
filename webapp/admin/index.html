@@ -257,8 +257,9 @@
               <input type="hidden" id="categoryEditId" value="">
               <div class="form-row">
                 <div class="form-group">
-                  <label>Nomi</label>
-                  <input type="text" id="categoryName" class="form-input" placeholder="Komediya, Drama, Multfilm..." required>
+                  <label>Nomi (mavjud kinolardan tanlang yoki yangi yozing)</label>
+                  <input type="text" id="categoryName" class="form-input" placeholder="Komediya, Drama, Multfilm..." list="categoryNameList" required>
+                  <datalist id="categoryNameList"></datalist>
                 </div>
                 <div class="form-group">
                   <label>Rasm (Vercel Blob'ga yuklanadi)</label>
