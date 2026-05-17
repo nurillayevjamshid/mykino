@@ -1293,10 +1293,10 @@ function compressImageDataUrl(dataUrl, maxW = 800, maxH = 800, quality = 0.85) {
 }
 
 async function uploadCategoryImage(dataUrl, name) {
-  const resp = await fetch('/api/upload-image', {
+  const resp = await fetch('/api/categories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ dataUrl, folder: 'categories', name }),
+    body: JSON.stringify({ action: 'upload', dataUrl, folder: 'categories', name }),
   });
   const json = await resp.json().catch(() => ({}));
   if (!resp.ok || !json.url) throw new Error(json.error || `HTTP ${resp.status}`);
