@@ -1271,7 +1271,7 @@ function readFileAsDataUrl(file) {
   });
 }
 
-function compressImageDataUrl(dataUrl, maxW = 800, maxH = 800, quality = 0.85) {
+function compressImageDataUrl(dataUrl, maxW = 1200, maxH = 800, quality = 0.85) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onerror = () => resolve(dataUrl);
