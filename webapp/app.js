@@ -279,6 +279,9 @@ const modalMeta = document.querySelector("#modalMeta");
 const modalTitle = document.querySelector("#modalTitle");
 const modalDescription = document.querySelector("#modalDescription");
 const modalDescriptionToggle = document.querySelector("#modalDescriptionToggle");
+const modalDescriptionToggleLabel = modalDescriptionToggle?.querySelector(".modal-description-toggle__label") || null;
+const modalDescriptionWrap = document.querySelector("#modalDescriptionWrap");
+const modalRating = document.querySelector("#modalRating");
 const likeButton = document.querySelector("#likeButton");
 const dislikeButton = document.querySelector("#dislikeButton");
 const likeCountEl = document.querySelector("#likeCount");
@@ -1712,14 +1715,21 @@ async function sendReaction(movie, reaction) {
   } catch {}
 }
 
+function setDescriptionExpanded(expanded) {
+  if (!modalDescriptionWrap || !modalDescriptionToggle) return;
+  modalDescriptionWrap.hidden = !expanded;
+  modalDescriptionToggle.classList.toggle("is-expanded", expanded);
+  modalDescriptionToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+  if (modalDescriptionToggleLabel) {
+    modalDescriptionToggleLabel.textContent = expanded ? "Show Less" : "Show More";
+  }
+}
+
 function syncDescriptionToggle() {
   if (!modalDescription || !modalDescriptionToggle) return;
-  modalDescription.classList.add("is-collapsed");
-  modalDescriptionToggle.textContent = "Davomi";
-  requestAnimationFrame(() => {
-    const overflows = modalDescription.scrollHeight > modalDescription.clientHeight + 1;
-    modalDescriptionToggle.hidden = !overflows;
-  });
+  const hasText = Boolean(String(modalDescription.textContent || "").trim());
+  modalDescriptionToggle.hidden = !hasText;
+  setDescriptionExpanded(false);
 }
 
 let preloadVideoEl = null;
@@ -1772,15 +1782,24 @@ function openMovie(movie) {
   modalPoster.style.backgroundImage = posterImage
     ? `url('${posterImage.replaceAll("'", "%27")}'), linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)`
     : "linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)";
-  const genreText = String(movie.genre || "Kino").trim();
-  const ratingText = formatRating(movie.rating);
-  const metaItems = [];
-  if (genreText) metaItems.push(`<span class="modal-meta__chip">${escapeHtml(genreText)}</span>`);
-  if (ratingText) metaItems.push(`<span class="modal-meta__chip modal-meta__chip--rating">&#9733; ${escapeHtml(ratingText)}</span>`);
-  modalMeta.innerHTML = metaItems.join("");
+  const genreText = String(movie.genre || "").trim();
+  const yearText = String(movie.year || "").trim();
+  const qualityText = String(movie.quality || "").trim();
+  const metaItems = [yearText, genreText, qualityText].filter(Boolean).map((v) => `<span>${escapeHtml(v)}</span>`);
+  modalMeta.innerHTML = metaItems.join('<span class="modal-meta__sep" aria-hidden="true">|</span>');
+  const ratingValue = Number(movie.rating);
+  const stars = Number.isFinite(ratingValue) && ratingValue > 0 ? Math.round(ratingValue / 2) : 0;
+  if (modalRating) {
+    const filled = Math.max(0, Math.min(5, stars));
+    let html = "";
+    for (let i = 0; i < 5; i += 1) {
+      html += `<span class="modal-rating__star${i < filled ? " is-filled" : ""}">&#9733;</span>`;
+    }
+    modalRating.innerHTML = html;
+    modalRating.hidden = filled === 0;
+  }
   modalTitle.textContent = movie.title;
   modalDescription.textContent = movie.description;
-  watchButton.textContent = plainLabel(t("watch"));
   watchButton.dataset.movieId = movie.id;
   activeMovie = movie;
   renderReactions(movie);
@@ -3881,8 +3900,13 @@ document.querySelectorAll("[data-close]").forEach((button) => {
 });
 
 modalDescriptionToggle?.addEventListener("click", () => {
-  const collapsed = modalDescription.classList.toggle("is-collapsed");
-  modalDescriptionToggle.textContent = collapsed ? "Davomi" : "Yopish";
+  const expanded = !modalDescriptionToggle.classList.contains("is-expanded");
+  setDescriptionExpanded(expanded);
+  if (expanded) {
+    requestAnimationFrame(() => {
+      modalDescriptionWrap?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    });
+  }
 });
 
 likeButton?.addEventListener("click", () => {

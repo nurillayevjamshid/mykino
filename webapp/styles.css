@@ -1431,74 +1431,75 @@ dialog::backdrop {
 
 .modal-poster {
   width: 100%;
-  aspect-ratio: 2 / 3;
-  max-height: 70dvh;
+  flex: 1 1 auto;
+  min-height: 0;
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
   background-color: #000;
-  image-rendering: auto;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .modal-content {
+  flex: 0 0 auto;
   min-height: 0;
-  padding: 18px;
+  padding: 18px 22px 26px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   overflow: auto;
+  align-items: center;
+  text-align: center;
+}
+
+.modal-info-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .modal-meta {
-  color: var(--gold);
-  font-weight: 800;
-}
-
-.modal-info-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: center;
   flex-wrap: wrap;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  opacity: 0.92;
 }
 
-.modal-info-row {
-  flex-wrap: nowrap;
-}
-
-.modal-info-row .modal-meta {
-  display: flex;
-  flex-direction: row;
+.modal-meta > span {
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
-.modal-meta__chip {
+.modal-meta__sep {
+  opacity: 0.45;
+  font-weight: 400;
+}
+
+.modal-rating {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
 }
 
-.modal-meta span.modal-meta__chip--rating { color: var(--gold, #f5b301); }
-html[data-theme="light"] .modal-meta__chip {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.08);
+.modal-rating__star {
+  color: rgba(255, 255, 255, 0.25);
 }
-
-.modal-reactions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
+.modal-rating__star.is-filled {
+  color: var(--gold, #f5b301);
+  text-shadow: 0 1px 8px rgba(245, 179, 1, 0.35);
+}
+html[data-theme="light"] .modal-rating__star {
+  color: rgba(0, 0, 0, 0.2);
 }
 
 .reaction-button {
@@ -1544,39 +1545,51 @@ html[data-theme="light"] .modal-meta__chip {
 }
 
 .modal-description-wrap {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 14px;
+  padding-top: 4px;
 }
 
 .modal-description {
   margin: 0;
   white-space: pre-wrap;
-}
-
-.modal-description.is-collapsed {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  text-align: left;
 }
 
 .modal-description-toggle {
-  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: none;
   border: 0;
-  padding: 4px 0;
-  color: var(--muvi-accent, #E50914);
+  padding: 6px 8px;
+  color: var(--text);
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
+  opacity: 0.92;
+}
+
+.modal-description-toggle__chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 220ms ease;
+}
+
+.modal-description-toggle.is-expanded .modal-description-toggle__chevron {
+  transform: rotate(180deg);
 }
 
 .modal-content h1 {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(26px, 6vw, 34px);
-  line-height: 1.04;
+  font-weight: 700;
+  font-size: clamp(28px, 7vw, 36px);
+  line-height: 1.05;
+  text-align: center;
 }
 
 .modal-content p,
@@ -1629,6 +1642,39 @@ html[data-theme="light"] .modal-meta__chip {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.26),
     0 18px 30px rgba(255, 190, 42, 0.22);
+}
+
+.watch-button--round {
+  width: 64px;
+  height: 64px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.32) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
+.watch-button--round svg {
+  width: 28px;
+  height: 28px;
+  margin-left: 3px;
+}
+
+.watch-button--round:active {
+  transform: scale(0.94);
+}
+
+html[data-theme="light"] .watch-button--round {
+  background: rgba(0, 0, 0, 0.55) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  color: #fff !important;
 }
 
 .ghost-button {
