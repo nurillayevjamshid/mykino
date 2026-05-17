@@ -13,6 +13,7 @@ let userSearchQuery = '';
 const SECTION_TITLES = {
   movies: 'Kinolar',
   music: 'Musiqa',
+  categories: 'Kategoriyalar',
   users: 'Obunachilar',
   broadcast: 'Xabar yuborish',
 };
@@ -211,6 +212,7 @@ function switchSection(name) {
   const sections = {
     movies: 'moviesSection',
     music: 'musicSection',
+    categories: 'categoriesSection',
     users: 'usersSection',
     broadcast: 'broadcastSection',
   };
@@ -230,6 +232,7 @@ function switchSection(name) {
   if (name === 'users') fetchUsers();
   if (name === 'music') fetchMusic();
   if (name === 'broadcast') initBroadcastSection();
+  if (name === 'categories') fetchCategories();
 
   if (window.innerWidth <= 768) {
     document.querySelector('.sidebar')?.classList.remove('open');
@@ -1254,3 +1257,219 @@ document.getElementById('musicTableBody')?.addEventListener('click', (e) => {
 });
 
 window.fetchMusic = fetchMusic;
+
+// ===== Kategoriyalar =====
+let categoriesList = [];
+let categoryUploadedUrl = '';
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Faylni o'qib bo'lmadi."));
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImageDataUrl(dataUrl, maxW = 800, maxH = 800, quality = 0.85) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onerror = () => resolve(dataUrl);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(dataUrl); return; }
+      let w = img.width, h = img.height;
+      if (w > maxW || h > maxH) {
+        const s = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * s); h = Math.round(h * s);
+      }
+      canvas.width = w; canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataUrl;
+  });
+}
+
+async function uploadCategoryImage(dataUrl, name) {
+  const resp = await fetch('/api/upload-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dataUrl, folder: 'categories', name }),
+  });
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok || !json.url) throw new Error(json.error || `HTTP ${resp.status}`);
+  return json.url;
+}
+
+function setCategoryPreview(url) {
+  const preview = document.getElementById('categoryImagePreview');
+  if (!preview) return;
+  if (url) {
+    preview.style.backgroundImage = `url('${url.replaceAll("'", "%27")}')`;
+  } else {
+    preview.style.backgroundImage = 'none';
+  }
+}
+
+function resetCategoryForm() {
+  const form = document.getElementById('categoryForm');
+  if (form) form.reset();
+  document.getElementById('categoryEditId').value = '';
+  categoryUploadedUrl = '';
+  setCategoryPreview('');
+  const btn = document.getElementById('categorySubmitBtn');
+  if (btn) btn.textContent = "+ Qo'shish";
+  const hint = document.getElementById('categoryImageHint');
+  if (hint) { hint.textContent = "Yoki pastdagi URL maydoniga to'g'ridan-to'g'ri link kiriting."; hint.style.color = ''; }
+}
+
+async function fetchCategories() {
+  const tbody = document.getElementById('categoriesTableBody');
+  if (tbody) tbody.innerHTML = `<tr><td colspan="4"><div class="loading-state"><div class="loading-spinner"></div><p>Yuklanmoqda...</p></div></td></tr>`;
+  try {
+    const res = await fetch('/api/categories', { cache: 'no-store' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    categoriesList = Array.isArray(json.categories) ? json.categories : [];
+    const summary = document.getElementById('categoriesStorageSummary');
+    if (summary) {
+      const ok = json.storage === 'redis';
+      summary.textContent = ok
+        ? `Redis ulangan · ${categoriesList.length} ta kategoriya`
+        : `Redis sozlanmagan · ${categoriesList.length} ta kategoriya`;
+      summary.style.color = ok ? '#3ecf8e' : '#ffb84d';
+    }
+    renderCategoriesTable();
+  } catch (err) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state error-state"><h3>Xatolik</h3><p>${escapeHtml(err.message)}</p></div></td></tr>`;
+  }
+}
+
+function renderCategoriesTable() {
+  const tbody = document.getElementById('categoriesTableBody');
+  if (!tbody) return;
+  if (!categoriesList.length) {
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><h3>Kategoriyalar yo'q</h3><p>Yuqoridagi formadan birinchi kategoriyani qo'shing.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = categoriesList.map((c) => `
+    <tr>
+      <td>${c.image ? `<img src="${escapeHtml(c.image)}" alt="" style="width:60px;height:42px;object-fit:cover;border-radius:6px;">` : '<span style="color:var(--text-muted);font-size:11px;">Yo\'q</span>'}</td>
+      <td><strong>${escapeHtml(c.name)}</strong></td>
+      <td><code>${escapeHtml(c.id)}</code></td>
+      <td>
+        <button class="btn btn-secondary" data-cat-edit="${escapeHtml(c.id)}">Tahrirlash</button>
+        <button class="btn btn-danger" data-cat-delete="${escapeHtml(c.id)}">O'chirish</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function saveCategory(payload, editId) {
+  const method = editId ? 'PUT' : 'POST';
+  const body = editId ? { ...payload, id: editId, action: 'update' } : payload;
+  const res = await fetch('/api/categories', {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  categoriesList = Array.isArray(json.categories) ? json.categories : [];
+  renderCategoriesTable();
+}
+
+async function deleteCategory(id) {
+  const res = await fetch('/api/categories', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  categoriesList = Array.isArray(json.categories) ? json.categories : [];
+  renderCategoriesTable();
+}
+
+document.getElementById('categoryImageFile')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  const hint = document.getElementById('categoryImageHint');
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    if (hint) { hint.textContent = 'Fayl 5MB dan katta.'; hint.style.color = '#ff6b6b'; }
+    e.target.value = '';
+    return;
+  }
+  try {
+    if (hint) { hint.textContent = 'Yuklanmoqda...'; hint.style.color = ''; }
+    let dataUrl = await readFileAsDataUrl(file);
+    dataUrl = await compressImageDataUrl(dataUrl);
+    const url = await uploadCategoryImage(dataUrl, (document.getElementById('categoryName').value || 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+    categoryUploadedUrl = url;
+    document.getElementById('categoryImageUrl').value = url;
+    setCategoryPreview(url);
+    if (hint) { hint.textContent = "Yuklandi ✅"; hint.style.color = '#3ecf8e'; }
+  } catch (err) {
+    if (hint) { hint.textContent = `Yuklash xatosi: ${err.message}`; hint.style.color = '#ff6b6b'; }
+  }
+});
+
+document.getElementById('categoryImageUrl')?.addEventListener('input', (e) => {
+  setCategoryPreview(e.target.value.trim());
+});
+
+document.getElementById('categoryForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('categoryName').value.trim();
+  const image = document.getElementById('categoryImageUrl').value.trim() || categoryUploadedUrl;
+  const editId = document.getElementById('categoryEditId').value;
+  if (!name) return;
+  const btn = document.getElementById('categorySubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saqlanmoqda...'; }
+  try {
+    await saveCategory({ name, image }, editId);
+    showNotification(editId ? 'Kategoriya yangilandi ✅' : "Kategoriya qo'shildi ✅");
+    resetCategoryForm();
+  } catch (err) {
+    showNotification(`Xato: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = editId ? 'Saqlash' : "+ Qo'shish"; }
+  }
+});
+
+document.getElementById('categoryResetBtn')?.addEventListener('click', resetCategoryForm);
+document.getElementById('categoriesReloadBtn')?.addEventListener('click', fetchCategories);
+
+document.getElementById('categoriesTableBody')?.addEventListener('click', async (e) => {
+  const editBtn = e.target.closest('[data-cat-edit]');
+  const delBtn = e.target.closest('[data-cat-delete]');
+  if (editBtn) {
+    const id = editBtn.dataset.catEdit;
+    const cat = categoriesList.find((c) => c.id === id);
+    if (!cat) return;
+    document.getElementById('categoryEditId').value = cat.id;
+    document.getElementById('categoryName').value = cat.name;
+    document.getElementById('categoryImageUrl').value = cat.image || '';
+    categoryUploadedUrl = cat.image || '';
+    setCategoryPreview(cat.image || '');
+    const submit = document.getElementById('categorySubmitBtn');
+    if (submit) submit.textContent = 'Saqlash';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  if (delBtn) {
+    const id = delBtn.dataset.catDelete;
+    const cat = categoriesList.find((c) => c.id === id);
+    if (!confirm(`O'chirilsinmi: ${cat?.name || id}?`)) return;
+    try {
+      await deleteCategory(id);
+      showNotification("Kategoriya o'chirildi.");
+    } catch (err) {
+      showNotification(`Xato: ${err.message}`, 'error');
+    }
+  }
+});
+
+window.fetchCategories = fetchCategories;

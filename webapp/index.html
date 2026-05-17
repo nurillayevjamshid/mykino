@@ -205,6 +205,12 @@
 
     <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
 
+    <section class="categories-view" id="categoriesView" hidden aria-label="Kategoriyalar">
+      <h2 class="categories-view__title" data-i18n="categories">Kategoriyalar</h2>
+      <div class="categories-grid" id="categoriesGrid"></div>
+      <p class="categories-empty" id="categoriesEmpty" hidden>Kategoriyalar hali qo'shilmagan.</p>
+    </section>
+
     <footer class="app-footer" aria-label="Sayt ma'lumotlari">
       <div class="app-footer__brand">
         <span class="app-footer__logo" aria-hidden="true">
@@ -261,6 +267,15 @@
             <path class="nav-icon-fill" d="m10.4 12.1 4.4 2.6-4.4 2.6v-5.2Z"></path>
           </svg>
           <span class="bottom-bar__label">Kino</span>
+        </button>
+        <button class="bottom-bar__button bottom-bar__button--movie-only" type="button" data-action="categories-view" aria-label="Kategoriyalar" title="Kategoriyalar">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.4"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.4"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.4"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.4"></rect>
+          </svg>
+          <span class="bottom-bar__label" data-i18n="categories">Kategoriya</span>
         </button>
         <button class="bottom-bar__button bottom-bar__button--movie-only" type="button" data-action="favorites" aria-label="Sevimlilar" title="Sevimlilar">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

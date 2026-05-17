@@ -3754,6 +3754,81 @@ document.getElementById("miniPlayerExpand")?.addEventListener("click", () => {
 document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.addEventListener("click", closeMusicView));
 document.querySelectorAll(".bottom-bar [data-action='favorites'], .bottom-bar [data-action='catalog'], .bottom-bar [data-action='profile']").forEach((b) => b.addEventListener("click", closeMusicView));
 
+// ===== Categories view (bottom-bar) =====
+const categoriesView = document.getElementById("categoriesView");
+const categoriesGrid = document.getElementById("categoriesGrid");
+const categoriesEmpty = document.getElementById("categoriesEmpty");
+let categoriesLoaded = false;
+let categoriesData = [];
+
+async function loadCategoriesCatalog() {
+  try {
+    const res = await fetch("/api/categories", { cache: "no-store" });
+    const json = await res.json();
+    categoriesData = Array.isArray(json.categories) ? json.categories : [];
+  } catch (_) {
+    categoriesData = [];
+  }
+  renderCategoriesGrid();
+  categoriesLoaded = true;
+}
+
+function escapeAttr(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function renderCategoriesGrid() {
+  if (!categoriesGrid) return;
+  if (!categoriesData.length) {
+    categoriesGrid.innerHTML = "";
+    if (categoriesEmpty) categoriesEmpty.hidden = false;
+    return;
+  }
+  if (categoriesEmpty) categoriesEmpty.hidden = true;
+  categoriesGrid.innerHTML = categoriesData.map((c) => {
+    const bg = c.image ? `style="background-image:url('${escapeAttr(c.image).replaceAll("'", "%27")}')"` : "";
+    return `<button class="category-card" type="button" data-category-name="${escapeAttr(c.name)}" ${bg}><span class="category-card__name">${escapeAttr(c.name)}</span></button>`;
+  }).join("");
+}
+
+function openCategoriesView() {
+  if (!categoriesView) return;
+  closeMusicView();
+  categoriesView.hidden = false;
+  document.body.classList.add("is-categories");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.querySelectorAll(".bottom-bar [data-action='categories-view']").forEach((b) => b.classList.add("is-active"));
+  document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-action='favorites']").forEach((b) => b.classList.remove("is-active"));
+  if (!categoriesLoaded) loadCategoriesCatalog();
+}
+
+function closeCategoriesView() {
+  if (!categoriesView) return;
+  categoriesView.hidden = true;
+  document.body.classList.remove("is-categories");
+  document.querySelectorAll(".bottom-bar [data-action='categories-view']").forEach((b) => b.classList.remove("is-active"));
+}
+
+document.querySelectorAll("[data-action='categories-view']").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    openCategoriesView();
+  });
+});
+
+document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-action='favorites'], .bottom-bar [data-action='profile']").forEach((b) => {
+  b.addEventListener("click", closeCategoriesView);
+});
+
+categoriesGrid?.addEventListener("click", (event) => {
+  const card = event.target.closest("[data-category-name]");
+  if (!card) return;
+  const name = card.dataset.categoryName || "";
+  if (!name) return;
+  closeCategoriesView();
+  try { setCategory(name); } catch (_) {}
+});
+
 categoryList?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-category]");
   if (!button) return;
