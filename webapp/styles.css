@@ -5713,6 +5713,11 @@ body {
 .topbar {
   position: sticky;
   top: 0;
+  left: auto;
+  right: auto;
+  transform: none;
+  margin-left: auto;
+  margin-right: auto;
   z-index: 100;
   background: var(--c-bg, transparent);
   padding-top: 4px;
