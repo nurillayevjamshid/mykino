@@ -50,7 +50,6 @@
     { "src": "api/movie-reaction.js", "use": "@vercel/node" },
     { "src": "api/music.js", "use": "@vercel/node" },
     { "src": "api/categories.js", "use": "@vercel/node" },
-    { "src": "api/upload-image.js", "use": "@vercel/node" },
     { "src": "api/settings.js", "use": "@vercel/node" },
     { "src": "api/users.js", "use": "@vercel/node" },
     { "src": "api/user-photo.js", "use": "@vercel/node" },
