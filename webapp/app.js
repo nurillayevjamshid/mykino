@@ -250,6 +250,21 @@ const DRIVE_STREAM_ERROR_MESSAGE =
   "Tomosha uchun manba tayyorlanmoqda.";
 
 let movies = [];
+
+const movieShuffleRanks = new Map();
+const categoryShuffleRanks = new Map();
+function getRank(map, key) {
+  const k = String(key);
+  if (!map.has(k)) map.set(k, Math.random());
+  return map.get(k);
+}
+function sessionShuffleMovies(list) {
+  return [...list].sort((a, b) => getRank(movieShuffleRanks, a?.id ?? "") - getRank(movieShuffleRanks, b?.id ?? ""));
+}
+function sessionShuffleCategories(list, keyFn) {
+  return [...list].sort((a, b) => getRank(categoryShuffleRanks, keyFn(a)) - getRank(categoryShuffleRanks, keyFn(b)));
+}
+
 let activeFilter = "all";
 let activeCategory = "all";
 let query = "";
@@ -1283,7 +1298,10 @@ function buildCategoryOptions() {
     }
   }
 
-  return [...map.entries()].map(([value, label]) => ({ value, label }));
+  const entries = [...map.entries()].map(([value, label]) => ({ value, label }));
+  const allOption = entries.shift();
+  const shuffled = sessionShuffleCategories(entries, (o) => o.value);
+  return allOption ? [allOption, ...shuffled] : shuffled;
 }
 
 function renderCategories() {
@@ -1509,7 +1527,7 @@ function buildHomeCategoryGroups() {
       groups.get(value).movies.push(movie);
     }
   }
-  return [...groups.values()];
+  return sessionShuffleCategories([...groups.values()], (g) => g.value);
 }
 
 function renderHomeRows() {
@@ -4101,7 +4119,7 @@ async function loadMovies() {
     if (!response.ok || !Array.isArray(payload)) {
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
-    movies = payload.map((movie, index) => normalizeMovie(movie, index));
+    movies = sessionShuffleMovies(payload.map((movie, index) => normalizeMovie(movie, index)));
     movieLoadState = "ready";
     renderHeroCarousel();
   } catch (error) {
@@ -4142,7 +4160,7 @@ async function silentReloadMovies() {
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
 
-    const newMovies = payload.map((movie, index) => normalizeMovie(movie, index));
+    const newMovies = sessionShuffleMovies(payload.map((movie, index) => normalizeMovie(movie, index)));
 
     movies = newMovies;
     renderHeroCarousel();
