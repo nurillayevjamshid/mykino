@@ -105,6 +105,8 @@ const copy = {
     nightMode: "Tungi rejim",
     language: "Til",
     comingSoon: "Tez kunda",
+    showMore: "Batafsil",
+    showLess: "Yopish",
   },
   ru: {
     all: "Все",
@@ -157,6 +159,8 @@ const copy = {
     nightMode: "Тёмный режим",
     language: "Язык",
     comingSoon: "Скоро",
+    showMore: "Подробнее",
+    showLess: "Свернуть",
   },
   en: {
     all: "All",
@@ -209,6 +213,8 @@ const copy = {
     nightMode: "Dark mode",
     language: "Language",
     comingSoon: "Coming soon",
+    showMore: "Show More",
+    showLess: "Show Less",
   },
 };
 
@@ -1721,7 +1727,7 @@ function setDescriptionExpanded(expanded) {
   modalDescriptionToggle.classList.toggle("is-expanded", expanded);
   modalDescriptionToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
   if (modalDescriptionToggleLabel) {
-    modalDescriptionToggleLabel.textContent = expanded ? "Show Less" : "Show More";
+    modalDescriptionToggleLabel.textContent = plainLabel(t(expanded ? "showLess" : "showMore"));
   }
 }
 
@@ -3079,6 +3085,10 @@ function applyCopy() {
 
   if (searchInput) searchInput.placeholder = plainLabel(t("placeholder"));
   if (movieLaterButton) movieLaterButton.textContent = plainLabel(t("later"));
+  if (modalDescriptionToggleLabel) {
+    const expanded = modalDescriptionToggle?.classList.contains("is-expanded");
+    modalDescriptionToggleLabel.textContent = plainLabel(t(expanded ? "showLess" : "showMore"));
+  }
   if (videoLoading) {
     const label = videoLoading.querySelector("b");
     if (label) label.textContent = t("videoLoading");

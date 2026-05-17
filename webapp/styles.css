@@ -1437,8 +1437,8 @@ dialog::backdrop {
   background-position: center center;
   background-repeat: no-repeat;
   background-color: #000;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
+  image-rendering: auto;
+  image-rendering: high-quality;
 }
 
 .modal-content {
