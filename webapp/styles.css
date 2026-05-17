@@ -1552,6 +1552,10 @@ html[data-theme="light"] .modal-rating__star {
   padding-top: 4px;
 }
 
+.modal-description-wrap[hidden] {
+  display: none !important;
+}
+
 .modal-description {
   margin: 0;
   white-space: pre-wrap;
