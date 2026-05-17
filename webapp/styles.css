@@ -1668,7 +1668,7 @@ html[data-theme="light"] .modal-rating__star {
 .watch-button--round svg {
   width: 28px;
   height: 28px;
-  margin-left: 3px;
+  display: block;
 }
 
 .watch-button--round:active {
@@ -7330,7 +7330,7 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 .hero__play svg {
   width: 14px !important;
   height: 14px !important;
-  margin-left: 1px;
+  display: block;
 }
 
 /* ============================================================
