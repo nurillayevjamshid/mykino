@@ -1,4 +1,4 @@
-const VERSION = "v20260516-eden5";
+const VERSION = "v20260516-eden6";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 

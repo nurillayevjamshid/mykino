@@ -4937,7 +4937,7 @@ html[data-theme="dark"] .topbar.is-scrolled {
 
 /* Hero — sized to fit between topbar and category rows */
 .hero {
-  margin-top: calc(var(--topbar-top) + var(--topbar-height) + 3px) !important;
+  margin-top: 6px !important;
   height: 420px !important;
 }
 
@@ -4948,7 +4948,7 @@ html[data-theme="dark"] .topbar.is-scrolled {
 }
 
 .hero[hidden] + .movie-grid {
-  padding-top: calc(var(--topbar-top) + var(--topbar-height) + 12px) !important;
+  padding-top: 6px !important;
 }
 
 .hero:not([hidden]) + .movie-grid {
@@ -5814,11 +5814,11 @@ body {
   transform: translateY(-1px);
 }
 
-.topbar-search__panel {
-  top: 0;
-  right: 0;
-  width: min(var(--topbar-search-panel-width), calc(100vw - 24px));
-  margin: 0 !important;
+.topbar-search__panel--inline {
+  position: static !important;
+  display: block;
+  width: calc(100% - 24px) !important;
+  margin: 6px 12px 0 !important;
   padding: 0 !important;
   z-index: 1 !important;
   background: transparent !important;
@@ -5828,10 +5828,21 @@ body {
   -webkit-backdrop-filter: none !important;
 }
 
+.topbar-search__panel--inline[hidden] {
+  display: none !important;
+}
+
+.topbar-search__panel--inline + .hero,
+.topbar-search__panel--inline:not([hidden]) + .hero,
+.topbar-search__panel--inline:not([hidden]) + .movie-grid {
+  margin-top: 6px !important;
+  padding-top: 0 !important;
+}
+
 .topbar-search__panel .search-box {
-  min-height: 32px !important;
-  height: 32px;
-  padding: 0 42px 0 16px !important;
+  min-height: 40px !important;
+  height: 40px;
+  padding: 0 16px !important;
   border-radius: 999px !important;
   background: #ffffff !important;
   border: 2px solid #111111 !important;
@@ -5839,7 +5850,11 @@ body {
 }
 
 .topbar-search__panel .search-box .icon-svg {
-  display: none;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  color: #111111;
+  margin-right: 8px;
 }
 
 .topbar-search__panel .search-box input {
