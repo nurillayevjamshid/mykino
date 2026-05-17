@@ -50,6 +50,17 @@
               <span class="nav-text">Musiqa</span>
             </a>
           </li>
+          <li class="nav-item" data-section="categories">
+            <a href="#" class="nav-link">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+              </svg>
+              <span class="nav-text">Kategoriyalar</span>
+            </a>
+          </li>
           <li class="nav-item" data-section="users">
             <a href="#" class="nav-link">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -229,6 +240,65 @@
                 </tr>
               </thead>
               <tbody id="musicTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Categories Section -->
+        <section class="content-section" id="categoriesSection">
+          <div class="section-header">
+            <h2>Kategoriyalar</h2>
+            <p class="form-hint">Mini app pastki navbar Kategoriyalar bo'limida ko'rinadigan kartochkalar. Rasmlar Vercel Blob'ga yuklanadi va URL saqlanadi.</p>
+            <p class="form-hint" id="categoriesStorageSummary" style="margin-top:6px;font-weight:600;">—</p>
+          </div>
+
+          <div class="card-block">
+            <form id="categoryForm" class="channel-form">
+              <input type="hidden" id="categoryEditId" value="">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Nomi</label>
+                  <input type="text" id="categoryName" class="form-input" placeholder="Komediya, Drama, Multfilm..." required>
+                </div>
+                <div class="form-group">
+                  <label>Rasm (Vercel Blob'ga yuklanadi)</label>
+                  <input type="file" id="categoryImageFile" class="form-input" accept="image/*">
+                  <small class="form-hint" id="categoryImageHint">Yoki pastdagi URL maydoniga to'g'ridan-to'g'ri link kiriting.</small>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                  <label>Rasm URL</label>
+                  <input type="text" id="categoryImageUrl" class="form-input" placeholder="https://...">
+                </div>
+                <div class="form-group" style="width:140px;">
+                  <label>Ko'rinish</label>
+                  <div id="categoryImagePreview" style="width:120px;height:80px;border-radius:10px;background:#f1f3f7 center/cover no-repeat;border:1px solid var(--border,#e3e6ec);"></div>
+                </div>
+              </div>
+              <div class="modal-actions" style="margin-top:8px;gap:10px;">
+                <button type="submit" class="btn btn-primary" id="categorySubmitBtn">+ Qo'shish</button>
+                <button type="button" class="btn btn-secondary" id="categoryResetBtn">Tozalash</button>
+                <button type="button" class="btn btn-secondary" id="categoriesReloadBtn">Yangilash</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="section-header" style="margin-top:24px;">
+            <h2 style="font-size:18px;">Kategoriyalar ro'yxati</h2>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Rasm</th>
+                  <th>Nomi</th>
+                  <th>ID</th>
+                  <th>Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="categoriesTableBody"></tbody>
             </table>
           </div>
         </section>
