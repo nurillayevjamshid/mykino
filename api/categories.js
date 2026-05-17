@@ -1,6 +1,8 @@
 const { setCors } = require("./_lib/google-drive");
 
 const REDIS_KEY = "categories:v1";
+const BLOB_API_BASE = "https://blob.vercel-storage.com";
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
 let redisPromise = null;
 async function getRedis() {
@@ -86,6 +88,61 @@ function isRedisEnabled() {
   return Boolean(process.env.REDIS_URL || process.env.KV_URL);
 }
 
+function parseDataUrl(dataUrl) {
+  const m = /^data:([\w/+.-]+);base64,(.+)$/.exec(String(dataUrl || "").trim());
+  if (!m) return null;
+  return { contentType: m[1] || "application/octet-stream", buffer: Buffer.from(m[2], "base64") };
+}
+
+function extFromContentType(ct) {
+  const map = { "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "image/svg+xml": "svg" };
+  return map[ct] || "bin";
+}
+
+async function uploadToBlob(pathname, buffer, contentType) {
+  const token = String(process.env.BLOB_READ_WRITE_TOKEN || "").trim();
+  if (!token) {
+    const err = new Error("BLOB_READ_WRITE_TOKEN topilmadi.");
+    err.statusCode = 500;
+    throw err;
+  }
+  const url = new URL(`${BLOB_API_BASE}/${pathname.replace(/^\/+/, "")}`);
+  url.searchParams.set("addRandomSuffix", "1");
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "x-api-version": "7",
+      "Content-Type": contentType,
+      "x-content-type": contentType,
+      "x-add-random-suffix": "1",
+    },
+    body: buffer,
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.url) {
+    const err = new Error(payload?.error?.message || "Blob upload muvaffaqiyatsiz.");
+    err.statusCode = response.status || 502;
+    throw err;
+  }
+  return payload.url;
+}
+
+async function handleUpload(body) {
+  const parsed = parseDataUrl(body.dataUrl || body.image || "");
+  if (!parsed) {
+    const err = new Error("dataUrl (base64 image) kerak."); err.statusCode = 400; throw err;
+  }
+  if (parsed.buffer.length > MAX_IMAGE_BYTES) {
+    const err = new Error("Rasm 6MB dan katta."); err.statusCode = 413; throw err;
+  }
+  const folder = String(body.folder || "categories").replace(/[^a-z0-9/_-]/gi, "") || "categories";
+  const ext = extFromContentType(parsed.contentType);
+  const baseName = String(body.name || "image").replace(/[^a-z0-9._-]/gi, "").slice(0, 40) || "image";
+  const pathname = `${folder}/${Date.now()}-${baseName}.${ext}`;
+  return await uploadToBlob(pathname, parsed.buffer, parsed.contentType);
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
   if (request.method === "OPTIONS") { response.status(204).end(); return; }
@@ -103,13 +160,20 @@ module.exports = async function handler(request, response) {
   }
 
   if (request.method === "POST" || request.method === "PUT" || request.method === "DELETE") {
-    if (!isRedisEnabled()) {
-      response.status(503).json({ ok: false, error: "Vercel Redis sozlanmagan." });
-      return;
-    }
     try {
       const body = await readBody(request);
       const action = body.action || (request.method === "DELETE" ? "delete" : (request.method === "PUT" ? "update" : "create"));
+
+      if (action === "upload") {
+        const url = await handleUpload(body);
+        response.status(200).json({ ok: true, url });
+        return;
+      }
+
+      if (!isRedisEnabled()) {
+        response.status(503).json({ ok: false, error: "Vercel Redis sozlanmagan." });
+        return;
+      }
 
       let list = await readAll();
 
@@ -148,7 +212,7 @@ module.exports = async function handler(request, response) {
       list.sort((a, b) => (a.order - b.order) || a.name.localeCompare(b.name, "uz"));
       response.status(200).json({ ok: true, categories: list });
     } catch (err) {
-      response.status(400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
+      response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
     }
     return;
   }
