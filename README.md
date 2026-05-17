@@ -1,4 +1,4 @@
-# Kino Bot + Telegram Mini App
+# My Playlist + Telegram Mini App
 
 Telegram ichida kinolar katalogini ko'rish uchun bot va mini app starter loyihasi.
 

@@ -103,7 +103,7 @@ async function upsertUser(telegramUser) {
 async function sendStart(chatId) {
   await sendMessage(
     chatId,
-    "Assalomu alaykum, My Kino botiga xush kelibsiz.\n" +
+    "Assalomu alaykum, My Playlist botiga xush kelibsiz.\n" +
       "Biz bilan vaqtingiz chog' va maroqli o'tishini tilab qolamiz.\n" +
       "Biz siz uchun doim xizmatdamiz.",
     { reply_markup: startInlineKeyboard() },
