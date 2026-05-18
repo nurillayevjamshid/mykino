@@ -1561,9 +1561,40 @@ function renderHomeRows() {
   return groups.length;
 }
 
+function getCategoryLabel(value) {
+  if (!value || value === "all") return "";
+  for (const movie of getViewerMovies()) {
+    for (const rawGenre of splitMovieGenres(movie?.genre)) {
+      if (normalizeCategoryValue(rawGenre) === value) return rawGenre;
+    }
+  }
+  return value;
+}
+
+function renderCategoryPageHeader() {
+  const header = document.createElement("header");
+  header.className = "category-page__head";
+  header.innerHTML = `
+    <button class="category-page__back" type="button" aria-label="Orqaga">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <polyline points="15 6 9 12 15 18"></polyline>
+      </svg>
+    </button>
+    <h2 class="category-page__title"></h2>
+  `;
+  header.querySelector(".category-page__title").textContent = getCategoryLabel(activeCategory);
+  header.querySelector(".category-page__back").addEventListener("click", () => {
+    setCategory("all");
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  return header;
+}
+
 function renderMovies() {
   const isHomeView = activeFilter === "all" && activeCategory === "all" && !query;
+  const isCategoryPage = activeFilter === "all" && activeCategory !== "all" && !query;
   grid.innerHTML = "";
+  grid.classList.toggle("is-category-page", isCategoryPage);
 
   if (isHomeView && movieLoadState === "ready") {
     grid.classList.add("is-home");
@@ -1571,6 +1602,9 @@ function renderMovies() {
     updateEmptyState(rowCount > 0 ? getViewerMovies() : []);
   } else {
     grid.classList.remove("is-home");
+    if (isCategoryPage && movieLoadState === "ready") {
+      grid.append(renderCategoryPageHeader());
+    }
     const list = movieLoadState === "ready" ? filteredMovies() : [];
     updateEmptyState(list);
     for (const movie of list) {
