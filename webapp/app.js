@@ -1485,10 +1485,6 @@ function clearMovieProgress(movie) {
   queueProgressRemove(String(movie.id));
 }
 
-function updateWatchedMovieProgress(movie, progress) {
-  // Mock logic if this was previously empty
-}
-
 function setEmptyState(_title, _text) {}
 
 function updateEmptyState(_list) {}
