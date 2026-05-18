@@ -1893,11 +1893,7 @@ function openMovie(movie) {
     : "linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)";
   const genreText = String(movie.genre || "").trim();
   const qualityText = String(movie.quality || "").trim();
-  const durationMinutes = Number(movie.durationMinutes);
-  const durationText = Number.isFinite(durationMinutes) && durationMinutes > 0
-    ? `${durationMinutes} daqiqa`
-    : "";
-  const metaItems = [genreText, qualityText, durationText].filter(Boolean).map((v) => `<span>${escapeHtml(v)}</span>`);
+  const metaItems = [genreText, qualityText].filter(Boolean).map((v) => `<span>${escapeHtml(v)}</span>`);
   modalMeta.innerHTML = metaItems.join('<span class="modal-meta__sep" aria-hidden="true">|</span>');
   const ratingValue = Number(movie.rating);
   const stars = Number.isFinite(ratingValue) && ratingValue > 0 ? Math.round(ratingValue / 2) : 0;
