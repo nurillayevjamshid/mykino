@@ -34,7 +34,8 @@
       "Bash(curl -s -o /tmp/photo_test -w \"HTTP %{http_code} | Content-Type: %{content_type} | Size: %{size_download} bytes\\\\n\" \"https://kino-telegram-mini-app.vercel.app/api/user-photo?userId=679291909\")",
       "Read(//tmp/**)",
       "Bash(xxd /tmp/photo_test)",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "Bash(ls \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\")"
     ]
   }
 }
