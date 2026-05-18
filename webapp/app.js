@@ -1619,11 +1619,31 @@ function renderCategoryPageHeader() {
   return header;
 }
 
+function renderFavoritesPageHeader() {
+  const header = document.createElement("header");
+  header.className = "category-page__head";
+  header.innerHTML = `
+    <button class="category-page__back" type="button" aria-label="Orqaga">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <polyline points="15 6 9 12 15 18"></polyline>
+      </svg>
+    </button>
+    <h2 class="category-page__title"></h2>
+  `;
+  header.querySelector(".category-page__title").textContent = plainLabel(t("favoritesNav"));
+  header.querySelector(".category-page__back").addEventListener("click", () => {
+    setFilter("all");
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  return header;
+}
+
 function renderMovies() {
   const isHomeView = activeFilter === "all" && activeCategory === "all" && !query;
   const isCategoryPage = activeFilter === "all" && activeCategory !== "all" && !query;
+  const isFavoritesPage = activeFilter === "favorites" && !query;
   grid.innerHTML = "";
-  grid.classList.toggle("is-category-page", isCategoryPage);
+  grid.classList.toggle("is-category-page", isCategoryPage || isFavoritesPage);
 
   if (isHomeView && movieLoadState === "ready") {
     grid.classList.add("is-home");
@@ -1633,6 +1653,8 @@ function renderMovies() {
     grid.classList.remove("is-home");
     if (isCategoryPage && movieLoadState === "ready") {
       grid.append(renderCategoryPageHeader());
+    } else if (isFavoritesPage && movieLoadState === "ready") {
+      grid.append(renderFavoritesPageHeader());
     }
     const list = movieLoadState === "ready" ? filteredMovies() : [];
     updateEmptyState(list);
