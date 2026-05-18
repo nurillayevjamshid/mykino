@@ -1571,8 +1571,21 @@ dialog::backdrop {
 }
 
 .profile-modal {
-  width: min(calc(100vw - 32px), 360px);
-  border-radius: 28px;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  inset: 0;
+}
+
+.profile-modal[open] {
+  display: flex;
+  flex-direction: column;
+  animation: movieDetailSlideIn 220ms ease-out;
 }
 
 .modal-close {
@@ -5507,7 +5520,28 @@ html[data-theme="dark"] .movie-modal::backdrop {
 }
 
 html[data-theme="dark"] .profile-modal::backdrop {
-  background: rgba(2, 2, 4, 0.78);
+  background: var(--c-bg, #050505);
+}
+
+.profile-modal::backdrop {
+  background: var(--c-bg, #050505);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.profile-modal .profile-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 64px) 20px calc(env(safe-area-inset-bottom, 0px) + 40px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.profile-modal .modal-close {
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
 }
 
 .modal-poster {
