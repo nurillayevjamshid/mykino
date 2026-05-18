@@ -1704,8 +1704,12 @@ function renderProfileHistory() {
         profileModal.close();
         openMovie(movie);
       };
-      card.addEventListener("click", reopenMovie);
+      card.addEventListener("click", (event) => {
+        if (event.target.closest("[data-history-remove]")) return;
+        reopenMovie();
+      });
       card.addEventListener("keydown", (event) => {
+        if (event.target.closest("[data-history-remove]")) return;
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           reopenMovie();
