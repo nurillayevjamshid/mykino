@@ -100,7 +100,6 @@ module.exports = async function handler(request, response) {
     }
     if (hasOwn(body, "year")) updates.year = body.year;
     if (hasOwn(body, "showInHeader")) updates.showInHeader = body.showInHeader;
-    if (hasOwn(body, "durationMinutes")) updates.durationMinutes = body.durationMinutes;
 
     const saved = await updateCatalogMovieMetadata(id, updates);
     const metadata = await getDriveFileMetadata(id, "id,name,mimeType,thumbnailLink,webViewLink");
