@@ -3786,7 +3786,7 @@ function renderCategoriesGrid() {
   if (categoriesEmpty) categoriesEmpty.hidden = true;
   categoriesGrid.innerHTML = categoriesData.map((c) => {
     const bg = c.image ? `style="background-image:url('${escapeAttr(c.image).replaceAll("'", "%27")}')"` : "";
-    return `<button class="category-card" type="button" data-category-name="${escapeAttr(c.name)}" ${bg}><span class="category-card__name">${escapeAttr(c.name)}</span></button>`;
+    return `<button class="category-card" type="button" data-category-name="${escapeAttr(c.name)}" aria-label="${escapeAttr(c.name)}" ${bg}></button>`;
   }).join("");
 }
 
