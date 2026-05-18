@@ -3998,7 +3998,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px 14px;
+  padding: 0 12px 14px;
 }
 
 .category-row__title {
@@ -4070,7 +4070,7 @@ html[data-theme="light"] .category-row__more:focus-visible {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 4px 16px 14px;
+  padding: 4px 12px 14px;
 }
 
 .category-row__list::-webkit-scrollbar {
