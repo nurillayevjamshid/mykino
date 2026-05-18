@@ -40,7 +40,8 @@
       "mcp__5e3a5518-7f51-42f6-afad-73f76b037df0__list_teams",
       "mcp__5e3a5518-7f51-42f6-afad-73f76b037df0__get_deployment_build_logs",
       "mcp__5e3a5518-7f51-42f6-afad-73f76b037df0__list_projects",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(node -c webapp/app.js)"
     ]
   }
 }
