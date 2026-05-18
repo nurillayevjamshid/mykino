@@ -3998,7 +3998,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px 14px;
+  padding: 0 20px 14px;
 }
 
 .category-row__title {
@@ -4070,7 +4070,7 @@ html[data-theme="light"] .category-row__more:focus-visible {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 4px 12px 14px;
+  padding: 4px 20px 14px;
 }
 
 .category-row__list::-webkit-scrollbar {
@@ -7451,8 +7451,8 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 .hero {
   height: auto !important;
   aspect-ratio: 16 / 9;
-  margin: 8px 12px 14px !important;
-  width: calc(100% - 24px) !important;
+  margin: 8px 20px 14px !important;
+  width: calc(100% - 40px) !important;
   border-radius: 18px !important;
   overflow: hidden;
 }
