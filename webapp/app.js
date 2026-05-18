@@ -4469,3 +4469,23 @@ async function initApp() {
 }
 
 initApp();
+
+// === nav-icon-click-anim (revertable: delete this block) ===
+(function attachNavClickAnim() {
+  const SELECTOR = '.sidebar__item, .icon-button, .bottom-bar__button';
+  document.addEventListener('pointerdown', (e) => {
+    const target = e.target.closest(SELECTOR);
+    if (!target) return;
+    target.classList.remove('is-clicked');
+    void target.offsetWidth;
+    target.classList.add('is-clicked');
+    setTimeout(() => target.classList.remove('is-clicked'), 420);
+
+    const ripple = document.createElement('span');
+    ripple.className = 'nav-click-ripple';
+    target.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 520);
+  }, { passive: true });
+})();
+// === /nav-icon-click-anim ===
+
