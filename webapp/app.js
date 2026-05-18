@@ -247,6 +247,8 @@ const WATCH_PROGRESS_KEY = "kino_watch_progress_v1";
 const WATCHED_MOVIES_KEY = "kino_watched_movies_v1";
 const WATCH_PROGRESS_MIN_SECONDS = 15;
 const WATCH_PROGRESS_END_GAP = 12;
+const WATCH_PROGRESS_SYNC_ENDPOINT = "/api/watch-progress";
+const WATCH_PROGRESS_SYNC_DELAY_MS = 25000;
 const TELEGRAM_STREAM_ERROR_MESSAGE =
   "Tomosha uchun manba tayyorlanmoqda.";
 const DRIVE_STREAM_ERROR_MESSAGE =
@@ -1150,6 +1152,194 @@ function normalizeMovie(movie, index = 0) {
   return normalized;
 }
 
+const pendingProgressSync = { upserts: {}, removeIds: new Set() };
+let progressSyncTimer = null;
+let progressSyncInFlight = false;
+let progressBackendLoaded = false;
+
+function getProgressUserId() {
+  try {
+    return getReactionUserId();
+  } catch {
+    return "";
+  }
+}
+
+function isRealUser(userId) {
+  return typeof userId === "string" && userId && !userId.startsWith("anon-");
+}
+
+function queueProgressUpsert(movieId, entry) {
+  if (!movieId || !entry) return;
+  pendingProgressSync.upserts[String(movieId)] = entry;
+  pendingProgressSync.removeIds.delete(String(movieId));
+  scheduleProgressSync();
+}
+
+function queueProgressRemove(movieId) {
+  if (!movieId) return;
+  const id = String(movieId);
+  delete pendingProgressSync.upserts[id];
+  pendingProgressSync.removeIds.add(id);
+  scheduleProgressSync();
+}
+
+function queueProgressClearAll() {
+  pendingProgressSync.upserts = {};
+  pendingProgressSync.removeIds = new Set();
+  pendingProgressSync.clearAll = true;
+  scheduleProgressSync(0);
+}
+
+function scheduleProgressSync(delay = WATCH_PROGRESS_SYNC_DELAY_MS) {
+  const userId = getProgressUserId();
+  if (!isRealUser(userId)) return;
+  if (progressSyncTimer) {
+    clearTimeout(progressSyncTimer);
+    progressSyncTimer = null;
+  }
+  progressSyncTimer = setTimeout(() => {
+    progressSyncTimer = null;
+    flushProgressSync().catch(() => {});
+  }, Math.max(0, Number(delay) || 0));
+}
+
+async function flushProgressSync() {
+  const userId = getProgressUserId();
+  if (!isRealUser(userId)) return;
+  if (progressSyncInFlight) return;
+
+  const upserts = pendingProgressSync.upserts;
+  const removeIds = Array.from(pendingProgressSync.removeIds);
+  const clearAll = pendingProgressSync.clearAll === true;
+  if (!clearAll && removeIds.length === 0 && Object.keys(upserts).length === 0) return;
+
+  pendingProgressSync.upserts = {};
+  pendingProgressSync.removeIds = new Set();
+  pendingProgressSync.clearAll = false;
+
+  progressSyncInFlight = true;
+  try {
+    await fetch(WATCH_PROGRESS_SYNC_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, items: upserts, removeIds, clearAll }),
+      keepalive: true,
+    });
+  } catch {
+    pendingProgressSync.upserts = { ...upserts, ...pendingProgressSync.upserts };
+    for (const id of removeIds) pendingProgressSync.removeIds.add(id);
+    if (clearAll) pendingProgressSync.clearAll = true;
+  } finally {
+    progressSyncInFlight = false;
+  }
+}
+
+function flushProgressSyncBeacon() {
+  const userId = getProgressUserId();
+  if (!isRealUser(userId)) return;
+  const upserts = pendingProgressSync.upserts;
+  const removeIds = Array.from(pendingProgressSync.removeIds);
+  const clearAll = pendingProgressSync.clearAll === true;
+  if (!clearAll && removeIds.length === 0 && Object.keys(upserts).length === 0) return;
+
+  const payload = JSON.stringify({ userId, items: upserts, removeIds, clearAll });
+  try {
+    if (navigator.sendBeacon) {
+      const blob = new Blob([payload], { type: "application/json" });
+      const ok = navigator.sendBeacon(WATCH_PROGRESS_SYNC_ENDPOINT, blob);
+      if (ok) {
+        pendingProgressSync.upserts = {};
+        pendingProgressSync.removeIds = new Set();
+        pendingProgressSync.clearAll = false;
+        return;
+      }
+    }
+  } catch {}
+  fetch(WATCH_PROGRESS_SYNC_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: payload,
+    keepalive: true,
+  }).catch(() => {});
+  pendingProgressSync.upserts = {};
+  pendingProgressSync.removeIds = new Set();
+  pendingProgressSync.clearAll = false;
+}
+
+async function loadProgressFromBackend() {
+  const userId = getProgressUserId();
+  if (!isRealUser(userId)) return;
+  if (progressBackendLoaded) return;
+  let remote = {};
+  try {
+    const resp = await fetch(`${WATCH_PROGRESS_SYNC_ENDPOINT}?userId=${encodeURIComponent(userId)}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data?.ok || !data.items || typeof data.items !== "object") return;
+    remote = data.items;
+  } catch {
+    return;
+  }
+
+  const localProgress = readWatchProgressStore();
+  const localWatched = readWatchedMoviesStore();
+  let progressChanged = false;
+  let watchedChanged = false;
+
+  for (const [id, rawEntry] of Object.entries(remote)) {
+    if (!rawEntry || typeof rawEntry !== "object") continue;
+    const remoteUpdated = Number(rawEntry.updatedAt || 0);
+    const localEntry = localProgress[id];
+    const localUpdated = Number(localEntry?.updatedAt || 0);
+    if (remoteUpdated > localUpdated) {
+      localProgress[id] = {
+        time: Math.max(0, Math.floor(Number(rawEntry.time) || 0)),
+        duration: Math.max(0, Math.floor(Number(rawEntry.duration) || 0)),
+        updatedAt: remoteUpdated,
+        title: String(rawEntry.title || ""),
+      };
+      progressChanged = true;
+    }
+
+    const watchedEntry = localWatched[id];
+    if (!watchedEntry) {
+      localWatched[id] = {
+        id: String(id),
+        title: String(rawEntry.title || "Kino"),
+        poster: String(rawEntry.poster || ""),
+        year: String(rawEntry.year || ""),
+        genre: String(rawEntry.genre || "Kino"),
+        progress: Math.max(0, Math.floor(Number(rawEntry.time) || 0)),
+        watchedAt: remoteUpdated || Date.now(),
+      };
+      watchedChanged = true;
+    } else if (remoteUpdated > Number(watchedEntry.watchedAt || 0)) {
+      localWatched[id] = {
+        ...watchedEntry,
+        progress: Math.max(0, Math.floor(Number(rawEntry.time) || 0)),
+        watchedAt: remoteUpdated,
+      };
+      watchedChanged = true;
+    }
+  }
+
+  if (progressChanged) writeWatchProgressStore(localProgress);
+  if (watchedChanged) {
+    writeWatchedMoviesStore(localWatched);
+    syncWatchedCount();
+    try { renderProfileHistory?.(); } catch {}
+  }
+  progressBackendLoaded = true;
+}
+
+window.addEventListener("pagehide", flushProgressSyncBeacon);
+window.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flushProgressSyncBeacon();
+});
+
 function readWatchProgressStore() {
   try {
     const payload = JSON.parse(localStorage.getItem(WATCH_PROGRESS_KEY) || "{}");
@@ -1227,11 +1417,13 @@ function removeWatchedMovie(movieId) {
   const nextProgress = readWatchProgressStore();
   delete nextProgress[String(movieId)];
   writeWatchProgressStore(nextProgress);
+  queueProgressRemove(String(movieId));
 }
 
 function clearWatchedHistory() {
   localStorage.removeItem(WATCHED_MOVIES_KEY);
   localStorage.removeItem(WATCH_PROGRESS_KEY);
+  queueProgressClearAll();
 }
 
 function getMovieProgressEntry(movie) {
@@ -1260,17 +1452,28 @@ function saveMovieProgress(movie, currentTime, duration) {
     delete store[key];
     writeWatchProgressStore(store);
     updateWatchedMovieProgress(movie, 0);
+    queueProgressRemove(key);
     return;
   }
 
+  const now = Date.now();
   store[key] = {
     time: safeTime,
     duration: safeDuration,
-    updatedAt: Date.now(),
+    updatedAt: now,
     title: movie.title || "",
   };
   writeWatchProgressStore(store);
   updateWatchedMovieProgress(movie, safeTime);
+  queueProgressUpsert(key, {
+    time: safeTime,
+    duration: safeDuration,
+    updatedAt: now,
+    title: movie.title || "",
+    poster: getPosterImage(movie) || "",
+    year: movie.year || "",
+    genre: movie.genre || "",
+  });
 }
 
 function clearMovieProgress(movie) {
@@ -1279,6 +1482,7 @@ function clearMovieProgress(movie) {
   delete store[String(movie.id)];
   writeWatchProgressStore(store);
   updateWatchedMovieProgress(movie, 0);
+  queueProgressRemove(String(movie.id));
 }
 
 function updateWatchedMovieProgress(movie, progress) {
@@ -4469,6 +4673,7 @@ async function initApp() {
   initSplashScreen();
   loadMovies();
   startMoviesPolling();
+  loadProgressFromBackend().catch(() => {});
 }
 
 initApp();
