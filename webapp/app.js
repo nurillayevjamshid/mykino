@@ -3098,7 +3098,10 @@ function setCategory(category) {
 }
 
 function toggleTheme() {
-  const currentTheme = themeToggle?.dataset.theme || "dark";
+  const currentTheme =
+    document.documentElement.getAttribute("data-theme") ||
+    themeToggle?.dataset.theme ||
+    "light";
   const newTheme = currentTheme === "dark" ? "light" : "dark";
   applyTheme(newTheme);
   localStorage.setItem("kino_theme", newTheme);
@@ -4488,4 +4491,217 @@ initApp();
   }, { passive: true });
 })();
 // === /nav-icon-click-anim ===
+
+// === swipe-gestures (revertable: delete this block) ===
+(function attachSwipeGestures() {
+  const SWIPE_THRESHOLD = 55;
+  const DIRECTION_LOCK = 10;
+  const MAX_OFF_AXIS_RATIO = 0.7;
+
+  function setupSwipe(target, { onCommit, onDrag, onCancel, axis = "x" }) {
+    if (!target) return;
+    let startX = 0, startY = 0, dragging = false, locked = false, decided = false, accept = false;
+
+    const onDown = (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.target.closest("input, textarea, [contenteditable='true']")) return;
+      startX = e.clientX; startY = e.clientY;
+      dragging = true; locked = false; decided = false; accept = false;
+    };
+    const onMove = (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!decided) {
+        const ax = Math.abs(dx), ay = Math.abs(dy);
+        if (ax < DIRECTION_LOCK && ay < DIRECTION_LOCK) return;
+        decided = true;
+        accept = axis === "x" ? ax > ay : ay > ax;
+        locked = accept;
+      }
+      if (!accept) return;
+      const primary = axis === "x" ? dx : dy;
+      const offAxis = axis === "x" ? dy : dx;
+      if (Math.abs(offAxis) > Math.abs(primary) * MAX_OFF_AXIS_RATIO + 30) {
+        accept = false;
+        onCancel?.();
+        return;
+      }
+      onDrag?.(primary, e);
+    };
+    const onUp = (e) => {
+      if (!dragging) return;
+      const wasAccepted = accept;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const primary = axis === "x" ? dx : dy;
+      dragging = false; locked = false; decided = false; accept = false;
+      if (!wasAccepted) { onCancel?.(); return; }
+      if (Math.abs(primary) >= SWIPE_THRESHOLD) {
+        onCommit?.(primary > 0 ? 1 : -1, primary, e);
+      } else {
+        onCancel?.();
+      }
+    };
+    const onCancelEvent = () => {
+      if (!dragging) return;
+      dragging = false; locked = false; decided = false; accept = false;
+      onCancel?.();
+    };
+    target.addEventListener("pointerdown", onDown, { passive: true });
+    target.addEventListener("pointermove", onMove, { passive: true });
+    target.addEventListener("pointerup", onUp, { passive: true });
+    target.addEventListener("pointercancel", onCancelEvent, { passive: true });
+    target.addEventListener("pointerleave", onCancelEvent, { passive: true });
+  }
+
+  // --- Bottom-nav tab swipe on #appShell ---
+  const TAB_ORDER = ["all", "categories-view", "favorites"];
+  function currentTabIndex() {
+    const active = document.querySelector(".bottom-bar__button.is-active");
+    if (!active) return 0;
+    const key = active.dataset.filter || active.dataset.action;
+    const idx = TAB_ORDER.indexOf(key);
+    return idx >= 0 ? idx : 0;
+  }
+  function activateTab(key) {
+    let target = null;
+    document.querySelectorAll(".bottom-bar__button").forEach((el) => {
+      if (el.dataset.filter === key || el.dataset.action === key) target = el;
+    });
+    target?.click();
+  }
+
+  const appShell = document.getElementById("appShell");
+  function contentTargets() {
+    return Array.from(document.querySelectorAll(
+      "#heroSection:not([hidden]), #movieGrid, #categoriesView:not([hidden]), #categoryDetailView:not([hidden]), .app-footer"
+    ));
+  }
+  function setContentShift(px) {
+    contentTargets().forEach((el) => {
+      el.style.transition = "none";
+      el.style.transform = `translateX(${px}px)`;
+    });
+  }
+  function resetContentShift(animate = true) {
+    contentTargets().forEach((el) => {
+      el.style.transition = animate ? "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease-out" : "none";
+      el.style.transform = "";
+      el.style.opacity = "";
+    });
+  }
+  if (appShell) {
+    setupSwipe(appShell, {
+      axis: "x",
+      onDrag: (dx) => {
+        const clamped = Math.max(-80, Math.min(80, dx * 0.45));
+        setContentShift(clamped);
+      },
+      onCommit: (dir) => {
+        const idx = currentTabIndex();
+        const next = idx + (dir > 0 ? -1 : 1);
+        if (next < 0 || next >= TAB_ORDER.length) { resetContentShift(true); return; }
+        const targets = contentTargets();
+        targets.forEach((el) => {
+          el.style.transition = "transform 160ms ease-out, opacity 160ms ease-out";
+          el.style.transform = `translateX(${dir > 0 ? 60 : -60}px)`;
+          el.style.opacity = "0";
+        });
+        setTimeout(() => {
+          activateTab(TAB_ORDER[next]);
+          const newTargets = contentTargets();
+          newTargets.forEach((el) => {
+            el.style.transition = "none";
+            el.style.transform = `translateX(${dir > 0 ? -60 : 60}px)`;
+            el.style.opacity = "0";
+          });
+          requestAnimationFrame(() => {
+            newTargets.forEach((el) => {
+              el.style.transition = "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease-out";
+              el.style.transform = "";
+              el.style.opacity = "";
+            });
+          });
+        }, 160);
+      },
+      onCancel: () => resetContentShift(true),
+    });
+  }
+
+  // --- Theme switch drag-to-toggle ---
+  const themeSwitch = document.getElementById("sidebarThemeSwitch");
+  if (themeSwitch) {
+    const knob = themeSwitch.querySelector(".theme-switch__knob");
+    let dragMoved = false;
+    setupSwipe(themeSwitch, {
+      axis: "x",
+      onDrag: (dx) => {
+        dragMoved = true;
+        if (knob) {
+          knob.style.transition = "none";
+          knob.style.transform = `translateX(${Math.max(-12, Math.min(12, dx * 0.4))}px)`;
+        }
+      },
+      onCommit: (dir) => {
+        const cur = document.documentElement.getAttribute("data-theme") || "light";
+        const wantsDark = dir > 0 ? false : true;
+        if ((wantsDark && cur !== "dark") || (!wantsDark && cur !== "light")) {
+          toggleTheme?.();
+          syncSidebarSettings?.();
+        }
+        if (knob) {
+          knob.style.transition = "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+          knob.style.transform = "";
+        }
+        setTimeout(() => { dragMoved = false; }, 50);
+      },
+      onCancel: () => {
+        if (knob) {
+          knob.style.transition = "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+          knob.style.transform = "";
+        }
+        setTimeout(() => { dragMoved = false; }, 50);
+      },
+    });
+    themeSwitch.addEventListener("click", (e) => {
+      if (dragMoved) { e.stopImmediatePropagation(); e.preventDefault(); dragMoved = false; }
+    }, true);
+  }
+
+  // --- Language pills swipe ---
+  const langPills = document.getElementById("sidebarLangPills");
+  if (langPills) {
+    const LANGS = ["uz", "ru", "en"];
+    let dragMoved = false;
+    setupSwipe(langPills, {
+      axis: "x",
+      onDrag: (dx) => {
+        dragMoved = Math.abs(dx) > DIRECTION_LOCK;
+        langPills.style.transition = "none";
+        langPills.style.transform = `translateX(${Math.max(-20, Math.min(20, dx * 0.4))}px)`;
+      },
+      onCommit: (dir) => {
+        langPills.style.transition = "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+        langPills.style.transform = "";
+        const cur = localStorage.getItem("kino_lang") || (typeof lang !== "undefined" ? lang : "uz");
+        let i = LANGS.indexOf(cur);
+        if (i < 0) i = 0;
+        const next = (i + (dir > 0 ? -1 : 1) + LANGS.length) % LANGS.length;
+        const pill = langPills.querySelector(`.lang-pill[data-lang='${LANGS[next]}']`);
+        pill?.click();
+        setTimeout(() => { dragMoved = false; }, 50);
+      },
+      onCancel: () => {
+        langPills.style.transition = "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+        langPills.style.transform = "";
+        setTimeout(() => { dragMoved = false; }, 50);
+      },
+    });
+    langPills.addEventListener("click", (e) => {
+      if (dragMoved) { e.stopImmediatePropagation(); e.preventDefault(); dragMoved = false; }
+    }, true);
+  }
+})();
+// === /swipe-gestures ===
 
