@@ -3998,7 +3998,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px 14px;
+  padding: 0 30px 14px;
 }
 
 .category-row__title {
@@ -4070,7 +4070,7 @@ html[data-theme="light"] .category-row__more:focus-visible {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 4px 20px 14px;
+  padding: 4px 30px 14px;
 }
 
 .category-row__list::-webkit-scrollbar {
@@ -5882,8 +5882,8 @@ html[data-theme="light"] .icon-button--top {
 
 /* Movies row scrollbar in dark mode left edge fix */
 .category-row__list {
-  padding-left: 20px;
-  padding-right: 20px;
+  padding-left: 30px;
+  padding-right: 30px;
 }
 
 /* ============================================================
