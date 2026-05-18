@@ -2515,7 +2515,6 @@ function destroyYouTubePlayer() {
   }
   activeYouTubePlayer = null;
   lastSavedProgressSecond = -1;
-  pendingResumeTime = 0;
   setCustomVideoMode(false);
 }
 
