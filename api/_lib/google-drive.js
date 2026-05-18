@@ -497,6 +497,8 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const description = sanitizePublicDescription(embedded.visibleDescription || "Tomosha uchun tayyor kino.");
   const width = Number(file.videoMediaMetadata?.width || 0);
   const quality = inferQuality(file.name, width);
+  const driveDurationMs = Number(file.videoMediaMetadata?.durationMillis || 0);
+  const driveDurationMinutes = driveDurationMs > 0 ? Math.max(1, Math.round(driveDurationMs / 60000)) : 0;
   const year = inferYear(file.name, file.createdTime || file.modifiedTime);
   const jsonOverride = getMetadataOverride(metadataMap, file.id) || {};
   const embeddedOverride = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
@@ -523,6 +525,10 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const finalTitle = trimString(override?.title) || title;
   const finalQuality = trimString(override?.quality) || quality;
   const rating = override?.rating !== undefined ? safeRating(override.rating) : 0;
+  const overrideDurationMinutes = Number(override?.durationMinutes);
+  const finalDurationMinutes = Number.isFinite(overrideDurationMinutes) && overrideDurationMinutes > 0
+    ? Math.round(overrideDurationMinutes)
+    : driveDurationMinutes;
   const reactionCounts = countReactions(jsonOverride?.reactions);
   const hasCustomMetadata = Boolean(
     trimString(override?.title)
@@ -552,6 +558,7 @@ function toDriveMovie(file, index, metadataMap = {}) {
     genre,
     rating,
     quality: finalQuality,
+    durationMinutes: finalDurationMinutes,
     hasCustomMetadata,
     isTop: inferFlag(file.name, description, "top"),
     isPremium: inferFlag(file.name, description, "premium"),
@@ -789,6 +796,10 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   }
   if (updates.showInHeader !== undefined) next.showInHeader = safeBooleanFlag(updates.showInHeader);
   if (updates.cdnUrl !== undefined) next.cdnUrl = trimString(updates.cdnUrl);
+  if (updates.durationMinutes !== undefined) {
+    const numericDuration = Number(updates.durationMinutes);
+    next.durationMinutes = Number.isFinite(numericDuration) && numericDuration > 0 ? Math.round(numericDuration) : "";
+  }
 
   const cleaned = cleanupStoredMovieOverride(next);
   metadata.movies[normalizedFileId] = cleaned;
