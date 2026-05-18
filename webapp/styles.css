@@ -7451,8 +7451,8 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 .hero {
   height: auto !important;
   aspect-ratio: 16 / 9;
-  margin: 8px 20px 14px !important;
-  width: calc(100% - 40px) !important;
+  margin: 8px 12px 14px !important;
+  width: calc(100% - 24px) !important;
   border-radius: 18px !important;
   overflow: hidden;
 }
