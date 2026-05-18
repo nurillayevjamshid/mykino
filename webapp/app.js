@@ -107,6 +107,7 @@ const copy = {
     comingSoon: "Tez kunda",
     showMore: "Batafsil",
     showLess: "Yopish",
+    seeMore: "Yanada ko'proq",
   },
   ru: {
     all: "Все",
@@ -161,6 +162,7 @@ const copy = {
     comingSoon: "Скоро",
     showMore: "Подробнее",
     showLess: "Свернуть",
+    seeMore: "Ещё больше",
   },
   en: {
     all: "All",
@@ -215,6 +217,7 @@ const copy = {
     comingSoon: "Coming soon",
     showMore: "Show More",
     showLess: "Show Less",
+    seeMore: "See more",
   },
 };
 
@@ -1514,6 +1517,28 @@ function createMovieCard(movie) {
   return card;
 }
 
+const HOME_ROW_PREVIEW_LIMIT = 5;
+
+function createMoreCard(categoryValue) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "movie-card movie-card--more";
+  card.setAttribute("aria-label", plainLabel(t("seeMore")));
+  card.innerHTML = `
+    <span class="more-card__inner">
+      <span class="more-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"></polyline></svg>
+      </span>
+      <span class="more-card__label">${escapeHtml(plainLabel(t("seeMore")))}</span>
+    </span>
+  `;
+  card.addEventListener("click", () => {
+    setCategory(categoryValue);
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  return card;
+}
+
 function buildHomeCategoryGroups() {
   const groups = new Map();
   for (const movie of getViewerMovies()) {
@@ -1549,8 +1574,12 @@ function renderHomeRows() {
       <div class="category-row__list" role="list"></div>
     `;
     const list = section.querySelector(".category-row__list");
-    for (const movie of group.movies) {
+    const shownMovies = group.movies.slice(0, HOME_ROW_PREVIEW_LIMIT);
+    for (const movie of shownMovies) {
       list.append(createMovieCard(movie));
+    }
+    if (group.movies.length > HOME_ROW_PREVIEW_LIMIT) {
+      list.append(createMoreCard(group.value));
     }
     section.querySelector(".category-row__more").addEventListener("click", () => {
       setCategory(group.value);
