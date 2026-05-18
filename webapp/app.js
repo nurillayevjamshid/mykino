@@ -1902,7 +1902,7 @@ function renderProfileHistory() {
     if (movie) {
       const reopenMovie = () => {
         profileModal.close();
-        openMovie(movie);
+        openVideoPlayer(movie);
       };
       card.addEventListener("click", (event) => {
         if (event.target.closest("[data-history-remove]")) return;
