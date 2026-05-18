@@ -3,6 +3,7 @@ const {
   writeCatalogMetadata,
   setCors,
 } = require("./_lib/google-drive");
+const { handleWatchProgress } = require("./_lib/watch-progress");
 
 async function readRequestBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
@@ -123,6 +124,11 @@ module.exports = async function handler(request, response) {
   const isPhotoRequest = /\/user-photo(?:\?|$|\.)/i.test(reqUrl) || /[?&]_photo=1/.test(reqUrl);
   if (isPhotoRequest) {
     return handleUserPhoto(request, response);
+  }
+
+  const isWatchProgressRequest = /\/watch-progress(?:\?|$|\.)/i.test(reqUrl) || /[?&]_watch=1/.test(reqUrl);
+  if (isWatchProgressRequest) {
+    return handleWatchProgress(request, response);
   }
 
   response.setHeader("Cache-Control", "no-store, max-age=0");

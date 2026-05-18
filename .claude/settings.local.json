@@ -35,7 +35,12 @@
       "Read(//tmp/**)",
       "Bash(xxd /tmp/photo_test)",
       "Bash(git pull *)",
-      "Bash(ls \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\")"
+      "Bash(ls \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\")",
+      "Bash(cat .vercel/project.json 2>/dev/null || ls .vercel/ 2>/dev/null; echo \"---\"; ls ../../../../.vercel 2>/dev/null)",
+      "mcp__5e3a5518-7f51-42f6-afad-73f76b037df0__list_teams",
+      "mcp__5e3a5518-7f51-42f6-afad-73f76b037df0__get_deployment_build_logs",
+      "mcp__5e3a5518-7f51-42f6-afad-73f76b037df0__list_projects",
+      "Bash(git rm *)"
     ]
   }
 }

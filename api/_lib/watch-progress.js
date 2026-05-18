@@ -1,8 +1,7 @@
 const {
   readCatalogMetadata,
   writeCatalogMetadata,
-  setCors,
-} = require("./_lib/google-drive");
+} = require("./google-drive");
 
 const MAX_ENTRIES_PER_USER = 500;
 
@@ -56,19 +55,13 @@ function clipToLatest(map) {
   return Object.fromEntries(entries.slice(0, MAX_ENTRIES_PER_USER));
 }
 
-module.exports = async function handler(request, response) {
-  setCors(response);
-
-  if (request.method === "OPTIONS") {
-    response.status(204).end();
-    return;
-  }
-
+async function handleWatchProgress(request, response) {
   response.setHeader("Cache-Control", "no-store, max-age=0");
 
   try {
     if (request.method === "GET") {
-      const userId = trim(request.query?.userId);
+      const url = new URL(request.url || "/", "http://localhost");
+      const userId = trim(url.searchParams.get("userId") || request.query?.userId);
       if (!userId) {
         response.status(400).json({ ok: false, error: "userId kerak." });
         return;
@@ -137,4 +130,6 @@ module.exports = async function handler(request, response) {
       error: error.message || "watch-progress failed",
     });
   }
-};
+}
+
+module.exports = { handleWatchProgress };
