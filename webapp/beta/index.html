@@ -20,15 +20,114 @@
 </head>
 
 <body>
-  <div id="splashScreen" class="splash-screen">
-    <img src="/static/assets/splash.jpg?v=20260516-eden4" alt="My Playlist" />
-    <div class="splash-overlay"></div>
-  </div>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+  <aside class="sidebar" id="appSidebar" aria-label="Asosiy menyu" aria-hidden="true">
+    <div class="sidebar__head">
+      <div class="brand sidebar__brand" aria-hidden="true">
+        <span class="brand-logo">
+          <svg viewBox="0 0 32 32" class="brand-logo__svg">
+            <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+            <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="brand-text__top">MY</span>
+          <span class="brand-text__bottom">PLAYLIST</span>
+        </span>
+      </div>
+      <button class="sidebar__close" type="button" data-action="sidebar-close" aria-label="Yopish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <nav class="sidebar__nav">
+      <button class="sidebar__item" type="button" data-sidebar-action="music">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 18V5l12-2v13"></path>
+          <circle cx="6" cy="18" r="3"></circle>
+          <circle cx="18" cy="16" r="3"></circle>
+        </svg>
+        <span data-i18n="musicNav">Musiqa</span>
+      </button>
+      <button class="sidebar__item sidebar__item--soon" type="button" data-sidebar-action="tv" aria-disabled="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="6" width="20" height="13" rx="2"></rect>
+          <path d="m8 22 4-3 4 3"></path>
+        </svg>
+        <span data-i18n="tvNav">TV</span>
+        <span class="soon-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+          <span class="soon-badge__text" data-i18n="comingSoon">Tez kunda</span>
+        </span>
+      </button>
+      <button class="sidebar__item" type="button" data-sidebar-action="profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4 21a8 8 0 0 1 16 0"></path>
+        </svg>
+        <span data-i18n="profileNav">Profil</span>
+      </button>
+    </nav>
+    <div class="sidebar__divider"></div>
+    <div class="sidebar__section-title" data-i18n="settings">Sozlamalar</div>
+    <div class="sidebar__settings">
+      <div class="sidebar-setting">
+        <div class="sidebar-setting__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span data-i18n="nightMode">Tungi rejim</span>
+        </div>
+        <button class="theme-switch" type="button" id="sidebarThemeSwitch" role="switch" aria-checked="false" aria-label="Tungi rejim">
+          <span class="theme-switch__track">
+            <svg class="theme-switch__icon theme-switch__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+            <svg class="theme-switch__icon theme-switch__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span class="theme-switch__knob"></span>
+          </span>
+        </button>
+      </div>
+
+      <div class="sidebar-setting sidebar-setting--lang">
+        <div class="sidebar-setting__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M2 12h20"></path>
+            <path d="M12 2a15 15 0 0 1 0 20"></path>
+            <path d="M12 2a15 15 0 0 0 0 20"></path>
+          </svg>
+          <span data-i18n="language">Til</span>
+        </div>
+        <div class="lang-pills" id="sidebarLangPills" role="tablist">
+          <button class="lang-pill" type="button" data-lang="uz" role="tab">UZ</button>
+          <button class="lang-pill" type="button" data-lang="ru" role="tab">RU</button>
+          <button class="lang-pill" type="button" data-lang="en" role="tab">ENG</button>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar__foot">
+      <span class="sidebar__foot-brand">MY PLAYLIST</span>
+      <span class="sidebar__foot-copy">&copy; 2026</span>
+    </div>
+  </aside>
+
   <main class="app-shell" id="appShell" style="opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
     <header class="topbar topbar--centered">
-      <button class="topbar-avatar" id="topbarAvatarButton" type="button" data-action="profile" aria-label="Profil">
-        <img class="topbar-avatar__photo" id="topbarAvatarPhoto" alt="" hidden />
-        <span class="topbar-avatar__initials" id="topbarAvatarInitials">KI</span>
+      <button class="icon-button icon-button--top topbar-menu" id="topbarMenuButton" type="button" data-action="sidebar-open" aria-label="Menyu" aria-controls="appSidebar" aria-expanded="false">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="7" x2="20" y2="7"></line>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="17" x2="14" y2="17"></line>
+        </svg>
       </button>
       <div class="brand brand--center" aria-label="My Playlist">
         <span class="brand-logo" aria-hidden="true">
@@ -50,18 +149,19 @@
               <path d="M20 20l-3.5-3.5"></path>
             </svg>
           </button>
-          <section class="search-panel topbar-search__panel" id="searchPanel" hidden>
-            <label class="search-box glass-panel">
-              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="M20 20l-3.5-3.5"></path>
-              </svg>
-              <input id="searchInput" type="search" placeholder="Kino qidirish" autocomplete="off" />
-            </label>
-          </section>
         </div>
       </div>
     </header>
+
+    <section class="search-panel topbar-search__panel topbar-search__panel--inline" id="searchPanel" hidden>
+      <label class="search-box glass-panel">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input id="searchInput" type="search" placeholder="Kino qidirish" autocomplete="off" />
+      </label>
+    </section>
 
     <section class="hero" id="heroSection" hidden>
       <div class="hero__bg" id="heroBackdrop"></div>
