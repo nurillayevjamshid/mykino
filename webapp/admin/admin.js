@@ -1258,6 +1258,223 @@ document.getElementById('musicTableBody')?.addEventListener('click', (e) => {
 
 window.fetchMusic = fetchMusic;
 
+// ===== Qo'shiqchilar (artists) =====
+let musicArtists = [];
+let artistUploadedUrl = '';
+
+function splitArtistsAdmin(name) {
+  if (!name) return [];
+  return String(name)
+    .split(/\s*(?:&|,|\bfeat\.?\b|\bft\.?\b|\band\b|x|×)\s*/i)
+    .map((s) => s.trim()).filter(Boolean);
+}
+
+function eligibleArtistNames() {
+  const counts = new Map();
+  musicTracks.forEach((t) => {
+    splitArtistsAdmin(t.artist).forEach((a) => {
+      const k = a.trim();
+      if (!k) return;
+      counts.set(k, (counts.get(k) || 0) + 1);
+    });
+  });
+  return Array.from(counts.entries())
+    .filter(([, n]) => n >= 4)
+    .map(([a, n]) => ({ name: a, count: n }))
+    .sort((x, y) => y.count - x.count || x.name.localeCompare(y.name, 'uz'));
+}
+
+async function fetchArtists() {
+  try {
+    const res = await fetch('/api/music?resource=artists', { cache: 'no-store' });
+    const json = await res.json();
+    musicArtists = Array.isArray(json.artists) ? json.artists : [];
+  } catch (_) {
+    musicArtists = [];
+  }
+}
+
+function findArtistRecord(name) {
+  const t = String(name || '').toLowerCase();
+  return musicArtists.find((a) => a.name.toLowerCase() === t) || null;
+}
+
+async function renderArtistsCardGrid() {
+  const grid = document.getElementById('artistsCardGrid');
+  if (!grid) return;
+  if (!musicTracks.length) { try { await fetchMusic(); } catch (_) {} }
+  await fetchArtists();
+  const eligible = eligibleArtistNames();
+  if (!eligible.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><h3>Qo'shiqchi yo'q</h3><p>Hech bir qo'shiqchining 4 va undan ortiq qo'shig'i yo'q.</p></div>`;
+    return;
+  }
+  grid.innerHTML = eligible.map(({ name, count }) => {
+    const rec = findArtistRecord(name);
+    const img = rec?.image ? `<img src="${escapeHtml(rec.image)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">` : '';
+    const overlay = rec?.image ? `<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.65) 100%);"></div>` : '';
+    return `
+    <button type="button" class="artist-card" data-artist-edit="${escapeHtml(name)}" style="position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;border:1px solid var(--border,#e3e6ec);background:#f1f3f7;padding:0;cursor:pointer;text-align:left;">
+      ${img}${overlay}
+      <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 12px;color:${rec?.image ? '#fff' : '#111'};">
+        <div style="font-weight:700;font-size:15px;line-height:1.1;">${escapeHtml(name)}</div>
+        <div style="font-size:12px;opacity:0.85;margin-top:2px;">${count} ta qo'shiq${rec ? ' · saqlangan' : ''}</div>
+      </div>
+    </button>`;
+  }).join('');
+}
+
+function setArtistPreview(url) {
+  const preview = document.getElementById('artistImagePreview');
+  if (!preview) return;
+  preview.style.backgroundImage = url ? `url('${url.replaceAll("'", '%27')}')` : 'none';
+}
+
+function showArtistsListView() {
+  document.getElementById('artistsListView').hidden = false;
+  document.getElementById('artistsEditorView').hidden = true;
+}
+
+function showArtistsEditorView() {
+  document.getElementById('artistsListView').hidden = true;
+  document.getElementById('artistsEditorView').hidden = false;
+}
+
+function fillArtistTracks(name) {
+  const tbody = document.getElementById('artistTracksBody');
+  if (!tbody) return;
+  const target = name.toLowerCase();
+  const list = musicTracks.filter((t) => splitArtistsAdmin(t.artist).some((a) => a.toLowerCase() === target));
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><p>Qo'shiq topilmadi.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map((t) => `
+    <tr>
+      <td><img src="https://i.ytimg.com/vi/${escapeHtml(t.youtubeId)}/mqdefault.jpg" alt="" style="width:60px;height:34px;object-fit:cover;border-radius:6px;"></td>
+      <td><strong>${escapeHtml(t.title)}</strong></td>
+      <td><span class="badge">${escapeHtml(t.category || 'Boshqa')}</span></td>
+      <td><code>${escapeHtml(t.youtubeId)}</code></td>
+    </tr>`).join('');
+}
+
+async function openArtistEditor(name) {
+  const rec = findArtistRecord(name);
+  document.getElementById('artistEditId').value = rec?.id || '';
+  document.getElementById('artistEditOrigName').value = name;
+  document.getElementById('artistName').value = rec?.name || name;
+  document.getElementById('artistLink').value = rec?.link || '';
+  document.getElementById('artistImageUrl').value = rec?.image || '';
+  document.getElementById('artistEditorTitle').textContent = name;
+  document.getElementById('artistDeleteBtn').hidden = !rec;
+  artistUploadedUrl = rec?.image || '';
+  setArtistPreview(rec?.image || '');
+  fillArtistTracks(name);
+  showArtistsEditorView();
+}
+
+async function saveArtist(e) {
+  e.preventDefault();
+  const id = document.getElementById('artistEditId').value.trim();
+  const name = document.getElementById('artistName').value.trim();
+  const link = document.getElementById('artistLink').value.trim();
+  const urlInput = document.getElementById('artistImageUrl').value.trim();
+  const image = artistUploadedUrl || urlInput;
+  if (!name) { showNotification('Nom kerak.', 'error'); return; }
+  const action = id ? 'update' : 'create';
+  try {
+    const res = await fetch('/api/music?resource=artists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, id, name, link, image }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    musicArtists = Array.isArray(json.artists) ? json.artists : musicArtists;
+    showNotification('Saqlandi.');
+    showArtistsListView();
+    renderArtistsCardGrid();
+  } catch (err) {
+    showNotification(`Saqlashda xato: ${err.message}`, 'error');
+  }
+}
+
+async function deleteArtist() {
+  const id = document.getElementById('artistEditId').value.trim();
+  if (!id) return;
+  if (!confirm("Qo'shiqchini o'chirilsinmi?")) return;
+  try {
+    const res = await fetch('/api/music?resource=artists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', id }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    musicArtists = Array.isArray(json.artists) ? json.artists : [];
+    showNotification("O'chirildi.");
+    showArtistsListView();
+    renderArtistsCardGrid();
+  } catch (err) {
+    showNotification(`O'chirishda xato: ${err.message}`, 'error');
+  }
+}
+
+async function uploadArtistImageFile(file) {
+  try {
+    const raw = await readFileAsDataUrl(file);
+    const compressed = await compressImageDataUrl(raw, 1600, 900, 0.86);
+    const res = await fetch('/api/music?resource=artists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'upload', dataUrl: compressed, name: document.getElementById('artistName').value.trim() || 'artist' }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.url) throw new Error(json.error || `HTTP ${res.status}`);
+    artistUploadedUrl = json.url;
+    document.getElementById('artistImageUrl').value = json.url;
+    setArtistPreview(json.url);
+    showNotification('Rasm yuklandi.');
+  } catch (err) {
+    showNotification(`Rasm yuklashda xato: ${err.message}`, 'error');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const tab = e.target.closest('[data-music-tab]');
+  if (tab) {
+    document.querySelectorAll('.music-tab').forEach((t) => {
+      const active = t === tab;
+      t.classList.toggle('is-active', active);
+      t.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
+      t.style.color = active ? 'var(--text,#111)' : 'var(--text-muted,#666)';
+    });
+    document.querySelectorAll('[data-music-tabpanel]').forEach((p) => {
+      p.hidden = p.dataset.musicTabpanel !== tab.dataset.musicTab;
+    });
+    if (tab.dataset.musicTab === 'artists') {
+      showArtistsListView();
+      renderArtistsCardGrid();
+    }
+    return;
+  }
+  const card = e.target.closest('[data-artist-edit]');
+  if (card) {
+    openArtistEditor(card.dataset.artistEdit);
+  }
+});
+
+document.getElementById('artistForm')?.addEventListener('submit', saveArtist);
+document.getElementById('artistEditorBack')?.addEventListener('click', () => { showArtistsListView(); renderArtistsCardGrid(); });
+document.getElementById('artistDeleteBtn')?.addEventListener('click', deleteArtist);
+document.getElementById('artistImageFile')?.addEventListener('change', (e) => {
+  const f = e.target.files?.[0]; if (f) uploadArtistImageFile(f);
+});
+document.getElementById('artistImageUrl')?.addEventListener('input', (e) => {
+  artistUploadedUrl = '';
+  setArtistPreview(e.target.value.trim());
+});
+
 // ===== Kategoriyalar =====
 let categoriesList = [];
 let categoryUploadedUrl = '';

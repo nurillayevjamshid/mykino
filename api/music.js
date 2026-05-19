@@ -4,6 +4,9 @@ const { setCors } = require("./_lib/google-drive");
 
 const SEED_FILE = path.join(process.cwd(), "data", "music.json");
 const REDIS_KEY = "music:tracks:v1";
+const ARTISTS_KEY = "music:artists:v1";
+const BLOB_API_BASE = "https://blob.vercel-storage.com";
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
 let redisPromise = null;
 async function getRedis() {
@@ -132,10 +135,174 @@ function isRedisEnabled() {
   return Boolean(process.env.REDIS_URL || process.env.KV_URL);
 }
 
+function slugify(value) {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60) || "artist";
+}
+
+function normalizeArtist(a) {
+  if (!a || typeof a !== "object") return null;
+  const name = String(a.name || "").trim();
+  if (!name) return null;
+  const image = String(a.image || "").trim();
+  const link = String(a.link || "").trim();
+  const id = String(a.id || slugify(name)).slice(0, 64);
+  const order = Number(a.order || 0);
+  return { id, name, image, link, order: Number.isFinite(order) ? order : 0 };
+}
+
+async function readArtists() {
+  const client = await getRedis();
+  if (!client) return [];
+  try {
+    const raw = await client.get(ARTISTS_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list.map(normalizeArtist).filter(Boolean) : [];
+  } catch (err) {
+    console.warn("redis get artists xato:", err.message);
+    return [];
+  }
+}
+
+async function writeArtists(list) {
+  const client = await getRedis();
+  if (!client) return false;
+  try {
+    await client.set(ARTISTS_KEY, JSON.stringify(list));
+    return true;
+  } catch (err) {
+    console.warn("redis set artists xato:", err.message);
+    return false;
+  }
+}
+
+function parseDataUrl(dataUrl) {
+  const m = /^data:([\w/+.-]+);base64,(.+)$/.exec(String(dataUrl || "").trim());
+  if (!m) return null;
+  return { contentType: m[1] || "application/octet-stream", buffer: Buffer.from(m[2], "base64") };
+}
+
+function extFromContentType(ct) {
+  const map = { "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
+  return map[ct] || "bin";
+}
+
+async function uploadToBlob(pathname, buffer, contentType) {
+  const token = String(process.env.BLOB_READ_WRITE_TOKEN || "").trim();
+  if (!token) {
+    const err = new Error("BLOB_READ_WRITE_TOKEN topilmadi.");
+    err.statusCode = 500;
+    throw err;
+  }
+  const url = new URL(`${BLOB_API_BASE}/${pathname.replace(/^\/+/, "")}`);
+  url.searchParams.set("addRandomSuffix", "1");
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "x-api-version": "7",
+      "Content-Type": contentType,
+      "x-content-type": contentType,
+      "x-add-random-suffix": "1",
+    },
+    body: buffer,
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.url) {
+    const err = new Error(payload?.error?.message || "Blob upload muvaffaqiyatsiz.");
+    err.statusCode = response.status || 502;
+    throw err;
+  }
+  return payload.url;
+}
+
+async function handleArtistUpload(body) {
+  const parsed = parseDataUrl(body.dataUrl || body.image || "");
+  if (!parsed) { const err = new Error("dataUrl kerak."); err.statusCode = 400; throw err; }
+  if (parsed.buffer.length > MAX_IMAGE_BYTES) { const err = new Error("Rasm 6MB dan katta."); err.statusCode = 413; throw err; }
+  const ext = extFromContentType(parsed.contentType);
+  const baseName = String(body.name || "artist").replace(/[^a-z0-9._-]/gi, "").slice(0, 40) || "artist";
+  const pathname = `music-artists/${Date.now()}-${baseName}.${ext}`;
+  return await uploadToBlob(pathname, parsed.buffer, parsed.contentType);
+}
+
+async function handleArtistsRequest(request, response) {
+  if (request.method === "GET") {
+    try {
+      const artists = await readArtists();
+      artists.sort((a, b) => (a.order - b.order) || a.name.localeCompare(b.name, "uz"));
+      response.status(200).json({ ok: true, artists, storage: isRedisEnabled() ? "redis" : "none" });
+    } catch (err) {
+      response.status(500).json({ ok: false, error: err.message || "Yuklab bo'lmadi." });
+    }
+    return;
+  }
+  if (request.method === "POST" || request.method === "PUT" || request.method === "DELETE") {
+    try {
+      const body = await readBody(request);
+      const action = body.action || (request.method === "DELETE" ? "delete" : (request.method === "PUT" ? "update" : "create"));
+
+      if (action === "upload") {
+        const url = await handleArtistUpload(body);
+        response.status(200).json({ ok: true, url });
+        return;
+      }
+
+      if (!isRedisEnabled()) {
+        response.status(503).json({ ok: false, error: "Vercel Redis sozlanmagan." });
+        return;
+      }
+
+      let list = await readArtists();
+      if (action === "delete") {
+        const id = String(body.id || "");
+        if (!id) { response.status(400).json({ ok: false, error: "id kerak." }); return; }
+        list = list.filter((a) => a.id !== id);
+      } else if (action === "update") {
+        const id = String(body.id || "");
+        if (!id) { response.status(400).json({ ok: false, error: "id kerak." }); return; }
+        const idx = list.findIndex((a) => a.id === id);
+        if (idx < 0) { response.status(404).json({ ok: false, error: "Topilmadi." }); return; }
+        const merged = normalizeArtist({ ...list[idx], ...body, id });
+        if (!merged) { response.status(400).json({ ok: false, error: "Noto'g'ri ma'lumot." }); return; }
+        list[idx] = merged;
+      } else {
+        const created = normalizeArtist(body);
+        if (!created) { response.status(400).json({ ok: false, error: "name kerak." }); return; }
+        if (list.some((a) => a.id === created.id)) {
+          created.id = `${created.id}-${Date.now().toString(36)}`;
+        }
+        created.order = list.length;
+        list.push(created);
+      }
+
+      const ok = await writeArtists(list);
+      if (!ok) { response.status(500).json({ ok: false, error: "Saqlash muvaffaqiyatsiz." }); return; }
+      list.sort((a, b) => (a.order - b.order) || a.name.localeCompare(b.name, "uz"));
+      response.status(200).json({ ok: true, artists: list });
+    } catch (err) {
+      response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
+    }
+    return;
+  }
+  response.status(405).json({ ok: false, error: "Method not allowed." });
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
   if (request.method === "OPTIONS") { response.status(204).end(); return; }
   response.setHeader("Cache-Control", "no-store, max-age=0");
+
+  const resource = String(request.query?.resource || "").toLowerCase();
+  if (resource === "artists") {
+    await handleArtistsRequest(request, response);
+    return;
+  }
 
   if (request.method === "GET") {
     try {
