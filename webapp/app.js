@@ -3549,6 +3549,21 @@ function uniqSorted(values) {
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
+function splitArtists(name) {
+  if (!name) return [];
+  return String(name)
+    .split(/\s*(?:&|,|\bfeat\.?\b|\bft\.?\b|\band\b|x|×)\s*/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function trackHasArtist(track, artist) {
+  if (!track || !artist) return false;
+  const list = splitArtists(track.artist);
+  const target = artist.toLowerCase();
+  return list.some((a) => a.toLowerCase() === target);
+}
+
 const MUSIC_CATEGORY_ICONS = {
   all: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
   pop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><circle cx="12" cy="14" r="6"/><path d="M8 2h8"/></svg>',
@@ -3592,10 +3607,21 @@ function renderMusicFilters() {
     musicCategoryRow.innerHTML = items.join("");
   }
   if (musicArtistRow) {
-    const artists = uniqSorted(musicAllTracks.map((t) => t.artist));
+    const counts = new Map();
+    musicAllTracks.forEach((t) => {
+      splitArtists(t.artist).forEach((a) => {
+        const key = a.trim();
+        if (!key) return;
+        counts.set(key, (counts.get(key) || 0) + 1);
+      });
+    });
+    const eligible = Array.from(counts.entries())
+      .filter(([, n]) => n >= 4)
+      .map(([a]) => a)
+      .sort((x, y) => x.localeCompare(y));
     const items = [
       musicChipHtml({ active: musicArtist === "all", dataAttr: "data-music-artist", value: "all", label: "Hammasi", icon: MUSIC_ARTIST_ICON }),
-    ].concat(artists.map((a) => musicChipHtml({
+    ].concat(eligible.map((a) => musicChipHtml({
       active: musicArtist === a,
       dataAttr: "data-music-artist",
       value: a,
@@ -3610,7 +3636,7 @@ function filteredMusicTracks() {
   const q = musicQuery.toLowerCase();
   return musicAllTracks.filter((t) => {
     if (musicCategory !== "all" && t.category !== musicCategory) return false;
-    if (musicArtist !== "all" && t.artist !== musicArtist) return false;
+    if (musicArtist !== "all" && !trackHasArtist(t, musicArtist)) return false;
     if (q && !(t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q))) return false;
     return true;
   });
