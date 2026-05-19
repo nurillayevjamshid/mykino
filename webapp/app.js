@@ -3634,18 +3634,7 @@ function renderMusicFilters() {
     musicCategoryRow.innerHTML = items.join("");
   }
   if (musicArtistRow) {
-    const counts = new Map();
-    musicAllTracks.forEach((t) => {
-      splitArtists(t.artist).forEach((a) => {
-        const key = a.trim();
-        if (!key) return;
-        counts.set(key, (counts.get(key) || 0) + 1);
-      });
-    });
-    const eligible = Array.from(counts.entries())
-      .filter(([, n]) => n >= 4)
-      .map(([a]) => a)
-      .sort((x, y) => x.localeCompare(y));
+    const eligible = eligibleArtistNames().sort((x, y) => x.localeCompare(y));
     const items = [
       musicChipHtml({ active: musicArtist === "all", dataAttr: "data-music-artist", value: "all", label: "Hammasi", icon: MUSIC_ARTIST_ICON }),
     ].concat(eligible.map((a) => musicArtistCardHtml(a)));
@@ -3715,22 +3704,45 @@ let musicCarouselIndex = 0;
 let musicCarouselTimer = null;
 let musicCarouselItems = [];
 
+function eligibleArtistNames() {
+  const counts = new Map();
+  musicAllTracks.forEach((t) => {
+    splitArtists(t.artist).forEach((a) => {
+      const k = a.trim();
+      if (!k) return;
+      counts.set(k, (counts.get(k) || 0) + 1);
+    });
+  });
+  return Array.from(counts.entries())
+    .filter(([, n]) => n >= 4)
+    .map(([a]) => a);
+}
+
+function pickArtistFallbackImage(name) {
+  const target = name.toLowerCase();
+  const track = musicAllTracks.find((t) => splitArtists(t.artist).some((a) => a.toLowerCase() === target));
+  return track ? `https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg` : "";
+}
+
 function renderMusicCarousel() {
   if (!musicCarouselTrack || !musicCarouselDots) return;
-  musicCarouselItems = musicAllTracks.slice(0, 5);
+  const eligible = eligibleArtistNames();
+  const withImages = eligible
+    .map((name) => ({ name, image: findArtistImage(name) || pickArtistFallbackImage(name) }))
+    .filter((x) => x.image);
+  musicCarouselItems = withImages.slice(0, 5);
   if (!musicCarouselItems.length) {
     musicCarouselTrack.innerHTML = "";
     musicCarouselDots.innerHTML = "";
     return;
   }
   musicCarouselIndex = Math.min(musicCarouselIndex, musicCarouselItems.length - 1);
-  musicCarouselTrack.innerHTML = musicCarouselItems.map((t, i) => `
-    <button class="music-slide ${i === musicCarouselIndex ? "is-active" : ""}" type="button" data-music-slide="${escapeMusicHtml(t.youtubeId)}">
-      <span class="music-slide__bg" style="background-image:url('https://i.ytimg.com/vi/${escapeMusicHtml(t.youtubeId)}/hqdefault.jpg')"></span>
+  musicCarouselTrack.innerHTML = musicCarouselItems.map((item, i) => `
+    <button class="music-slide ${i === musicCarouselIndex ? "is-active" : ""}" type="button" data-music-slide-artist="${escapeMusicHtml(item.name)}">
+      <span class="music-slide__bg" style="background-image:url('${item.image.replaceAll("'", "%27")}')"></span>
       <span class="music-slide__gradient"></span>
       <span class="music-slide__inner">
-        <span class="music-slide__title">${escapeMusicHtml(t.title)}</span>
-        <span class="music-slide__artist">${escapeMusicHtml(t.artist)}</span>
+        <span class="music-slide__title">${escapeMusicHtml(item.name)}</span>
       </span>
     </button>
   `).join("");
@@ -3756,10 +3768,100 @@ function stopMusicCarouselTimer() {
   if (musicCarouselTimer) { clearInterval(musicCarouselTimer); musicCarouselTimer = null; }
 }
 
+function ensureArtistDetailDom() {
+  if (!musicView) return null;
+  let panel = document.getElementById("musicArtistDetail");
+  if (panel) return panel;
+  panel = document.createElement("section");
+  panel.id = "musicArtistDetail";
+  panel.className = "music-artist-detail";
+  panel.hidden = true;
+  panel.innerHTML = `
+    <header class="music-artist-detail__head">
+      <button class="music-artist-detail__back" type="button" data-artist-detail-back aria-label="Orqaga">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
+      </button>
+      <h1 class="music-artist-detail__name" id="musicArtistDetailName"></h1>
+    </header>
+    <div class="music-artist-detail__card" id="musicArtistDetailCard">
+      <div class="music-artist-detail__shade"></div>
+      <span class="music-artist-detail__title" id="musicArtistDetailTitle"></span>
+    </div>
+    <ol class="music-list" id="musicArtistDetailList"></ol>
+  `;
+  musicView.appendChild(panel);
+  panel.addEventListener("click", (event) => {
+    if (event.target.closest("[data-artist-detail-back]")) {
+      closeArtistDetail();
+      return;
+    }
+    const row = event.target.closest("[data-music-row]");
+    if (row) {
+      const id = row.dataset.musicRow;
+      const track = musicAllTracks.find((t) => t.youtubeId === id);
+      if (track) playMusicTrack(track);
+    }
+  });
+  return panel;
+}
+
+function renderArtistDetailTracks(name) {
+  const list = document.getElementById("musicArtistDetailList");
+  if (!list) return;
+  const target = name.toLowerCase();
+  const tracks = musicAllTracks.filter((t) => splitArtists(t.artist).some((a) => a.toLowerCase() === target));
+  const playlist = readMusicPlaylist();
+  list.innerHTML = tracks.map((t) => {
+    const id = escapeMusicHtml(t.youtubeId);
+    const inPl = playlist.includes(t.youtubeId);
+    return `
+    <li class="music-item">
+      <div class="music-row ${trackKey(t) === musicCurrentTrackKey ? "is-playing" : ""}">
+        <button class="music-row__main" type="button" data-music-row="${id}">
+          <span class="music-row__cover" style="background-image:url('https://i.ytimg.com/vi/${id}/mqdefault.jpg')"></span>
+          <span class="music-row__meta">
+            <span class="music-row__title">${escapeMusicHtml(t.title)}</span>
+            <span class="music-row__sub">${escapeMusicHtml(t.artist)}</span>
+          </span>
+        </button>
+        <div class="music-row__actions">
+          <button class="music-row__btn music-row__btn--add ${inPl ? "is-added" : ""}" type="button" data-music-add="${id}" aria-label="Playlistga qo'shish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+          </button>
+          <button class="music-row__btn music-row__btn--play" type="button" data-music-row="${id}" aria-label="Play">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
+          </button>
+        </div>
+      </div>
+    </li>`;
+  }).join("");
+}
+
+function openArtistDetail(name) {
+  const panel = ensureArtistDetailDom();
+  if (!panel) return;
+  document.getElementById("musicArtistDetailName").textContent = name;
+  document.getElementById("musicArtistDetailTitle").textContent = name;
+  const card = document.getElementById("musicArtistDetailCard");
+  const img = findArtistImage(name) || pickArtistFallbackImage(name);
+  if (card) card.style.backgroundImage = img ? `url('${img.replaceAll("'", "%27")}')` : "none";
+  renderArtistDetailTracks(name);
+  document.body.classList.add("is-music-artist-detail");
+  panel.hidden = false;
+  panel.scrollTop = 0;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function closeArtistDetail() {
+  const panel = document.getElementById("musicArtistDetail");
+  if (panel) panel.hidden = true;
+  document.body.classList.remove("is-music-artist-detail");
+}
+
 function openMusicView() {
   if (!musicView) return;
   if (!musicAllTracks.length) loadMusicCatalog();
-  fetchMusicArtists().then(() => renderMusicFilters());
+  fetchMusicArtists().then(() => { renderMusicFilters(); renderMusicCarousel(); });
   try { ensureYouTubeApi?.(); } catch (_) {}
   musicView.hidden = false;
   document.body.classList.add("is-music");
@@ -3772,6 +3874,7 @@ function closeMusicView() {
   if (!musicView) return;
   musicView.hidden = true;
   document.body.classList.remove("is-music");
+  closeArtistDetail();
   stopMusicCarouselTimer();
   closeMusicFullPlayer();
 }
@@ -3883,9 +3986,14 @@ musicView?.addEventListener("click", (event) => {
   }
   const artBtn = event.target.closest("[data-music-artist]");
   if (artBtn) {
-    musicArtist = artBtn.dataset.musicArtist;
-    renderMusicFilters();
-    renderMusicList();
+    const val = artBtn.dataset.musicArtist;
+    if (val === "all") {
+      musicArtist = "all";
+      renderMusicFilters();
+      renderMusicList();
+    } else {
+      openArtistDetail(val);
+    }
     return;
   }
   const row = event.target.closest("[data-music-row]");
@@ -4050,6 +4158,11 @@ musicFullPlayerBar?.addEventListener("click", (e) => {
 });
 
 musicCarouselTrack?.addEventListener("click", (e) => {
+  const artistSlide = e.target.closest("[data-music-slide-artist]");
+  if (artistSlide) {
+    openArtistDetail(artistSlide.dataset.musicSlideArtist);
+    return;
+  }
   const slide = e.target.closest("[data-music-slide]");
   if (!slide) return;
   const id = slide.dataset.musicSlide;
