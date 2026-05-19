@@ -7034,7 +7034,7 @@ body.fullplayer-open .mini-player[aria-hidden="false"] {
 }
 .music-carousel__track {
   position: relative;
-  height: 168px;
+  height: 240px;
   border-radius: 22px;
   overflow: hidden;
   background: #14141d;
