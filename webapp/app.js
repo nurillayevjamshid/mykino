@@ -3592,6 +3592,33 @@ function musicChipHtml({ active, dataAttr, value, label, icon }) {
   </button>`;
 }
 
+let musicArtistsData = [];
+function findArtistImage(name) {
+  const t = String(name || "").toLowerCase();
+  const rec = musicArtistsData.find((a) => String(a.name || "").toLowerCase() === t);
+  return rec?.image || "";
+}
+function musicArtistCardHtml(name) {
+  const active = musicArtist === name;
+  const img = findArtistImage(name);
+  if (img) {
+    return `<button class="music-artist-card ${active ? "is-active" : ""}" type="button" data-music-artist="${escapeMusicHtml(name)}" style="background-image:url('${img.replaceAll("'", "%27")}')">
+      <span class="music-artist-card__shade"></span>
+      <span class="music-artist-card__label">${escapeMusicHtml(name)}</span>
+    </button>`;
+  }
+  return musicChipHtml({ active, dataAttr: "data-music-artist", value: name, label: name, icon: MUSIC_ARTIST_ICON });
+}
+
+async function fetchMusicArtists() {
+  try {
+    const res = await fetch("/api/music?resource=artists", { cache: "no-store" });
+    if (!res.ok) return;
+    const json = await res.json();
+    musicArtistsData = Array.isArray(json.artists) ? json.artists : [];
+  } catch (_) {}
+}
+
 function renderMusicFilters() {
   if (musicCategoryRow) {
     const cats = uniqSorted(musicAllTracks.map((t) => t.category));
@@ -3621,13 +3648,7 @@ function renderMusicFilters() {
       .sort((x, y) => x.localeCompare(y));
     const items = [
       musicChipHtml({ active: musicArtist === "all", dataAttr: "data-music-artist", value: "all", label: "Hammasi", icon: MUSIC_ARTIST_ICON }),
-    ].concat(eligible.map((a) => musicChipHtml({
-      active: musicArtist === a,
-      dataAttr: "data-music-artist",
-      value: a,
-      label: a,
-      icon: MUSIC_ARTIST_ICON,
-    })));
+    ].concat(eligible.map((a) => musicArtistCardHtml(a)));
     musicArtistRow.innerHTML = items.join("");
   }
 }
@@ -3738,6 +3759,7 @@ function stopMusicCarouselTimer() {
 function openMusicView() {
   if (!musicView) return;
   if (!musicAllTracks.length) loadMusicCatalog();
+  fetchMusicArtists().then(() => renderMusicFilters());
   try { ensureYouTubeApi?.(); } catch (_) {}
   musicView.hidden = false;
   document.body.classList.add("is-music");
