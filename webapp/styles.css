@@ -6696,31 +6696,29 @@ body.is-music .bottom-bar__button--music-only { display: flex; }
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 14px 0 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 13px;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 18px;
+  border-radius: 16px;
+  background: #1c1c26;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
   scroll-snap-align: start;
-  transition: all 0.2s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 .music-chip__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   color: currentColor;
-  opacity: 0.92;
+  opacity: 0.95;
 }
 .music-chip__icon svg { width: 100%; height: 100%; display: block; }
 .music-chip__label { line-height: 1; letter-spacing: -0.01em; }
@@ -7465,9 +7463,15 @@ html[data-theme="light"] .music-row__btn { background: rgba(15, 23, 42, 0.06); c
 html[data-theme="light"] .music-row__btn--add:hover { background: rgba(15, 23, 42, 0.1); }
 html[data-theme="light"] .music-row__btn--play { color: #fff; }
 html[data-theme="light"] .music-chip {
-  background: rgba(15,23,42,0.06);
-  border-color: rgba(15,23,42,0.08);
+  background: #ffffff;
+  border-color: rgba(15,23,42,0.06);
   color: #1a1d2e;
+  box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.18);
+}
+html[data-theme="light"] .music-chip:hover {
+  background: #ffffff;
+  border-color: rgba(255, 199, 58, 0.5);
+  box-shadow: 0 8px 20px -10px rgba(15, 23, 42, 0.22);
 }
 html[data-theme="light"] .music-filter-label { color: #5a6076; }
 html[data-theme="light"] .music-card {
