@@ -134,18 +134,7 @@
 
     <nav class="bottom-bar" aria-label="Mini app menyusi">
       <div class="bottom-bar__inner">
-        <button class="bottom-bar__button is-active" type="button" data-filter="all" aria-label="Kino" title="Kino">
-          <svg class="icon-svg movie-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4.6 8h14.8a2 2 0 0 1 2 2v7.2a2.2 2.2 0 0 1-2.2 2.2H4.8a2.2 2.2 0 0 1-2.2-2.2V10a2 2 0 0 1 2-2Z"></path>
-            <path d="M5 4.6h13.2a2 2 0 0 1 2 2V8H3.8V5.8A1.2 1.2 0 0 1 5 4.6Z"></path>
-            <path d="M7.1 4.6 5.3 8"></path>
-            <path d="M12.3 4.6 10.5 8"></path>
-            <path d="M17.5 4.6 15.7 8"></path>
-            <path class="nav-icon-fill" d="m10.4 12.1 4.4 2.6-4.4 2.6v-5.2Z"></path>
-          </svg>
-          <span class="bottom-bar__label">Kino</span>
-        </button>
-        <button class="bottom-bar__button" type="button" data-action="categories" aria-label="Musiqa" title="Musiqa">
+        <button class="bottom-bar__button is-active" type="button" data-action="categories" aria-label="Musiqa" title="Musiqa">
           <svg class="icon-svg music-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M9 16.8V5.8l9.4-2v10.7"></path>
             <path d="M9 8.8 18.4 7"></path>
@@ -532,6 +521,25 @@
   </div>
 
   <script src="/static/app.js?v=20260514-perf"></script>
+  <script>
+    // BETA: Kino bo'limi yo'q — sahifa ochilishi bilan Musiqa view ochiladi
+    (function autoOpenMusic() {
+      function tryOpen() {
+        if (typeof window.openMusicView === "function") {
+          try { window.openMusicView(); } catch (_) {}
+          return true;
+        }
+        const btn = document.querySelector('.bottom-bar [data-action="categories"]');
+        if (btn) { btn.click(); return true; }
+        return false;
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => setTimeout(tryOpen, 50));
+      } else {
+        setTimeout(tryOpen, 50);
+      }
+    })();
+  </script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
