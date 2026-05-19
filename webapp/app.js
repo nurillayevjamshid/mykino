@@ -3682,7 +3682,6 @@ function renderMusicCarousel() {
       <span class="music-slide__bg" style="background-image:url('https://i.ytimg.com/vi/${escapeMusicHtml(t.youtubeId)}/hqdefault.jpg')"></span>
       <span class="music-slide__gradient"></span>
       <span class="music-slide__inner">
-        <span class="music-slide__eyebrow">Featured</span>
         <span class="music-slide__title">${escapeMusicHtml(t.title)}</span>
         <span class="music-slide__artist">${escapeMusicHtml(t.artist)}</span>
       </span>
