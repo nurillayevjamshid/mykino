@@ -3441,6 +3441,14 @@ document.querySelectorAll("[data-action='catalog']").forEach((button) => {
   });
 });
 
+document.querySelectorAll("[data-action='artists']").forEach((button) => {
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    openMusicView();
+    openAllArtists();
+  });
+});
+
 document.querySelectorAll("[data-action='categories']").forEach((button) => {
   button.addEventListener("click", (event) => {
     if (button.closest(".bottom-bar")) {
