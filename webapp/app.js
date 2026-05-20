@@ -3652,13 +3652,18 @@ function filteredMusicTracks() {
   });
 }
 
-function renderMusicList() {
+const MUSIC_PAGE_SIZE = 20;
+let musicVisibleCount = MUSIC_PAGE_SIZE;
+
+function renderMusicList(reset = true) {
   if (!musicListEl) return;
   const list = filteredMusicTracks();
   if (!list.length) { showMusicState("empty"); return; }
   showMusicState("data");
+  if (reset) musicVisibleCount = MUSIC_PAGE_SIZE;
   const playlist = readMusicPlaylist();
-  musicListEl.innerHTML = list.map((t) => {
+  const shown = list.slice(0, musicVisibleCount);
+  musicListEl.innerHTML = shown.map((t) => {
     const id = escapeMusicHtml(t.youtubeId);
     const inPl = playlist.includes(t.youtubeId);
     return `
@@ -3682,6 +3687,12 @@ function renderMusicList() {
       </div>
     </li>`;
   }).join("");
+  if (list.length > musicVisibleCount) {
+    musicListEl.insertAdjacentHTML("beforeend", `
+      <li class="music-more">
+        <button class="music-more__btn" type="button" data-music-more>Ko'proq ko'rish (${list.length - musicVisibleCount})</button>
+      </li>`);
+  }
 }
 
 const MUSIC_PLAYLIST_KEY = "kino_music_playlist_v1";
@@ -3961,7 +3972,7 @@ function playMusicTrack(track) {
     try { ensureYouTubeApi?.(); } catch (_) {}
   }
   startMiniProgress();
-  renderMusicList();
+  renderMusicList(false);
 }
 
 function showMiniPlayer() {
@@ -3994,6 +4005,11 @@ musicView?.addEventListener("click", (event) => {
     } else {
       openArtistDetail(val);
     }
+    return;
+  }
+  if (event.target.closest("[data-music-more]")) {
+    musicVisibleCount += MUSIC_PAGE_SIZE;
+    renderMusicList(false);
     return;
   }
   const row = event.target.closest("[data-music-row]");
