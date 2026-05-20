@@ -3653,20 +3653,11 @@ function filteredMusicTracks() {
 }
 
 const MUSIC_PAGE_SIZE = 20;
-let musicVisibleCount = MUSIC_PAGE_SIZE;
 
-function renderMusicList(reset = true) {
-  if (!musicListEl) return;
-  const list = filteredMusicTracks();
-  if (!list.length) { showMusicState("empty"); return; }
-  showMusicState("data");
-  if (reset) musicVisibleCount = MUSIC_PAGE_SIZE;
-  const playlist = readMusicPlaylist();
-  const shown = list.slice(0, musicVisibleCount);
-  musicListEl.innerHTML = shown.map((t) => {
-    const id = escapeMusicHtml(t.youtubeId);
-    const inPl = playlist.includes(t.youtubeId);
-    return `
+function musicRowHtml(t, playlist) {
+  const id = escapeMusicHtml(t.youtubeId);
+  const inPl = playlist.includes(t.youtubeId);
+  return `
     <li class="music-item">
       <div class="music-row ${trackKey(t) === musicCurrentTrackKey ? "is-playing" : ""}">
         <button class="music-row__main" type="button" data-music-row="${id}">
@@ -3686,13 +3677,105 @@ function renderMusicList(reset = true) {
         </div>
       </div>
     </li>`;
-  }).join("");
-  if (list.length > musicVisibleCount) {
+}
+
+function renderMusicList() {
+  if (!musicListEl) return;
+  const list = filteredMusicTracks();
+  if (!list.length) { showMusicState("empty"); return; }
+  showMusicState("data");
+  const playlist = readMusicPlaylist();
+  const shown = list.slice(0, MUSIC_PAGE_SIZE);
+  musicListEl.innerHTML = shown.map((t) => musicRowHtml(t, playlist)).join("");
+  if (list.length > MUSIC_PAGE_SIZE) {
     musicListEl.insertAdjacentHTML("beforeend", `
       <li class="music-more">
-        <button class="music-more__btn" type="button" data-music-more>Ko'proq ko'rish (${list.length - musicVisibleCount})</button>
+        <button class="music-more__btn" type="button" data-music-more>Ko'proq ko'rish (${list.length - MUSIC_PAGE_SIZE})</button>
       </li>`);
   }
+}
+
+// ----- Hamma musiqalar (all songs page) -----
+function ensureAllSongsDom() {
+  if (!musicView) return null;
+  let panel = document.getElementById("musicAllSongs");
+  if (panel) return panel;
+  panel = document.createElement("section");
+  panel.id = "musicAllSongs";
+  panel.className = "music-allsongs";
+  panel.hidden = true;
+  panel.innerHTML = `
+    <header class="music-artist-detail__head">
+      <button class="music-artist-detail__back" type="button" data-allsongs-back aria-label="Orqaga">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
+      </button>
+      <h1 class="music-artist-detail__name">Hamma musiqalar</h1>
+    </header>
+    <div class="music-filters">
+      <div class="music-filter-label">Kategoriya</div>
+      <div class="music-card-row" id="allSongsCategoryRow"></div>
+    </div>
+    <ol class="music-list" id="allSongsList"></ol>
+    <div class="music-view__spacer"></div>
+  `;
+  musicView.appendChild(panel);
+  panel.addEventListener("click", (event) => {
+    if (event.target.closest("[data-allsongs-back]")) { closeAllSongs(); return; }
+    const catBtn = event.target.closest("[data-music-cat]");
+    if (catBtn) {
+      musicCategory = catBtn.dataset.musicCat;
+      renderAllSongs();
+      return;
+    }
+    const addBtn = event.target.closest("[data-music-add]");
+    if (addBtn) {
+      toggleMusicPlaylist(addBtn.dataset.musicAdd);
+      renderAllSongs();
+      return;
+    }
+    const row = event.target.closest("[data-music-row]");
+    if (row) {
+      const track = musicAllTracks.find((t) => t.youtubeId === row.dataset.musicRow);
+      if (track) playMusicTrack(track);
+    }
+  });
+  return panel;
+}
+
+function renderAllSongs() {
+  ensureAllSongsDom();
+  const catRow = document.getElementById("allSongsCategoryRow");
+  if (catRow) {
+    const cats = uniqSorted(musicAllTracks.map((t) => t.category));
+    catRow.innerHTML = [
+      musicChipHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", icon: musicCategoryIcon("all") }),
+    ].concat(cats.map((c) => musicChipHtml({
+      active: musicCategory === c, dataAttr: "data-music-cat", value: c, label: c, icon: musicCategoryIcon(c),
+    }))).join("");
+  }
+  const listEl = document.getElementById("allSongsList");
+  if (listEl) {
+    const playlist = readMusicPlaylist();
+    const list = filteredMusicTracks();
+    listEl.innerHTML = list.length
+      ? list.map((t) => musicRowHtml(t, playlist)).join("")
+      : `<li class="music-state music-state--empty"><span>Hech narsa topilmadi</span></li>`;
+  }
+}
+
+function openAllSongs() {
+  const panel = ensureAllSongsDom();
+  if (!panel) return;
+  renderAllSongs();
+  document.body.classList.add("is-music-all-songs");
+  panel.hidden = false;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function closeAllSongs() {
+  const panel = document.getElementById("musicAllSongs");
+  if (panel) panel.hidden = true;
+  document.body.classList.remove("is-music-all-songs");
 }
 
 const MUSIC_PLAYLIST_KEY = "kino_music_playlist_v1";
@@ -3886,6 +3969,7 @@ function closeMusicView() {
   musicView.hidden = true;
   document.body.classList.remove("is-music");
   closeArtistDetail();
+  closeAllSongs();
   stopMusicCarouselTimer();
   closeMusicFullPlayer();
 }
@@ -3972,7 +4056,8 @@ function playMusicTrack(track) {
     try { ensureYouTubeApi?.(); } catch (_) {}
   }
   startMiniProgress();
-  renderMusicList(false);
+  renderMusicList();
+  if (document.getElementById("musicAllSongs") && !document.getElementById("musicAllSongs").hidden) renderAllSongs();
 }
 
 function showMiniPlayer() {
@@ -4008,8 +4093,7 @@ musicView?.addEventListener("click", (event) => {
     return;
   }
   if (event.target.closest("[data-music-more]")) {
-    musicVisibleCount += MUSIC_PAGE_SIZE;
-    renderMusicList(false);
+    openAllSongs();
     return;
   }
   const row = event.target.closest("[data-music-row]");

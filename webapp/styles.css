@@ -6817,11 +6817,21 @@ html[data-theme="light"] .music-artist-card {
 
 .music-artist-detail { display: none; padding: 0 16px 24px; }
 body.is-music-artist-detail .music-artist-detail { display: block; }
-body.is-music-artist-detail .music-carousel,
-body.is-music-artist-detail .music-filters,
-body.is-music-artist-detail #musicList,
-body.is-music-artist-detail .music-state,
-body.is-music-artist-detail .music-view__spacer { display: none !important; }
+body.is-music-artist-detail .music-view > .music-carousel,
+body.is-music-artist-detail .music-view > .music-filters,
+body.is-music-artist-detail .music-view > #musicList,
+body.is-music-artist-detail .music-view > .music-state,
+body.is-music-artist-detail .music-view > .music-view__spacer,
+body.is-music-artist-detail .music-allsongs { display: none !important; }
+
+.music-allsongs { display: none; padding: 0 16px 24px; }
+body.is-music-all-songs .music-allsongs { display: block; }
+body.is-music-all-songs .music-view > .music-carousel,
+body.is-music-all-songs .music-view > .music-filters,
+body.is-music-all-songs .music-view > #musicList,
+body.is-music-all-songs .music-view > .music-state,
+body.is-music-all-songs .music-view > .music-view__spacer,
+body.is-music-all-songs .music-artist-detail { display: none !important; }
 
 .music-artist-detail__head {
   display: flex;
