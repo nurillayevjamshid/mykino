@@ -3619,9 +3619,15 @@ async function fetchMusicArtists() {
   } catch (_) {}
 }
 
+function trackCategories(t) {
+  if (Array.isArray(t.categories) && t.categories.length) return t.categories;
+  if (t.category) return [t.category];
+  return [];
+}
+
 function renderMusicFilters() {
   if (musicCategoryRow) {
-    const cats = uniqSorted(musicAllTracks.map((t) => t.category));
+    const cats = uniqSorted(musicAllTracks.flatMap(trackCategories));
     const items = [
       musicChipHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", icon: musicCategoryIcon("all") }),
     ].concat(cats.map((c) => musicChipHtml({
@@ -3645,7 +3651,7 @@ function renderMusicFilters() {
 function filteredMusicTracks() {
   const q = musicQuery.toLowerCase();
   return musicAllTracks.filter((t) => {
-    if (musicCategory !== "all" && t.category !== musicCategory) return false;
+    if (musicCategory !== "all" && !trackCategories(t).some((c) => c === musicCategory)) return false;
     if (musicArtist !== "all" && !trackHasArtist(t, musicArtist)) return false;
     if (q && !(t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q))) return false;
     return true;
@@ -3746,7 +3752,7 @@ function renderAllSongs() {
   ensureAllSongsDom();
   const catRow = document.getElementById("allSongsCategoryRow");
   if (catRow) {
-    const cats = uniqSorted(musicAllTracks.map((t) => t.category));
+    const cats = uniqSorted(musicAllTracks.flatMap(trackCategories));
     catRow.innerHTML = [
       musicChipHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", icon: musicCategoryIcon("all") }),
     ].concat(cats.map((c) => musicChipHtml({

@@ -1067,6 +1067,84 @@ window.fetchUsers = fetchUsers;
 const MUSIC_LOCAL_KEY = 'kino_admin_music_v1';
 let musicTracks = [];
 let musicSearchQueryAdmin = '';
+const musicFormCategories = new Set();
+
+function trackCats(t) {
+  if (Array.isArray(t.categories) && t.categories.length) return t.categories;
+  if (t.category) return [t.category];
+  return [];
+}
+
+function collectMusicCategories() {
+  const seen = new Set();
+  const out = [];
+  const push = (name) => {
+    const n = String(name || '').trim();
+    if (!n) return;
+    const k = n.toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push(n);
+  };
+  for (const t of musicTracks) for (const c of trackCats(t)) push(c);
+  for (const c of musicFormCategories) push(c);
+  out.sort((a, b) => a.localeCompare(b, 'uz'));
+  return out;
+}
+
+function renderMusicCategoryChips() {
+  const container = document.getElementById('musicCategoryChips');
+  if (!container) return;
+  const sel = new Set([...musicFormCategories].map((x) => x.toLowerCase()));
+  const cats = collectMusicCategories();
+  container.innerHTML = cats.length
+    ? cats.map((name) => {
+        const on = sel.has(name.toLowerCase());
+        return `<button type="button" class="category-chip${on ? ' is-selected' : ''}" data-music-cat-chip="${escapeHtml(name)}">${escapeHtml(name)}</button>`;
+      }).join('')
+    : `<span class="form-hint">Hali kategoriya yo'q — pastdan qo'shing.</span>`;
+}
+
+function musicTrackKey(t) {
+  return `${String(t.title).toLowerCase()}|${String(t.artist).toLowerCase()}|${t.youtubeId}`;
+}
+
+function musicCatCellHtml(t) {
+  const cats = trackCats(t);
+  const available = collectMusicCategories().filter((c) => !cats.some((x) => x.toLowerCase() === c.toLowerCase()));
+  const chips = cats.map((c) =>
+    `<span class="music-cat-chip">${escapeHtml(c)}<button type="button" data-mcat-remove="${escapeHtml(c)}" aria-label="O'chirish">&times;</button></span>`
+  ).join('') || `<span class="music-cat-empty">—</span>`;
+  const opts = available.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  return `<div class="music-cat-cell" data-mcat-yt="${escapeHtml(t.youtubeId)}">
+    <div class="music-cat-chips">${chips}</div>
+    <select class="music-cat-select" data-mcat-add>
+      <option value="">+ kategoriya</option>
+      ${opts}
+      <option value="__new__">✏️ Yangi...</option>
+    </select>
+  </div>`;
+}
+
+async function updateMusicCategories(youtubeId, categories) {
+  const track = musicTracks.find((t) => t.youtubeId === youtubeId);
+  if (!track) return;
+  try {
+    const res = await fetch('/api/music', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', key: musicTrackKey(track), categories }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    musicTracks = dedupeMusic(Array.isArray(json.tracks) ? json.tracks : []);
+    renderMusicTable();
+    renderMusicCategoryChips();
+    showNotification('Kategoriya yangilandi.');
+  } catch (err) {
+    showNotification(`Yangilashda xato: ${err.message}`, 'error');
+  }
+}
 
 function extractYoutubeId(input) {
   const value = String(input || '').trim();
@@ -1125,6 +1203,7 @@ async function fetchMusic() {
   } catch (_) {}
   musicTracks = dedupeMusic(serverList);
   renderMusicTable();
+  renderMusicCategoryChips();
   const summary = document.getElementById('musicStorageSummary');
   if (summary) {
     const isPersistent = storage === 'redis' || storage === 'kv';
@@ -1151,7 +1230,7 @@ function renderMusicTable() {
       <td><img src="https://i.ytimg.com/vi/${escapeHtml(t.youtubeId)}/mqdefault.jpg" alt="" style="width:60px;height:34px;object-fit:cover;border-radius:6px;"></td>
       <td><strong>${escapeHtml(t.title)}</strong></td>
       <td>${escapeHtml(t.artist)}</td>
-      <td><span class="badge">${escapeHtml(t.category || 'Boshqa')}</span></td>
+      <td>${musicCatCellHtml(t)}</td>
       <td><code>${escapeHtml(t.youtubeId)}</code></td>
       <td>
         <a class="btn btn-secondary" href="https://www.youtube.com/watch?v=${escapeHtml(t.youtubeId)}" target="_blank" rel="noopener">Ochish</a>
@@ -1172,6 +1251,7 @@ async function addMusicTrack(payload) {
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
     musicTracks = dedupeMusic(Array.isArray(json.tracks) ? json.tracks : []);
     renderMusicTable();
+    renderMusicCategoryChips();
     showNotification(`"${payload.title}" qo'shildi.`);
   } catch (err) {
     showNotification(`Qo'shishda xato: ${err.message}`, 'error');
@@ -1222,7 +1302,6 @@ document.getElementById('musicForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
   const title = document.getElementById('musicTitle').value.trim();
   const artist = document.getElementById('musicArtist').value.trim();
-  const category = document.getElementById('musicCategory').value.trim() || 'Boshqa';
   const link = document.getElementById('musicLink').value.trim();
   const youtubeId = extractYoutubeId(link);
   const hint = document.getElementById('musicLinkHint');
@@ -1230,9 +1309,64 @@ document.getElementById('musicForm')?.addEventListener('submit', (e) => {
     if (hint) { hint.textContent = "YouTube link noto'g'ri."; hint.style.color = '#ff6b6b'; }
     return;
   }
+  const categories = [...musicFormCategories];
+  const catHint = document.getElementById('musicCategoryHint');
+  if (!categories.length) {
+    if (catHint) { catHint.textContent = 'Kamida bitta kategoriya tanlang.'; catHint.style.color = '#ff6b6b'; }
+    return;
+  }
+  if (catHint) { catHint.textContent = 'Kamida bitta kategoriya tanlang.'; catHint.style.color = ''; }
   if (hint) { hint.textContent = `Video ID: ${youtubeId}`; hint.style.color = ''; }
-  addMusicTrack({ title, artist, category, youtubeId });
+  addMusicTrack({ title, artist, categories, youtubeId });
   e.target.reset();
+  musicFormCategories.clear();
+  renderMusicCategoryChips();
+});
+
+// --- Music form category multiselect ---
+document.getElementById('musicCategoryChips')?.addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-music-cat-chip]');
+  if (!chip) return;
+  const name = chip.dataset.musicCatChip;
+  const match = [...musicFormCategories].find((x) => x.toLowerCase() === name.toLowerCase());
+  if (match) musicFormCategories.delete(match);
+  else musicFormCategories.add(name);
+  renderMusicCategoryChips();
+});
+function addMusicFormCategory() {
+  const input = document.getElementById('musicCategoryNew');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
+  const existing = collectMusicCategories().find((x) => x.toLowerCase() === name.toLowerCase());
+  musicFormCategories.add(existing || name);
+  input.value = '';
+  renderMusicCategoryChips();
+}
+document.getElementById('musicAddCategoryBtn')?.addEventListener('click', addMusicFormCategory);
+document.getElementById('musicCategoryNew')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addMusicFormCategory(); }
+});
+
+// --- Music table inline category editor ---
+document.getElementById('musicTableBody')?.addEventListener('change', (e) => {
+  const select = e.target.closest('[data-mcat-add]');
+  if (!select) return;
+  const cell = select.closest('[data-mcat-yt]');
+  const youtubeId = cell?.dataset.mcatYt;
+  if (!youtubeId) return;
+  let value = select.value;
+  select.value = '';
+  if (!value) return;
+  if (value === '__new__') {
+    value = (prompt('Yangi kategoriya nomi:') || '').trim();
+    if (!value) return;
+  }
+  const track = musicTracks.find((t) => t.youtubeId === youtubeId);
+  if (!track) return;
+  const cats = trackCats(track);
+  if (cats.some((c) => c.toLowerCase() === value.toLowerCase())) return;
+  updateMusicCategories(youtubeId, [...cats, value]);
 });
 
 document.getElementById('musicLink')?.addEventListener('input', (e) => {
@@ -1250,6 +1384,18 @@ document.getElementById('musicSearchAdminInput')?.addEventListener('input', (e) 
   renderMusicTable();
 });
 document.getElementById('musicTableBody')?.addEventListener('click', (e) => {
+  const rm = e.target.closest('[data-mcat-remove]');
+  if (rm) {
+    const cell = rm.closest('[data-mcat-yt]');
+    const youtubeId = cell?.dataset.mcatYt;
+    const track = youtubeId && musicTracks.find((t) => t.youtubeId === youtubeId);
+    if (!track) return;
+    const cats = trackCats(track);
+    const next = cats.filter((c) => c.toLowerCase() !== rm.dataset.mcatRemove.toLowerCase());
+    if (!next.length) { showNotification('Kamida bitta kategoriya qolishi kerak.', 'error'); return; }
+    updateMusicCategories(youtubeId, next);
+    return;
+  }
   const btn = e.target.closest('[data-music-delete]');
   if (!btn) return;
   const [youtubeId, title, artist] = btn.dataset.musicDelete.split('|');
