@@ -8087,3 +8087,10 @@ body.is-category-detail .search-panel { display: none !important; }
 .music-splash__name b { font-size: 17px; font-weight: 900; }
 .music-splash__name span { font-size: 17px; font-weight: 900; opacity: 0.55; }
 
+/* --- Profile modal in music mode --- */
+.profile-history--music { display: none; }
+body.is-music .profile-history--music { display: block; }
+body.is-music .profile-controls,
+body.is-music .profile-stats,
+body.is-music .profile-history:not(.profile-history--music) { display: none !important; }
+
