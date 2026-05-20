@@ -206,6 +206,9 @@ async function init() {
   await fetchMovies();
   bindEvents();
   createSidebarOverlay();
+
+  const savedSection = localStorage.getItem('admin-section');
+  if (savedSection && savedSection !== 'movies') switchSection(savedSection);
 }
 
 function switchSection(name) {
@@ -218,6 +221,8 @@ function switchSection(name) {
   };
   const targetId = sections[name];
   if (!targetId) return;
+
+  localStorage.setItem('admin-section', name);
 
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.toggle('active', item.dataset.section === name);
