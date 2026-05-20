@@ -4897,24 +4897,26 @@ html[data-theme="dark"] .soon-badge {
   color: rgba(255, 255, 255, 0.62);
 }
 
-.beta-badge {
+.sidebar__item > .beta-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 5px 11px;
   border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   line-height: 1;
   color: #ffffff;
-  background: linear-gradient(135deg, #8b5cff 0%, #ff5dc8 100%);
-  border: 0;
+  background: #161616;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   white-space: nowrap;
-  flex-shrink: 0;
-  box-shadow: 0 6px 14px -6px rgba(170, 70, 255, 0.6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
-.sidebar__item.is-active .beta-badge {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+.sidebar__item.is-active > .beta-badge {
+  background: #0d0d0d;
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 /* Language pills */
