@@ -97,11 +97,15 @@ function normalize(track) {
   };
 }
 
+// YouTube ID katta-kichik harfga sezgir — uni lowercase QILMAYMIZ.
+function trackKey(t) {
+  return `${String(t.title || "").toLowerCase()}|${String(t.artist || "").toLowerCase()}|${t.youtubeId}`;
+}
+
 function dedupe(tracks) {
   const seen = new Map();
   for (const t of tracks) {
-    const key = `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}`;
-    seen.set(key, t);
+    seen.set(trackKey(t), t);
   }
   return Array.from(seen.values());
 }
@@ -343,18 +347,29 @@ module.exports = async function handler(request, response) {
       }
 
       if (body.action === "delete" && body.key) {
+        // Kalitda title|artist lowercase, youtubeId esa o'z holicha.
+        const wantA = String(body.key);
+        const wantB = wantA.toLowerCase();
         const current = (await readRedisTracks()) || [];
-        const next = current.filter((t) => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}` !== String(body.key).toLowerCase());
+        const next = current.filter((t) => {
+          const k = trackKey(t);
+          return k !== wantA && k.toLowerCase() !== wantB;
+        });
         await writeRedisTracks(next);
         response.status(200).json({ ok: true, tracks: await loadAll() });
         return;
       }
 
       if (body.action === "update" && body.key) {
-        const keyLower = String(body.key).toLowerCase();
+        const wantA = String(body.key);
+        const wantB = wantA.toLowerCase();
+        const matchKey = (t) => {
+          const k = trackKey(t);
+          return k === wantA || k.toLowerCase() === wantB;
+        };
         const current = (await readRedisTracks()) || [];
         const all = await loadAll();
-        const base = all.find((t) => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}` === keyLower);
+        const base = all.find(matchKey);
         if (!base) {
           response.status(404).json({ ok: false, code: "TRACK_NOT_FOUND", error: "Qo'shiq topilmadi." });
           return;
@@ -364,7 +379,7 @@ module.exports = async function handler(request, response) {
           response.status(400).json({ ok: false, code: "INVALID_TRACK", error: "Noto'g'ri ma'lumot." });
           return;
         }
-        const idx = current.findIndex((t) => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}` === keyLower);
+        const idx = current.findIndex(matchKey);
         if (idx >= 0) current[idx] = updated;
         else current.push(updated);
         await writeRedisTracks(current);
