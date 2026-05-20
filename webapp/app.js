@@ -3577,6 +3577,27 @@ function dedupeTracks(list) {
   return Array.from(seen.values());
 }
 
+// --- Music random ordering (reshuffled every time the music view opens) ---
+const musicTrackShuffleRanks = new Map();
+const musicCatShuffleRanks = new Map();
+const musicArtistShuffleRanks = new Map();
+function reshuffleMusic() {
+  musicTrackShuffleRanks.clear();
+  musicCatShuffleRanks.clear();
+  musicArtistShuffleRanks.clear();
+}
+function shuffleTracks(list) {
+  return [...list].sort((a, b) =>
+    getRank(musicTrackShuffleRanks, a?.youtubeId ?? trackKey(a)) -
+    getRank(musicTrackShuffleRanks, b?.youtubeId ?? trackKey(b)));
+}
+function shuffleMusicCats(list) {
+  return [...list].sort((a, b) => getRank(musicCatShuffleRanks, a) - getRank(musicCatShuffleRanks, b));
+}
+function shuffleMusicArtists(list) {
+  return [...list].sort((a, b) => getRank(musicArtistShuffleRanks, a) - getRank(musicArtistShuffleRanks, b));
+}
+
 function readLocalMusic() {
   try {
     const raw = localStorage.getItem(MUSIC_LOCAL_KEY);
@@ -3740,7 +3761,7 @@ function trackCategories(t) {
 
 function renderMusicFilters() {
   if (musicCategoryRow) {
-    const cats = uniqSorted(musicAllTracks.flatMap(trackCategories));
+    const cats = shuffleMusicCats(uniqSorted(musicAllTracks.flatMap(trackCategories)));
     const items = [
       musicChipHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", icon: musicCategoryIcon("all") }),
     ].concat(cats.map((c) => musicChipHtml({
@@ -3753,7 +3774,7 @@ function renderMusicFilters() {
     musicCategoryRow.innerHTML = items.join("");
   }
   if (musicArtistRow) {
-    const eligible = eligibleArtistNames().sort((x, y) => x.localeCompare(y));
+    const eligible = shuffleMusicArtists(eligibleArtistNames());
     const items = [
       musicArtistCardHtml("Hammasi", "all", "Hammasi"),
     ].concat(eligible.map((a) => musicArtistCardHtml(a)));
@@ -3800,7 +3821,7 @@ function musicRowHtml(t, playlist) {
 
 function renderMusicList() {
   if (!musicListEl) return;
-  const list = filteredMusicTracks();
+  const list = shuffleTracks(filteredMusicTracks());
   if (!list.length) { showMusicState("empty"); return; }
   showMusicState("data");
   const playlist = readMusicPlaylist();
@@ -3865,7 +3886,7 @@ function renderAllSongs() {
   ensureAllSongsDom();
   const catRow = document.getElementById("allSongsCategoryRow");
   if (catRow) {
-    const cats = uniqSorted(musicAllTracks.flatMap(trackCategories));
+    const cats = shuffleMusicCats(uniqSorted(musicAllTracks.flatMap(trackCategories)));
     catRow.innerHTML = [
       musicChipHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", icon: musicCategoryIcon("all") }),
     ].concat(cats.map((c) => musicChipHtml({
@@ -3875,7 +3896,7 @@ function renderAllSongs() {
   const listEl = document.getElementById("allSongsList");
   if (listEl) {
     const playlist = readMusicPlaylist();
-    const list = filteredMusicTracks();
+    const list = shuffleTracks(filteredMusicTracks());
     listEl.innerHTML = list.length
       ? list.map((t) => musicRowHtml(t, playlist)).join("")
       : `<li class="music-state music-state--empty"><span>Hech narsa topilmadi</span></li>`;
@@ -3937,7 +3958,7 @@ function renderAllArtists() {
   ensureAllArtistsDom();
   const grid = document.getElementById("allArtistsGrid");
   if (!grid) return;
-  const eligible = eligibleArtistNames().sort((x, y) => x.localeCompare(y));
+  const eligible = shuffleMusicArtists(eligibleArtistNames());
   grid.innerHTML = eligible.length
     ? eligible.map((a) => musicArtistCardHtml(a)).join("")
     : `<div class="music-state music-state--empty"><span>Qo'shiqchi topilmadi</span></div>`;
@@ -4038,7 +4059,7 @@ function pickArtistFallbackImage(name) {
 
 function renderMusicCarousel() {
   if (!musicCarouselTrack || !musicCarouselDots) return;
-  const eligible = eligibleArtistNames();
+  const eligible = shuffleMusicArtists(eligibleArtistNames());
   const withImages = eligible
     .map((name) => ({ name, image: findArtistImage(name) || pickArtistFallbackImage(name) }))
     .filter((x) => x.image);
@@ -4121,7 +4142,7 @@ function renderArtistDetailTracks(name) {
   const list = document.getElementById("musicArtistDetailList");
   if (!list) return;
   const target = name.toLowerCase();
-  const tracks = musicAllTracks.filter((t) => splitArtists(t.artist).some((a) => a.toLowerCase() === target));
+  const tracks = shuffleTracks(musicAllTracks.filter((t) => splitArtists(t.artist).some((a) => a.toLowerCase() === target)));
   const playlist = readMusicPlaylist();
   list.innerHTML = tracks.map((t) => {
     const id = escapeMusicHtml(t.youtubeId);
@@ -4177,7 +4198,14 @@ function closeArtistDetail() {
 
 function openMusicView() {
   if (!musicView) return;
-  if (!musicAllTracks.length) loadMusicCatalog();
+  reshuffleMusic();
+  if (!musicAllTracks.length) {
+    loadMusicCatalog();
+  } else {
+    renderMusicCarousel();
+    renderMusicFilters();
+    renderMusicList();
+  }
   fetchMusicArtists().then(() => { renderMusicFilters(); renderMusicCarousel(); });
   try { ensureYouTubeApi?.(); } catch (_) {}
   musicView.hidden = false;
@@ -4405,11 +4433,11 @@ function closeMusicFullPlayer() {
 }
 
 function currentTrackIndex() {
-  const list = filteredMusicTracks();
+  const list = shuffleTracks(filteredMusicTracks());
   return list.findIndex((t) => trackKey(t) === musicCurrentTrackKey);
 }
 function playRelative(offset) {
-  const list = filteredMusicTracks();
+  const list = shuffleTracks(filteredMusicTracks());
   if (!list.length) return;
   const cur = currentTrackIndex();
   let nextIdx;
@@ -4426,7 +4454,7 @@ function autoAdvance() {
     try { ytPlayer?.seekTo?.(0, true); ytPlayer?.playVideo?.(); } catch (_) {}
     return;
   }
-  const list = filteredMusicTracks();
+  const list = shuffleTracks(filteredMusicTracks());
   if (!list.length) return;
   const cur = currentTrackIndex();
   if (musicRepeat === "off" && !musicShuffle && cur >= list.length - 1) return;
