@@ -17,6 +17,10 @@
  *   node scripts/migrate-to-r2.js --apply --limit 5  # 5 ta birinchi NEEDS_MIGRATE
  */
 
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { spawn } = require("child_process");
 const { Readable } = require("stream");
 const { S3Client, HeadObjectCommand } = require("@aws-sdk/client-s3");
 const { Upload } = require("@aws-sdk/lib-storage");
@@ -67,6 +71,106 @@ function publicUrlFor(movie) {
   return `${R2_PUBLIC_URL}/${encodeURIComponent(objectKey(movie))}`;
 }
 
+function isMkvMovie(movie) {
+  const mime = String(movie.mimeType || "").toLowerCase();
+  const ext = String(movie.fileName || "").split(".").pop()?.toLowerCase();
+  return mime.includes("matroska") || ext === "mkv" || ext === "webm" || ext === "avi";
+}
+
+function downloadToFile(fileId, destPath) {
+  return getDriveMediaResponse(fileId).then((upstream) => new Promise((resolve, reject) => {
+    const ws = fs.createWriteStream(destPath);
+    Readable.fromWeb(upstream.body).pipe(ws);
+    ws.on("finish", resolve);
+    ws.on("error", reject);
+  }));
+}
+
+// MKV/AVI/WebM -> MP4. Video H.264 bo'lsa copy (tez, lossless),
+// boshqa bo'lsa libx264 ga re-encode. Audio doim AAC.
+function convertToMp4(inputPath, outputPath) {
+  return new Promise((resolve, reject) => {
+    const tryConvert = (videoCodecArgs, label) => {
+      log(`    ffmpeg: ${label}`);
+      const proc = spawn("ffmpeg", [
+        "-y",
+        "-i", inputPath,
+        "-map", "0:v:0",
+        "-map", "0:a",
+        ...videoCodecArgs,
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-movflags", "+faststart",
+        outputPath,
+      ], { stdio: ["ignore", "ignore", "pipe"] });
+      let stderr = "";
+      proc.stderr.on("data", (c) => { stderr += c.toString(); });
+      proc.on("error", reject);
+      proc.on("exit", (code) => {
+        if (code === 0) { resolve(label); return; }
+        if (videoCodecArgs[1] === "copy") {
+          // copy ishlamadi (kodek mos emas) -> re-encode'ga o'tish
+          log(`    video copy ishlamadi, re-encode'ga o'tilmoqda...`);
+          tryConvert(["-c:v", "libx264", "-preset", "veryfast", "-crf", "21"], "re-encode (libx264)");
+        } else {
+          reject(new Error(`ffmpeg exit ${code}: ${stderr.slice(-400)}`));
+        }
+      });
+    };
+    tryConvert(["-c:v", "copy"], "video copy + audio AAC");
+  });
+}
+
+async function uploadFileToR2(key, filePath, totalBytes) {
+  const upload = new Upload({
+    client: s3,
+    params: {
+      Bucket: R2_BUCKET,
+      Key: key,
+      Body: fs.createReadStream(filePath),
+      ContentType: "video/mp4",
+    },
+    queueSize: 4,
+    partSize: 16 * 1024 * 1024,
+    leavePartsOnError: false,
+  });
+  let lastPercent = -1;
+  upload.on("httpUploadProgress", (p) => {
+    if (totalBytes > 0 && p.loaded != null) {
+      const pct = Math.floor((p.loaded / totalBytes) * 100);
+      if (pct !== lastPercent && pct % 10 === 0) {
+        lastPercent = pct;
+        log(`    upload ${pct}%`);
+      }
+    }
+  });
+  await upload.done();
+}
+
+async function migrateMkv(movie) {
+  const key = objectKey(movie);
+  const url = publicUrlFor(movie);
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mkv2mp4-"));
+  const inputPath = path.join(tmpDir, "input");
+  const outputPath = path.join(tmpDir, "output.mp4");
+  try {
+    log(`  → MKV yuklab olinmoqda (${Math.round((movie.size || 0) / 1048576)} MB)...`);
+    await downloadToFile(movie.driveFileId, inputPath);
+    log(`  → MP4'ga aylantirilmoqda...`);
+    const method = await convertToMp4(inputPath, outputPath);
+    const outSize = fs.statSync(outputPath).size;
+    log(`  → R2'ga yuklanmoqda (${Math.round(outSize / 1048576)} MB, ${method})...`);
+    await uploadFileToR2(key, outputPath, outSize);
+    log(`  ✓ R2'ga yuklandi: ${url}`);
+    await updateCatalogMovieMetadata(movie.driveFileId, { cdnUrl: url });
+    return { status: "MIGRATED_MKV", url };
+  } finally {
+    try { fs.unlinkSync(inputPath); } catch (_) {}
+    try { fs.unlinkSync(outputPath); } catch (_) {}
+    try { fs.rmdirSync(tmpDir); } catch (_) {}
+  }
+}
+
 async function checkExists(key) {
   try {
     await s3.send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: key }));
@@ -88,6 +192,10 @@ async function uploadOne(movie) {
       await updateCatalogMovieMetadata(movie.driveFileId, { cdnUrl: url });
     }
     return { status: "SKIP_EXISTS", url };
+  }
+
+  if (isMkvMovie(movie)) {
+    return migrateMkv(movie);
   }
 
   log(`  → yuklab olinmoqda va R2'ga upload qilinmoqda (streaming)...`);
@@ -134,19 +242,21 @@ async function main() {
   const movies = await listDriveMovies();
   log(`Topildi: ${movies.length} ta kino.\n`);
 
-  const mp4Movies = movies.filter((m) => {
+  const videoMovies = movies.filter((m) => {
     const mime = String(m.mimeType || "").toLowerCase();
     const ext = String(m.fileName || "").split(".").pop()?.toLowerCase();
-    return mime.includes("mp4") || mime.includes("quicktime") || ["mp4", "m4v", "mov"].includes(ext);
+    return mime.includes("mp4") || mime.includes("quicktime") || mime.includes("matroska")
+      || ["mp4", "m4v", "mov", "mkv", "webm", "avi"].includes(ext);
   });
 
-  const alreadyMigrated = mp4Movies.filter((m) => m.cdnUrl);
-  const needsMigrate = mp4Movies.filter((m) => !m.cdnUrl);
+  const alreadyMigrated = videoMovies.filter((m) => m.cdnUrl);
+  const needsMigrate = videoMovies.filter((m) => !m.cdnUrl);
+  const mkvCount = needsMigrate.filter(isMkvMovie).length;
 
-  log(`MP4: ${mp4Movies.length}`);
+  log(`Videolar: ${videoMovies.length}`);
   log(`  Allaqachon ko'chgan: ${alreadyMigrated.length}`);
-  log(`  Migratsiya kerak:    ${needsMigrate.length}`);
-  log(`  Boshqa formatlar:    ${movies.length - mp4Movies.length} (skip)\n`);
+  log(`  Migratsiya kerak:    ${needsMigrate.length}  (shundan MKV/konvert: ${mkvCount})`);
+  log(`  Boshqa formatlar:    ${movies.length - videoMovies.length} (skip)\n`);
 
   if (!APPLY) {
     log("Migratsiya boshlash uchun:");
@@ -157,7 +267,7 @@ async function main() {
 
   let targets = [];
   if (SPECIFIC_ID) {
-    const target = mp4Movies.find((m) => m.driveFileId === SPECIFIC_ID);
+    const target = videoMovies.find((m) => m.driveFileId === SPECIFIC_ID);
     if (!target) { log(`Topilmadi: ${SPECIFIC_ID}`); return; }
     targets = [target];
   } else if (ALL) {
