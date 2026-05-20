@@ -3763,13 +3763,18 @@ function renderAllSongs() {
   }
 }
 
+function scrollMusicTop() {
+  try { document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" }); } catch (_) {}
+  try { window.scrollTo({ top: 0, behavior: "auto" }); } catch (_) {}
+}
+
 function openAllSongs() {
   const panel = ensureAllSongsDom();
   if (!panel) return;
   renderAllSongs();
   document.body.classList.add("is-music-all-songs");
   panel.hidden = false;
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollMusicTop();
 }
 
 function closeAllSongs() {
@@ -3942,8 +3947,7 @@ function openArtistDetail(name) {
   renderArtistDetailTracks(name);
   document.body.classList.add("is-music-artist-detail");
   panel.hidden = false;
-  panel.scrollTop = 0;
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollMusicTop();
 }
 
 function closeArtistDetail() {
