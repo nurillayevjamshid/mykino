@@ -1052,6 +1052,8 @@ function canBrowserPlayMovie(movie) {
 function isLaunchReadyMovie(movie) {
   if (!movie) return false;
   if (getYouTubeVideoUrl(movie)) return true;
+  // cdnUrl R2 dagi tayyor MP4 ga ko'rsatadi — original format (mkv) muhim emas
+  if (String(movie?.cdnUrl || "").trim()) return true;
 
   const mimeType = String(movie?.mimeType || "").trim().toLowerCase();
   const ext = fileExtension(movie?.fileName || movie?.sourceUrl || movie?.videoUrl || "");
