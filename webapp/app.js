@@ -3524,7 +3524,38 @@ function showMusicState(name) {
   if (name === "empty" && musicEmptyEl) { musicEmptyEl.hidden = false; if (musicListEl) musicListEl.hidden = true; }
 }
 
+function ensureMusicSplash() {
+  let el = document.getElementById("musicSplash");
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = "musicSplash";
+  el.className = "music-splash";
+  el.hidden = true;
+  el.innerHTML = `
+    <div class="music-splash__spinner" aria-hidden="true"></div>
+    <div class="music-splash__brand">
+      <span class="music-splash__logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+          <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+        </svg>
+      </span>
+      <span class="music-splash__name">
+        <b>MY</b><span>PLAYLIST</span>
+      </span>
+    </div>
+  `;
+  document.body.appendChild(el);
+  return el;
+}
+function showMusicSplash() { ensureMusicSplash().hidden = false; }
+function hideMusicSplash() {
+  const el = document.getElementById("musicSplash");
+  if (el) el.hidden = true;
+}
+
 async function loadMusicCatalog() {
+  showMusicSplash();
   showMusicState("loading");
   let seed = [];
   try {
@@ -3535,6 +3566,7 @@ async function loadMusicCatalog() {
   } catch (err) {
     if (musicErrorText) musicErrorText.textContent = err.message || "Yuklab bo'lmadi.";
     showMusicState("error");
+    hideMusicSplash();
     return;
   }
   const local = readLocalMusic();
@@ -3542,6 +3574,7 @@ async function loadMusicCatalog() {
   renderMusicCarousel();
   renderMusicFilters();
   renderMusicList();
+  hideMusicSplash();
 }
 
 function uniqSorted(values) {

@@ -8027,3 +8027,43 @@ body.is-category-detail .search-panel { display: none !important; }
 }
 /* === /music premium theme === */
 
+/* --- Music loading splash (white bg + logo + spinner) --- */
+.music-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  animation: musicSplashIn 0.2s ease;
+}
+.music-splash[hidden] { display: none; }
+@keyframes musicSplashIn { from { opacity: 0; } to { opacity: 1; } }
+.music-splash__spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(20, 18, 34, 0.1);
+  border-top-color: #8b5cff;
+  animation: musicSpin 0.8s linear infinite;
+}
+.music-splash__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #11121a;
+}
+.music-splash__logo svg { width: 46px; height: 46px; display: block; }
+.music-splash__name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+.music-splash__name b { font-size: 17px; font-weight: 900; }
+.music-splash__name span { font-size: 17px; font-weight: 900; opacity: 0.55; }
+
