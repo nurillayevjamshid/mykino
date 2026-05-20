@@ -1426,6 +1426,72 @@ function clearWatchedHistory() {
   queueProgressClearAll();
 }
 
+// ===== Music listening history (per Telegram user) =====
+function musicHistoryKey() {
+  const uid = getTelegramUser()?.id;
+  return `kino_music_history_v1_${uid || "guest"}`;
+}
+function readMusicHistoryStore() {
+  try {
+    const p = JSON.parse(localStorage.getItem(musicHistoryKey()) || "{}");
+    return p && typeof p === "object" ? p : {};
+  } catch { return {}; }
+}
+function writeMusicHistoryStore(store) {
+  try { localStorage.setItem(musicHistoryKey(), JSON.stringify(store)); } catch {}
+}
+function recordMusicListen(track) {
+  if (!track?.youtubeId) return;
+  const store = readMusicHistoryStore();
+  store[track.youtubeId] = {
+    youtubeId: track.youtubeId,
+    title: track.title || "Qo'shiq",
+    artist: track.artist || "",
+    listenedAt: Date.now(),
+  };
+  writeMusicHistoryStore(store);
+}
+function getMusicHistoryEntries() {
+  return Object.values(readMusicHistoryStore())
+    .filter((e) => e && typeof e === "object" && e.youtubeId)
+    .sort((a, b) => Number(b.listenedAt || 0) - Number(a.listenedAt || 0))
+    .slice(0, 50);
+}
+function removeMusicHistoryItem(id) {
+  const store = readMusicHistoryStore();
+  delete store[id];
+  writeMusicHistoryStore(store);
+}
+function clearMusicHistory() {
+  localStorage.removeItem(musicHistoryKey());
+}
+function renderMusicHistory() {
+  const listEl = document.getElementById("musicHistoryList");
+  if (!listEl) return;
+  const countEl = document.getElementById("musicHistoryCount");
+  const emptyEl = document.getElementById("musicHistoryEmpty");
+  const clearBtn = document.getElementById("clearMusicHistoryButton");
+  const entries = getMusicHistoryEntries();
+  if (countEl) countEl.textContent = `${entries.length} ta`;
+  if (emptyEl) emptyEl.hidden = entries.length > 0;
+  if (clearBtn) clearBtn.hidden = entries.length === 0;
+  listEl.innerHTML = entries.map((e) => `
+    <article class="profile-history__item" role="button" tabindex="0" data-music-history="${escapeHtml(e.youtubeId)}">
+      <div class="profile-history__poster" style="--poster-image: url('https://i.ytimg.com/vi/${escapeHtml(e.youtubeId)}/mqdefault.jpg')"></div>
+      <div class="profile-history__copy">
+        <strong>${escapeHtml(e.title)}</strong>
+        <span>${escapeHtml(e.artist)}</span>
+      </div>
+      <button class="profile-history__remove" type="button" data-music-history-remove="${escapeHtml(e.youtubeId)}" aria-label="O'chirish" title="O'chirish">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+    </article>
+  `).join("");
+}
+
 function getMovieProgressEntry(movie) {
   if (!movie?.id) return null;
   const entry = readWatchProgressStore()[String(movie.id)];
@@ -1936,6 +2002,7 @@ function renderProfileModal() {
   }
   viewCount.textContent = watchedCount;
   renderProfileHistory();
+  renderMusicHistory();
 }
 
 const REACTION_STORAGE_KEY = "mykino:reactions";
@@ -4152,6 +4219,7 @@ function startMiniProgress() {
 function playMusicTrack(track) {
   if (!track) return;
   musicCurrentTrackKey = trackKey(track);
+  recordMusicListen(track);
   if (miniPlayerTitle) miniPlayerTitle.textContent = track.title;
   if (miniPlayerArtistEl) miniPlayerArtistEl.textContent = track.artist;
   const miniArt = document.getElementById("miniPlayerArt");
@@ -4711,6 +4779,28 @@ watchedMovieList?.addEventListener("click", (event) => {
   removeWatchedMovie(removeButton.dataset.historyRemove || "");
   syncWatchedCount();
   renderProfileModal();
+});
+
+document.getElementById("clearMusicHistoryButton")?.addEventListener("click", () => {
+  clearMusicHistory();
+  renderMusicHistory();
+});
+
+document.getElementById("musicHistoryList")?.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-music-history-remove]");
+  if (removeButton) {
+    event.stopPropagation();
+    removeMusicHistoryItem(removeButton.dataset.musicHistoryRemove || "");
+    renderMusicHistory();
+    return;
+  }
+  const item = event.target.closest("[data-music-history]");
+  if (!item) return;
+  const track = musicAllTracks.find((t) => t.youtubeId === item.dataset.musicHistory);
+  if (track) {
+    try { profileModal.close(); } catch (_) {}
+    playMusicTrack(track);
+  }
 });
 
 document.querySelectorAll("[data-close]").forEach((button) => {
