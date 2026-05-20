@@ -7887,3 +7887,155 @@ body.is-category-detail .search-panel { display: none !important; }
 }
 /* === /nav-icon-click-anim === */
 
+/* ============================================================
+   MUSIC PREMIUM THEME — 2026 dark glassmorphism
+   Deep blacks + navy/purple gradients, electric purple / cyan / pink accents.
+   Scoped to the music section only.
+   ============================================================ */
+.music-view {
+  --mx-purple: #8b5cff;
+  --mx-purple-soft: #a98bff;
+  --mx-cyan: #34e4ff;
+  --mx-pink: #ff5dc8;
+  --mx-accent-grad: linear-gradient(135deg, #8b5cff 0%, #c054ff 45%, #ff5dc8 100%);
+  --mx-glass: rgba(255, 255, 255, 0.055);
+  --mx-glass-border: rgba(255, 255, 255, 0.085);
+  background:
+    radial-gradient(120% 60% at 15% 0%, rgba(110, 70, 220, 0.28) 0%, rgba(110, 70, 220, 0) 60%),
+    radial-gradient(110% 55% at 95% 8%, rgba(255, 90, 190, 0.16) 0%, rgba(255, 90, 190, 0) 55%),
+    radial-gradient(130% 70% at 50% 100%, rgba(40, 200, 230, 0.1) 0%, rgba(40, 200, 230, 0) 60%),
+    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+}
+
+/* --- Section labels --- */
+.music-view .music-filter-label {
+  color: var(--mx-purple-soft);
+  opacity: 0.82;
+}
+
+/* --- Filter chips --- */
+.music-view .music-chip {
+  background: var(--mx-glass);
+  border-color: var(--mx-glass-border);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 22px -16px rgba(0, 0, 0, 0.7);
+}
+.music-view .music-chip:hover {
+  border-color: rgba(139, 92, 255, 0.42);
+  background: rgba(139, 92, 255, 0.14);
+  color: #fff;
+}
+.music-view .music-chip.is-active {
+  color: #fff;
+  border-color: transparent;
+  background: var(--mx-accent-grad);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 12px 30px -10px rgba(170, 70, 255, 0.65);
+}
+
+/* --- Carousel hero --- */
+.music-view .music-carousel__track {
+  border: 1px solid var(--mx-glass-border);
+  box-shadow: 0 20px 44px -22px rgba(120, 60, 230, 0.6);
+}
+.music-view .music-dot.is-active {
+  background: var(--mx-purple-soft);
+  box-shadow: 0 0 8px rgba(139, 92, 255, 0.8);
+}
+
+/* --- Artist cards --- */
+.music-view .music-artist-card {
+  border-color: var(--mx-glass-border);
+  box-shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.7);
+}
+.music-view .music-artist-card.is-active {
+  border-color: rgba(139, 92, 255, 0.75);
+  box-shadow: 0 16px 32px -14px rgba(170, 70, 255, 0.6);
+}
+
+/* --- Song list (glass card) --- */
+.music-view .music-list,
+.music-allsongs .music-list,
+.music-artist-detail .music-list {
+  background: linear-gradient(180deg, rgba(28, 24, 48, 0.62) 0%, rgba(14, 12, 24, 0.62) 100%);
+  border: 1px solid var(--mx-glass-border);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 40px -26px rgba(0, 0, 0, 0.8);
+}
+.music-view .music-row.is-playing,
+.music-allsongs .music-row.is-playing,
+.music-artist-detail .music-row.is-playing {
+  background: linear-gradient(90deg, rgba(139, 92, 255, 0.22), rgba(255, 93, 200, 0.1));
+}
+.music-view .music-row.is-playing .music-row__title,
+.music-allsongs .music-row.is-playing .music-row__title,
+.music-artist-detail .music-row.is-playing .music-row__title {
+  color: var(--mx-purple-soft);
+}
+.music-view .music-row__play,
+.music-allsongs .music-row__play,
+.music-artist-detail .music-row__play {
+  background: var(--mx-accent-grad);
+  box-shadow: 0 6px 16px -6px rgba(170, 70, 255, 0.8);
+}
+.music-view .music-row__btn--play,
+.music-allsongs .music-row__btn--play,
+.music-artist-detail .music-row__btn--play {
+  color: var(--mx-purple-soft);
+}
+.music-view .music-row__btn--add.is-added,
+.music-allsongs .music-row__btn--add.is-added,
+.music-artist-detail .music-row__btn--add.is-added {
+  color: var(--mx-cyan);
+}
+
+/* --- "Ko'proq ko'rish" button --- */
+.music-view .music-more__btn {
+  border: 1px solid rgba(139, 92, 255, 0.4);
+  background: rgba(139, 92, 255, 0.12);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #fff;
+}
+.music-view .music-more__btn:hover { background: rgba(139, 92, 255, 0.22); }
+
+/* --- Back buttons (artist detail / all songs) --- */
+.music-artist-detail__back {
+  border-color: var(--mx-glass-border);
+  background: rgba(139, 92, 255, 0.14);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.music-artist-detail__card {
+  border: 1px solid var(--mx-glass-border);
+  box-shadow: 0 20px 44px -22px rgba(120, 60, 230, 0.55);
+}
+
+/* --- States / spinner / links --- */
+.music-view .music-state {
+  background: rgba(20, 18, 34, 0.7);
+  border: 1px solid var(--mx-glass-border);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.music-view .music-spinner { border-top-color: var(--mx-purple); }
+.music-view .music-link { color: var(--mx-cyan); }
+
+/* --- Mini player accents --- */
+.mini-player__bar-fill {
+  background: linear-gradient(90deg, #8b5cff 0%, #ff5dc8 60%, #34e4ff 100%);
+}
+
+/* --- Full player accents --- */
+.music-fullplayer__ctl--primary {
+  background: linear-gradient(135deg, #8b5cff, #ff5dc8) !important;
+  box-shadow: 0 12px 26px -10px rgba(170, 70, 255, 0.7) !important;
+}
+.music-fullplayer__bar-fill {
+  background: linear-gradient(90deg, #8b5cff, #ff5dc8) !important;
+}
+/* === /music premium theme === */
+
