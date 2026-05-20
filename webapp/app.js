@@ -4636,11 +4636,16 @@ document.addEventListener("keydown", (e) => {
 document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
   el.addEventListener("click", (e) => {
     const action = el.dataset.sidebarAction;
-    if (action === "music" || action === "tv") {
+    if (action === "tv") {
       e.preventDefault();
       return;
     }
     e.preventDefault();
+    if (action === "music") {
+      openMusicView();
+      setSidebarOpen(false);
+      return;
+    }
     if (action === "favorites") {
       setFilter("favorites");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });

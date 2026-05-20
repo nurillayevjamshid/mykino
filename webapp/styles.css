@@ -4897,6 +4897,26 @@ html[data-theme="dark"] .soon-badge {
   color: rgba(255, 255, 255, 0.62);
 }
 
+.beta-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  color: #ffffff;
+  background: linear-gradient(135deg, #8b5cff 0%, #ff5dc8 100%);
+  border: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 6px 14px -6px rgba(170, 70, 255, 0.6);
+}
+.sidebar__item.is-active .beta-badge {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
 /* Language pills */
 .lang-pills {
   display: flex;
