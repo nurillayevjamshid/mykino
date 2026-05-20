@@ -6822,7 +6822,8 @@ body.is-music-artist-detail .music-view > .music-filters,
 body.is-music-artist-detail .music-view > #musicList,
 body.is-music-artist-detail .music-view > .music-state,
 body.is-music-artist-detail .music-view > .music-view__spacer,
-body.is-music-artist-detail .music-allsongs { display: none !important; }
+body.is-music-artist-detail .music-allsongs,
+body.is-music-artist-detail .music-allartists { display: none !important; }
 
 .music-allsongs { display: none; padding: 0 16px 24px; }
 body.is-music-all-songs .music-allsongs { display: block; }
@@ -6831,7 +6832,29 @@ body.is-music-all-songs .music-view > .music-filters,
 body.is-music-all-songs .music-view > #musicList,
 body.is-music-all-songs .music-view > .music-state,
 body.is-music-all-songs .music-view > .music-view__spacer,
-body.is-music-all-songs .music-artist-detail { display: none !important; }
+body.is-music-all-songs .music-artist-detail,
+body.is-music-all-songs .music-allartists { display: none !important; }
+
+.music-allartists { display: none; padding: 0 16px 24px; }
+body.is-music-all-artists .music-allartists { display: block; }
+body.is-music-all-artists .music-view > .music-carousel,
+body.is-music-all-artists .music-view > .music-filters,
+body.is-music-all-artists .music-view > #musicList,
+body.is-music-all-artists .music-view > .music-state,
+body.is-music-all-artists .music-view > .music-view__spacer,
+body.is-music-all-artists .music-artist-detail,
+body.is-music-all-artists .music-allsongs { display: none !important; }
+
+.music-allartists__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 4px;
+}
+.music-allartists__grid .music-artist-card {
+  width: 100%;
+  height: 116px;
+}
 
 .music-artist-detail__head {
   display: flex;
