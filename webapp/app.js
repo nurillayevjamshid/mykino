@@ -3520,7 +3520,12 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
   button.addEventListener("click", (event) => {
     if (button.closest(".bottom-bar")) {
       event.preventDefault();
+      // Musiqa tugmasi — har doim musiqa bosh sahifasiga qaytaradi
+      closeArtistDetail();
+      closeAllSongs();
+      closeAllArtists();
       openMusicView();
+      scrollMusicTop();
       return;
     }
     toggleCategoryPanel();
