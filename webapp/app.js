@@ -4482,7 +4482,8 @@ document.getElementById("miniPlayerExpand")?.addEventListener("click", () => {
 });
 
 document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.addEventListener("click", closeMusicView));
-document.querySelectorAll(".bottom-bar [data-action='favorites'], .bottom-bar [data-action='catalog'], .bottom-bar [data-action='profile']").forEach((b) => b.addEventListener("click", closeMusicView));
+// Profil — modal, shuning uchun musiqa rejimini yopmaymiz (musiqa tarixi ko'rinishi uchun)
+document.querySelectorAll(".bottom-bar [data-action='favorites'], .bottom-bar [data-action='catalog']").forEach((b) => b.addEventListener("click", closeMusicView));
 
 // ===== Categories view (bottom-bar) =====
 const categoriesView = document.getElementById("categoriesView");
