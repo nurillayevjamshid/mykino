@@ -6153,7 +6153,7 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   padding: 0 0 24px;
   font-family: inherit;
   border-radius: 18px;
-  margin: calc(var(--topbar-top) + var(--topbar-height) + 5px) 0 12px;
+  margin: 6px 0 12px;
 }
 .music-view > :first-child { margin-top: 0 !important; }
 .music-view[hidden] { display: none; }
