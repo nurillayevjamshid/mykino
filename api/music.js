@@ -62,18 +62,37 @@ function extractYoutubeId(input) {
   return "";
 }
 
+function normalizeCategories(track) {
+  let raw = [];
+  if (Array.isArray(track.categories)) raw = track.categories;
+  else if (typeof track.categories === "string") raw = track.categories.split(",");
+  else if (track.category) raw = String(track.category).split(",");
+  const seen = new Set();
+  const cats = [];
+  for (const c of raw) {
+    const name = String(c || "").trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cats.push(name);
+  }
+  return cats.length ? cats : ["Boshqa"];
+}
+
 function normalize(track) {
   if (!track || typeof track !== "object") return null;
   const title = String(track.title || "").trim();
   const artist = String(track.artist || "").trim();
-  const category = String(track.category || "").trim() || "Boshqa";
+  const categories = normalizeCategories(track);
   const youtubeId = extractYoutubeId(track.youtubeId || track.url || track.link || "");
   if (!title || !artist || !youtubeId) return null;
   return {
     id: String(track.id || `${youtubeId}-${title}`).slice(0, 64),
     title,
     artist,
-    category,
+    categories,
+    category: categories[0],
     youtubeId,
   };
 }
@@ -82,7 +101,7 @@ function dedupe(tracks) {
   const seen = new Map();
   for (const t of tracks) {
     const key = `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}`;
-    if (!seen.has(key)) seen.set(key, t);
+    seen.set(key, t);
   }
   return Array.from(seen.values());
 }
@@ -327,6 +346,28 @@ module.exports = async function handler(request, response) {
         const current = (await readRedisTracks()) || [];
         const next = current.filter((t) => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}` !== String(body.key).toLowerCase());
         await writeRedisTracks(next);
+        response.status(200).json({ ok: true, tracks: await loadAll() });
+        return;
+      }
+
+      if (body.action === "update" && body.key) {
+        const keyLower = String(body.key).toLowerCase();
+        const current = (await readRedisTracks()) || [];
+        const all = await loadAll();
+        const base = all.find((t) => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}` === keyLower);
+        if (!base) {
+          response.status(404).json({ ok: false, code: "TRACK_NOT_FOUND", error: "Qo'shiq topilmadi." });
+          return;
+        }
+        const updated = normalize({ ...base, categories: body.categories });
+        if (!updated) {
+          response.status(400).json({ ok: false, code: "INVALID_TRACK", error: "Noto'g'ri ma'lumot." });
+          return;
+        }
+        const idx = current.findIndex((t) => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.youtubeId}` === keyLower);
+        if (idx >= 0) current[idx] = updated;
+        else current.push(updated);
+        await writeRedisTracks(current);
         response.status(200).json({ ok: true, tracks: await loadAll() });
         return;
       }

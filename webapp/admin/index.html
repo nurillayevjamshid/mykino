@@ -200,23 +200,20 @@
               </div>
               <div class="form-row">
                 <div class="form-group">
-                  <label>Kategoriya</label>
-                  <input type="text" id="musicCategory" class="form-input" placeholder="Pop, Hip-Hop, Indie..." list="musicCategoryList">
-                  <datalist id="musicCategoryList">
-                    <option value="Pop"></option>
-                    <option value="Hip-Hop"></option>
-                    <option value="R&B"></option>
-                    <option value="Electronic"></option>
-                    <option value="Rock"></option>
-                    <option value="Indie"></option>
-                    <option value="Latin"></option>
-                    <option value="K-Pop"></option>
-                  </datalist>
-                </div>
-                <div class="form-group">
                   <label>YouTube link</label>
                   <input type="text" id="musicLink" class="form-input" placeholder="https://www.youtube.com/watch?v=..." required>
                   <small class="form-hint" id="musicLinkHint">Video ID havoladan avtomatik ajratiladi.</small>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Kategoriyalar <span class="form-hint-inline">(bir nechtasini tanlash mumkin)</span></label>
+                <div class="category-multiselect">
+                  <div class="category-chips" id="musicCategoryChips"></div>
+                  <div class="category-add">
+                    <input type="text" id="musicCategoryNew" class="form-input" placeholder="Yangi kategoriya nomi...">
+                    <button type="button" class="btn btn-secondary" id="musicAddCategoryBtn">+ Qo'shish</button>
+                  </div>
+                  <div class="form-hint" id="musicCategoryHint">Kamida bitta kategoriya tanlang.</div>
                 </div>
               </div>
               <div class="modal-actions" style="margin-top: 8px; gap: 10px;">

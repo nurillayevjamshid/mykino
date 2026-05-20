@@ -910,3 +910,54 @@ body {
   .actions { gap: 4px; }
   .btn-icon { width: 28px; height: 28px; border-radius: 6px; }
 }
+
+/* ===== Music inline category editor ===== */
+.music-cat-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+.music-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.music-cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 9px;
+  border-radius: 999px;
+  background: var(--primary, #3b82f6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.music-cat-chip button {
+  border: 0;
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.music-cat-empty { color: var(--text-muted, #888); font-size: 12px; }
+.music-cat-select {
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e3e6ec);
+  background: var(--surface-bg, #fff);
+  color: var(--text, #111);
+  cursor: pointer;
+  max-width: 160px;
+}
