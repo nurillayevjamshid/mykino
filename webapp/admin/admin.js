@@ -1299,29 +1299,31 @@ function findArtistRecord(name) {
   return musicArtists.find((a) => a.name.toLowerCase() === t) || null;
 }
 
+function artistCardHtml(name, subtitle, rec) {
+  const img = rec?.image ? `<img src="${escapeHtml(rec.image)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">` : '';
+  const overlay = rec?.image ? `<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.65) 100%);"></div>` : '';
+  return `
+    <button type="button" class="artist-card" data-artist-edit="${escapeHtml(name)}" style="position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;border:1px solid var(--border,#e3e6ec);background:#f1f3f7;padding:0;cursor:pointer;text-align:left;">
+      ${img}${overlay}
+      <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 12px;color:${rec?.image ? '#fff' : '#111'};">
+        <div style="font-weight:700;font-size:15px;line-height:1.1;">${escapeHtml(name)}</div>
+        <div style="font-size:12px;opacity:0.85;margin-top:2px;">${escapeHtml(subtitle)}</div>
+      </div>
+    </button>`;
+}
+
 async function renderArtistsCardGrid() {
   const grid = document.getElementById('artistsCardGrid');
   if (!grid) return;
   if (!musicTracks.length) { try { await fetchMusic(); } catch (_) {} }
   await fetchArtists();
   const eligible = eligibleArtistNames();
-  if (!eligible.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><h3>Qo'shiqchi yo'q</h3><p>Hech bir qo'shiqchining 4 va undan ortiq qo'shig'i yo'q.</p></div>`;
-    return;
-  }
-  grid.innerHTML = eligible.map(({ name, count }) => {
-    const rec = findArtistRecord(name);
-    const img = rec?.image ? `<img src="${escapeHtml(rec.image)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">` : '';
-    const overlay = rec?.image ? `<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.65) 100%);"></div>` : '';
-    return `
-    <button type="button" class="artist-card" data-artist-edit="${escapeHtml(name)}" style="position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;border:1px solid var(--border,#e3e6ec);background:#f1f3f7;padding:0;cursor:pointer;text-align:left;">
-      ${img}${overlay}
-      <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 12px;color:${rec?.image ? '#fff' : '#111'};">
-        <div style="font-weight:700;font-size:15px;line-height:1.1;">${escapeHtml(name)}</div>
-        <div style="font-size:12px;opacity:0.85;margin-top:2px;">${count} ta qo'shiq${rec ? ' · saqlangan' : ''}</div>
-      </div>
-    </button>`;
-  }).join('');
+  const allRec = findArtistRecord('Hammasi');
+  const allCard = artistCardHtml('Hammasi', `Barcha musiqalar cardi${allRec ? ' · saqlangan' : ''}`, allRec);
+  const artistCards = eligible.map(({ name, count }) =>
+    artistCardHtml(name, `${count} ta qo'shiq${findArtistRecord(name) ? ' · saqlangan' : ''}`, findArtistRecord(name))
+  ).join('');
+  grid.innerHTML = allCard + artistCards;
 }
 
 function setArtistPreview(url) {
@@ -1360,6 +1362,7 @@ function fillArtistTracks(name) {
 
 async function openArtistEditor(name) {
   const rec = findArtistRecord(name);
+  const isAll = name.toLowerCase() === 'hammasi';
   document.getElementById('artistEditId').value = rec?.id || '';
   document.getElementById('artistEditOrigName').value = name;
   document.getElementById('artistName').value = rec?.name || name;
@@ -1369,7 +1372,9 @@ async function openArtistEditor(name) {
   document.getElementById('artistDeleteBtn').hidden = !rec;
   artistUploadedUrl = rec?.image || '';
   setArtistPreview(rec?.image || '');
-  fillArtistTracks(name);
+  const tracksSection = document.getElementById('artistTracksSection');
+  if (tracksSection) tracksSection.hidden = isAll;
+  if (!isAll) fillArtistTracks(name);
   showArtistsEditorView();
 }
 

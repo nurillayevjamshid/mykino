@@ -3598,16 +3598,16 @@ function findArtistImage(name) {
   const rec = musicArtistsData.find((a) => String(a.name || "").toLowerCase() === t);
   return rec?.image || "";
 }
-function musicArtistCardHtml(name) {
-  const active = musicArtist === name;
+function musicArtistCardHtml(name, value = name, label = name) {
+  const active = musicArtist === value;
   const img = findArtistImage(name);
   if (img) {
-    return `<button class="music-artist-card ${active ? "is-active" : ""}" type="button" data-music-artist="${escapeMusicHtml(name)}" style="background-image:url('${img.replaceAll("'", "%27")}')">
+    return `<button class="music-artist-card ${active ? "is-active" : ""}" type="button" data-music-artist="${escapeMusicHtml(value)}" style="background-image:url('${img.replaceAll("'", "%27")}')">
       <span class="music-artist-card__shade"></span>
-      <span class="music-artist-card__label">${escapeMusicHtml(name)}</span>
+      <span class="music-artist-card__label">${escapeMusicHtml(label)}</span>
     </button>`;
   }
-  return musicChipHtml({ active, dataAttr: "data-music-artist", value: name, label: name, icon: MUSIC_ARTIST_ICON });
+  return musicChipHtml({ active, dataAttr: "data-music-artist", value, label, icon: MUSIC_ARTIST_ICON });
 }
 
 async function fetchMusicArtists() {
@@ -3636,7 +3636,7 @@ function renderMusicFilters() {
   if (musicArtistRow) {
     const eligible = eligibleArtistNames().sort((x, y) => x.localeCompare(y));
     const items = [
-      musicChipHtml({ active: musicArtist === "all", dataAttr: "data-music-artist", value: "all", label: "Hammasi", icon: MUSIC_ARTIST_ICON }),
+      musicArtistCardHtml("Hammasi", "all", "Hammasi"),
     ].concat(eligible.map((a) => musicArtistCardHtml(a)));
     musicArtistRow.innerHTML = items.join("");
   }
