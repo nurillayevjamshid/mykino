@@ -3789,6 +3789,62 @@ function closeAllSongs() {
   document.body.classList.remove("is-music-all-songs");
 }
 
+// ----- Barcha qo'shiqchilar (all artists page) -----
+function ensureAllArtistsDom() {
+  if (!musicView) return null;
+  let panel = document.getElementById("musicAllArtists");
+  if (panel) return panel;
+  panel = document.createElement("section");
+  panel.id = "musicAllArtists";
+  panel.className = "music-allartists";
+  panel.hidden = true;
+  panel.innerHTML = `
+    <header class="music-artist-detail__head">
+      <button class="music-artist-detail__back" type="button" data-allartists-back aria-label="Orqaga">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
+      </button>
+      <h1 class="music-artist-detail__name">Barcha qo'shiqchilar</h1>
+    </header>
+    <div class="music-allartists__grid" id="allArtistsGrid"></div>
+    <div class="music-view__spacer"></div>
+  `;
+  musicView.appendChild(panel);
+  panel.addEventListener("click", (event) => {
+    if (event.target.closest("[data-allartists-back]")) { closeAllArtists(); return; }
+    const card = event.target.closest("[data-music-artist]");
+    if (card) {
+      const name = card.dataset.musicArtist;
+      if (name && name !== "all") openArtistDetail(name);
+    }
+  });
+  return panel;
+}
+
+function renderAllArtists() {
+  ensureAllArtistsDom();
+  const grid = document.getElementById("allArtistsGrid");
+  if (!grid) return;
+  const eligible = eligibleArtistNames().sort((x, y) => x.localeCompare(y));
+  grid.innerHTML = eligible.length
+    ? eligible.map((a) => musicArtistCardHtml(a)).join("")
+    : `<div class="music-state music-state--empty"><span>Qo'shiqchi topilmadi</span></div>`;
+}
+
+function openAllArtists() {
+  const panel = ensureAllArtistsDom();
+  if (!panel) return;
+  renderAllArtists();
+  document.body.classList.add("is-music-all-artists");
+  panel.hidden = false;
+  scrollMusicTop();
+}
+
+function closeAllArtists() {
+  const panel = document.getElementById("musicAllArtists");
+  if (panel) panel.hidden = true;
+  document.body.classList.remove("is-music-all-artists");
+}
+
 const MUSIC_PLAYLIST_KEY = "kino_music_playlist_v1";
 function readMusicPlaylist() {
   try { return JSON.parse(localStorage.getItem(MUSIC_PLAYLIST_KEY) || "[]"); } catch { return []; }
@@ -3980,6 +4036,7 @@ function closeMusicView() {
   document.body.classList.remove("is-music");
   closeArtistDetail();
   closeAllSongs();
+  closeAllArtists();
   stopMusicCarouselTimer();
   closeMusicFullPlayer();
 }
@@ -4094,9 +4151,7 @@ musicView?.addEventListener("click", (event) => {
   if (artBtn) {
     const val = artBtn.dataset.musicArtist;
     if (val === "all") {
-      musicArtist = "all";
-      renderMusicFilters();
-      renderMusicList();
+      openAllArtists();
     } else {
       openArtistDetail(val);
     }
