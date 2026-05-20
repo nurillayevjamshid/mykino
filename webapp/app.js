@@ -4687,11 +4687,9 @@ function syncSidebarMusicItem() {
   if (isMusic) {
     item.dataset.sidebarAction = "kino-back";
     item.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="2.5" y="3.5" width="19" height="17" rx="2.5"></rect>
-        <line x1="7.5" y1="3.5" x2="7.5" y2="20.5"></line>
-        <line x1="16.5" y1="3.5" x2="16.5" y2="20.5"></line>
-        <line x1="2.5" y1="12" x2="21.5" y2="12"></line>
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+        <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
       </svg>
       <span>Kino</span>`;
   } else {

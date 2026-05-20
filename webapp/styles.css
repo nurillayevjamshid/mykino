@@ -7986,16 +7986,21 @@ body.is-category-detail .search-panel { display: none !important; }
 .music-artist-detail .music-row.is-playing .music-row__title {
   color: var(--mx-purple-soft);
 }
+/* Qo'shiq play tugmasi — kino (play-float) bilan bir xil oltin rang */
 .music-view .music-row__play,
 .music-allsongs .music-row__play,
-.music-artist-detail .music-row__play {
-  background: var(--mx-accent-grad);
-  box-shadow: 0 6px 16px -6px rgba(170, 70, 255, 0.8);
-}
+.music-artist-detail .music-row__play,
 .music-view .music-row__btn--play,
 .music-allsongs .music-row__btn--play,
 .music-artist-detail .music-row__btn--play {
-  color: var(--mx-purple-soft);
+  background: linear-gradient(180deg, rgba(255, 236, 180, 0.95), rgba(255, 199, 58, 0.98)) !important;
+  color: #18130d !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 14px -6px rgba(255, 199, 58, 0.7) !important;
+}
+.music-view .music-row__btn--play:hover,
+.music-allsongs .music-row__btn--play:hover,
+.music-artist-detail .music-row__btn--play:hover {
+  background: linear-gradient(180deg, rgba(255, 240, 195, 1), rgba(255, 205, 75, 1)) !important;
 }
 .music-view .music-row__btn--add.is-added,
 .music-allsongs .music-row__btn--add.is-added,
