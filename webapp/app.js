@@ -4675,9 +4675,37 @@ function syncSidebarSettings() {
 }
 syncSidebarSettings();
 
+function syncSidebarMusicItem() {
+  const item = document.getElementById("sidebarMusicItem");
+  if (!item) return;
+  const isMusic = document.body.classList.contains("is-music");
+  if (isMusic) {
+    item.dataset.sidebarAction = "kino-back";
+    item.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.5" y="3.5" width="19" height="17" rx="2.5"></rect>
+        <line x1="7.5" y1="3.5" x2="7.5" y2="20.5"></line>
+        <line x1="16.5" y1="3.5" x2="16.5" y2="20.5"></line>
+        <line x1="2.5" y1="12" x2="21.5" y2="12"></line>
+      </svg>
+      <span>Kino</span>`;
+  } else {
+    item.dataset.sidebarAction = "music";
+    item.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 18V5l12-2v13"></path>
+        <circle cx="6" cy="18" r="3"></circle>
+        <circle cx="18" cy="16" r="3"></circle>
+      </svg>
+      <span data-i18n="musicNav">Musiqa</span>
+      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
+  }
+}
+
 function setSidebarOpen(open) {
   if (!appSidebar || !sidebarBackdrop) return;
   if (open) {
+    syncSidebarMusicItem();
     sidebarBackdrop.hidden = false;
     requestAnimationFrame(() => {
       appSidebar.classList.add("is-open");
@@ -4720,6 +4748,13 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     e.preventDefault();
     if (action === "music") {
       openMusicView();
+      setSidebarOpen(false);
+      return;
+    }
+    if (action === "kino-back") {
+      closeMusicView();
+      setFilter("all");
+      document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
       setSidebarOpen(false);
       return;
     }
