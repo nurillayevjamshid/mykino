@@ -4007,6 +4007,12 @@ function openArtistDetail(name) {
   const img = findArtistImage(name) || pickArtistFallbackImage(name);
   if (card) card.style.backgroundImage = img ? `url('${img.replaceAll("'", "%27")}')` : "none";
   renderArtistDetailTracks(name);
+  // boshqa overlay sahifalarni yopamiz — aks holda CSS detail panelni yashiradi
+  const allArtists = document.getElementById("musicAllArtists");
+  if (allArtists) allArtists.hidden = true;
+  const allSongs = document.getElementById("musicAllSongs");
+  if (allSongs) allSongs.hidden = true;
+  document.body.classList.remove("is-music-all-artists", "is-music-all-songs");
   document.body.classList.add("is-music-artist-detail");
   panel.hidden = false;
   scrollMusicTop();
