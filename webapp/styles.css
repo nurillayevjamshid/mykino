@@ -6183,6 +6183,7 @@ body.is-music .app-footer { display: none !important; }
 .bottom-bar__button--music-only { display: none; }
 body.is-music .bottom-bar__button--movie-only { display: none; }
 body.is-music .bottom-bar__button--music-only { display: flex; }
+body.is-music .bottom-bar [data-filter="all"] { display: none !important; }
 
 .music-topbar {
   position: sticky;
