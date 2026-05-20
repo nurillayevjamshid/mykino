@@ -5166,6 +5166,20 @@ initApp();
   const DIRECTION_LOCK = 10;
   const MAX_OFF_AXIS_RATIO = 0.7;
 
+  function hasScrollableAncestor(node, stopAt, axis) {
+    let el = node;
+    while (el && el !== stopAt && el.nodeType === 1) {
+      const style = getComputedStyle(el);
+      if (axis === "x") {
+        if (/(auto|scroll)/.test(style.overflowX) && el.scrollWidth > el.clientWidth + 1) return true;
+      } else {
+        if (/(auto|scroll)/.test(style.overflowY) && el.scrollHeight > el.clientHeight + 1) return true;
+      }
+      el = el.parentElement;
+    }
+    return false;
+  }
+
   function setupSwipe(target, { onCommit, onDrag, onCancel, axis = "x" }) {
     if (!target) return;
     let startX = 0, startY = 0, dragging = false, locked = false, decided = false, accept = false;
@@ -5173,6 +5187,7 @@ initApp();
     const onDown = (e) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
       if (e.target.closest("input, textarea, [contenteditable='true']")) return;
+      if (hasScrollableAncestor(e.target, target, axis)) return;
       startX = e.clientX; startY = e.clientY;
       dragging = true; locked = false; decided = false; accept = false;
     };
