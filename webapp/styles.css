@@ -59,8 +59,9 @@ textarea,
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 26px;
+  justify-content: space-between;
+  padding: 76px 24px 56px;
+  box-sizing: border-box;
   transition: opacity 0.5s ease;
 }
 
@@ -103,6 +104,14 @@ textarea,
   font-size: 17px;
   font-weight: 900;
   opacity: 0.55;
+}
+
+.splash-screen__tagline {
+  font-size: 15px;
+  font-weight: 600;
+  color: #5b5b6b;
+  text-align: center;
+  letter-spacing: 0.01em;
 }
 
 .splash-screen.fade-out {
