@@ -5223,17 +5223,17 @@ function initSplashScreen() {
   const appShell = document.getElementById("appShell");
   
   if (splashScreen && appShell) {
-    // Splash screen showing for 2.5 seconds
+    // Splash screen showing for 3 seconds
     setTimeout(() => {
       splashScreen.classList.add("fade-out");
       appShell.style.opacity = "1";
       appShell.style.pointerEvents = "auto";
-      
+
       // Remove splash screen from DOM after fade-out (0.5s)
       setTimeout(() => {
         splashScreen.classList.add("hidden");
       }, 500);
-    }, 2500);
+    }, 3000);
   }
 }
 
