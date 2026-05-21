@@ -1017,6 +1017,8 @@ function buildEmbeddedSeriesDescription(override) {
   if (posterImage) clean.posterImage = posterImage;
   const episodes = normalizeEpisodeOverrides(override.episodes);
   if (Object.keys(episodes).length) clean.episodes = episodes;
+  const episodeCdn = normalizeEpisodeOverrides(override.episodeCdn);
+  if (Object.keys(episodeCdn).length) clean.episodeCdn = episodeCdn;
   return [EMBEDDED_META_START, JSON.stringify(clean), EMBEDDED_META_END].join("\n");
 }
 
@@ -1024,6 +1026,7 @@ function toDriveSeries(folder, episodeFiles) {
   const embedded = extractEmbeddedMovieMetadata(folder.description || "");
   const override = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
   const episodeTitles = normalizeEpisodeOverrides(override.episodes);
+  const episodeCdn = normalizeEpisodeOverrides(override.episodeCdn);
   const folderName = trimString(folder.name);
   const title = trimString(override.title) || folderName || "Serial";
   const description = trimString(override.description);
@@ -1039,6 +1042,7 @@ function toDriveSeries(folder, episodeFiles) {
       mimeType: file.mimeType || "video/mp4",
       streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
       videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
+      cdnUrl: trimString(episodeCdn[file.id]),
       size: Number(file.size || 0) || 0,
       createdTime: file.createdTime || "",
       modifiedTime: file.modifiedTime || "",
@@ -1138,6 +1142,18 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
     }
     next.episodes = nextEpisodes;
   }
+  if (updates.episodeCdn && typeof updates.episodeCdn === "object" && !Array.isArray(updates.episodeCdn)) {
+    const currentCdn = current.episodeCdn && typeof current.episodeCdn === "object" ? current.episodeCdn : {};
+    const nextCdn = { ...currentCdn };
+    for (const [epId, cdnUrl] of Object.entries(updates.episodeCdn)) {
+      const key = trimString(epId);
+      if (!key) continue;
+      const value = trimString(cdnUrl);
+      if (value) nextCdn[key] = value;
+      else delete nextCdn[key];
+    }
+    next.episodeCdn = nextCdn;
+  }
 
   const cleaned = {
     title: trimString(next.title),
@@ -1146,6 +1162,8 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
   };
   const cleanedEpisodes = normalizeEpisodeOverrides(next.episodes);
   if (Object.keys(cleanedEpisodes).length) cleaned.episodes = cleanedEpisodes;
+  const cleanedCdn = normalizeEpisodeOverrides(next.episodeCdn);
+  if (Object.keys(cleanedCdn).length) cleaned.episodeCdn = cleanedCdn;
 
   await updateDriveFileMetadata(normalizedId, {
     description: buildEmbeddedSeriesDescription(cleaned),

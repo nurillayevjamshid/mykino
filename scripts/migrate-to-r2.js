@@ -2,8 +2,8 @@
 /*
  * migrate-to-r2.js
  *
- * Google Drive'dagi har bir kinoni Cloudflare R2'ga ko'chiradi va
- * cdnUrl'ni Drive metadata'siga saqlaydi.
+ * Google Drive'dagi har bir kinoni VA serial epizodlarini Cloudflare R2'ga
+ * ko'chiradi (MKV/AVI/WebM -> MP4), cdnUrl'ni Drive metadata'siga saqlaydi.
  *
  * Env (.mykino-r2.env va .mykino-sa.json kerak):
  *   R2_ACCOUNT_ID, R2_BUCKET, R2_ENDPOINT, R2_PUBLIC_URL,
@@ -11,9 +11,9 @@
  *   GOOGLE_DRIVE_FOLDER_ID, GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON
  *
  * Foydalanish:
- *   node scripts/migrate-to-r2.js                 # status (qaysi ko'chgan)
- *   node scripts/migrate-to-r2.js --apply <ID>    # bitta kino ko'chirish (driveFileId)
- *   node scripts/migrate-to-r2.js --apply --all   # hamma kinolar
+ *   node scripts/migrate-to-r2.js                 # status (kino + serial)
+ *   node scripts/migrate-to-r2.js --apply <ID>    # bitta fayl (driveFileId yoki epizod ID)
+ *   node scripts/migrate-to-r2.js --apply --all   # hamma kino + hamma serial epizodi
  *   node scripts/migrate-to-r2.js --apply --limit 5  # 5 ta birinchi NEEDS_MIGRATE
  */
 
@@ -27,8 +27,10 @@ const { Upload } = require("@aws-sdk/lib-storage");
 
 const {
   listDriveMovies,
+  listDriveSeries,
   getDriveMediaResponse,
   updateCatalogMovieMetadata,
+  updateCatalogSeriesMetadata,
 } = require("../api/_lib/google-drive");
 
 const args = process.argv.slice(2);
@@ -63,17 +65,17 @@ const s3 = new S3Client({
   },
 });
 
-function objectKey(movie) {
-  return `${movie.driveFileId}.mp4`;
+function objectKey(driveFileId) {
+  return `${driveFileId}.mp4`;
 }
 
-function publicUrlFor(movie) {
-  return `${R2_PUBLIC_URL}/${encodeURIComponent(objectKey(movie))}`;
+function publicUrlFor(driveFileId) {
+  return `${R2_PUBLIC_URL}/${encodeURIComponent(objectKey(driveFileId))}`;
 }
 
-function isMkvMovie(movie) {
-  const mime = String(movie.mimeType || "").toLowerCase();
-  const ext = String(movie.fileName || "").split(".").pop()?.toLowerCase();
+function isMkvFile(fileName, mimeType) {
+  const mime = String(mimeType || "").toLowerCase();
+  const ext = String(fileName || "").split(".").pop()?.toLowerCase();
   return mime.includes("matroska") || ext === "mkv" || ext === "webm" || ext === "avi";
 }
 
@@ -147,22 +149,23 @@ async function uploadFileToR2(key, filePath, totalBytes) {
   await upload.done();
 }
 
-async function migrateMkv(movie) {
-  const key = objectKey(movie);
-  const url = publicUrlFor(movie);
+// MKV/AVI/WebM faylni yuklab olib, MP4'ga aylantirib R2'ga yuklaydi.
+async function migrateMkv(task) {
+  const key = objectKey(task.driveFileId);
+  const url = publicUrlFor(task.driveFileId);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mkv2mp4-"));
   const inputPath = path.join(tmpDir, "input");
   const outputPath = path.join(tmpDir, "output.mp4");
   try {
-    log(`  → MKV yuklab olinmoqda (${Math.round((movie.size || 0) / 1048576)} MB)...`);
-    await downloadToFile(movie.driveFileId, inputPath);
+    log(`  → MKV yuklab olinmoqda (${Math.round((task.size || 0) / 1048576)} MB)...`);
+    await downloadToFile(task.driveFileId, inputPath);
     log(`  → MP4'ga aylantirilmoqda...`);
     const method = await convertToMp4(inputPath, outputPath);
     const outSize = fs.statSync(outputPath).size;
     log(`  → R2'ga yuklanmoqda (${Math.round(outSize / 1048576)} MB, ${method})...`);
     await uploadFileToR2(key, outputPath, outSize);
     log(`  ✓ R2'ga yuklandi: ${url}`);
-    await updateCatalogMovieMetadata(movie.driveFileId, { cdnUrl: url });
+    await task.writeCdn(url);
     return { status: "MIGRATED_MKV", url };
   } finally {
     try { fs.unlinkSync(inputPath); } catch (_) {}
@@ -181,25 +184,26 @@ async function checkExists(key) {
   }
 }
 
-async function uploadOne(movie) {
-  const key = objectKey(movie);
-  const url = publicUrlFor(movie);
+// Bitta faylni (kino yoki epizod) R2'ga ko'chiradi.
+async function uploadOne(task) {
+  const key = objectKey(task.driveFileId);
+  const url = publicUrlFor(task.driveFileId);
 
   if (await checkExists(key)) {
     log(`  [SKIP_EXISTS] R2 da allaqachon bor: ${key}`);
-    if (!movie.cdnUrl) {
+    if (!task.cdnUrl) {
       log(`  [PATCH_META] cdnUrl Drive metadata'ga yoziladi...`);
-      await updateCatalogMovieMetadata(movie.driveFileId, { cdnUrl: url });
+      await task.writeCdn(url);
     }
     return { status: "SKIP_EXISTS", url };
   }
 
-  if (isMkvMovie(movie)) {
-    return migrateMkv(movie);
+  if (isMkvFile(task.fileName, task.mimeType)) {
+    return migrateMkv(task);
   }
 
   log(`  → yuklab olinmoqda va R2'ga upload qilinmoqda (streaming)...`);
-  const upstream = await getDriveMediaResponse(movie.driveFileId);
+  const upstream = await getDriveMediaResponse(task.driveFileId);
   const totalBytes = Number(upstream.headers.get("content-length") || 0);
   const bodyStream = Readable.fromWeb(upstream.body);
 
@@ -231,43 +235,95 @@ async function uploadOne(movie) {
   log(`  ✓ R2'ga yuklandi: ${url}`);
 
   log(`  → cdnUrl Drive metadata'ga yoziladi...`);
-  await updateCatalogMovieMetadata(movie.driveFileId, { cdnUrl: url });
+  await task.writeCdn(url);
 
   return { status: "MIGRATED", url };
 }
 
+function isVideoFile(fileName, mimeType) {
+  const mime = String(mimeType || "").toLowerCase();
+  const ext = String(fileName || "").split(".").pop()?.toLowerCase();
+  return mime.includes("mp4") || mime.includes("quicktime") || mime.includes("matroska")
+    || ["mp4", "m4v", "mov", "mkv", "webm", "avi"].includes(ext);
+}
+
+// Kinoni umumiy "task" ko'rinishiga keltiradi.
+function movieToTask(movie) {
+  return {
+    kind: "movie",
+    driveFileId: movie.driveFileId,
+    fileName: movie.fileName || "",
+    mimeType: movie.mimeType || "",
+    size: movie.size || 0,
+    cdnUrl: movie.cdnUrl || "",
+    label: movie.fileName || movie.title || movie.driveFileId,
+    writeCdn: (url) => updateCatalogMovieMetadata(movie.driveFileId, { cdnUrl: url }),
+  };
+}
+
+// Serial epizodini umumiy "task" ko'rinishiga keltiradi.
+function episodeToTask(series, episode) {
+  return {
+    kind: "episode",
+    driveFileId: episode.id,
+    fileName: episode.fileName || "",
+    mimeType: episode.mimeType || "",
+    size: episode.size || 0,
+    cdnUrl: episode.cdnUrl || "",
+    label: `[serial] ${series.title} — ${episode.title || episode.fileName || episode.id}`,
+    writeCdn: (url) => updateCatalogSeriesMetadata(series.folderId || series.id, {
+      episodeCdn: { [episode.id]: url },
+    }),
+  };
+}
+
 async function main() {
   log(APPLY ? "MODE: APPLY (haqiqiy migratsiya)" : "MODE: STATUS (faqat ko'rsatish)");
-  log("Drive katalogi olinmoqda...");
+
+  log("Drive kino katalogi olinmoqda...");
   const movies = await listDriveMovies();
-  log(`Topildi: ${movies.length} ta kino.\n`);
+  const videoMovies = movies.filter((m) => isVideoFile(m.fileName, m.mimeType));
+  const movieTasks = videoMovies.map(movieToTask);
 
-  const videoMovies = movies.filter((m) => {
-    const mime = String(m.mimeType || "").toLowerCase();
-    const ext = String(m.fileName || "").split(".").pop()?.toLowerCase();
-    return mime.includes("mp4") || mime.includes("quicktime") || mime.includes("matroska")
-      || ["mp4", "m4v", "mov", "mkv", "webm", "avi"].includes(ext);
-  });
+  log("Drive serial katalogi olinmoqda...");
+  let seriesList = [];
+  try {
+    seriesList = await listDriveSeries();
+  } catch (error) {
+    log(`  Seriallar olinmadi (skip): ${error.message}`);
+  }
+  const episodeTasks = [];
+  for (const series of seriesList) {
+    for (const episode of series.episodes || []) {
+      if (!episode.id) continue;
+      if (!isVideoFile(episode.fileName, episode.mimeType)) continue;
+      episodeTasks.push(episodeToTask(series, episode));
+    }
+  }
 
-  const alreadyMigrated = videoMovies.filter((m) => m.cdnUrl);
-  const needsMigrate = videoMovies.filter((m) => !m.cdnUrl);
-  const mkvCount = needsMigrate.filter(isMkvMovie).length;
+  const allTasks = [...movieTasks, ...episodeTasks];
+  const alreadyMigrated = allTasks.filter((t) => t.cdnUrl);
+  const needsMigrate = allTasks.filter((t) => !t.cdnUrl);
+  const mkvCount = needsMigrate.filter((t) => isMkvFile(t.fileName, t.mimeType)).length;
 
-  log(`Videolar: ${videoMovies.length}`);
+  log("");
+  log(`Kinolar:          ${movieTasks.length}`);
+  log(`Serial:           ${seriesList.length} ta serial, ${episodeTasks.length} ta epizod`);
+  log(`Jami videolar:    ${allTasks.length}`);
   log(`  Allaqachon ko'chgan: ${alreadyMigrated.length}`);
   log(`  Migratsiya kerak:    ${needsMigrate.length}  (shundan MKV/konvert: ${mkvCount})`);
-  log(`  Boshqa formatlar:    ${movies.length - videoMovies.length} (skip)\n`);
+  log("");
 
   if (!APPLY) {
     log("Migratsiya boshlash uchun:");
     log("  node scripts/migrate-to-r2.js --apply --limit 1   # 1 ta sinab ko'rish");
-    log("  node scripts/migrate-to-r2.js --apply --all       # hammasi");
+    log("  node scripts/migrate-to-r2.js --apply --all       # hammasi (kino + serial)");
     return;
   }
 
   let targets = [];
   if (SPECIFIC_ID) {
-    const target = videoMovies.find((m) => m.driveFileId === SPECIFIC_ID);
+    const target = allTasks.find((t) => t.driveFileId === SPECIFIC_ID);
     if (!target) { log(`Topilmadi: ${SPECIFIC_ID}`); return; }
     targets = [target];
   } else if (ALL) {
@@ -276,20 +332,20 @@ async function main() {
     targets = needsMigrate.slice(0, Number.isFinite(LIMIT) ? LIMIT : 1);
   }
 
-  log(`Migratsiya qilinadi: ${targets.length} ta kino.\n`);
+  log(`Migratsiya qilinadi: ${targets.length} ta video.\n`);
   const results = [];
 
   for (let i = 0; i < targets.length; i += 1) {
-    const movie = targets[i];
-    log(`[${i + 1}/${targets.length}] ${movie.fileName || movie.title}`);
-    log(`  Drive ID: ${movie.driveFileId}`);
-    log(`  Hajm: ${Math.round((movie.size || 0) / 1048576)} MB`);
+    const task = targets[i];
+    log(`[${i + 1}/${targets.length}] ${task.label}`);
+    log(`  Drive ID: ${task.driveFileId}`);
+    log(`  Hajm: ${Math.round((task.size || 0) / 1048576)} MB`);
     try {
-      const result = await uploadOne(movie);
-      results.push({ ...result, name: movie.fileName });
+      const result = await uploadOne(task);
+      results.push({ ...result, name: task.label });
       log(`  ${result.status}\n`);
     } catch (error) {
-      results.push({ status: "FAIL", error: error.message, name: movie.fileName });
+      results.push({ status: "FAIL", error: error.message, name: task.label });
       log(`  FAIL: ${error.message}\n`);
     }
   }
