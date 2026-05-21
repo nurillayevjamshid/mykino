@@ -4781,7 +4781,8 @@ async function loadSeriesCatalog() {
   try {
     const res = await fetch("/api/series", { cache: "no-store" });
     const json = await res.json();
-    seriesCatalog = (Array.isArray(json) ? json : []).map(normalizeSeriesEntry).filter((s) => s.id);
+    const parsed = (Array.isArray(json) ? json : []).map(normalizeSeriesEntry).filter((s) => s.id);
+    seriesCatalog = sessionShuffleCategories(parsed, (s) => s.id);
   } catch (_) {
     seriesCatalog = [];
   }
