@@ -80,6 +80,9 @@ async function handleSeriesUpdate(request, response) {
   }
   if (hasOwn(body, "posterImage")) updates.posterImage = body.posterImage;
   if (!hasOwn(body, "posterImage") && hasOwn(body, "poster")) updates.posterImage = body.poster;
+  if (body.episodes && typeof body.episodes === "object" && !Array.isArray(body.episodes)) {
+    updates.episodes = body.episodes;
+  }
 
   const saved = await updateCatalogSeriesMetadata(id, updates);
   const override = saved.override;
