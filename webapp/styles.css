@@ -174,7 +174,7 @@ html {
   touch-action: manipulation;
   -ms-touch-action: manipulation;
   background:
-    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+    linear-gradient(180deg, #121827 0%, #180f17 52%, #0b1018 100%);
 }
 
 body {
@@ -186,10 +186,9 @@ body {
   -webkit-text-size-adjust: 100%;
   color: var(--text);
   background:
-    radial-gradient(120% 60% at 15% 0%, rgba(110, 70, 220, 0.28) 0%, rgba(110, 70, 220, 0) 60%),
-    radial-gradient(110% 55% at 95% 8%, rgba(255, 90, 190, 0.16) 0%, rgba(255, 90, 190, 0) 55%),
-    radial-gradient(130% 70% at 50% 100%, rgba(40, 200, 230, 0.1) 0%, rgba(40, 200, 230, 0) 60%),
-    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+    linear-gradient(135deg, rgba(255, 199, 58, 0.08) 0%, transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 18%),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 48%, var(--bg-0) 100%);
 }
 
 body::before {
@@ -3706,11 +3705,15 @@ html[data-theme="light"] .card-copy {
 
 html,
 body {
-  background:
-    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+  background: var(--muvi-bg);
+}
+
+html {
+  background-image: none;
 }
 
 body {
+  background-image: none;
   font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -3724,11 +3727,7 @@ body::before {
   margin: 0 auto;
   padding: 0 0 110px;
   display: block;
-  background:
-    radial-gradient(120% 60% at 15% 0%, rgba(110, 70, 220, 0.28) 0%, rgba(110, 70, 220, 0) 60%),
-    radial-gradient(110% 55% at 95% 8%, rgba(255, 90, 190, 0.16) 0%, rgba(255, 90, 190, 0) 55%),
-    radial-gradient(130% 70% at 50% 100%, rgba(40, 200, 230, 0.1) 0%, rgba(40, 200, 230, 0) 60%),
-    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+  background: var(--muvi-bg);
   min-height: 100vh;
   position: relative;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.6);
@@ -4530,16 +4529,11 @@ html[data-theme="light"] .card-copy {
 
 /* Light theme fall-back: lock to dark for MUVI look */
 html[data-theme="light"] {
-  background:
-    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+  background: var(--muvi-bg);
 }
 
 html[data-theme="light"] body {
-  background:
-    radial-gradient(120% 60% at 15% 0%, rgba(110, 70, 220, 0.28) 0%, rgba(110, 70, 220, 0) 60%),
-    radial-gradient(110% 55% at 95% 8%, rgba(255, 90, 190, 0.16) 0%, rgba(255, 90, 190, 0) 55%),
-    radial-gradient(130% 70% at 50% 100%, rgba(40, 200, 230, 0.1) 0%, rgba(40, 200, 230, 0) 60%),
-    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+  background: var(--muvi-bg);
   color: #fff;
 }
 
@@ -4634,8 +4628,7 @@ html[data-theme="dark"] {
 
 html,
 body {
-  background:
-    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+  background: var(--c-bg);
 }
 
 body {
@@ -4647,11 +4640,7 @@ body::before {
 }
 
 .app-shell {
-  background:
-    radial-gradient(120% 60% at 15% 0%, rgba(110, 70, 220, 0.28) 0%, rgba(110, 70, 220, 0) 60%),
-    radial-gradient(110% 55% at 95% 8%, rgba(255, 90, 190, 0.16) 0%, rgba(255, 90, 190, 0) 55%),
-    radial-gradient(130% 70% at 50% 100%, rgba(40, 200, 230, 0.1) 0%, rgba(40, 200, 230, 0) 60%),
-    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+  background: var(--c-app-glow);
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.06);
 }
 
@@ -4661,16 +4650,29 @@ html[data-theme="dark"] .app-shell {
     inset 0 0 120px rgba(229, 9, 20, 0.04);
 }
 
+/* Dark rejim — kino bo'limi foni musiqa bo'limidagidek binafsha gradient.
+   Light rejimga ta'sir qilmaydi. */
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background:
+    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+}
+
+html[data-theme="dark"] .app-shell {
+  background:
+    radial-gradient(120% 60% at 15% 0%, rgba(110, 70, 220, 0.28) 0%, rgba(110, 70, 220, 0) 60%),
+    radial-gradient(110% 55% at 95% 8%, rgba(255, 90, 190, 0.16) 0%, rgba(255, 90, 190, 0) 55%),
+    radial-gradient(130% 70% at 50% 100%, rgba(40, 200, 230, 0.1) 0%, rgba(40, 200, 230, 0) 60%),
+    linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+}
+
 @media (min-width: 768px) {
   html[data-theme="dark"] body {
-    background: radial-gradient(900px 600px at 50% 0%, #110709 0%, #050505 70%);
+    background:
+      linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
   }
   html[data-theme="light"] body {
-    background:
-      radial-gradient(120% 60% at 15% 0%, rgba(110, 70, 220, 0.28) 0%, rgba(110, 70, 220, 0) 60%),
-      radial-gradient(110% 55% at 95% 8%, rgba(255, 90, 190, 0.16) 0%, rgba(255, 90, 190, 0) 55%),
-      radial-gradient(130% 70% at 50% 100%, rgba(40, 200, 230, 0.1) 0%, rgba(40, 200, 230, 0) 60%),
-      linear-gradient(180deg, #0c0b16 0%, #07070d 55%, #060509 100%);
+    background: radial-gradient(900px 600px at 50% 0%, #ffffff 0%, #efeff1 70%);
   }
 }
 
