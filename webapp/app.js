@@ -1837,13 +1837,21 @@ function buildHomeCategoryGroups() {
       groups.get(value).movies.push(movie);
     }
   }
-  return sessionShuffleCategories([...groups.values()], (g) => g.value);
+  const entries = [...groups.values()];
+  if (seriesCatalogLoaded && Array.isArray(seriesCatalog) && seriesCatalog.length) {
+    entries.push({ value: "__series__", isSeries: true, movies: [] });
+  }
+  return sessionShuffleCategories(entries, (g) => g.value);
 }
 
 function renderHomeRows() {
   const groups = buildHomeCategoryGroups();
   const moreLabel = plainLabel(t("categories"));
   for (const group of groups) {
+    if (group.isSeries) {
+      renderHomeSeriesRow();
+      continue;
+    }
     if (!group.movies.length) continue;
     const section = document.createElement("section");
     section.className = "category-row";
@@ -1973,12 +1981,8 @@ function renderMovies() {
 
   if (isHomeView && movieLoadState === "ready") {
     grid.classList.add("is-home");
+    if (!seriesCatalogLoaded) loadSeriesCatalog();
     const rowCount = renderHomeRows();
-    if (seriesCatalogLoaded) {
-      renderHomeSeriesRow();
-    } else {
-      loadSeriesCatalog();
-    }
     updateEmptyState(rowCount > 0 ? getViewerMovies() : []);
   } else {
     grid.classList.remove("is-home");
