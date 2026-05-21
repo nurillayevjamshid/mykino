@@ -234,6 +234,31 @@
       <p class="category-detail-view__empty" id="categoryDetailEmpty" hidden>Bu kategoriyada kinolar topilmadi.</p>
     </section>
 
+    <section class="category-detail-view" id="seriesListView" hidden aria-label="Seriallar">
+      <header class="category-detail-view__head">
+        <button type="button" class="category-detail-view__back" id="seriesListBack" aria-label="Orqaga">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 6 9 12l6 6"></path>
+          </svg>
+        </button>
+        <h2 class="category-detail-view__title">Seriallar</h2>
+      </header>
+      <div class="movie-grid category-detail-view__grid" id="seriesListGrid"></div>
+      <p class="category-detail-view__empty" id="seriesListEmpty" hidden>Seriallar hali qo'shilmagan.</p>
+    </section>
+
+    <section class="category-detail-view" id="seriesDetailView" hidden aria-label="Serial">
+      <header class="category-detail-view__head">
+        <button type="button" class="category-detail-view__back" id="seriesDetailBack" aria-label="Orqaga">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 6 9 12l6 6"></path>
+          </svg>
+        </button>
+        <h2 class="category-detail-view__title" id="seriesDetailTitle"></h2>
+      </header>
+      <div class="series-detail" id="seriesDetailBody"></div>
+    </section>
+
     <footer class="app-footer" aria-label="Sayt ma'lumotlari">
       <div class="app-footer__brand">
         <span class="app-footer__logo" aria-hidden="true">
@@ -678,7 +703,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260521-user02"></script>
+  <script src="/static/app.js?v=20260521-series01"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });

@@ -4598,23 +4598,24 @@ function escapeAttr(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+const SERIES_CATEGORY_CARD = `<button class="category-card category-card--series" type="button" data-series-entry="1" aria-label="Seriallar"><span class="category-card__label">Seriallar</span></button>`;
+
 function renderCategoriesGrid() {
   if (!categoriesGrid) return;
-  if (!categoriesData.length) {
-    categoriesGrid.innerHTML = "";
-    if (categoriesEmpty) categoriesEmpty.hidden = false;
-    return;
-  }
   if (categoriesEmpty) categoriesEmpty.hidden = true;
-  categoriesGrid.innerHTML = categoriesData.map((c) => {
+  const cards = categoriesData.map((c) => {
     const bg = c.image ? `style="background-image:url('${escapeAttr(c.image).replaceAll("'", "%27")}')"` : "";
     return `<button class="category-card" type="button" data-category-name="${escapeAttr(c.name)}" aria-label="${escapeAttr(c.name)}" ${bg}></button>`;
-  }).join("");
+  });
+  categoriesGrid.innerHTML = [SERIES_CATEGORY_CARD, ...cards].join("");
 }
 
 function openCategoriesView() {
   if (!categoriesView) return;
   closeMusicView();
+  if (seriesListView) seriesListView.hidden = true;
+  if (seriesDetailView) seriesDetailView.hidden = true;
+  document.body.classList.remove("is-series-list", "is-series-detail");
   categoriesView.hidden = false;
   document.body.classList.add("is-categories");
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4642,6 +4643,10 @@ document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-ac
 });
 
 categoriesGrid?.addEventListener("click", (event) => {
+  if (event.target.closest("[data-series-entry]")) {
+    openSeriesListView();
+    return;
+  }
   const card = event.target.closest("[data-category-name]");
   if (!card) return;
   const name = card.dataset.categoryName || "";
@@ -4693,6 +4698,206 @@ function closeCategoryDetailView({ goHome = false } = {}) {
 }
 
 categoryDetailBack?.addEventListener("click", () => closeCategoryDetailView());
+
+// ===== Seriallar (series) =====
+const seriesListView = document.getElementById("seriesListView");
+const seriesListGrid = document.getElementById("seriesListGrid");
+const seriesListEmpty = document.getElementById("seriesListEmpty");
+const seriesDetailView = document.getElementById("seriesDetailView");
+const seriesDetailTitle = document.getElementById("seriesDetailTitle");
+const seriesDetailBody = document.getElementById("seriesDetailBody");
+let seriesCatalog = [];
+let seriesCatalogLoaded = false;
+let seriesCatalogLoading = false;
+let activeSeries = null;
+
+function normalizeSeriesEntry(raw) {
+  const episodes = Array.isArray(raw?.episodes) ? raw.episodes : [];
+  return {
+    id: String(raw?.id || raw?.folderId || ""),
+    title: String(raw?.title || raw?.folderName || "Serial").trim(),
+    description: String(raw?.description || "").trim(),
+    posterImage: resolveAppUrl(String(raw?.posterImage || raw?.poster || "").trim()),
+    episodeCount: Number(raw?.episodeCount || episodes.length || 0),
+    episodes: episodes.map((ep, i) => ({
+      id: String(ep?.id || ""),
+      title: String(ep?.title || `Qism ${i + 1}`).trim(),
+      fileName: String(ep?.fileName || "").trim(),
+      mimeType: String(ep?.mimeType || "").trim(),
+    })).filter((ep) => ep.id),
+  };
+}
+
+async function loadSeriesCatalog() {
+  if (seriesCatalogLoading) return;
+  seriesCatalogLoading = true;
+  try {
+    const res = await fetch("/api/series", { cache: "no-store" });
+    const json = await res.json();
+    seriesCatalog = (Array.isArray(json) ? json : []).map(normalizeSeriesEntry).filter((s) => s.id);
+  } catch (_) {
+    seriesCatalog = [];
+  }
+  seriesCatalogLoaded = true;
+  seriesCatalogLoading = false;
+  renderSeriesListGrid();
+}
+
+function createSeriesCard(series) {
+  const card = document.createElement("article");
+  card.className = "movie-card";
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", series.title);
+  const poster = String(series.posterImage || "");
+  const posterAttr = poster ? ` style="background-image:url('${poster.replaceAll("'", "%27")}')"` : "";
+  card.innerHTML = `
+    <span class="poster"${posterAttr}>
+      <span class="card-badges">
+        <span class="badge">${escapeHtml(String(series.episodeCount))} qism</span>
+      </span>
+    </span>
+    <span class="card-copy">
+      <h2>${escapeHtml(series.title)}</h2>
+      <p class="card-meta"><span class="card-meta__genre">Serial</span></p>
+    </span>
+  `;
+  const open = () => openSeriesDetailView(series);
+  card.addEventListener("click", open);
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      open();
+    }
+  });
+  return card;
+}
+
+function renderSeriesListGrid() {
+  if (!seriesListGrid) return;
+  seriesListGrid.innerHTML = "";
+  if (!seriesCatalog.length) {
+    if (seriesListEmpty) {
+      seriesListEmpty.hidden = false;
+      seriesListEmpty.textContent = "Seriallar hali qo'shilmagan.";
+    }
+    return;
+  }
+  if (seriesListEmpty) seriesListEmpty.hidden = true;
+  for (const series of seriesCatalog) {
+    try { seriesListGrid.append(createSeriesCard(series)); } catch (_) {}
+  }
+}
+
+function openSeriesListView() {
+  if (!seriesListView) return;
+  if (categoriesView) categoriesView.hidden = true;
+  if (seriesDetailView) seriesDetailView.hidden = true;
+  seriesListView.hidden = false;
+  document.body.classList.add("is-series-list");
+  document.body.classList.remove("is-series-detail", "is-categories");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (!seriesCatalogLoaded) {
+    if (seriesListGrid) seriesListGrid.innerHTML = "";
+    if (seriesListEmpty) {
+      seriesListEmpty.hidden = false;
+      seriesListEmpty.textContent = "Yuklanmoqda...";
+    }
+    loadSeriesCatalog();
+  } else {
+    renderSeriesListGrid();
+  }
+}
+
+function closeSeriesListView() {
+  if (!seriesListView) return;
+  seriesListView.hidden = true;
+  document.body.classList.remove("is-series-list");
+}
+
+function openSeriesDetailView(series) {
+  if (!seriesDetailView || !series) return;
+  activeSeries = series;
+  if (seriesDetailTitle) seriesDetailTitle.textContent = series.title;
+  const poster = String(series.posterImage || "");
+  const eps = Array.isArray(series.episodes) ? series.episodes : [];
+  const posterStyleAttr = poster ? `background-image:url('${poster.replaceAll("'", "%27")}')` : "";
+  const epHtml = eps.length
+    ? `<ol class="episode-list">${eps.map((ep, i) => `
+        <li><button class="episode-row" type="button" data-ep-index="${i}">
+          <span class="episode-row__num">${i + 1}</span>
+          <span class="episode-row__title">${escapeHtml(ep.title || ("Qism " + (i + 1)))}</span>
+          <svg class="episode-row__play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+        </button></li>`).join("")}</ol>`
+    : `<p class="episode-empty">Bu serialda hali qism yo'q.</p>`;
+  if (seriesDetailBody) {
+    seriesDetailBody.innerHTML = `
+      <div class="series-hero">
+        <div class="series-hero__poster" style="${posterStyleAttr}"></div>
+        <div class="series-hero__info">
+          <p class="series-hero__count">${escapeHtml(String(eps.length))} ta qism</p>
+          ${series.description ? `<p class="series-hero__desc">${escapeHtml(series.description)}</p>` : ""}
+        </div>
+      </div>
+      ${epHtml}
+    `;
+  }
+  if (seriesListView) seriesListView.hidden = true;
+  seriesDetailView.hidden = false;
+  document.body.classList.add("is-series-detail");
+  document.body.classList.remove("is-series-list");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function closeSeriesDetailView() {
+  if (!seriesDetailView) return;
+  seriesDetailView.hidden = true;
+  document.body.classList.remove("is-series-detail");
+  if (seriesListView) {
+    seriesListView.hidden = false;
+    document.body.classList.add("is-series-list");
+  }
+}
+
+function playSeriesEpisode(series, episode, index) {
+  if (!episode || !episode.id) return;
+  const epMovie = {
+    id: `series-${series.id}-ep-${episode.id}`,
+    title: `${series.title} — ${episode.title || ("Qism " + (index + 1))}`,
+    driveFileId: episode.id,
+    fileId: episode.id,
+    fileName: episode.fileName || "",
+    mimeType: episode.mimeType || "video/mp4",
+    posterImage: series.posterImage || "",
+    description: series.description || "",
+  };
+  openVideoPlayer(epMovie);
+}
+
+seriesDetailBody?.addEventListener("click", (event) => {
+  const row = event.target.closest(".episode-row");
+  if (!row || !activeSeries) return;
+  const index = Number(row.dataset.epIndex);
+  const episode = activeSeries.episodes[index];
+  if (episode) playSeriesEpisode(activeSeries, episode, index);
+});
+
+document.getElementById("seriesListBack")?.addEventListener("click", () => {
+  closeSeriesListView();
+  if (categoriesView) {
+    categoriesView.hidden = false;
+    document.body.classList.add("is-categories");
+  }
+});
+
+document.getElementById("seriesDetailBack")?.addEventListener("click", () => closeSeriesDetailView());
+
+document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-action='favorites']").forEach((b) => {
+  b.addEventListener("click", () => {
+    closeSeriesDetailView();
+    closeSeriesListView();
+  });
+});
 
 document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-action='favorites'], .bottom-bar [data-action='profile']").forEach((b) => {
   b.addEventListener("click", () => closeCategoryDetailView({ goHome: true }));
