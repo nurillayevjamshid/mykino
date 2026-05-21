@@ -1018,6 +1018,7 @@ function toDriveSeries(folder, episodeFiles) {
     id: file.id,
     title: stripExtension(file.name).replace(/[._]+/g, " ").trim() || `Qism ${index + 1}`,
     fileName: file.name || "",
+    mimeType: file.mimeType || "video/mp4",
     streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     size: Number(file.size || 0) || 0,

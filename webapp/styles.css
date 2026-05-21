@@ -7976,6 +7976,113 @@ body.is-category-detail .app-footer,
 body.is-category-detail .categories-view,
 body.is-category-detail .search-panel { display: none !important; }
 
+/* ===== Seriallar (series) ===== */
+body.is-series-list .movie-grid:not(.category-detail-view__grid),
+body.is-series-list .hero,
+body.is-series-list .app-footer,
+body.is-series-list .categories-view,
+body.is-series-list .search-panel { display: none !important; }
+
+body.is-series-detail .movie-grid:not(.category-detail-view__grid),
+body.is-series-detail .hero,
+body.is-series-detail .app-footer,
+body.is-series-detail .categories-view,
+body.is-series-detail .search-panel { display: none !important; }
+
+.category-card--series {
+  background: linear-gradient(135deg, #7c3aed, #4c1d95) !important;
+  color: #fff !important;
+}
+.category-card__label {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.series-detail { padding-bottom: 8px; }
+.series-hero {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.series-hero__poster {
+  width: 110px;
+  flex: 0 0 110px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-md, 12px);
+  background: var(--glass, rgba(255, 255, 255, 0.1)) center / cover no-repeat;
+}
+.series-hero__info { flex: 1; min-width: 0; }
+.series-hero__count {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold, #ffc73a);
+  margin: 2px 0 8px;
+}
+.series-hero__desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted, rgba(236, 239, 247, 0.72));
+  margin: 0;
+}
+.episode-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.episode-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--glass-line, rgba(255, 255, 255, 0.18));
+  border-radius: var(--radius-md, 12px);
+  background: var(--glass, rgba(255, 255, 255, 0.06));
+  color: var(--text, #f7f7fb);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.episode-row:active { transform: scale(0.99); }
+.episode-row__num {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--gold, #ffc73a);
+  color: #1a1a1a;
+  font-weight: 800;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.episode-row__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.episode-row__play {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: var(--muted, rgba(236, 239, 247, 0.72));
+}
+.episode-empty {
+  text-align: center;
+  color: var(--text-muted, #888);
+  padding: 40px 20px;
+  font-size: 14px;
+}
+
 /* === nav-icon-click-anim (revertable: delete from this marker to EOF) === */
 @keyframes nav-pop {
   0%   { transform: scale(1); }
