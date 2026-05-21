@@ -21,8 +21,18 @@
 
 <body>
   <div id="splashScreen" class="splash-screen">
-    <img src="/static/assets/splash.jpg?v=20260521-gap01" alt="My Playlist" />
-    <div class="splash-overlay"></div>
+    <div class="splash-screen__spinner" aria-hidden="true"></div>
+    <div class="splash-screen__brand">
+      <span class="splash-screen__logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+          <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+        </svg>
+      </span>
+      <span class="splash-screen__name">
+        <b>MY</b><span>PLAYLIST</span>
+      </span>
+    </div>
   </div>
   <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
   <aside class="sidebar" id="appSidebar" aria-label="Asosiy menyu" aria-hidden="true">
