@@ -6,6 +6,8 @@ const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 const DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token";
 const LOGO_POSTER_URL = "/static/assets/my-kino-logo.png";
 const METADATA_FILE_NAME = ".my-kino-metadata.json";
+const SERIES_FOLDER_NAME = "seriallar";
+const DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
 const EMBEDDED_META_START = "[MY_KINO_META]";
 const EMBEDDED_META_END = "[/MY_KINO_META]";
 const DRIVE_DESCRIPTION_MAX_LENGTH = 28000;
@@ -269,6 +271,7 @@ function defaultMetadataPayload() {
     updatedAt: "",
     settings: {},
     movies: {},
+    series: {},
   };
 }
 
@@ -280,6 +283,7 @@ function normalizeCatalogMetadata(payload) {
     updatedAt: trimString(payload.updatedAt),
     settings: payload.settings && typeof payload.settings === "object" ? payload.settings : {},
     movies: payload.movies && typeof payload.movies === "object" ? payload.movies : {},
+    series: payload.series && typeof payload.series === "object" ? payload.series : {},
   };
 }
 
@@ -941,6 +945,157 @@ async function listDriveMovies() {
   return files.map((file, index) => toDriveMovie(file, index, metadataMap));
 }
 
+async function findSeriesRootFolder() {
+  const { folderId } = getDriveConfig();
+  const payload = await driveFetchJson("", {
+    query: {
+      q: `'${folderId}' in parents and trashed=false and mimeType='${DRIVE_FOLDER_MIME}'`,
+      pageSize: 100,
+      supportsAllDrives: "true",
+      includeItemsFromAllDrives: "true",
+      fields: "files(id,name)",
+    },
+  });
+  const folders = payload.files || [];
+  return folders.find((folder) => trimString(folder.name).toLowerCase() === SERIES_FOLDER_NAME) || null;
+}
+
+async function listFolderVideos(folderId) {
+  const files = [];
+  let pageToken = "";
+  do {
+    const payload = await driveFetchJson("", {
+      query: {
+        q: `'${folderId}' in parents and trashed=false and mimeType contains 'video/'`,
+        orderBy: "name",
+        pageSize: 200,
+        pageToken,
+        supportsAllDrives: "true",
+        includeItemsFromAllDrives: "true",
+        fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime)",
+      },
+    });
+    files.push(...(payload.files || []));
+    pageToken = payload.nextPageToken || "";
+  } while (pageToken);
+  return files;
+}
+
+function toDriveSeries(folder, episodeFiles, seriesMap = {}) {
+  const override = getMetadataOverride(seriesMap, folder.id) || {};
+  const folderName = trimString(folder.name);
+  const title = trimString(override.title) || folderName || "Serial";
+  const description = sanitizePublicDescription(trimString(override.description));
+  const posterImage = trimString(override.posterImage);
+  const episodes = episodeFiles.map((file, index) => ({
+    id: file.id,
+    title: stripExtension(file.name).replace(/[._]+/g, " ").trim() || `Qism ${index + 1}`,
+    fileName: file.name || "",
+    streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
+    videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
+    size: Number(file.size || 0) || 0,
+    createdTime: file.createdTime || "",
+    modifiedTime: file.modifiedTime || "",
+  }));
+  return {
+    id: folder.id,
+    folderId: folder.id,
+    sourceType: "google_drive_folder",
+    title,
+    folderName,
+    description,
+    posterImage: posterImage || LOGO_POSTER_URL,
+    poster: posterImage || LOGO_POSTER_URL,
+    hasCustomPoster: Boolean(posterImage),
+    episodeCount: episodes.length,
+    episodes,
+    createdTime: folder.createdTime || "",
+    modifiedTime: folder.modifiedTime || "",
+  };
+}
+
+async function listDriveSeries() {
+  const seriesRoot = await findSeriesRootFolder();
+  if (!seriesRoot) return [];
+
+  const seriesFolders = [];
+  let pageToken = "";
+  do {
+    const payload = await driveFetchJson("", {
+      query: {
+        q: `'${seriesRoot.id}' in parents and trashed=false and mimeType='${DRIVE_FOLDER_MIME}'`,
+        orderBy: "name",
+        pageSize: 100,
+        pageToken,
+        supportsAllDrives: "true",
+        includeItemsFromAllDrives: "true",
+        fields: "nextPageToken,files(id,name,createdTime,modifiedTime)",
+      },
+    });
+    seriesFolders.push(...(payload.files || []));
+    pageToken = payload.nextPageToken || "";
+  } while (pageToken);
+
+  if (seriesFolders.length === 0) return [];
+
+  const metadataState = await readCatalogMetadata();
+  const seriesMap = metadataState.data?.series && typeof metadataState.data.series === "object"
+    ? metadataState.data.series
+    : {};
+
+  const series = await Promise.all(
+    seriesFolders.map(async (folder) => {
+      const episodeFiles = await listFolderVideos(folder.id);
+      return toDriveSeries(folder, episodeFiles, seriesMap);
+    }),
+  );
+
+  return series;
+}
+
+async function updateCatalogSeriesMetadata(folderId, updates = {}) {
+  const normalizedId = trimString(folderId);
+  if (!normalizedId) {
+    const error = new Error("Serial ID si kerak.");
+    error.statusCode = 400;
+    error.code = "SERIES_ID_MISSING";
+    throw error;
+  }
+
+  if (isDataImageValue(updates.posterImage)) {
+    const upload = await uploadImageToVercelBlob(updates.posterImage, "series-poster");
+    updates.posterImage = upload.directUrl;
+  }
+
+  const metadataState = await readCatalogMetadata();
+  const metadata = normalizeCatalogMetadata(metadataState.data);
+  const current = metadata.series[normalizedId] && typeof metadata.series[normalizedId] === "object"
+    ? metadata.series[normalizedId]
+    : {};
+  const next = { ...current };
+
+  if (updates.title !== undefined) next.title = trimString(updates.title);
+  if (updates.description !== undefined) {
+    const nextDescription = trimString(updates.description);
+    if (nextDescription.length > MOVIE_DESCRIPTION_MAX_LENGTH) {
+      const error = new Error(`Tavsif juda uzun. Maksimal: ${MOVIE_DESCRIPTION_MAX_LENGTH} ta belgi.`);
+      error.statusCode = 400;
+      error.code = "DESCRIPTION_TOO_LONG";
+      throw error;
+    }
+    next.description = nextDescription;
+  }
+  if (updates.posterImage !== undefined) next.posterImage = trimString(updates.posterImage);
+
+  metadata.series[normalizedId] = next;
+  await writeCatalogMetadata(metadata, metadataState.file);
+
+  return {
+    id: normalizedId,
+    override: next,
+  };
+}
+
 async function getDriveFileMetadata(fileId, fields) {
   return driveFetchJson(encodeURIComponent(fileId), {
     query: {
@@ -978,6 +1133,8 @@ module.exports = {
   getDriveMediaResponse,
   isServiceAccountStorageQuotaError,
   listDriveMovies,
+  listDriveSeries,
+  updateCatalogSeriesMetadata,
   readCatalogMetadata,
   writeCatalogMetadata,
   setCors,

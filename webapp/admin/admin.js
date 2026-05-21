@@ -518,6 +518,60 @@ function bindEvents() {
     }
   });
 
+  // Movie tabs (Kinolar / Seriallar)
+  document.querySelectorAll('.movie-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchMovieTab(tab.dataset.movieTab));
+  });
+
+  // Series search + refresh
+  document.getElementById('seriesSearchInput')?.addEventListener('input', (e) => {
+    filterSeries(e.target.value);
+  });
+  document.getElementById('refreshSeriesBtn')?.addEventListener('click', async () => {
+    await fetchSeries();
+    showNotification('Ro\'yxat yangilandi.');
+  });
+
+  // Series card click
+  document.getElementById('seriesCardGrid')?.addEventListener('click', (e) => {
+    const card = e.target.closest('.series-card');
+    if (card?.dataset.seriesId) editSeries(card.dataset.seriesId);
+  });
+
+  // Series modal closes + form
+  document.getElementById('closeSeriesModal')?.addEventListener('click', closeSeriesModal);
+  document.getElementById('cancelSeries')?.addEventListener('click', closeSeriesModal);
+  document.getElementById('seriesForm')?.addEventListener('submit', handleSeriesSubmit);
+  document.getElementById('seriesDescription')?.addEventListener('input', updateSeriesDescriptionCounter);
+
+  // Series poster upload
+  document.getElementById('seriesPosterFile')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      selectedSeriesPosterDataUrl = await readPosterFile(file);
+      updateSeriesPosterPreview(selectedSeriesPosterDataUrl);
+      const urlInput = document.getElementById('seriesPosterUrl');
+      if (urlInput) urlInput.value = '';
+    } catch (error) {
+      showNotification(error.message || 'Rasmni o\'qib bo\'lmadi.', 'error');
+      e.target.value = '';
+      selectedSeriesPosterDataUrl = '';
+      updateSeriesPosterPreview('');
+    }
+  });
+  document.getElementById('seriesPosterUrl')?.addEventListener('input', (e) => {
+    const url = e.target.value.trim();
+    if (url) {
+      const fileInput = document.getElementById('seriesPosterFile');
+      if (fileInput) fileInput.value = '';
+      selectedSeriesPosterDataUrl = '';
+      updateSeriesPosterPreview(url);
+    } else {
+      updateSeriesPosterPreview('');
+    }
+  });
+
   // Close modals on backdrop click
   document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('click', (e) => {
@@ -869,6 +923,259 @@ function editMovie(id) {
   const movie = movies.find(m => sameMovieId(m.id, id));
   if (movie) openMovieModal(movie);
 }
+
+// ------------- Series (seriallar) -------------
+let seriesList = [];
+let filteredSeries = [];
+let seriesSearchQuery = '';
+let selectedSeriesPosterDataUrl = '';
+let seriesLoaded = false;
+
+function switchMovieTab(name) {
+  if (!name) return;
+  document.querySelectorAll('.movie-tab').forEach(tab => {
+    const active = tab.dataset.movieTab === name;
+    tab.classList.toggle('is-active', active);
+    tab.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
+    tab.style.color = active ? 'var(--text,#111)' : 'var(--text-muted,#666)';
+  });
+  document.querySelectorAll('.movie-tabpanel').forEach(panel => {
+    panel.hidden = panel.dataset.movieTabpanel !== name;
+  });
+  if (name === 'series' && !seriesLoaded) fetchSeries();
+}
+
+function normalizeSeriesFromApi(item) {
+  return {
+    id: String(item.id || item.folderId || ''),
+    name: item.title || item.folderName || 'Serial',
+    folderName: item.folderName || '',
+    description: item.description || '',
+    poster: item.posterImage || item.poster || '',
+    hasCustomPoster: Boolean(item.hasCustomPoster),
+    episodeCount: Number(item.episodeCount || 0),
+  };
+}
+
+async function fetchSeries() {
+  const grid = document.getElementById('seriesCardGrid');
+  if (grid) {
+    grid.innerHTML = `
+      <div class="loading-state" style="grid-column:1/-1;">
+        <div class="loading-spinner"></div>
+        <p>Seriallar yuklanmoqda...</p>
+      </div>
+    `;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/series`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.error || `Server xatolik: ${response.status}`);
+    }
+    const data = await response.json();
+    seriesList = (Array.isArray(data) ? data : []).map(normalizeSeriesFromApi).filter(s => s.id);
+    filteredSeries = [...seriesList];
+    seriesLoaded = true;
+    renderSeries();
+  } catch (error) {
+    console.error('Error fetching series:', error);
+    seriesList = [];
+    filteredSeries = [];
+    if (grid) {
+      grid.innerHTML = `
+        <div class="empty-state error-state" style="grid-column:1/-1;">
+          <h3>Seriallarni yuklashda xatolik!</h3>
+          <p>${escapeHtml(error.message)}</p>
+          <button class="btn btn-primary" onclick="fetchSeries()" style="margin-top:12px;">Qayta urinish</button>
+        </div>
+      `;
+    }
+    showNotification('Seriallarni yuklashda xatolik: ' + error.message, 'error');
+  }
+}
+
+function filterSeries(query) {
+  seriesSearchQuery = String(query || '').toLowerCase().trim();
+  if (!seriesSearchQuery) {
+    filteredSeries = [...seriesList];
+  } else {
+    filteredSeries = seriesList.filter(s =>
+      [s.name, s.folderName, s.description].join(' ').toLowerCase().includes(seriesSearchQuery)
+    );
+  }
+  renderSeries();
+}
+
+function renderSeries() {
+  const grid = document.getElementById('seriesCardGrid');
+  if (!grid) return;
+
+  const list = seriesSearchQuery ? filteredSeries : seriesList;
+
+  const header = document.querySelector('#moviesSection [data-movie-tabpanel="series"] .section-header h2');
+  if (header) header.textContent = `Seriallar ro'yxati (${seriesList.length})`;
+
+  if (list.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1;">
+        <h3>${seriesSearchQuery ? 'Qidiruv natijasi yo\'q' : 'Hozircha seriallar yo\'q'}</h3>
+        <p>${seriesSearchQuery
+          ? `"${escapeHtml(seriesSearchQuery)}" bo'yicha topilmadi`
+          : 'Google Drive\'dagi "seriallar" papkasiga serial papkalarini qo\'shing.'}</p>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = list.map(s => `
+    <div class="series-card" data-series-id="${escapeHtml(s.id)}" title="Tahrirlash"
+         style="cursor:pointer;border:1px solid var(--border,#e3e6ec);border-radius:14px;overflow:hidden;background:var(--surface-bg,#fff);">
+      <div style="aspect-ratio:2/3;background:#1a1f2e center/cover no-repeat;background-image:url('${escapeHtml(s.poster || '')}');"></div>
+      <div style="padding:10px 12px;">
+        <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.name)}</div>
+        <div style="font-size:12px;color:var(--text-muted,#888);margin-top:3px;">${s.episodeCount} ta qism</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateSeriesPosterPreview(url) {
+  const img = document.getElementById('seriesPosterPreviewImg');
+  const area = document.getElementById('seriesPosterUploadArea');
+  if (!img || !area) return;
+
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    area.classList.add('has-preview');
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    area.classList.remove('has-preview');
+  }
+}
+
+function updateSeriesDescriptionCounter() {
+  const textarea = document.getElementById('seriesDescription');
+  const counter = document.getElementById('seriesDescriptionCounter');
+  if (!textarea || !counter) return;
+
+  const length = textarea.value.length;
+  counter.textContent = `${length}/${MOVIE_DESCRIPTION_MAX_LENGTH}`;
+  counter.classList.toggle('is-over', length > MOVIE_DESCRIPTION_MAX_LENGTH);
+}
+
+function openSeriesModal(series) {
+  if (!series) return;
+  const modal = document.getElementById('seriesModal');
+  const form = document.getElementById('seriesForm');
+  const posterFileInput = document.getElementById('seriesPosterFile');
+
+  selectedSeriesPosterDataUrl = '';
+  if (posterFileInput) posterFileInput.value = '';
+
+  document.getElementById('seriesModalTitle').textContent = 'Serial tahrirlash';
+  document.getElementById('seriesName').value = series.name;
+
+  const folderHint = document.getElementById('seriesFolderHint');
+  if (folderHint) folderHint.textContent = series.folderName ? `Drive papkasi: ${series.folderName}` : '';
+
+  document.getElementById('seriesEpisodeCount').value = `${series.episodeCount} ta qism`;
+  document.getElementById('seriesDescription').value = series.description || '';
+  form.dataset.editingId = series.id;
+
+  const customPoster = series.hasCustomPoster ? series.poster : '';
+  const posterUrlInput = document.getElementById('seriesPosterUrl');
+  if (posterUrlInput) {
+    posterUrlInput.value = (customPoster && !customPoster.startsWith('data:image')) ? customPoster : '';
+  }
+  updateSeriesPosterPreview(series.poster || '');
+
+  updateSeriesDescriptionCounter();
+  modal.classList.add('active');
+}
+
+function closeSeriesModal() {
+  document.getElementById('seriesModal')?.classList.remove('active');
+}
+
+function editSeries(id) {
+  const series = seriesList.find(s => String(s.id) === String(id));
+  if (series) openSeriesModal(series);
+}
+
+async function handleSeriesSubmit(e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const id = form.dataset.editingId;
+  if (!id) return;
+
+  const current = seriesList.find(s => String(s.id) === String(id));
+  const submitButton = form.querySelector('button[type="submit"]');
+
+  const name = document.getElementById('seriesName').value.trim();
+  const description = document.getElementById('seriesDescription').value;
+  const posterUrl = document.getElementById('seriesPosterUrl').value.trim();
+  const finalPoster = selectedSeriesPosterDataUrl || posterUrl;
+
+  if (!name) {
+    showNotification('Serial nomini kiriting.', 'error');
+    return;
+  }
+  if (description.length > MOVIE_DESCRIPTION_MAX_LENGTH) {
+    updateSeriesDescriptionCounter();
+    showDescriptionLimitError();
+    return;
+  }
+
+  const payload = { id };
+  if (!current || name !== current.name) payload.title = name;
+  if (!current || description !== (current.description || '')) payload.description = description;
+  const currentPoster = current && current.hasCustomPoster ? current.poster : '';
+  if (finalPoster && finalPoster !== currentPoster) payload.posterImage = finalPoster;
+
+  if (Object.keys(payload).length === 1) {
+    showNotification('O\'zgarish yo\'q.');
+    return;
+  }
+
+  try {
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Saqlanmoqda...';
+    }
+
+    const response = await fetch(`${API_URL}/series-update`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (result.ok) {
+      closeSeriesModal();
+      showNotification('Serial bazada yangilandi! ✅');
+      await fetchSeries();
+    } else {
+      showNotification('Xatolik: ' + result.error, 'error');
+    }
+  } catch (error) {
+    console.error('Series update error:', error);
+    showNotification('Serverga ulanishda xatolik!', 'error');
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Saqlash';
+    }
+  }
+}
+
+window.fetchSeries = fetchSeries;
+window.editSeries = editSeries;
 
 // Show Notification
 function showNotification(message, type = 'success') {
