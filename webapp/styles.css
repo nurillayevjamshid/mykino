@@ -7759,17 +7759,18 @@ html[data-theme="light"] .topbar.is-scrolled {
   -webkit-backdrop-filter: none !important;
 }
 
-/* Topbar va hero o'rtasida 8px joy */
+/* Topbar sticky (oqim ichida) — pastdagi bo'limlar topbar balandligini
+   qayta hisoblamasligi kerak, faqat kichik bo'shliq yetarli */
 .hero {
-  margin-top: calc(var(--topbar-top) + var(--topbar-height) + 8px) !important;
+  margin-top: 8px !important;
 }
 .hero[hidden] + .movie-grid {
-  padding-top: calc(var(--topbar-top) + var(--topbar-height) + 8px) !important;
+  padding-top: 8px !important;
 }
 
 /* ===== Categories view ===== */
 .categories-view {
-  padding: calc(var(--topbar-top) + var(--topbar-height) + 16px) 16px 120px;
+  padding: 8px 16px 120px;
   min-height: 100vh;
 }
 .categories-view__title {
@@ -7824,7 +7825,7 @@ body.is-categories .search-panel { display: none !important; }
 
 /* ===== Category detail page ===== */
 .category-detail-view {
-  padding: calc(var(--topbar-top) + var(--topbar-height) + 12px) 16px 120px;
+  padding: 8px 16px 120px;
   min-height: 100vh;
 }
 .category-detail-view__head {
