@@ -4770,6 +4770,7 @@ function normalizeSeriesEntry(raw) {
       title: String(ep?.title || `Qism ${i + 1}`).trim(),
       fileName: String(ep?.fileName || "").trim(),
       mimeType: String(ep?.mimeType || "").trim(),
+      cdnUrl: String(ep?.cdnUrl || "").trim(),
     })).filter((ep) => ep.id),
   };
 }
@@ -4919,6 +4920,7 @@ function playSeriesEpisode(series, episode, index) {
     fileId: episode.id,
     fileName: episode.fileName || "",
     mimeType: episode.mimeType || "video/mp4",
+    cdnUrl: episode.cdnUrl || "",
     posterImage: series.posterImage || "",
     description: series.description || "",
   };
