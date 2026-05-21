@@ -457,8 +457,25 @@ function readDebugTelegramUser() {
   return null;
 }
 
+function parseInitDataUser(initData) {
+  try {
+    if (!initData || typeof initData !== "string") return null;
+    const rawUser = new URLSearchParams(initData).get("user");
+    if (!rawUser) return null;
+    const parsed = JSON.parse(rawUser);
+    return parsed && parsed.id ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 function getTelegramUser() {
-  return tg?.initDataUnsafe?.user || readDebugTelegramUser() || null;
+  return (
+    tg?.initDataUnsafe?.user ||
+    parseInitDataUser(tg?.initData) ||
+    readDebugTelegramUser() ||
+    null
+  );
 }
 
 function getUserInitials(user) {
@@ -528,7 +545,7 @@ function applyTelegramUser() {
   document.querySelectorAll("[data-action='profile']").forEach((button) => setControlLabel(button, profileButtonLabel));
   const candidatePhotos = [];
   if (user.photo_url) candidatePhotos.push(String(user.photo_url));
-  if (user.id) candidatePhotos.push(`/api/user-photo?userId=${encodeURIComponent(user.id)}`);
+  if (user.id) candidatePhotos.push(`${runtimeApiBase}/api/user-photo?userId=${encodeURIComponent(user.id)}`);
   if (candidatePhotos.length) {
     const applyPhoto = (src) => {
       avatarPhoto.src = src;
