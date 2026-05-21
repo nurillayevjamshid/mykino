@@ -107,17 +107,43 @@ textarea,
 }
 
 .splash-screen__tagline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #15151f;
+  line-height: 0.86;
+}
+
+.splash-screen__tagline-eyebrow {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  margin-bottom: 2px;
+}
+
+.splash-screen__tagline-hero {
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  text-transform: lowercase;
+}
+
+.splash-screen__tagline-foot {
   font-size: 22px;
   font-weight: 800;
-  color: #1a1a26;
-  text-align: center;
-  line-height: 1.35;
-  max-width: 280px;
-  background: linear-gradient(95deg, #8b5cff, #5b3fd6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: 0.005em;
+  letter-spacing: -0.01em;
+  margin-top: 1px;
+}
+
+.splash-screen__tagline-hero::after {
+  content: "\00AE";
+  font-size: 0.26em;
+  font-weight: 700;
+  vertical-align: super;
+  margin-left: 0.12em;
 }
 
 .splash-screen.fade-out {
