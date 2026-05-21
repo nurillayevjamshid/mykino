@@ -70,42 +70,44 @@ textarea,
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 3px solid rgba(20, 18, 34, 0.1);
-  border-top-color: #8b5cff;
+  border: 3px solid rgba(181, 64, 42, 0.14);
+  border-top-color: #b5402a;
   animation: musicSpin 0.8s linear infinite;
 }
 
 .splash-screen__brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: #11121a;
+  gap: 16px;
+  color: #b5402a;
   transform: translateY(-40px);
 }
 
 .splash-screen__logo svg {
-  width: 46px;
-  height: 46px;
+  width: 56px;
+  height: 56px;
   display: block;
 }
 
 .splash-screen__name {
   display: flex;
   flex-direction: column;
-  line-height: 1.05;
-  font-weight: 900;
-  letter-spacing: 0.06em;
+  font-family: "Poiret One", "Inter", sans-serif;
+  line-height: 0.96;
+  font-weight: 400;
 }
 
 .splash-screen__name b {
-  font-size: 17px;
-  font-weight: 900;
+  font-size: 27px;
+  font-weight: 400;
+  letter-spacing: 0.17em;
 }
 
 .splash-screen__name span {
-  font-size: 17px;
-  font-weight: 900;
-  opacity: 0.55;
+  font-size: 35px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  opacity: 1;
 }
 
 .splash-screen__tagline {
