@@ -1875,6 +1875,47 @@ function renderHomeRows() {
   return groups.length;
 }
 
+function renderHomeSeriesRow() {
+  if (!Array.isArray(seriesCatalog) || !seriesCatalog.length) return;
+  const ordered = sessionShuffleCategories([...seriesCatalog], (s) => s.id);
+  const section = document.createElement("section");
+  section.className = "category-row";
+  section.innerHTML = `
+    <header class="category-row__head">
+      <h3 class="category-row__title">Seriallar</h3>
+      <button class="category-row__more" type="button" aria-label="Seriallar">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="9 6 15 12 9 18"></polyline>
+        </svg>
+      </button>
+    </header>
+    <div class="category-row__list" role="list"></div>
+  `;
+  const list = section.querySelector(".category-row__list");
+  const shown = ordered.slice(0, HOME_ROW_PREVIEW_LIMIT);
+  for (const series of shown) {
+    list.append(createSeriesCard(series));
+  }
+  if (ordered.length > HOME_ROW_PREVIEW_LIMIT) {
+    const moreCard = document.createElement("button");
+    moreCard.type = "button";
+    moreCard.className = "movie-card movie-card--more";
+    moreCard.setAttribute("aria-label", plainLabel(t("seeMore")));
+    moreCard.innerHTML = `
+      <span class="more-card__inner">
+        <span class="more-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"></polyline></svg>
+        </span>
+        <span class="more-card__label">${escapeHtml(plainLabel(t("seeMore")))}</span>
+      </span>
+    `;
+    moreCard.addEventListener("click", () => openSeriesListView());
+    list.append(moreCard);
+  }
+  section.querySelector(".category-row__more").addEventListener("click", () => openSeriesListView());
+  grid.append(section);
+}
+
 function getCategoryLabel(value) {
   if (!value || value === "all") return "";
   for (const movie of getViewerMovies()) {
@@ -1933,6 +1974,11 @@ function renderMovies() {
   if (isHomeView && movieLoadState === "ready") {
     grid.classList.add("is-home");
     const rowCount = renderHomeRows();
+    if (seriesCatalogLoaded) {
+      renderHomeSeriesRow();
+    } else {
+      loadSeriesCatalog();
+    }
     updateEmptyState(rowCount > 0 ? getViewerMovies() : []);
   } else {
     grid.classList.remove("is-home");
@@ -4741,6 +4787,11 @@ async function loadSeriesCatalog() {
   seriesCatalogLoaded = true;
   seriesCatalogLoading = false;
   renderSeriesListGrid();
+  // Asosiy sahifa ochiq bo'lsa, "Seriallar" qatori ko'rinishi uchun qayta render
+  try {
+    const onHome = activeFilter === "all" && activeCategory === "all" && !query;
+    if (onHome && typeof renderMovies === "function") renderMovies();
+  } catch (_) {}
 }
 
 function createSeriesCard(series) {
