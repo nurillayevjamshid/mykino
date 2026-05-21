@@ -960,13 +960,14 @@ async function findSeriesRootFolder() {
   return folders.find((folder) => trimString(folder.name).toLowerCase() === SERIES_FOLDER_NAME) || null;
 }
 
-async function listFolderVideos(folderId) {
-  const files = [];
+async function listFolderVideosDeep(folderId, depth = 0) {
+  const videos = [];
+  const subfolders = [];
   let pageToken = "";
   do {
     const payload = await driveFetchJson("", {
       query: {
-        q: `'${folderId}' in parents and trashed=false and mimeType contains 'video/'`,
+        q: `'${folderId}' in parents and trashed=false`,
         orderBy: "name",
         pageSize: 200,
         pageToken,
@@ -975,17 +976,43 @@ async function listFolderVideos(folderId) {
         fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime)",
       },
     });
-    files.push(...(payload.files || []));
+    for (const file of payload.files || []) {
+      if (file.mimeType === DRIVE_FOLDER_MIME) {
+        subfolders.push(file);
+      } else if (String(file.mimeType || "").startsWith("video/")) {
+        videos.push(file);
+      }
+    }
     pageToken = payload.nextPageToken || "";
   } while (pageToken);
-  return files;
+
+  if (depth < 2) {
+    for (const sub of subfolders) {
+      const nested = await listFolderVideosDeep(sub.id, depth + 1);
+      videos.push(...nested);
+    }
+  }
+
+  return videos;
 }
 
-function toDriveSeries(folder, episodeFiles, seriesMap = {}) {
-  const override = getMetadataOverride(seriesMap, folder.id) || {};
+function buildEmbeddedSeriesDescription(override) {
+  const clean = {};
+  const title = trimString(override.title);
+  const description = trimString(override.description);
+  const posterImage = trimString(override.posterImage);
+  if (title) clean.title = title;
+  if (description) clean.description = description;
+  if (posterImage) clean.posterImage = posterImage;
+  return [EMBEDDED_META_START, JSON.stringify(clean), EMBEDDED_META_END].join("\n");
+}
+
+function toDriveSeries(folder, episodeFiles) {
+  const embedded = extractEmbeddedMovieMetadata(folder.description || "");
+  const override = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
   const folderName = trimString(folder.name);
   const title = trimString(override.title) || folderName || "Serial";
-  const description = sanitizePublicDescription(trimString(override.description));
+  const description = trimString(override.description);
   const posterImage = trimString(override.posterImage);
   const episodes = episodeFiles.map((file, index) => ({
     id: file.id,
@@ -1029,7 +1056,7 @@ async function listDriveSeries() {
         pageToken,
         supportsAllDrives: "true",
         includeItemsFromAllDrives: "true",
-        fields: "nextPageToken,files(id,name,createdTime,modifiedTime)",
+        fields: "nextPageToken,files(id,name,description,createdTime,modifiedTime)",
       },
     });
     seriesFolders.push(...(payload.files || []));
@@ -1038,15 +1065,10 @@ async function listDriveSeries() {
 
   if (seriesFolders.length === 0) return [];
 
-  const metadataState = await readCatalogMetadata();
-  const seriesMap = metadataState.data?.series && typeof metadataState.data.series === "object"
-    ? metadataState.data.series
-    : {};
-
   const series = await Promise.all(
     seriesFolders.map(async (folder) => {
-      const episodeFiles = await listFolderVideos(folder.id);
-      return toDriveSeries(folder, episodeFiles, seriesMap);
+      const episodeFiles = await listFolderVideosDeep(folder.id);
+      return toDriveSeries(folder, episodeFiles);
     }),
   );
 
@@ -1067,11 +1089,9 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
     updates.posterImage = upload.directUrl;
   }
 
-  const metadataState = await readCatalogMetadata();
-  const metadata = normalizeCatalogMetadata(metadataState.data);
-  const current = metadata.series[normalizedId] && typeof metadata.series[normalizedId] === "object"
-    ? metadata.series[normalizedId]
-    : {};
+  const folder = await getDriveFileMetadata(normalizedId, "id,name,mimeType,description");
+  const embedded = extractEmbeddedMovieMetadata(folder.description || "");
+  const current = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
   const next = { ...current };
 
   if (updates.title !== undefined) next.title = trimString(updates.title);
@@ -1087,12 +1107,19 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
   }
   if (updates.posterImage !== undefined) next.posterImage = trimString(updates.posterImage);
 
-  metadata.series[normalizedId] = next;
-  await writeCatalogMetadata(metadata, metadataState.file);
+  const cleaned = {
+    title: trimString(next.title),
+    description: trimString(next.description),
+    posterImage: trimString(next.posterImage),
+  };
+
+  await updateDriveFileMetadata(normalizedId, {
+    description: buildEmbeddedSeriesDescription(cleaned),
+  });
 
   return {
     id: normalizedId,
-    override: next,
+    override: cleaned,
   };
 }
 
