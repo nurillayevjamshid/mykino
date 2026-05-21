@@ -8002,22 +8002,25 @@ body.is-series-detail .search-panel { display: none !important; }
 .series-detail { padding-bottom: 8px; }
 .series-hero {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 .series-hero__poster {
-  width: 110px;
-  flex: 0 0 110px;
+  width: 200px;
+  max-width: 58%;
   aspect-ratio: 2 / 3;
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius-lg, 14px);
   background: var(--glass, rgba(255, 255, 255, 0.1)) center / cover no-repeat;
+  box-shadow: var(--shadow-lg, 0 18px 48px rgba(0, 0, 0, 0.36));
 }
-.series-hero__info { flex: 1; min-width: 0; }
+.series-hero__info { width: 100%; }
 .series-hero__count {
   font-size: 13px;
   font-weight: 800;
   color: var(--gold, #ffc73a);
-  margin: 2px 0 8px;
+  margin: 0 0 8px;
 }
 .series-hero__desc {
   font-size: 13px;
