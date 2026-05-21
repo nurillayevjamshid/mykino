@@ -538,10 +538,11 @@ function bindEvents() {
     if (card?.dataset.seriesId) editSeries(card.dataset.seriesId);
   });
 
-  // Series modal closes + form
-  document.getElementById('closeSeriesModal')?.addEventListener('click', closeSeriesModal);
-  document.getElementById('cancelSeries')?.addEventListener('click', closeSeriesModal);
-  document.getElementById('seriesForm')?.addEventListener('submit', handleSeriesSubmit);
+  // Series editor: back / cancel / save
+  document.getElementById('seriesEditorBack')?.addEventListener('click', closeSeriesEditor);
+  document.getElementById('seriesCancelBtn')?.addEventListener('click', closeSeriesEditor);
+  document.getElementById('seriesSaveBtn')?.addEventListener('click', () => handleSeriesSubmit());
+  document.getElementById('seriesForm')?.addEventListener('submit', (e) => { e.preventDefault(); handleSeriesSubmit(); });
   document.getElementById('seriesDescription')?.addEventListener('input', updateSeriesDescriptionCounter);
 
   // Series poster upload
@@ -942,10 +943,14 @@ function switchMovieTab(name) {
   document.querySelectorAll('.movie-tabpanel').forEach(panel => {
     panel.hidden = panel.dataset.movieTabpanel !== name;
   });
-  if (name === 'series' && !seriesLoaded) fetchSeries();
+  if (name === 'series') {
+    closeSeriesEditor();
+    if (!seriesLoaded) fetchSeries();
+  }
 }
 
 function normalizeSeriesFromApi(item) {
+  const episodes = Array.isArray(item.episodes) ? item.episodes : [];
   return {
     id: String(item.id || item.folderId || ''),
     name: item.title || item.folderName || 'Serial',
@@ -953,7 +958,12 @@ function normalizeSeriesFromApi(item) {
     description: item.description || '',
     poster: item.posterImage || item.poster || '',
     hasCustomPoster: Boolean(item.hasCustomPoster),
-    episodeCount: Number(item.episodeCount || 0),
+    episodeCount: Number(item.episodeCount || episodes.length || 0),
+    episodes: episodes.map((ep, i) => ({
+      id: String(ep.id || ''),
+      title: String(ep.title || `Qism ${i + 1}`),
+      defaultTitle: String(ep.defaultTitle || ep.title || `Qism ${i + 1}`),
+    })).filter(ep => ep.id),
   };
 }
 
@@ -1042,19 +1052,9 @@ function renderSeries() {
 }
 
 function updateSeriesPosterPreview(url) {
-  const img = document.getElementById('seriesPosterPreviewImg');
-  const area = document.getElementById('seriesPosterUploadArea');
-  if (!img || !area) return;
-
-  if (url) {
-    img.src = url;
-    img.style.display = 'block';
-    area.classList.add('has-preview');
-  } else {
-    img.removeAttribute('src');
-    img.style.display = 'none';
-    area.classList.remove('has-preview');
-  }
+  const preview = document.getElementById('seriesPosterPreview');
+  if (!preview) return;
+  preview.style.backgroundImage = url ? `url('${String(url).replace(/'/g, "%27")}')` : '';
 }
 
 function updateSeriesDescriptionCounter() {
@@ -1067,24 +1067,40 @@ function updateSeriesDescriptionCounter() {
   counter.classList.toggle('is-over', length > MOVIE_DESCRIPTION_MAX_LENGTH);
 }
 
-function openSeriesModal(series) {
+function renderSeriesEpisodes(series) {
+  const wrap = document.getElementById('seriesEpisodesList');
+  if (!wrap) return;
+  const eps = Array.isArray(series.episodes) ? series.episodes : [];
+  if (!eps.length) {
+    wrap.innerHTML = `<p class="form-hint" style="padding:8px 2px;">Bu serialda hali qism (video fayl) yo'q.</p>`;
+    return;
+  }
+  wrap.innerHTML = eps.map((ep, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border,#e3e6ec);border-radius:10px;background:var(--surface-bg,#fff);">
+      <span style="flex:0 0 28px;width:28px;height:28px;border-radius:999px;background:var(--primary,#3b82f6);color:#fff;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;">${i + 1}</span>
+      <input type="text" class="form-input series-episode-input" data-ep-id="${escapeHtml(ep.id)}" data-default-title="${escapeHtml(ep.defaultTitle || '')}" value="${escapeHtml(ep.title || '')}" style="flex:1;margin:0;" placeholder="Qism nomi">
+    </div>
+  `).join('');
+}
+
+function openSeriesEditor(series) {
   if (!series) return;
-  const modal = document.getElementById('seriesModal');
   const form = document.getElementById('seriesForm');
   const posterFileInput = document.getElementById('seriesPosterFile');
 
   selectedSeriesPosterDataUrl = '';
   if (posterFileInput) posterFileInput.value = '';
 
-  document.getElementById('seriesModalTitle').textContent = 'Serial tahrirlash';
-  document.getElementById('seriesName').value = series.name;
+  const titleEl = document.getElementById('seriesEditorTitle');
+  if (titleEl) titleEl.textContent = series.name || 'Serial';
+  document.getElementById('seriesName').value = series.name || '';
 
   const folderHint = document.getElementById('seriesFolderHint');
   if (folderHint) folderHint.textContent = series.folderName ? `Drive papkasi: ${series.folderName}` : '';
 
   document.getElementById('seriesEpisodeCount').value = `${series.episodeCount} ta qism`;
   document.getElementById('seriesDescription').value = series.description || '';
-  form.dataset.editingId = series.id;
+  if (form) form.dataset.editingId = series.id;
 
   const customPoster = series.hasCustomPoster ? series.poster : '';
   const posterUrlInput = document.getElementById('seriesPosterUrl');
@@ -1092,29 +1108,35 @@ function openSeriesModal(series) {
     posterUrlInput.value = (customPoster && !customPoster.startsWith('data:image')) ? customPoster : '';
   }
   updateSeriesPosterPreview(series.poster || '');
-
   updateSeriesDescriptionCounter();
-  modal.classList.add('active');
+  renderSeriesEpisodes(series);
+
+  const listView = document.getElementById('seriesListAdminView');
+  const editorView = document.getElementById('seriesEditorView');
+  if (listView) listView.hidden = true;
+  if (editorView) editorView.hidden = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function closeSeriesModal() {
-  document.getElementById('seriesModal')?.classList.remove('active');
+function closeSeriesEditor() {
+  const listView = document.getElementById('seriesListAdminView');
+  const editorView = document.getElementById('seriesEditorView');
+  if (editorView) editorView.hidden = true;
+  if (listView) listView.hidden = false;
 }
 
 function editSeries(id) {
   const series = seriesList.find(s => String(s.id) === String(id));
-  if (series) openSeriesModal(series);
+  if (series) openSeriesEditor(series);
 }
 
-async function handleSeriesSubmit(e) {
-  e.preventDefault();
-
-  const form = e.target;
-  const id = form.dataset.editingId;
+async function handleSeriesSubmit() {
+  const form = document.getElementById('seriesForm');
+  const id = form?.dataset.editingId;
   if (!id) return;
 
   const current = seriesList.find(s => String(s.id) === String(id));
-  const submitButton = form.querySelector('button[type="submit"]');
+  const saveBtn = document.getElementById('seriesSaveBtn');
 
   const name = document.getElementById('seriesName').value.trim();
   const description = document.getElementById('seriesDescription').value;
@@ -1137,15 +1159,32 @@ async function handleSeriesSubmit(e) {
   const currentPoster = current && current.hasCustomPoster ? current.poster : '';
   if (finalPoster && finalPoster !== currentPoster) payload.posterImage = finalPoster;
 
+  // Qism nomlari
+  const episodeUpdates = {};
+  let episodesChanged = false;
+  const currentEpisodes = (current && Array.isArray(current.episodes)) ? current.episodes : [];
+  document.querySelectorAll('#seriesEpisodesList .series-episode-input').forEach(input => {
+    const epId = input.dataset.epId;
+    if (!epId) return;
+    const value = input.value.trim();
+    const defaultTitle = input.dataset.defaultTitle || '';
+    const currentEp = currentEpisodes.find(e => String(e.id) === String(epId));
+    const currentTitle = currentEp ? currentEp.title : '';
+    if (value !== currentTitle) episodesChanged = true;
+    // Standart nom bilan bir xil bo'lsa override saqlanmaydi (bo'sh yuboriladi)
+    episodeUpdates[epId] = (value && value !== defaultTitle) ? value : '';
+  });
+  if (episodesChanged) payload.episodes = episodeUpdates;
+
   if (Object.keys(payload).length === 1) {
     showNotification('O\'zgarish yo\'q.');
     return;
   }
 
   try {
-    if (submitButton) {
-      submitButton.disabled = true;
-      submitButton.textContent = 'Saqlanmoqda...';
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saqlanmoqda...';
     }
 
     const response = await fetch(`${API_URL}/series-update`, {
@@ -1157,9 +1196,9 @@ async function handleSeriesSubmit(e) {
     const result = await response.json();
 
     if (result.ok) {
-      closeSeriesModal();
       showNotification('Serial bazada yangilandi! ✅');
       await fetchSeries();
+      closeSeriesEditor();
     } else {
       showNotification('Xatolik: ' + result.error, 'error');
     }
@@ -1167,9 +1206,9 @@ async function handleSeriesSubmit(e) {
     console.error('Series update error:', error);
     showNotification('Serverga ulanishda xatolik!', 'error');
   } finally {
-    if (submitButton) {
-      submitButton.disabled = false;
-      submitButton.textContent = 'Saqlash';
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Saqlash';
     }
   }
 }

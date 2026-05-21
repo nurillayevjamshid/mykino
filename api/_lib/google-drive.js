@@ -996,6 +996,17 @@ async function listFolderVideosDeep(folderId, depth = 0) {
   return videos;
 }
 
+function normalizeEpisodeOverrides(value) {
+  const result = {};
+  if (!value || typeof value !== "object") return result;
+  for (const [epId, epTitle] of Object.entries(value)) {
+    const key = trimString(epId);
+    const title = trimString(epTitle);
+    if (key && title) result[key] = title;
+  }
+  return result;
+}
+
 function buildEmbeddedSeriesDescription(override) {
   const clean = {};
   const title = trimString(override.title);
@@ -1004,27 +1015,35 @@ function buildEmbeddedSeriesDescription(override) {
   if (title) clean.title = title;
   if (description) clean.description = description;
   if (posterImage) clean.posterImage = posterImage;
+  const episodes = normalizeEpisodeOverrides(override.episodes);
+  if (Object.keys(episodes).length) clean.episodes = episodes;
   return [EMBEDDED_META_START, JSON.stringify(clean), EMBEDDED_META_END].join("\n");
 }
 
 function toDriveSeries(folder, episodeFiles) {
   const embedded = extractEmbeddedMovieMetadata(folder.description || "");
   const override = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
+  const episodeTitles = normalizeEpisodeOverrides(override.episodes);
   const folderName = trimString(folder.name);
   const title = trimString(override.title) || folderName || "Serial";
   const description = trimString(override.description);
   const posterImage = trimString(override.posterImage);
-  const episodes = episodeFiles.map((file, index) => ({
-    id: file.id,
-    title: stripExtension(file.name).replace(/[._]+/g, " ").trim() || `Qism ${index + 1}`,
-    fileName: file.name || "",
-    mimeType: file.mimeType || "video/mp4",
-    streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
-    videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
-    size: Number(file.size || 0) || 0,
-    createdTime: file.createdTime || "",
-    modifiedTime: file.modifiedTime || "",
-  }));
+  const episodes = episodeFiles.map((file, index) => {
+    const defaultTitle = stripExtension(file.name).replace(/[._]+/g, " ").trim() || `Qism ${index + 1}`;
+    const customTitle = trimString(episodeTitles[file.id]);
+    return {
+      id: file.id,
+      title: customTitle || defaultTitle,
+      defaultTitle,
+      fileName: file.name || "",
+      mimeType: file.mimeType || "video/mp4",
+      streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
+      videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
+      size: Number(file.size || 0) || 0,
+      createdTime: file.createdTime || "",
+      modifiedTime: file.modifiedTime || "",
+    };
+  });
   return {
     id: folder.id,
     folderId: folder.id,
@@ -1107,12 +1126,26 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
     next.description = nextDescription;
   }
   if (updates.posterImage !== undefined) next.posterImage = trimString(updates.posterImage);
+  if (updates.episodes && typeof updates.episodes === "object" && !Array.isArray(updates.episodes)) {
+    const currentEpisodes = current.episodes && typeof current.episodes === "object" ? current.episodes : {};
+    const nextEpisodes = { ...currentEpisodes };
+    for (const [epId, epTitle] of Object.entries(updates.episodes)) {
+      const key = trimString(epId);
+      if (!key) continue;
+      const value = trimString(epTitle);
+      if (value) nextEpisodes[key] = value;
+      else delete nextEpisodes[key];
+    }
+    next.episodes = nextEpisodes;
+  }
 
   const cleaned = {
     title: trimString(next.title),
     description: trimString(next.description),
     posterImage: trimString(next.posterImage),
   };
+  const cleanedEpisodes = normalizeEpisodeOverrides(next.episodes);
+  if (Object.keys(cleanedEpisodes).length) cleaned.episodes = cleanedEpisodes;
 
   await updateDriveFileMetadata(normalizedId, {
     description: buildEmbeddedSeriesDescription(cleaned),
