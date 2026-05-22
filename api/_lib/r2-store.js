@@ -1,0 +1,109 @@
+const crypto = require("crypto");
+
+function getR2Config() {
+  const endpoint = String(process.env.R2_ENDPOINT || "").trim().replace(/\/+$/, "");
+  const bucket = String(process.env.R2_BUCKET || "").trim();
+  const accessKeyId = String(process.env.R2_ACCESS_KEY_ID || "").trim();
+  const secretAccessKey = String(process.env.R2_SECRET_ACCESS_KEY || "").trim();
+  const publicUrl = String(process.env.R2_PUBLIC_URL || "").trim().replace(/\/+$/, "");
+
+  if (!endpoint || !bucket || !accessKeyId || !secretAccessKey || !publicUrl) {
+    const error = new Error(
+      "Cloudflare R2 sozlanmagan. Vercel'da R2_ENDPOINT, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_PUBLIC_URL ni qo'shing.",
+    );
+    error.statusCode = 500;
+    error.code = "R2_CONFIG_MISSING";
+    throw error;
+  }
+
+  return { endpoint, bucket, accessKeyId, secretAccessKey, publicUrl };
+}
+
+function sha256Hex(data) {
+  return crypto.createHash("sha256").update(data).digest("hex");
+}
+
+function hmac(key, data) {
+  return crypto.createHmac("sha256", key).update(data).digest();
+}
+
+// Rasmni Cloudflare R2'ga (S3-mos API, SigV4 imzo) 'img/' prefiksi bilan yuklaydi.
+async function uploadImageToR2(base64Data, fileNamePrefix) {
+  const { endpoint, bucket, accessKeyId, secretAccessKey, publicUrl } = getR2Config();
+
+  const base64Content = base64Data.replace(/^data:image\/[\w.+-]+;base64,/, "");
+  const body = Buffer.from(base64Content, "base64");
+  const mimeMatch = base64Data.match(/^data:(image\/[\w.+-]+);base64,/);
+  const contentType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+  const extension = contentType.includes("png")
+    ? "png"
+    : contentType.includes("webp")
+      ? "webp"
+      : "jpg";
+  const key = `img/${fileNamePrefix}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${extension}`;
+
+  const url = new URL(`${endpoint}/${bucket}/${key}`);
+  const host = url.host;
+  const region = "auto";
+  const service = "s3";
+
+  const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const payloadHash = sha256Hex(body);
+
+  const canonicalHeaders =
+    `content-type:${contentType}\n`
+    + `host:${host}\n`
+    + `x-amz-content-sha256:${payloadHash}\n`
+    + `x-amz-date:${amzDate}\n`;
+  const signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
+  const canonicalUri = url.pathname.split("/").map(encodeURIComponent).join("/");
+  const canonicalRequest = [
+    "PUT",
+    canonicalUri,
+    "",
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash,
+  ].join("\n");
+
+  const scope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    amzDate,
+    scope,
+    sha256Hex(canonicalRequest),
+  ].join("\n");
+
+  const kDate = hmac(`AWS4${secretAccessKey}`, dateStamp);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, service);
+  const kSigning = hmac(kService, "aws4_request");
+  const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex");
+
+  const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": contentType,
+      Host: host,
+      "x-amz-content-sha256": payloadHash,
+      "x-amz-date": amzDate,
+      Authorization: authorization,
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    const error = new Error(`Rasm Cloudflare R2'ga yuklanmadi (${response.status}). ${text.slice(0, 200)}`);
+    error.statusCode = 502;
+    error.code = "R2_UPLOAD_FAILED";
+    throw error;
+  }
+
+  return { directUrl: `${publicUrl}/${key}` };
+}
+
+module.exports = { uploadImageToR2 };
