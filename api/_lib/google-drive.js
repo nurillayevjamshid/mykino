@@ -133,42 +133,72 @@ async function authorizedFetch(url, options = {}) {
   });
 }
 
-async function uploadImageToVercelBlob(base64Data, fileNamePrefix) {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
-    throw new Error("Vercel Blob Storage tokeni (BLOB_READ_WRITE_TOKEN) topilmadi. Vercel dashboard'da Blob Storage ni yoqing.");
-  }
+const IMG_FOLDER_NAME = "img";
+let imgFolderCache = "";
 
-  // Base64 dan binary ga o'tkazish
-  const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, "");
-  const buffer = Buffer.from(base64Content, "base64");
-
-  // Rasm turini aniqlash
-  const mimeMatch = base64Data.match(/^data:(image\/\w+);base64,/);
-  const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
-  const extension = mimeType === "image/png" ? "png" : "jpg";
-
-  // Fayl nomi
-  const fileName = `${fileNamePrefix}-${Date.now()}.${extension}`;
-
-  // Vercel Blob HTTP API orqali yuklash (multipart shart emas)
-  const uploadResponse = await fetch(`https://blob.vercel-storage.com/${fileName}`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "x-api-version": "7",
-      "Content-Type": mimeType,
+async function findOrCreateImgFolder() {
+  if (imgFolderCache) return imgFolderCache;
+  const { folderId } = getDriveConfig();
+  const existing = await driveFetchJson("", {
+    query: {
+      q: `'${folderId}' in parents and trashed=false and mimeType='${DRIVE_FOLDER_MIME}' and name='${IMG_FOLDER_NAME}'`,
+      pageSize: 1,
+      supportsAllDrives: "true",
+      includeItemsFromAllDrives: "true",
+      fields: "files(id,name)",
     },
-    body: buffer,
+  });
+  if (existing.files?.[0]?.id) {
+    imgFolderCache = existing.files[0].id;
+    return imgFolderCache;
+  }
+  const created = await driveFetchJson("", {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=UTF-8" },
+    body: JSON.stringify({
+      name: IMG_FOLDER_NAME,
+      mimeType: DRIVE_FOLDER_MIME,
+      parents: [folderId],
+    }),
+    query: { supportsAllDrives: "true", fields: "id,name" },
+  });
+  imgFolderCache = created.id;
+  return imgFolderCache;
+}
+
+async function uploadImageToDrive(base64Data, fileNamePrefix) {
+  const base64Content = base64Data.replace(/^data:image\/[\w.+-]+;base64,/, "");
+  const buffer = Buffer.from(base64Content, "base64");
+  const mimeMatch = base64Data.match(/^data:(image\/[\w.+-]+);base64,/);
+  const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+  const extension = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
+
+  const imgFolderId = await findOrCreateImgFolder();
+  const fileName = `${fileNamePrefix}-${Date.now()}.${extension}`;
+  const boundary = `mykino_${Date.now()}_${crypto.randomBytes(8).toString("hex")}`;
+  const metadata = { name: fileName, parents: [imgFolderId] };
+
+  const head = Buffer.from(
+    `--${boundary}\r\n`
+    + "Content-Type: application/json; charset=UTF-8\r\n\r\n"
+    + `${JSON.stringify(metadata)}\r\n`
+    + `--${boundary}\r\n`
+    + `Content-Type: ${mimeType}\r\n\r\n`,
+    "utf8",
+  );
+  const tail = Buffer.from(`\r\n--${boundary}--\r\n`, "utf8");
+  const body = Buffer.concat([head, buffer, tail]);
+
+  const saved = await driveUploadJson("", {
+    method: "POST",
+    headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
+    body,
+    query: { fields: "id,name" },
   });
 
-  const result = await uploadResponse.json().catch(() => null);
-  if (!uploadResponse.ok || !result?.url) {
-    throw new Error(result?.error?.message || "Rasm Vercel Blob'ga yuklanmadi.");
-  }
-
   return {
-    directUrl: result.url,
+    fileId: saved.id,
+    directUrl: `/api/drive-stream/${encodeURIComponent(saved.id)}`,
   };
 }
 
@@ -720,21 +750,21 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   const movieName = driveFile.name || "";
   const embedded = extractEmbeddedMovieMetadata(driveFile.description || "");
 
-  // Base64 rasmlarni Vercel Blob'ga yuklash
+  // Base64 rasmlarni Google Drive 'img' papkasiga yuklash
   if (isDataImageValue(updates.posterImage)) {
-    const upload = await uploadImageToVercelBlob(updates.posterImage, "poster");
+    const upload = await uploadImageToDrive(updates.posterImage, "poster");
     updates.posterImage = upload.directUrl;
   }
   if (isDataImageValue(updates.headerImage)) {
-    const upload = await uploadImageToVercelBlob(updates.headerImage, "header");
+    const upload = await uploadImageToDrive(updates.headerImage, "header");
     updates.headerImage = upload.directUrl;
   }
   if (isDataImageValue(updates.poster)) {
-    const upload = await uploadImageToVercelBlob(updates.poster, "poster");
+    const upload = await uploadImageToDrive(updates.poster, "poster");
     updates.poster = upload.directUrl;
   }
   if (isDataImageValue(updates.heroPoster)) {
-    const upload = await uploadImageToVercelBlob(updates.heroPoster, "header");
+    const upload = await uploadImageToDrive(updates.heroPoster, "header");
     updates.heroPoster = upload.directUrl;
   }
 
@@ -1109,7 +1139,7 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
   }
 
   if (isDataImageValue(updates.posterImage)) {
-    const upload = await uploadImageToVercelBlob(updates.posterImage, "series-poster");
+    const upload = await uploadImageToDrive(updates.posterImage, "series-poster");
     updates.posterImage = upload.directUrl;
   }
 
