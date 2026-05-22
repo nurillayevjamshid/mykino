@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const { uploadImageToR2 } = require("./r2-store");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
 const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3/files";
@@ -131,75 +132,6 @@ async function authorizedFetch(url, options = {}) {
     },
     body: options.body,
   });
-}
-
-const IMG_FOLDER_NAME = "img";
-let imgFolderCache = "";
-
-async function findOrCreateImgFolder() {
-  if (imgFolderCache) return imgFolderCache;
-  const { folderId } = getDriveConfig();
-  const existing = await driveFetchJson("", {
-    query: {
-      q: `'${folderId}' in parents and trashed=false and mimeType='${DRIVE_FOLDER_MIME}' and name='${IMG_FOLDER_NAME}'`,
-      pageSize: 1,
-      supportsAllDrives: "true",
-      includeItemsFromAllDrives: "true",
-      fields: "files(id,name)",
-    },
-  });
-  if (existing.files?.[0]?.id) {
-    imgFolderCache = existing.files[0].id;
-    return imgFolderCache;
-  }
-  const created = await driveFetchJson("", {
-    method: "POST",
-    headers: { "Content-Type": "application/json; charset=UTF-8" },
-    body: JSON.stringify({
-      name: IMG_FOLDER_NAME,
-      mimeType: DRIVE_FOLDER_MIME,
-      parents: [folderId],
-    }),
-    query: { supportsAllDrives: "true", fields: "id,name" },
-  });
-  imgFolderCache = created.id;
-  return imgFolderCache;
-}
-
-async function uploadImageToDrive(base64Data, fileNamePrefix) {
-  const base64Content = base64Data.replace(/^data:image\/[\w.+-]+;base64,/, "");
-  const buffer = Buffer.from(base64Content, "base64");
-  const mimeMatch = base64Data.match(/^data:(image\/[\w.+-]+);base64,/);
-  const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
-  const extension = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
-
-  const imgFolderId = await findOrCreateImgFolder();
-  const fileName = `${fileNamePrefix}-${Date.now()}.${extension}`;
-  const boundary = `mykino_${Date.now()}_${crypto.randomBytes(8).toString("hex")}`;
-  const metadata = { name: fileName, parents: [imgFolderId] };
-
-  const head = Buffer.from(
-    `--${boundary}\r\n`
-    + "Content-Type: application/json; charset=UTF-8\r\n\r\n"
-    + `${JSON.stringify(metadata)}\r\n`
-    + `--${boundary}\r\n`
-    + `Content-Type: ${mimeType}\r\n\r\n`,
-    "utf8",
-  );
-  const tail = Buffer.from(`\r\n--${boundary}--\r\n`, "utf8");
-  const body = Buffer.concat([head, buffer, tail]);
-
-  const saved = await driveUploadJson("", {
-    method: "POST",
-    headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
-    body,
-    query: { fields: "id,name" },
-  });
-
-  return {
-    fileId: saved.id,
-    directUrl: `/api/drive-stream/${encodeURIComponent(saved.id)}`,
-  };
 }
 
 async function driveFetch(pathname, options = {}) {
@@ -750,21 +682,21 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   const movieName = driveFile.name || "";
   const embedded = extractEmbeddedMovieMetadata(driveFile.description || "");
 
-  // Base64 rasmlarni Google Drive 'img' papkasiga yuklash
+  // Base64 rasmlarni Cloudflare R2'ga yuklash
   if (isDataImageValue(updates.posterImage)) {
-    const upload = await uploadImageToDrive(updates.posterImage, "poster");
+    const upload = await uploadImageToR2(updates.posterImage, "poster");
     updates.posterImage = upload.directUrl;
   }
   if (isDataImageValue(updates.headerImage)) {
-    const upload = await uploadImageToDrive(updates.headerImage, "header");
+    const upload = await uploadImageToR2(updates.headerImage, "header");
     updates.headerImage = upload.directUrl;
   }
   if (isDataImageValue(updates.poster)) {
-    const upload = await uploadImageToDrive(updates.poster, "poster");
+    const upload = await uploadImageToR2(updates.poster, "poster");
     updates.poster = upload.directUrl;
   }
   if (isDataImageValue(updates.heroPoster)) {
-    const upload = await uploadImageToDrive(updates.heroPoster, "header");
+    const upload = await uploadImageToR2(updates.heroPoster, "header");
     updates.heroPoster = upload.directUrl;
   }
 
@@ -1139,7 +1071,7 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
   }
 
   if (isDataImageValue(updates.posterImage)) {
-    const upload = await uploadImageToDrive(updates.posterImage, "series-poster");
+    const upload = await uploadImageToR2(updates.posterImage, "series-poster");
     updates.posterImage = upload.directUrl;
   }
 
