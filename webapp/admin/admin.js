@@ -5,6 +5,7 @@ let movies = [];
 let filteredMovies = [];
 let currentSearchQuery = '';
 let selectedPosterDataUrl = '';
+let selectedHeaderDataUrl = '';
 
 let usersList = [];
 let filteredUsers = [];
@@ -505,6 +506,31 @@ function bindEvents() {
     }
   });
 
+  document.getElementById('movieHeaderImageFile')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      selectedHeaderDataUrl = await readHeaderFile(file);
+      updateHeaderPreview(selectedHeaderDataUrl);
+      const urlInput = document.getElementById('movieHeaderImage');
+      if (urlInput) urlInput.value = '';
+    } catch (error) {
+      showNotification(error.message || 'Rasmni o\'qib bo\'lmadi.', 'error');
+      e.target.value = '';
+      selectedHeaderDataUrl = '';
+      updateHeaderPreview('');
+    }
+  });
+
+  document.getElementById('movieHeaderImage')?.addEventListener('input', (e) => {
+    const url = e.target.value.trim();
+    const fileInput = document.getElementById('movieHeaderImageFile');
+    if (fileInput) fileInput.value = '';
+    selectedHeaderDataUrl = '';
+    updateHeaderPreview(url);
+  });
+
   document.getElementById('movieShowInHeader')?.addEventListener('change', (e) => {
     const group = document.getElementById('headerImageGroup');
     if (group) group.style.display = e.target.checked ? 'block' : 'none';
@@ -672,9 +698,12 @@ function openMovieModal(movie) {
   const title = document.getElementById('movieModalTitle');
   const form = document.getElementById('movieForm');
   const posterFileInput = document.getElementById('moviePosterFile');
+  const headerFileInput = document.getElementById('movieHeaderImageFile');
 
   selectedPosterDataUrl = '';
+  selectedHeaderDataUrl = '';
   if (posterFileInput) posterFileInput.value = '';
+  if (headerFileInput) headerFileInput.value = '';
 
   title.textContent = 'Kino tahrirlash';
   document.getElementById('movieName').value = movie.name;
@@ -709,8 +738,15 @@ function openMovieModal(movie) {
     const group = document.getElementById('headerImageGroup');
     if (group) group.style.display = showInHeader ? 'block' : 'none';
   }
+  const headerImage = movie.headerImage || '';
   const headerImageInput = document.getElementById('movieHeaderImage');
-  if (headerImageInput) headerImageInput.value = movie.headerImage || '';
+  if (headerImage && !headerImage.startsWith('data:image')) {
+    if (headerImageInput) headerImageInput.value = headerImage;
+  } else {
+    if (headerImageInput) headerImageInput.value = '';
+    if (headerImage) selectedHeaderDataUrl = headerImage;
+  }
+  updateHeaderPreview(headerImage);
 
   updateDescriptionCounter();
   modal.classList.add('active');
@@ -785,6 +821,70 @@ function readPosterFile(file) {
   });
 }
 
+function updateHeaderPreview(url) {
+  const img = document.getElementById('headerPreviewImg');
+  const uploadArea = document.getElementById('headerUploadArea');
+  if (!img || !uploadArea) return;
+
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    uploadArea.classList.add('has-preview');
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    uploadArea.classList.remove('has-preview');
+  }
+}
+
+function readHeaderFile(file) {
+  if (!file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Faqat rasm fayl tanlang (JPG, PNG, WEBP, GIF).'));
+  }
+
+  if (file.size > POSTER_MAX_FILE_SIZE) {
+    return Promise.reject(new Error('Rasm fayli hajmi juda katta. Maksimal: 5MB.'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Rasmni o\'qib bo\'lmadi.'));
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      const image = new Image();
+      image.onerror = () => resolve(dataUrl);
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(dataUrl);
+          return;
+        }
+
+        const TARGET_WIDTH = 1280;
+        const TARGET_HEIGHT = 720;
+
+        let width = image.width;
+        let height = image.height;
+
+        if (width > TARGET_WIDTH || height > TARGET_HEIGHT) {
+          const scale = Math.min(TARGET_WIDTH / width, TARGET_HEIGHT / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(image, 0, 0, width, height);
+
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      image.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function updateDescriptionCounter() {
   const textarea = document.getElementById('movieDescription');
   const counter = document.getElementById('movieDescriptionCounter');
@@ -838,7 +938,7 @@ async function handleMovieSubmit(e) {
     description: document.getElementById('movieDescription').value,
     posterImage: selectedPosterDataUrl || document.getElementById('moviePosterUrl').value.trim(),
     showInHeader: document.getElementById('movieShowInHeader').checked,
-    headerImage: document.getElementById('movieHeaderImage').value.trim()
+    headerImage: selectedHeaderDataUrl || document.getElementById('movieHeaderImage').value.trim()
   };
 
   {

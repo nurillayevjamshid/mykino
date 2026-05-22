@@ -652,8 +652,25 @@
             <label for="movieShowInHeader" style="margin-bottom: 0; cursor: pointer; font-size: 14px; font-weight: 500;">Header sectionda ko'rsatish</label>
           </div>
           <div class="form-group" id="headerImageGroup" style="display: none; margin-top: 10px;">
-            <label style="font-size: 13px; color: var(--text-muted);">Header uchun rasm (Link)</label>
-            <input type="text" id="movieHeaderImage" class="form-input" placeholder="Header rasm linkini kiriting (16:9 tavsiya etiladi)...">
+            <label style="font-size: 13px; color: var(--text-muted);">Header uchun rasm (16:9)</label>
+            <div class="poster-upload header-upload" id="headerUploadArea">
+              <input type="file" id="movieHeaderImageFile" class="poster-upload-input" accept="image/*">
+              <div class="poster-upload-content" id="headerUploadContent">
+                <div class="poster-upload-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                </div>
+                <div class="poster-upload-text">Rasm yuklash</div>
+                <div class="poster-upload-hint">16:9 tavsiya etiladi · Max: 5MB</div>
+              </div>
+              <img src="" alt="Header preview" id="headerPreviewImg" class="poster-upload-preview" style="display:none;">
+            </div>
+            <div style="margin-top: 10px;">
+              <input type="text" id="movieHeaderImage" class="form-input" placeholder="Yoki rasm manzili (URL)ni kiriting...">
+            </div>
           </div>
         </div>
 
