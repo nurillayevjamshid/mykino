@@ -826,7 +826,10 @@ function resolveAppUrl(value) {
   if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
     return `https://${raw}`;
   }
-  if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
+  // blob: havolalar vaqtinchalik — sessiya tugashi bilan ishlamay qoladi.
+  // Ablojka sifatida qabul qilinmaydi, aks holda rasm "ochib ketadi".
+  if (/^blob:/i.test(raw)) return "";
+  if (/^(?:https?:|data:)/i.test(raw)) return raw;
   if (raw.startsWith("/")) return buildApiUrl(raw);
   return raw;
 }
