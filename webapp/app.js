@@ -834,6 +834,17 @@ function resolveAppUrl(value) {
   return raw;
 }
 
+// Bir nechta rasm nomzodidan birinchi yaroqlisini tanlaydi: bo'sh va blob:
+// havolalar tashlab yuboriladi, shunda Drive thumbnail kabi zaxira rasmga
+// o'tib ketadi (blob ablojka boshqa rasmni "yeb qo'ymaydi").
+function firstUsableImage(...candidates) {
+  for (const candidate of candidates) {
+    const value = String(candidate || "").trim();
+    if (value && !/^blob:/i.test(value)) return value;
+  }
+  return "";
+}
+
 function sanitizePublicGenre(value) {
   const normalized = String(value || "").trim();
   return /^google drive$/i.test(normalized) ? "Kino" : normalized;
@@ -1130,7 +1141,12 @@ function normalizeMovie(movie, index = 0) {
   const postUrl = getMoviePostUrl(movie);
   const safeId = String(movie?.id || movie?.code || `movie-${index + 1}`);
   const title = String(movie?.title || `Kino ${index + 1}`).trim();
-  const rawPoster = String(movie?.posterImage || movie?.poster || movie?.thumbnail || (fileId ? buildDriveThumbnailUrl(fileId) : "")).trim();
+  const rawPoster = firstUsableImage(
+    movie?.posterImage,
+    movie?.poster,
+    movie?.thumbnail,
+    fileId ? buildDriveThumbnailUrl(fileId) : "",
+  );
   const sourceType = String(movie?.sourceType || "").trim();
   const fileName = String(movie?.fileName || movie?.name || "").trim();
   const sourceUrl = getMovieVideoUrl(movie);
@@ -1159,7 +1175,7 @@ function normalizeMovie(movie, index = 0) {
     sourceUrl,
     webViewLink: resolveAppUrl(String(movie?.webViewLink || "").trim()),
     mimeType: String(movie?.mimeType || "").trim(),
-    headerImage: resolveAppUrl(String(movie?.headerImage || movie?.heroPoster || "").trim()),
+    headerImage: resolveAppUrl(firstUsableImage(movie?.headerImage, movie?.heroPoster)),
     showInHeader: toBooleanFlag(movie?.showInHeader ?? movie?.heroFeatured),
   };
 
@@ -4770,7 +4786,7 @@ function normalizeSeriesEntry(raw) {
     id: String(raw?.id || raw?.folderId || ""),
     title: String(raw?.title || raw?.folderName || "Serial").trim(),
     description: String(raw?.description || "").trim(),
-    posterImage: resolveAppUrl(String(raw?.posterImage || raw?.poster || "").trim()),
+    posterImage: resolveAppUrl(firstUsableImage(raw?.posterImage, raw?.poster)),
     episodeCount: Number(raw?.episodeCount || episodes.length || 0),
     episodes: episodes.map((ep, i) => ({
       id: String(ep?.id || ""),
