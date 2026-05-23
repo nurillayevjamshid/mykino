@@ -4679,16 +4679,25 @@ function escapeAttr(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-const SERIES_CATEGORY_CARD = `<button class="category-card category-card--series" type="button" data-series-entry="1" aria-label="Seriallar"><span class="category-card__label">Seriallar</span></button>`;
+function buildSeriesCategoryCard() {
+  const seriesCat = categoriesData.find((c) => String(c?.name || "").toLowerCase() === "seriallar");
+  const bg = seriesCat && seriesCat.image
+    ? `style="background-image:url('${escapeAttr(seriesCat.image).replaceAll("'", "%27")}')"`
+    : "";
+  const label = bg ? "" : `<span class="category-card__label">Seriallar</span>`;
+  return `<button class="category-card category-card--series" type="button" data-series-entry="1" aria-label="Seriallar" ${bg}>${label}</button>`;
+}
 
 function renderCategoriesGrid() {
   if (!categoriesGrid) return;
   if (categoriesEmpty) categoriesEmpty.hidden = true;
-  const cards = categoriesData.map((c) => {
-    const bg = c.image ? `style="background-image:url('${escapeAttr(c.image).replaceAll("'", "%27")}')"` : "";
-    return `<button class="category-card" type="button" data-category-name="${escapeAttr(c.name)}" aria-label="${escapeAttr(c.name)}" ${bg}></button>`;
-  });
-  categoriesGrid.innerHTML = [SERIES_CATEGORY_CARD, ...cards].join("");
+  const cards = categoriesData
+    .filter((c) => String(c?.name || "").toLowerCase() !== "seriallar")
+    .map((c) => {
+      const bg = c.image ? `style="background-image:url('${escapeAttr(c.image).replaceAll("'", "%27")}')"` : "";
+      return `<button class="category-card" type="button" data-category-name="${escapeAttr(c.name)}" aria-label="${escapeAttr(c.name)}" ${bg}></button>`;
+    });
+  categoriesGrid.innerHTML = [buildSeriesCategoryCard(), ...cards].join("");
 }
 
 function openCategoriesView() {

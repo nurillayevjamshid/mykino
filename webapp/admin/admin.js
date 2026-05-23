@@ -2180,8 +2180,16 @@ function renderCategoriesTable() {
   const savedByKey = new Map(categoriesList.map((c) => [c.name.toLowerCase(), c]));
   const movieCats = collectKnownCategories();
   const rows = [];
+  const seriesKey = 'seriallar';
+  if (savedByKey.has(seriesKey)) {
+    rows.push({ ...savedByKey.get(seriesKey), source: 'series' });
+    savedByKey.delete(seriesKey);
+  } else {
+    rows.push({ id: '', name: 'Seriallar', image: '', source: 'series' });
+  }
   for (const name of movieCats) {
     const key = name.toLowerCase();
+    if (key === seriesKey) continue;
     if (savedByKey.has(key)) {
       rows.push({ ...savedByKey.get(key), source: 'both' });
       savedByKey.delete(key);
@@ -2202,7 +2210,9 @@ function renderCategoriesTable() {
       ? '<span class="badge" style="background:#fff3cd;color:#856404;">Kinolarda</span>'
       : c.source === 'saved'
         ? '<span class="badge" style="background:#d1e7dd;color:#0f5132;">Saqlangan</span>'
-        : '<span class="badge" style="background:#cfe2ff;color:#084298;">Ikkalasi</span>';
+        : c.source === 'series'
+          ? '<span class="badge" style="background:#e7d6ff;color:#5a2a99;">Seriallar</span>'
+          : '<span class="badge" style="background:#cfe2ff;color:#084298;">Ikkalasi</span>';
     const editKey = c.id ? `data-cat-edit="${escapeHtml(c.id)}"` : `data-cat-attach="${escapeHtml(c.name)}"`;
     const editLabel = c.image ? 'Tahrirlash' : 'Rasm yuklash';
     const deleteBtn = c.id
