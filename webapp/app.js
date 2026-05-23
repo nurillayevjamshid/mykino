@@ -2863,21 +2863,21 @@ function applyForceLandscape(enable) {
   }
   const portrait = isPortraitOrientation();
   if (portrait) {
-    // Portret viewport — landscape ko'rinishi uchun 90° aylantirib markazda joylashtiramiz.
-    // Ko'rinadigan innerWidth/Height ishlatiladi (screen.height emas) — Telegram WebApp
-    // chrome ostidagi haqiqiy viewport markaziga to'g'rilanadi.
+    // Portret viewport — landscape ko'rinishi uchun 90° aylantirib chap-tepadan
+    // joylashtiramiz. screen.height emas, ko'rinadigan innerWidth/Height ishlatiladi —
+    // Telegram WebApp ichida ham player to'g'ri tepaga qotirilsin.
     const visW = window.innerWidth || document.documentElement.clientWidth || 0;
     const visH = window.innerHeight || document.documentElement.clientHeight || 0;
     Object.assign(videoPlayer.style, {
       position: "fixed",
-      top: "50%",
-      left: "50%",
+      top: "0",
+      left: "0",
       right: "auto",
       bottom: "auto",
       width: `${visH}px`,
       height: `${visW}px`,
-      transform: "translate(-50%, -50%) rotate(90deg)",
-      transformOrigin: "center center",
+      transform: `translate(${visW}px, 0) rotate(90deg)`,
+      transformOrigin: "top left",
       inset: "auto",
       zIndex: "99999",
       margin: "0",
