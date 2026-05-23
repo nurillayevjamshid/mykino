@@ -1799,6 +1799,7 @@ function createMovieCard(movie) {
       <h2>${escapeHtml(movie.title)}</h2>
       <p class="card-meta">${metaParts.join("")}</p>
     </span>
+    <span class="kino-watermark kino-watermark--card" aria-hidden="true"></span>
   `;
   const wishlistBtn = card.querySelector(".wishlist-toggle");
   wishlistBtn?.addEventListener("click", (event) => {
@@ -4837,6 +4838,7 @@ function createSeriesCard(series) {
       <h2>${escapeHtml(series.title)}</h2>
       <p class="card-meta"><span class="card-meta__genre">Serial</span></p>
     </span>
+    <span class="kino-watermark kino-watermark--card" aria-hidden="true"></span>
   `;
   const open = () => openSeriesDetailView(series);
   card.addEventListener("click", open);
