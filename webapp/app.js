@@ -826,21 +826,15 @@ function resolveAppUrl(value) {
   if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
     return `https://${raw}`;
   }
-  // blob: havolalar vaqtinchalik — sessiya tugashi bilan ishlamay qoladi.
-  // Ablojka sifatida qabul qilinmaydi, aks holda rasm "ochib ketadi".
-  if (/^blob:/i.test(raw)) return "";
-  if (/^(?:https?:|data:)/i.test(raw)) return raw;
+  if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
   if (raw.startsWith("/")) return buildApiUrl(raw);
   return raw;
 }
 
-// Bir nechta rasm nomzodidan birinchi yaroqlisini tanlaydi: bo'sh va blob:
-// havolalar tashlab yuboriladi, shunda Drive thumbnail kabi zaxira rasmga
-// o'tib ketadi (blob ablojka boshqa rasmni "yeb qo'ymaydi").
 function firstUsableImage(...candidates) {
   for (const candidate of candidates) {
     const value = String(candidate || "").trim();
-    if (value && !/^blob:/i.test(value)) return value;
+    if (value) return value;
   }
   return "";
 }
@@ -1799,7 +1793,6 @@ function createMovieCard(movie) {
       <h2>${escapeHtml(movie.title)}</h2>
       <p class="card-meta">${metaParts.join("")}</p>
     </span>
-    <span class="kino-watermark kino-watermark--card" aria-hidden="true"></span>
   `;
   const wishlistBtn = card.querySelector(".wishlist-toggle");
   wishlistBtn?.addEventListener("click", (event) => {
@@ -4838,7 +4831,6 @@ function createSeriesCard(series) {
       <h2>${escapeHtml(series.title)}</h2>
       <p class="card-meta"><span class="card-meta__genre">Serial</span></p>
     </span>
-    <span class="kino-watermark kino-watermark--card" aria-hidden="true"></span>
   `;
   const open = () => openSeriesDetailView(series);
   card.addEventListener("click", open);

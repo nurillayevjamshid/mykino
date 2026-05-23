@@ -28,12 +28,6 @@ const API_URL = '/api';
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 const POSTER_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-// blob: havolalar brauzer xotirasida vaqtinchalik yashaydi — sahifa yopilgach
-// ishlamay qoladi va ablojka "ochib ketadi". Saqlashga yo'l qo'ymaymiz.
-function isBlobUrl(value) {
-  return /^blob:/i.test(String(value || '').trim());
-}
-
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -502,13 +496,6 @@ function bindEvents() {
 
   document.getElementById('moviePosterUrl')?.addEventListener('input', (e) => {
     const url = e.target.value.trim();
-    if (isBlobUrl(url)) {
-      e.target.value = '';
-      selectedPosterDataUrl = '';
-      updatePosterPreview('');
-      showNotification('blob: havola qabul qilinmaydi — u vaqtinchalik. Haqiqiy rasm linkini qo\'ying yoki fayl yuklang.', 'error');
-      return;
-    }
     if (url) {
       const fileInput = document.getElementById('moviePosterFile');
       if (fileInput) fileInput.value = '';
@@ -538,13 +525,6 @@ function bindEvents() {
 
   document.getElementById('movieHeaderImage')?.addEventListener('input', (e) => {
     const url = e.target.value.trim();
-    if (isBlobUrl(url)) {
-      e.target.value = '';
-      selectedHeaderDataUrl = '';
-      updateHeaderPreview('');
-      showNotification('blob: havola qabul qilinmaydi — u vaqtinchalik. Haqiqiy rasm linkini qo\'ying yoki fayl yuklang.', 'error');
-      return;
-    }
     const fileInput = document.getElementById('movieHeaderImageFile');
     if (fileInput) fileInput.value = '';
     selectedHeaderDataUrl = '';
@@ -609,13 +589,6 @@ function bindEvents() {
   });
   document.getElementById('seriesPosterUrl')?.addEventListener('input', (e) => {
     const url = e.target.value.trim();
-    if (isBlobUrl(url)) {
-      e.target.value = '';
-      selectedSeriesPosterDataUrl = '';
-      updateSeriesPosterPreview('');
-      showNotification('blob: havola qabul qilinmaydi — u vaqtinchalik. Haqiqiy rasm linkini qo\'ying yoki fayl yuklang.', 'error');
-      return;
-    }
     if (url) {
       const fileInput = document.getElementById('seriesPosterFile');
       if (fileInput) fileInput.value = '';
@@ -959,10 +932,6 @@ async function handleMovieSubmit(e) {
   }
   const posterValue = selectedPosterDataUrl || document.getElementById('moviePosterUrl').value.trim();
   const headerValue = selectedHeaderDataUrl || document.getElementById('movieHeaderImage').value.trim();
-  if (isBlobUrl(posterValue) || isBlobUrl(headerValue)) {
-    showNotification('blob: havola saqlanmaydi — u vaqtinchalik bo\'lib, rasm keyin ochilmay qoladi. Haqiqiy link qo\'ying yoki fayl yuklang.', 'error');
-    return;
-  }
   const movieData = {
     name: document.getElementById('movieName').value.trim(),
     category: categoryString,
@@ -1278,10 +1247,6 @@ async function handleSeriesSubmit() {
 
   if (!name) {
     showNotification('Serial nomini kiriting.', 'error');
-    return;
-  }
-  if (isBlobUrl(finalPoster)) {
-    showNotification('blob: havola saqlanmaydi — u vaqtinchalik bo\'lib, rasm keyin ochilmay qoladi. Haqiqiy link qo\'ying yoki fayl yuklang.', 'error');
     return;
   }
   if (description.length > MOVIE_DESCRIPTION_MAX_LENGTH) {
