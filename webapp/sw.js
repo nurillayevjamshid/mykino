@@ -1,4 +1,4 @@
-const VERSION = "v20260522-blob02";
+const VERSION = "v20260523-blob03";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 
