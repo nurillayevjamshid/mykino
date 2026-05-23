@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260523-brand02" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260523-ad01" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -38,6 +38,22 @@
       <span class="splash-screen__tagline-eyebrow">biz bilan vaqtingiz</span>
       <span class="splash-screen__tagline-hero">maroqli</span>
       <span class="splash-screen__tagline-foot">bo'ladi</span>
+    </div>
+  </div>
+  <div class="ad-modal" id="adModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="adModalTitle">
+    <div class="ad-modal__backdrop" data-ad-close></div>
+    <div class="ad-modal__dialog" role="document">
+      <button type="button" class="ad-modal__close" data-ad-close aria-label="Yopish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+      <span id="adModalTitle" class="ad-modal__sr">Reklama</span>
+      <a id="adModalLink" class="ad-modal__image" href="#" target="_blank" rel="noopener noreferrer">
+        <img id="adModalImage" src="" alt="Reklama" />
+      </a>
+      <a id="adModalCta" class="ad-modal__cta" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
     </div>
   </div>
   <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
@@ -714,7 +730,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260523-blob03"></script>
+  <script src="/static/app.js?v=20260523-ad01"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });

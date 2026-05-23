@@ -17,6 +17,7 @@ const SECTION_TITLES = {
   categories: 'Kategoriyalar',
   users: 'Obunachilar',
   broadcast: 'Xabar yuborish',
+  ad: 'Reklama',
 };
 
 // Modal kategoriyalari uchun: tanlangan + mavjudlar ro'yxati
@@ -219,6 +220,7 @@ function switchSection(name) {
     categories: 'categoriesSection',
     users: 'usersSection',
     broadcast: 'broadcastSection',
+    ad: 'adSection',
   };
   const targetId = sections[name];
   if (!targetId) return;
@@ -239,6 +241,7 @@ function switchSection(name) {
   if (name === 'music') fetchMusic();
   if (name === 'broadcast') initBroadcastSection();
   if (name === 'categories') fetchCategories();
+  if (name === 'ad') loadAdSettings();
 
   if (window.innerWidth <= 768) {
     document.querySelector('.sidebar')?.classList.remove('open');
@@ -2352,3 +2355,113 @@ document.getElementById('categoriesTableBody')?.addEventListener('click', async 
 });
 
 window.fetchCategories = fetchCategories;
+
+// ===== Reklama (modal mini-app oynasi) =====
+let adUploadedUrl = '';
+let adSettingsLoaded = false;
+
+function setAdPreview(url) {
+  const img = document.getElementById('adImagePreview');
+  const area = document.getElementById('adUploadArea');
+  if (!img || !area) return;
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    area.classList.add('has-preview');
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    area.classList.remove('has-preview');
+  }
+}
+
+function setAdStatus(msg, kind) {
+  const el = document.getElementById('adSaveStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
+}
+
+async function loadAdSettings() {
+  if (adSettingsLoaded) return;
+  try {
+    const res = await fetch('/api/settings', { cache: 'no-store' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    const ad = json.ad || {};
+    const enabledEl = document.getElementById('adEnabled');
+    const urlEl = document.getElementById('adImageUrl');
+    const linkEl = document.getElementById('adLinkUrl');
+    const btnEl = document.getElementById('adButtonText');
+    if (enabledEl) enabledEl.checked = Boolean(ad.enabled);
+    if (urlEl) urlEl.value = ad.imageUrl || '';
+    if (linkEl) linkEl.value = ad.linkUrl || '';
+    if (btnEl) btnEl.value = ad.buttonText || '';
+    adUploadedUrl = ad.imageUrl || '';
+    setAdPreview(ad.imageUrl || '');
+    adSettingsLoaded = true;
+  } catch (err) {
+    setAdStatus(`Yuklashda xato: ${err.message}`, 'error');
+  }
+}
+
+async function saveAdSettings() {
+  const enabled = document.getElementById('adEnabled')?.checked || false;
+  const imageUrl = (document.getElementById('adImageUrl')?.value || adUploadedUrl || '').trim();
+  const linkUrl = (document.getElementById('adLinkUrl')?.value || '').trim();
+  const buttonText = (document.getElementById('adButtonText')?.value || '').trim();
+
+  if (enabled && !imageUrl) {
+    setAdStatus("Reklama yoqilgan — rasm yuklash yoki URL kiritish kerak.", 'error');
+    return;
+  }
+
+  setAdStatus('Saqlanmoqda...');
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ad: { enabled, imageUrl, linkUrl, buttonText } }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    setAdStatus('Saqlandi.', 'ok');
+  } catch (err) {
+    setAdStatus(`Xato: ${err.message}`, 'error');
+  }
+}
+
+document.getElementById('adImageFile')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0]; if (!file) return;
+  setAdStatus('Rasm yuklanmoqda...');
+  try {
+    const raw = await readFileAsDataUrl(file);
+    const dataUrl = await compressImageDataUrl(raw, 1080, 1920, 0.85);
+    const url = await uploadCategoryImage(dataUrl, 'ad-' + Date.now().toString(36));
+    adUploadedUrl = url;
+    document.getElementById('adImageUrl').value = url;
+    setAdPreview(url);
+    setAdStatus('Rasm yuklandi. Saqlashni unutmang.', 'ok');
+  } catch (err) {
+    setAdStatus(`Yuklashda xato: ${err.message}`, 'error');
+  } finally {
+    e.target.value = '';
+  }
+});
+
+document.getElementById('adImageUrl')?.addEventListener('input', (e) => {
+  setAdPreview(e.target.value.trim());
+});
+
+document.getElementById('adSaveBtn')?.addEventListener('click', saveAdSettings);
+document.getElementById('adClearBtn')?.addEventListener('click', () => {
+  if (!confirm('Reklama maydonlari tozalansinmi?')) return;
+  const enabledEl = document.getElementById('adEnabled');
+  if (enabledEl) enabledEl.checked = false;
+  document.getElementById('adImageUrl').value = '';
+  document.getElementById('adLinkUrl').value = '';
+  document.getElementById('adButtonText').value = '';
+  adUploadedUrl = '';
+  setAdPreview('');
+  setAdStatus('');
+});
