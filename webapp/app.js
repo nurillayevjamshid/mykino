@@ -5564,7 +5564,8 @@ function showAdModal(ad) {
   }
 
   if (ad.linkUrl && (ad.buttonText || "").trim()) {
-    cta.textContent = ad.buttonText.trim();
+    cta.innerHTML = '<span class="ad-modal__cta-label"></span><span class="ad-modal__cta-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span>';
+    cta.querySelector('.ad-modal__cta-label').textContent = ad.buttonText.trim();
     cta.href = ad.linkUrl;
     cta.hidden = false;
   } else {
