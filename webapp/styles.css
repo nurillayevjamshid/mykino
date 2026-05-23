@@ -1248,20 +1248,11 @@ html[data-theme="light"] .category-row__more:focus-visible {
 }
 
 .kino-watermark--player {
-  top: 56px;
-  left: 14px;
-  width: 84px;
-  height: 32px;
+  top: calc(var(--video-band-top, 56px) + 10px);
+  left: calc(var(--video-band-left, 14px) + 10px);
+  width: 80px;
+  height: 30px;
   z-index: 6;
-}
-
-@media (max-width: 480px) {
-  .kino-watermark--player {
-    top: 48px;
-    left: 10px;
-    width: 70px;
-    height: 26px;
-  }
 }
 
 .movie-card:hover .poster,
