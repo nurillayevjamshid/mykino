@@ -2892,54 +2892,9 @@ function applyForceLandscape(enable) {
 function refreshLandscapeView() {
   if (!intendedFullscreen) {
     applyForceLandscape(false);
-    refreshIosLandscapeAutoFullscreen();
     return;
   }
   applyForceLandscape(isPortraitOrientation());
-  refreshIosLandscapeAutoFullscreen();
-}
-
-// iPhone foydalanuvchisi telefonni landscape'ga aylantirsa, native iOS
-// fullscreen'siz player'ni viewport bo'yicha to'liq yoyamiz — HTML overlay
-// (jumladan MY PLAYLIST watermark) yuqorida ko'rinib tursin.
-function applyIosLandscapeFullscreen(enable) {
-  if (!videoPlayer) return;
-  if (!enable) {
-    if (videoPlayer.classList.contains("is-ios-landscape-fs")) {
-      videoPlayer.classList.remove("is-ios-landscape-fs");
-      clearInlineLandscape();
-    }
-    return;
-  }
-  Object.assign(videoPlayer.style, {
-    position: "fixed",
-    top: "0",
-    left: "0",
-    right: "0",
-    bottom: "0",
-    width: "100vw",
-    height: "100vh",
-    transform: "none",
-    inset: "0",
-    zIndex: "99999",
-    margin: "0",
-    maxWidth: "none",
-    maxHeight: "none",
-    background: "#000",
-  });
-  videoPlayer.classList.add("is-ios-landscape-fs");
-}
-
-function refreshIosLandscapeAutoFullscreen() {
-  if (!videoPlayer) return;
-  const playerOpen = !videoPlayer.hasAttribute("hidden");
-  const shouldEnable =
-    isIOSDevice()
-    && playerOpen
-    && !isPortraitOrientation()
-    && !isIOSVideoFullscreen()
-    && !videoPlayer.classList.contains("is-force-landscape");
-  applyIosLandscapeFullscreen(shouldEnable);
 }
 
 function isAnyFullscreen() {
@@ -3397,7 +3352,6 @@ async function openVideoPlayer(movie) {
   videoTitle.textContent = movie.title || "Kino";
   videoPlayer.hidden = false;
   document.body.classList.add("is-player-open");
-  refreshIosLandscapeAutoFullscreen();
   currentSpeed = 1;
   updateSpeedLabel();
   setPlayerLocked(false);
@@ -3486,7 +3440,6 @@ function closeVideoPlayer() {
   setVideoLoading(false);
   videoPlayer.hidden = true;
   document.body.classList.remove("is-player-open");
-  applyIosLandscapeFullscreen(false);
   if (videoPipButton) videoPipButton.classList.remove("is-active");
   exitPipIfActive();
   if (isAnyFullscreen()) exitFullscreenAndLandscape();
