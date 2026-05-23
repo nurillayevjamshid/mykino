@@ -8124,8 +8124,10 @@ body.is-series-detail .categories-view,
 body.is-series-detail .search-panel { display: none !important; }
 
 .category-card--series {
-  background: linear-gradient(135deg, #7c3aed, #4c1d95) !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, #7c3aed, #4c1d95);
+  color: #fff;
+  background-size: cover;
+  background-position: center;
 }
 .category-card__label {
   font-size: 19px;
