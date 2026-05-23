@@ -2862,29 +2862,47 @@ function applyForceLandscape(enable) {
     return;
   }
   const { w, h } = getAccurateViewport();
-  // Viewport is portrait (w < h). We want to display landscape video inside it via 90° rotation.
-  // Pre-rotation: arrange content in LANDSCAPE (width=longSide, height=shortSide).
-  // After rotate(90deg) around center: element rotates to portrait visual orientation,
-  // which exactly fills the portrait viewport.
-  const longSide = Math.max(w, h);
-  const shortSide = Math.min(w, h);
-  Object.assign(videoPlayer.style, {
-    position: "fixed",
-    top: "50%",
-    left: "50%",
-    right: "auto",
-    bottom: "auto",
-    width: `${longSide}px`,
-    height: `${shortSide}px`,
-    transform: "translate(-50%, -50%) rotate(90deg)",
-    transformOrigin: "center center",
-    inset: "auto",
-    zIndex: "99999",
-    margin: "0",
-    maxWidth: "none",
-    maxHeight: "none",
-    background: "#000",
-  });
+  const portrait = isPortraitOrientation();
+  if (portrait) {
+    // Portret viewport — landscape ko'rinishi uchun 90° aylantirib joylashtiramiz.
+    const longSide = Math.max(w, h);
+    const shortSide = Math.min(w, h);
+    Object.assign(videoPlayer.style, {
+      position: "fixed",
+      top: "50%",
+      left: "50%",
+      right: "auto",
+      bottom: "auto",
+      width: `${longSide}px`,
+      height: `${shortSide}px`,
+      transform: "translate(-50%, -50%) rotate(90deg)",
+      transformOrigin: "center center",
+      inset: "auto",
+      zIndex: "99999",
+      margin: "0",
+      maxWidth: "none",
+      maxHeight: "none",
+      background: "#000",
+    });
+  } else {
+    // Landscape viewport — aylantirmasdan to'liq viewport'ga yoyamiz.
+    Object.assign(videoPlayer.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      right: "0",
+      bottom: "0",
+      width: "100vw",
+      height: "100vh",
+      transform: "none",
+      inset: "0",
+      zIndex: "99999",
+      margin: "0",
+      maxWidth: "none",
+      maxHeight: "none",
+      background: "#000",
+    });
+  }
   videoPlayer.classList.add("is-force-landscape");
   document.body.classList.add("is-fake-fullscreen");
 }
@@ -2894,7 +2912,14 @@ function refreshLandscapeView() {
     applyForceLandscape(false);
     return;
   }
-  applyForceLandscape(isPortraitOrientation());
+  // iOS'da har doim soxta fullscreen (orientation o'zgarsa applyForceLandscape
+  // o'zi portret/landscape farqini hisobga oladi). Android'da OS landscape'ga
+  // o'zi aylantirgan bo'lsa, qo'shimcha CSS aylantirish shart emas.
+  if (isIOSDevice()) {
+    applyForceLandscape(true);
+  } else {
+    applyForceLandscape(isPortraitOrientation());
+  }
 }
 
 function isAnyFullscreen() {
@@ -2928,25 +2953,19 @@ async function enterFullscreenAndLandscape() {
   intendedFullscreen = true;
   const v = getActiveVideoEl();
 
-  // 1. iOS — native video fullscreen. Auto-rotates to landscape, fills entire device screen,
-  //    works inside Telegram WebApp WebView. Shows iOS native controls in fullscreen.
-  if (isIOSDevice() && v && typeof v.webkitEnterFullscreen === "function") {
-    try {
-      v.controls = true;
-      const onEnd = () => {
-        v.controls = false;
-        intendedFullscreen = false;
-        syncFullscreenButton();
-        v.removeEventListener("webkitendfullscreen", onEnd);
-      };
-      v.addEventListener("webkitendfullscreen", onEnd);
-      v.webkitEnterFullscreen();
-      syncFullscreenButton();
-      return;
-    } catch (err) {
-      console.warn("iOS native fullscreen failed:", err);
+  // 1. iOS — native fullscreen'dan FOYDALANMAYMIZ: iOS native player
+  //    HTML overlay'ni (MY PLAYLIST watermark, tugmalar) yashiradi.
+  //    O'rniga CSS-asosli soxta fullscreen + landscape rotatsiya orqali
+  //    player viewport bo'yicha to'liq yoyiladi va overlay ko'rinib turadi.
+  if (isIOSDevice()) {
+    if (v) {
       v.controls = false;
+      v.setAttribute("playsinline", "");
+      v.setAttribute("webkit-playsinline", "");
     }
+    applyForceLandscape(true);
+    syncFullscreenButton();
+    return;
   }
 
   const tg = getTelegramWebApp();
