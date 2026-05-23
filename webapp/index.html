@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260523-ad01" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260523-ad02" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -50,10 +50,16 @@
         </svg>
       </button>
       <span id="adModalTitle" class="ad-modal__sr">Reklama</span>
-      <a id="adModalLink" class="ad-modal__image" href="#" target="_blank" rel="noopener noreferrer">
-        <img id="adModalImage" src="" alt="Reklama" />
-      </a>
-      <a id="adModalCta" class="ad-modal__cta" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
+      <div class="ad-modal__frame">
+        <a id="adModalLink" class="ad-modal__image" href="#" target="_blank" rel="noopener noreferrer">
+          <img id="adModalImage" src="" alt="Reklama" />
+        </a>
+        <span class="ad-modal__badge" aria-hidden="true">
+          <span class="ad-modal__badge-dot"></span>
+          <span class="ad-modal__badge-text">Reklama</span>
+        </span>
+        <a id="adModalCta" class="ad-modal__cta" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
+      </div>
     </div>
   </div>
   <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
@@ -730,7 +736,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260523-ad01"></script>
+  <script src="/static/app.js?v=20260523-ad02"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
