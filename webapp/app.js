@@ -2407,6 +2407,22 @@ const playerCore = {
   },
 };
 
+function updateWatermarkPosition() {
+  const video = videoMount ? videoMount.querySelector("video") : null;
+  if (!video || !videoPlayer) return;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return;
+  const cw = videoMount.clientWidth || window.innerWidth;
+  const ch = videoMount.clientHeight || window.innerHeight;
+  const scale = Math.min(cw / vw, ch / vh);
+  const renderedH = vh * scale;
+  const renderedW = vw * scale;
+  const bandTop = Math.round((ch - renderedH) / 2);
+  const bandLeft = Math.round((cw - renderedW) / 2);
+  videoPlayer.style.setProperty("--video-band-top", bandTop + "px");
+  videoPlayer.style.setProperty("--video-band-left", bandLeft + "px");
+}
+
 function updateHtml5VideoControls() {
   const v = getActiveVideoEl();
   if (!v || activeYouTubePlayer) return;
@@ -3108,10 +3124,12 @@ function createVideoElement(src, movie, options = {}) {
       pendingResumeTime = 0;
     }
     updateHtml5VideoControls();
+    updateWatermarkPosition();
     scheduleCodecCheck(video, movie, 3000);
   });
   video.addEventListener("resize", () => {
     if (video.videoWidth > 0 && video.videoHeight > 0) hideCodecError();
+    updateWatermarkPosition();
   });
   video.addEventListener("timeupdate", () => {
     if (video.currentTime > 1.5 && video.videoWidth === 0 && video.videoHeight === 0 && !video.paused) {
@@ -5290,7 +5308,7 @@ try {
   }
 } catch {}
 
-window.addEventListener("resize", () => { if (intendedFullscreen) refreshLandscapeView(); });
+window.addEventListener("resize", () => { if (intendedFullscreen) refreshLandscapeView(); updateWatermarkPosition(); });
 
 try {
   const portraitMQ = window.matchMedia("(orientation: portrait)");
