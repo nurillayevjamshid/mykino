@@ -2861,22 +2861,23 @@ function applyForceLandscape(enable) {
     document.body.classList.remove("is-fake-fullscreen");
     return;
   }
-  const { w, h } = getAccurateViewport();
   const portrait = isPortraitOrientation();
   if (portrait) {
-    // Portret viewport — landscape ko'rinishi uchun 90° aylantirib joylashtiramiz.
-    const longSide = Math.max(w, h);
-    const shortSide = Math.min(w, h);
+    // Portret viewport — landscape ko'rinishi uchun 90° aylantirib chap-tepadan
+    // joylashtiramiz. screen.height emas, ko'rinadigan innerWidth/Height ishlatiladi —
+    // Telegram WebApp ichida ham player to'g'ri tepaga qotirilsin.
+    const visW = window.innerWidth || document.documentElement.clientWidth || 0;
+    const visH = window.innerHeight || document.documentElement.clientHeight || 0;
     Object.assign(videoPlayer.style, {
       position: "fixed",
-      top: "50%",
-      left: "50%",
+      top: "0",
+      left: "0",
       right: "auto",
       bottom: "auto",
-      width: `${longSide}px`,
-      height: `${shortSide}px`,
-      transform: "translate(-50%, -50%) rotate(90deg)",
-      transformOrigin: "center center",
+      width: `${visH}px`,
+      height: `${visW}px`,
+      transform: `translate(${visW}px, 0) rotate(90deg)`,
+      transformOrigin: "top left",
       inset: "auto",
       zIndex: "99999",
       margin: "0",
