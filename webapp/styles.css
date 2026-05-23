@@ -1255,12 +1255,13 @@ html[data-theme="light"] .category-row__more:focus-visible {
   z-index: 6;
 }
 
-/* Player ichidagi MY PLAYLIST brendi (play tugma + matn) — kattaroq */
+/* Player ichidagi MY PLAYLIST brendi (play tugma + matn) — responsive */
 .kino-watermark--brand {
   background-image: none;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  /* gap viewport bilan kichik portretdan to'liq ekrangacha proportsional o'sadi */
+  gap: clamp(6px, 1.2vmin, 12px);
   width: auto;
   height: auto;
   color: #ffc73a;
@@ -1270,8 +1271,9 @@ html[data-theme="light"] .category-row__more:focus-visible {
 
 .kino-watermark--brand .kino-watermark__logo {
   display: inline-flex;
-  width: 36px;
-  height: 36px;
+  /* portretda ~28px, kattalashganda ~46px atrofida */
+  width: clamp(28px, 6.5vmin, 46px);
+  height: clamp(28px, 6.5vmin, 46px);
 }
 
 .kino-watermark--brand .kino-watermark__logo svg {
@@ -1289,16 +1291,33 @@ html[data-theme="light"] .category-row__more:focus-visible {
 }
 
 .kino-watermark--brand .kino-watermark__text b {
-  font-size: 18px;
+  font-size: clamp(14px, 3.2vmin, 22px);
   font-weight: 700;
   color: #fff;
 }
 
 .kino-watermark--brand .kino-watermark__text span {
-  font-size: 15px;
+  font-size: clamp(11px, 2.6vmin, 18px);
   font-weight: 600;
   letter-spacing: 0.18em;
   color: #ffc73a;
+}
+
+/* Player to'liq ekrandagi (landscape) brendni biroz katta qilamiz */
+@media (orientation: landscape) {
+  .kino-watermark--brand {
+    gap: clamp(8px, 1.5vmin, 14px);
+  }
+  .kino-watermark--brand .kino-watermark__logo {
+    width: clamp(34px, 7vmin, 56px);
+    height: clamp(34px, 7vmin, 56px);
+  }
+  .kino-watermark--brand .kino-watermark__text b {
+    font-size: clamp(18px, 3.8vmin, 26px);
+  }
+  .kino-watermark--brand .kino-watermark__text span {
+    font-size: clamp(14px, 3vmin, 21px);
+  }
 }
 
 .movie-card:hover .poster,
