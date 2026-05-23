@@ -5517,6 +5517,8 @@ function waitForImageReady(image, timeoutMs = 3000) {
   });
 }
 
+let pendingAd = null;
+
 async function loadAppSettings() {
   let timeoutId = 0;
   try {
@@ -5529,12 +5531,89 @@ async function loadAppSettings() {
       signal: controller.signal,
     });
     if (response.ok) {
-      await response.json();
+      const data = await response.json();
+      if (data && data.ad && data.ad.enabled && data.ad.imageUrl) {
+        pendingAd = data.ad;
+      } else {
+        pendingAd = null;
+      }
     }
   } catch (e) {
     // Ignore error, use default
   } finally {
     window.clearTimeout(timeoutId);
+  }
+}
+
+function showAdModal(ad) {
+  const modal = document.getElementById("adModal");
+  const img = document.getElementById("adModalImage");
+  const link = document.getElementById("adModalLink");
+  const cta = document.getElementById("adModalCta");
+  if (!modal || !img || !ad || !ad.imageUrl) return;
+
+  img.src = ad.imageUrl;
+  img.alt = ad.buttonText || "Reklama";
+
+  if (ad.linkUrl) {
+    link.href = ad.linkUrl;
+    link.setAttribute("data-has-link", "1");
+  } else {
+    link.removeAttribute("href");
+    link.removeAttribute("data-has-link");
+  }
+
+  if (ad.linkUrl && (ad.buttonText || "").trim()) {
+    cta.textContent = ad.buttonText.trim();
+    cta.href = ad.linkUrl;
+    cta.hidden = false;
+  } else {
+    cta.hidden = true;
+    cta.removeAttribute("href");
+  }
+
+  modal.hidden = false;
+  modal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("ad-modal-open");
+
+  const openLink = (url) => {
+    try {
+      if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(url);
+      } else {
+        window.open(url, "_blank", "noopener");
+      }
+    } catch (_) {
+      window.open(url, "_blank", "noopener");
+    }
+  };
+
+  const close = () => {
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("ad-modal-open");
+  };
+
+  modal.querySelectorAll("[data-ad-close]").forEach((el) => {
+    el.addEventListener("click", (e) => { e.preventDefault(); close(); }, { once: true });
+  });
+
+  if (link.getAttribute("data-has-link")) {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      openLink(ad.linkUrl);
+      close();
+    }, { once: true });
+  } else {
+    link.addEventListener("click", (e) => { e.preventDefault(); }, { once: true });
+  }
+
+  if (!cta.hidden) {
+    cta.addEventListener("click", (e) => {
+      e.preventDefault();
+      openLink(ad.linkUrl);
+      close();
+    }, { once: true });
   }
 }
 
@@ -5552,8 +5631,15 @@ function initSplashScreen() {
       // Remove splash screen from DOM after fade-out (0.5s)
       setTimeout(() => {
         splashScreen.classList.add("hidden");
+        if (pendingAd) {
+          try { showAdModal(pendingAd); } catch (_) {}
+          pendingAd = null;
+        }
       }, 500);
     }, 3000);
+  } else if (pendingAd) {
+    try { showAdModal(pendingAd); } catch (_) {}
+    pendingAd = null;
   }
 }
 

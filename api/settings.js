@@ -146,16 +146,46 @@ async function writeFolderSettings(nextSettings) {
   return settings;
 }
 
+function normalizeAdLinkUrl(value) {
+  const raw = trimString(value);
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:" && parsed.protocol !== "tg:") {
+      return "";
+    }
+    return parsed.href;
+  } catch {
+    return "";
+  }
+}
+
+function normalizeAd(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  return {
+    enabled: Boolean(source.enabled),
+    imageUrl: readStoredPublicImageUrl(source.imageUrl),
+    linkUrl: normalizeAdLinkUrl(source.linkUrl),
+    buttonText: trimString(source.buttonText).slice(0, 40),
+  };
+}
+
 async function readPersistedSettings(settings) {
-  if (hasOwn(settings, "splashImageUrl")) {
-    return { splashImageUrl: readStoredPublicImageUrl(settings.splashImageUrl) };
+  if (hasOwn(settings, "splashImageUrl") || hasOwn(settings, "ad")) {
+    return {
+      splashImageUrl: readStoredPublicImageUrl(settings.splashImageUrl),
+      ad: normalizeAd(settings.ad),
+    };
   }
 
   try {
     const folderSettings = await readFolderSettings();
-    return { splashImageUrl: readStoredPublicImageUrl(folderSettings.splashImageUrl) };
+    return {
+      splashImageUrl: readStoredPublicImageUrl(folderSettings.splashImageUrl),
+      ad: normalizeAd(folderSettings.ad),
+    };
   } catch {
-    return { splashImageUrl: "" };
+    return { splashImageUrl: "", ad: normalizeAd(null) };
   }
 }
 
@@ -179,10 +209,23 @@ module.exports = async function handler(request, response) {
 
     if (request.method === "POST") {
       const body = await readRequestBody(request);
-      const splashImageUrl = normalizePublicImageUrl(body.splashImageUrl || "");
+      const nextSettings = { ...settings };
 
-      // Update settings in metadata
-      metadataState.data.settings = { ...settings, splashImageUrl };
+      if (hasOwn(body, "splashImageUrl")) {
+        nextSettings.splashImageUrl = normalizePublicImageUrl(body.splashImageUrl || "");
+      }
+
+      if (hasOwn(body, "ad")) {
+        const incomingAd = body.ad && typeof body.ad === "object" ? body.ad : {};
+        nextSettings.ad = {
+          enabled: Boolean(incomingAd.enabled),
+          imageUrl: incomingAd.imageUrl ? normalizePublicImageUrl(incomingAd.imageUrl) : "",
+          linkUrl: normalizeAdLinkUrl(incomingAd.linkUrl || ""),
+          buttonText: trimString(incomingAd.buttonText).slice(0, 40),
+        };
+      }
+
+      metadataState.data.settings = nextSettings;
       try {
         await writeCatalogMetadata(metadataState.data, metadataState.file);
       } catch (error) {
@@ -193,7 +236,11 @@ module.exports = async function handler(request, response) {
         await writeFolderSettings(metadataState.data.settings);
       }
 
-      response.status(200).json({ ok: true, splashImageUrl });
+      response.status(200).json({
+        ok: true,
+        splashImageUrl: nextSettings.splashImageUrl || "",
+        ad: normalizeAd(nextSettings.ad),
+      });
       return;
     }
 
