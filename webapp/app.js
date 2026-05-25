@@ -1,6 +1,5 @@
 const tg = window.Telegram?.WebApp;
-const DEMO_VIDEO_URL = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-const HERO_ROTATE_INTERVAL_MS = 3000;
+const HERO_ROTATE_INTERVAL_MS = 6500;
 const PROD_API_BASE = window.location.protocol === "file:" ? "https://kino-telegram-mini-app.vercel.app" : "";
 const API_BASE_STORAGE_KEY = "kino_api_base_v1";
 const DEBUG_USER_STORAGE_KEY = "kino_debug_user_v1";
@@ -3316,7 +3315,7 @@ function renderVideoSource(videoUrl, movie, options = {}) {
   videoExternalLink.textContent = t("openSource");
   setVideoLoading(true);
 
-  const sourceUrl = videoUrl || DEMO_VIDEO_URL;
+  const sourceUrl = videoUrl || "";
   const parsed = safeUrl(sourceUrl);
   const externalUrl = originalUrl || (movie?.sourceType === "google_drive" ? "" : movie.sourceUrl || "");
 
@@ -3330,7 +3329,7 @@ function renderVideoSource(videoUrl, movie, options = {}) {
   if (!videoUrl || isFallback) {
     setFallbackMessage(fallbackMessage, externalUrl);
     videoSourceLabel.textContent = t("customPlayer");
-    createVideoElement(DEMO_VIDEO_URL, movie, { isFallback: true });
+    setVideoLoading(false);
     return;
   }
 
@@ -3395,7 +3394,7 @@ function renderVideoSource(videoUrl, movie, options = {}) {
     return;
   }
 
-  renderVideoSource(DEMO_VIDEO_URL, movie, { isFallback: true, fallbackMessage });
+  renderVideoSource("", movie, { isFallback: true, fallbackMessage });
 }
 
 function openTelegramSource(url) {
