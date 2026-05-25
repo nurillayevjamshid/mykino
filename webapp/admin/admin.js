@@ -18,7 +18,6 @@ const SECTION_TITLES = {
   users: 'Obunachilar',
   broadcast: 'Xabar yuborish',
   ad: 'Reklama',
-  comments: 'Izohlar moderatsiya',
 };
 
 // Modal kategoriyalari uchun: tanlangan + mavjudlar ro'yxati
@@ -250,7 +249,6 @@ function switchSection(name) {
     users: 'usersSection',
     broadcast: 'broadcastSection',
     ad: 'adSection',
-    comments: 'commentsSection',
   };
   const targetId = sections[name];
   if (!targetId) return;
@@ -272,7 +270,6 @@ function switchSection(name) {
   if (name === 'broadcast') initBroadcastSection();
   if (name === 'categories') fetchCategories();
   if (name === 'ad') loadAdSettings();
-  if (name === 'comments') fetchPendingComments();
 
   if (window.innerWidth <= 768) {
     document.querySelector('.sidebar')?.classList.remove('open');
@@ -2632,106 +2629,3 @@ document.getElementById('adClearBtn')?.addEventListener('click', () => {
   setAdStatus('');
 });
 
-// ============ Comments moderation ============
-function getAdminPassword(prompt_text) {
-  let pw = localStorage.getItem('adminPassword');
-  if (!pw) {
-    pw = prompt(prompt_text || 'Admin parolini kiriting:');
-    if (pw) localStorage.setItem('adminPassword', pw);
-  }
-  return pw;
-}
-
-function formatCommentDateAdmin(iso) {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  } catch { return ''; }
-}
-
-async function fetchPendingComments() {
-  const list = document.getElementById('commentsModerationList');
-  const headerCount = document.getElementById('pendingCommentsHeaderCount');
-  const badge = document.getElementById('pendingCommentsBadge');
-  if (!list) return;
-  const password = getAdminPassword();
-  if (!password) {
-    list.innerHTML = '<div class="empty-state">Parol kerak.</div>';
-    return;
-  }
-  list.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Yuklanmoqda...</p></div>';
-  try {
-    const resp = await fetch(`/api/movie-update?action=pendingComments&password=${encodeURIComponent(password)}`);
-    if (resp.status === 401) {
-      localStorage.removeItem('adminPassword');
-      list.innerHTML = '<div class="empty-state">Parol noto\'g\'ri. Sahifani yangilang.</div>';
-      return;
-    }
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Xato');
-    const comments = Array.isArray(data.comments) ? data.comments : [];
-    if (headerCount) headerCount.textContent = String(comments.length);
-    if (badge) {
-      badge.style.display = comments.length > 0 ? 'inline-block' : 'none';
-      badge.textContent = String(comments.length);
-    }
-    if (!comments.length) {
-      list.innerHTML = '<div class="empty-state"><h3>Tasdiqlanishi kerak izoh yo\'q ✅</h3></div>';
-      return;
-    }
-    list.innerHTML = comments.map(c => `
-      <div class="comment-mod-card" style="background:var(--card-bg,#fff);border:1px solid var(--border,#e3e6ec);border-radius:12px;padding:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;color:#666;">
-          <span><strong>${escapeHtml(c.userName || 'Foydalanuvchi')}</strong> · ${escapeHtml(c.movieTitle || c.movieId)}</span>
-          <span>${formatCommentDateAdmin(c.createdAt)}</span>
-        </div>
-        <div style="font-size:14px;line-height:1.4;margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:8px;">${escapeHtml(c.text)}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-primary" data-comment-action="approve" data-movie-id="${escapeHtml(c.movieId)}" data-comment-id="${escapeHtml(c.id)}">✅ Tasdiqlash</button>
-          <button class="btn btn-secondary" data-comment-action="delete" data-movie-id="${escapeHtml(c.movieId)}" data-comment-id="${escapeHtml(c.id)}" style="background:#fee;color:#dc2626;">❌ O'chirish</button>
-          <button class="btn btn-secondary" data-comment-action="reply" data-movie-id="${escapeHtml(c.movieId)}" data-comment-id="${escapeHtml(c.id)}">💬 Javob</button>
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    list.innerHTML = `<div class="empty-state error-state"><h3>Xato</h3><p>${escapeHtml(err.message)}</p></div>`;
-  }
-}
-
-async function moderateComment(movieId, commentId, action) {
-  const password = getAdminPassword();
-  if (!password) return;
-  let reply = '';
-  if (action === 'reply') {
-    reply = prompt('Javob matnini kiriting:');
-    if (!reply) return;
-  }
-  try {
-    const body = action === 'reply'
-      ? { password, movieId, commentId, reply }
-      : { password, movieId, commentId, moderation: action };
-    const qs = action === 'reply' ? 'replyComment' : 'moderateComment';
-    const resp = await fetch(`/api/movie-update?action=${qs}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Xato');
-    showNotification(
-      action === 'approve' ? 'Tasdiqlandi ✅' :
-      action === 'delete' ? "O'chirildi" :
-      'Javob yuborildi 💬'
-    );
-    fetchPendingComments();
-  } catch (err) {
-    showNotification('Xato: ' + err.message, 'error');
-  }
-}
-
-document.getElementById('commentsModerationList')?.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-comment-action]');
-  if (!btn) return;
-  moderateComment(btn.dataset.movieId, btn.dataset.commentId, btn.dataset.commentAction);
-});
-document.getElementById('refreshCommentsBtn')?.addEventListener('click', fetchPendingComments);
