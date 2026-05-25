@@ -5995,6 +5995,109 @@ initApp();
 })();
 // === /haptic for key interactions ===
 
+// === Pull-to-refresh ===
+// Foydalanuvchi sahifa tepasida pastga tortsa, kinolarni yangilash.
+(function attachPullToRefresh() {
+  // Faqat touch qurilmalarda.
+  if (!("ontouchstart" in window)) return;
+
+  const THRESHOLD = 72;            // px — qaytarish chegarasi
+  const MAX_PULL = 120;            // px — maksimal cho'zilish
+  const RESISTANCE = 0.55;         // tortish "og'irlik" effekti
+
+  const indicator = document.createElement("div");
+  indicator.className = "ptr-indicator";
+  indicator.setAttribute("aria-hidden", "true");
+  indicator.innerHTML = `<span class="ptr-spinner"></span>`;
+  document.body.appendChild(indicator);
+
+  let startY = 0;
+  let lastY = 0;
+  let pulling = false;
+  let refreshing = false;
+  let armed = false;
+
+  const setOffset = (px) => {
+    indicator.style.transform = `translate3d(-50%, ${Math.min(MAX_PULL, Math.max(0, px))}px, 0)`;
+    indicator.style.opacity = String(Math.min(1, px / THRESHOLD));
+  };
+
+  const reset = () => {
+    indicator.classList.add("ptr-snap");
+    indicator.style.transform = "";
+    indicator.style.opacity = "";
+    setTimeout(() => indicator.classList.remove("ptr-snap"), 320);
+  };
+
+  const onTouchStart = (e) => {
+    if (refreshing) return;
+    // Faqat sahifa tepasida — boshqa scroll konteynerlar uchun ishlamasin.
+    if ((window.scrollY || document.documentElement.scrollTop || 0) > 0) return;
+    // Modal/dialog/video player ochiq bo'lsa — bekor.
+    if (document.body.classList.contains("is-modal-open")
+      || document.body.classList.contains("is-player-open")
+      || document.body.classList.contains("ad-modal-open")) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    startY = t.clientY;
+    lastY = startY;
+    pulling = true;
+    armed = false;
+  };
+
+  const onTouchMove = (e) => {
+    if (!pulling || refreshing) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    lastY = t.clientY;
+    const delta = lastY - startY;
+    if (delta <= 0) return;
+    // Foydalanuvchi haqiqatan pastga tortyapti — endi PTR aktiv.
+    if (!armed && delta > 8) armed = true;
+    if (!armed) return;
+    // Scroll'ni to'xtatish va indicator ko'rsatish.
+    e.preventDefault();
+    setOffset(delta * RESISTANCE);
+  };
+
+  const onTouchEnd = () => {
+    if (!pulling) return;
+    pulling = false;
+    if (refreshing) return;
+    const delta = (lastY - startY) * RESISTANCE;
+    if (armed && delta >= THRESHOLD) {
+      refreshing = true;
+      indicator.classList.add("ptr-loading");
+      indicator.style.transform = `translate3d(-50%, ${THRESHOLD}px, 0)`;
+      indicator.style.opacity = "1";
+      try { haptic.medium(); } catch (_) {}
+      const refresh = (typeof silentReloadMovies === "function" ? silentReloadMovies : null);
+      const done = () => {
+        refreshing = false;
+        indicator.classList.remove("ptr-loading");
+        reset();
+        try { haptic.success(); } catch (_) {}
+      };
+      if (refresh) {
+        Promise.resolve(refresh()).catch(() => {}).finally(() => {
+          // Min 600ms — foydalanuvchi spinner'ni ko'rsin.
+          setTimeout(done, 600);
+        });
+      } else {
+        setTimeout(done, 600);
+      }
+    } else {
+      reset();
+    }
+  };
+
+  window.addEventListener("touchstart", onTouchStart, { passive: true });
+  window.addEventListener("touchmove", onTouchMove, { passive: false });
+  window.addEventListener("touchend", onTouchEnd, { passive: true });
+  window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+})();
+// === /Pull-to-refresh ===
+
 // === swipe-gestures (revertable: delete this block) ===
 // Idle vaqtda init — birinchi paint blok qilinmaydi.
 const __initSwipeGestures = function attachSwipeGestures() {
