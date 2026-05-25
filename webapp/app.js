@@ -1995,7 +1995,85 @@ function buildHomeCategoryGroups() {
   return sessionShuffleCategories(entries, (g) => g.value);
 }
 
+function buildContinueWatchingMovies() {
+  // Watched entries + progress store'dan progress/duration olib, hali tugamagan kinolarni qaytaradi.
+  const watched = getWatchedMovieEntries();
+  if (!watched.length || !Array.isArray(movies) || !movies.length) return [];
+  const progressStore = readWatchProgressStore();
+  const result = [];
+  for (const entry of watched) {
+    if (!entry || !entry.id) continue;
+    const key = String(entry.id);
+    const progressEntry = progressStore[key];
+    const time = Math.max(0, Math.floor(Number(progressEntry?.time || entry.progress || 0)));
+    const duration = Math.max(0, Math.floor(Number(progressEntry?.duration || 0)));
+    if (time < WATCH_PROGRESS_MIN_SECONDS) continue;
+    // Tugagan kinolarni qatordan chiqarish — saveMovieProgress allaqachon clear qiladi,
+    // lekin watchedMovieList alohida, qo'shimcha himoya:
+    if (duration > 0 && time >= duration - WATCH_PROGRESS_END_GAP) continue;
+    const movie = movies.find((m) => String(m?.id) === key);
+    if (!movie) continue;
+    result.push({ movie, time, duration });
+    if (result.length >= 12) break;
+  }
+  return result;
+}
+
+function createContinueWatchingCard({ movie, time, duration }) {
+  const card = document.createElement("article");
+  card.className = "movie-card continue-card";
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `${movie.title} - ${formatPlaybackTime(time)} dan davom etish`);
+  const poster = getPosterImage(movie) || "";
+  const posterAttr = poster ? ` style="background-image:url('${poster.replaceAll("'", "%27")}')"` : "";
+  const pct = duration > 0 ? Math.min(98, Math.max(2, Math.round((time / duration) * 100))) : 8;
+  card.innerHTML = `
+    <span class="poster"${posterAttr}>
+      <span class="continue-card__play" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+      </span>
+      <span class="continue-card__progress" aria-hidden="true">
+        <span class="continue-card__progress-fill" style="width:${pct}%"></span>
+      </span>
+    </span>
+    <span class="card-copy">
+      <h2>${escapeHtml(movie.title)}</h2>
+      <p class="card-meta"><span class="card-meta__genre">${escapeHtml(formatPlaybackTime(time))} dan davom</span></p>
+    </span>
+  `;
+  card.addEventListener("click", () => openMovie(movie));
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openMovie(movie);
+    }
+  });
+  return card;
+}
+
+function renderContinueWatchingRow() {
+  const items = buildContinueWatchingMovies();
+  if (!items.length) return false;
+  const section = document.createElement("section");
+  section.className = "category-row category-row--continue";
+  section.innerHTML = `
+    <header class="category-row__head">
+      <h3 class="category-row__title">Davom ettirish</h3>
+    </header>
+    <div class="category-row__list" role="list"></div>
+  `;
+  const list = section.querySelector(".category-row__list");
+  for (const item of items) {
+    list.append(createContinueWatchingCard(item));
+  }
+  grid.append(section);
+  return true;
+}
+
 function renderHomeRows() {
+  // Birinchi: "Davom ettirish" qatori (agar foydalanuvchi yarmida qoldirgan kinolari bo'lsa).
+  const continueRendered = renderContinueWatchingRow();
   const groups = buildHomeCategoryGroups();
   const moreLabel = plainLabel(t("categories"));
   for (const group of groups) {
@@ -2031,7 +2109,7 @@ function renderHomeRows() {
     });
     grid.append(section);
   }
-  return groups.length;
+  return groups.length + (continueRendered ? 1 : 0);
 }
 
 function renderHomeSeriesRow() {
