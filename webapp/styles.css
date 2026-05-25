@@ -1253,18 +1253,22 @@ html[data-theme="light"] .category-row__more:focus-visible {
 .movie-card {
   min-width: 0;
   height: 380px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 0;
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-1);
+  border: 1px solid var(--w-12);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    linear-gradient(180deg, var(--w-08), var(--w-04));
+  box-shadow: var(--shadow-lg);
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform;
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
 }
 
 .movie-card::before {
@@ -1298,7 +1302,8 @@ html[data-theme="light"] .category-row__more:focus-visible {
     linear-gradient(180deg, rgba(17, 22, 34, 0.85), rgba(24, 18, 25, 0.7));
   background-size: cover;
   background-position: center top;
-  transition: transform 0.4s ease;
+  background-color: var(--bg-elevated);
+  transition: transform var(--dur-slow) var(--ease-out);
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
 }
@@ -1397,11 +1402,27 @@ html[data-theme="light"] .category-row__more:focus-visible {
 .movie-card:hover,
 .movie-card:focus-visible {
   transform: translateY(-6px);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px var(--w-16);
+  border-color: var(--w-24);
+}
+
+/* Mobile tap feedback — hover hodisasi yo'q telefonlarda */
+.movie-card:active {
+  transform: scale(0.97);
+  transition-duration: var(--dur-fast);
+}
+
+@media (hover: none) {
+  .movie-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 .movie-card:focus-visible {
-  outline: 3px solid rgba(255, 199, 58, 0.7);
+  outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -1563,9 +1584,10 @@ html[data-theme="light"] .card-copy h2 {
 
 .card-copy p {
   margin: 2px 0;
-  color: rgba(244, 245, 251, 0.82);
-  font-size: 14px;
-  line-height: 1.32;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: 0.005em;
 }
 
 html[data-theme="light"] .card-copy p {
