@@ -293,6 +293,8 @@ const fallbackCopy = {
 };
 
 const WATCH_PROGRESS_KEY = "kino_watch_progress_v1";
+const WATCH_PROGRESS_LOCAL_CAP = 500;
+const WATCH_PROGRESS_BACKOFF_DELAYS_MS = [5000, 15000, 60000, 180000];
 const WATCHED_MOVIES_KEY = "kino_watched_movies_v1";
 const WATCH_PROGRESS_MIN_SECONDS = 15;
 const WATCH_PROGRESS_END_GAP = 12;
@@ -1237,6 +1239,7 @@ const pendingProgressSync = { upserts: {}, removeIds: new Set() };
 let progressSyncTimer = null;
 let progressSyncInFlight = false;
 let progressBackendLoaded = false;
+let progressSyncFailureCount = 0;
 
 function getProgressUserId() {
   try {
@@ -1288,7 +1291,11 @@ function scheduleProgressSync(delay = WATCH_PROGRESS_SYNC_DELAY_MS) {
 async function flushProgressSync() {
   const userId = getProgressUserId();
   if (!isRealUser(userId)) return;
-  if (progressSyncInFlight) return;
+  // In-flight: keyingi yangilanish bo'lsa, joriy chaqiriqdan keyin qaytadan rejalashtirish kerak.
+  if (progressSyncInFlight) {
+    scheduleProgressSync(2000);
+    return;
+  }
 
   const upserts = pendingProgressSync.upserts;
   const removeIds = Array.from(pendingProgressSync.removeIds);
@@ -1300,19 +1307,39 @@ async function flushProgressSync() {
   pendingProgressSync.clearAll = false;
 
   progressSyncInFlight = true;
+  let failed = false;
   try {
-    await fetch(WATCH_PROGRESS_SYNC_ENDPOINT, {
+    const resp = await fetch(WATCH_PROGRESS_SYNC_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, items: upserts, removeIds, clearAll }),
       keepalive: true,
     });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    progressSyncFailureCount = 0;
   } catch {
+    failed = true;
+    // Yangi keluvchi yangilanishlar ustun bo'ladi (right-hand wins in spread).
     pendingProgressSync.upserts = { ...upserts, ...pendingProgressSync.upserts };
     for (const id of removeIds) pendingProgressSync.removeIds.add(id);
     if (clearAll) pendingProgressSync.clearAll = true;
+    progressSyncFailureCount += 1;
   } finally {
     progressSyncInFlight = false;
+  }
+
+  // #2: pending bor bo'lsa darrov yana schedule (in-flight paytida qo'shilgan bo'lishi mumkin).
+  // #4: muvaffaqiyatsiz bo'lsa exponential backoff.
+  const stillPending = pendingProgressSync.clearAll
+    || pendingProgressSync.removeIds.size > 0
+    || Object.keys(pendingProgressSync.upserts).length > 0;
+  if (stillPending) {
+    if (failed) {
+      const idx = Math.min(progressSyncFailureCount - 1, WATCH_PROGRESS_BACKOFF_DELAYS_MS.length - 1);
+      scheduleProgressSync(WATCH_PROGRESS_BACKOFF_DELAYS_MS[Math.max(0, idx)]);
+    } else {
+      scheduleProgressSync(0);
+    }
   }
 }
 
@@ -1413,12 +1440,50 @@ async function loadProgressFromBackend() {
     syncWatchedCount();
     try { renderProfileHistory?.(); } catch {}
   }
+
+  // #1 BOOT RECONCILIATION: lokal'da bor lekin server'da yo'q yoki eskirgan entrylarni server'ga jo'natish.
+  // Bu oldingi sessiyada flushBeacon ishlamay qolgan progresslarni tiklaydi.
+  let reconciledCount = 0;
+  for (const [id, localEntry] of Object.entries(localProgress)) {
+    if (!localEntry || typeof localEntry !== "object") continue;
+    const localTime = Math.max(0, Math.floor(Number(localEntry.time) || 0));
+    const localDuration = Math.max(0, Math.floor(Number(localEntry.duration) || 0));
+    if (localTime <= 0 || localDuration <= 0) continue;
+    const remoteEntry = remote[id];
+    const remoteUpdated = Number(remoteEntry?.updatedAt || 0);
+    const localUpdated = Number(localEntry.updatedAt || 0);
+    if (localUpdated <= remoteUpdated) continue;
+    // poster/year/genre lokal store'da yo'q — movies katalogidan olishga harakat.
+    const movie = Array.isArray(movies) ? movies.find((m) => String(m?.id) === String(id)) : null;
+    queueProgressUpsert(id, {
+      time: localTime,
+      duration: localDuration,
+      updatedAt: localUpdated,
+      title: String(localEntry.title || movie?.title || ""),
+      poster: movie ? (getPosterImage(movie) || "") : "",
+      year: movie?.year || "",
+      genre: movie?.genre || "",
+    });
+    reconciledCount += 1;
+  }
+  if (reconciledCount > 0) {
+    // Darrov flush — boot vaqtidagi tiklash kechiktirilmasin.
+    scheduleProgressSync(0);
+  }
+
   progressBackendLoaded = true;
 }
 
 window.addEventListener("pagehide", flushProgressSyncBeacon);
 window.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") flushProgressSyncBeacon();
+});
+// #3 pageshow: bfcache'dan qaytganda yoki forward-back navigation'da pending bo'lsa flush.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) {
+    // bfcache'dan qaytgan: tarmoq qayta tayyor, pending borligini tekshiramiz.
+    scheduleProgressSync(0);
+  }
 });
 
 function readWatchProgressStore() {
@@ -1431,7 +1496,17 @@ function readWatchProgressStore() {
 }
 
 function writeWatchProgressStore(store) {
-  localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(store));
+  // #5 Lokal cap: WATCH_PROGRESS_LOCAL_CAP dan oshsa, eng eski updatedAt'lilarini olib tashlash.
+  let toSave = store;
+  const keys = Object.keys(store || {});
+  if (keys.length > WATCH_PROGRESS_LOCAL_CAP) {
+    const sorted = keys
+      .map((k) => [k, Number(store[k]?.updatedAt || 0)])
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, WATCH_PROGRESS_LOCAL_CAP);
+    toSave = Object.fromEntries(sorted.map(([k]) => [k, store[k]]));
+  }
+  localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(toSave));
 }
 
 function readWatchedMoviesStore() {
