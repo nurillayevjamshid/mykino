@@ -4353,8 +4353,10 @@ function renderSeriesListGrid() {
   }
 }
 
+let seriesListOpenedFromCategories = false;
 function openSeriesListView() {
   if (!seriesListView) return;
+  seriesListOpenedFromCategories = !!(categoriesView && !categoriesView.hidden);
   if (categoriesView) categoriesView.hidden = true;
   if (seriesDetailView) seriesDetailView.hidden = true;
   seriesListView.hidden = false;
@@ -4374,7 +4376,10 @@ function openSeriesListView() {
   tgBackRegister("series-list", () => {
     try {
       closeSeriesListView();
-      if (categoriesView) { categoriesView.hidden = false; document.body.classList.add("is-categories"); }
+      if (seriesListOpenedFromCategories && categoriesView) {
+        categoriesView.hidden = false;
+        document.body.classList.add("is-categories");
+      }
     } catch (_) {}
   });
 }
@@ -4459,7 +4464,7 @@ seriesDetailBody?.addEventListener("click", (event) => {
 
 document.getElementById("seriesListBack")?.addEventListener("click", () => {
   closeSeriesListView();
-  if (categoriesView) {
+  if (seriesListOpenedFromCategories && categoriesView) {
     categoriesView.hidden = false;
     document.body.classList.add("is-categories");
   }
@@ -5600,4 +5605,3 @@ if ("requestIdleCallback" in window) {
   setTimeout(__initSwipeGestures, 600);
 }
 // === /swipe-gestures ===
-
