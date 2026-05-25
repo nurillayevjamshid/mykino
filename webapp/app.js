@@ -351,9 +351,6 @@ const topbarSearchTrigger = document.querySelector(".topbar-search__trigger");
 const categoryPanel = document.querySelector("#categoryPanel");
 const categoryList = document.querySelector("#categoryList");
 const movieModal = document.querySelector("#movieModal");
-movieModal?.addEventListener("close", () => {
-  try { hideShareMainButton?.(); } catch (_) {}
-});
 const modalPoster = document.querySelector("#modalPoster");
 const modalMeta = document.querySelector("#modalMeta");
 const modalTitle = document.querySelector("#modalTitle");
@@ -2414,10 +2411,8 @@ function startMoviePreload(movie) {
   });
 }
 
-// === Telegram MainButton — kino modalida "Do'stga ulashish" ===
-const SHARE_BOT_USERNAME = "meningmykino_bot";
+// === Kino modali "Do'stga ulashish" tugmasi (poster ustida, o'ng tepada) ===
 const SHARE_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
-let mainButtonClickHandler = null;
 
 function buildShareUrl(movie) {
   const code = String(movie?.code || movie?.id || "").trim();
@@ -2428,42 +2423,23 @@ function buildShareUrl(movie) {
   return `https://t.me/share/url?url=${encodeURIComponent(appLink)}&text=${encodeURIComponent(text)}`;
 }
 
-function showShareMainButton(movie) {
-  const mb = tg?.MainButton;
-  if (!mb || typeof mb.show !== "function") return;
+function shareActiveMovie() {
+  const movie = activeMovie;
+  if (!movie) return;
+  try { haptic.medium(); } catch (_) {}
+  const url = buildShareUrl(movie);
   try {
-    if (mainButtonClickHandler) {
-      tg.offEvent?.("mainButtonClicked", mainButtonClickHandler);
-      mainButtonClickHandler = null;
-    }
-    mb.setText?.("Do'stga ulashish");
-    if (mb.setParams) mb.setParams({ is_visible: true, is_active: true });
-    mainButtonClickHandler = () => {
-      try { haptic.medium(); } catch (_) {}
-      const url = buildShareUrl(movie);
-      try {
-        if (tg.openTelegramLink) tg.openTelegramLink(url);
-        else window.open(url, "_blank", "noopener");
-      } catch (_) {
-        window.open(url, "_blank", "noopener");
-      }
-    };
-    tg.onEvent?.("mainButtonClicked", mainButtonClickHandler);
-    mb.show();
-  } catch (_) {}
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);
+    else window.open(url, "_blank", "noopener");
+  } catch (_) {
+    window.open(url, "_blank", "noopener");
+  }
 }
 
-function hideShareMainButton() {
-  const mb = tg?.MainButton;
-  if (!mb) return;
-  try {
-    if (mainButtonClickHandler) {
-      tg.offEvent?.("mainButtonClicked", mainButtonClickHandler);
-      mainButtonClickHandler = null;
-    }
-    mb.hide?.();
-  } catch (_) {}
-}
+document.getElementById("modalShareButton")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  shareActiveMovie();
+});
 
 function openMovie(movie) {
   const posterImage = getPosterImage(movie);
@@ -2500,7 +2476,6 @@ function openMovie(movie) {
   }
   refreshReactionCounts(movie);
   startMoviePreload(movie);
-  showShareMainButton(movie);
 }
 
 function setVideoLoading(isLoading) {
@@ -6029,10 +6004,12 @@ initApp();
     setTimeout(() => indicator.classList.remove("ptr-snap"), 320);
   };
 
+  const isAtTop = () => (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+
   const onTouchStart = (e) => {
     if (refreshing) return;
     // Faqat sahifa tepasida — boshqa scroll konteynerlar uchun ishlamasin.
-    if ((window.scrollY || document.documentElement.scrollTop || 0) > 0) return;
+    if (!isAtTop()) return;
     // Modal/dialog/video player ochiq bo'lsa — bekor.
     if (document.body.classList.contains("is-modal-open")
       || document.body.classList.contains("is-player-open")
@@ -6045,15 +6022,31 @@ initApp();
     armed = false;
   };
 
+  const cancelPull = () => {
+    if (!pulling) return;
+    pulling = false;
+    armed = false;
+    if (!refreshing) reset();
+  };
+
   const onTouchMove = (e) => {
     if (!pulling || refreshing) return;
+    // Foydalanuvchi sahifani scroll qilgan bo'lsa (tepada emas) — PTR ni bekor qilish.
+    if (!isAtTop() && !armed) {
+      cancelPull();
+      return;
+    }
     const t = e.touches?.[0];
     if (!t) return;
     lastY = t.clientY;
     const delta = lastY - startY;
-    if (delta <= 0) return;
+    if (delta <= 0) {
+      // Yuqoriga (scroll yo'nalishi) — PTR'ni armed bo'lishidan oldin bekor qilish.
+      if (!armed) cancelPull();
+      return;
+    }
     // Foydalanuvchi haqiqatan pastga tortyapti — endi PTR aktiv.
-    if (!armed && delta > 8) armed = true;
+    if (!armed && delta > 12) armed = true;
     if (!armed) return;
     // Scroll'ni to'xtatish va indicator ko'rsatish.
     e.preventDefault();
