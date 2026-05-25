@@ -820,8 +820,12 @@ function toBooleanFlag(value) {
 }
 
 function getPosterImage(movie) {
-  // PosterImage asosiy, agar yo'q bo'lsa headerImage ishlatiladi (header section kinolari uchun)
-  return String(movie?.posterImage || movie?.poster || movie?.headerImage || movie?.heroPoster || "").trim();
+  const candidates = [movie?.posterImage, movie?.poster, movie?.headerImage, movie?.heroPoster];
+  for (const c of candidates) {
+    const s = String(c || "").trim();
+    if (s && !s.startsWith("blob:")) return s;
+  }
+  return "";
 }
 
 
@@ -887,7 +891,8 @@ function resolveAppUrl(value) {
   if (/^(?:[a-z0-9-]+\.)*(?:public\.)?blob\.vercel-storage\.com\//i.test(raw)) {
     return `https://${raw}`;
   }
-  if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
+  if (raw.startsWith("blob:")) return "";
+  if (/^(?:https?:|data:)/i.test(raw)) return raw;
   if (raw.startsWith("/")) return buildApiUrl(raw);
   return raw;
 }
@@ -895,7 +900,7 @@ function resolveAppUrl(value) {
 function firstUsableImage(...candidates) {
   for (const candidate of candidates) {
     const value = String(candidate || "").trim();
-    if (value) return value;
+    if (value && !value.startsWith("blob:")) return value;
   }
   return "";
 }
@@ -4247,7 +4252,8 @@ function createSeriesCard(series) {
   card.setAttribute("role", "button");
   card.setAttribute("aria-label", series.title);
   const poster = String(series.posterImage || "");
-  const posterAttr = poster ? ` style="background-image:url('${poster.replaceAll("'", "%27")}')"` : "";
+  const safeSeriesPoster = poster.startsWith("blob:") ? "" : poster;
+  const posterAttr = safeSeriesPoster ? ` style="background-image:url('${safeSeriesPoster.replaceAll("'", "%27")}')"` : "";
   card.innerHTML = `
     <span class="poster"${posterAttr}>
       <span class="card-badges">
@@ -4324,8 +4330,9 @@ function openSeriesDetailView(series) {
   activeSeries = series;
   if (seriesDetailTitle) seriesDetailTitle.textContent = series.title;
   const poster = String(series.posterImage || "");
+  const safeDetailPoster = poster.startsWith("blob:") ? "" : poster;
   const eps = Array.isArray(series.episodes) ? series.episodes : [];
-  const posterStyleAttr = poster ? `background-image:url('${poster.replaceAll("'", "%27")}')` : "";
+  const posterStyleAttr = safeDetailPoster ? `background-image:url('${safeDetailPoster.replaceAll("'", "%27")}')` : "";
   const epHtml = eps.length
     ? `<ol class="episode-list">${eps.map((ep, i) => `
         <li><button class="episode-row" type="button" data-ep-index="${i}">
