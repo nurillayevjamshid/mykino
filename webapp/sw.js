@@ -1,6 +1,7 @@
-const VERSION = "v20260523-blob04";
+const VERSION = "v20260525-swr01";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
+const API_CACHE = `kp-api-${VERSION}`;
 
 const STATIC_ASSETS = [
   "/static/styles.css",
@@ -9,6 +10,10 @@ const STATIC_ASSETS = [
   "/static/assets/kino-play-logo.png",
   "/static/assets/my-kino-logo.png",
 ];
+
+// Faqat shu API yo'llari stale-while-revalidate keshlanadi.
+// /api/stream, /api/video-stream va boshqalar keshlanmaydi.
+const SWR_API_PATHS = ["/api/movies", "/api/settings", "/api/categories"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
@@ -23,7 +28,7 @@ self.addEventListener("activate", (event) => {
     const keys = await caches.keys();
     await Promise.all(
       keys
-        .filter((key) => key.startsWith("kp-") && key !== STATIC_CACHE && key !== RUNTIME_CACHE)
+        .filter((key) => key.startsWith("kp-") && key !== STATIC_CACHE && key !== RUNTIME_CACHE && key !== API_CACHE)
         .map((key) => caches.delete(key))
     );
     await self.clients.claim();
@@ -38,8 +43,14 @@ function isImage(request) {
   return request.destination === "image";
 }
 
-function isApi(url) {
-  return url.pathname.startsWith("/api/");
+function isSwrApi(url) {
+  return SWR_API_PATHS.some((p) => url.pathname === p);
+}
+
+function isStreamingApi(url) {
+  return url.pathname.startsWith("/api/stream")
+    || url.pathname.startsWith("/api/video-stream")
+    || url.pathname.startsWith("/api/drive-stream");
 }
 
 self.addEventListener("fetch", (event) => {
@@ -47,10 +58,44 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
 
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin && !isImage(req)) return;
+  const sameOrigin = url.origin === self.location.origin;
 
-  if (isApi(url)) return;
-  if (url.pathname.startsWith("/api/stream") || url.pathname.startsWith("/api/video-stream")) return;
+  // Streaming endpointlarni hech qachon ushlamaslik.
+  if (sameOrigin && isStreamingApi(url)) return;
+
+  // SWR keshlanadigan API'lar (movies/settings/categories).
+  if (sameOrigin && isSwrApi(url)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(API_CACHE);
+      const cached = await cache.match(req, { ignoreSearch: false });
+      const networkPromise = fetch(req).then((fresh) => {
+        if (fresh && fresh.ok) {
+          cache.put(req, fresh.clone()).catch(() => {});
+        }
+        return fresh;
+      }).catch(() => null);
+
+      if (cached) {
+        // Foydalanuvchi keshni darrov ko'radi, fon yangilanadi.
+        networkPromise.catch(() => {});
+        return cached;
+      }
+      const fresh = await networkPromise;
+      if (fresh) return fresh;
+      // Tarmoq ham yo'q, kesh ham yo'q — xato.
+      return new Response(JSON.stringify({ error: "offline" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    })());
+    return;
+  }
+
+  // Boshqa API'lar — keshsiz, tarmoqdan.
+  if (sameOrigin && url.pathname.startsWith("/api/")) return;
+
+  // Cross-origin: faqat rasm keshlash.
+  if (!sameOrigin && !isImage(req)) return;
 
   if (isStaticAsset(url)) {
     event.respondWith((async () => {
