@@ -838,6 +838,10 @@ function posterStyle(movie) {
   const source = getPosterImage(movie);
   if (!source) return "";
   const poster = source.replaceAll("'", "%27").replaceAll(")", "%29").replaceAll('"', "%22");
+  // data: URLs are inline — no network cost, set immediately instead of waiting for IntersectionObserver.
+  if (source.startsWith("data:")) {
+    return `style="--poster-image: url('${poster}')"`;
+  }
   return `data-poster="${poster}"`;
 }
 
