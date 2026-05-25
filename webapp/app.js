@@ -21,6 +21,17 @@ if (tg) {
   tg.ready();
   tg.expand();
   tg.disableVerticalSwipes?.();
+  // Telegram theme almashganda — agar foydalanuvchi qo'lda toggle bosmagan bo'lsa — ergashish.
+  try {
+    tg.onEvent?.("themeChanged", () => {
+      if (localStorage.getItem(THEME_EXPLICIT_KEY) === "1") return;
+      const nextScheme = tg.colorScheme === "dark" ? "dark" : "light";
+      if (document.documentElement.getAttribute("data-theme") !== nextScheme) {
+        applyTheme(nextScheme);
+        try { syncSidebarSettings?.(); } catch (_) {}
+      }
+    });
+  } catch (_) {}
 }
 
 // === Haptic feedback helper ===
@@ -50,7 +61,19 @@ const haptic = (() => {
   };
 })();
 
-const savedTheme = localStorage.getItem("kino_theme") || "light";
+// Theme manbai: foydalanuvchi qo'lda toggle bosgan bo'lsa — uning tanlovi.
+// Aks holda Telegram colorScheme'ga ergashadi (themeChanged event'ida ham yangilanadi).
+const THEME_STORAGE_KEY = "kino_theme";
+const THEME_EXPLICIT_KEY = "kino_theme_explicit";
+function getInitialTheme() {
+  const explicit = localStorage.getItem(THEME_EXPLICIT_KEY) === "1";
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  if (explicit && (stored === "light" || stored === "dark")) return stored;
+  const tgScheme = tg?.colorScheme;
+  if (tgScheme === "dark" || tgScheme === "light") return tgScheme;
+  return stored === "dark" ? "dark" : "light";
+}
+const savedTheme = getInitialTheme();
 const themeToggle = document.querySelector(".theme-toggle");
 const WISHLIST_STORAGE_KEY = "kino_wishlist_v1";
 
@@ -3544,7 +3567,8 @@ function toggleTheme() {
     "light";
   const newTheme = currentTheme === "dark" ? "light" : "dark";
   applyTheme(newTheme);
-  localStorage.setItem("kino_theme", newTheme);
+  localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+  localStorage.setItem(THEME_EXPLICIT_KEY, "1");
 }
 
 function syncTopbarSearchLayout() {
