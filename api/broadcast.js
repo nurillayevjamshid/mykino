@@ -217,7 +217,9 @@ module.exports = async function handler(request, response) {
           if (result.json?.error_code === 429) {
             const retryAfter = Number(result.json?.parameters?.retry_after || 1);
             await sleep(retryAfter * 1000);
-            const retry = await telegramSend(token, method, payload);
+            const retry = isUpload
+              ? await telegramSendMultipart(token, method, { ...basePayload, caption: text }, mediaKind === "video" ? "video" : "photo", decodedMedia.buffer, mediaKind === "video" ? "trailer.mp4" : "poster.jpg", decodedMedia.mime)
+              : await telegramSend(token, method, payload);
             if (retry.ok) { sent += 1; failed -= 1; }
             else if (errors.length < 50) errors.push({ chatId, error: retry.json?.description || `HTTP ${retry.status}` });
           } else if (errors.length < 50) {

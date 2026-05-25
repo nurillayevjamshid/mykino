@@ -98,7 +98,10 @@
       "Bash(git cherry-pick *)",
       "Bash(node --check \"C:/Users/WESOLVE/Desktop/kino tg_bot/webapp/app.js\")",
       "Bash(node --check \"C:/Users/WESOLVE/Desktop/kino tg_bot/webapp/music.js\")",
-      "Bash(node --check \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\webapp\\\\app.js\")"
+      "Bash(node --check \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\webapp\\\\app.js\")",
+      "Bash(node -c api/broadcast.js)",
+      "Bash(node -c api/movie-reaction.js)",
+      "Bash(node -c api/movie-update.js)"
     ]
   }
 }
