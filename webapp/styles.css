@@ -8777,3 +8777,94 @@ body.is-music .profile-history:not(.profile-history--music) { display: none !imp
 }
 body.ad-modal-open { overflow: hidden; }
 
+/* === Skeleton loader (shimmer) ===
+   Movies yuklanayotganda haqiqiy kartochkalarning soxta versiyasi. */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--skeleton-base, rgba(120, 120, 130, 0.14));
+  border-radius: 14px;
+}
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    var(--skeleton-glow, rgba(255, 255, 255, 0.55)) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+[data-theme="dark"] .skeleton-shimmer {
+  background: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark"] .skeleton-shimmer::after {
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.10) 50%,
+    transparent 100%
+  );
+}
+
+.movie-card--skeleton {
+  pointer-events: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.movie-card--skeleton .movie-card__poster {
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  border-radius: 14px;
+}
+.movie-card--skeleton .movie-card__title-line {
+  height: 12px;
+  width: 78%;
+  border-radius: 6px;
+}
+
+.category-row--skeleton .skeleton-title {
+  height: 18px;
+  width: 140px;
+  border-radius: 8px;
+  margin: 4px 0 12px;
+}
+.category-row__list--skeleton {
+  display: flex;
+  gap: 12px;
+  overflow: hidden;
+  padding-bottom: 6px;
+}
+.category-row__list--skeleton .movie-card--skeleton {
+  flex: 0 0 calc((100% - 24px) / 3);
+  max-width: 160px;
+}
+
+/* Flat skeleton grid (category/favorites loading) */
+.movie-grid.is-loading:not(.is-home) {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+@media (min-width: 720px) {
+  .movie-grid.is-loading:not(.is-home) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .movie-grid.is-loading:not(.is-home) {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
