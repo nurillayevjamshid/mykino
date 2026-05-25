@@ -3984,23 +3984,6 @@ document.querySelectorAll("[data-action='search']").forEach((button) => {
   button.addEventListener("click", () => toggleSearchPanel());
 });
 
-// === Random movie tugmasi — qaror qila olmagan foydalanuvchi uchun ===
-function pickRandomMovie() {
-  const pool = (Array.isArray(movies) ? movies : []).filter((m) => m && m.id);
-  if (!pool.length) return null;
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-document.querySelectorAll("[data-action='random-movie']").forEach((button) => {
-  button.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (movieLoadState !== "ready") return;
-    const movie = pickRandomMovie();
-    if (!movie) return;
-    try { haptic.medium(); } catch (_) {}
-    openMovie(movie);
-  });
-});
-
 document.querySelectorAll("[data-action='catalog']").forEach((button) => {
   button.addEventListener("click", () => {
     setFilter("all");
