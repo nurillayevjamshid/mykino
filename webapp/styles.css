@@ -8777,6 +8777,49 @@ body.is-music .profile-history:not(.profile-history--music) { display: none !imp
 }
 body.ad-modal-open { overflow: hidden; }
 
+/* === Pull-to-refresh indicator === */
+.ptr-indicator {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translate3d(-50%, 0, 0);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--card-bg, rgba(255, 255, 255, 0.92));
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 9999;
+  will-change: transform, opacity;
+}
+[data-theme="dark"] .ptr-indicator {
+  background: #1a1a1d;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.ptr-snap {
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease;
+}
+.ptr-spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2.2px solid currentColor;
+  border-top-color: transparent;
+  color: var(--accent-color, #4f7cff);
+  opacity: 0.9;
+  display: block;
+}
+.ptr-indicator.ptr-loading .ptr-spinner {
+  animation: ptr-spin 0.9s linear infinite;
+}
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* === Skeleton loader (shimmer) ===
    Movies yuklanayotganda haqiqiy kartochkalarning soxta versiyasi. */
 .skeleton-shimmer {
