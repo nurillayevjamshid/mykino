@@ -6004,22 +6004,10 @@ initApp();
     setTimeout(() => indicator.classList.remove("ptr-snap"), 320);
   };
 
-  const isAtTop = () => (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
-
-  const onTouchStart = (e) => {
-    if (refreshing) return;
-    // Faqat sahifa tepasida — boshqa scroll konteynerlar uchun ishlamasin.
-    if (!isAtTop()) return;
-    // Modal/dialog/video player ochiq bo'lsa — bekor.
-    if (document.body.classList.contains("is-modal-open")
-      || document.body.classList.contains("is-player-open")
-      || document.body.classList.contains("ad-modal-open")) return;
-    const t = e.touches?.[0];
-    if (!t) return;
-    startY = t.clientY;
-    lastY = startY;
-    pulling = true;
-    armed = false;
+  // Scroll'ning ANIQ tepasi (iOS rubber band/momentum'ni hisobga olgan holda).
+  const isAtTop = () => {
+    const sy = window.scrollY || document.documentElement.scrollTop || document.body?.scrollTop || 0;
+    return sy <= 0;
   };
 
   const cancelPull = () => {
@@ -6029,10 +6017,46 @@ initApp();
     if (!refreshing) reset();
   };
 
+  // Recent scroll activity tracker — momentum/inertial scroll tugashi kutilishi kerak.
+  let lastScrollAt = 0;
+  const SCROLL_QUIET_MS = 250;
+  window.addEventListener("scroll", () => {
+    lastScrollAt = Date.now();
+    // Agar PTR boshlangan bo'lsa, lekin sahifa scroll qilinyapti — bekor qilish.
+    if (pulling && !armed) cancelPull();
+  }, { passive: true });
+
+  const onTouchStart = (e) => {
+    if (refreshing) return;
+    // Faqat sahifa tepasida — boshqa scroll konteynerlar uchun ishlamasin.
+    if (!isAtTop()) return;
+    // So'nggi scroll faolligi yaqin bo'lsa (momentum/inertia) — kuting.
+    if (Date.now() - lastScrollAt < SCROLL_QUIET_MS) return;
+    // Modal/dialog/video player ochiq bo'lsa — bekor.
+    if (document.body.classList.contains("is-modal-open")
+      || document.body.classList.contains("is-player-open")
+      || document.body.classList.contains("ad-modal-open")) return;
+    // Touch ichki scroll konteyner ustida bo'lsa (modal-content, music-list,
+    // category-row__list va h.k.) — PTR ishga tushmasin.
+    const target = e.target;
+    if (target && target.nodeType === 1 && target.closest?.(
+      ".modal-content, .modal-poster, .music-list, .music-fullplayer, " +
+      ".profile-card, .category-row__list, .music-carousel, " +
+      ".category-detail-view__grid, .video-player, .ad-modal, " +
+      "input, textarea, select, button, a"
+    )) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    startY = t.clientY;
+    lastY = startY;
+    pulling = true;
+    armed = false;
+  };
+
   const onTouchMove = (e) => {
     if (!pulling || refreshing) return;
-    // Foydalanuvchi sahifani scroll qilgan bo'lsa (tepada emas) — PTR ni bekor qilish.
-    if (!isAtTop() && !armed) {
+    // Har touchmove'da scroll tepada turibdimi tekshirish — armed bo'lguncha.
+    if (!armed && !isAtTop()) {
       cancelPull();
       return;
     }
@@ -6046,7 +6070,7 @@ initApp();
       return;
     }
     // Foydalanuvchi haqiqatan pastga tortyapti — endi PTR aktiv.
-    if (!armed && delta > 12) armed = true;
+    if (!armed && delta > 16) armed = true;
     if (!armed) return;
     // Scroll'ni to'xtatish va indicator ko'rsatish.
     e.preventDefault();
