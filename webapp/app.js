@@ -5480,10 +5480,29 @@ async function silentReloadMovies() {
 }
 
 // Keep the catalog fresh without forcing users to reopen the app.
+// Faqat sahifa ko'rinib turganida poll qilamiz — batareya tejaladi.
+let moviesPollTimer = 0;
 function startMoviesPolling() {
-  window.setInterval(() => {
-    silentReloadMovies();
-  }, 60000);
+  const tick = () => { if (!document.hidden) silentReloadMovies(); };
+  const start = () => {
+    if (moviesPollTimer) return;
+    moviesPollTimer = window.setInterval(tick, 60000);
+  };
+  const stop = () => {
+    if (!moviesPollTimer) return;
+    window.clearInterval(moviesPollTimer);
+    moviesPollTimer = 0;
+  };
+  start();
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stop();
+    } else {
+      // Sahifa qayta ochildi — darrov yangilab, keyin poll davom etadi.
+      silentReloadMovies();
+      start();
+    }
+  });
 }
 
 function waitForImageReady(image, timeoutMs = 3000) {
@@ -5618,36 +5637,51 @@ function showAdModal(ad) {
   }
 }
 
-function initSplashScreen() {
+let splashHideRequested = false;
+let splashAlreadyHidden = false;
+
+function hideSplashNow() {
+  if (splashAlreadyHidden) return;
+  splashAlreadyHidden = true;
   const splashScreen = document.getElementById("splashScreen");
   const appShell = document.getElementById("appShell");
-  
-  if (splashScreen && appShell) {
-    // Splash screen showing for 3 seconds
-    setTimeout(() => {
-      splashScreen.classList.add("fade-out");
-      appShell.style.opacity = "1";
-      appShell.style.pointerEvents = "auto";
-
-      // Remove splash screen from DOM after fade-out (0.5s)
-      setTimeout(() => {
-        splashScreen.classList.add("hidden");
-        if (pendingAd) {
-          try { showAdModal(pendingAd); } catch (_) {}
-          pendingAd = null;
-        }
-      }, 500);
-    }, 3000);
-  } else if (pendingAd) {
-    try { showAdModal(pendingAd); } catch (_) {}
-    pendingAd = null;
+  if (!splashScreen || !appShell) {
+    if (pendingAd) { try { showAdModal(pendingAd); } catch (_) {} pendingAd = null; }
+    return;
   }
+  splashScreen.classList.add("fade-out");
+  appShell.style.opacity = "1";
+  appShell.style.pointerEvents = "auto";
+  setTimeout(() => {
+    splashScreen.classList.add("hidden");
+    if (pendingAd) { try { showAdModal(pendingAd); } catch (_) {} pendingAd = null; }
+  }, 500);
+}
+
+// Splash: minimum 800ms (brend ko'rinishi uchun), maksimum 1500ms.
+// Movies tayyor bo'lsa min vaqtdan keyin darrov yopiladi.
+function initSplashScreen() {
+  const MIN_MS = 800;
+  const MAX_MS = 1500;
+  const startedAt = Date.now();
+
+  const tryHide = () => {
+    if (splashHideRequested) return;
+    splashHideRequested = true;
+    const elapsed = Date.now() - startedAt;
+    const wait = Math.max(0, MIN_MS - elapsed);
+    setTimeout(hideSplashNow, wait);
+  };
+
+  setTimeout(tryHide, MAX_MS);
+  return { tryHide };
 }
 
 async function initApp() {
   await loadAppSettings();
-  initSplashScreen();
-  loadMovies();
+  const splash = initSplashScreen();
+  // Movies tayyor bo'lishi bilanoq splash yopiladi (min 800ms cheklov bilan).
+  loadMovies().finally(() => { try { splash?.tryHide?.(); } catch (_) {} });
   startMoviesPolling();
   loadProgressFromBackend().catch(() => {});
 }
@@ -5674,7 +5708,8 @@ initApp();
 // === /nav-icon-click-anim ===
 
 // === swipe-gestures (revertable: delete this block) ===
-(function attachSwipeGestures() {
+// Idle vaqtda init — birinchi paint blok qilinmaydi.
+const __initSwipeGestures = function attachSwipeGestures() {
   const SWIPE_THRESHOLD = 55;
   const DIRECTION_LOCK = 10;
   const MAX_OFF_AXIS_RATIO = 0.7;
@@ -5826,6 +5861,11 @@ initApp();
       if (dragMoved) { e.stopImmediatePropagation(); e.preventDefault(); dragMoved = false; }
     }, true);
   }
-})();
+};
+if ("requestIdleCallback" in window) {
+  window.requestIdleCallback(__initSwipeGestures, { timeout: 2000 });
+} else {
+  setTimeout(__initSwipeGestures, 600);
+}
 // === /swipe-gestures ===
 
