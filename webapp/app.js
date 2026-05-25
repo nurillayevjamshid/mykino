@@ -836,13 +836,15 @@ function isDataImageValue(value) {
 
 function posterStyle(movie) {
   const source = getPosterImage(movie);
-  if (!source) return "";
-  const poster = source.replaceAll("'", "%27").replaceAll(")", "%29").replaceAll('"', "%22");
-  // data: URLs are inline — no network cost, set immediately instead of waiting for IntersectionObserver.
-  if (source.startsWith("data:")) {
-    return `style="--poster-image: url('${poster}')"`;
+  // Agar hech qanday URL yo'q bo'lsa (blob: filtrlandi yoki umuman yo'q) — canvas poster.
+  const effective = source || buildGeneratedPosterDataUrl(movie);
+  const safe = effective.replaceAll("'", "%27").replaceAll(")", "%29").replaceAll('"', "%22");
+  // data: URL (admin yuklagan yoki generatsiya) — IO kutmasdan to'g'ridan-to'g'ri style.
+  if (effective.startsWith("data:")) {
+    return `style="--poster-image: url('${safe}')"`;
   }
-  return `data-poster="${poster}"`;
+  // https: URL — lazy load (IntersectionObserver orqali).
+  return `data-poster="${safe}"`;
 }
 
 const lazyPosterObserver = (() => {
