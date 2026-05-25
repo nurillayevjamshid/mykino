@@ -2544,6 +2544,43 @@ document.getElementById("modalShareButton")?.addEventListener("click", (e) => {
   shareActiveMovie();
 });
 
+// === Resume prompt: "X:XX dan davom" + "Boshidan" ===
+const watchActionsEl = document.getElementById("watchActions");
+const watchResumeBadge = document.getElementById("watchResumeBadge");
+const watchRestartButton = document.getElementById("watchRestartButton");
+
+function syncResumeUiForMovie(movie) {
+  const seconds = Math.max(0, Math.floor(Number(getMovieProgressSeconds(movie)) || 0));
+  const hasResume = seconds >= WATCH_PROGRESS_MIN_SECONDS;
+  if (watchActionsEl) watchActionsEl.classList.toggle("has-resume", hasResume);
+  if (watchResumeBadge) {
+    if (hasResume) {
+      watchResumeBadge.textContent = formatPlaybackTime(seconds);
+      watchResumeBadge.hidden = false;
+    } else {
+      watchResumeBadge.textContent = "";
+      watchResumeBadge.hidden = true;
+    }
+  }
+  if (watchRestartButton) watchRestartButton.hidden = !hasResume;
+  if (watchButton) {
+    watchButton.setAttribute(
+      "aria-label",
+      hasResume ? `Davom etish (${formatPlaybackTime(seconds)})` : "Tomosha qilish",
+    );
+  }
+}
+
+watchRestartButton?.addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (!activeMovie) return;
+  try { haptic.medium(); } catch (_) {}
+  // Resume vaqtini bekor qilish — video boshidan ochiladi.
+  // Asl progress saqlanadi (movie tugagach yana yangilanadi).
+  openVideoPlayer(activeMovie, { startFromBeginning: true });
+});
+
 function openMovie(movie) {
   const posterImage = getPosterImage(movie);
   modalPoster.style.backgroundImage = posterImage
@@ -2568,6 +2605,9 @@ function openMovie(movie) {
   modalDescription.textContent = movie.description;
   watchButton.dataset.movieId = movie.id;
   activeMovie = movie;
+  // Resume holatini ko'rsatish: agar foydalanuvchi bu kinoni yarmida qoldirgan bo'lsa
+  // — "X:XX dan davom" badge'i va "Boshidan" tugmasi paydo bo'ladi.
+  syncResumeUiForMovie(movie);
   renderReactions(movie);
   syncDescriptionToggle();
   movieModal.showModal();
@@ -3645,13 +3685,14 @@ function getInlineSourceLabel(movie) {
   return "Kino player";
 }
 
-async function openVideoPlayer(movie) {
+async function openVideoPlayer(movie, options = {}) {
   if (!movie) return;
   stopMoviePreload();
   hideCodecError();
   const requestId = ++activeVideoRequest;
   activeMovie = movie;
-  pendingResumeTime = getMovieProgressSeconds(movie);
+  // startFromBeginning=true bo'lsa, resume vaqti olinmaydi (boshidan).
+  pendingResumeTime = options?.startFromBeginning ? 0 : getMovieProgressSeconds(movie);
   markMovieWatched(movie, pendingResumeTime);
   syncWatchedCount();
   if (movieModal.open) movieModal.close();

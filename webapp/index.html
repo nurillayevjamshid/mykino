@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260525-toast01" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260525-resume01" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -431,9 +431,19 @@
         <h1 id="modalTitle"></h1>
         <div class="modal-meta" id="modalMeta"></div>
         <div class="modal-rating" id="modalRating" aria-hidden="true"></div>
-        <button class="watch-button watch-button--round" id="watchButton" type="button" aria-label="Tomosha qilish">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
-        </button>
+        <div class="watch-actions" id="watchActions">
+          <button class="watch-button watch-button--round" id="watchButton" type="button" aria-label="Tomosha qilish">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+            <span class="watch-button__resume" id="watchResumeBadge" hidden></span>
+          </button>
+          <button class="watch-restart" id="watchRestartButton" type="button" aria-label="Boshidan ko'rish" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            <span>Boshidan</span>
+          </button>
+        </div>
         <button class="modal-description-toggle" id="modalDescriptionToggle" type="button" aria-expanded="false">
           <span class="modal-description-toggle__label">Show More</span>
           <svg class="modal-description-toggle__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -743,7 +753,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260525-toast01"></script>
+  <script src="/static/app.js?v=20260525-resume01"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });

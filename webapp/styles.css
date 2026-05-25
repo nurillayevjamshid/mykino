@@ -8810,6 +8810,75 @@ body.is-music .profile-history:not(.profile-history--music) { display: none !imp
 }
 body.ad-modal-open { overflow: hidden; }
 
+/* === Resume prompt: watch button + "Boshidan" === */
+.watch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.watch-button {
+  position: relative;
+}
+.watch-button__resume {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  min-width: 44px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--c-accent, #e50914);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 0 2px var(--c-bg, #0b0d12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+[data-theme="light"] .watch-button__resume {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), 0 0 0 2px #fff;
+}
+.watch-restart {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--c-text, #fff);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, opacity 0.18s ease;
+}
+.watch-restart svg {
+  width: 16px;
+  height: 16px;
+}
+.watch-restart:active {
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.14);
+}
+[data-theme="light"] .watch-restart {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1a1a1a;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .watch-restart:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+.watch-actions:not(.has-resume) .watch-restart {
+  display: none;
+}
+
 /* === Toast notifications === */
 .app-toast-host {
   position: fixed;
