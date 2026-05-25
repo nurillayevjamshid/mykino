@@ -351,6 +351,9 @@ const topbarSearchTrigger = document.querySelector(".topbar-search__trigger");
 const categoryPanel = document.querySelector("#categoryPanel");
 const categoryList = document.querySelector("#categoryList");
 const movieModal = document.querySelector("#movieModal");
+movieModal?.addEventListener("close", () => {
+  try { hideShareMainButton?.(); } catch (_) {}
+});
 const modalPoster = document.querySelector("#modalPoster");
 const modalMeta = document.querySelector("#modalMeta");
 const modalTitle = document.querySelector("#modalTitle");
@@ -2411,6 +2414,57 @@ function startMoviePreload(movie) {
   });
 }
 
+// === Telegram MainButton — kino modalida "Do'stga ulashish" ===
+const SHARE_BOT_USERNAME = "meningmykino_bot";
+const SHARE_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
+let mainButtonClickHandler = null;
+
+function buildShareUrl(movie) {
+  const code = String(movie?.code || movie?.id || "").trim();
+  const appLink = code ? `${SHARE_WEBAPP_URL}?movie=${encodeURIComponent(code)}` : SHARE_WEBAPP_URL;
+  const title = String(movie?.title || "Kino").trim();
+  const codeText = code ? `\n\nKod: ${code}` : "";
+  const text = `🎬 ${title}${codeText}\n\nMY PLAYLIST mini-ilovasida tomosha qiling:`;
+  return `https://t.me/share/url?url=${encodeURIComponent(appLink)}&text=${encodeURIComponent(text)}`;
+}
+
+function showShareMainButton(movie) {
+  const mb = tg?.MainButton;
+  if (!mb || typeof mb.show !== "function") return;
+  try {
+    if (mainButtonClickHandler) {
+      tg.offEvent?.("mainButtonClicked", mainButtonClickHandler);
+      mainButtonClickHandler = null;
+    }
+    mb.setText?.("Do'stga ulashish");
+    if (mb.setParams) mb.setParams({ is_visible: true, is_active: true });
+    mainButtonClickHandler = () => {
+      try { haptic.medium(); } catch (_) {}
+      const url = buildShareUrl(movie);
+      try {
+        if (tg.openTelegramLink) tg.openTelegramLink(url);
+        else window.open(url, "_blank", "noopener");
+      } catch (_) {
+        window.open(url, "_blank", "noopener");
+      }
+    };
+    tg.onEvent?.("mainButtonClicked", mainButtonClickHandler);
+    mb.show();
+  } catch (_) {}
+}
+
+function hideShareMainButton() {
+  const mb = tg?.MainButton;
+  if (!mb) return;
+  try {
+    if (mainButtonClickHandler) {
+      tg.offEvent?.("mainButtonClicked", mainButtonClickHandler);
+      mainButtonClickHandler = null;
+    }
+    mb.hide?.();
+  } catch (_) {}
+}
+
 function openMovie(movie) {
   const posterImage = getPosterImage(movie);
   modalPoster.style.backgroundImage = posterImage
@@ -2446,6 +2500,7 @@ function openMovie(movie) {
   }
   refreshReactionCounts(movie);
   startMoviePreload(movie);
+  showShareMainButton(movie);
 }
 
 function setVideoLoading(isLoading) {
@@ -4540,6 +4595,13 @@ window.onYouTubeIframeAPIReady = function () {
   } catch (_) {}
 };
 
+function stopMiniProgress() {
+  if (ytProgressTimer) {
+    clearInterval(ytProgressTimer);
+    ytProgressTimer = null;
+  }
+}
+
 function startMiniProgress() {
   if (ytProgressTimer) return;
   ytProgressTimer = setInterval(() => {
@@ -4596,6 +4658,9 @@ function hideMiniPlayer() {
   if (!miniPlayer) return;
   miniPlayer.setAttribute("aria-hidden", "true");
   try { if (ytReady && ytPlayer?.pauseVideo) ytPlayer.pauseVideo(); } catch (_) {}
+  // Foydalanuvchi mini-player'ni yopdi — progress timer'ni to'xtatamiz.
+  // Keyingi playMusicTrack avtomatik qaytadan ishga tushiradi.
+  stopMiniProgress();
 }
 
 musicView?.addEventListener("click", (event) => {
