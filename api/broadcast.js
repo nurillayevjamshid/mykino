@@ -76,6 +76,34 @@ async function telegramSend(token, method, payload) {
   return { ok: response.ok && json.ok, status: response.status, json };
 }
 
+function decodeDataUrl(dataUrl) {
+  const m = /^data:([^;,]+)(;base64)?,(.*)$/i.exec(String(dataUrl || ""));
+  if (!m) return null;
+  const mime = m[1] || "application/octet-stream";
+  const isB64 = !!m[2];
+  const raw = m[3] || "";
+  try {
+    const buf = isB64 ? Buffer.from(raw, "base64") : Buffer.from(decodeURIComponent(raw), "utf8");
+    return { buffer: buf, mime };
+  } catch {
+    return null;
+  }
+}
+
+async function telegramSendMultipart(token, method, fields, fileField, fileBuf, fileName, fileMime) {
+  const url = `${TELEGRAM_API}/bot${token}/${method}`;
+  const form = new FormData();
+  for (const [k, v] of Object.entries(fields)) {
+    if (v === undefined || v === null || v === "") continue;
+    form.append(k, typeof v === "string" ? v : String(v));
+  }
+  const blob = new Blob([fileBuf], { type: fileMime || "application/octet-stream" });
+  form.append(fileField, blob, fileName || "file");
+  const response = await fetch(url, { method: "POST", body: form });
+  const json = await response.json().catch(() => ({}));
+  return { ok: response.ok && json.ok, status: response.status, json };
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -101,8 +129,12 @@ module.exports = async function handler(request, response) {
 
     const text = trimStr(body.text);
     const photoUrl = trimStr(body.photoUrl);
-    if (!text && !photoUrl) {
-      response.status(400).json({ ok: false, error: "Matn yoki rasm kerak." });
+    const videoUrl = trimStr(body.videoUrl);
+    const mediaDataUrl = trimStr(body.mediaDataUrl);
+    const mediaKind = body.mediaKind === "video" ? "video" : "photo";
+    const decodedMedia = mediaDataUrl ? decodeDataUrl(mediaDataUrl) : null;
+    if (!text && !photoUrl && !videoUrl && !decodedMedia) {
+      response.status(400).json({ ok: false, error: "Matn yoki media kerak." });
       return;
     }
     if (text.length > 4000) {
@@ -126,6 +158,8 @@ module.exports = async function handler(request, response) {
     const replyMarkup = buildReplyMarkup(body.buttonText, body.buttonUrl);
     const disableNotification = Boolean(body.silent);
     const isPhoto = Boolean(photoUrl);
+    const isVideo = Boolean(videoUrl);
+    const isUpload = Boolean(decodedMedia);
 
     let sent = 0;
     let failed = 0;
@@ -147,13 +181,35 @@ module.exports = async function handler(request, response) {
       if (parseMode) basePayload.parse_mode = parseMode;
       if (replyMarkup) basePayload.reply_markup = replyMarkup;
 
-      const method = isPhoto ? "sendPhoto" : "sendMessage";
-      const payload = isPhoto
-        ? { ...basePayload, photo: photoUrl, caption: text }
-        : { ...basePayload, text, disable_web_page_preview: Boolean(body.disablePreview) };
+      let method;
+      let payload;
+      let result;
+      if (isUpload) {
+        method = mediaKind === "video" ? "sendVideo" : "sendPhoto";
+        const fileField = mediaKind === "video" ? "video" : "photo";
+        const fileName = mediaKind === "video" ? "trailer.mp4" : "poster.jpg";
+        const fields = { ...basePayload, caption: text };
+        try {
+          result = await telegramSendMultipart(token, method, fields, fileField, decodedMedia.buffer, fileName, decodedMedia.mime);
+        } catch (error) {
+          failed += 1;
+          if (errors.length < 50) errors.push({ chatId, error: error.message });
+          if (i < recipients.length - 1) await sleep(SEND_DELAY_MS);
+          continue;
+        }
+      } else if (isVideo) {
+        method = "sendVideo";
+        payload = { ...basePayload, video: videoUrl, caption: text };
+      } else if (isPhoto) {
+        method = "sendPhoto";
+        payload = { ...basePayload, photo: photoUrl, caption: text };
+      } else {
+        method = "sendMessage";
+        payload = { ...basePayload, text, disable_web_page_preview: Boolean(body.disablePreview) };
+      }
 
       try {
-        const result = await telegramSend(token, method, payload);
+        if (!result) result = await telegramSend(token, method, payload);
         if (result.ok) {
           sent += 1;
         } else {
