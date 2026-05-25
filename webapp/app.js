@@ -2693,8 +2693,116 @@ function openMovie(movie) {
     history.pushState({ movieDetail: true }, "");
   }
   refreshReactionCounts(movie);
+  renderUserRating(movie, { mine: 0, average: 0, count: 0 });
+  renderComments([]);
+  refreshUserRating(movie);
+  refreshComments(movie);
   startMoviePreload(movie);
   tgBackRegister("movie-modal", () => { try { movieModal.close(); } catch (_) {} });
+}
+
+// ===== User rating (1-5 stars) =====
+function renderUserRating(movie, { mine, average, count }) {
+  const stars = document.querySelectorAll('#userRatingStars .user-rating-star');
+  const summary = document.getElementById('userRatingSummary');
+  stars.forEach(btn => {
+    const val = Number(btn.dataset.rating);
+    btn.classList.toggle('is-mine', mine > 0 && val <= mine);
+    btn.classList.toggle('is-filled', mine === 0 && val <= Math.round(average));
+  });
+  if (summary) {
+    if (count > 0) {
+      summary.textContent = `O'rtacha: ${average} / 5 (${count} ta baho)${mine ? ` · Siz: ${mine} ⭐` : ''}`;
+    } else {
+      summary.textContent = mine ? `Siz: ${mine} ⭐` : "Hali baholanmagan — birinchi bo'ling!";
+    }
+  }
+}
+
+async function refreshUserRating(movie) {
+  try {
+    const userId = getReactionUserId();
+    const res = await fetch(`/api/movie-reaction?action=rating&id=${encodeURIComponent(movie.id)}&userId=${encodeURIComponent(userId)}`, { cache: 'no-store' });
+    const data = await res.json().catch(() => null);
+    if (!data || data.ok === false) return;
+    if (activeMovie && activeMovie.id === movie.id) {
+      renderUserRating(movie, { mine: Number(data.userRating) || 0, average: Number(data.average) || 0, count: Number(data.count) || 0 });
+    }
+  } catch {}
+}
+
+async function sendUserRating(movie, rating) {
+  const userId = getReactionUserId();
+  try {
+    const res = await fetch('/api/movie-reaction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'rate', id: movie.id, userId, rating }),
+    });
+    const data = await res.json().catch(() => null);
+    if (data && data.ok && activeMovie && activeMovie.id === movie.id) {
+      renderUserRating(movie, { mine: Number(data.userRating) || 0, average: Number(data.average) || 0, count: Number(data.count) || 0 });
+    }
+  } catch {}
+}
+
+// ===== Comments =====
+function formatCommentDate(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
+
+function renderComments(list) {
+  const countEl = document.getElementById('commentsCount');
+  const listEl = document.getElementById('commentsList');
+  if (countEl) countEl.textContent = String(list.length);
+  if (!listEl) return;
+  if (!list.length) {
+    listEl.innerHTML = '<div class="comments-empty">Hali izoh yo\'q — birinchi bo\'ling!</div>';
+    return;
+  }
+  listEl.innerHTML = list.map(c => `
+    <div class="comment-item">
+      <div class="comment-item__head">
+        <span class="comment-item__name">${escapeHtml(c.userName || 'Foydalanuvchi')}</span>
+        <span class="comment-item__date">${formatCommentDate(c.createdAt)}</span>
+      </div>
+      <div class="comment-item__text">${escapeHtml(c.text || '')}</div>
+      ${c.adminReply ? `
+        <div class="comment-item__reply">
+          <b>👤 Admin javobi:</b>
+          ${escapeHtml(c.adminReply.text || '')}
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+async function refreshComments(movie) {
+  try {
+    const res = await fetch(`/api/movie-reaction?action=comments&id=${encodeURIComponent(movie.id)}`, { cache: 'no-store' });
+    const data = await res.json().catch(() => null);
+    if (!data || data.ok === false) return;
+    if (activeMovie && activeMovie.id === movie.id) {
+      renderComments(Array.isArray(data.comments) ? data.comments : []);
+    }
+  } catch {}
+}
+
+async function submitComment(movie, text) {
+  const userId = getReactionUserId();
+  const tgUser = getTelegramUser();
+  const userName = tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || (tgUser.username ? '@' + tgUser.username : 'Foydalanuvchi') : 'Mehmon';
+  const res = await fetch('/api/movie-reaction', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'comment', id: movie.id, userId, userName, text }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!data || !data.ok) throw new Error(data?.error || 'Xato');
+  return data;
 }
 
 function setVideoLoading(isLoading) {
@@ -4743,6 +4851,45 @@ likeButton?.addEventListener("click", () => {
 dislikeButton?.addEventListener("click", () => {
   if (!activeMovie) return;
   sendReaction(activeMovie, "dislike");
+});
+
+document.getElementById('userRatingStars')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.user-rating-star');
+  if (!btn || !activeMovie) return;
+  const rating = Number(btn.dataset.rating);
+  if (!rating) return;
+  sendUserRating(activeMovie, rating);
+});
+
+document.getElementById('commentInput')?.addEventListener('input', (e) => {
+  const counter = document.getElementById('commentCharCount');
+  if (counter) counter.textContent = `${e.target.value.length}/500`;
+});
+
+document.getElementById('commentForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!activeMovie) return;
+  const input = document.getElementById('commentInput');
+  const msg = document.getElementById('commentFormMessage');
+  const btn = document.getElementById('commentSubmit');
+  const text = String(input?.value || '').trim();
+  if (!text) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Yuborilmoqda...'; }
+  msg.className = 'comment-form__msg';
+  msg.textContent = '';
+  try {
+    await submitComment(activeMovie, text);
+    if (input) input.value = '';
+    const counter = document.getElementById('commentCharCount');
+    if (counter) counter.textContent = '0/500';
+    msg.className = 'comment-form__msg is-success';
+    msg.textContent = '✅ Izoh yuborildi — admin tasdiqlashini kutmoqda.';
+  } catch (err) {
+    msg.className = 'comment-form__msg is-error';
+    msg.textContent = '❌ ' + err.message;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Yuborish'; }
+  }
 });
 
 movieModal?.addEventListener("close", () => {

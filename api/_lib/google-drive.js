@@ -540,6 +540,9 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const finalQuality = trimString(override?.quality) || quality;
   const rating = override?.rating !== undefined ? safeRating(override.rating) : 0;
   const reactionCounts = countReactions(jsonOverride?.reactions);
+  const ratingSummary = summarizeRatings(jsonOverride?.ratings);
+  const commentsArr = Array.isArray(jsonOverride?.comments) ? jsonOverride.comments : [];
+  const approvedCommentsCount = commentsArr.filter(c => c && c.status === "approved").length;
   const hasCustomMetadata = Boolean(
     trimString(override?.title)
     || trimString(override?.genre)
@@ -581,6 +584,9 @@ function toDriveMovie(file, index, metadataMap = {}) {
     headerCrop: sanitizeHeaderCrop(override?.headerCrop),
     likes: reactionCounts.likes,
     dislikes: reactionCounts.dislikes,
+    userRatingAverage: ratingSummary.average,
+    userRatingCount: ratingSummary.count,
+    commentsCount: approvedCommentsCount,
     streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
     cdnUrl: trimString(override?.cdnUrl),
@@ -909,6 +915,172 @@ async function getMovieReaction(fileId, userId = "") {
     userReaction: normalizedUserId ? (reactions[normalizedUserId] || null) : null,
     ...counts,
   };
+}
+
+// ===== Ratings (1-5 stars per user) =====
+function summarizeRatings(ratingsMap) {
+  if (!ratingsMap || typeof ratingsMap !== "object") return { count: 0, average: 0 };
+  const values = Object.values(ratingsMap).map(Number).filter(n => Number.isFinite(n) && n >= 1 && n <= 5);
+  if (!values.length) return { count: 0, average: 0 };
+  const sum = values.reduce((a, b) => a + b, 0);
+  return { count: values.length, average: Math.round((sum / values.length) * 10) / 10 };
+}
+
+async function readMovieEntryState(fileId) {
+  const normalizedFileId = trimString(fileId);
+  if (!normalizedFileId) {
+    const error = new Error("Kino ID si kerak.");
+    error.statusCode = 400;
+    error.code = "MOVIE_ID_MISSING";
+    throw error;
+  }
+  const metadataState = await readCatalogMetadata();
+  const metadata = normalizeCatalogMetadata(metadataState.data);
+  const entry = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
+    ? metadata.movies[normalizedFileId]
+    : {};
+  return { metadataState, metadata, entry, normalizedFileId };
+}
+
+async function setMovieRating(fileId, userId, rating) {
+  const userIdStr = trimString(userId);
+  if (!userIdStr) {
+    const error = new Error("Foydalanuvchi ID si kerak.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const numeric = Number(rating);
+  const isRemove = rating === null || rating === undefined || rating === "" || numeric === 0;
+  if (!isRemove && (!Number.isFinite(numeric) || numeric < 1 || numeric > 5)) {
+    const error = new Error("Reyting 1 dan 5 gacha bo'lishi kerak.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const { metadataState, metadata, entry, normalizedFileId } = await readMovieEntryState(fileId);
+  const ratings = entry.ratings && typeof entry.ratings === "object" ? { ...entry.ratings } : {};
+  if (isRemove) delete ratings[userIdStr];
+  else ratings[userIdStr] = Math.round(numeric);
+  metadata.movies[normalizedFileId] = { ...entry, ratings };
+  await writeCatalogMetadata(metadata, metadataState.file);
+  invalidateListCache("movies");
+  const summary = summarizeRatings(ratings);
+  return { id: normalizedFileId, userId: userIdStr, userRating: isRemove ? 0 : Math.round(numeric), ...summary };
+}
+
+async function getMovieRating(fileId, userId = "") {
+  const { entry, normalizedFileId } = await readMovieEntryState(fileId);
+  const ratings = entry.ratings && typeof entry.ratings === "object" ? entry.ratings : {};
+  const userIdStr = trimString(userId);
+  const summary = summarizeRatings(ratings);
+  return { id: normalizedFileId, userId: userIdStr, userRating: userIdStr ? Number(ratings[userIdStr] || 0) : 0, ...summary };
+}
+
+// ===== Comments (pending → approved, with admin reply) =====
+function sanitizeCommentText(text, max = 500) {
+  return trimString(text).slice(0, max);
+}
+
+async function addMovieComment(fileId, userId, userName, text) {
+  const userIdStr = trimString(userId);
+  const userNameStr = trimString(userName).slice(0, 64) || "Foydalanuvchi";
+  const cleanText = sanitizeCommentText(text, 500);
+  if (!userIdStr) {
+    const error = new Error("Foydalanuvchi ID si kerak.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!cleanText) {
+    const error = new Error("Izoh bo'sh.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const { metadataState, metadata, entry, normalizedFileId } = await readMovieEntryState(fileId);
+  const comments = Array.isArray(entry.comments) ? [...entry.comments] : [];
+  const comment = {
+    id: `c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    userId: userIdStr,
+    userName: userNameStr,
+    text: cleanText,
+    status: "pending",
+    createdAt: new Date().toISOString(),
+    adminReply: null,
+  };
+  comments.push(comment);
+  if (comments.length > 1000) comments.splice(0, comments.length - 1000);
+  metadata.movies[normalizedFileId] = { ...entry, comments };
+  await writeCatalogMetadata(metadata, metadataState.file);
+  return { id: normalizedFileId, comment };
+}
+
+async function listMovieComments(fileId, { includePending = false } = {}) {
+  const { entry, normalizedFileId } = await readMovieEntryState(fileId);
+  const comments = Array.isArray(entry.comments) ? entry.comments : [];
+  const filtered = includePending ? comments : comments.filter(c => c.status === "approved");
+  const sorted = filtered.slice().sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  return { id: normalizedFileId, comments: sorted };
+}
+
+async function listAllPendingComments() {
+  const metadataState = await readCatalogMetadata();
+  const metadata = normalizeCatalogMetadata(metadataState.data);
+  const all = [];
+  for (const [movieId, entry] of Object.entries(metadata.movies || {})) {
+    if (!entry || typeof entry !== "object" || !Array.isArray(entry.comments)) continue;
+    for (const c of entry.comments) {
+      if (c && c.status === "pending") {
+        all.push({ movieId, movieTitle: entry.title || "", ...c });
+      }
+    }
+  }
+  all.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  return { comments: all };
+}
+
+async function moderateMovieComment(fileId, commentId, action) {
+  const { metadataState, metadata, entry, normalizedFileId } = await readMovieEntryState(fileId);
+  const comments = Array.isArray(entry.comments) ? [...entry.comments] : [];
+  const idx = comments.findIndex(c => c && c.id === commentId);
+  if (idx === -1) {
+    const error = new Error("Izoh topilmadi.");
+    error.statusCode = 404;
+    throw error;
+  }
+  if (action === "approve") {
+    comments[idx] = { ...comments[idx], status: "approved" };
+  } else if (action === "delete") {
+    comments.splice(idx, 1);
+  } else {
+    const error = new Error("Noto'g'ri amal.");
+    error.statusCode = 400;
+    throw error;
+  }
+  metadata.movies[normalizedFileId] = { ...entry, comments };
+  await writeCatalogMetadata(metadata, metadataState.file);
+  return { id: normalizedFileId, commentId, action };
+}
+
+async function replyMovieComment(fileId, commentId, replyText) {
+  const cleanReply = sanitizeCommentText(replyText, 500);
+  if (!cleanReply) {
+    const error = new Error("Javob bo'sh.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const { metadataState, metadata, entry, normalizedFileId } = await readMovieEntryState(fileId);
+  const comments = Array.isArray(entry.comments) ? [...entry.comments] : [];
+  const idx = comments.findIndex(c => c && c.id === commentId);
+  if (idx === -1) {
+    const error = new Error("Izoh topilmadi.");
+    error.statusCode = 404;
+    throw error;
+  }
+  comments[idx] = {
+    ...comments[idx],
+    adminReply: { text: cleanReply, createdAt: new Date().toISOString() },
+  };
+  metadata.movies[normalizedFileId] = { ...entry, comments };
+  await writeCatalogMetadata(metadata, metadataState.file);
+  return { id: normalizedFileId, comment: comments[idx] };
 }
 
 async function listDriveMoviesUncached() {
@@ -1263,4 +1435,11 @@ module.exports = {
   updateCatalogMovieMetadata,
   getMovieReaction,
   setMovieReaction,
+  setMovieRating,
+  getMovieRating,
+  addMovieComment,
+  listMovieComments,
+  listAllPendingComments,
+  moderateMovieComment,
+  replyMovieComment,
 };
