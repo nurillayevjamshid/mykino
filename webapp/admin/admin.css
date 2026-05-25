@@ -781,6 +781,28 @@ body {
 }
 .poster-upload.has-preview .poster-upload-content { display: none; }
 .poster-upload.has-preview .poster-upload-preview { display: block; }
+.poster-upload-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+  padding: 0;
+  transition: background 0.15s ease;
+}
+.poster-upload-remove:hover { background: var(--danger, #ef4444); }
+.poster-upload.has-preview .poster-upload-remove { display: flex; }
 
 /* ===== Card block (for forms in sections) ===== */
 .card-block {
