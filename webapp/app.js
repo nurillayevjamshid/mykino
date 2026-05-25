@@ -5888,11 +5888,54 @@ function initSplashScreen() {
   return { tryHide };
 }
 
+// === Deep link: ?movie=CODE yoki Telegram startapp parametri orqali kelganda
+// ko'rsatilgan kinoni avtomatik ochish (movie code yoki ID match). ===
+function findMovieByDeepLinkParam(rawParam) {
+  const param = String(rawParam || "").trim();
+  if (!param || !Array.isArray(movies) || !movies.length) return null;
+  // "movie_<code>" yoki "movie-<code>" prefiks bo'lsa olib tashlash.
+  const cleaned = param.replace(/^movie[_-]/i, "").trim();
+  if (!cleaned) return null;
+  const lc = cleaned.toLowerCase();
+  return movies.find((m) => {
+    const code = String(m?.code || "").toLowerCase();
+    const id = String(m?.id || "").toLowerCase();
+    return code === lc || id === lc;
+  }) || null;
+}
+
+function getDeepLinkMovieParam() {
+  // 1) URL query: ?movie=CODE
+  const fromQuery = String(pageParams.get("movie") || "").trim();
+  if (fromQuery) return fromQuery;
+  // 2) Telegram startapp: t.me/bot/app?startapp=movie_CODE
+  const fromTg = String(tg?.initDataUnsafe?.start_param || "").trim();
+  if (fromTg) return fromTg;
+  return "";
+}
+
+let deepLinkHandled = false;
+function tryHandleDeepLink() {
+  if (deepLinkHandled) return;
+  const param = getDeepLinkMovieParam();
+  if (!param) { deepLinkHandled = true; return; }
+  const movie = findMovieByDeepLinkParam(param);
+  if (!movie) return; // movies hali yuklanmagan bo'lishi mumkin — keyingi chaqirig'ida urinamiz.
+  deepLinkHandled = true;
+  // Splash/animatsiyalar tugashi uchun kichik kechikish.
+  setTimeout(() => {
+    try { openMovie(movie); } catch (_) {}
+  }, 300);
+}
+
 async function initApp() {
   await loadAppSettings();
   const splash = initSplashScreen();
   // Movies tayyor bo'lishi bilanoq splash yopiladi (min 800ms cheklov bilan).
-  loadMovies().finally(() => { try { splash?.tryHide?.(); } catch (_) {} });
+  loadMovies().finally(() => {
+    try { splash?.tryHide?.(); } catch (_) {}
+    try { tryHandleDeepLink(); } catch (_) {}
+  });
   startMoviesPolling();
   loadProgressFromBackend().catch(() => {});
 }
