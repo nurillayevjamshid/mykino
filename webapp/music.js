@@ -1033,6 +1033,45 @@
     startMusicCarouselTimer();
   });
 
+  if (musicCarouselTrack) {
+    let sx = 0, sy = 0, active = false, moved = false;
+    musicCarouselTrack.addEventListener("touchstart", (e) => {
+      if (!e.touches[0] || musicCarouselItems.length < 2) return;
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+      active = true;
+      moved = false;
+      stopMusicCarouselTimer();
+    }, { passive: true });
+    musicCarouselTrack.addEventListener("touchmove", (e) => {
+      if (!active || !e.touches[0]) return;
+      const dx = e.touches[0].clientX - sx;
+      const dy = e.touches[0].clientY - sy;
+      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 12) {
+        active = false;
+        return;
+      }
+      if (Math.abs(dx) > 8) moved = true;
+    }, { passive: true });
+    const finish = (e) => {
+      const wasActive = active;
+      active = false;
+      if (wasActive) {
+        const t = e.changedTouches && e.changedTouches[0];
+        const dx = t ? t.clientX - sx : 0;
+        if (Math.abs(dx) > 40 && musicCarouselItems.length > 1) {
+          setMusicCarouselIndex(musicCarouselIndex + (dx < 0 ? 1 : -1));
+        }
+      }
+      startMusicCarouselTimer();
+    };
+    musicCarouselTrack.addEventListener("touchend", finish);
+    musicCarouselTrack.addEventListener("touchcancel", finish);
+    musicCarouselTrack.addEventListener("click", (e) => {
+      if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; }
+    }, true);
+  }
+
   musicView?.addEventListener("click", (e) => {
     const addBtn = e.target.closest("[data-music-add]");
     if (addBtn) {
