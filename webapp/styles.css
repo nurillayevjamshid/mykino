@@ -8777,6 +8777,50 @@ body.is-music .profile-history:not(.profile-history--music) { display: none !imp
 }
 body.ad-modal-open { overflow: hidden; }
 
+/* === #11 Smooth view fade transitions ===
+   Sahifa qismlari ochilganda yumshoq fade-in. Yopilish darrov bo'ladi
+   (hidden=true), shuning uchun keyingi ochilishda har safar animatsiya ishga tushadi. */
+#heroSection:not([hidden]),
+#categoriesView:not([hidden]),
+#categoryDetailView:not([hidden]),
+#seriesListView:not([hidden]),
+#seriesDetailView:not([hidden]),
+#musicView:not([hidden]),
+#searchPanel:not([hidden]) {
+  animation: view-fade-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes view-fade-in {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+/* Reduced motion: animatsiyalarsiz */
+@media (prefers-reduced-motion: reduce) {
+  #heroSection:not([hidden]),
+  #categoriesView:not([hidden]),
+  #categoryDetailView:not([hidden]),
+  #seriesListView:not([hidden]),
+  #seriesDetailView:not([hidden]),
+  #musicView:not([hidden]),
+  #searchPanel:not([hidden]) {
+    animation: none;
+  }
+}
+
+/* Movie grid'dagi yangi row'larga (skeleton → real content) yumshoq paydo bo'lish */
+.movie-grid.is-home .category-row:not(.category-row--skeleton) {
+  animation: row-fade-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+@keyframes row-fade-in {
+  0%   { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .movie-grid.is-home .category-row:not(.category-row--skeleton) {
+    animation: none;
+  }
+}
+
 /* === Pull-to-refresh indicator === */
 .ptr-indicator {
   position: fixed;
