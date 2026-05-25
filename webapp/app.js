@@ -1905,6 +1905,16 @@ function attachHeroBindings() {
       if (heroFeaturedMovie) openMovie(heroFeaturedMovie);
     });
   }
+  const heroSectionEl = document.getElementById("heroSection");
+  if (heroSectionEl && !heroSectionEl.dataset.tapBound) {
+    heroSectionEl.dataset.tapBound = "1";
+    heroSectionEl.style.cursor = "pointer";
+    heroSectionEl.addEventListener("click", (e) => {
+      if (!heroFeaturedMovie) return;
+      if (e.target.closest(".hero__play, .hero__info, .hero__dots, .hero__dot")) return;
+      openMovie(heroFeaturedMovie);
+    });
+  }
   const heroSection = document.getElementById("heroSection");
   if (heroSection && !heroSection.dataset.swipeBound) {
     heroSection.dataset.swipeBound = "1";
