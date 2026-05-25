@@ -1868,7 +1868,7 @@ dialog::backdrop {
 .movie-modal[open] {
   display: flex;
   flex-direction: column;
-  animation: movieDetailSlideIn 220ms ease-out;
+  animation: movieDetailSlideIn 280ms var(--ease-spring);
 }
 
 @keyframes movieDetailSlideIn {
@@ -9134,8 +9134,8 @@ body.ad-modal-open { overflow: hidden; }
 .skeleton-shimmer {
   position: relative;
   overflow: hidden;
-  background: var(--skeleton-base, rgba(120, 120, 130, 0.14));
-  border-radius: 14px;
+  background: var(--skeleton-base, var(--w-08));
+  border-radius: var(--radius-lg);
 }
 .skeleton-shimmer::after {
   content: "";
@@ -9144,14 +9144,15 @@ body.ad-modal-open { overflow: hidden; }
   background: linear-gradient(
     100deg,
     transparent 0%,
-    var(--skeleton-glow, rgba(255, 255, 255, 0.55)) 50%,
+    var(--skeleton-glow, var(--w-16)) 50%,
     transparent 100%
   );
   transform: translateX(-100%);
-  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  animation: skeleton-shimmer 1.6s var(--ease-in-out) infinite;
 }
 @keyframes skeleton-shimmer {
   0% { transform: translateX(-100%); }
+  60% { transform: translateX(100%); }
   100% { transform: translateX(100%); }
 }
 [data-theme="dark"] .skeleton-shimmer {
@@ -9220,3 +9221,24 @@ body.ad-modal-open { overflow: hidden; }
   }
 }
 
+/* === Content entry fade — kartochkalar paydo bo'lishi yumshoq === */
+.movie-grid:not(.is-loading) .movie-card:not(.movie-card--skeleton) {
+  animation: cardFadeIn var(--dur-slow) var(--ease-out) both;
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* === Reduced motion respect — Telegram WebApp foydalanuvchilarining tizim sozlamasi === */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
