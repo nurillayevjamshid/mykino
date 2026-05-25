@@ -351,6 +351,7 @@ const topbarSearchTrigger = document.querySelector(".topbar-search__trigger");
 const categoryPanel = document.querySelector("#categoryPanel");
 const categoryList = document.querySelector("#categoryList");
 const movieModal = document.querySelector("#movieModal");
+movieModal?.addEventListener("close", () => { tgBackUnregister("movie-modal"); });
 const modalPoster = document.querySelector("#modalPoster");
 const modalMeta = document.querySelector("#modalMeta");
 const modalTitle = document.querySelector("#modalTitle");
@@ -366,6 +367,15 @@ const dislikeCountEl = document.querySelector("#dislikeCount");
 const watchButton = document.querySelector("#watchButton");
 const movieLaterButton = document.querySelector(".modal-actions .ghost-button");
 const profileModal = document.querySelector("#profileModal");
+profileModal?.addEventListener("close", () => { tgBackUnregister("profile-modal"); });
+const __origProfileShowModal = profileModal?.showModal?.bind(profileModal);
+if (profileModal && __origProfileShowModal) {
+  profileModal.showModal = function patchedShowModal(...args) {
+    const r = __origProfileShowModal(...args);
+    tgBackRegister("profile-modal", () => { try { profileModal.close(); } catch (_) {} });
+    return r;
+  };
+}
 const profileName = document.querySelector("#profileName");
 const profileUsername = document.querySelector("#profileUsername");
 const profileUserId = document.querySelector("#profileUserId");
@@ -2411,6 +2421,43 @@ function startMoviePreload(movie) {
   });
 }
 
+// === Telegram BackButton stack manager ===
+// Har bir ochilgan "view" stack'ga yoziladi. BackButton stack bo'sh emas
+// bo'lganda paydo bo'ladi. Bosilganda — eng so'nggi view yopiladi.
+const tgBackStack = [];
+function tgBackRegister(id, closeFn) {
+  const i = tgBackStack.findIndex((v) => v.id === id);
+  if (i !== -1) tgBackStack.splice(i, 1);
+  tgBackStack.push({ id, closeFn });
+  tgBackButtonSync();
+}
+function tgBackUnregister(id) {
+  const i = tgBackStack.findIndex((v) => v.id === id);
+  if (i !== -1) {
+    tgBackStack.splice(i, 1);
+    tgBackButtonSync();
+  }
+}
+function tgBackButtonSync() {
+  const bb = tg?.BackButton;
+  if (!bb) return;
+  try {
+    if (tgBackStack.length > 0) bb.show?.();
+    else bb.hide?.();
+  } catch (_) {}
+}
+(function ensureTgBackClickHandler() {
+  if (!tg?.BackButton?.onClick) return;
+  try {
+    tg.BackButton.onClick(() => {
+      const last = tgBackStack[tgBackStack.length - 1];
+      if (!last) return;
+      try { haptic.tap(); } catch (_) {}
+      try { last.closeFn(); } catch (_) {}
+    });
+  } catch (_) {}
+})();
+
 // === Kino modali "Do'stga ulashish" tugmasi (poster ustida, o'ng tepada) ===
 const SHARE_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
 
@@ -2476,6 +2523,7 @@ function openMovie(movie) {
   }
   refreshReactionCounts(movie);
   startMoviePreload(movie);
+  tgBackRegister("movie-modal", () => { try { movieModal.close(); } catch (_) {} });
 }
 
 function setVideoLoading(isLoading) {
@@ -3554,6 +3602,7 @@ async function openVideoPlayer(movie) {
   videoTitle.textContent = movie.title || "Kino";
   videoPlayer.hidden = false;
   document.body.classList.add("is-player-open");
+  tgBackRegister("video-player", () => { try { closeVideoPlayer(); } catch (_) {} });
   currentSpeed = 1;
   updateSpeedLabel();
   setPlayerLocked(false);
@@ -3645,6 +3694,7 @@ function closeVideoPlayer() {
   if (videoPipButton) videoPipButton.classList.remove("is-active");
   exitPipIfActive();
   if (isAnyFullscreen()) exitFullscreenAndLandscape();
+  tgBackUnregister("video-player");
 }
 
 function setFilter(filter) {
@@ -4218,12 +4268,14 @@ function openAllSongs() {
   document.body.classList.add("is-music-all-songs");
   panel.hidden = false;
   scrollMusicTop();
+  tgBackRegister("music-all-songs", () => { try { closeAllSongs(); } catch (_) {} });
 }
 
 function closeAllSongs() {
   const panel = document.getElementById("musicAllSongs");
   if (panel) panel.hidden = true;
   document.body.classList.remove("is-music-all-songs");
+  tgBackUnregister("music-all-songs");
 }
 
 // ----- Barcha qo'shiqchilar (all artists page) -----
@@ -4274,12 +4326,14 @@ function openAllArtists() {
   document.body.classList.add("is-music-all-artists");
   panel.hidden = false;
   scrollMusicTop();
+  tgBackRegister("music-all-artists", () => { try { closeAllArtists(); } catch (_) {} });
 }
 
 function closeAllArtists() {
   const panel = document.getElementById("musicAllArtists");
   if (panel) panel.hidden = true;
   document.body.classList.remove("is-music-all-artists");
+  tgBackUnregister("music-all-artists");
 }
 
 // ----- Musiqa beta eslatma modali -----
@@ -4491,12 +4545,14 @@ function openArtistDetail(name) {
   document.body.classList.add("is-music-artist-detail");
   panel.hidden = false;
   scrollMusicTop();
+  tgBackRegister("music-artist-detail", () => { try { closeArtistDetail(); } catch (_) {} });
 }
 
 function closeArtistDetail() {
   const panel = document.getElementById("musicArtistDetail");
   if (panel) panel.hidden = true;
   document.body.classList.remove("is-music-artist-detail");
+  tgBackUnregister("music-artist-detail");
 }
 
 function openMusicView() {
@@ -4516,6 +4572,7 @@ function openMusicView() {
   window.scrollTo({ top: 0, behavior: "smooth" });
   document.querySelectorAll(".bottom-bar [data-action='categories']").forEach((b) => b.classList.add("is-active"));
   document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.classList.remove("is-active"));
+  tgBackRegister("music-view", () => { try { closeMusicView(); setFilter("all"); } catch (_) {} });
 }
 
 function closeMusicView() {
@@ -4527,6 +4584,7 @@ function closeMusicView() {
   closeAllArtists();
   stopMusicCarouselTimer();
   closeMusicFullPlayer();
+  tgBackUnregister("music-view");
 }
 
 // ----- YouTube IFrame Player -----
@@ -4736,12 +4794,14 @@ function openMusicFullPlayer(track) {
   musicFullPlayer.hidden = false;
   requestAnimationFrame(() => musicFullPlayer.setAttribute("aria-hidden", "false"));
   moveYtIntoFullPlayer();
+  tgBackRegister("music-fullplayer", () => { try { closeMusicFullPlayer(); } catch (_) {} });
 }
 
 function closeMusicFullPlayer() {
   if (!musicFullPlayer) return;
   musicFullPlayer.setAttribute("aria-hidden", "true");
   document.body.classList.remove("fullplayer-open");
+  tgBackUnregister("music-fullplayer");
   // Keep musicFullPlayer rendered (no display:none) so YT iframe inside keeps playing audio
 }
 
@@ -4925,6 +4985,7 @@ function openCategoriesView() {
   document.querySelectorAll(".bottom-bar [data-action='categories-view']").forEach((b) => b.classList.add("is-active"));
   document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-action='favorites']").forEach((b) => b.classList.remove("is-active"));
   if (!categoriesLoaded) loadCategoriesCatalog();
+  tgBackRegister("categories-view", () => { try { closeCategoriesView(); setFilter("all"); } catch (_) {} });
 }
 
 function closeCategoriesView() {
@@ -4932,6 +4993,7 @@ function closeCategoriesView() {
   categoriesView.hidden = true;
   document.body.classList.remove("is-categories");
   document.querySelectorAll(".bottom-bar [data-action='categories-view']").forEach((b) => b.classList.remove("is-active"));
+  tgBackUnregister("categories-view");
 }
 
 document.querySelectorAll("[data-action='categories-view']").forEach((btn) => {
@@ -4987,12 +5049,14 @@ function openCategoryDetailView(name) {
   document.body.classList.add("is-category-detail");
   document.body.classList.remove("is-categories");
   window.scrollTo({ top: 0, behavior: "smooth" });
+  tgBackRegister("category-detail", () => { try { closeCategoryDetailView(); } catch (_) {} });
 }
 
 function closeCategoryDetailView({ goHome = false } = {}) {
   if (!categoryDetailView) return;
   categoryDetailView.hidden = true;
   document.body.classList.remove("is-category-detail");
+  tgBackUnregister("category-detail");
   if (goHome) return;
   if (categoriesView) {
     categoriesView.hidden = false;
@@ -5117,12 +5181,19 @@ function openSeriesListView() {
   } else {
     renderSeriesListGrid();
   }
+  tgBackRegister("series-list", () => {
+    try {
+      closeSeriesListView();
+      if (categoriesView) { categoriesView.hidden = false; document.body.classList.add("is-categories"); }
+    } catch (_) {}
+  });
 }
 
 function closeSeriesListView() {
   if (!seriesListView) return;
   seriesListView.hidden = true;
   document.body.classList.remove("is-series-list");
+  tgBackUnregister("series-list");
 }
 
 function openSeriesDetailView(series) {
@@ -5157,12 +5228,14 @@ function openSeriesDetailView(series) {
   document.body.classList.add("is-series-detail");
   document.body.classList.remove("is-series-list");
   window.scrollTo({ top: 0, behavior: "smooth" });
+  tgBackRegister("series-detail", () => { try { closeSeriesDetailView(); } catch (_) {} });
 }
 
 function closeSeriesDetailView() {
   if (!seriesDetailView) return;
   seriesDetailView.hidden = true;
   document.body.classList.remove("is-series-detail");
+  tgBackUnregister("series-detail");
   if (seriesListView) {
     seriesListView.hidden = false;
     document.body.classList.add("is-series-list");
@@ -5318,7 +5391,9 @@ function setSidebarOpen(open) {
     appSidebar.setAttribute("aria-hidden", "false");
     topbarMenuButton?.setAttribute("aria-expanded", "true");
     document.body.style.overflow = "hidden";
+    tgBackRegister("sidebar", () => { try { setSidebarOpen(false); } catch (_) {} });
   } else {
+    tgBackUnregister("sidebar");
     appSidebar.classList.remove("is-open");
     sidebarBackdrop.classList.remove("is-open");
     appSidebar.setAttribute("aria-hidden", "true");
