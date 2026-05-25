@@ -95,7 +95,10 @@
       "PowerShell(& \"$env:USERPROFILE\\\\.mykino-r2-run.ps1\" 2>&1 | Select-String \"NEEDS|EXISTS|MIGRATED|SKIP|->|Series|Kino|Total|epizod|Episode|cdnUrl\" | Select-Object -First 80)",
       "Bash(git branch *)",
       "Bash(git reset *)",
-      "Bash(git cherry-pick *)"
+      "Bash(git cherry-pick *)",
+      "Bash(node --check \"C:/Users/WESOLVE/Desktop/kino tg_bot/webapp/app.js\")",
+      "Bash(node --check \"C:/Users/WESOLVE/Desktop/kino tg_bot/webapp/music.js\")",
+      "Bash(node --check \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\webapp\\\\app.js\")"
     ]
   }
 }
