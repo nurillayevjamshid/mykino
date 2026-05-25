@@ -1825,11 +1825,11 @@ dialog::backdrop {
   backdrop-filter: blur(18px);
 }
 
-/* Share tugmasi: poster ustida, close ostida o'ng tomonda */
+/* Share tugmasi: poster ustida, close (X) yonida chap tomonda — bir qatorda */
 .modal-share {
   position: absolute;
-  top: 64px;
-  right: 12px;
+  top: 12px;
+  right: 64px;
   z-index: 2;
   width: 42px;
   height: 42px;
