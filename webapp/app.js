@@ -1938,10 +1938,6 @@ function createMovieCard(movie) {
     if (activeFilter === "favorites") {
       renderMovies();
     }
-    showToast(
-      isActive ? "Sevimlilarga qo'shildi" : "Sevimlilardan o'chirildi",
-      { icon: isActive ? "❤️" : "💔", variant: isActive ? "success" : "info" },
-    );
   });
   card.addEventListener("click", () => openMovie(movie));
   card.addEventListener("keydown", (event) => {
@@ -2501,58 +2497,6 @@ function startMoviePreload(movie) {
     preloadVideoEl = el;
     preloadVideoUrl = url;
   });
-}
-
-// === Toast notifications ===
-// Yumshoq pastdan ko'tariladigan bildirishnoma — wishlist, ulashish va h.k.
-const toastState = { container: null, current: null, hideTimer: 0 };
-function ensureToastContainer() {
-  if (toastState.container) return toastState.container;
-  const node = document.createElement("div");
-  node.className = "app-toast-host";
-  node.setAttribute("aria-live", "polite");
-  node.setAttribute("aria-atomic", "true");
-  document.body.appendChild(node);
-  toastState.container = node;
-  return node;
-}
-function showToast(message, opts = {}) {
-  if (!message) return;
-  const host = ensureToastContainer();
-  // Eski toast bo'lsa darrov olib tashlash
-  if (toastState.current) {
-    try { toastState.current.remove(); } catch (_) {}
-    toastState.current = null;
-  }
-  if (toastState.hideTimer) {
-    clearTimeout(toastState.hideTimer);
-    toastState.hideTimer = 0;
-  }
-  const el = document.createElement("div");
-  el.className = "app-toast" + (opts.variant ? ` app-toast--${opts.variant}` : "");
-  if (opts.icon) {
-    const ic = document.createElement("span");
-    ic.className = "app-toast__icon";
-    ic.textContent = opts.icon;
-    el.appendChild(ic);
-  }
-  const txt = document.createElement("span");
-  txt.className = "app-toast__text";
-  txt.textContent = String(message);
-  el.appendChild(txt);
-  host.appendChild(el);
-  // Force reflow for enter animation
-  requestAnimationFrame(() => el.classList.add("is-visible"));
-  toastState.current = el;
-  const duration = Math.max(900, Math.min(6000, Number(opts.duration) || 2200));
-  toastState.hideTimer = setTimeout(() => {
-    el.classList.remove("is-visible");
-    el.classList.add("is-leaving");
-    setTimeout(() => {
-      try { el.remove(); } catch (_) {}
-      if (toastState.current === el) toastState.current = null;
-    }, 240);
-  }, duration);
 }
 
 // === Telegram BackButton stack manager ===
@@ -4038,17 +3982,10 @@ function pickRandomMovie() {
 document.querySelectorAll("[data-action='random-movie']").forEach((button) => {
   button.addEventListener("click", (e) => {
     e.preventDefault();
-    if (movieLoadState !== "ready") {
-      showToast("Katalog hali yuklanmoqda...", { icon: "⏳" });
-      return;
-    }
+    if (movieLoadState !== "ready") return;
     const movie = pickRandomMovie();
-    if (!movie) {
-      showToast("Hozircha kinolar mavjud emas", { icon: "🎬" });
-      return;
-    }
+    if (!movie) return;
     try { haptic.medium(); } catch (_) {}
-    showToast(`🎲 ${movie.title}`, { duration: 1600 });
     openMovie(movie);
   });
 });
@@ -4580,20 +4517,13 @@ function readMusicPlaylist() {
 function writeMusicPlaylist(ids) {
   try { localStorage.setItem(MUSIC_PLAYLIST_KEY, JSON.stringify(ids)); } catch {}
 }
-function toggleMusicPlaylist(id, opts = {}) {
+function toggleMusicPlaylist(id) {
   const list = readMusicPlaylist();
   const idx = list.indexOf(id);
   const wasInList = idx >= 0;
   if (wasInList) list.splice(idx, 1); else list.push(id);
   writeMusicPlaylist(list);
-  const isAdded = !wasInList;
-  if (opts.toast !== false) {
-    showToast(
-      isAdded ? "Playlistga qo'shildi" : "Playlistdan o'chirildi",
-      { icon: isAdded ? "🎵" : "✕", variant: isAdded ? "success" : "info" },
-    );
-  }
-  return isAdded;
+  return !wasInList;
 }
 
 const musicCarouselTrack = document.getElementById("musicCarouselTrack");
