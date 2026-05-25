@@ -5418,8 +5418,8 @@ async function loadMovies() {
   renderMovies();
 
   try {
+    // SW + CDN SWR ishlatadi — `no-store` ni olib tashladik, ETag/Cache-Control faollashadi.
     const response = await fetch(buildApiUrl("/api/movies"), {
-      cache: "no-store",
       headers: { Accept: "application/json" },
     });
     const payload = await response.json().catch(() => null);
@@ -5459,7 +5459,6 @@ async function silentReloadMovies() {
 
   try {
     const response = await fetch(buildApiUrl("/api/movies"), {
-      cache: "no-store",
       headers: { Accept: "application/json" },
     });
     const payload = await response.json().catch(() => null);
@@ -5545,7 +5544,6 @@ async function loadAppSettings() {
     const controller = new AbortController();
     timeoutId = window.setTimeout(() => controller.abort(), 3500);
     const response = await fetch(buildApiUrl("/api/settings"), {
-      cache: "no-store",
       headers: { Accept: "application/json" },
       signal: controller.signal,
     });

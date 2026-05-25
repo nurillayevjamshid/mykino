@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const {
   listDriveMovies,
   listDriveSeries,
@@ -32,7 +33,20 @@ function hasOwn(object, key) {
   return Object.prototype.hasOwnProperty.call(object || {}, key);
 }
 
-async function handleMoviesList(response) {
+function sendJsonWithEtag(request, response, payload) {
+  const body = JSON.stringify(payload);
+  const etag = `W/"${crypto.createHash("sha1").update(body).digest("base64")}"`;
+  const ifNoneMatch = String(request.headers?.["if-none-match"] || "").trim();
+  response.setHeader("ETag", etag);
+  if (ifNoneMatch && ifNoneMatch === etag) {
+    response.status(304).end();
+    return;
+  }
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.status(200).send(body);
+}
+
+async function handleMoviesList(request, response) {
   let movies = [];
   try {
     movies = await listDriveMovies();
@@ -47,12 +61,12 @@ async function handleMoviesList(response) {
       throw driveError;
     }
   }
-  response.status(200).json(movies);
+  sendJsonWithEtag(request, response, movies);
 }
 
-async function handleSeriesList(response) {
+async function handleSeriesList(request, response) {
   const series = await listDriveSeries();
-  response.status(200).json(series);
+  sendJsonWithEtag(request, response, series);
 }
 
 async function handleSeriesUpdate(request, response) {
@@ -108,15 +122,22 @@ module.exports = async function handler(request, response) {
     return;
   }
 
-  response.setHeader("Cache-Control", "no-store, max-age=0");
-
   const isSeries = String(request.query?._series || "") === "1"
     || /[?&]_series=1/.test(request.url || "");
+
+  if (request.method === "GET") {
+    // CDN'da 60s kesh, 5 daqiqa stale-while-revalidate.
+    // Brauzer/SW darrov tekshiradi (max-age=0), ammo CDN/Vercel javobni darrov beradi.
+    response.setHeader("Cache-Control", "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
+    response.setHeader("Vary", "Accept-Encoding");
+  } else {
+    response.setHeader("Cache-Control", "no-store, max-age=0");
+  }
 
   try {
     if (isSeries) {
       if (request.method === "GET") {
-        await handleSeriesList(response);
+        await handleSeriesList(request, response);
         return;
       }
       if (request.method === "PUT" || request.method === "POST") {
@@ -131,7 +152,7 @@ module.exports = async function handler(request, response) {
       response.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", error: "Faqat GET ishlaydi." });
       return;
     }
-    await handleMoviesList(response);
+    await handleMoviesList(request, response);
   } catch (error) {
     response.status(error.statusCode || 500).json({
       ok: false,
