@@ -7983,7 +7983,28 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 .hero__desc,
 .hero__info,
 #heroPlayLabel { display: none !important; }
-.hero__dots { display: none !important; }
+.hero__dots {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  z-index: 3;
+  pointer-events: none;
+}
+.hero__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  transition: width 0.25s ease, background 0.2s ease;
+}
+.hero__dot.is-active {
+  width: 18px;
+  background: #fff;
+  border-radius: 999px;
+}
 
 .hero__inner {
   position: absolute;
