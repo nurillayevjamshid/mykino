@@ -2012,18 +2012,66 @@ function renderFavoritesPageHeader() {
   return header;
 }
 
+function renderSkeletonHomeRows() {
+  // 3 ta soxta category row, har biri 6 ta skeleton card.
+  const ROWS = 3;
+  const CARDS = 6;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < ROWS; i += 1) {
+    const section = document.createElement("section");
+    section.className = "category-row category-row--skeleton";
+    section.setAttribute("aria-hidden", "true");
+    const cards = Array.from({ length: CARDS }, () => `
+      <div class="movie-card movie-card--skeleton" role="listitem">
+        <div class="movie-card__poster skeleton-shimmer"></div>
+        <div class="movie-card__title-line skeleton-shimmer"></div>
+      </div>
+    `).join("");
+    section.innerHTML = `
+      <header class="category-row__head">
+        <div class="skeleton-shimmer skeleton-title"></div>
+      </header>
+      <div class="category-row__list category-row__list--skeleton" role="list">${cards}</div>
+    `;
+    frag.append(section);
+  }
+  grid.append(frag);
+}
+
 function renderMovies() {
   const isHomeView = activeFilter === "all" && activeCategory === "all" && !query;
   const isCategoryPage = activeFilter === "all" && activeCategory !== "all" && !query;
   const isFavoritesPage = activeFilter === "favorites" && !query;
   grid.innerHTML = "";
   grid.classList.toggle("is-category-page", isCategoryPage || isFavoritesPage);
+  grid.classList.toggle("is-loading", movieLoadState === "loading");
 
   if (isHomeView && movieLoadState === "ready") {
     grid.classList.add("is-home");
     if (!seriesCatalogLoaded) loadSeriesCatalog();
     const rowCount = renderHomeRows();
     updateEmptyState(rowCount > 0 ? getViewerMovies() : []);
+  } else if (movieLoadState === "loading") {
+    // Skeleton: home/category/favorites — barchasi loading paytida shimmerlar.
+    grid.classList.toggle("is-home", isHomeView);
+    if (isHomeView) {
+      renderSkeletonHomeRows();
+    } else {
+      // Category yoki favorites loading paytida flat skeleton grid.
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < 9; i += 1) {
+        const card = document.createElement("div");
+        card.className = "movie-card movie-card--skeleton";
+        card.setAttribute("aria-hidden", "true");
+        card.innerHTML = `
+          <div class="movie-card__poster skeleton-shimmer"></div>
+          <div class="movie-card__title-line skeleton-shimmer"></div>
+        `;
+        frag.append(card);
+      }
+      grid.append(frag);
+    }
+    updateEmptyState([]);
   } else {
     grid.classList.remove("is-home");
     if (isCategoryPage && movieLoadState === "ready") {
