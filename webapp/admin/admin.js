@@ -539,6 +539,28 @@ function bindEvents() {
     if (group) group.style.display = e.target.checked ? 'block' : 'none';
   });
 
+  document.getElementById('posterRemoveBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    selectedPosterDataUrl = '';
+    const fileInput = document.getElementById('moviePosterFile');
+    const urlInput = document.getElementById('moviePosterUrl');
+    if (fileInput) fileInput.value = '';
+    if (urlInput) urlInput.value = '';
+    updatePosterPreview('');
+  });
+
+  document.getElementById('headerRemoveBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    selectedHeaderDataUrl = '';
+    const fileInput = document.getElementById('movieHeaderImageFile');
+    const urlInput = document.getElementById('movieHeaderImage');
+    if (fileInput) fileInput.value = '';
+    if (urlInput) urlInput.value = '';
+    updateHeaderPreview('');
+  });
+
   // Logout
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
     if (confirm('Tizimdan chiqishni xohlaysizmi?')) {
