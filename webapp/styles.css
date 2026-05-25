@@ -8810,6 +8810,57 @@ body.is-music .profile-history:not(.profile-history--music) { display: none !imp
 }
 body.ad-modal-open { overflow: hidden; }
 
+/* === Continue watching card === */
+.continue-card .poster {
+  position: relative;
+  overflow: hidden;
+}
+.continue-card__play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  opacity: 0.9;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.continue-card__play svg {
+  width: 20px;
+  height: 20px;
+  margin-left: 2px;
+}
+.continue-card__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+.continue-card__progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--c-accent, #e50914);
+  border-radius: 0 2px 2px 0;
+  transition: width 280ms ease;
+}
+.category-row--continue .category-row__title::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 0.85em;
+  color: var(--c-accent, #e50914);
+}
+
 /* === Resume prompt: watch button + "Boshidan" === */
 .watch-actions {
   display: flex;
