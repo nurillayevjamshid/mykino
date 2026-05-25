@@ -24,6 +24,33 @@ if (tg) {
   tg.disableVerticalSwipes?.();
 }
 
+// === Haptic feedback helper ===
+// Telegram WebApp HapticFeedback API'sini xavfsiz o'rab beradi.
+// Helper: haptic.tap() — yengil bosish, haptic.select() — tab/pill, haptic.success(), haptic.warn()
+const haptic = (() => {
+  const hf = tg?.HapticFeedback;
+  let lastFireAt = 0;
+  // Throttle — drag/swipe bo'lganda spam bo'lmasin.
+  const throttle = (fn) => (...args) => {
+    const now = Date.now();
+    if (now - lastFireAt < 40) return;
+    lastFireAt = now;
+    try { fn(...args); } catch (_) {}
+  };
+  if (!hf || typeof hf.impactOccurred !== "function") {
+    return { tap() {}, soft() {}, medium() {}, select() {}, success() {}, warn() {}, error() {} };
+  }
+  return {
+    tap: throttle(() => hf.impactOccurred("light")),
+    soft: throttle(() => hf.impactOccurred("soft")),
+    medium: throttle(() => hf.impactOccurred("medium")),
+    select: throttle(() => hf.selectionChanged?.()),
+    success: throttle(() => hf.notificationOccurred?.("success")),
+    warn: throttle(() => hf.notificationOccurred?.("warning")),
+    error: throttle(() => hf.notificationOccurred?.("error")),
+  };
+})();
+
 const savedTheme = localStorage.getItem("kino_theme") || "light";
 const themeToggle = document.querySelector(".theme-toggle");
 const WISHLIST_STORAGE_KEY = "kino_wishlist_v1";
@@ -5701,9 +5728,61 @@ initApp();
     ripple.className = 'nav-click-ripple';
     target.appendChild(ripple);
     setTimeout(() => ripple.remove(), 520);
+
+    // Haptic: bottom-bar — selection (tab almashish), boshqalar — tap.
+    if (target.classList.contains('bottom-bar__button')) {
+      haptic.select();
+    } else {
+      haptic.tap();
+    }
   }, { passive: true });
 })();
 // === /nav-icon-click-anim ===
+
+// === haptic for key interactions ===
+(function attachHapticHooks() {
+  // Movie kartochka bosilganda — yengil tap.
+  // Wishlist (yurak) — soft. Modal play tugmasi — medium.
+  // Lang pill — selection.
+  const TAP_SELECTORS = [
+    '.movie-card',
+    '.hero__play',
+    '.hero__info',
+    '.modal-close',
+    '.watch-button',
+    '.player-back-btn',
+    '.player-icon-btn',
+    '.player-skip-btn',
+    '.player-play-btn',
+    '.music-fullplayer__ctl',
+    '.music-fullplayer__close',
+    '.music-fullplayer__like',
+    '.mini-player__btn',
+    '.ad-modal__close',
+    '.ad-modal__cta',
+    '.profile-history__clear',
+    '.category-detail-view__back',
+    '[data-music-fp-toggle]',
+    '[data-music-fp-prev]',
+    '[data-music-fp-next]',
+    '[data-music-fp-shuffle]',
+    '[data-music-fp-repeat]',
+  ].join(', ');
+  const SELECT_SELECTORS = '.lang-pill, .theme-switch, .reaction-btn, [data-reaction]';
+  const MEDIUM_SELECTORS = '.watch-button, .hero__play, [data-music-fp-toggle], .player-play-btn';
+  const SOFT_SELECTORS = '.wishlist-btn, [data-wishlist-toggle], .music-fullplayer__like';
+
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target;
+    if (!t || t.nodeType !== 1) return;
+    // Modal/overlay sirtidagi bo'sh joy bosilganda haptic kerak emas.
+    if (t.matches?.(SOFT_SELECTORS) || t.closest?.(SOFT_SELECTORS)) { haptic.soft(); return; }
+    if (t.matches?.(MEDIUM_SELECTORS) || t.closest?.(MEDIUM_SELECTORS)) { haptic.medium(); return; }
+    if (t.matches?.(SELECT_SELECTORS) || t.closest?.(SELECT_SELECTORS)) { haptic.select(); return; }
+    if (t.matches?.(TAP_SELECTORS) || t.closest?.(TAP_SELECTORS)) { haptic.tap(); return; }
+  }, { passive: true, capture: true });
+})();
+// === /haptic for key interactions ===
 
 // === swipe-gestures (revertable: delete this block) ===
 // Idle vaqtda init — birinchi paint blok qilinmaydi.
