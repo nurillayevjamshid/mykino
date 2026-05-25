@@ -111,7 +111,11 @@ async function handleUpload(body) {
 module.exports = async function handler(request, response) {
   setCors(response);
   if (request.method === "OPTIONS") { response.status(204).end(); return; }
-  response.setHeader("Cache-Control", "no-store, max-age=0");
+  if (request.method === "GET") {
+    response.setHeader("Cache-Control", "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
+  } else {
+    response.setHeader("Cache-Control", "no-store, max-age=0");
+  }
 
   if (request.method === "GET") {
     try {

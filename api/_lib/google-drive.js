@@ -19,6 +19,42 @@ let accessTokenCache = {
   expiresAt: 0,
 };
 
+// Memory cache (per warm Lambda instance). 60s TTL — Drive API yukini kamaytiradi.
+const LIST_CACHE_TTL_MS = 60_000;
+const listCache = {
+  movies: { value: null, expiresAt: 0, inflight: null },
+  series: { value: null, expiresAt: 0, inflight: null },
+};
+
+function readListCache(key) {
+  const entry = listCache[key];
+  if (!entry) return null;
+  if (entry.value && Date.now() < entry.expiresAt) return entry.value;
+  return null;
+}
+
+function writeListCache(key, value) {
+  const entry = listCache[key];
+  if (!entry) return;
+  entry.value = value;
+  entry.expiresAt = Date.now() + LIST_CACHE_TTL_MS;
+}
+
+function invalidateListCache(key) {
+  const entry = key ? listCache[key] : null;
+  if (entry) {
+    entry.value = null;
+    entry.expiresAt = 0;
+    entry.inflight = null;
+    return;
+  }
+  for (const k of Object.keys(listCache)) {
+    listCache[k].value = null;
+    listCache[k].expiresAt = 0;
+    listCache[k].inflight = null;
+  }
+}
+
 function setCors(response) {
   response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
@@ -781,6 +817,8 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
     });
   }
 
+  invalidateListCache("movies");
+
   return {
     id: normalizedFileId,
     override: cleaned,
@@ -845,6 +883,7 @@ async function setMovieReaction(fileId, userId, reaction) {
   const nextEntry = { ...entry, reactions };
   metadata.movies[normalizedFileId] = nextEntry;
   await writeCatalogMetadata(metadata, metadataState.file);
+  invalidateListCache("movies");
 
   const counts = countReactions(reactions);
   return {
@@ -868,7 +907,7 @@ async function getMovieReaction(fileId, userId = "") {
   };
 }
 
-async function listDriveMovies() {
+async function listDriveMoviesUncached() {
   const { folderId } = getDriveConfig();
   try {
     await getDriveFileMetadata(folderId, "id,name,mimeType");
@@ -1027,7 +1066,7 @@ function toDriveSeries(folder, episodeFiles) {
   };
 }
 
-async function listDriveSeries() {
+async function listDriveSeriesUncached() {
   const seriesRoot = await findSeriesRootFolder();
   if (!seriesRoot) return [];
 
@@ -1059,6 +1098,40 @@ async function listDriveSeries() {
   );
 
   return series;
+}
+
+async function listDriveMovies() {
+  const cached = readListCache("movies");
+  if (cached) return cached;
+  const entry = listCache.movies;
+  if (entry.inflight) return entry.inflight;
+  entry.inflight = (async () => {
+    try {
+      const value = await listDriveMoviesUncached();
+      writeListCache("movies", value);
+      return value;
+    } finally {
+      entry.inflight = null;
+    }
+  })();
+  return entry.inflight;
+}
+
+async function listDriveSeries() {
+  const cached = readListCache("series");
+  if (cached) return cached;
+  const entry = listCache.series;
+  if (entry.inflight) return entry.inflight;
+  entry.inflight = (async () => {
+    try {
+      const value = await listDriveSeriesUncached();
+      writeListCache("series", value);
+      return value;
+    } finally {
+      entry.inflight = null;
+    }
+  })();
+  return entry.inflight;
 }
 
 async function updateCatalogSeriesMetadata(folderId, updates = {}) {
@@ -1130,6 +1203,7 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
   await updateDriveFileMetadata(normalizedId, {
     description: buildEmbeddedSeriesDescription(cleaned),
   });
+  invalidateListCache("series");
 
   return {
     id: normalizedId,
@@ -1175,6 +1249,7 @@ module.exports = {
   isServiceAccountStorageQuotaError,
   listDriveMovies,
   listDriveSeries,
+  invalidateListCache,
   updateCatalogSeriesMetadata,
   readCatalogMetadata,
   writeCatalogMetadata,
