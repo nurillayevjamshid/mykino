@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260525-continue01" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260525-random01" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -191,6 +191,16 @@
         </span>
       </div>
       <div class="topbar-controls topbar-controls--minimal">
+        <button class="icon-button icon-button--top topbar-random" type="button" data-action="random-movie" aria-label="Tasodifiy kino" title="Tasodifiy kino">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+            <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"></circle>
+            <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none"></circle>
+            <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"></circle>
+            <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none"></circle>
+            <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none"></circle>
+          </svg>
+        </button>
         <div class="topbar-search">
           <button class="icon-button icon-button--top topbar-search__trigger" type="button" data-action="search" aria-label="Qidirish">
             <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -753,7 +763,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260525-continue01"></script>
+  <script src="/static/app.js?v=20260525-random01"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
