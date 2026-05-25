@@ -4237,21 +4237,51 @@ let seriesCatalogLoaded = false;
 let seriesCatalogLoading = false;
 let activeSeries = null;
 
+const NATURAL_SORT_COLLATOR = new Intl.Collator("uz", { numeric: true, sensitivity: "base" });
+
+function stripFileExtension(value) {
+  return String(value || "").replace(/\.[a-z0-9]{2,5}$/i, "");
+}
+
+function normalizeNaturalSortText(value) {
+  return stripFileExtension(value)
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getEpisodeSortText(entry) {
+  return normalizeNaturalSortText(
+    entry?.title
+    || entry?.defaultTitle
+    || entry?.fileName
+    || "",
+  );
+}
+
+function compareSeriesEpisodes(left, right) {
+  const byTitle = NATURAL_SORT_COLLATOR.compare(getEpisodeSortText(left), getEpisodeSortText(right));
+  if (byTitle) return byTitle;
+  return String(left?.id || "").localeCompare(String(right?.id || ""));
+}
+
 function normalizeSeriesEntry(raw) {
   const episodes = Array.isArray(raw?.episodes) ? raw.episodes : [];
+  const orderedEpisodes = episodes.map((ep, i) => ({
+    id: String(ep?.id || ""),
+    title: String(ep?.title || `Qism ${i + 1}`).trim(),
+    defaultTitle: String(ep?.defaultTitle || ep?.title || `Qism ${i + 1}`).trim(),
+    fileName: String(ep?.fileName || "").trim(),
+    mimeType: String(ep?.mimeType || "").trim(),
+    cdnUrl: String(ep?.cdnUrl || "").trim(),
+  })).filter((ep) => ep.id).sort(compareSeriesEpisodes);
   return {
     id: String(raw?.id || raw?.folderId || ""),
     title: String(raw?.title || raw?.folderName || "Serial").trim(),
     description: String(raw?.description || "").trim(),
     posterImage: resolveAppUrl(firstUsableImage(raw?.posterImage, raw?.poster)),
-    episodeCount: Number(raw?.episodeCount || episodes.length || 0),
-    episodes: episodes.map((ep, i) => ({
-      id: String(ep?.id || ""),
-      title: String(ep?.title || `Qism ${i + 1}`).trim(),
-      fileName: String(ep?.fileName || "").trim(),
-      mimeType: String(ep?.mimeType || "").trim(),
-      cdnUrl: String(ep?.cdnUrl || "").trim(),
-    })).filter((ep) => ep.id),
+    episodeCount: Number(raw?.episodeCount || orderedEpisodes.length || 0),
+    episodes: orderedEpisodes,
   };
 }
 
@@ -4358,11 +4388,11 @@ function closeSeriesListView() {
 
 function openSeriesDetailView(series) {
   if (!seriesDetailView || !series) return;
-  activeSeries = series;
-  if (seriesDetailTitle) seriesDetailTitle.textContent = series.title;
+  const eps = Array.isArray(series.episodes) ? [...series.episodes].sort(compareSeriesEpisodes) : [];
+  activeSeries = { ...series, episodes: eps };
+  if (seriesDetailTitle) seriesDetailTitle.textContent = activeSeries.title;
   const poster = String(series.posterImage || "");
   const safeDetailPoster = poster.startsWith("blob:") ? "" : poster;
-  const eps = Array.isArray(series.episodes) ? series.episodes : [];
   const posterStyleAttr = safeDetailPoster ? `background-image:url('${safeDetailPoster.replaceAll("'", "%27")}')` : "";
   const epHtml = eps.length
     ? `<ol class="episode-list">${eps.map((ep, i) => `
