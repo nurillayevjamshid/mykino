@@ -13,6 +13,7 @@ const EMBEDDED_META_START = "[MY_KINO_META]";
 const EMBEDDED_META_END = "[/MY_KINO_META]";
 const DRIVE_DESCRIPTION_MAX_LENGTH = 28000;
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
+const NATURAL_SORT_COLLATOR = new Intl.Collator("uz", { numeric: true, sensitivity: "base" });
 
 let accessTokenCache = {
   value: "",
@@ -240,6 +241,29 @@ async function driveUploadJson(pathname, options = {}) {
 
 function stripExtension(name) {
   return String(name || "").replace(/\.[a-z0-9]{2,5}$/i, "");
+}
+
+function normalizeNaturalSortText(value) {
+  return stripExtension(value)
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getEpisodeSortText(entry) {
+  return normalizeNaturalSortText(
+    entry?.title
+    || entry?.defaultTitle
+    || entry?.fileName
+    || entry?.name
+    || "",
+  );
+}
+
+function compareSeriesEpisodes(left, right) {
+  const byTitle = NATURAL_SORT_COLLATOR.compare(getEpisodeSortText(left), getEpisodeSortText(right));
+  if (byTitle) return byTitle;
+  return String(left?.id || "").localeCompare(String(right?.id || ""));
 }
 
 function inferYear(name, fallbackDate = "") {
@@ -1012,7 +1036,8 @@ function toDriveSeries(folder, episodeFiles) {
   const title = trimString(override.title) || folderName || "Serial";
   const description = trimString(override.description);
   const posterImage = trimString(override.posterImage);
-  const episodes = episodeFiles.map((file, index) => {
+  const orderedEpisodeFiles = [...episodeFiles].sort(compareSeriesEpisodes);
+  const episodes = orderedEpisodeFiles.map((file, index) => {
     const defaultTitle = stripExtension(file.name).replace(/[._]+/g, " ").trim() || `Qism ${index + 1}`;
     const customTitle = trimString(episodeTitles[file.id]);
     return {
@@ -1028,7 +1053,7 @@ function toDriveSeries(folder, episodeFiles) {
       createdTime: file.createdTime || "",
       modifiedTime: file.modifiedTime || "",
     };
-  });
+  }).sort(compareSeriesEpisodes);
   return {
     id: folder.id,
     folderId: folder.id,

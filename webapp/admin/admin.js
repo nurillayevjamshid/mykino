@@ -38,6 +38,34 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+const NATURAL_SORT_COLLATOR = new Intl.Collator('uz', { numeric: true, sensitivity: 'base' });
+
+function stripFileExtension(value) {
+  return String(value || '').replace(/\.[a-z0-9]{2,5}$/i, '');
+}
+
+function normalizeNaturalSortText(value) {
+  return stripFileExtension(value)
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getEpisodeSortText(entry) {
+  return normalizeNaturalSortText(
+    entry?.title
+    || entry?.defaultTitle
+    || entry?.fileName
+    || ''
+  );
+}
+
+function compareSeriesEpisodes(left, right) {
+  const byTitle = NATURAL_SORT_COLLATOR.compare(getEpisodeSortText(left), getEpisodeSortText(right));
+  if (byTitle) return byTitle;
+  return String(left?.id || '').localeCompare(String(right?.id || ''));
+}
+
 function sameMovieId(left, right) {
   return String(left) === String(right);
 }
@@ -1078,6 +1106,12 @@ function switchMovieTab(name) {
 
 function normalizeSeriesFromApi(item) {
   const episodes = Array.isArray(item.episodes) ? item.episodes : [];
+  const orderedEpisodes = episodes.map((ep, i) => ({
+    id: String(ep.id || ''),
+    title: String(ep.title || `Qism ${i + 1}`),
+    defaultTitle: String(ep.defaultTitle || ep.title || `Qism ${i + 1}`),
+    fileName: String(ep.fileName || ''),
+  })).filter(ep => ep.id).sort(compareSeriesEpisodes);
   return {
     id: String(item.id || item.folderId || ''),
     name: item.title || item.folderName || 'Serial',
@@ -1085,12 +1119,8 @@ function normalizeSeriesFromApi(item) {
     description: item.description || '',
     poster: item.posterImage || item.poster || '',
     hasCustomPoster: Boolean(item.hasCustomPoster),
-    episodeCount: Number(item.episodeCount || episodes.length || 0),
-    episodes: episodes.map((ep, i) => ({
-      id: String(ep.id || ''),
-      title: String(ep.title || `Qism ${i + 1}`),
-      defaultTitle: String(ep.defaultTitle || ep.title || `Qism ${i + 1}`),
-    })).filter(ep => ep.id),
+    episodeCount: Number(item.episodeCount || orderedEpisodes.length || 0),
+    episodes: orderedEpisodes,
   };
 }
 
