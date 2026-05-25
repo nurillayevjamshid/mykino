@@ -652,6 +652,7 @@
     }).join("");
   }
 
+  let artistDetailOrigin = null;
   function openArtistDetail(name) {
     const panel = ensureArtistDetailDom();
     if (!panel) return;
@@ -662,8 +663,11 @@
     if (card) card.style.backgroundImage = img ? `url('${img.replaceAll("'", "%27")}')` : "none";
     renderArtistDetailTracks(name);
     const allArtists = document.getElementById("musicAllArtists");
-    if (allArtists) allArtists.hidden = true;
     const allSongs = document.getElementById("musicAllSongs");
+    if (allArtists && !allArtists.hidden) artistDetailOrigin = "all-artists";
+    else if (allSongs && !allSongs.hidden) artistDetailOrigin = "all-songs";
+    else artistDetailOrigin = null;
+    if (allArtists) allArtists.hidden = true;
     if (allSongs) allSongs.hidden = true;
     document.body.classList.remove("is-music-all-artists", "is-music-all-songs");
     document.body.classList.add("is-music-artist-detail");
@@ -676,6 +680,14 @@
     const panel = document.getElementById("musicArtistDetail");
     if (panel) panel.hidden = true;
     document.body.classList.remove("is-music-artist-detail");
+    if (artistDetailOrigin === "all-artists") {
+      const allArtists = document.getElementById("musicAllArtists");
+      if (allArtists) { allArtists.hidden = false; document.body.classList.add("is-music-all-artists"); }
+    } else if (artistDetailOrigin === "all-songs") {
+      const allSongs = document.getElementById("musicAllSongs");
+      if (allSongs) { allSongs.hidden = false; document.body.classList.add("is-music-all-songs"); }
+    }
+    artistDetailOrigin = null;
     tgBackUnregister("music-artist-detail");
   }
 
