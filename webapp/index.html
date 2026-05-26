@@ -453,6 +453,27 @@
         <p id="modalDescription" class="modal-description"></p>
       </div>
 
+      <section class="comments" id="commentsSection">
+        <header class="comments__head">
+          <h2 class="comments__title">Izohlar</h2>
+          <span class="comments__count" id="commentsCount">0</span>
+        </header>
+        <div class="comments__list" id="commentsList"></div>
+        <p class="comments__empty" id="commentsEmpty">Hali izohlar yo'q. Birinchi bo'lib yozing.</p>
+        <form class="comments__form" id="commentsForm" autocomplete="off">
+          <div class="comments__input-row">
+            <input class="comments__input" id="commentsInput" type="text" maxlength="500" placeholder="Izoh yozing..." aria-label="Izoh" />
+            <button class="comments__submit" type="submit" id="commentsSubmit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+          <p class="comments__hint" id="commentsHint" hidden></p>
+        </form>
+      </section>
+
     </div>
   </dialog>
 
