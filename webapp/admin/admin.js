@@ -1431,8 +1431,12 @@ function switchAdTab(name) {
   document.querySelectorAll('.ad-tab').forEach(tab => {
     const active = tab.dataset.adTab === name;
     tab.classList.toggle('is-active', active);
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
     tab.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
     tab.style.color = active ? 'var(--text,#111)' : 'var(--text-muted,#666)';
+  });
+  document.querySelectorAll('.ad-tab-item').forEach(item => {
+    item.classList.toggle('is-active', item.dataset.adTabItem === name);
   });
   document.querySelectorAll('.ad-tabpanel').forEach(panel => {
     panel.hidden = panel.dataset.adTabpanel !== name;
@@ -2768,6 +2772,8 @@ window.fetchCategories = fetchCategories;
 // ===== Reklama (modal mini-app oynasi) =====
 let adUploadedUrl = '';
 let adSettingsLoaded = false;
+let lastSavedAdEnabled = false;
+let lastSavedPreRollEnabled = false;
 
 function setAdPreview(url) {
   const img = document.getElementById('adImagePreview');
@@ -2804,6 +2810,7 @@ async function loadAdSettings() {
     const webEl = document.getElementById('adWebsiteUrl');
     const btnEl = document.getElementById('adButtonText');
     if (enabledEl) enabledEl.checked = Boolean(ad.enabled);
+    lastSavedAdEnabled = Boolean(ad.enabled);
     if (urlEl) urlEl.value = ad.imageUrl || '';
     // Backward-compat: eski `linkUrl` bo'lsa, uni mos maydonga joylashtir
     const legacyLink = ad.linkUrl || '';
@@ -2819,16 +2826,18 @@ async function loadAdSettings() {
   }
 }
 
-async function saveAdSettings() {
-  const enabled = document.getElementById('adEnabled')?.checked || false;
+async function saveAdSettings(options = {}) {
+  const enabledEl = document.getElementById('adEnabled');
+  const enabled = enabledEl?.checked || false;
   const imageUrl = (document.getElementById('adImageUrl')?.value || adUploadedUrl || '').trim();
   const telegramUrl = (document.getElementById('adTelegramUrl')?.value || '').trim();
   const websiteUrl = (document.getElementById('adWebsiteUrl')?.value || '').trim();
   const buttonText = (document.getElementById('adButtonText')?.value || '').trim();
 
   if (enabled && !imageUrl) {
-    setAdStatus("Reklama yoqilgan — rasm yuklash yoki URL kiritish kerak.", 'error');
-    return;
+    if (options.revertOnFail && enabledEl) enabledEl.checked = lastSavedAdEnabled;
+    setAdStatus("Mini app reklamani ON qilish uchun avval rasm yuklang yoki URL kiriting.", 'error');
+    return false;
   }
 
   setAdStatus('Saqlanmoqda...');
@@ -2848,6 +2857,8 @@ async function saveAdSettings() {
     const webEl = document.getElementById('adWebsiteUrl');
     if (tgEl) tgEl.value = savedAd.telegramUrl || '';
     if (webEl) webEl.value = savedAd.websiteUrl || '';
+    lastSavedAdEnabled = Boolean(savedAd.enabled);
+    if (enabledEl) enabledEl.checked = lastSavedAdEnabled;
 
     // Agar foydalanuvchi URL yozgan-u, server uni rad etgan bo'lsa — ogohlantiramiz
     if (telegramUrl && !savedAd.telegramUrl && !savedAd.websiteUrl) {
@@ -2855,10 +2866,13 @@ async function saveAdSettings() {
     } else if (websiteUrl && !savedAd.websiteUrl && !savedAd.telegramUrl) {
       setAdStatus("Website havola noto'g'ri — to'liq URL kiriting (masalan: https://example.com).", 'error');
     } else {
-      setAdStatus('Saqlandi.', 'ok');
+      setAdStatus(lastSavedAdEnabled ? "Saqlandi. Mini app reklama ON - mini appda ko'rinadi." : "Saqlandi. Mini app reklama OFF - mini appda ko'rinmaydi.", 'ok');
     }
+    return true;
   } catch (err) {
+    if (options.revertOnFail && enabledEl) enabledEl.checked = lastSavedAdEnabled;
     setAdStatus(`Xato: ${err.message}`, 'error');
+    return false;
   }
 }
 
@@ -2885,6 +2899,9 @@ document.getElementById('adImageUrl')?.addEventListener('input', (e) => {
 });
 
 document.getElementById('adSaveBtn')?.addEventListener('click', saveAdSettings);
+document.getElementById('adEnabled')?.addEventListener('change', () => {
+  saveAdSettings({ revertOnFail: true });
+});
 document.getElementById('adClearBtn')?.addEventListener('click', () => {
   if (!confirm('Reklama maydonlari tozalansinmi?')) return;
   const enabledEl = document.getElementById('adEnabled');
@@ -2935,7 +2952,8 @@ function setPreRollVideoPreview(url) {
   }
 }
 
-function selectPreRollDriveVideo(driveId) {
+function selectPreRollDriveVideo(driveId, options = {}) {
+  const autoEnable = options.autoEnable !== false;
   preRollAdSelectedId = String(driveId || '');
   const hiddenId = document.getElementById('preRollAdVideoDriveId');
   const hiddenUrl = document.getElementById('preRollAdVideoUrl');
@@ -2950,7 +2968,7 @@ function selectPreRollDriveVideo(driveId) {
   setPreRollVideoPreview(preRollAdSelectedId ? buildPreRollPlayUrl(preRollAdSelectedId) : '');
   // Video tanlandi — avtomatik "yoqish" chekboksini ham yoqamiz
   const enabledEl = document.getElementById('preRollAdEnabled');
-  if (enabledEl && preRollAdSelectedId) enabledEl.checked = true;
+  if (enabledEl && preRollAdSelectedId && autoEnable) enabledEl.checked = true;
 }
 
 function formatBytes(bytes) {
@@ -2995,7 +3013,7 @@ function renderPreRollVideoList() {
     el.addEventListener('click', () => selectPreRollDriveVideo(el.dataset.id));
   });
   // Re-apply selection
-  if (preRollAdSelectedId) selectPreRollDriveVideo(preRollAdSelectedId);
+  if (preRollAdSelectedId) selectPreRollDriveVideo(preRollAdSelectedId, { autoEnable: false });
 }
 
 function escapeHtml(str) {
@@ -3029,6 +3047,7 @@ async function loadPreRollSettings() {
     const linkEl = document.getElementById('preRollAdLinkUrl');
     const skipEl = document.getElementById('preRollAdSkipAfter');
     if (enabledEl) enabledEl.checked = Boolean(pr.enabled);
+    lastSavedPreRollEnabled = Boolean(pr.enabled);
     if (videoEl) videoEl.value = pr.videoUrl || '';
     if (linkEl) linkEl.value = pr.linkUrl || '';
     if (skipEl) skipEl.value = Number.isFinite(Number(pr.skipAfter)) ? Number(pr.skipAfter) : 5;
@@ -3046,16 +3065,18 @@ async function loadPreRollSettings() {
   }
 }
 
-async function savePreRollSettings() {
+async function savePreRollSettings(options = {}) {
   const videoDriveId = (document.getElementById('preRollAdVideoDriveId')?.value || preRollAdSelectedId || '').trim();
   const linkUrl = (document.getElementById('preRollAdLinkUrl')?.value || '').trim();
   const skipAfter = Math.max(0, Math.min(60, parseInt(document.getElementById('preRollAdSkipAfter')?.value || '5', 10) || 0));
-  // Video tanlangan bo'lsa avtomatik yoqilgan deb saqlaymiz.
-  const enabled = Boolean(videoDriveId);
-
-  // UI sinxronlash
   const enabledEl = document.getElementById('preRollAdEnabled');
-  if (enabledEl) enabledEl.checked = enabled;
+  const enabled = Boolean(enabledEl?.checked);
+
+  if (enabled && !videoDriveId) {
+    if (options.revertOnFail && enabledEl) enabledEl.checked = lastSavedPreRollEnabled;
+    setPreRollStatus("Pre-roll reklamani ON qilish uchun avval Drive'dan video tanlang.", 'error');
+    return false;
+  }
 
   setPreRollStatus('Saqlanmoqda...');
   try {
@@ -3066,22 +3087,31 @@ async function savePreRollSettings() {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    if (enabled) {
-      setPreRollStatus("Saqlandi ✓ Pre-roll reklama YOQILGAN — mini app'da kinoga play bosilsa chiqadi.", 'ok');
+    const savedPreRoll = (json && json.preRollAd) || {};
+    lastSavedPreRollEnabled = Boolean(savedPreRoll.enabled);
+    if (enabledEl) enabledEl.checked = lastSavedPreRollEnabled;
+    if (lastSavedPreRollEnabled) {
+      setPreRollStatus("Saqlandi. Pre-roll reklama ON - mini app'da kinoga play bosilsa chiqadi.", 'ok');
     } else {
-      setPreRollStatus("Saqlandi. Pre-roll reklama o'chirilgan (video tanlanmagan).", 'ok');
+      setPreRollStatus("Saqlandi. Pre-roll reklama OFF - mini appda ko'rinmaydi.", 'ok');
     }
+    return true;
   } catch (err) {
+    if (options.revertOnFail && enabledEl) enabledEl.checked = lastSavedPreRollEnabled;
     setPreRollStatus(`Xato: ${err.message}`, 'error');
+    return false;
   }
 }
 
 document.getElementById('preRollAdSaveBtn')?.addEventListener('click', savePreRollSettings);
+document.getElementById('preRollAdEnabled')?.addEventListener('change', () => {
+  savePreRollSettings({ revertOnFail: true });
+});
 document.getElementById('preRollAdClearBtn')?.addEventListener('click', () => {
   if (!confirm('Pre-roll reklama tanlovi tozalansinmi?')) return;
   const enabledEl = document.getElementById('preRollAdEnabled');
   if (enabledEl) enabledEl.checked = false;
-  selectPreRollDriveVideo('');
+  selectPreRollDriveVideo('', { autoEnable: false });
   const l = document.getElementById('preRollAdLinkUrl'); if (l) l.value = '';
   const s = document.getElementById('preRollAdSkipAfter'); if (s) s.value = '5';
   setPreRollStatus('');
