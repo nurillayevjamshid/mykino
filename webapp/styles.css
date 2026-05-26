@@ -123,6 +123,11 @@
 
 * {
   box-sizing: border-box;
+  font-style: normal;
+}
+
+*::placeholder {
+  font-style: normal;
 }
 
 html,
