@@ -2388,14 +2388,65 @@ async function refreshReactionCounts(movie) {
 }
 
 // ===== Comments (per-movie) =====
-const commentsSection = document.querySelector("#commentsSection");
 const commentsList = document.querySelector("#commentsList");
 const commentsEmpty = document.querySelector("#commentsEmpty");
 const commentsCountEl = document.querySelector("#commentsCount");
+const commentsTriggerCountEl = document.querySelector("#commentsTriggerCount");
 const commentsForm = document.querySelector("#commentsForm");
 const commentsInput = document.querySelector("#commentsInput");
 const commentsSubmit = document.querySelector("#commentsSubmit");
 const commentsHint = document.querySelector("#commentsHint");
+const commentsTrigger = document.querySelector("#commentsTrigger");
+const commentsSheet = document.querySelector("#commentsSheet");
+const commentsSheetPanel = document.querySelector("#commentsSheetPanel");
+
+let commentsLoaded = false;
+
+function openCommentsSheet() {
+  if (!commentsSheet) return;
+  commentsSheet.hidden = false;
+  commentsSheet.setAttribute("aria-hidden", "false");
+  // RAF: hidden=false dan keyin transition ishlashi uchun
+  requestAnimationFrame(() => {
+    commentsSheet.classList.add("is-open");
+  });
+  try { document.body.classList.add("has-sheet-open"); } catch {}
+}
+
+function closeCommentsSheet() {
+  if (!commentsSheet) return;
+  commentsSheet.classList.remove("is-open");
+  commentsSheet.setAttribute("aria-hidden", "true");
+  try { document.body.classList.remove("has-sheet-open"); } catch {}
+  const onEnd = () => {
+    commentsSheet.hidden = true;
+    commentsSheetPanel?.removeEventListener("transitionend", onEnd);
+  };
+  commentsSheetPanel?.addEventListener("transitionend", onEnd);
+  // fallback
+  setTimeout(() => { if (!commentsSheet.classList.contains("is-open")) commentsSheet.hidden = true; }, 360);
+}
+
+commentsTrigger?.addEventListener("click", () => {
+  openCommentsSheet();
+  if (commentsInput) {
+    // klaviatura chiqsin
+    setTimeout(() => { try { commentsInput.focus({ preventScroll: true }); } catch {} }, 320);
+  }
+});
+
+commentsSheet?.addEventListener("click", (event) => {
+  const t = event.target;
+  if (t && t.closest && t.closest("[data-close-sheet]")) {
+    closeCommentsSheet();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && commentsSheet && !commentsSheet.hidden) {
+    closeCommentsSheet();
+  }
+});
 
 function formatRelativeTime(iso) {
   const ts = Date.parse(iso || "");
@@ -2452,19 +2503,25 @@ function renderComments(comments) {
   if (!commentsList) return;
   const arr = Array.isArray(comments) ? comments : [];
   commentsList.innerHTML = arr.map(renderCommentItem).join("");
-  if (commentsCountEl) commentsCountEl.textContent = String(arr.length);
-  if (commentsEmpty) commentsEmpty.hidden = arr.length > 0;
+  const countStr = String(arr.length);
+  if (commentsCountEl) commentsCountEl.textContent = countStr;
+  if (commentsTriggerCountEl) commentsTriggerCountEl.textContent = countStr;
+  if (commentsEmpty) commentsEmpty.hidden = !(commentsLoaded && arr.length === 0);
 }
 
 async function loadComments(movie) {
-  if (!commentsSection || !movie) return;
+  if (!movie) return;
+  commentsLoaded = false;
   renderComments([]);
   setCommentsHint("");
   try {
     const res = await fetch(`/api/movie-reaction?action=comments&id=${encodeURIComponent(movie.id)}`);
     const data = await res.json().catch(() => null);
     if (data && data.ok && Array.isArray(data.comments)) {
-      if (activeMovie && activeMovie.id === movie.id) renderComments(data.comments);
+      if (activeMovie && activeMovie.id === movie.id) {
+        commentsLoaded = true;
+        renderComments(data.comments);
+      }
     }
   } catch {}
 }
@@ -2494,6 +2551,30 @@ async function submitComment(movie, text) {
     || "Foydalanuvchi";
   const userPhotoUrl = user?.photo_url || (user?.id ? `${runtimeApiBase}/api/user-photo?userId=${encodeURIComponent(user.id)}` : "");
   if (commentsSubmit) commentsSubmit.disabled = true;
+
+  // Optimistic UI: izohni darrov ro'yxat boshiga qo'sh
+  const optimistic = {
+    id: `tmp-${Date.now()}`,
+    userId,
+    userName: displayName,
+    userPhotoUrl,
+    text,
+    createdAt: new Date().toISOString(),
+    _pending: true,
+  };
+  const optimisticEl = document.createElement("div");
+  optimisticEl.innerHTML = renderCommentItem(optimistic).trim();
+  const optimisticNode = optimisticEl.firstChild;
+  if (optimisticNode && commentsList) {
+    optimisticNode.classList?.add("comment--pending");
+    commentsList.prepend(optimisticNode);
+    if (commentsEmpty) commentsEmpty.hidden = true;
+    const cur = Number(commentsCountEl?.textContent || "0") || 0;
+    if (commentsCountEl) commentsCountEl.textContent = String(cur + 1);
+    if (commentsTriggerCountEl) commentsTriggerCountEl.textContent = String(cur + 1);
+  }
+  if (commentsInput) commentsInput.value = "";
+
   try {
     const res = await fetch("/api/movie-reaction?action=comment", {
       method: "POST",
@@ -2508,13 +2589,20 @@ async function submitComment(movie, text) {
     });
     const data = await res.json().catch(() => null);
     if (!data || data.ok === false) {
+      // Optimistic itemni olib tashla
+      optimisticNode?.remove();
+      const cur = Number(commentsCountEl?.textContent || "1") || 1;
+      if (commentsCountEl) commentsCountEl.textContent = String(Math.max(0, cur - 1));
+      if (commentsTriggerCountEl) commentsTriggerCountEl.textContent = String(Math.max(0, cur - 1));
+      if (commentsInput) commentsInput.value = text; // matnni qaytar
       setCommentsHint(data?.error || "Izoh saqlanmadi.", true);
       return;
     }
-    if (commentsInput) commentsInput.value = "";
     setCommentsHint("");
     await loadComments(movie);
   } catch {
+    optimisticNode?.remove();
+    if (commentsInput) commentsInput.value = text;
     setCommentsHint("Tarmoq xatoligi.", true);
   } finally {
     if (commentsSubmit) commentsSubmit.disabled = false;
@@ -4892,6 +4980,7 @@ dislikeButton?.addEventListener("click", () => {
 
 movieModal?.addEventListener("close", () => {
   stopMoviePreload();
+  closeCommentsSheet();
   document.body.classList.remove("is-modal-open");
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });

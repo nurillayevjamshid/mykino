@@ -448,18 +448,37 @@
           <span class="modal-description-toggle__label">Show More</span>
           <svg class="modal-description-toggle__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
+        <button class="comments-trigger" id="commentsTrigger" type="button" aria-haspopup="dialog" aria-controls="commentsSheet">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="comments-trigger__label">Izohlar</span>
+          <span class="comments-trigger__count" id="commentsTriggerCount">0</span>
+        </button>
       </div>
       <div class="modal-description-wrap" id="modalDescriptionWrap" hidden>
         <p id="modalDescription" class="modal-description"></p>
       </div>
 
-      <section class="comments" id="commentsSection">
-        <header class="comments__head">
-          <h2 class="comments__title">Izohlar</h2>
-          <span class="comments__count" id="commentsCount">0</span>
+    </div>
+
+    <div class="comments-sheet" id="commentsSheet" hidden aria-hidden="true" role="dialog" aria-label="Izohlar">
+      <div class="comments-sheet__backdrop" data-close-sheet></div>
+      <div class="comments-sheet__panel" id="commentsSheetPanel">
+        <div class="comments-sheet__grabber" data-close-sheet aria-hidden="true"></div>
+        <header class="comments-sheet__head">
+          <h2 class="comments-sheet__title">Izohlar <span class="comments__count" id="commentsCount">0</span></h2>
+          <button class="comments-sheet__close" type="button" data-close-sheet aria-label="Yopish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+          </button>
         </header>
-        <div class="comments__list" id="commentsList"></div>
-        <p class="comments__empty" id="commentsEmpty">Hali izohlar yo'q. Birinchi bo'lib yozing.</p>
+        <div class="comments-sheet__scroll">
+          <div class="comments__list" id="commentsList"></div>
+          <p class="comments__empty" id="commentsEmpty" hidden>Hali izohlar yo'q. Birinchi bo'lib yozing.</p>
+        </div>
         <form class="comments__form" id="commentsForm" autocomplete="off">
           <div class="comments__input-row">
             <input class="comments__input" id="commentsInput" type="text" maxlength="500" placeholder="Izoh yozing..." aria-label="Izoh" />
@@ -472,8 +491,7 @@
           </div>
           <p class="comments__hint" id="commentsHint" hidden></p>
         </form>
-      </section>
-
+      </div>
     </div>
   </dialog>
 
