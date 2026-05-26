@@ -2387,6 +2387,186 @@ async function refreshReactionCounts(movie) {
   } catch {}
 }
 
+// ===== Comments (per-movie) =====
+const commentsSection = document.querySelector("#commentsSection");
+const commentsList = document.querySelector("#commentsList");
+const commentsEmpty = document.querySelector("#commentsEmpty");
+const commentsCountEl = document.querySelector("#commentsCount");
+const commentsForm = document.querySelector("#commentsForm");
+const commentsInput = document.querySelector("#commentsInput");
+const commentsSubmit = document.querySelector("#commentsSubmit");
+const commentsHint = document.querySelector("#commentsHint");
+
+function formatRelativeTime(iso) {
+  const ts = Date.parse(iso || "");
+  if (!Number.isFinite(ts)) return "";
+  const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (diffSec < 60) return "hozir";
+  const min = Math.floor(diffSec / 60);
+  if (min < 60) return `${min} daqiqa oldin`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} soat oldin`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day} kun oldin`;
+  const mon = Math.floor(day / 30);
+  if (mon < 12) return `${mon} oy oldin`;
+  return `${Math.floor(mon / 12)} yil oldin`;
+}
+
+function isCommentAdmin() {
+  try { return Boolean(localStorage.getItem("adminPassword")); } catch { return false; }
+}
+
+function commentAvatarHtml(comment) {
+  const photo = String(comment.userPhotoUrl || "").trim();
+  if (photo) {
+    return `<span class="comment__avatar"><img src="${escapeHtml(photo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${escapeHtml((comment.userName || 'F').charAt(0).toUpperCase())}'}));this.parentElement && (this.parentElement.classList.add('comment__avatar'));" /></span>`;
+  }
+  const initial = (String(comment.userName || "F").trim().charAt(0) || "F").toUpperCase();
+  return `<span class="comment__avatar">${escapeHtml(initial)}</span>`;
+}
+
+function renderCommentItem(comment) {
+  const name = escapeHtml(String(comment.userName || "Foydalanuvchi"));
+  const time = escapeHtml(formatRelativeTime(comment.createdAt));
+  const text = escapeHtml(String(comment.text || ""));
+  const adminBtn = isCommentAdmin()
+    ? `<button class="comment__delete" type="button" data-comment-delete="${escapeHtml(comment.id)}" title="O'chirish" aria-label="O'chirish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg></button>`
+    : "";
+  return `
+    <article class="comment" data-comment-id="${escapeHtml(comment.id)}">
+      ${commentAvatarHtml(comment)}
+      <div class="comment__body">
+        <div class="comment__meta">
+          <span class="comment__name">${name}</span>
+          ${time ? `<span class="comment__time">${time}</span>` : ""}
+        </div>
+        <div class="comment__text">${text}</div>
+      </div>
+      ${adminBtn}
+    </article>
+  `;
+}
+
+function renderComments(comments) {
+  if (!commentsList) return;
+  const arr = Array.isArray(comments) ? comments : [];
+  commentsList.innerHTML = arr.map(renderCommentItem).join("");
+  if (commentsCountEl) commentsCountEl.textContent = String(arr.length);
+  if (commentsEmpty) commentsEmpty.hidden = arr.length > 0;
+}
+
+async function loadComments(movie) {
+  if (!commentsSection || !movie) return;
+  renderComments([]);
+  setCommentsHint("");
+  try {
+    const res = await fetch(`/api/movie-reaction?action=comments&id=${encodeURIComponent(movie.id)}`);
+    const data = await res.json().catch(() => null);
+    if (data && data.ok && Array.isArray(data.comments)) {
+      if (activeMovie && activeMovie.id === movie.id) renderComments(data.comments);
+    }
+  } catch {}
+}
+
+function setCommentsHint(text, isError = false) {
+  if (!commentsHint) return;
+  if (!text) {
+    commentsHint.textContent = "";
+    commentsHint.hidden = true;
+    commentsHint.classList.remove("is-error");
+    return;
+  }
+  commentsHint.textContent = text;
+  commentsHint.hidden = false;
+  commentsHint.classList.toggle("is-error", Boolean(isError));
+}
+
+async function submitComment(movie, text) {
+  const user = getTelegramUser();
+  const userId = user?.id ? String(user.id) : getReactionUserId();
+  if (!userId) {
+    setCommentsHint("Telegram orqali kirilmagan.", true);
+    return;
+  }
+  const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim()
+    || String(user?.username || "").trim()
+    || "Foydalanuvchi";
+  const userPhotoUrl = user?.photo_url || (user?.id ? `${runtimeApiBase}/api/user-photo?userId=${encodeURIComponent(user.id)}` : "");
+  if (commentsSubmit) commentsSubmit.disabled = true;
+  try {
+    const res = await fetch("/api/movie-reaction?action=comment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: movie.id,
+        userId,
+        userName: displayName,
+        userPhotoUrl,
+        text,
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!data || data.ok === false) {
+      setCommentsHint(data?.error || "Izoh saqlanmadi.", true);
+      return;
+    }
+    if (commentsInput) commentsInput.value = "";
+    setCommentsHint("");
+    await loadComments(movie);
+  } catch {
+    setCommentsHint("Tarmoq xatoligi.", true);
+  } finally {
+    if (commentsSubmit) commentsSubmit.disabled = false;
+  }
+}
+
+async function adminDeleteComment(movie, commentId) {
+  let password = "";
+  try { password = localStorage.getItem("adminPassword") || ""; } catch {}
+  if (!password) {
+    password = window.prompt("Admin parolini kiriting:") || "";
+    if (!password) return;
+    try { localStorage.setItem("adminPassword", password); } catch {}
+  }
+  if (!window.confirm("Izohni o'chirishni tasdiqlaysizmi?")) return;
+  try {
+    const res = await fetch("/api/movie-update?action=deletecomment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ movieId: movie.id, commentId, password }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.status === 401) {
+      try { localStorage.removeItem("adminPassword"); } catch {}
+      alert("Parol noto'g'ri.");
+      return;
+    }
+    if (!data || data.ok === false) {
+      alert(data?.error || "O'chirishda xatolik.");
+      return;
+    }
+    await loadComments(movie);
+  } catch {
+    alert("Tarmoq xatoligi.");
+  }
+}
+
+commentsForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!activeMovie || !commentsInput) return;
+  const text = String(commentsInput.value || "").trim();
+  if (!text) return;
+  submitComment(activeMovie, text);
+});
+
+commentsList?.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-comment-delete]");
+  if (!btn || !activeMovie) return;
+  const commentId = btn.getAttribute("data-comment-delete");
+  if (commentId) adminDeleteComment(activeMovie, commentId);
+});
+
 async function sendReaction(movie, reaction) {
   const userId = getReactionUserId();
   const reactions = readUserReactions();
@@ -2616,6 +2796,7 @@ function openMovie(movie) {
     history.pushState({ movieDetail: true }, "");
   }
   refreshReactionCounts(movie);
+  loadComments(movie);
   startMoviePreload(movie);
   tgBackRegister("movie-modal", () => { try { movieModal.close(); } catch (_) {} });
 }

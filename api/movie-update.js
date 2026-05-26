@@ -2,6 +2,7 @@ const {
   getDriveFileMetadata,
   setCors,
   updateCatalogMovieMetadata,
+  deleteMovieComment,
 } = require("./_lib/google-drive");
 
 async function readRequestBody(request) {
@@ -58,6 +59,26 @@ module.exports = async function handler(request, response) {
 
   try {
     const body = await readRequestBody(request);
+    const action = trimString(request.query?.action || body.action).toLowerCase();
+
+    if (action === "deletecomment") {
+      const password = trimString(body.password);
+      const expected = trimString(process.env.ADMIN_PASSWORD) || "admin123";
+      if (password !== expected) {
+        response.status(401).json({ ok: false, code: "UNAUTHORIZED", error: "Parol noto'g'ri." });
+        return;
+      }
+      const movieId = trimString(body.movieId || body.id);
+      const commentId = trimString(body.commentId);
+      if (!movieId || !commentId) {
+        response.status(400).json({ ok: false, code: "MISSING_FIELDS", error: "movieId va commentId kerak." });
+        return;
+      }
+      const data = await deleteMovieComment(movieId, commentId);
+      response.status(200).json({ ok: true, ...data });
+      return;
+    }
+
     const id = trimString(body.id || body.fileId || body.driveFileId);
 
     if (!id) {

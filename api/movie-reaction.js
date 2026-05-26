@@ -1,4 +1,10 @@
-const { getMovieReaction, setMovieReaction, setCors } = require("./_lib/google-drive");
+const {
+  getMovieReaction,
+  setMovieReaction,
+  addMovieComment,
+  listMovieComments,
+  setCors,
+} = require("./_lib/google-drive");
 
 async function readRequestBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
@@ -17,6 +23,10 @@ async function readRequestBody(request) {
   return raw ? JSON.parse(raw) : {};
 }
 
+function getAction(request, body) {
+  return String(request.query?.action || body?.action || "").trim().toLowerCase();
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
 
@@ -29,10 +39,16 @@ module.exports = async function handler(request, response) {
 
   try {
     if (request.method === "GET") {
+      const action = getAction(request, null);
       const id = String(request.query?.id || "").trim();
       const userId = String(request.query?.userId || "").trim();
       if (!id) {
         response.status(400).json({ ok: false, code: "MISSING_ID", error: "Kino ID si kerak." });
+        return;
+      }
+      if (action === "comments") {
+        const data = await listMovieComments(id);
+        response.status(200).json({ ok: true, ...data });
         return;
       }
       const data = await getMovieReaction(id, userId);
@@ -42,11 +58,32 @@ module.exports = async function handler(request, response) {
 
     if (request.method === "POST" || request.method === "PUT") {
       const body = await readRequestBody(request);
+      const action = getAction(request, body);
       const id = String(body.id || "").trim();
       const userId = String(body.userId || "").trim();
+      if (!id) {
+        response.status(400).json({ ok: false, code: "MISSING_ID", error: "Kino ID si kerak." });
+        return;
+      }
+
+      if (action === "comment") {
+        if (!userId) {
+          response.status(400).json({ ok: false, code: "MISSING_USER", error: "Foydalanuvchi ID si kerak." });
+          return;
+        }
+        const data = await addMovieComment(id, {
+          userId,
+          userName: body.userName,
+          userPhotoUrl: body.userPhotoUrl,
+          text: body.text,
+        });
+        response.status(200).json({ ok: true, ...data });
+        return;
+      }
+
       const reaction = body.reaction === "like" || body.reaction === "dislike" ? body.reaction : null;
-      if (!id || !userId) {
-        response.status(400).json({ ok: false, code: "MISSING_FIELDS", error: "id va userId kerak." });
+      if (!userId) {
+        response.status(400).json({ ok: false, code: "MISSING_FIELDS", error: "userId kerak." });
         return;
       }
       const data = await setMovieReaction(id, userId, reaction);
@@ -59,7 +96,7 @@ module.exports = async function handler(request, response) {
     response.status(error.statusCode || 500).json({
       ok: false,
       code: error.code || "REACTION_FAILED",
-      error: error.message || "Reaction saqlanmadi.",
+      error: error.message || "Saqlanmadi.",
     });
   }
 };
