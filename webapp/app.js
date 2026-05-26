@@ -3985,6 +3985,11 @@ async function openVideoPlayer(movie, options = {}) {
   setupPipButton();
   setControlsVisible(true);
 
+  if (activePreRollAd && !options?.skipPreRoll) {
+    await playPreRollAd();
+    if (requestId !== activeVideoRequest) return;
+  }
+
   const youtubeUrl = getYouTubeVideoUrl(movie);
   if (youtubeUrl) {
     renderVideoSource(youtubeUrl, movie, { requestId });
@@ -4035,6 +4040,7 @@ async function openVideoPlayer(movie, options = {}) {
 
 function closeVideoPlayer() {
   activeVideoRequest += 1;
+  stopPreRollAd();
   clearVideoLoadTimer();
   if (controlsHideTimer) { window.clearTimeout(controlsHideTimer); controlsHideTimer = null; }
   if (toastHideTimer) { window.clearTimeout(toastHideTimer); toastHideTimer = null; }
@@ -5270,6 +5276,7 @@ function waitForImageReady(image, timeoutMs = 3000) {
 }
 
 let pendingAd = null;
+let activePreRollAd = null;
 
 async function loadAppSettings() {
   let timeoutId = 0;
@@ -5288,12 +5295,139 @@ async function loadAppSettings() {
       } else {
         pendingAd = null;
       }
+      if (data && data.preRollAd && data.preRollAd.enabled && data.preRollAd.videoUrl) {
+        activePreRollAd = data.preRollAd;
+      } else {
+        activePreRollAd = null;
+      }
     }
   } catch (e) {
     // Ignore error, use default
   } finally {
     window.clearTimeout(timeoutId);
   }
+}
+
+let preRollCleanup = null;
+
+function stopPreRollAd() {
+  if (typeof preRollCleanup === "function") {
+    const fn = preRollCleanup;
+    preRollCleanup = null;
+    try { fn(); } catch (_) {}
+  }
+}
+
+function playPreRollAd() {
+  return new Promise((resolve) => {
+    const ad = activePreRollAd;
+    const layer = document.getElementById("preRollLayer");
+    const video = document.getElementById("preRollVideo");
+    const skipBtn = document.getElementById("preRollSkip");
+    const skipLabel = document.getElementById("preRollSkipLabel");
+    const skipIcon = skipBtn ? skipBtn.querySelector(".preroll__skip-icon") : null;
+    const clickLayer = document.getElementById("preRollClick");
+    if (!ad || !ad.videoUrl || !layer || !video || !skipBtn) { resolve(); return; }
+
+    stopPreRollAd();
+
+    let finished = false;
+    let timerId = 0;
+    let safetyId = 0;
+    const skipAfter = Math.max(0, Number(ad.skipAfter) || 0);
+    let remaining = skipAfter;
+
+    const cleanup = () => {
+      if (finished) return;
+      finished = true;
+      preRollCleanup = null;
+      if (timerId) { clearInterval(timerId); timerId = 0; }
+      if (safetyId) { clearTimeout(safetyId); safetyId = 0; }
+      try { video.pause(); } catch (_) {}
+      try { video.removeAttribute("src"); video.load(); } catch (_) {}
+      video.onended = null;
+      video.onerror = null;
+      video.oncanplay = null;
+      skipBtn.onclick = null;
+      skipBtn.classList.remove("is-ready");
+      layer.hidden = true;
+      layer.setAttribute("aria-hidden", "true");
+      videoPlayer.classList.remove("is-preroll");
+      if (clickLayer) clickLayer.onclick = null;
+      resolve();
+    };
+    preRollCleanup = cleanup;
+
+    const makeSkippable = () => {
+      skipBtn.classList.add("is-ready");
+      if (skipLabel) skipLabel.textContent = "O'tkazib yuborish";
+      if (skipIcon) skipIcon.hidden = false;
+      skipBtn.onclick = cleanup;
+    };
+
+    if (clickLayer) {
+      if (ad.linkUrl) {
+        clickLayer.href = ad.linkUrl;
+        clickLayer.hidden = false;
+        clickLayer.onclick = (e) => {
+          try {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
+              e.preventDefault();
+              window.Telegram.WebApp.openLink(ad.linkUrl);
+            }
+          } catch (_) {}
+        };
+      } else {
+        clickLayer.hidden = true;
+        clickLayer.removeAttribute("href");
+        clickLayer.onclick = null;
+      }
+    }
+
+    if (skipLabel) skipLabel.textContent = skipAfter > 0 ? String(skipAfter) : "O'tkazib yuborish";
+    if (skipIcon) skipIcon.hidden = skipAfter > 0;
+    if (skipAfter === 0) makeSkippable();
+
+    video.src = ad.videoUrl;
+    video.playsInline = true;
+    video.muted = false;
+    video.onended = cleanup;
+    video.onerror = cleanup;
+
+    layer.hidden = false;
+    layer.setAttribute("aria-hidden", "false");
+    videoPlayer.classList.add("is-preroll");
+
+    const tryPlay = () => {
+      try {
+        const p = video.play();
+        if (p && typeof p.catch === "function") {
+          p.catch(() => {
+            video.muted = true;
+            try { video.play().catch(cleanup); } catch (_) { cleanup(); }
+          });
+        }
+      } catch (_) { cleanup(); }
+    };
+    tryPlay();
+
+    if (skipAfter > 0) {
+      timerId = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(timerId);
+          timerId = 0;
+          makeSkippable();
+        } else if (skipLabel) {
+          skipLabel.textContent = String(remaining);
+        }
+      }, 1000);
+    }
+
+    safetyId = setTimeout(() => {
+      if (!finished && video.readyState < 2) cleanup();
+    }, 8000);
+  });
 }
 
 function showAdModal(ad) {
