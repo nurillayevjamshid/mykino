@@ -2784,11 +2784,16 @@ const SHARE_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
 
 function buildShareUrl(movie) {
   const code = String(movie?.code || movie?.id || "").trim();
-  const appLink = code ? `${SHARE_WEBAPP_URL}?movie=${encodeURIComponent(code)}` : SHARE_WEBAPP_URL;
+  const shareLink = code
+    ? `${SHARE_WEBAPP_URL}/s/${encodeURIComponent(code)}`
+    : SHARE_WEBAPP_URL;
   const title = String(movie?.title || "Kino").trim();
-  const codeText = code ? `\n\nKod: ${code}` : "";
-  const text = `🎬 ${title}${codeText}\n\nMY PLAYLIST mini-ilovasida tomosha qiling:`;
-  return `https://t.me/share/url?url=${encodeURIComponent(appLink)}&text=${encodeURIComponent(text)}`;
+  const genre = String(movie?.genre || "").trim();
+  const year = String(movie?.year || "").trim();
+  const metaParts = [year, genre].filter(Boolean).join(" • ");
+  const metaLine = metaParts ? `\n📅 ${metaParts}` : "";
+  const text = `🎬 ${title}${metaLine}\n\n🍿 MY PLAYLIST'da bepul tomosha qiling — bir bosish bilan ochiladi 👇`;
+  return `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(text)}`;
 }
 
 function shareActiveMovie() {

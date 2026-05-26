@@ -63,6 +63,8 @@
     { "src": "/api/movies", "dest": "/api/movies.js" },
     { "src": "/api/movie-update", "dest": "/api/movie-update.js" },
     { "src": "/api/movie-reaction", "dest": "/api/movie-reaction.js" },
+    { "src": "/s/([^/]+)", "dest": "/api/movies.js?_share=1&movie=$1" },
+    { "src": "/api/share", "dest": "/api/movies.js?_share=1" },
     { "src": "/api/series", "dest": "/api/movies.js?_series=1" },
     { "src": "/api/series-update", "dest": "/api/movies.js?_series=1" },
     { "src": "/api/watch-progress", "dest": "/api/users.js?_watch=1" },
