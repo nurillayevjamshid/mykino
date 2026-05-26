@@ -148,13 +148,33 @@ async function writeFolderSettings(nextSettings) {
 }
 
 function normalizeAdLinkUrl(value) {
-  const raw = trimString(value);
+  let raw = trimString(value);
   if (!raw) return "";
-  try {
-    const parsed = new URL(raw);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:" && parsed.protocol !== "tg:") {
+
+  // `@username` → Telegram havolasi
+  if (/^@[a-z0-9_]{3,}$/i.test(raw)) {
+    raw = `https://t.me/${raw.slice(1)}`;
+  }
+
+  // `tg://...` o'z holicha qabul qilinadi
+  if (/^tg:\/\//i.test(raw)) {
+    try {
+      return new URL(raw).href;
+    } catch {
       return "";
     }
+  }
+
+  // Protokolsiz yozilgan bo'lsa, https qo'shamiz (`t.me/...`, `example.com`)
+  if (!/^[a-z][a-z0-9+.\-]*:\/\//i.test(raw)) {
+    raw = `https://${raw.replace(/^\/+/, "")}`;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    // Bo'sh host (masalan `https:///foo`) qabul qilinmaydi
+    if (!parsed.hostname || !/\./.test(parsed.hostname)) return "";
     return parsed.href;
   } catch {
     return "";

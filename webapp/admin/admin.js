@@ -214,7 +214,86 @@ const menuToggle = document.getElementById('menuToggle');
 const sidebar = document.querySelector('.sidebar');
 const themeToggle = document.getElementById('themeToggle');
 
-// Theme management - Light mode as default
+// ===== Telegram WebApp integration =====
+const tg = (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+const isMobileViewport = () => window.innerWidth <= 768;
+
+function tgHaptic(kind = 'light') {
+  try {
+    if (!tg || !tg.HapticFeedback) return;
+    if (kind === 'success' || kind === 'error' || kind === 'warning') tg.HapticFeedback.notificationOccurred(kind);
+    else if (kind === 'selection') tg.HapticFeedback.selectionChanged();
+    else tg.HapticFeedback.impactOccurred(kind);
+  } catch (_) { /* ignore */ }
+}
+
+function applyTelegramTheme() {
+  if (!tg || !tg.themeParams) return;
+  const tp = tg.themeParams;
+  const root = document.documentElement;
+  const set = (cssVar, val) => { if (val) root.style.setProperty(cssVar, val); };
+  set('--page-bg', tp.secondary_bg_color || tp.bg_color);
+  set('--bg-dark', tp.secondary_bg_color || tp.bg_color);
+  set('--bg-card', tp.bg_color);
+  set('--bg-sidebar', tp.bg_color);
+  set('--bg-shell', tp.bg_color);
+  set('--bg-elevated', tp.secondary_bg_color || tp.bg_color);
+  set('--text', tp.text_color);
+  set('--text-secondary', tp.text_color);
+  set('--text-muted', tp.hint_color);
+  set('--primary', tp.button_color);
+  set('--primary-dark', tp.button_color);
+  if (tp.button_color) {
+    root.style.setProperty('--primary-soft', hexToRgba(tp.button_color, 0.10));
+    root.style.setProperty('--primary-bg', hexToRgba(tp.button_color, 0.15));
+  }
+  const scheme = tg.colorScheme || (tp.bg_color && isDarkColor(tp.bg_color) ? 'dark' : 'light');
+  root.setAttribute('data-theme', scheme);
+}
+
+function hexToRgba(hex, alpha) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex || ''));
+  if (!m) return `rgba(61, 74, 223, ${alpha})`;
+  return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
+}
+function isDarkColor(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex || ''));
+  if (!m) return false;
+  const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
+  return (r * 0.299 + g * 0.587 + b * 0.114) < 128;
+}
+
+// BackButton stack: latest registered handler runs on press
+const tgBackStack = [];
+function tgPushBack(handler) {
+  if (!tg || !tg.BackButton) { tgBackStack.push(handler); return; }
+  tgBackStack.push(handler);
+  tg.BackButton.show();
+  tg.BackButton.onClick(handleTgBack);
+}
+function tgPopBack() {
+  tgBackStack.pop();
+  if (!tg || !tg.BackButton) return;
+  if (tgBackStack.length === 0) {
+    try { tg.BackButton.offClick(handleTgBack); } catch (_) {}
+    tg.BackButton.hide();
+  }
+}
+function handleTgBack() {
+  const fn = tgBackStack[tgBackStack.length - 1];
+  if (typeof fn === 'function') { try { fn(); } catch (_) {} }
+}
+
+// MainButton helper for bottom-sheet form actions
+function tgShowMainButton(text, onClick) {
+  if (!tg || !tg.MainButton) return;
+  tg.MainButton.setText(text);
+  tg.MainButton.show();
+  tg.MainButton.onClick(onClick);
+  return () => { try { tg.MainButton.offClick(onClick); tg.MainButton.hide(); } catch (_) {} };
+}
+
+// Theme management - Light mode as default (used outside Telegram)
 const savedTheme = localStorage.getItem('admin-theme') || 'light';
 
 function applyTheme(theme) {
@@ -232,13 +311,132 @@ function toggleTheme() {
 
 // Initialize
 async function init() {
-  applyTheme(savedTheme);
+  // Telegram first — overrides local theme if inside Mini App
+  if (tg) {
+    try {
+      tg.ready();
+      tg.expand();
+      if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
+      applyTelegramTheme();
+      tg.onEvent('themeChanged', applyTelegramTheme);
+      tg.onEvent('viewportChanged', () => {
+        document.documentElement.style.setProperty('--tg-viewport-h', `${tg.viewportHeight}px`);
+      });
+    } catch (_) { applyTheme(savedTheme); }
+  } else {
+    applyTheme(savedTheme);
+  }
+
   await fetchMovies();
   bindEvents();
+  bindBottomNav();
+  bindMoreSheet();
+  bindBottomSheetDrag();
   createSidebarOverlay();
 
   const savedSection = localStorage.getItem('admin-section');
   if (savedSection && savedSection !== 'movies') switchSection(savedSection);
+}
+
+// ===== Bottom nav + "More" sheet wiring =====
+function bindBottomNav() {
+  document.querySelectorAll('.bottom-nav-item[data-section]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const name = item.dataset.section;
+      if (!name) return;
+      if (name === 'more') {
+        openMoreSheet();
+        return;
+      }
+      tgHaptic('selection');
+      switchSection(name);
+    });
+  });
+}
+
+function bindMoreSheet() {
+  const sheet = document.getElementById('moreSheet');
+  if (!sheet) return;
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) closeMoreSheet(); });
+  sheet.querySelectorAll('.more-sheet-item button[data-section]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.section;
+      tgHaptic('selection');
+      closeMoreSheet();
+      if (name) switchSection(name);
+    });
+  });
+}
+function openMoreSheet() {
+  const sheet = document.getElementById('moreSheet');
+  if (!sheet) return;
+  sheet.classList.add('active');
+  tgPushBack(closeMoreSheet);
+}
+function closeMoreSheet() {
+  const sheet = document.getElementById('moreSheet');
+  if (sheet && sheet.classList.contains('active')) {
+    sheet.classList.remove('active');
+    tgPopBack();
+  }
+}
+
+function syncBottomNavActive(name) {
+  const mainItems = ['movies', 'music', 'users', 'broadcast'];
+  document.querySelectorAll('.bottom-nav-item[data-section]').forEach(li => {
+    const key = li.dataset.section;
+    const isActive = key === name || (key === 'more' && !mainItems.includes(name));
+    li.classList.toggle('active', isActive);
+  });
+}
+
+// ===== Bottom-sheet swipe-down to close (modals) =====
+function bindBottomSheetDrag() {
+  document.querySelectorAll('.modal').forEach(modal => {
+    const content = modal.querySelector('.modal-content');
+    if (!content) return;
+    let startY = 0, deltaY = 0, dragging = false, startTime = 0;
+
+    const header = content.querySelector('.modal-header');
+    const target = header || content;
+
+    target.addEventListener('touchstart', (e) => {
+      if (!isMobileViewport()) return;
+      if (content.scrollTop > 0) return; // let content scroll
+      const t = e.touches[0];
+      startY = t.clientY;
+      deltaY = 0;
+      dragging = true;
+      startTime = Date.now();
+      content.style.transition = 'none';
+    }, { passive: true });
+
+    target.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      const t = e.touches[0];
+      deltaY = Math.max(0, t.clientY - startY);
+      content.style.transform = `translateY(${deltaY}px)`;
+    }, { passive: true });
+
+    target.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      content.style.transition = 'transform 0.25s ease';
+      const elapsed = Date.now() - startTime;
+      const fast = elapsed < 300 && deltaY > 60;
+      if (deltaY > 140 || fast) {
+        content.style.transform = 'translateY(100%)';
+        setTimeout(() => {
+          content.style.transform = '';
+          modal.classList.remove('active');
+          tgPopBack();
+        }, 220);
+      } else {
+        content.style.transform = '';
+      }
+    });
+  });
 }
 
 function switchSection(name) {
@@ -258,6 +456,7 @@ function switchSection(name) {
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.toggle('active', item.dataset.section === name);
   });
+  syncBottomNavActive(name);
   document.querySelectorAll('.content-section').forEach(section => {
     section.classList.toggle('active', section.id === targetId);
   });
@@ -272,6 +471,7 @@ function switchSection(name) {
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
 
   if (window.innerWidth <= 768) {
+    window.scrollTo({ top: 0, behavior: 'instant' });
     document.querySelector('.sidebar')?.classList.remove('open');
     document.getElementById('menuToggle')?.classList.remove('active');
     document.getElementById('sidebarOverlay')?.classList.remove('active');
@@ -850,6 +1050,8 @@ function openMovieModal(movie) {
   if (pushBtn) pushBtn.checked = true;
 
   modal.classList.add('active');
+  tgHaptic('light');
+  tgPushBack(closeMovieModal);
 }
 
 function updatePosterPreview(url) {
@@ -1011,7 +1213,11 @@ function hasRatingChanged(nextValue, currentValue) {
 
 // Close Movie Modal
 function closeMovieModal() {
-  document.getElementById('movieModal')?.classList.remove('active');
+  const modal = document.getElementById('movieModal');
+  if (modal && modal.classList.contains('active')) {
+    modal.classList.remove('active');
+    tgPopBack();
+  }
 }
 
 // Handle Movie Submit (edit only - movies originate from Google Drive)
@@ -2634,7 +2840,23 @@ async function saveAdSettings() {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    setAdStatus('Saqlandi.', 'ok');
+
+    // Server qaytargan normalize qilingan qiymatlarni qaytarib ko'rsatamiz —
+    // shunda foydalanuvchi qaysi URL haqiqatan saqlanganini darhol ko'radi
+    const savedAd = (json && json.ad) || {};
+    const tgEl = document.getElementById('adTelegramUrl');
+    const webEl = document.getElementById('adWebsiteUrl');
+    if (tgEl) tgEl.value = savedAd.telegramUrl || '';
+    if (webEl) webEl.value = savedAd.websiteUrl || '';
+
+    // Agar foydalanuvchi URL yozgan-u, server uni rad etgan bo'lsa — ogohlantiramiz
+    if (telegramUrl && !savedAd.telegramUrl && !savedAd.websiteUrl) {
+      setAdStatus("Telegram havola noto'g'ri — to'liq URL kiriting (masalan: https://t.me/kanal_nomi yoki @kanal_nomi).", 'error');
+    } else if (websiteUrl && !savedAd.websiteUrl && !savedAd.telegramUrl) {
+      setAdStatus("Website havola noto'g'ri — to'liq URL kiriting (masalan: https://example.com).", 'error');
+    } else {
+      setAdStatus('Saqlandi.', 'ok');
+    }
   } catch (err) {
     setAdStatus(`Xato: ${err.message}`, 'error');
   }
