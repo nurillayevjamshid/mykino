@@ -1217,12 +1217,16 @@ function switchMovieTab(name) {
 
 function normalizeSeriesFromApi(item) {
   const episodes = Array.isArray(item.episodes) ? item.episodes : [];
-  const orderedEpisodes = episodes.map((ep, i) => ({
-    id: String(ep.id || ''),
-    title: String(ep.title || `Qism ${i + 1}`),
-    defaultTitle: String(ep.defaultTitle || ep.title || `Qism ${i + 1}`),
-    fileName: String(ep.fileName || ''),
-  })).filter(ep => ep.id).sort(compareSeriesEpisodes);
+  const orderedEpisodes = episodes.map((ep, i) => {
+    const rawSeason = Number(ep.season);
+    return {
+      id: String(ep.id || ''),
+      title: String(ep.title || `Qism ${i + 1}`),
+      defaultTitle: String(ep.defaultTitle || ep.title || `Qism ${i + 1}`),
+      fileName: String(ep.fileName || ''),
+      season: Number.isFinite(rawSeason) && rawSeason > 0 ? rawSeason : 1,
+    };
+  }).filter(ep => ep.id).sort(compareSeriesEpisodes);
   return {
     id: String(item.id || item.folderId || ''),
     name: item.title || item.folderName || 'Serial',
@@ -1347,6 +1351,9 @@ function renderSeriesEpisodes(series) {
     <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border,#e3e6ec);border-radius:10px;background:var(--surface-bg,#fff);">
       <span style="flex:0 0 28px;width:28px;height:28px;border-radius:999px;background:var(--primary,#3b82f6);color:#fff;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;">${i + 1}</span>
       <input type="text" class="form-input series-episode-input" data-ep-id="${escapeHtml(ep.id)}" data-default-title="${escapeHtml(ep.defaultTitle || '')}" value="${escapeHtml(ep.title || '')}" style="flex:1;margin:0;" placeholder="Qism nomi">
+      <label style="display:inline-flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--text-muted,#888);white-space:nowrap;">Fasl
+        <input type="number" min="1" max="99" class="form-input series-episode-season" data-ep-id="${escapeHtml(ep.id)}" data-current-season="${escapeHtml(String(ep.season || 1))}" value="${escapeHtml(String(ep.season || 1))}" style="width:64px;margin:0;padding:6px 8px;text-align:center;">
+      </label>
     </div>
   `).join('');
 }
@@ -1443,6 +1450,21 @@ async function handleSeriesSubmit() {
     episodeUpdates[epId] = (value && value !== defaultTitle) ? value : '';
   });
   if (episodesChanged) payload.episodes = episodeUpdates;
+
+  // Fasl raqamlari
+  const seasonUpdates = {};
+  let seasonsChanged = false;
+  document.querySelectorAll('#seriesEpisodesList .series-episode-season').forEach(input => {
+    const epId = input.dataset.epId;
+    if (!epId) return;
+    const raw = Number(input.value);
+    const season = Number.isFinite(raw) && raw > 0 ? Math.trunc(raw) : 1;
+    const currentEp = currentEpisodes.find(e => String(e.id) === String(epId));
+    const currentSeason = currentEp && Number(currentEp.season) > 0 ? Number(currentEp.season) : 1;
+    if (season !== currentSeason) seasonsChanged = true;
+    seasonUpdates[epId] = String(season);
+  });
+  if (seasonsChanged) payload.episodeSeasons = seasonUpdates;
 
   if (Object.keys(payload).length === 1) {
     showNotification('O\'zgarish yo\'q.');

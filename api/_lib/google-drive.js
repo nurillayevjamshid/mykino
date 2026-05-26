@@ -1025,6 +1025,8 @@ function buildEmbeddedSeriesDescription(override) {
   if (Object.keys(episodes).length) clean.episodes = episodes;
   const episodeCdn = normalizeEpisodeOverrides(override.episodeCdn);
   if (Object.keys(episodeCdn).length) clean.episodeCdn = episodeCdn;
+  const episodeSeasons = normalizeEpisodeOverrides(override.episodeSeasons);
+  if (Object.keys(episodeSeasons).length) clean.episodeSeasons = episodeSeasons;
   return [EMBEDDED_META_START, JSON.stringify(clean), EMBEDDED_META_END].join("\n");
 }
 
@@ -1033,6 +1035,7 @@ function toDriveSeries(folder, episodeFiles) {
   const override = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
   const episodeTitles = normalizeEpisodeOverrides(override.episodes);
   const episodeCdn = normalizeEpisodeOverrides(override.episodeCdn);
+  const episodeSeasons = normalizeEpisodeOverrides(override.episodeSeasons);
   const folderName = trimString(folder.name);
   const title = trimString(override.title) || folderName || "Serial";
   const description = trimString(override.description);
@@ -1041,6 +1044,7 @@ function toDriveSeries(folder, episodeFiles) {
   const episodes = orderedEpisodeFiles.map((file, index) => {
     const defaultTitle = stripExtension(file.name).replace(/[._]+/g, " ").trim() || `Qism ${index + 1}`;
     const customTitle = trimString(episodeTitles[file.id]);
+    const rawSeason = Number(trimString(episodeSeasons[file.id]));
     return {
       id: file.id,
       title: customTitle || defaultTitle,
@@ -1050,6 +1054,7 @@ function toDriveSeries(folder, episodeFiles) {
       streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
       videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
       cdnUrl: trimString(episodeCdn[file.id]),
+      season: Number.isFinite(rawSeason) && rawSeason > 0 ? rawSeason : 1,
       size: Number(file.size || 0) || 0,
       createdTime: file.createdTime || "",
       modifiedTime: file.modifiedTime || "",
@@ -1183,6 +1188,18 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
     }
     next.episodes = nextEpisodes;
   }
+  if (updates.episodeSeasons && typeof updates.episodeSeasons === "object" && !Array.isArray(updates.episodeSeasons)) {
+    const currentSeasons = current.episodeSeasons && typeof current.episodeSeasons === "object" ? current.episodeSeasons : {};
+    const nextSeasons = { ...currentSeasons };
+    for (const [epId, season] of Object.entries(updates.episodeSeasons)) {
+      const key = trimString(epId);
+      if (!key) continue;
+      const num = Number(season);
+      if (Number.isFinite(num) && num > 0) nextSeasons[key] = String(Math.trunc(num));
+      else delete nextSeasons[key];
+    }
+    next.episodeSeasons = nextSeasons;
+  }
   if (updates.episodeCdn && typeof updates.episodeCdn === "object" && !Array.isArray(updates.episodeCdn)) {
     const currentCdn = current.episodeCdn && typeof current.episodeCdn === "object" ? current.episodeCdn : {};
     const nextCdn = { ...currentCdn };
@@ -1205,6 +1222,8 @@ async function updateCatalogSeriesMetadata(folderId, updates = {}) {
   if (Object.keys(cleanedEpisodes).length) cleaned.episodes = cleanedEpisodes;
   const cleanedCdn = normalizeEpisodeOverrides(next.episodeCdn);
   if (Object.keys(cleanedCdn).length) cleaned.episodeCdn = cleanedCdn;
+  const cleanedSeasons = normalizeEpisodeOverrides(next.episodeSeasons);
+  if (Object.keys(cleanedSeasons).length) cleaned.episodeSeasons = cleanedSeasons;
 
   await updateDriveFileMetadata(normalizedId, {
     description: buildEmbeddedSeriesDescription(cleaned),

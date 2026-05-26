@@ -8353,6 +8353,35 @@ body.is-series-detail .search-panel { display: none !important; }
   color: var(--muted, rgba(236, 239, 247, 0.72));
   margin: 0;
 }
+.season-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 14px 0 12px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.season-tabs::-webkit-scrollbar { display: none; }
+.season-tab {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line, rgba(255, 255, 255, 0.18));
+  background: var(--glass, rgba(255, 255, 255, 0.06));
+  color: var(--muted, rgba(236, 239, 247, 0.72));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.season-tab.is-active {
+  background: var(--gold, #ffc73a);
+  color: #1a1a1a;
+  border-color: transparent;
+}
+.season-panel { margin: 0; }
+.season-panel[hidden] { display: none; }
 .episode-list {
   list-style: none;
   margin: 0;
