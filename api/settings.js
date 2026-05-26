@@ -160,12 +160,44 @@ function normalizeAdLinkUrl(value) {
   }
 }
 
+function isTelegramUrl(value) {
+  const raw = trimString(value);
+  if (!raw) return false;
+  if (/^tg:\/\//i.test(raw)) return true;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+    return /^(?:[a-z0-9-]+\.)*(?:t|telegram)\.me$/i.test(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function normalizeAdTelegramUrl(value) {
+  const raw = normalizeAdLinkUrl(value);
+  if (!raw) return "";
+  return isTelegramUrl(raw) ? raw : "";
+}
+
+function normalizeAdWebsiteUrl(value) {
+  const raw = normalizeAdLinkUrl(value);
+  if (!raw) return "";
+  return isTelegramUrl(raw) ? "" : raw;
+}
+
 function normalizeAd(raw) {
   const source = raw && typeof raw === "object" ? raw : {};
+  // Backward-compat: agar yangi maydonlar bo'sh bo'lsa, eski `linkUrl`dan ajratib chiqar
+  const legacy = normalizeAdLinkUrl(source.linkUrl);
+  const telegramUrl = normalizeAdTelegramUrl(source.telegramUrl) || (legacy && isTelegramUrl(legacy) ? legacy : "");
+  const websiteUrl = normalizeAdWebsiteUrl(source.websiteUrl) || (legacy && !isTelegramUrl(legacy) ? legacy : "");
   return {
     enabled: Boolean(source.enabled),
     imageUrl: readStoredPublicImageUrl(source.imageUrl),
-    linkUrl: normalizeAdLinkUrl(source.linkUrl),
+    telegramUrl,
+    websiteUrl,
+    // linkUrl — frontend qulayligi uchun (eski kod ushlasin): TG bo'lsa TG, aks holda website
+    linkUrl: telegramUrl || websiteUrl,
     buttonText: trimString(source.buttonText).slice(0, 40),
   };
 }
@@ -249,10 +281,14 @@ module.exports = async function handler(request, response) {
 
       if (hasOwn(body, "ad")) {
         const incomingAd = body.ad && typeof body.ad === "object" ? body.ad : {};
+        const telegramUrl = normalizeAdTelegramUrl(incomingAd.telegramUrl || "");
+        const websiteUrl = normalizeAdWebsiteUrl(incomingAd.websiteUrl || "");
         nextSettings.ad = {
           enabled: Boolean(incomingAd.enabled),
           imageUrl: incomingAd.imageUrl ? normalizePublicImageUrl(incomingAd.imageUrl) : "",
-          linkUrl: normalizeAdLinkUrl(incomingAd.linkUrl || ""),
+          telegramUrl,
+          websiteUrl,
+          linkUrl: telegramUrl || websiteUrl,
           buttonText: trimString(incomingAd.buttonText).slice(0, 40),
         };
       }

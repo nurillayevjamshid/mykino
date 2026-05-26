@@ -5437,21 +5437,28 @@ function showAdModal(ad) {
   const cta = document.getElementById("adModalCta");
   if (!modal || !img || !ad || !ad.imageUrl) return;
 
+  // TG link ustun: agar telegramUrl bo'lsa, uni ishlat (TG ichida ochiladi).
+  // Aks holda websiteUrl yoki eski `linkUrl`.
+  const tgUrl = String(ad.telegramUrl || "").trim();
+  const webUrl = String(ad.websiteUrl || "").trim();
+  const targetUrl = tgUrl || webUrl || String(ad.linkUrl || "").trim();
+  const isTgTarget = Boolean(tgUrl) || /^(https?:\/\/(t|telegram)\.me\/|tg:\/\/)/i.test(targetUrl);
+
   img.src = ad.imageUrl;
   img.alt = ad.buttonText || "Reklama";
 
-  if (ad.linkUrl) {
-    link.href = ad.linkUrl;
+  if (targetUrl) {
+    link.href = targetUrl;
     link.setAttribute("data-has-link", "1");
   } else {
     link.removeAttribute("href");
     link.removeAttribute("data-has-link");
   }
 
-  if (ad.linkUrl && (ad.buttonText || "").trim()) {
+  if (targetUrl && (ad.buttonText || "").trim()) {
     cta.innerHTML = '<span class="ad-modal__cta-label"></span><span class="ad-modal__cta-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span>';
     cta.querySelector('.ad-modal__cta-label').textContent = ad.buttonText.trim();
-    cta.href = ad.linkUrl;
+    cta.href = targetUrl;
     cta.hidden = false;
   } else {
     cta.hidden = true;
@@ -5462,13 +5469,18 @@ function showAdModal(ad) {
   modal.setAttribute("aria-hidden", "false");
   document.body.classList.add("ad-modal-open");
 
-  const openLink = (url) => {
+  const openTarget = (url) => {
     try {
-      if (window.Telegram?.WebApp?.openLink) {
-        window.Telegram.WebApp.openLink(url);
-      } else {
-        window.open(url, "_blank", "noopener");
+      const tg = window.Telegram?.WebApp;
+      if (isTgTarget && tg?.openTelegramLink) {
+        tg.openTelegramLink(url);
+        return;
       }
+      if (tg?.openLink) {
+        tg.openLink(url);
+        return;
+      }
+      window.open(url, "_blank", "noopener");
     } catch (_) {
       window.open(url, "_blank", "noopener");
     }
@@ -5487,7 +5499,7 @@ function showAdModal(ad) {
   if (link.getAttribute("data-has-link")) {
     link.addEventListener("click", (e) => {
       e.preventDefault();
-      openLink(ad.linkUrl);
+      openTarget(targetUrl);
       close();
     }, { once: true });
   } else {
@@ -5497,7 +5509,7 @@ function showAdModal(ad) {
   if (!cta.hidden) {
     cta.addEventListener("click", (e) => {
       e.preventDefault();
-      openLink(ad.linkUrl);
+      openTarget(targetUrl);
       close();
     }, { once: true });
   }
