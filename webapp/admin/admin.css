@@ -983,3 +983,14 @@ body {
   cursor: pointer;
   max-width: 160px;
 }
+
+/* === Pre-roll Drive video tanlash ro'yxati === */
+.preroll-video-item:hover {
+  border-color: #3b82f6 !important;
+  background: #f0f7ff !important;
+}
+.preroll-video-item.is-selected {
+  border-color: #3b82f6 !important;
+  background: #e8f1ff !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+}

@@ -8,6 +8,8 @@ const DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token";
 const LOGO_POSTER_URL = "/static/assets/my-kino-logo.png";
 const METADATA_FILE_NAME = ".my-kino-metadata.json";
 const SERIES_FOLDER_NAME = "seriallar";
+// Reklama (pre-roll) videolar uchun papka nomi — drive ildizida shu nomli sub-folder bo'lishi kerak.
+const AD_FOLDER_NAMES = ["reklama", "reklama video", "reklamalar", "ads"];
 const DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
 const EMBEDDED_META_START = "[MY_KINO_META]";
 const EMBEDDED_META_END = "[/MY_KINO_META]";
@@ -1032,6 +1034,56 @@ async function listDriveMoviesUncached() {
   return files.map((file, index) => toDriveMovie(file, index, metadataMap));
 }
 
+async function findAdRootFolder() {
+  const { folderId } = getDriveConfig();
+  const payload = await driveFetchJson("", {
+    query: {
+      q: `'${folderId}' in parents and trashed=false and mimeType='${DRIVE_FOLDER_MIME}'`,
+      pageSize: 100,
+      supportsAllDrives: "true",
+      includeItemsFromAllDrives: "true",
+      fields: "files(id,name)",
+    },
+  });
+  const folders = payload.files || [];
+  return folders.find((folder) =>
+    AD_FOLDER_NAMES.includes(trimString(folder.name).toLowerCase()),
+  ) || null;
+}
+
+async function listAdVideos() {
+  const root = await findAdRootFolder();
+  if (!root) return [];
+  let pageToken = "";
+  const videos = [];
+  do {
+    const payload = await driveFetchJson("", {
+      query: {
+        q: `'${root.id}' in parents and trashed=false and mimeType contains 'video/'`,
+        orderBy: "modifiedTime desc",
+        pageSize: 200,
+        pageToken,
+        supportsAllDrives: "true",
+        includeItemsFromAllDrives: "true",
+        fields: "nextPageToken,files(id,name,size,mimeType,modifiedTime,thumbnailLink,videoMediaMetadata(width,height,durationMillis))",
+      },
+    });
+    for (const file of payload.files || []) {
+      videos.push({
+        id: file.id,
+        name: file.name,
+        size: file.size ? Number(file.size) : 0,
+        mimeType: file.mimeType,
+        modifiedTime: file.modifiedTime,
+        thumbnailLink: file.thumbnailLink || "",
+        durationMs: Number(file.videoMediaMetadata?.durationMillis || 0) || 0,
+      });
+    }
+    pageToken = payload.nextPageToken || "";
+  } while (pageToken);
+  return videos;
+}
+
 async function findSeriesRootFolder() {
   const { folderId } = getDriveConfig();
   const payload = await driveFetchJson("", {
@@ -1353,6 +1405,7 @@ module.exports = {
   getDriveFileMetadata,
   getDriveMediaResponse,
   isServiceAccountStorageQuotaError,
+  listAdVideos,
   listDriveMovies,
   listDriveSeries,
   invalidateListCache,

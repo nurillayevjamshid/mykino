@@ -269,7 +269,7 @@ function switchSection(name) {
   if (name === 'music') fetchMusic();
   if (name === 'broadcast') initBroadcastSection();
   if (name === 'categories') fetchCategories();
-  if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); }
+  if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
 
   if (window.innerWidth <= 768) {
     document.querySelector('.sidebar')?.classList.remove('open');
@@ -2666,8 +2666,16 @@ function setPreRollStatus(msg, kind) {
   el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
 }
 
-function setPreRollUploadStatus(msg, kind) {
-  const el = document.getElementById('preRollAdUploadStatus');
+let preRollAdVideos = [];
+let preRollAdSelectedId = '';
+
+function buildPreRollPlayUrl(driveId) {
+  if (!driveId) return '';
+  return `/api/drive-stream/${encodeURIComponent(driveId)}`;
+}
+
+function setPreRollListStatus(msg, kind) {
+  const el = document.getElementById('preRollAdListStatus');
   if (!el) return;
   el.textContent = msg || '';
   el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
@@ -2687,26 +2695,84 @@ function setPreRollVideoPreview(url) {
   }
 }
 
-function readFileAsDataUrlGeneric(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(reader.error || new Error("Faylni o'qib bo'lmadi."));
-    reader.readAsDataURL(file);
+function selectPreRollDriveVideo(driveId) {
+  preRollAdSelectedId = String(driveId || '');
+  const hiddenId = document.getElementById('preRollAdVideoDriveId');
+  const hiddenUrl = document.getElementById('preRollAdVideoUrl');
+  if (hiddenId) hiddenId.value = preRollAdSelectedId;
+  if (hiddenUrl) hiddenUrl.value = preRollAdSelectedId ? buildPreRollPlayUrl(preRollAdSelectedId) : '';
+  // Visual selection
+  document.querySelectorAll('.preroll-video-item').forEach((el) => {
+    el.classList.toggle('is-selected', el.dataset.id === preRollAdSelectedId);
+    const radio = el.querySelector('input[type="radio"]');
+    if (radio) radio.checked = el.dataset.id === preRollAdSelectedId;
   });
+  setPreRollVideoPreview(preRollAdSelectedId ? buildPreRollPlayUrl(preRollAdSelectedId) : '');
 }
 
-async function uploadPreRollVideo(file) {
-  const dataUrl = await readFileAsDataUrlGeneric(file);
-  const baseName = (file.name || 'preroll').replace(/\.[^.]+$/, '').slice(0, 40) || 'preroll';
-  const resp = await fetch('/api/categories', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'upload', kind: 'video', dataUrl, name: baseName }),
+function formatBytes(bytes) {
+  const n = Number(bytes) || 0;
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n/1024).toFixed(1)} KB`;
+  return `${(n/1024/1024).toFixed(2)} MB`;
+}
+
+function formatDurationMs(ms) {
+  const sec = Math.round(Number(ms) / 1000) || 0;
+  if (!sec) return '';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `0:${String(s).padStart(2, '0')}`;
+}
+
+function renderPreRollVideoList() {
+  const container = document.getElementById('preRollAdVideoList');
+  if (!container) return;
+  if (!preRollAdVideos.length) {
+    container.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px;">Drive'da "reklama" papkasi yoki video topilmadi. Drive katalog ildizida <strong>"reklama"</strong> nomli papka oching va u yerga mp4 yuklang, keyin "Yangilash"ni bosing.</div>`;
+    return;
+  }
+  container.innerHTML = preRollAdVideos.map((v) => {
+    const dur = formatDurationMs(v.durationMs);
+    const size = formatBytes(v.size);
+    return `
+      <label class="preroll-video-item" data-id="${v.id}" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;background:#fff;border:1px solid var(--border,#e3e6ec);transition:border-color .15s,background .15s;">
+        <input type="radio" name="preRollAdVideoRadio" value="${v.id}" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(v.name)}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+            ${dur ? `⏱ ${dur} · ` : ''}${size}${v.modifiedTime ? ` · ${new Date(v.modifiedTime).toLocaleDateString()}` : ''}
+          </div>
+        </div>
+      </label>
+    `;
+  }).join('');
+  // Wire clicks
+  container.querySelectorAll('.preroll-video-item').forEach((el) => {
+    el.addEventListener('click', () => selectPreRollDriveVideo(el.dataset.id));
   });
-  const json = await resp.json().catch(() => ({}));
-  if (!resp.ok || !json.url) throw new Error(json.error || `HTTP ${resp.status}`);
-  return json.url;
+  // Re-apply selection
+  if (preRollAdSelectedId) selectPreRollDriveVideo(preRollAdSelectedId);
+}
+
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[c]);
+}
+
+async function loadPreRollDriveVideos() {
+  setPreRollListStatus('Drive yuklanmoqda...');
+  try {
+    const res = await fetch('/api/settings?action=ad-videos', { cache: 'no-store' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    preRollAdVideos = Array.isArray(json.videos) ? json.videos : [];
+    renderPreRollVideoList();
+    setPreRollListStatus(`${preRollAdVideos.length} ta video topildi.`, 'ok');
+  } catch (err) {
+    setPreRollListStatus(`Xato: ${err.message}`, 'error');
+  }
 }
 
 async function loadPreRollSettings() {
@@ -2723,7 +2789,15 @@ async function loadPreRollSettings() {
     if (videoEl) videoEl.value = pr.videoUrl || '';
     if (linkEl) linkEl.value = pr.linkUrl || '';
     if (skipEl) skipEl.value = Number.isFinite(Number(pr.skipAfter)) ? Number(pr.skipAfter) : 5;
-    setPreRollVideoPreview(pr.videoUrl || '');
+    // Saqlangan Drive ID ni belgilash (agar bor bo'lsa) — list keyin yuklanganda highlight bo'ladi
+    preRollAdSelectedId = String(pr.videoDriveId || '');
+    const hiddenId = document.getElementById('preRollAdVideoDriveId');
+    if (hiddenId) hiddenId.value = preRollAdSelectedId;
+    if (preRollAdSelectedId) {
+      setPreRollVideoPreview(buildPreRollPlayUrl(preRollAdSelectedId));
+    } else {
+      setPreRollVideoPreview(pr.videoUrl || '');
+    }
   } catch (err) {
     setPreRollStatus(`Yuklashda xato: ${err.message}`, 'error');
   }
@@ -2731,12 +2805,12 @@ async function loadPreRollSettings() {
 
 async function savePreRollSettings() {
   const enabled = document.getElementById('preRollAdEnabled')?.checked || false;
-  const videoUrl = (document.getElementById('preRollAdVideoUrl')?.value || '').trim();
+  const videoDriveId = (document.getElementById('preRollAdVideoDriveId')?.value || preRollAdSelectedId || '').trim();
   const linkUrl = (document.getElementById('preRollAdLinkUrl')?.value || '').trim();
   const skipAfter = Math.max(0, Math.min(60, parseInt(document.getElementById('preRollAdSkipAfter')?.value || '5', 10) || 0));
 
-  if (enabled && !videoUrl) {
-    setPreRollStatus('Reklama yoqilgan — video URL kiritish kerak.', 'error');
+  if (enabled && !videoDriveId) {
+    setPreRollStatus("Reklama yoqilgan — ro'yxatdan video tanlang.", 'error');
     return;
   }
 
@@ -2745,7 +2819,7 @@ async function savePreRollSettings() {
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ preRollAd: { enabled, videoUrl, linkUrl, skipAfter } }),
+      body: JSON.stringify({ preRollAd: { enabled, videoDriveId, videoUrl: '', linkUrl, skipAfter } }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
@@ -2757,45 +2831,14 @@ async function savePreRollSettings() {
 
 document.getElementById('preRollAdSaveBtn')?.addEventListener('click', savePreRollSettings);
 document.getElementById('preRollAdClearBtn')?.addEventListener('click', () => {
-  if (!confirm('Pre-roll reklama maydonlari tozalansinmi?')) return;
+  if (!confirm('Pre-roll reklama tanlovi tozalansinmi?')) return;
   const enabledEl = document.getElementById('preRollAdEnabled');
   if (enabledEl) enabledEl.checked = false;
-  const v = document.getElementById('preRollAdVideoUrl'); if (v) v.value = '';
+  selectPreRollDriveVideo('');
   const l = document.getElementById('preRollAdLinkUrl'); if (l) l.value = '';
   const s = document.getElementById('preRollAdSkipAfter'); if (s) s.value = '5';
-  setPreRollVideoPreview('');
-  setPreRollUploadStatus('');
   setPreRollStatus('');
 });
 
-// Fayl yuklash (kompyuter/telefon orqali)
-document.getElementById('preRollAdVideoFile')?.addEventListener('change', async (e) => {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  // Mijoz tarafida tezkor cheklov tekshiruvi (server ham qaytadan tekshiradi)
-  const MAX = 3 * 1024 * 1024;
-  if (file.size > MAX) {
-    setPreRollUploadStatus(`Fayl katta (${(file.size/1024/1024).toFixed(2)} MB). Maksimal 3 MB (Vercel cheklovi). Avval video siqing — masalan HandBrake yoki online.video-converter.com.`, 'error');
-    e.target.value = '';
-    return;
-  }
-  setPreRollUploadStatus(`Yuklanmoqda... (${(file.size/1024/1024).toFixed(2)} MB)`);
-  try {
-    const url = await uploadPreRollVideo(file);
-    const urlEl = document.getElementById('preRollAdVideoUrl');
-    if (urlEl) urlEl.value = url;
-    setPreRollVideoPreview(url);
-    setPreRollUploadStatus("Yuklandi. Pastdagi \"Saqlash\" tugmasini bosing.", 'ok');
-  } catch (err) {
-    setPreRollUploadStatus(`Yuklashda xato: ${err.message}`, 'error');
-  } finally {
-    e.target.value = '';
-  }
-});
-
-// URL maydoniga qo'lda kiritilsa ham preview yangilansin
-document.getElementById('preRollAdVideoUrl')?.addEventListener('input', (e) => {
-  const url = (e.target.value || '').trim();
-  setPreRollVideoPreview(url);
-});
+document.getElementById('preRollAdReloadBtn')?.addEventListener('click', () => loadPreRollDriveVideos());
 
