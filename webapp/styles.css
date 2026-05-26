@@ -268,7 +268,6 @@ textarea,
 
 .splash-screen__tagline-eyebrow {
   font-family: var(--font-serif);
-  font-style: italic;
   font-size: 27px;
   font-weight: 500;
   letter-spacing: 0.005em;
