@@ -97,6 +97,9 @@ async function handleSeriesUpdate(request, response) {
   if (body.episodes && typeof body.episodes === "object" && !Array.isArray(body.episodes)) {
     updates.episodes = body.episodes;
   }
+  if (body.episodeSeasons && typeof body.episodeSeasons === "object" && !Array.isArray(body.episodeSeasons)) {
+    updates.episodeSeasons = body.episodeSeasons;
+  }
 
   const saved = await updateCatalogSeriesMetadata(id, updates);
   const override = saved.override;

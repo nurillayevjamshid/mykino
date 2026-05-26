@@ -4267,14 +4267,18 @@ function compareSeriesEpisodes(left, right) {
 
 function normalizeSeriesEntry(raw) {
   const episodes = Array.isArray(raw?.episodes) ? raw.episodes : [];
-  const orderedEpisodes = episodes.map((ep, i) => ({
-    id: String(ep?.id || ""),
-    title: String(ep?.title || `Qism ${i + 1}`).trim(),
-    defaultTitle: String(ep?.defaultTitle || ep?.title || `Qism ${i + 1}`).trim(),
-    fileName: String(ep?.fileName || "").trim(),
-    mimeType: String(ep?.mimeType || "").trim(),
-    cdnUrl: String(ep?.cdnUrl || "").trim(),
-  })).filter((ep) => ep.id).sort(compareSeriesEpisodes);
+  const orderedEpisodes = episodes.map((ep, i) => {
+    const rawSeason = Number(ep?.season);
+    return {
+      id: String(ep?.id || ""),
+      title: String(ep?.title || `Qism ${i + 1}`).trim(),
+      defaultTitle: String(ep?.defaultTitle || ep?.title || `Qism ${i + 1}`).trim(),
+      fileName: String(ep?.fileName || "").trim(),
+      mimeType: String(ep?.mimeType || "").trim(),
+      cdnUrl: String(ep?.cdnUrl || "").trim(),
+      season: Number.isFinite(rawSeason) && rawSeason > 0 ? rawSeason : 1,
+    };
+  }).filter((ep) => ep.id).sort(compareSeriesEpisodes);
   return {
     id: String(raw?.id || raw?.folderId || ""),
     title: String(raw?.title || raw?.folderName || "Serial").trim(),
@@ -4399,14 +4403,38 @@ function openSeriesDetailView(series) {
   const poster = String(series.posterImage || "");
   const safeDetailPoster = poster.startsWith("blob:") ? "" : poster;
   const posterStyleAttr = safeDetailPoster ? `background-image:url('${safeDetailPoster.replaceAll("'", "%27")}')` : "";
-  const epHtml = eps.length
-    ? `<ol class="episode-list">${eps.map((ep, i) => `
-        <li><button class="episode-row" type="button" data-ep-index="${i}">
-          <span class="episode-row__num">${i + 1}</span>
-          <span class="episode-row__title">${escapeHtml(ep.title || ("Qism " + (i + 1)))}</span>
+  const seasonGroups = new Map();
+  eps.forEach((ep, i) => {
+    const s = Number(ep.season) > 0 ? Number(ep.season) : 1;
+    if (!seasonGroups.has(s)) seasonGroups.set(s, []);
+    seasonGroups.get(s).push({ ep, index: i });
+  });
+  const seasonNumbers = [...seasonGroups.keys()].sort((a, b) => a - b);
+  const showTabs = seasonNumbers.length > 1;
+  const renderEpisodeList = (items) => items.length
+    ? `<ol class="episode-list">${items.map(({ ep, index }, n) => `
+        <li><button class="episode-row" type="button" data-ep-index="${index}">
+          <span class="episode-row__num">${n + 1}</span>
+          <span class="episode-row__title">${escapeHtml(ep.title || ("Qism " + (index + 1)))}</span>
           <svg class="episode-row__play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
         </button></li>`).join("")}</ol>`
-    : `<p class="episode-empty">Bu serialda hali qism yo'q.</p>`;
+    : `<p class="episode-empty">Bu faslda hali qism yo'q.</p>`;
+  let bodyHtml;
+  if (!eps.length) {
+    bodyHtml = `<p class="episode-empty">Bu serialda hali qism yo'q.</p>`;
+  } else if (showTabs) {
+    const tabsHtml = `<div class="season-tabs" role="tablist">${seasonNumbers.map((s, i) => `
+      <button class="season-tab${i === 0 ? " is-active" : ""}" type="button" role="tab" data-season="${s}">${s}-fasl</button>
+    `).join("")}</div>`;
+    const panelsHtml = seasonNumbers.map((s, i) => `
+      <div class="season-panel${i === 0 ? " is-active" : ""}" data-season-panel="${s}"${i === 0 ? "" : " hidden"}>
+        ${renderEpisodeList(seasonGroups.get(s))}
+      </div>
+    `).join("");
+    bodyHtml = `${tabsHtml}${panelsHtml}`;
+  } else {
+    bodyHtml = renderEpisodeList(seasonGroups.get(seasonNumbers[0]));
+  }
   if (seriesDetailBody) {
     seriesDetailBody.innerHTML = `
       <div class="series-hero">
@@ -4416,7 +4444,7 @@ function openSeriesDetailView(series) {
           ${series.description ? `<p class="series-hero__desc">${escapeHtml(series.description)}</p>` : ""}
         </div>
       </div>
-      ${epHtml}
+      ${bodyHtml}
     `;
   }
   if (seriesListView) seriesListView.hidden = true;
@@ -4455,6 +4483,19 @@ function playSeriesEpisode(series, episode, index) {
 }
 
 seriesDetailBody?.addEventListener("click", (event) => {
+  const tab = event.target.closest(".season-tab");
+  if (tab && seriesDetailBody) {
+    const season = tab.dataset.season;
+    seriesDetailBody.querySelectorAll(".season-tab").forEach((el) => {
+      el.classList.toggle("is-active", el === tab);
+    });
+    seriesDetailBody.querySelectorAll(".season-panel").forEach((panel) => {
+      const match = panel.dataset.seasonPanel === season;
+      panel.classList.toggle("is-active", match);
+      panel.hidden = !match;
+    });
+    return;
+  }
   const row = event.target.closest(".episode-row");
   if (!row || !activeSeries) return;
   const index = Number(row.dataset.epIndex);
