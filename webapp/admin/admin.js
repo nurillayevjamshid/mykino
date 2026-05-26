@@ -626,6 +626,11 @@ function bindEvents() {
     tab.addEventListener('click', () => switchMovieTab(tab.dataset.movieTab));
   });
 
+  // Ad tabs (Mini app reklama / Pre-roll video)
+  document.querySelectorAll('.ad-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchAdTab(tab.dataset.adTab));
+  });
+
   // Series search + refresh
   document.getElementById('seriesSearchInput')?.addEventListener('input', (e) => {
     filterSeries(e.target.value);
@@ -1213,6 +1218,19 @@ function switchMovieTab(name) {
     closeSeriesEditor();
     if (!seriesLoaded) fetchSeries();
   }
+}
+
+function switchAdTab(name) {
+  if (!name) return;
+  document.querySelectorAll('.ad-tab').forEach(tab => {
+    const active = tab.dataset.adTab === name;
+    tab.classList.toggle('is-active', active);
+    tab.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
+    tab.style.color = active ? 'var(--text,#111)' : 'var(--text-muted,#666)';
+  });
+  document.querySelectorAll('.ad-tabpanel').forEach(panel => {
+    panel.hidden = panel.dataset.adTabpanel !== name;
+  });
 }
 
 function normalizeSeriesFromApi(item) {
