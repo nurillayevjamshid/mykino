@@ -2780,19 +2780,23 @@ function tgBackButtonSync() {
 })();
 
 // === Kino modali "Do'stga ulashish" tugmasi (poster ustida, o'ng tepada) ===
+const SHARE_BOT_USERNAME = "mykinoplay_bot";
 const SHARE_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
 
 function buildShareUrl(movie) {
   const code = String(movie?.code || movie?.id || "").trim();
+  // Telegram bot mini-app deep link — link Telegram ichida bosilsa to'g'ridan-to'g'ri
+  // mini app ochiladi (brauzer emas). startapp parametri webapp tarafda
+  // tg.initDataUnsafe.start_param sifatida qabul qilinadi.
   const shareLink = code
-    ? `${SHARE_WEBAPP_URL}/s/${encodeURIComponent(code)}`
-    : SHARE_WEBAPP_URL;
+    ? `https://t.me/${SHARE_BOT_USERNAME}?startapp=${encodeURIComponent(code)}`
+    : `https://t.me/${SHARE_BOT_USERNAME}`;
   const title = String(movie?.title || "Kino").trim();
   const genre = String(movie?.genre || "").trim();
   const year = String(movie?.year || "").trim();
   const metaParts = [year, genre].filter(Boolean).join(" • ");
   const metaLine = metaParts ? `\n📅 ${metaParts}` : "";
-  const text = `🎬 ${title}${metaLine}\n\n🍿 MY PLAYLIST'da bepul tomosha qiling — bir bosish bilan ochiladi 👇`;
+  const text = `🎬 ${title}${metaLine}\n\n🍿 MY PLAYLIST botida bepul tomosha qiling — bir bosish bilan ochiladi 👇`;
   return `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(text)}`;
 }
 
