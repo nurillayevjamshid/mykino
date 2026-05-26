@@ -2708,6 +2708,9 @@ function selectPreRollDriveVideo(driveId) {
     if (radio) radio.checked = el.dataset.id === preRollAdSelectedId;
   });
   setPreRollVideoPreview(preRollAdSelectedId ? buildPreRollPlayUrl(preRollAdSelectedId) : '');
+  // Video tanlandi — avtomatik "yoqish" chekboksini ham yoqamiz
+  const enabledEl = document.getElementById('preRollAdEnabled');
+  if (enabledEl && preRollAdSelectedId) enabledEl.checked = true;
 }
 
 function formatBytes(bytes) {
@@ -2804,15 +2807,15 @@ async function loadPreRollSettings() {
 }
 
 async function savePreRollSettings() {
-  const enabled = document.getElementById('preRollAdEnabled')?.checked || false;
   const videoDriveId = (document.getElementById('preRollAdVideoDriveId')?.value || preRollAdSelectedId || '').trim();
   const linkUrl = (document.getElementById('preRollAdLinkUrl')?.value || '').trim();
   const skipAfter = Math.max(0, Math.min(60, parseInt(document.getElementById('preRollAdSkipAfter')?.value || '5', 10) || 0));
+  // Video tanlangan bo'lsa avtomatik yoqilgan deb saqlaymiz.
+  const enabled = Boolean(videoDriveId);
 
-  if (enabled && !videoDriveId) {
-    setPreRollStatus("Reklama yoqilgan — ro'yxatdan video tanlang.", 'error');
-    return;
-  }
+  // UI sinxronlash
+  const enabledEl = document.getElementById('preRollAdEnabled');
+  if (enabledEl) enabledEl.checked = enabled;
 
   setPreRollStatus('Saqlanmoqda...');
   try {
@@ -2823,7 +2826,11 @@ async function savePreRollSettings() {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    setPreRollStatus('Saqlandi.', 'ok');
+    if (enabled) {
+      setPreRollStatus("Saqlandi ✓ Pre-roll reklama YOQILGAN — mini app'da kinoga play bosilsa chiqadi.", 'ok');
+    } else {
+      setPreRollStatus("Saqlandi. Pre-roll reklama o'chirilgan (video tanlanmagan).", 'ok');
+    }
   } catch (err) {
     setPreRollStatus(`Xato: ${err.message}`, 'error');
   }
