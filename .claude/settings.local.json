@@ -101,7 +101,27 @@
       "Bash(node --check \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\webapp\\\\app.js\")",
       "Bash(node -c api/broadcast.js)",
       "Bash(node -c api/movie-reaction.js)",
-      "Bash(node -c api/movie-update.js)"
+      "Bash(node -c api/movie-update.js)",
+      "Bash(git fsck *)",
+      "Bash(node --check api/movie-reaction.js)",
+      "Bash(node --check api/movie-update.js)",
+      "Bash(node --check api/_lib/r2-store.js)",
+      "Bash(Select-String -Pattern \"adTelegramUrl|adWebsiteUrl|adLinkUrl\")",
+      "Bash(Select-Object -First 10)",
+      "Bash(gh run *)",
+      "Bash(node -c \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\api\\\\settings.js\")",
+      "Bash(node -c \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\api\\\\_lib\\\\google-drive.js\")",
+      "Bash(node -c \"C:\\\\Users\\\\WESOLVE\\\\Desktop\\\\kino tg_bot\\\\webapp\\\\admin\\\\admin.js\")",
+      "Bash(gh api *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://kino-telegram-mini-app.vercel.app/api/settings?action=ad-videos\")",
+      "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/settings?action=ad-videos\")",
+      "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/settings\")",
+      "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/settings?bust=$\\(date +%s\\)\")",
+      "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/static/app.js?t=$\\(date +%s\\)\")",
+      "Bash(curl -s -I \"https://kino-telegram-mini-app.vercel.app/api/drive-stream/1pLYOSRLd-JENLD4Dhfc54Df9WFWcl1Uz\")",
+      "Bash(curl -s -r 0-7 \"https://kino-telegram-mini-app.vercel.app/api/drive-stream/1pLYOSRLd-JENLD4Dhfc54Df9WFWcl1Uz\" -o /tmp/preroll-head.bin -w \"HTTP %{http_code} | Length: %{size_download} bayt\\\\n\")",
+      "Bash(xxd /tmp/preroll-head.bin)",
+      "Bash(git restore *)"
     ]
   }
 }

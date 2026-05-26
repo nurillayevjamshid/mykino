@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#3d4adf">
   <title>My Playlist - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20260526-adfix01">
+  <link rel="stylesheet" href="/admin/admin.css?v=20260526-ad-toggle01">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -543,8 +543,28 @@
         <!-- Reklama Section -->
         <section class="content-section" id="adSection">
           <div class="ad-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--border,#e3e6ec);flex-wrap:wrap;">
-            <button type="button" class="ad-tab is-active" data-ad-tab="modal" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid var(--primary,#3b82f6);font-weight:600;color:var(--text,#111);cursor:pointer;">Mini app reklama</button>
-            <button type="button" class="ad-tab" data-ad-tab="preroll" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">Pre-roll video</button>
+            <div class="ad-tab-item is-active" data-ad-tab-item="modal">
+              <button type="button" class="ad-tab is-active" data-ad-tab="modal" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid var(--primary,#3b82f6);font-weight:600;color:var(--text,#111);cursor:pointer;">Mini app reklama</button>
+              <label class="ad-visibility-toggle" for="adEnabled" title="Mini app reklamasini ko'rsatish/yashirish">
+                <input type="checkbox" id="adEnabled" class="ad-visibility-toggle__input">
+                <span class="ad-visibility-toggle__track" aria-hidden="true">
+                  <span class="ad-visibility-toggle__text ad-visibility-toggle__text--off">OFF</span>
+                  <span class="ad-visibility-toggle__text ad-visibility-toggle__text--on">ON</span>
+                  <span class="ad-visibility-toggle__knob"></span>
+                </span>
+              </label>
+            </div>
+            <div class="ad-tab-item" data-ad-tab-item="preroll">
+              <button type="button" class="ad-tab" data-ad-tab="preroll" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">Pre-roll video</button>
+              <label class="ad-visibility-toggle" for="preRollAdEnabled" title="Pre-roll reklamani ko'rsatish/yashirish">
+                <input type="checkbox" id="preRollAdEnabled" class="ad-visibility-toggle__input">
+                <span class="ad-visibility-toggle__track" aria-hidden="true">
+                  <span class="ad-visibility-toggle__text ad-visibility-toggle__text--off">OFF</span>
+                  <span class="ad-visibility-toggle__text ad-visibility-toggle__text--on">ON</span>
+                  <span class="ad-visibility-toggle__knob"></span>
+                </span>
+              </label>
+            </div>
           </div>
 
           <!-- Mini app reklama tab -->
@@ -557,10 +577,6 @@
             </div>
 
             <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:720px;">
-            <div class="form-group checkbox-group" style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-              <input type="checkbox" id="adEnabled" style="width:18px;height:18px;cursor:pointer;">
-              <label for="adEnabled" style="margin:0;cursor:pointer;font-weight:600;">Reklamani yoqish</label>
-            </div>
 
             <div class="form-group">
               <label>Reklama rasmi</label>
@@ -621,10 +637,6 @@
             </div>
 
             <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:720px;">
-            <div class="form-group checkbox-group" style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-              <input type="checkbox" id="preRollAdEnabled" style="width:18px;height:18px;cursor:pointer;">
-              <label for="preRollAdEnabled" style="margin:0;cursor:pointer;font-weight:600;">Pre-roll reklamani yoqish</label>
-            </div>
 
             <div class="form-group">
               <label>Reklama videosi (Google Drive "reklama" papkasidan)</label>
@@ -919,6 +931,6 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20260526-adfix01"></script>
+  <script src="/admin/admin.js?v=20260526-ad-toggle01"></script>
 </body>
 </html>
