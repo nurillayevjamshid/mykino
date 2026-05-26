@@ -106,4 +106,92 @@ async function uploadImageToR2(base64Data, fileNamePrefix) {
   return { directUrl: `${publicUrl}/${key}` };
 }
 
-module.exports = { uploadImageToR2 };
+// === Generic SigV4 R2 helpers (JSON put/get/delete) ===
+async function signedR2Request({ method, key, body = null, contentType = "application/json; charset=utf-8" }) {
+  const { endpoint, bucket, accessKeyId, secretAccessKey, publicUrl } = getR2Config();
+  const url = new URL(`${endpoint}/${bucket}/${key}`);
+  const host = url.host;
+  const region = "auto";
+  const service = "s3";
+
+  const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const bodyBuffer = body == null ? Buffer.alloc(0) : Buffer.isBuffer(body) ? body : Buffer.from(body);
+  const payloadHash = sha256Hex(bodyBuffer);
+
+  const headersBase = [
+    method === "PUT" ? `content-type:${contentType}` : null,
+    `host:${host}`,
+    `x-amz-content-sha256:${payloadHash}`,
+    `x-amz-date:${amzDate}`,
+  ].filter(Boolean);
+  const canonicalHeaders = headersBase.join("\n") + "\n";
+  const signedHeaders = method === "PUT"
+    ? "content-type;host;x-amz-content-sha256;x-amz-date"
+    : "host;x-amz-content-sha256;x-amz-date";
+  const canonicalUri = url.pathname.split("/").map(encodeURIComponent).join("/");
+  const canonicalRequest = [method, canonicalUri, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
+
+  const scope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, sha256Hex(canonicalRequest)].join("\n");
+  const kDate = hmac(`AWS4${secretAccessKey}`, dateStamp);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, service);
+  const kSigning = hmac(kService, "aws4_request");
+  const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex");
+  const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  const headers = {
+    Host: host,
+    "x-amz-content-sha256": payloadHash,
+    "x-amz-date": amzDate,
+    Authorization: authorization,
+  };
+  if (method === "PUT") headers["Content-Type"] = contentType;
+
+  return { url, host, method, headers, body: method === "PUT" ? bodyBuffer : undefined, publicUrl };
+}
+
+async function putJsonToR2(key, data) {
+  const body = Buffer.from(JSON.stringify(data));
+  const req = await signedR2Request({ method: "PUT", key, body });
+  const response = await fetch(req.url, { method: "PUT", headers: req.headers, body: req.body });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    const error = new Error(`R2 PUT failed (${response.status}). ${text.slice(0, 200)}`);
+    error.statusCode = 502;
+    error.code = "R2_PUT_FAILED";
+    throw error;
+  }
+  return { key, publicUrl: `${req.publicUrl}/${key}` };
+}
+
+async function getJsonFromR2(key, fallback = null) {
+  const { publicUrl } = getR2Config();
+  try {
+    const response = await fetch(`${publicUrl}/${key}?t=${Date.now()}`, {
+      headers: { "Cache-Control": "no-cache" },
+    });
+    if (response.status === 404) return fallback;
+    if (!response.ok) return fallback;
+    const text = await response.text();
+    return text ? JSON.parse(text) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function deleteFromR2(key) {
+  const req = await signedR2Request({ method: "DELETE", key });
+  const response = await fetch(req.url, { method: "DELETE", headers: req.headers });
+  if (!response.ok && response.status !== 404) {
+    const text = await response.text().catch(() => "");
+    const error = new Error(`R2 DELETE failed (${response.status}). ${text.slice(0, 200)}`);
+    error.statusCode = 502;
+    error.code = "R2_DELETE_FAILED";
+    throw error;
+  }
+  return { key };
+}
+
+module.exports = { uploadImageToR2, putJsonToR2, getJsonFromR2, deleteFromR2 };

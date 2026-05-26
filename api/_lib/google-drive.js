@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const { uploadImageToR2 } = require("./r2-store");
+const { uploadImageToR2, putJsonToR2, getJsonFromR2 } = require("./r2-store");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
 const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3/files";
@@ -911,12 +911,18 @@ async function getMovieReaction(fileId, userId = "") {
   };
 }
 
-// ===== Comments (direct post, admin can delete) =====
+// ===== Comments (per-movie, stored in Cloudflare R2) =====
+// Drive catalog.json'ga emas R2'ga yoziladi — Service Account quota muammosi
+// chetlab o'tildi. Har kino uchun: comments/{movieId}.json
 function sanitizeCommentText(text, max = 500) {
   return trimString(text).slice(0, max);
 }
 
-async function readMovieEntryForComments(fileId) {
+function commentsR2Key(fileId) {
+  return `comments/${encodeURIComponent(fileId)}.json`;
+}
+
+async function readMovieCommentsFromR2(fileId) {
   const normalizedFileId = trimString(fileId);
   if (!normalizedFileId) {
     const error = new Error("Kino ID si kerak.");
@@ -924,12 +930,9 @@ async function readMovieEntryForComments(fileId) {
     error.code = "MOVIE_ID_MISSING";
     throw error;
   }
-  const metadataState = await readCatalogMetadata();
-  const metadata = normalizeCatalogMetadata(metadataState.data);
-  const entry = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
-    ? metadata.movies[normalizedFileId]
-    : {};
-  return { metadataState, metadata, entry, normalizedFileId };
+  const data = await getJsonFromR2(commentsR2Key(normalizedFileId), { comments: [] });
+  const comments = data && Array.isArray(data.comments) ? data.comments : [];
+  return { normalizedFileId, comments };
 }
 
 async function addMovieComment(fileId, { userId, userName, userPhotoUrl, text }) {
@@ -947,8 +950,8 @@ async function addMovieComment(fileId, { userId, userName, userPhotoUrl, text })
     error.statusCode = 400;
     throw error;
   }
-  const { metadataState, metadata, entry, normalizedFileId } = await readMovieEntryForComments(fileId);
-  const comments = Array.isArray(entry.comments) ? [...entry.comments] : [];
+  const { normalizedFileId, comments } = await readMovieCommentsFromR2(fileId);
+  const next = comments.slice();
   const comment = {
     id: `c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     userId: userIdStr,
@@ -957,19 +960,16 @@ async function addMovieComment(fileId, { userId, userName, userPhotoUrl, text })
     text: cleanText,
     createdAt: new Date().toISOString(),
   };
-  comments.push(comment);
-  if (comments.length > 2000) comments.splice(0, comments.length - 2000);
-  metadata.movies[normalizedFileId] = { ...entry, comments };
-  await writeCatalogMetadata(metadata, metadataState.file);
-  invalidateListCache("movies");
-  return { id: normalizedFileId, comment, total: comments.length };
+  next.push(comment);
+  if (next.length > 2000) next.splice(0, next.length - 2000);
+  await putJsonToR2(commentsR2Key(normalizedFileId), { comments: next, updatedAt: new Date().toISOString() });
+  return { id: normalizedFileId, comment, total: next.length };
 }
 
 async function listMovieComments(fileId) {
-  const { entry, normalizedFileId } = await readMovieEntryForComments(fileId);
-  const comments = Array.isArray(entry.comments) ? entry.comments.slice() : [];
-  comments.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
-  return { id: normalizedFileId, comments, total: comments.length };
+  const { normalizedFileId, comments } = await readMovieCommentsFromR2(fileId);
+  const sorted = comments.slice().sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  return { id: normalizedFileId, comments: sorted, total: sorted.length };
 }
 
 async function deleteMovieComment(fileId, commentId) {
@@ -979,19 +979,17 @@ async function deleteMovieComment(fileId, commentId) {
     error.statusCode = 400;
     throw error;
   }
-  const { metadataState, metadata, entry, normalizedFileId } = await readMovieEntryForComments(fileId);
-  const comments = Array.isArray(entry.comments) ? [...entry.comments] : [];
-  const idx = comments.findIndex(c => c && c.id === cleanCommentId);
+  const { normalizedFileId, comments } = await readMovieCommentsFromR2(fileId);
+  const next = comments.slice();
+  const idx = next.findIndex(c => c && c.id === cleanCommentId);
   if (idx === -1) {
     const error = new Error("Izoh topilmadi.");
     error.statusCode = 404;
     throw error;
   }
-  comments.splice(idx, 1);
-  metadata.movies[normalizedFileId] = { ...entry, comments };
-  await writeCatalogMetadata(metadata, metadataState.file);
-  invalidateListCache("movies");
-  return { id: normalizedFileId, commentId: cleanCommentId, total: comments.length };
+  next.splice(idx, 1);
+  await putJsonToR2(commentsR2Key(normalizedFileId), { comments: next, updatedAt: new Date().toISOString() });
+  return { id: normalizedFileId, commentId: cleanCommentId, total: next.length };
 }
 
 
