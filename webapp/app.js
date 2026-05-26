@@ -5295,8 +5295,16 @@ async function loadAppSettings() {
       } else {
         pendingAd = null;
       }
-      if (data && data.preRollAd && data.preRollAd.enabled && data.preRollAd.videoUrl) {
-        activePreRollAd = data.preRollAd;
+      if (data && data.preRollAd && data.preRollAd.enabled) {
+        const pr = data.preRollAd;
+        const playUrl = pr.videoDriveId
+          ? buildDriveStreamUrl(pr.videoDriveId)
+          : (pr.videoUrl || "");
+        if (playUrl) {
+          activePreRollAd = { ...pr, videoUrl: playUrl };
+        } else {
+          activePreRollAd = null;
+        }
       } else {
         activePreRollAd = null;
       }

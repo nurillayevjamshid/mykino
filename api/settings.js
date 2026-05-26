@@ -2,6 +2,7 @@ const {
   getDriveConfig,
   getDriveFileMetadata,
   isServiceAccountStorageQuotaError,
+  listAdVideos,
   setCors,
   readCatalogMetadata,
   updateDriveFileMetadata,
@@ -218,8 +219,10 @@ function normalizePreRollAd(raw) {
   const source = raw && typeof raw === "object" ? raw : {};
   const skipRaw = Number(source.skipAfter);
   const skipAfter = Number.isFinite(skipRaw) ? Math.max(0, Math.min(60, Math.round(skipRaw))) : 5;
+  const videoDriveId = trimString(source.videoDriveId).slice(0, 100);
   return {
     enabled: Boolean(source.enabled),
+    videoDriveId,
     videoUrl: normalizePreRollVideoUrl(source.videoUrl),
     linkUrl: normalizeAdLinkUrl(source.linkUrl),
     skipAfter,
@@ -260,6 +263,22 @@ module.exports = async function handler(request, response) {
     response.setHeader("Cache-Control", "public, max-age=0, s-maxage=30, stale-while-revalidate=300");
   } else {
     response.setHeader("Cache-Control", "no-store, max-age=0");
+  }
+
+  // GET ?action=ad-videos — Drive'dagi "reklama" papkasidagi videolar ro'yxati
+  if (request.method === "GET") {
+    const url = new URL(request.url || "/", "http://localhost");
+    if (url.searchParams.get("action") === "ad-videos") {
+      try {
+        // Bu endpoint javobi sezilarli o'zgarmagani uchun 60s kesh
+        response.setHeader("Cache-Control", "private, max-age=0, s-maxage=60, stale-while-revalidate=300");
+        const videos = await listAdVideos();
+        response.status(200).json({ ok: true, videos });
+      } catch (err) {
+        response.status(err.statusCode || 500).json({ ok: false, error: err.message, videos: [] });
+      }
+      return;
+    }
   }
 
   try {

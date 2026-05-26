@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f131a">
   <title>My Playlist - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20260517-cat02">
+  <link rel="stylesheet" href="/admin/admin.css?v=20260526-preroll03">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -635,16 +635,23 @@
             </div>
 
             <div class="form-group">
-              <label>Reklama videosi</label>
-              <input type="file" id="preRollAdVideoFile" class="form-input" accept="video/mp4,video/webm,video/quicktime,video/*">
-              <small class="form-hint">Kompyuter yoki telefondan yuklash. Tavsiya: <strong>mp4 (h264+aac), 5-15 soniya, &le; 2.5 MB</strong>. Maksimal 3 MB (Vercel server cheklovi). Katta video bo'lsa avval siqing — masalan <a href="https://online.video-converter.com" target="_blank">online.video-converter.com</a> yoki HandBrake.</small>
-              <div id="preRollAdVideoPreviewWrap" style="margin-top:10px;display:none;">
+              <label>Reklama videosi (Google Drive "reklama" papkasidan)</label>
+              <small class="form-hint" style="display:block;margin-bottom:8px;">
+                Google Drive'dagi katalog ildizida <strong>"reklama"</strong> nomli papka oching va u yerga videolarni (mp4) yuklang. Quyida o'sha papkadagi videolar ro'yxati chiqadi — birini tanlang. Hajm cheklovi yo'q.
+              </small>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <button type="button" class="btn btn-secondary" id="preRollAdReloadBtn">↻ Drive'dan yangilash</button>
+                <span id="preRollAdListStatus" style="font-size:12px;color:var(--text-muted);"></span>
+              </div>
+              <div id="preRollAdVideoList" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto;border:1px solid var(--border,#e3e6ec);border-radius:10px;padding:10px;background:var(--surface-bg,#fafbfc);">
+                <div style="color:var(--text-muted);font-size:13px;">Drive'dan yuklanmoqda...</div>
+              </div>
+              <div id="preRollAdVideoPreviewWrap" style="margin-top:14px;display:none;">
+                <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Tanlangan reklama oldindan ko'rinishi:</div>
                 <video id="preRollAdVideoPreview" controls playsinline style="max-width:280px;width:100%;border-radius:10px;background:#000;"></video>
               </div>
-              <div style="margin-top:10px;">
-                <input type="url" id="preRollAdVideoUrl" class="form-input" placeholder="Yuklangach URL avtomatik to'ldiriladi. Yoki bevosita https URL kiriting.">
-              </div>
-              <div id="preRollAdUploadStatus" style="margin-top:6px;font-size:12px;color:var(--text-muted);"></div>
+              <input type="hidden" id="preRollAdVideoDriveId" value="">
+              <input type="hidden" id="preRollAdVideoUrl" value="">
             </div>
 
             <div class="form-group">
@@ -853,6 +860,6 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20260526-preroll02"></script>
+  <script src="/admin/admin.js?v=20260526-preroll03"></script>
 </body>
 </html>
