@@ -2666,6 +2666,49 @@ function setPreRollStatus(msg, kind) {
   el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
 }
 
+function setPreRollUploadStatus(msg, kind) {
+  const el = document.getElementById('preRollAdUploadStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
+}
+
+function setPreRollVideoPreview(url) {
+  const wrap = document.getElementById('preRollAdVideoPreviewWrap');
+  const video = document.getElementById('preRollAdVideoPreview');
+  if (!wrap || !video) return;
+  if (url) {
+    video.src = url;
+    wrap.style.display = 'block';
+  } else {
+    video.removeAttribute('src');
+    try { video.load(); } catch (_) {}
+    wrap.style.display = 'none';
+  }
+}
+
+function readFileAsDataUrlGeneric(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error("Faylni o'qib bo'lmadi."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadPreRollVideo(file) {
+  const dataUrl = await readFileAsDataUrlGeneric(file);
+  const baseName = (file.name || 'preroll').replace(/\.[^.]+$/, '').slice(0, 40) || 'preroll';
+  const resp = await fetch('/api/categories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'upload', kind: 'video', dataUrl, name: baseName }),
+  });
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok || !json.url) throw new Error(json.error || `HTTP ${resp.status}`);
+  return json.url;
+}
+
 async function loadPreRollSettings() {
   try {
     const res = await fetch('/api/settings', { cache: 'no-store' });
@@ -2680,6 +2723,7 @@ async function loadPreRollSettings() {
     if (videoEl) videoEl.value = pr.videoUrl || '';
     if (linkEl) linkEl.value = pr.linkUrl || '';
     if (skipEl) skipEl.value = Number.isFinite(Number(pr.skipAfter)) ? Number(pr.skipAfter) : 5;
+    setPreRollVideoPreview(pr.videoUrl || '');
   } catch (err) {
     setPreRollStatus(`Yuklashda xato: ${err.message}`, 'error');
   }
@@ -2719,6 +2763,39 @@ document.getElementById('preRollAdClearBtn')?.addEventListener('click', () => {
   const v = document.getElementById('preRollAdVideoUrl'); if (v) v.value = '';
   const l = document.getElementById('preRollAdLinkUrl'); if (l) l.value = '';
   const s = document.getElementById('preRollAdSkipAfter'); if (s) s.value = '5';
+  setPreRollVideoPreview('');
+  setPreRollUploadStatus('');
   setPreRollStatus('');
+});
+
+// Fayl yuklash (kompyuter/telefon orqali)
+document.getElementById('preRollAdVideoFile')?.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  // Mijoz tarafida tezkor cheklov tekshiruvi (server ham qaytadan tekshiradi)
+  const MAX = 3 * 1024 * 1024;
+  if (file.size > MAX) {
+    setPreRollUploadStatus(`Fayl katta (${(file.size/1024/1024).toFixed(2)} MB). Maksimal 3 MB (Vercel cheklovi). Avval video siqing — masalan HandBrake yoki online.video-converter.com.`, 'error');
+    e.target.value = '';
+    return;
+  }
+  setPreRollUploadStatus(`Yuklanmoqda... (${(file.size/1024/1024).toFixed(2)} MB)`);
+  try {
+    const url = await uploadPreRollVideo(file);
+    const urlEl = document.getElementById('preRollAdVideoUrl');
+    if (urlEl) urlEl.value = url;
+    setPreRollVideoPreview(url);
+    setPreRollUploadStatus("Yuklandi. Pastdagi \"Saqlash\" tugmasini bosing.", 'ok');
+  } catch (err) {
+    setPreRollUploadStatus(`Yuklashda xato: ${err.message}`, 'error');
+  } finally {
+    e.target.value = '';
+  }
+});
+
+// URL maydoniga qo'lda kiritilsa ham preview yangilansin
+document.getElementById('preRollAdVideoUrl')?.addEventListener('input', (e) => {
+  const url = (e.target.value || '').trim();
+  setPreRollVideoPreview(url);
 });
 

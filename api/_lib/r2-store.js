@@ -194,4 +194,73 @@ async function deleteFromR2(key) {
   return { key };
 }
 
-module.exports = { uploadImageToR2, putJsonToR2, getJsonFromR2, deleteFromR2 };
+// Generic binary upload to R2 (video, audio, anything). Faylga `prefixDir/`
+// prefiksi qo'yiladi; contentType data URL'dan olinadi.
+async function uploadFileToR2(dataUrl, fileNamePrefix, options = {}) {
+  const { endpoint, bucket, accessKeyId, secretAccessKey, publicUrl } = getR2Config();
+  const prefixDir = String(options.prefixDir || "file").replace(/[^a-z0-9_-]/gi, "") || "file";
+
+  const m = /^data:([\w/+.-]+);base64,(.+)$/.exec(String(dataUrl || "").trim());
+  if (!m) {
+    const err = new Error("dataUrl (base64) noto'g'ri."); err.statusCode = 400; throw err;
+  }
+  const contentType = m[1] || "application/octet-stream";
+  const body = Buffer.from(m[2], "base64");
+
+  // Extension from MIME (mp4/webm/mov/...)
+  const subtype = (contentType.split("/")[1] || "bin").split(";")[0].split("+")[0];
+  const safeExt = (options.forceExt || subtype).replace(/[^a-z0-9]/gi, "").slice(0, 8) || "bin";
+  const safePrefix = String(fileNamePrefix || "file").replace(/[^a-z0-9._-]/gi, "").slice(0, 60) || "file";
+  const key = `${prefixDir}/${safePrefix}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${safeExt}`;
+
+  const url = new URL(`${endpoint}/${bucket}/${key}`);
+  const host = url.host;
+  const region = "auto";
+  const service = "s3";
+
+  const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const payloadHash = sha256Hex(body);
+
+  const canonicalHeaders =
+    `content-type:${contentType}\n`
+    + `host:${host}\n`
+    + `x-amz-content-sha256:${payloadHash}\n`
+    + `x-amz-date:${amzDate}\n`;
+  const signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
+  const canonicalUri = url.pathname.split("/").map(encodeURIComponent).join("/");
+  const canonicalRequest = ["PUT", canonicalUri, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
+
+  const scope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, sha256Hex(canonicalRequest)].join("\n");
+  const kDate = hmac(`AWS4${secretAccessKey}`, dateStamp);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, service);
+  const kSigning = hmac(kService, "aws4_request");
+  const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex");
+  const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": contentType,
+      Host: host,
+      "x-amz-content-sha256": payloadHash,
+      "x-amz-date": amzDate,
+      Authorization: authorization,
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    const error = new Error(`R2'ga yuklanmadi (${response.status}). ${text.slice(0, 200)}`);
+    error.statusCode = 502;
+    error.code = "R2_UPLOAD_FAILED";
+    throw error;
+  }
+
+  return { directUrl: `${publicUrl}/${key}`, key, contentType, size: body.length };
+}
+
+module.exports = { uploadImageToR2, uploadFileToR2, putJsonToR2, getJsonFromR2, deleteFromR2 };

@@ -1,8 +1,10 @@
 const { setCors } = require("./_lib/google-drive");
-const { uploadImageToR2 } = require("./_lib/r2-store");
+const { uploadImageToR2, uploadFileToR2 } = require("./_lib/r2-store");
 
 const REDIS_KEY = "categories:v1";
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+// Vercel serverless body cheklovi 4.5 MB. base64 33% inflation bilan ~3 MB real fayl.
+const MAX_VIDEO_BYTES = 3 * 1024 * 1024;
 
 let redisPromise = null;
 async function getRedis() {
@@ -98,8 +100,22 @@ async function handleUpload(body) {
   const dataUrl = String(body.dataUrl || body.image || "").trim();
   const parsed = parseDataUrl(dataUrl);
   if (!parsed) {
-    const err = new Error("dataUrl (base64 image) kerak."); err.statusCode = 400; throw err;
+    const err = new Error("dataUrl (base64) kerak."); err.statusCode = 400; throw err;
   }
+  const kind = String(body.kind || "").toLowerCase();
+  const isVideo = kind === "video" || /^video\//i.test(parsed.contentType);
+
+  if (isVideo) {
+    if (parsed.buffer.length > MAX_VIDEO_BYTES) {
+      const err = new Error("Video 4MB dan katta. Iltimos qisqaroq yoki past sifat tanlang.");
+      err.statusCode = 413;
+      throw err;
+    }
+    const baseName = String(body.name || "preroll").replace(/[^a-z0-9._-]/gi, "").slice(0, 40) || "preroll";
+    const { directUrl } = await uploadFileToR2(dataUrl, baseName, { prefixDir: "ads" });
+    return directUrl;
+  }
+
   if (parsed.buffer.length > MAX_IMAGE_BYTES) {
     const err = new Error("Rasm 6MB dan katta."); err.statusCode = 413; throw err;
   }
