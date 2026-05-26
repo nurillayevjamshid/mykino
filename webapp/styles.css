@@ -8241,7 +8241,7 @@ html[data-theme="light"] .topbar.is-scrolled {
   background-size: cover;
   background-position: center;
 }
-html[data-theme="dark"] .category-card { background: #2a2a2a; color: #fff; }
+html[data-theme="dark"] .category-card { background-color: #2a2a2a; color: #fff; }
 .categories-empty {
   text-align: center;
   color: var(--text-muted, #888);
