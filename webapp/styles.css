@@ -9620,6 +9620,87 @@ body.ad-modal-open { overflow: hidden; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* === Pre-roll video reklama (kino oldidan) === */
+.preroll {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.preroll[hidden] { display: none; }
+.preroll__video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  display: block;
+}
+.preroll__click {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  cursor: pointer;
+  background: transparent;
+}
+.preroll__click[hidden] { display: none; }
+.preroll__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffd166;
+  border: 1px solid rgba(255, 209, 102, 0.5);
+  pointer-events: none;
+}
+.preroll__skip {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 22px;
+  cursor: default;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+.preroll__skip.is-ready {
+  cursor: pointer;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.75);
+  border-color: rgba(255, 255, 255, 0.85);
+}
+.preroll__skip-label { line-height: 1; }
+.preroll__skip-icon { width: 16px; height: 16px; }
+
+/* Pre-roll ko'rinib turganda asl player overlay'lari yashirilsin */
+.video-player.is-preroll .player-overlay,
+.video-player.is-preroll .video-fallback,
+.video-player.is-preroll .video-mount,
+.video-player.is-preroll .kino-watermark--player {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* === Reduced motion respect — Telegram WebApp foydalanuvchilarining tizim sozlamasi === */
 @media (prefers-reduced-motion: reduce) {
   *,

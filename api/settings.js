@@ -170,11 +170,36 @@ function normalizeAd(raw) {
   };
 }
 
+function normalizePreRollVideoUrl(value) {
+  const raw = trimString(value);
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    return parsed.href;
+  } catch {
+    return "";
+  }
+}
+
+function normalizePreRollAd(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const skipRaw = Number(source.skipAfter);
+  const skipAfter = Number.isFinite(skipRaw) ? Math.max(0, Math.min(60, Math.round(skipRaw))) : 5;
+  return {
+    enabled: Boolean(source.enabled),
+    videoUrl: normalizePreRollVideoUrl(source.videoUrl),
+    linkUrl: normalizeAdLinkUrl(source.linkUrl),
+    skipAfter,
+  };
+}
+
 async function readPersistedSettings(settings) {
-  if (hasOwn(settings, "splashImageUrl") || hasOwn(settings, "ad")) {
+  if (hasOwn(settings, "splashImageUrl") || hasOwn(settings, "ad") || hasOwn(settings, "preRollAd")) {
     return {
       splashImageUrl: readStoredPublicImageUrl(settings.splashImageUrl),
       ad: normalizeAd(settings.ad),
+      preRollAd: normalizePreRollAd(settings.preRollAd),
     };
   }
 
@@ -183,9 +208,10 @@ async function readPersistedSettings(settings) {
     return {
       splashImageUrl: readStoredPublicImageUrl(folderSettings.splashImageUrl),
       ad: normalizeAd(folderSettings.ad),
+      preRollAd: normalizePreRollAd(folderSettings.preRollAd),
     };
   } catch {
-    return { splashImageUrl: "", ad: normalizeAd(null) };
+    return { splashImageUrl: "", ad: normalizeAd(null), preRollAd: normalizePreRollAd(null) };
   }
 }
 
@@ -231,6 +257,10 @@ module.exports = async function handler(request, response) {
         };
       }
 
+      if (hasOwn(body, "preRollAd")) {
+        nextSettings.preRollAd = normalizePreRollAd(body.preRollAd);
+      }
+
       metadataState.data.settings = nextSettings;
       try {
         await writeCatalogMetadata(metadataState.data, metadataState.file);
@@ -246,6 +276,7 @@ module.exports = async function handler(request, response) {
         ok: true,
         splashImageUrl: nextSettings.splashImageUrl || "",
         ad: normalizeAd(nextSettings.ad),
+        preRollAd: normalizePreRollAd(nextSettings.preRollAd),
       });
       return;
     }

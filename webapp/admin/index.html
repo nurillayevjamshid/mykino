@@ -597,8 +597,15 @@
             </div>
 
             <div class="form-group">
-              <label>Havola (tugma bosilganda ochiladi)</label>
-              <input type="url" id="adLinkUrl" class="form-input" placeholder="https://t.me/... yoki https://...">
+              <label>Telegram havolasi (kanal / guruh / user)</label>
+              <input type="url" id="adTelegramUrl" class="form-input" placeholder="https://t.me/kanal_nomi">
+              <small class="form-hint">Bosilganda Telegram ichida ochiladi (brauzer emas). Bo'sh qoldirilsa, faqat website ishlatiladi.</small>
+            </div>
+
+            <div class="form-group">
+              <label>Website havolasi (tashqi sayt yoki tizim)</label>
+              <input type="url" id="adWebsiteUrl" class="form-input" placeholder="https://example.com">
+              <small class="form-hint">Bosilganda tashqi brauzerda ochiladi. Ikkalasi to'ldirilsa — Telegram havola ustun.</small>
             </div>
 
             <div class="form-group">
@@ -612,6 +619,45 @@
             </div>
 
             <div id="adSaveStatus" style="margin-top:12px;font-size:13px;"></div>
+          </div>
+
+          <div class="section-header" style="margin-top:32px;">
+            <h2>Pre-roll video reklama (kino oldidan)</h2>
+            <div class="section-header__hint" style="color:var(--text-muted);font-size:13px;">
+              Foydalanuvchi kinoga Play bossa, asl kinodan oldin reklama videosi ochiladi. Belgilangan soniyadan keyin "O'tkazib yuborish" tugmasi paydo bo'ladi. Reklamani bosgan foydalanuvchi havolaga o'tadi.
+            </div>
+          </div>
+
+          <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:720px;">
+            <div class="form-group checkbox-group" style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+              <input type="checkbox" id="preRollAdEnabled" style="width:18px;height:18px;cursor:pointer;">
+              <label for="preRollAdEnabled" style="margin:0;cursor:pointer;font-weight:600;">Pre-roll reklamani yoqish</label>
+            </div>
+
+            <div class="form-group">
+              <label>Reklama video URL (https mp4)</label>
+              <input type="url" id="preRollAdVideoUrl" class="form-input" placeholder="https://.../reklama.mp4">
+              <small class="form-hint">Video R2 yoki har qanday https hostingda bo'lishi mumkin. Tavsiya: mp4 (h264 + aac), 5-30 soniya, &lt; 10 MB.</small>
+            </div>
+
+            <div class="form-group">
+              <label>Havola (reklama videosi bosilganda ochiladi)</label>
+              <input type="url" id="preRollAdLinkUrl" class="form-input" placeholder="https://... yoki https://t.me/...">
+              <small class="form-hint">Bo'sh qoldirsangiz video bosilmaydigan bo'ladi.</small>
+            </div>
+
+            <div class="form-group">
+              <label>"O'tkazib yuborish" tugmasi nechi soniyadan keyin chiqsin</label>
+              <input type="number" id="preRollAdSkipAfter" class="form-input" min="0" max="60" step="1" value="5" style="max-width:160px;">
+              <small class="form-hint">0 — darhol o'tkazish mumkin. 5 — standart (YouTube uslubi). Reklama o'zi tugashidan oldin shu vaqt o'tsa, tugma chiqadi.</small>
+            </div>
+
+            <div class="modal-actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+              <button type="button" class="btn btn-secondary" id="preRollAdClearBtn">Tozalash</button>
+              <button type="button" class="btn btn-primary" id="preRollAdSaveBtn">Saqlash</button>
+            </div>
+
+            <div id="preRollAdSaveStatus" style="margin-top:12px;font-size:13px;"></div>
           </div>
         </section>
 
@@ -800,6 +846,6 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20260523-ad01"></script>
+  <script src="/admin/admin.js?v=20260526-preroll01"></script>
 </body>
 </html>

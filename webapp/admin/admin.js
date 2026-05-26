@@ -269,7 +269,7 @@ function switchSection(name) {
   if (name === 'music') fetchMusic();
   if (name === 'broadcast') initBroadcastSection();
   if (name === 'categories') fetchCategories();
-  if (name === 'ad') loadAdSettings();
+  if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); }
 
   if (window.innerWidth <= 768) {
     document.querySelector('.sidebar')?.classList.remove('open');
@@ -2576,11 +2576,16 @@ async function loadAdSettings() {
     const ad = json.ad || {};
     const enabledEl = document.getElementById('adEnabled');
     const urlEl = document.getElementById('adImageUrl');
-    const linkEl = document.getElementById('adLinkUrl');
+    const tgEl = document.getElementById('adTelegramUrl');
+    const webEl = document.getElementById('adWebsiteUrl');
     const btnEl = document.getElementById('adButtonText');
     if (enabledEl) enabledEl.checked = Boolean(ad.enabled);
     if (urlEl) urlEl.value = ad.imageUrl || '';
-    if (linkEl) linkEl.value = ad.linkUrl || '';
+    // Backward-compat: eski `linkUrl` bo'lsa, uni mos maydonga joylashtir
+    const legacyLink = ad.linkUrl || '';
+    const isTgLink = (u) => /^(https?:\/\/(t|telegram)\.me\/|tg:\/\/)/i.test(String(u || ''));
+    if (tgEl) tgEl.value = ad.telegramUrl || (isTgLink(legacyLink) ? legacyLink : '');
+    if (webEl) webEl.value = ad.websiteUrl || (legacyLink && !isTgLink(legacyLink) ? legacyLink : '');
     if (btnEl) btnEl.value = ad.buttonText || '';
     adUploadedUrl = ad.imageUrl || '';
     setAdPreview(ad.imageUrl || '');
@@ -2593,7 +2598,8 @@ async function loadAdSettings() {
 async function saveAdSettings() {
   const enabled = document.getElementById('adEnabled')?.checked || false;
   const imageUrl = (document.getElementById('adImageUrl')?.value || adUploadedUrl || '').trim();
-  const linkUrl = (document.getElementById('adLinkUrl')?.value || '').trim();
+  const telegramUrl = (document.getElementById('adTelegramUrl')?.value || '').trim();
+  const websiteUrl = (document.getElementById('adWebsiteUrl')?.value || '').trim();
   const buttonText = (document.getElementById('adButtonText')?.value || '').trim();
 
   if (enabled && !imageUrl) {
@@ -2606,7 +2612,7 @@ async function saveAdSettings() {
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ad: { enabled, imageUrl, linkUrl, buttonText } }),
+      body: JSON.stringify({ ad: { enabled, imageUrl, telegramUrl, websiteUrl, buttonText } }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
@@ -2644,10 +2650,75 @@ document.getElementById('adClearBtn')?.addEventListener('click', () => {
   const enabledEl = document.getElementById('adEnabled');
   if (enabledEl) enabledEl.checked = false;
   document.getElementById('adImageUrl').value = '';
-  document.getElementById('adLinkUrl').value = '';
+  const tgEl = document.getElementById('adTelegramUrl'); if (tgEl) tgEl.value = '';
+  const webEl = document.getElementById('adWebsiteUrl'); if (webEl) webEl.value = '';
   document.getElementById('adButtonText').value = '';
   adUploadedUrl = '';
   setAdPreview('');
   setAdStatus('');
+});
+
+// ===== Pre-roll video reklama (kino oldidan) =====
+function setPreRollStatus(msg, kind) {
+  const el = document.getElementById('preRollAdSaveStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
+}
+
+async function loadPreRollSettings() {
+  try {
+    const res = await fetch('/api/settings', { cache: 'no-store' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    const pr = json.preRollAd || {};
+    const enabledEl = document.getElementById('preRollAdEnabled');
+    const videoEl = document.getElementById('preRollAdVideoUrl');
+    const linkEl = document.getElementById('preRollAdLinkUrl');
+    const skipEl = document.getElementById('preRollAdSkipAfter');
+    if (enabledEl) enabledEl.checked = Boolean(pr.enabled);
+    if (videoEl) videoEl.value = pr.videoUrl || '';
+    if (linkEl) linkEl.value = pr.linkUrl || '';
+    if (skipEl) skipEl.value = Number.isFinite(Number(pr.skipAfter)) ? Number(pr.skipAfter) : 5;
+  } catch (err) {
+    setPreRollStatus(`Yuklashda xato: ${err.message}`, 'error');
+  }
+}
+
+async function savePreRollSettings() {
+  const enabled = document.getElementById('preRollAdEnabled')?.checked || false;
+  const videoUrl = (document.getElementById('preRollAdVideoUrl')?.value || '').trim();
+  const linkUrl = (document.getElementById('preRollAdLinkUrl')?.value || '').trim();
+  const skipAfter = Math.max(0, Math.min(60, parseInt(document.getElementById('preRollAdSkipAfter')?.value || '5', 10) || 0));
+
+  if (enabled && !videoUrl) {
+    setPreRollStatus('Reklama yoqilgan — video URL kiritish kerak.', 'error');
+    return;
+  }
+
+  setPreRollStatus('Saqlanmoqda...');
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preRollAd: { enabled, videoUrl, linkUrl, skipAfter } }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    setPreRollStatus('Saqlandi.', 'ok');
+  } catch (err) {
+    setPreRollStatus(`Xato: ${err.message}`, 'error');
+  }
+}
+
+document.getElementById('preRollAdSaveBtn')?.addEventListener('click', savePreRollSettings);
+document.getElementById('preRollAdClearBtn')?.addEventListener('click', () => {
+  if (!confirm('Pre-roll reklama maydonlari tozalansinmi?')) return;
+  const enabledEl = document.getElementById('preRollAdEnabled');
+  if (enabledEl) enabledEl.checked = false;
+  const v = document.getElementById('preRollAdVideoUrl'); if (v) v.value = '';
+  const l = document.getElementById('preRollAdLinkUrl'); if (l) l.value = '';
+  const s = document.getElementById('preRollAdSkipAfter'); if (s) s.value = '5';
+  setPreRollStatus('');
 });
 
