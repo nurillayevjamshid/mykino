@@ -1060,7 +1060,7 @@ async function listAdVideos() {
   const root = await findAdRootFolder();
   if (!root) return [];
   let pageToken = "";
-  const videos = [];
+  const files = [];
   do {
     const payload = await driveFetchJson("", {
       query: {
@@ -1074,19 +1074,57 @@ async function listAdVideos() {
       },
     });
     for (const file of payload.files || []) {
-      videos.push({
-        id: file.id,
-        name: file.name,
-        size: file.size ? Number(file.size) : 0,
-        mimeType: file.mimeType,
-        modifiedTime: file.modifiedTime,
-        thumbnailLink: file.thumbnailLink || "",
-        durationMs: Number(file.videoMediaMetadata?.durationMillis || 0) || 0,
-      });
+      files.push(file);
     }
     pageToken = payload.nextPageToken || "";
   } while (pageToken);
-  return videos;
+
+  // cdnUrl ni catalog metadata'dagi settings.adCdn map'idan o'qib chiqamiz
+  let adCdnMap = {};
+  try {
+    const metadataState = await readCatalogMetadata();
+    const settings = metadataState.data?.settings;
+    if (settings && typeof settings.adCdn === "object" && settings.adCdn) {
+      adCdnMap = settings.adCdn;
+    }
+  } catch (_) {
+    adCdnMap = {};
+  }
+
+  return files.map((file) => ({
+    id: file.id,
+    name: file.name,
+    size: file.size ? Number(file.size) : 0,
+    mimeType: file.mimeType,
+    modifiedTime: file.modifiedTime,
+    thumbnailLink: file.thumbnailLink || "",
+    durationMs: Number(file.videoMediaMetadata?.durationMillis || 0) || 0,
+    cdnUrl: trimString(adCdnMap[file.id]),
+  }));
+}
+
+// Reklama videosi uchun R2 cdnUrl'ni catalog metadata'dagi settings.adCdn map'iga
+// yozadi. Migratsiya skripti tomonidan chaqiriladi.
+async function updateAdVideoCdn(driveFileId, cdnUrl) {
+  const id = trimString(driveFileId);
+  if (!id) {
+    const error = new Error("Reklama video ID si kerak.");
+    error.statusCode = 400;
+    error.code = "AD_VIDEO_ID_MISSING";
+    throw error;
+  }
+  const metadataState = await readCatalogMetadata();
+  const data = normalizeCatalogMetadata(metadataState.data);
+  if (!data.settings || typeof data.settings !== "object") data.settings = {};
+  const adCdn = data.settings.adCdn && typeof data.settings.adCdn === "object"
+    ? { ...data.settings.adCdn }
+    : {};
+  const value = trimString(cdnUrl);
+  if (value) adCdn[id] = value;
+  else delete adCdn[id];
+  data.settings.adCdn = adCdn;
+  await writeCatalogMetadata(data, metadataState.file);
+  return { id, cdnUrl: value };
 }
 
 async function findSeriesRootFolder() {
@@ -1411,6 +1449,7 @@ module.exports = {
   getDriveMediaResponse,
   isServiceAccountStorageQuotaError,
   listAdVideos,
+  updateAdVideoCdn,
   listDriveMovies,
   listDriveSeries,
   invalidateListCache,

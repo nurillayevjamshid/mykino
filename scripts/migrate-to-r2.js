@@ -28,9 +28,11 @@ const { Upload } = require("@aws-sdk/lib-storage");
 const {
   listDriveMovies,
   listDriveSeries,
+  listAdVideos,
   getDriveMediaResponse,
   updateCatalogMovieMetadata,
   updateCatalogSeriesMetadata,
+  updateAdVideoCdn,
 } = require("../api/_lib/google-drive");
 
 const args = process.argv.slice(2);
@@ -277,6 +279,20 @@ function episodeToTask(series, episode) {
   };
 }
 
+// Reklama videosini umumiy "task" ko'rinishiga keltiradi.
+function adVideoToTask(adVideo) {
+  return {
+    kind: "ad",
+    driveFileId: adVideo.id,
+    fileName: adVideo.name || "",
+    mimeType: adVideo.mimeType || "",
+    size: adVideo.size || 0,
+    cdnUrl: adVideo.cdnUrl || "",
+    label: `[reklama] ${adVideo.name || adVideo.id}`,
+    writeCdn: (url) => updateAdVideoCdn(adVideo.id, url),
+  };
+}
+
 async function main() {
   log(APPLY ? "MODE: APPLY (haqiqiy migratsiya)" : "MODE: STATUS (faqat ko'rsatish)");
 
@@ -301,7 +317,18 @@ async function main() {
     }
   }
 
-  const allTasks = [...movieTasks, ...episodeTasks];
+  log("Drive reklama videolari olinmoqda...");
+  let adVideos = [];
+  try {
+    adVideos = await listAdVideos();
+  } catch (error) {
+    log(`  Reklama videolari olinmadi (skip): ${error.message}`);
+  }
+  const adTasks = adVideos
+    .filter((v) => v.id && isVideoFile(v.name, v.mimeType))
+    .map(adVideoToTask);
+
+  const allTasks = [...movieTasks, ...episodeTasks, ...adTasks];
   const alreadyMigrated = allTasks.filter((t) => t.cdnUrl);
   const needsMigrate = allTasks.filter((t) => !t.cdnUrl);
   const mkvCount = needsMigrate.filter((t) => isMkvFile(t.fileName, t.mimeType)).length;
@@ -309,6 +336,7 @@ async function main() {
   log("");
   log(`Kinolar:          ${movieTasks.length}`);
   log(`Serial:           ${seriesList.length} ta serial, ${episodeTasks.length} ta epizod`);
+  log(`Reklama:          ${adTasks.length} ta video`);
   log(`Jami videolar:    ${allTasks.length}`);
   log(`  Allaqachon ko'chgan: ${alreadyMigrated.length}`);
   log(`  Migratsiya kerak:    ${needsMigrate.length}  (shundan MKV/konvert: ${mkvCount})`);

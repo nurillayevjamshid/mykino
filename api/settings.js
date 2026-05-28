@@ -235,15 +235,20 @@ function normalizePreRollVideoUrl(value) {
   }
 }
 
-function normalizePreRollAd(raw) {
+function normalizePreRollAd(raw, adCdnMap = null) {
   const source = raw && typeof raw === "object" ? raw : {};
   const skipRaw = Number(source.skipAfter);
   const skipAfter = Number.isFinite(skipRaw) ? Math.max(0, Math.min(60, Math.round(skipRaw))) : 5;
   const videoDriveId = trimString(source.videoDriveId).slice(0, 100);
+  let cdnUrl = "";
+  if (adCdnMap && typeof adCdnMap === "object" && videoDriveId) {
+    cdnUrl = normalizePreRollVideoUrl(adCdnMap[videoDriveId]);
+  }
   return {
     enabled: Boolean(source.enabled),
     videoDriveId,
     videoUrl: normalizePreRollVideoUrl(source.videoUrl),
+    cdnUrl,
     linkUrl: normalizeAdLinkUrl(source.linkUrl),
     skipAfter,
   };
@@ -254,7 +259,7 @@ async function readPersistedSettings(settings) {
     return {
       splashImageUrl: readStoredPublicImageUrl(settings.splashImageUrl),
       ad: normalizeAd(settings.ad),
-      preRollAd: normalizePreRollAd(settings.preRollAd),
+      preRollAd: normalizePreRollAd(settings.preRollAd, settings.adCdn),
     };
   }
 
@@ -263,7 +268,7 @@ async function readPersistedSettings(settings) {
     return {
       splashImageUrl: readStoredPublicImageUrl(folderSettings.splashImageUrl),
       ad: normalizeAd(folderSettings.ad),
-      preRollAd: normalizePreRollAd(folderSettings.preRollAd),
+      preRollAd: normalizePreRollAd(folderSettings.preRollAd, folderSettings.adCdn),
     };
   } catch {
     return { splashImageUrl: "", ad: normalizeAd(null), preRollAd: normalizePreRollAd(null) };
