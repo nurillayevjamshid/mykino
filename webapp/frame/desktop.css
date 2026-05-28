@@ -93,10 +93,12 @@
     transform: none !important;
   }
 
-  /* sidebar head */
+  /* sidebar head — balandlikni topbar bilan tenglashtiramiz (64px) */
   body.frame-desktop .sidebar__head {
-    padding: 22px 20px 18px !important;
-    border-bottom: 0 !important;
+    padding: 12px 20px !important;
+    min-height: 64px !important;
+    box-sizing: border-box !important;
+    border-bottom: 1px solid var(--fd-border-light) !important;
     background: transparent !important;
   }
   body.frame-desktop .sidebar__close { display: none !important; }
@@ -112,8 +114,8 @@
     letter-spacing: 1.4px !important;
   }
   body.frame-desktop .sidebar__brand .brand-logo {
-    width: 38px !important;
-    height: 38px !important;
+    width: 34px !important;
+    height: 34px !important;
     background: var(--fd-accent-teal-soft) !important;
     color: var(--fd-accent-teal) !important;
     border-radius: 12px !important;
