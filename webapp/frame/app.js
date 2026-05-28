@@ -1795,6 +1795,14 @@ function pickHeroSlides() {
 function renderHeroSlide(movie) {
   if (!movie) return;
   heroFeaturedMovie = movie;
+  try { window.__heroFeaturedMovie = movie; } catch (_) {}
+  try {
+    var heroInfoEl = document.getElementById("heroInfoButton");
+    if (heroInfoEl) {
+      var fav = (JSON.parse(localStorage.getItem("kino_wishlist_v1") || "[]") || []).map(String);
+      heroInfoEl.classList.toggle("is-active", fav.indexOf(String(movie.id)) >= 0);
+    }
+  } catch (_) {}
 
   const heroBackdrop = document.getElementById("heroBackdrop");
   const heroShimmer = document.getElementById("heroShimmer");

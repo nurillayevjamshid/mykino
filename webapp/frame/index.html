@@ -17,7 +17,7 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/frame/styles.css?v=20260528-frame05" />
-  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-pillnav03" />
+  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-herobtm01" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -806,7 +806,7 @@
     </div>
   </div>
 
-  <script src="/static/frame/app.js?v=20260528-frame04"></script>
+  <script src="/static/frame/app.js?v=20260528-herobtm01"></script>
   <script>
     /* ---- /frame desktop adapter ----
      * 1) Sidebar'ni doim ochiq holatda turg'azish
@@ -939,6 +939,46 @@
             if (origProfile) origProfile.click();
           });
           topControls.appendChild(profileBtn);
+        }
+
+        // ===== Hero "Sevimliga" tugmasi — heart icon + wishlist toggle =====
+        var heroInfo = document.getElementById('heroInfoButton');
+        if (heroInfo) {
+          heroInfo.setAttribute('aria-label', "Sevimlilarga qo'shish");
+          heroInfo.innerHTML =
+            '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+              '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>' +
+            '</svg>';
+          // Wishlist toggle (app.js'dagi openMovie chaqiruvini bloklash)
+          var WISH_KEY = 'kino_wishlist_v1';
+          function fxSyncHeart() {
+            try {
+              var movie = window.__heroFeaturedMovie;
+              if (!movie) return;
+              var ids = (JSON.parse(localStorage.getItem(WISH_KEY) || '[]') || []).map(String);
+              heroInfo.classList.toggle('is-active', ids.indexOf(String(movie.id)) >= 0);
+            } catch (_) {}
+          }
+          heroInfo.addEventListener('click', function(e){
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            var movie = window.__heroFeaturedMovie;
+            if (!movie || movie.id == null) return;
+            var ids = [];
+            try { ids = (JSON.parse(localStorage.getItem(WISH_KEY) || '[]') || []).map(String); } catch (_) {}
+            var sid = String(movie.id);
+            var idx = ids.indexOf(sid);
+            if (idx >= 0) ids.splice(idx, 1);
+            else ids.push(sid);
+            try { localStorage.setItem(WISH_KEY, JSON.stringify(ids)); } catch (_) {}
+            heroInfo.classList.toggle('is-active', idx < 0);
+            // Mavjud wishlist-toggle tugmalarini ham yangilash (kartochkalarda)
+            document.querySelectorAll('.wishlist-toggle[data-wishlist-id="' + sid + '"]').forEach(function(b){
+              b.classList.toggle('is-active', idx < 0);
+              b.setAttribute('aria-pressed', idx < 0 ? 'true' : 'false');
+            });
+          }, true);
+          fxSyncHeart();
         }
 
         // ===== Hero side arrows (StreamVerse uslubida) =====
