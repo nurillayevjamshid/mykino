@@ -82,14 +82,6 @@
               <span class="nav-text">Reklama</span>
             </a>
           </li>
-          <li class="nav-item" data-section="broadcast">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <span class="nav-text">Xabar yuborish</span>
-            </a>
-          </li>
         </ul>
       </nav>
 
@@ -486,79 +478,6 @@
           </div>
         </section>
 
-        <!-- Broadcast Section -->
-        <section class="content-section" id="broadcastSection">
-          <div class="section-header">
-            <h2>Barcha obunachilarga xabar yuborish</h2>
-          </div>
-
-          <div class="broadcast-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:24px;align-items:start;">
-            <form id="broadcastForm" class="modal-form" style="background:var(--surface-bg,#fff);border:1px solid var(--border,#e3e6ec);border-radius:14px;padding:20px;">
-              <div class="form-group">
-                <label>Xabar matni</label>
-                <textarea id="broadcastText" class="form-input" rows="8" maxlength="4000" placeholder="Bu yerga foydalanuvchilarga ko'rinadigan matn..."></textarea>
-                <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-top:4px;">
-                  <span>Maks: 4000 belgi (rasm bilan 1024)</span>
-                  <span><span id="broadcastTextCount">0</span> / 4000</span>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>Rasm URL (ixtiyoriy)</label>
-                <input type="url" id="broadcastPhotoUrl" class="form-input" placeholder="https://...">
-                <small style="color:#888;">Agar rasm bo'lsa, matn caption sifatida ketadi (1024 belgi maks).</small>
-              </div>
-
-              <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div>
-                  <label>Tugma matni (ixtiyoriy)</label>
-                  <input type="text" id="broadcastButtonText" class="form-input" placeholder="Masalan: Kinoga o'tish">
-                </div>
-                <div>
-                  <label>Tugma URL</label>
-                  <input type="url" id="broadcastButtonUrl" class="form-input" placeholder="https://...">
-                </div>
-              </div>
-
-              <div class="form-group" style="display:flex;flex-direction:column;gap:8px;">
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                  <input type="checkbox" id="broadcastParseHtml"> HTML formatlash (<b>, <i>, <a>)
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                  <input type="checkbox" id="broadcastSilent"> Ovozsiz yuborish
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                  <input type="checkbox" id="broadcastDisablePreview"> Web preview yopiq
-                </label>
-              </div>
-
-              <div class="form-actions" style="display:flex;gap:12px;margin-top:16px;">
-                <button type="button" class="btn btn-secondary" id="broadcastPreviewBtn">Ko'rib chiqish</button>
-                <button type="submit" class="btn btn-primary" id="broadcastSendBtn">Yuborish</button>
-              </div>
-
-              <div id="broadcastResult" style="margin-top:16px;"></div>
-            </form>
-
-            <aside style="background:var(--surface-bg,#fff);border:1px solid var(--border,#e3e6ec);border-radius:14px;padding:20px;position:sticky;top:80px;">
-              <h3 style="margin:0 0 12px;font-size:15px;">Ko'rinish</h3>
-              <div id="broadcastPreview" style="background:#0f131a;color:#fff;border-radius:12px;padding:14px;min-height:120px;font-size:14px;line-height:1.4;">
-                <div style="opacity:0.5;">Matn kiriting...</div>
-              </div>
-              <div style="margin-top:16px;font-size:13px;color:#666;">
-                <strong id="broadcastUserCount">—</strong> ta obunachi ro'yxatda.
-                <br><br>
-                <strong>Eslatma:</strong>
-                <ul style="padding-left:18px;margin:6px 0;">
-                  <li>Telegram 30 xabar/sek limit</li>
-                  <li>~50ms kechikish bilan yuboriladi</li>
-                  <li>Bloklagan yoki o'chirgan foydalanuvchilar "failed" deb hisoblanadi</li>
-                </ul>
-              </div>
-            </aside>
-          </div>
-        </section>
-
         <!-- Reklama Section -->
         <section class="content-section" id="adSection">
           <div class="ad-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--border,#e3e6ec);flex-wrap:wrap;">
@@ -583,6 +502,9 @@
                   <span class="ad-visibility-toggle__knob"></span>
                 </span>
               </label>
+            </div>
+            <div class="ad-tab-item" data-ad-tab-item="broadcast">
+              <button type="button" class="ad-tab" data-ad-tab="broadcast" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">Xabar yuborish</button>
             </div>
           </div>
 
@@ -696,6 +618,79 @@
 
             <div id="preRollAdSaveStatus" style="margin-top:12px;font-size:13px;"></div>
           </div>
+          </div>
+
+          <!-- Xabar yuborish (Broadcast) tab -->
+          <div class="ad-tabpanel" data-ad-tabpanel="broadcast" hidden>
+            <div class="section-header">
+              <h2>Barcha obunachilarga xabar yuborish</h2>
+            </div>
+
+            <div class="broadcast-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:24px;align-items:start;">
+              <form id="broadcastForm" class="modal-form" style="background:var(--surface-bg,#fff);border:1px solid var(--border,#e3e6ec);border-radius:14px;padding:20px;">
+                <div class="form-group">
+                  <label>Xabar matni</label>
+                  <textarea id="broadcastText" class="form-input" rows="8" maxlength="4000" placeholder="Bu yerga foydalanuvchilarga ko'rinadigan matn..."></textarea>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-top:4px;">
+                    <span>Maks: 4000 belgi (rasm bilan 1024)</span>
+                    <span><span id="broadcastTextCount">0</span> / 4000</span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Rasm URL (ixtiyoriy)</label>
+                  <input type="url" id="broadcastPhotoUrl" class="form-input" placeholder="https://...">
+                  <small style="color:#888;">Agar rasm bo'lsa, matn caption sifatida ketadi (1024 belgi maks). <strong>Faqat JPG/PNG/WebP</strong> — SVG/GIF qabul qilinmaydi.</small>
+                </div>
+
+                <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div>
+                    <label>Tugma matni (ixtiyoriy)</label>
+                    <input type="text" id="broadcastButtonText" class="form-input" placeholder="Masalan: Kinoga o'tish">
+                  </div>
+                  <div>
+                    <label>Tugma URL</label>
+                    <input type="url" id="broadcastButtonUrl" class="form-input" placeholder="https://...">
+                  </div>
+                </div>
+
+                <div class="form-group" style="display:flex;flex-direction:column;gap:8px;">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="broadcastParseHtml"> HTML formatlash (<b>, <i>, <a>)
+                  </label>
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="broadcastSilent"> Ovozsiz yuborish
+                  </label>
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="broadcastDisablePreview"> Web preview yopiq
+                  </label>
+                </div>
+
+                <div class="form-actions" style="display:flex;gap:12px;margin-top:16px;">
+                  <button type="button" class="btn btn-secondary" id="broadcastPreviewBtn">Ko'rib chiqish</button>
+                  <button type="submit" class="btn btn-primary" id="broadcastSendBtn">Yuborish</button>
+                </div>
+
+                <div id="broadcastResult" style="margin-top:16px;"></div>
+              </form>
+
+              <aside style="background:var(--surface-bg,#fff);border:1px solid var(--border,#e3e6ec);border-radius:14px;padding:20px;position:sticky;top:80px;">
+                <h3 style="margin:0 0 12px;font-size:15px;">Ko'rinish</h3>
+                <div id="broadcastPreview" style="background:#0f131a;color:#fff;border-radius:12px;padding:14px;min-height:120px;font-size:14px;line-height:1.4;">
+                  <div style="opacity:0.5;">Matn kiriting...</div>
+                </div>
+                <div style="margin-top:16px;font-size:13px;color:#666;">
+                  <strong id="broadcastUserCount">—</strong> ta obunachi ro'yxatda.
+                  <br><br>
+                  <strong>Eslatma:</strong>
+                  <ul style="padding-left:18px;margin:6px 0;">
+                    <li>Telegram 30 xabar/sek limit</li>
+                    <li>~50ms kechikish bilan yuboriladi</li>
+                    <li>Bloklagan yoki o'chirgan foydalanuvchilar "failed" deb hisoblanadi</li>
+                  </ul>
+                </div>
+              </aside>
+            </div>
           </div>
         </section>
 
@@ -957,18 +952,10 @@
             <span>Reklama</span>
           </button>
         </li>
-        <li class="more-sheet-item">
-          <button type="button" data-section="broadcast">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-            <span>Xabar yuborish</span>
-          </button>
-        </li>
       </ul>
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20260528-users-tab01"></script>
+  <script src="/admin/admin.js?v=20260528-broadcast-tab01"></script>
 </body>
 </html>
