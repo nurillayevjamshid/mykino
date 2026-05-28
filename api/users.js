@@ -180,7 +180,9 @@ module.exports = async function handler(request, response) {
 
   try {
     if (request.method === "GET") {
-      const isDebug = /[?&]_debug=1/.test(reqUrl);
+      const debugMatch = /[?&]_debug=([^&]+)/.exec(reqUrl);
+      const expectedAdmin = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
+      const isDebug = debugMatch && decodeURIComponent(debugMatch[1]) === expectedAdmin;
       const [r2Outcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
         (async () => {
           try { return { ok: true, users: await readUsersFromR2() }; }
@@ -222,6 +224,36 @@ module.exports = async function handler(request, response) {
       return;
     }
 
+    if (request.method === "DELETE") {
+      const body = await readRequestBody(request);
+      const password = trimStr(body.password);
+      const expected = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
+      if (password !== expected) {
+        response.status(401).json({ ok: false, error: "Parol noto'g'ri." });
+        return;
+      }
+      const telegramId = trimStr(body.telegram_id || body.telegramId || body.id);
+      if (!telegramId) {
+        response.status(400).json({ ok: false, error: "telegram_id kerak." });
+        return;
+      }
+      let r2Ok = false, r2Err = null, blobOk = false, blobErr = null;
+      try {
+        const data = (await getJsonFromR2Signed(R2_USERS_KEY, null)) || { users: [] };
+        const list = (Array.isArray(data.users) ? data.users : []).filter(u => String(u.telegram_id) !== String(telegramId));
+        await putJsonToR2(R2_USERS_KEY, { users: list, updatedAt: new Date().toISOString() });
+        r2Ok = true;
+      } catch (err) { r2Err = err?.message || String(err); }
+      try {
+        const blob = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
+        const list = (Array.isArray(blob.users) ? blob.users : []).filter(u => String(u.telegram_id) !== String(telegramId));
+        await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
+        blobOk = true;
+      } catch (err) { blobErr = err?.message || String(err); }
+      response.status(200).json({ ok: r2Ok || blobOk, r2Ok, blobOk, r2Err, blobErr });
+      return;
+    }
+
     if (request.method === "POST") {
       const body = await readRequestBody(request);
       const next = normalizeUser(body);
@@ -258,10 +290,10 @@ module.exports = async function handler(request, response) {
         blobOk = true;
       } catch (err) { blobErr = err?.message || String(err); }
       if (!r2Ok && !blobOk) {
-        response.status(502).json({ ok: false, error: r2Err || blobErr || "Saqlash xato.", r2Err, blobErr });
+        response.status(502).json({ ok: false, error: r2Err || blobErr || "Saqlash xato." });
         return;
       }
-      response.status(200).json({ ok: true, user: saved, r2Ok, blobOk, r2Err, blobErr });
+      response.status(200).json({ ok: true, user: saved });
       return;
     }
 
