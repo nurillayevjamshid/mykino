@@ -118,36 +118,62 @@
     gap: 10px !important;
   }
   body.frame-desktop .topbar .brand-logo {
-    width: 36px !important;
-    height: 36px !important;
+    width: 34px !important;
+    height: 34px !important;
     color: #fff !important;
-    background: var(--fx-primary) !important;
-    border-radius: 8px !important;
+    background: linear-gradient(135deg, #1f8bff 0%, #6e5aff 100%) !important;
+    border-radius: 10px !important;
     display: grid !important;
     place-items: center !important;
-    box-shadow: 0 4px 14px rgba(31,139,255,0.35);
+    box-shadow:
+      0 6px 18px rgba(31,139,255,0.45),
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -8px 14px rgba(0,0,0,0.15) !important;
+    position: relative !important;
+    overflow: hidden !important;
   }
-  body.frame-desktop .topbar .brand-logo svg { width: 20px !important; height: 20px !important; color: #fff !important; }
-  body.frame-desktop .topbar .brand-logo svg circle { stroke: transparent !important; }
-  body.frame-desktop .topbar .brand-logo svg path { fill: #fff !important; }
+  body.frame-desktop .topbar .brand-logo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.35) 0%, transparent 55%);
+    pointer-events: none;
+  }
+  body.frame-desktop .topbar .brand-logo svg {
+    width: 18px !important;
+    height: 18px !important;
+    color: #fff !important;
+    position: relative;
+    z-index: 1;
+  }
+  body.frame-desktop .topbar .brand-logo svg circle {
+    stroke: rgba(255,255,255,0.85) !important;
+    stroke-width: 1.6 !important;
+  }
+  body.frame-desktop .topbar .brand-logo svg path { fill: #fff !important; stroke: #fff !important; }
   body.frame-desktop .topbar .brand-text {
     display: flex !important;
     flex-direction: row !important;
     align-items: baseline !important;
     gap: 0 !important;
+    line-height: 1 !important;
   }
   body.frame-desktop .topbar .brand-text__top {
-    color: var(--fx-text) !important;
-    font-size: 18px !important;
+    background: linear-gradient(135deg, #1f8bff 0%, #6e5aff 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    font-size: 17px !important;
     font-weight: 800 !important;
-    letter-spacing: 0.02em !important;
+    letter-spacing: 0.04em !important;
     text-transform: uppercase !important;
   }
   body.frame-desktop .topbar .brand-text__bottom {
     color: var(--fx-text) !important;
-    font-size: 18px !important;
+    font-size: 17px !important;
     font-weight: 800 !important;
-    letter-spacing: 0.02em !important;
+    letter-spacing: 0.04em !important;
     text-transform: uppercase !important;
   }
 
@@ -345,6 +371,21 @@
     background: rgba(255,255,255,0.12) !important;
     border-color: rgba(255,255,255,0.18) !important;
     transform: translateY(-1px);
+  }
+  /* Icon-only variant — xuddi bell tugmasidek */
+  .fx-profile--icon {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: grid !important;
+    place-items: center !important;
+    gap: 0 !important;
+  }
+  .fx-profile--icon svg {
+    width: 18px !important;
+    height: 18px !important;
+    color: var(--fx-text) !important;
   }
   .fx-profile__avatar {
     width: 28px;

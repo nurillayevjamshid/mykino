@@ -17,7 +17,7 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/frame/styles.css?v=20260528-frame05" />
-  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-pillnav01" />
+  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-pillnav02" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -849,8 +849,7 @@
           var links = [
             { id: 'home', label: 'Bosh sahifa', action: 'home' },
             { id: 'series', label: 'Seriallar', action: 'series' },
-            { id: 'movies', label: 'Kinolar', action: 'movies' },
-            { id: 'new', label: 'Yangi va trend', action: 'new' },
+            { id: 'categories', label: 'Kategoriyalar', action: 'categories' },
             { id: 'mylist', label: 'Sevimlilar', action: 'favorites' }
           ];
           links.forEach(function(item, idx){
@@ -863,16 +862,21 @@
               nav.querySelectorAll('.fx-topnav__link').forEach(function(b){ b.classList.remove('is-active'); });
               btn.classList.add('is-active');
               try {
-                if (item.action === 'home' || item.action === 'movies' || item.action === 'new') {
-                  // "Bosh sahifa" / "Kinolar" / "Yangi" — kinolar tarmoq ko'rinishi
+                if (item.action === 'home') {
                   var allBtn = document.querySelector('.bottom-bar__button[data-filter="all"]');
                   if (allBtn) allBtn.click();
-                  if (item.action === 'new') {
-                    window.scrollTo({ top: document.querySelector('.movie-grid')?.offsetTop || 0, behavior: 'smooth' });
-                  } else {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else if (item.action === 'series') {
+                  // Seriallar — to'g'ridan-to'g'ri seriallar ro'yxati ko'rinishi
+                  var serBtn = document.querySelector('[data-sidebar-action="series"], [data-action="series-list"]');
+                  if (serBtn) {
+                    serBtn.click();
+                  } else {
+                    // fallback: kategoriya ko'rinishi
+                    var catv = document.querySelector('.bottom-bar__button[data-action="categories-view"]');
+                    if (catv) catv.click();
+                  }
+                } else if (item.action === 'categories') {
                   var catBtn = document.querySelector('.bottom-bar__button[data-action="categories-view"]');
                   if (catBtn) catBtn.click();
                 } else if (item.action === 'favorites') {
@@ -919,21 +923,17 @@
           topControls.appendChild(bell);
         }
 
-        // ===== Profile pill (avatar + ism + caret) =====
+        // ===== Profile (icon-only, bell uslubida) =====
         if (topControls) {
           var profileBtn = document.createElement('button');
           profileBtn.type = 'button';
-          profileBtn.className = 'fx-profile';
+          profileBtn.className = 'fx-profile fx-profile--icon';
           profileBtn.setAttribute('aria-label', 'Profil');
-          var initials = (document.getElementById('headerAvatar')?.textContent || 'KI').trim();
-          var photo = document.getElementById('headerAvatarPhoto');
-          var photoSrc = photo && !photo.hidden ? photo.getAttribute('src') : '';
           profileBtn.innerHTML =
-            '<span class="fx-profile__avatar">' +
-              (photoSrc ? '<img alt="" src="' + photoSrc + '">' : '<span>' + initials + '</span>') +
-            '</span>' +
-            '<span class="fx-profile__name">Profil</span>' +
-            '<svg class="fx-profile__caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+              '<circle cx="12" cy="8" r="4"></circle>' +
+              '<path d="M4 21a8 8 0 0 1 16 0"></path>' +
+            '</svg>';
           profileBtn.addEventListener('click', function(){
             var origProfile = document.querySelector('.bottom-bar__button[data-action="profile"]');
             if (origProfile) origProfile.click();
