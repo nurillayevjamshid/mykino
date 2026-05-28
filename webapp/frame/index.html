@@ -16,8 +16,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/frame/styles.css?v=20260528-frame03" />
-  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-frame03" />
+  <link rel="stylesheet" href="/static/frame/styles.css?v=20260528-frame04" />
+  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-frame04" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -806,7 +806,7 @@
     </div>
   </div>
 
-  <script src="/static/frame/app.js?v=20260528-frame03"></script>
+  <script src="/static/frame/app.js?v=20260528-frame04"></script>
   <script>
     /* ---- /frame desktop adapter ----
      * 1) Sidebar'ni doim ochiq holatda turg'azish
@@ -847,6 +847,29 @@
         // Hamburger tugmani yashirish (sidebar doim ochiq)
         var menuBtn = document.getElementById('topbarMenuButton');
         if (menuBtn) menuBtn.style.display = 'none';
+
+        // Search inputni topbar'ga inline ko'chirish (doimiy ochiq, search icon chap tomonida)
+        var searchPanel = document.getElementById('searchPanel');
+        var searchTriggerWrap = document.querySelector('.topbar-search');
+        if (searchPanel && topControls && searchTriggerWrap) {
+          searchPanel.removeAttribute('hidden');
+          searchPanel.classList.add('frame-inline-search');
+          // search panelni search trigger wrap'idan oldin qo'yamiz => input chapda, icon o'ngda
+          topControls.insertBefore(searchPanel, searchTriggerWrap);
+          // search trigger button'ini bosish endi shart emas — input doimiy ochiq
+          var searchTrigger = searchTriggerWrap.querySelector('.topbar-search__trigger');
+          if (searchTrigger) {
+            searchTrigger.setAttribute('aria-hidden', 'true');
+            searchTrigger.setAttribute('tabindex', '-1');
+            // klikni input'ga fokus berishga aylantiramiz
+            searchTrigger.addEventListener('click', function(e){
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              var inp = document.getElementById('searchInput');
+              if (inp) inp.focus();
+            }, true);
+          }
+        }
       }
 
       if (document.readyState === 'loading') {
