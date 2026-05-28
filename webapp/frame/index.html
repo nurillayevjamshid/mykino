@@ -17,7 +17,7 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/frame/styles.css?v=20260528-frame05" />
-  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-flixstream02" />
+  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-streamverse01" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -906,7 +906,7 @@
           }
           // Placeholder'ni FlixStream'ga moslashtirish
           var sInput = document.getElementById('searchInput');
-          if (sInput) sInput.setAttribute('placeholder', 'Qidirish');
+          if (sInput) sInput.setAttribute('placeholder', 'Kino, serial qidirish...');
         }
 
         // ===== Bell tugmasi =====
@@ -939,6 +939,46 @@
             if (origProfile) origProfile.click();
           });
           topControls.appendChild(profileBtn);
+        }
+
+        // ===== Hero side arrows (StreamVerse uslubida) =====
+        var heroSection = document.getElementById('heroSection');
+        if (heroSection) {
+          function fxHeroNav(direction) {
+            // existing swipe handler'ni synthetic touch bilan ishga tushiramiz
+            var rect = heroSection.getBoundingClientRect();
+            var startX = rect.left + rect.width / 2;
+            var endX = startX - direction * 120; // chap = -1 prev, o'ng = +1 next
+            var y = rect.top + rect.height / 2;
+            try {
+              var t1 = new Touch({ identifier: 9001, target: heroSection, clientX: startX, clientY: y, pageX: startX, pageY: y });
+              heroSection.dispatchEvent(new TouchEvent('touchstart', {
+                touches: [t1], targetTouches: [t1], changedTouches: [t1],
+                bubbles: true, cancelable: true
+              }));
+              var t2 = new Touch({ identifier: 9001, target: heroSection, clientX: endX, clientY: y, pageX: endX, pageY: y });
+              heroSection.dispatchEvent(new TouchEvent('touchend', {
+                touches: [], targetTouches: [], changedTouches: [t2],
+                bubbles: true, cancelable: true
+              }));
+            } catch (e) { /* TouchEvent qo'llab-quvvatlanmagan brauzer */ }
+          }
+          function makeArrow(dir, cls, label) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'fx-hero-arrow ' + cls;
+            b.setAttribute('aria-label', label);
+            b.innerHTML = (dir > 0)
+              ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>'
+              : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>';
+            b.addEventListener('click', function(e){
+              e.stopPropagation();
+              fxHeroNav(dir);
+            });
+            return b;
+          }
+          heroSection.appendChild(makeArrow(-1, 'fx-hero-arrow--prev', 'Oldingi'));
+          heroSection.appendChild(makeArrow(1,  'fx-hero-arrow--next', 'Keyingi'));
         }
 
         // ===== Topbar scroll background =====
