@@ -40,11 +40,14 @@
   html { color-scheme: dark; }
 
   /* ====== Mobile-bound styles.css qoidalarini bekor qilish (Disney+ banner) ====== */
-  body.frame-desktop .hero__title,
-  body.frame-desktop .hero__desc,
   body.frame-desktop .hero__info,
   body.frame-desktop #heroPlayLabel {
     display: revert !important;
+  }
+  /* Foydalanuvchi so'roviga ko'ra: hero'da kino nomi va tavsifi yashirin */
+  body.frame-desktop .hero__title,
+  body.frame-desktop .hero__desc {
+    display: none !important;
   }
   body.frame-desktop .hero {
     aspect-ratio: auto !important;
