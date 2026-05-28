@@ -34,6 +34,8 @@
     color: var(--fx-text) !important;
     min-height: 100vh;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
   }
   html { color-scheme: dark; }
 
@@ -424,7 +426,9 @@
 
   /* ====== HERO — rounded card (StreamVerse style) ====== */
   body.frame-desktop .hero {
-    margin: 100px var(--fx-page-pad) 0 !important;
+    margin: 100px auto 0 !important;
+    width: calc(100% - 64px) !important;
+    max-width: 1180px !important;
     padding: 0 !important;
     border-radius: var(--fx-radius-xl) !important;
     overflow: hidden !important;
@@ -436,6 +440,7 @@
     align-items: center !important;
     box-shadow: 0 14px 44px rgba(0,0,0,0.4) !important;
     border: 1px solid var(--fx-border) !important;
+    box-sizing: border-box !important;
   }
   body.frame-desktop .hero__bg {
     position: absolute !important;
@@ -648,15 +653,21 @@
     display: grid !important;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
     gap: 22px 14px !important;
-    padding: 36px var(--fx-page-pad) !important;
-    margin: 0 !important;
+    padding: 36px 0 !important;
+    margin: 0 auto !important;
+    width: calc(100% - 64px) !important;
+    max-width: 1180px !important;
     background: var(--fx-bg) !important;
+    box-sizing: border-box !important;
   }
 
   /* category-row (horizontal scrolling section) */
   body.frame-desktop .category-row {
-    padding: 0 var(--fx-page-pad) !important;
-    margin: 32px 0 !important;
+    padding: 0 !important;
+    margin: 32px auto !important;
+    width: calc(100% - 64px) !important;
+    max-width: 1180px !important;
+    box-sizing: border-box !important;
   }
   body.frame-desktop .category-row__head {
     display: flex !important;
@@ -781,8 +792,12 @@
   /* ====== CATEGORIES ====== */
   body.frame-desktop .categories-view,
   body.frame-desktop .category-detail-view {
-    padding: calc(var(--fx-topbar-h) + 28px) var(--fx-page-pad) 36px !important;
+    padding: calc(var(--fx-topbar-h) + 48px) 0 36px !important;
+    margin: 0 auto !important;
+    width: calc(100% - 64px) !important;
+    max-width: 1180px !important;
     background: var(--fx-bg) !important;
+    box-sizing: border-box !important;
   }
   body.frame-desktop .categories-view__title,
   body.frame-desktop .category-detail-view__title {
@@ -820,13 +835,16 @@
 
   /* ====== FOOTER ====== */
   body.frame-desktop .app-footer {
-    margin: 0 !important;
-    padding: 40px var(--fx-page-pad) !important;
+    margin: 40px auto 0 !important;
+    padding: 40px 0 !important;
+    width: calc(100% - 64px) !important;
+    max-width: 1180px !important;
     background: var(--fx-bg) !important;
     border: 0 !important;
     border-top: 1px solid var(--fx-border) !important;
     border-radius: 0 !important;
     color: var(--fx-text-muted) !important;
+    box-sizing: border-box !important;
   }
   body.frame-desktop .app-footer__brand .app-footer__name {
     color: var(--fx-text) !important;
