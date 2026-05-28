@@ -41,6 +41,17 @@
               <span class="nav-text">Kinolar</span>
             </a>
           </li>
+          <li class="nav-item" data-section="users">
+            <a href="#" class="nav-link">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span class="nav-text">Obunachilar</span>
+            </a>
+          </li>
           <li class="nav-item" data-section="music">
             <a href="#" class="nav-link">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -902,11 +913,22 @@
     </ul>
   </nav>
 
-  <!-- "Boshqa" sheet — Kategoriyalar + Reklama -->
+  <!-- "Boshqa" sheet — Obunachilar + Kategoriyalar + Reklama -->
   <div class="more-sheet" id="moreSheet" role="dialog" aria-modal="true" aria-label="Qo'shimcha bo'limlar">
     <div class="more-sheet-content">
       <div class="more-sheet-handle"></div>
       <ul class="more-sheet-list">
+        <li class="more-sheet-item">
+          <button type="button" data-section="users">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>Obunachilar</span>
+          </button>
+        </li>
         <li class="more-sheet-item">
           <button type="button" data-section="categories">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -931,6 +953,6 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20260526-ad-toggle01"></script>
+  <script src="/admin/admin.js?v=20260528-users-tab01"></script>
 </body>
 </html>
