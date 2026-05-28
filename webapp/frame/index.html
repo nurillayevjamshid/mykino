@@ -17,7 +17,7 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/frame/styles.css?v=20260528-frame05" />
-  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-herobtm04" />
+  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-herobtm05" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -948,16 +948,32 @@
           heroInfo.innerHTML =
             '<svg viewBox="0 0 24 24" aria-hidden="true">' +
               '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>' +
-            '</svg>';
+            '</svg>' +
+            '<span class="fx-heroinfo-label">Sevimliga</span>';
           // Wishlist toggle (app.js'dagi openMovie chaqiruvini bloklash)
           var WISH_KEY = 'kino_wishlist_v1';
+          function fxSetHeartLabel(active) {
+            var lbl = heroInfo.querySelector('.fx-heroinfo-label');
+            if (lbl) lbl.textContent = active ? 'Saqlandi' : 'Sevimliga';
+          }
           function fxSyncHeart() {
             try {
               var movie = window.__heroFeaturedMovie;
-              if (!movie) return;
+              if (!movie) {
+                heroInfo.classList.remove('is-active');
+                fxSetHeartLabel(false);
+                return;
+              }
               var ids = (JSON.parse(localStorage.getItem(WISH_KEY) || '[]') || []).map(String);
-              heroInfo.classList.toggle('is-active', ids.indexOf(String(movie.id)) >= 0);
+              var on = ids.indexOf(String(movie.id)) >= 0;
+              heroInfo.classList.toggle('is-active', on);
+              fxSetHeartLabel(on);
             } catch (_) {}
+          }
+          // Slayd o'zgarganda label ham yangilanishi uchun observer
+          var heroTitleObs = document.getElementById('heroTitle');
+          if (heroTitleObs && 'MutationObserver' in window) {
+            new MutationObserver(fxSyncHeart).observe(heroTitleObs, { childList: true, characterData: true, subtree: true });
           }
           heroInfo.addEventListener('click', function(e){
             e.stopImmediatePropagation();
@@ -972,6 +988,7 @@
             else ids.push(sid);
             try { localStorage.setItem(WISH_KEY, JSON.stringify(ids)); } catch (_) {}
             heroInfo.classList.toggle('is-active', idx < 0);
+            fxSetHeartLabel(idx < 0);
             // Mavjud wishlist-toggle tugmalarini ham yangilash (kartochkalarda)
             document.querySelectorAll('.wishlist-toggle[data-wishlist-id="' + sid + '"]').forEach(function(b){
               b.classList.toggle('is-active', idx < 0);
