@@ -615,13 +615,16 @@
     place-items: unset !important;
   }
   body.frame-desktop .hero__info::before { content: none !important; }
-  body.frame-desktop .hero__info::after {
-    content: "Sevimliga";
-    font-size: 13.5px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    line-height: 1;
+  body.frame-desktop .hero__info::after { content: none !important; }
+  body.frame-desktop .hero__info .fx-heroinfo-label {
+    display: inline-block !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    line-height: 1 !important;
+    color: inherit !important;
+    white-space: nowrap !important;
   }
   body.frame-desktop .hero__info:hover {
     background: rgba(255, 255, 255, 0.14) !important;
@@ -645,9 +648,7 @@
     border-color: rgba(255, 93, 143, 0.5) !important;
     background: rgba(255, 93, 143, 0.12) !important;
   }
-  body.frame-desktop .hero__info.is-active::after {
-    content: "Saqlandi";
-  }
+  body.frame-desktop .hero__info.is-active::after { content: none !important; }
   body.frame-desktop .hero__info.is-active svg {
     fill: #ff5d8f !important;
     color: #ff5d8f !important;
