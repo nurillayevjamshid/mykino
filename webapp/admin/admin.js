@@ -16,7 +16,6 @@ const SECTION_TITLES = {
   music: 'Musiqa',
   categories: 'Kategoriyalar',
   users: 'Obunachilar',
-  broadcast: 'Xabar yuborish',
   ad: 'Reklama',
 };
 
@@ -446,7 +445,6 @@ function switchSection(name) {
     music: 'musicSection',
     categories: 'categoriesSection',
     users: 'usersSection',
-    broadcast: 'broadcastSection',
     ad: 'adSection',
   };
   const targetId = sections[name];
@@ -467,7 +465,6 @@ function switchSection(name) {
 
   if (name === 'users') fetchUsers();
   if (name === 'music') fetchMusic();
-  if (name === 'broadcast') initBroadcastSection();
   if (name === 'categories') fetchCategories();
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
 
@@ -1443,6 +1440,7 @@ function switchAdTab(name) {
   document.querySelectorAll('.ad-tabpanel').forEach(panel => {
     panel.hidden = panel.dataset.adTabpanel !== name;
   });
+  if (name === 'broadcast') initBroadcastSection();
 }
 
 function normalizeSeriesFromApi(item) {
