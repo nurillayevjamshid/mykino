@@ -1,5 +1,6 @@
 const {
   readCatalogMetadata,
+  writeCatalogMetadata,
   setCors,
 } = require("./_lib/google-drive");
 const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
@@ -190,13 +191,33 @@ module.exports = async function handler(request, response) {
         response.status(400).json({ ok: false, error: "telegram_id kerak." });
         return;
       }
-      const data = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
-      const list = Array.isArray(data.users) ? data.users : [];
-      const idx = list.findIndex(u => String(u.telegram_id) === String(next.telegram_id));
-      const merged = { ...(idx >= 0 ? list[idx] : {}), ...next };
-      if (idx >= 0) list[idx] = merged; else list.push(merged);
-      await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
-      response.status(200).json({ ok: true, user: merged });
+      // Drive — primary. Blob — best-effort (may be suspended).
+      let saved = next;
+      let driveErr = null;
+      try {
+        const metadataState = await readCatalogMetadata();
+        const data = metadataState.data || {};
+        const existing = readUsersFromMetadata(data);
+        const filtered = existing.filter(u => String(u.telegram_id) !== String(next.telegram_id));
+        const prev = existing.find(u => String(u.telegram_id) === String(next.telegram_id));
+        saved = { ...(prev || {}), ...next, started_at: prev?.started_at || next.started_at };
+        filtered.push(saved);
+        filtered.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
+        data.users = filtered;
+        await writeCatalogMetadata(data, metadataState.file);
+      } catch (err) {
+        driveErr = err;
+      }
+      try {
+        const blob = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
+        const list = Array.isArray(blob.users) ? blob.users : [];
+        const idx = list.findIndex(u => String(u.telegram_id) === String(next.telegram_id));
+        const merged = { ...(idx >= 0 ? list[idx] : {}), ...next };
+        if (idx >= 0) list[idx] = merged; else list.push(merged);
+        await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
+      } catch { /* Blob may be suspended — ignore */ }
+      if (driveErr && !saved) throw driveErr;
+      response.status(200).json({ ok: true, user: saved });
       return;
     }
 

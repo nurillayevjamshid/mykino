@@ -123,7 +123,9 @@
       "Bash(xxd /tmp/preroll-head.bin)",
       "Bash(git restore *)",
       "Bash(node --check api/broadcast.js)",
-      "Bash(node --check api/users.js)"
+      "Bash(node --check api/users.js)",
+      "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/users\" -w \"\\\\n--- HTTP %{http_code}\\\\n\")",
+      "Bash(node --check api/telegram-webhook.js)"
     ]
   }
 }

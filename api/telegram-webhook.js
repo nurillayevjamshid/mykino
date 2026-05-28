@@ -1,4 +1,5 @@
 const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
+const { readCatalogMetadata, writeCatalogMetadata } = require("./_lib/google-drive");
 
 const TG_API = "https://api.telegram.org";
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
@@ -79,24 +80,57 @@ async function answerCallback(callbackId, text = "") {
   } catch {}
 }
 
+async function upsertUserBlob(record) {
+  // Try to persist to Vercel Blob (legacy storage). Throws on suspended/missing token.
+  const data = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
+  const list = Array.isArray(data.users) ? data.users : [];
+  const idx = list.findIndex((u) => String(u.telegram_id) === String(record.telegram_id));
+  const merged = idx >= 0 ? { ...list[idx], ...record, started_at: list[idx].started_at || record.started_at } : record;
+  if (idx >= 0) list[idx] = merged;
+  else list.push(merged);
+  await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
+}
+
+async function upsertUserDrive(record) {
+  // Primary storage: Google Drive catalog metadata (.my-kino-metadata.json).
+  const metadataState = await readCatalogMetadata();
+  const data = metadataState.data || {};
+  const raw = data.users;
+  const list = Array.isArray(raw)
+    ? raw
+    : (raw && typeof raw === "object" ? Object.values(raw) : []);
+  const idx = list.findIndex((u) => String(u?.telegram_id) === String(record.telegram_id));
+  const merged = idx >= 0
+    ? { ...list[idx], ...record, started_at: list[idx]?.started_at || record.started_at }
+    : record;
+  if (idx >= 0) list[idx] = merged;
+  else list.push(merged);
+  data.users = list;
+  await writeCatalogMetadata(data, metadataState.file);
+}
+
 async function upsertUser(telegramUser) {
   if (!telegramUser?.id) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const record = {
+    telegram_id: telegramUser.id,
+    username: String(telegramUser.username || "").replace(/^@+/, ""),
+    first_name: String(telegramUser.first_name || ""),
+    started_at: today,
+  };
+  // Try Drive first (private, reliable). Always also try Blob (legacy) — don't fail the request if either fails.
+  let driveOk = false;
   try {
-    const data = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
-    const list = Array.isArray(data.users) ? data.users : [];
-    const idx = list.findIndex((u) => String(u.telegram_id) === String(telegramUser.id));
-    const today = new Date().toISOString().slice(0, 10);
-    const record = {
-      telegram_id: telegramUser.id,
-      username: String(telegramUser.username || "").replace(/^@+/, ""),
-      first_name: String(telegramUser.first_name || ""),
-      started_at: idx >= 0 ? list[idx].started_at || today : today,
-    };
-    if (idx >= 0) list[idx] = record;
-    else list.push(record);
-    await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
+    await upsertUserDrive(record);
+    driveOk = true;
   } catch (err) {
-    console.error("upsertUser error:", err.message);
+    console.error("upsertUser drive error:", err.message);
+  }
+  try {
+    await upsertUserBlob(record);
+  } catch (err) {
+    if (!driveOk) console.error("upsertUser blob error:", err.message);
+    // ignore if Blob is suspended — Drive is the source of truth
   }
 }
 

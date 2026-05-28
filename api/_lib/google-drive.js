@@ -296,18 +296,23 @@ function defaultMetadataPayload() {
     settings: {},
     movies: {},
     series: {},
+    users: [],
   };
 }
 
 function normalizeCatalogMetadata(payload) {
   const fallback = defaultMetadataPayload();
   if (!payload || typeof payload !== "object") return fallback;
+  let users = [];
+  if (Array.isArray(payload.users)) users = payload.users;
+  else if (payload.users && typeof payload.users === "object") users = Object.values(payload.users);
   return {
     version: Number(payload.version || 1) || 1,
     updatedAt: trimString(payload.updatedAt),
     settings: payload.settings && typeof payload.settings === "object" ? payload.settings : {},
     movies: payload.movies && typeof payload.movies === "object" ? payload.movies : {},
     series: payload.series && typeof payload.series === "object" ? payload.series : {},
+    users,
   };
 }
 
