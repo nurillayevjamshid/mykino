@@ -1,0 +1,112 @@
+/* =============================================================
+ * Desktop overrides for /frame
+ * Bu fayl webapp/frame/styles.css'dan keyin yuklanadi va faqat
+ * keng ekranlar (>= 900px) uchun layout'ni kengaytiradi.
+ * Mini app fayllariga (webapp/styles.css) ta'siri yo'q.
+ * ============================================================= */
+
+@media (min-width: 900px) {
+
+  /* asosiy konteyner — kengroq */
+  .app-shell {
+    width: min(100%, 1280px) !important;
+    max-width: 1280px !important;
+    padding: 24px 32px 120px !important;
+    grid-template-columns: 280px 1fr !important;
+    grid-template-areas:
+      "header  header"
+      "hero    hero"
+      "sidebar movies"
+      "sidebar movies" !important;
+    gap: 24px !important;
+  }
+
+  /* topbar to'liq kenglikda */
+  .topbar { grid-area: header; }
+
+  /* hero katta */
+  .hero-carousel {
+    grid-area: hero;
+    max-height: 480px;
+  }
+
+  /* chap sidebar: search + categories + tabs */
+  .search-panel,
+  .category-panel,
+  .quick-tabs {
+    grid-area: sidebar;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 0 16px !important;
+  }
+  .search-panel    { order: 1; }
+  .quick-tabs      { order: 2; }
+  .category-panel  { order: 3; }
+
+  /* CSS Grid bilan order ishlamaydi — JS DOM tartibi ishlatiladi. */
+
+  /* movies'ni o'ng tarafga */
+  #moviesSection,
+  .movies-section,
+  .movies-grid,
+  .movies-wrap {
+    grid-area: movies;
+  }
+
+  /* kinolar gridi — desktop'da 4-5 ustun */
+  .movies-grid,
+  .grid-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    gap: 16px !important;
+  }
+
+  /* poster kartochka hover effekt */
+  .movie-card,
+  .grid-card {
+    transition: transform .18s ease, box-shadow .18s ease;
+    cursor: pointer;
+  }
+  .movie-card:hover,
+  .grid-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,.18);
+  }
+
+  /* tugmalar hover */
+  button, .btn, .chip { transition: background-color .15s, transform .12s; }
+  button:hover, .btn:hover, .chip:hover { transform: translateY(-1px); }
+
+  /* sidebar drawer keng */
+  .sidebar { width: 360px !important; }
+
+  /* footer to'liq */
+  .app-footer { margin-top: 80px; }
+
+  /* modal kengroq */
+  .movie-modal__dialog,
+  .profile-modal__dialog,
+  .modal-dialog {
+    max-width: 720px !important;
+  }
+}
+
+/* juda katta ekranlar uchun yana kengroq */
+@media (min-width: 1400px) {
+  .app-shell {
+    width: min(100%, 1440px) !important;
+    max-width: 1440px !important;
+    grid-template-columns: 300px 1fr !important;
+  }
+  .movies-grid,
+  .grid-list {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+  }
+}
+
+/* kichik joylar — telegram mini app stubsiga (BackButton, MainButton)
+ * desktop'da odatda kerak emas, mayli ko'rinmasin */
+.tg-only,
+.mobile-only {
+  display: none !important;
+}
