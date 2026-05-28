@@ -5298,9 +5298,10 @@ async function loadAppSettings() {
       }
       if (data && data.preRollAd) {
         const pr = data.preRollAd;
-        const playUrl = pr.videoDriveId
-          ? buildDriveStreamUrl(pr.videoDriveId)
-          : (pr.videoUrl || "");
+        // R2 cdnUrl mavjud bo'lsa — tezroq ochiladi. Aks holda Drive stream.
+        const cdnUrl = String(pr.cdnUrl || "").trim();
+        const playUrl = cdnUrl
+          || (pr.videoDriveId ? buildDriveStreamUrl(pr.videoDriveId) : (pr.videoUrl || ""));
         if (pr.enabled && playUrl) {
           activePreRollAd = { ...pr, videoUrl: playUrl, enabled: true };
         } else {
