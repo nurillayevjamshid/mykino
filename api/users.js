@@ -169,17 +169,34 @@ module.exports = async function handler(request, response) {
 
   try {
     if (request.method === "GET") {
-      const [blobUsers, proxied, metadataUsers] = await Promise.all([
-        readUsersFromBlob(),
-        tryProxyFromBot(),
+      const isDebug = /[?&]_debug=1/.test(reqUrl);
+      const [blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
+        (async () => {
+          try { return { ok: true, users: await readUsersFromBlob() }; }
+          catch (e) { return { ok: false, error: e?.message || String(e) }; }
+        })(),
+        (async () => {
+          try { return { ok: true, users: (await tryProxyFromBot()) || [] }; }
+          catch (e) { return { ok: false, error: e?.message || String(e) }; }
+        })(),
         (async () => {
           try {
             const metadataState = await readCatalogMetadata();
-            return readUsersFromMetadata(metadataState.data);
-          } catch { return []; }
+            return { ok: true, users: readUsersFromMetadata(metadataState.data), hasFile: Boolean(metadataState.file), rawUsers: metadataState.data?.users };
+          } catch (e) { return { ok: false, error: e?.message || String(e) }; }
         })(),
       ]);
-      const merged = mergeUsers(blobUsers, proxied || [], metadataUsers);
+      const merged = mergeUsers(blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
+      if (isDebug) {
+        response.status(200).json({
+          merged,
+          counts: { blob: blobOutcome.users?.length || 0, proxied: proxiedOutcome.users?.length || 0, metadata: metaOutcome.users?.length || 0 },
+          blob: blobOutcome,
+          proxied: proxiedOutcome,
+          metadata: metaOutcome,
+        });
+        return;
+      }
       response.status(200).json(merged);
       return;
     }
@@ -193,7 +210,10 @@ module.exports = async function handler(request, response) {
       }
       // Drive — primary. Blob — best-effort (may be suspended).
       let saved = next;
+      let driveOk = false;
       let driveErr = null;
+      let blobOk = false;
+      let blobErr = null;
       try {
         const metadataState = await readCatalogMetadata();
         const data = metadataState.data || {};
@@ -205,8 +225,9 @@ module.exports = async function handler(request, response) {
         filtered.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
         data.users = filtered;
         await writeCatalogMetadata(data, metadataState.file);
+        driveOk = true;
       } catch (err) {
-        driveErr = err;
+        driveErr = err?.message || String(err);
       }
       try {
         const blob = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
@@ -215,9 +236,13 @@ module.exports = async function handler(request, response) {
         const merged = { ...(idx >= 0 ? list[idx] : {}), ...next };
         if (idx >= 0) list[idx] = merged; else list.push(merged);
         await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
-      } catch { /* Blob may be suspended — ignore */ }
-      if (driveErr && !saved) throw driveErr;
-      response.status(200).json({ ok: true, user: saved });
+        blobOk = true;
+      } catch (err) { blobErr = err?.message || String(err); }
+      if (!driveOk && !blobOk) {
+        response.status(502).json({ ok: false, error: driveErr || blobErr || "Saqlash xato.", driveErr, blobErr });
+        return;
+      }
+      response.status(200).json({ ok: true, user: saved, driveOk, blobOk, driveErr, blobErr });
       return;
     }
 
