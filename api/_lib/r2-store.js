@@ -181,6 +181,20 @@ async function getJsonFromR2(key, fallback = null) {
   }
 }
 
+// Signed GET — for private R2 objects (e.g., user lists). Doesn't leak via public URL.
+async function getJsonFromR2Signed(key, fallback = null) {
+  try {
+    const req = await signedR2Request({ method: "GET", key });
+    const response = await fetch(req.url, { method: "GET", headers: req.headers });
+    if (response.status === 404) return fallback;
+    if (!response.ok) return fallback;
+    const text = await response.text();
+    return text ? JSON.parse(text) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 async function deleteFromR2(key) {
   const req = await signedR2Request({ method: "DELETE", key });
   const response = await fetch(req.url, { method: "DELETE", headers: req.headers });
@@ -263,4 +277,4 @@ async function uploadFileToR2(dataUrl, fileNamePrefix, options = {}) {
   return { directUrl: `${publicUrl}/${key}`, key, contentType, size: body.length };
 }
 
-module.exports = { uploadImageToR2, uploadFileToR2, putJsonToR2, getJsonFromR2, deleteFromR2 };
+module.exports = { uploadImageToR2, uploadFileToR2, putJsonToR2, getJsonFromR2, getJsonFromR2Signed, deleteFromR2 };

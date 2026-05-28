@@ -125,7 +125,14 @@
       "Bash(node --check api/broadcast.js)",
       "Bash(node --check api/users.js)",
       "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/users\" -w \"\\\\n--- HTTP %{http_code}\\\\n\")",
-      "Bash(node --check api/telegram-webhook.js)"
+      "Bash(node --check api/telegram-webhook.js)",
+      "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/users\" -X POST -H \"Content-Type: application/json\" -d '{\"telegram_id\":999999001,\"username\":\"push_probe\",\"first_name\":\"PushProbe\"}')",
+      "Bash(curl -s https://kino-telegram-mini-app.vercel.app/api/users?nocache=__TRACKED_VAR__)",
+      "mcp__5e3a5518-7f51-42f6-afad-73f76b037df0__get_runtime_logs",
+      "Bash(curl -s 'https://kino-telegram-mini-app.vercel.app/api/users?_debug=1&t=__TRACKED_VAR__')",
+      "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/users?_debug=1\")",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -X POST \"https://kino-telegram-mini-app.vercel.app/api/users\" -H \"Content-Type: application/json\" -d '{\"telegram_id\":999999001,\"username\":\"push_probe\",\"first_name\":\"PushProbe\"}')"
     ]
   }
 }

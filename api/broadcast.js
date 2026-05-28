@@ -1,9 +1,11 @@
 const { readCatalogMetadata, setCors } = require("./_lib/google-drive");
 const { readBlobJson } = require("./_lib/blob-store");
+const { getJsonFromR2Signed } = require("./_lib/r2-store");
 
 const TELEGRAM_API = "https://api.telegram.org";
 const SEND_DELAY_MS = 50;
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
+const R2_USERS_KEY = "settings/bot-users.json";
 
 function trimStr(value) {
   return String(value || "").trim();
@@ -63,6 +65,16 @@ async function readUsersFromBlob() {
   }
 }
 
+async function readUsersFromR2() {
+  try {
+    const data = await getJsonFromR2Signed(R2_USERS_KEY, null);
+    const list = Array.isArray(data?.users) ? data.users : Array.isArray(data) ? data : [];
+    return list.map(normalizeUser).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 function uniqIds(list) {
   const seen = new Set();
   const out = [];
@@ -77,22 +89,25 @@ function uniqIds(list) {
 }
 
 async function loadRecipients() {
-  const blob = await readUsersFromBlob();
-  const proxied = await tryProxyFromBot();
-  const metadataUsers = (async () => {
-    try {
-      const metadataState = await readCatalogMetadata();
-      return readUsersFromMetadata(metadataState.data);
-    } catch {
-      return [];
-    }
-  })();
-  const combined = uniqIds([
+  const [r2, blob, proxied, metadataUsers] = await Promise.all([
+    readUsersFromR2(),
+    readUsersFromBlob(),
+    tryProxyFromBot(),
+    (async () => {
+      try {
+        const metadataState = await readCatalogMetadata();
+        return readUsersFromMetadata(metadataState.data);
+      } catch {
+        return [];
+      }
+    })(),
+  ]);
+  return uniqIds([
+    ...(r2 || []),
     ...(blob || []),
     ...(proxied || []),
-    ...(await metadataUsers),
+    ...(metadataUsers || []),
   ]);
-  return combined;
 }
 
 function buildReplyMarkup(buttonText, buttonUrl) {
