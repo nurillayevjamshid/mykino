@@ -294,6 +294,60 @@
   /* ko'chirilgan bottom-bar tugmalari topbar'da yashirin — faqat search qoladi */
   body.frame-desktop .topbar .frame-top-icon { display: none !important; }
 
+  /* topbar layoutni majburlash: logo chap, search+icon o'ng */
+  body.frame-desktop .topbar.topbar--centered { justify-content: space-between !important; }
+  body.frame-desktop .topbar .topbar-controls { margin-left: auto !important; }
+
+  /* Inline search input — doimiy ochiq, search icon chap tomonida */
+  body.frame-desktop .topbar .search-panel.frame-inline-search {
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 8px 0 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    position: static !important;
+    width: auto !important;
+    backdrop-filter: none !important;
+  }
+  body.frame-desktop .topbar .search-panel.frame-inline-search .search-box {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    height: 40px !important;
+    min-width: 260px !important;
+    padding: 0 14px !important;
+    background: var(--fd-elevated) !important;
+    border: 1px solid var(--fd-border-light) !important;
+    border-radius: 10px !important;
+    color: var(--fd-text) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  body.frame-desktop .topbar .search-panel.frame-inline-search .search-box svg {
+    width: 16px !important;
+    height: 16px !important;
+    color: var(--fd-text-muted) !important;
+    flex-shrink: 0 !important;
+  }
+  body.frame-desktop .topbar .search-panel.frame-inline-search .search-box input {
+    flex: 1 !important;
+    width: 100% !important;
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    color: var(--fd-text) !important;
+    font-size: 13px !important;
+  }
+  body.frame-desktop .topbar .search-panel.frame-inline-search .search-box input::placeholder {
+    color: var(--fd-text-muted) !important;
+  }
+  body.frame-desktop .topbar .search-panel.frame-inline-search .search-box:focus-within {
+    border-color: var(--fd-primary) !important;
+    background: var(--fd-card-bg) !important;
+  }
+
   /* (reserve, agar kelajakda kerak bo'lsa) eski styling */
   body.frame-desktop .frame-top-icon {
     display: inline-flex !important;
