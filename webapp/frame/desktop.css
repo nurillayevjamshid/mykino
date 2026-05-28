@@ -291,7 +291,10 @@
     flex-wrap: nowrap !important;
   }
 
-  /* yangi ko'chirilgan tugmalar (.frame-top-icon) */
+  /* ko'chirilgan bottom-bar tugmalari topbar'da yashirin — faqat search qoladi */
+  body.frame-desktop .topbar .frame-top-icon { display: none !important; }
+
+  /* (reserve, agar kelajakda kerak bo'lsa) eski styling */
   body.frame-desktop .frame-top-icon {
     display: inline-flex !important;
     align-items: center !important;
