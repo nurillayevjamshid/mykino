@@ -110,10 +110,14 @@ async function loadRecipients() {
   ]);
 }
 
-function buildReplyMarkup(buttonText, buttonUrl) {
+function buildReplyMarkup(buttonText, buttonUrl, asWebApp = false) {
   const text = trimStr(buttonText);
   const url = trimStr(buttonUrl);
   if (!text || !url) return null;
+  // web_app — Telegram mini app sifatida ochiladi (tashqi browser emas). Faqat https URL.
+  if (asWebApp && /^https:\/\//i.test(url)) {
+    return JSON.stringify({ inline_keyboard: [[{ text, web_app: { url } }]] });
+  }
   return JSON.stringify({ inline_keyboard: [[{ text, url }]] });
 }
 
@@ -207,7 +211,7 @@ module.exports = async function handler(request, response) {
     }
 
     const parseMode = body.parseMode === "HTML" ? "HTML" : body.parseMode === "Markdown" ? "MarkdownV2" : "";
-    const replyMarkup = buildReplyMarkup(body.buttonText, body.buttonUrl);
+    const replyMarkup = buildReplyMarkup(body.buttonText, body.buttonUrl, Boolean(body.buttonAsWebApp));
     const disableNotification = Boolean(body.silent);
     const isPhoto = Boolean(photoUrl);
     const isVideo = Boolean(videoUrl);

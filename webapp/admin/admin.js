@@ -1371,6 +1371,7 @@ async function sendMoviePush(movieId, movieData, posterValue, savedMovie) {
   if (addButton) {
     payload.buttonText = "🎬 Ko'rish";
     payload.buttonUrl = `${window.location.origin}/?movie=${encodeURIComponent(movieId)}`;
+    payload.buttonAsWebApp = true; // Telegram mini app sifatida ochilsin (tashqi browser emas)
   }
 
   if (mediaKind === 'poster') {

@@ -132,7 +132,9 @@
       "Bash(curl -s 'https://kino-telegram-mini-app.vercel.app/api/users?_debug=1&t=__TRACKED_VAR__')",
       "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/users?_debug=1\")",
       "Bash(python -m json.tool)",
-      "Bash(curl -s -X POST \"https://kino-telegram-mini-app.vercel.app/api/users\" -H \"Content-Type: application/json\" -d '{\"telegram_id\":999999001,\"username\":\"push_probe\",\"first_name\":\"PushProbe\"}')"
+      "Bash(curl -s -X POST \"https://kino-telegram-mini-app.vercel.app/api/users\" -H \"Content-Type: application/json\" -d '{\"telegram_id\":999999001,\"username\":\"push_probe\",\"first_name\":\"PushProbe\"}')",
+      "Bash(curl -s -X DELETE \"https://kino-telegram-mini-app.vercel.app/api/users\" -H \"Content-Type: application/json\" -d '{\"password\":\"admin123\",\"telegram_id\":999999001}')",
+      "Bash(curl -s \"https://kino-telegram-mini-app.vercel.app/api/users?_debug=admin123\")"
     ]
   }
 }
