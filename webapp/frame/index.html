@@ -808,6 +808,55 @@
 
   <script src="/static/frame/app.js?v=20260528-frame01"></script>
   <script>
+    /* ---- /frame desktop adapter ----
+     * 1) Sidebar'ni doim ochiq holatda turg'azish
+     * 2) Bottom-bar tugmalarini topbar'ga ko'chirish
+     * Bu skript faqat /frame uchun. Mini app fayllariga ta'siri yo'q. */
+    (function frameDesktopAdapter() {
+      function init() {
+        var body = document.body;
+        body.classList.add('frame-desktop');
+
+        // Sidebar ochiq holatda — backdrop/drawer logikasi o'chiriladi
+        var sidebar = document.getElementById('appSidebar');
+        if (sidebar) {
+          sidebar.classList.add('is-open');
+          sidebar.setAttribute('aria-hidden', 'false');
+          sidebar.removeAttribute('hidden');
+        }
+        var backdrop = document.getElementById('sidebarBackdrop');
+        if (backdrop) backdrop.setAttribute('hidden', '');
+
+        // Bottom-bar tugmalarini topbar'ga ko'chirish
+        var bottomBar = document.querySelector('.bottom-bar');
+        var topbar = document.querySelector('.topbar');
+        var topControls = document.querySelector('.topbar-controls');
+        if (bottomBar && topbar && topControls) {
+          var inner = bottomBar.querySelector('.bottom-bar__inner');
+          if (inner) {
+            // har bir tugmani topbar-controls'ga qo'shamiz
+            var buttons = Array.prototype.slice.call(inner.children);
+            buttons.forEach(function(btn){
+              btn.classList.add('frame-top-icon');
+              topControls.insertBefore(btn, topControls.firstChild);
+            });
+          }
+          bottomBar.style.display = 'none'; // konteyner DOM'da qoladi, ko'rinmaydi
+        }
+
+        // Hamburger tugmani yashirish (sidebar doim ochiq)
+        var menuBtn = document.getElementById('topbarMenuButton');
+        if (menuBtn) menuBtn.style.display = 'none';
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+  <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
       document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });
