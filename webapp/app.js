@@ -5286,6 +5286,7 @@ async function loadAppSettings() {
     timeoutId = window.setTimeout(() => controller.abort(), 3500);
     const response = await fetch(buildApiUrl("/api/settings"), {
       headers: { Accept: "application/json" },
+      cache: "no-store",
       signal: controller.signal,
     });
     if (response.ok) {
@@ -5297,12 +5298,10 @@ async function loadAppSettings() {
       }
       if (data && data.preRollAd) {
         const pr = data.preRollAd;
-        // Video tanlangan bo'lsa pre-roll yoqilgan deb hisoblaymiz
-        // (enabled bayrog'i admin panelning ortiqcha qismi edi).
         const playUrl = pr.videoDriveId
           ? buildDriveStreamUrl(pr.videoDriveId)
           : (pr.videoUrl || "");
-        if (playUrl) {
+        if (pr.enabled && playUrl) {
           activePreRollAd = { ...pr, videoUrl: playUrl, enabled: true };
         } else {
           activePreRollAd = null;

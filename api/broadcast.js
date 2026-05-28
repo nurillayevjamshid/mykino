@@ -1,7 +1,9 @@
 const { readCatalogMetadata, setCors } = require("./_lib/google-drive");
+const { readBlobJson } = require("./_lib/blob-store");
 
 const TELEGRAM_API = "https://api.telegram.org";
 const SEND_DELAY_MS = 50;
+const BLOB_USERS_PATHNAME = "settings/bot-users.json";
 
 function trimStr(value) {
   return String(value || "").trim();
@@ -51,11 +53,46 @@ async function tryProxyFromBot() {
   }
 }
 
+async function readUsersFromBlob() {
+  try {
+    const data = await readBlobJson(BLOB_USERS_PATHNAME, null);
+    const list = Array.isArray(data?.users) ? data.users : Array.isArray(data) ? data : [];
+    return list.map(normalizeUser).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function uniqIds(list) {
+  const seen = new Set();
+  const out = [];
+  for (const id of list) {
+    if (!id) continue;
+    const key = String(id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(id);
+  }
+  return out;
+}
+
 async function loadRecipients() {
+  const blob = await readUsersFromBlob();
   const proxied = await tryProxyFromBot();
-  if (proxied && proxied.length) return proxied;
-  const metadataState = await readCatalogMetadata();
-  return readUsersFromMetadata(metadataState.data);
+  const metadataUsers = (async () => {
+    try {
+      const metadataState = await readCatalogMetadata();
+      return readUsersFromMetadata(metadataState.data);
+    } catch {
+      return [];
+    }
+  })();
+  const combined = uniqIds([
+    ...(blob || []),
+    ...(proxied || []),
+    ...(await metadataUsers),
+  ]);
+  return combined;
 }
 
 function buildReplyMarkup(buttonText, buttonUrl) {

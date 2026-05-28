@@ -1,9 +1,11 @@
 const {
   readCatalogMetadata,
-  writeCatalogMetadata,
   setCors,
 } = require("./_lib/google-drive");
+const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
 const { handleWatchProgress } = require("./_lib/watch-progress");
+
+const BLOB_USERS_PATHNAME = "settings/bot-users.json";
 
 async function readRequestBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
@@ -59,6 +61,37 @@ async function tryProxyFromBot() {
   } catch {
     return null;
   }
+}
+
+async function readUsersFromBlob() {
+  try {
+    const data = await readBlobJson(BLOB_USERS_PATHNAME, null);
+    const list = Array.isArray(data?.users) ? data.users : Array.isArray(data) ? data : [];
+    return list.map(normalizeUser).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function mergeUsers(...lists) {
+  const map = new Map();
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const u of list) {
+      if (!u) continue;
+      const key = String(u.telegram_id);
+      if (!key) continue;
+      const prev = map.get(key);
+      if (!prev) { map.set(key, u); continue; }
+      map.set(key, {
+        telegram_id: prev.telegram_id || u.telegram_id,
+        username: prev.username || u.username,
+        first_name: prev.first_name || u.first_name,
+        started_at: prev.started_at || u.started_at,
+      });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
 }
 
 async function handleUserPhoto(request, response) {
@@ -135,13 +168,18 @@ module.exports = async function handler(request, response) {
 
   try {
     if (request.method === "GET") {
-      const proxied = await tryProxyFromBot();
-      if (proxied) {
-        response.status(200).json(proxied);
-        return;
-      }
-      const metadataState = await readCatalogMetadata();
-      response.status(200).json(readUsersFromMetadata(metadataState.data));
+      const [blobUsers, proxied, metadataUsers] = await Promise.all([
+        readUsersFromBlob(),
+        tryProxyFromBot(),
+        (async () => {
+          try {
+            const metadataState = await readCatalogMetadata();
+            return readUsersFromMetadata(metadataState.data);
+          } catch { return []; }
+        })(),
+      ]);
+      const merged = mergeUsers(blobUsers, proxied || [], metadataUsers);
+      response.status(200).json(merged);
       return;
     }
 
@@ -152,14 +190,13 @@ module.exports = async function handler(request, response) {
         response.status(400).json({ ok: false, error: "telegram_id kerak." });
         return;
       }
-      const metadataState = await readCatalogMetadata();
-      const existing = readUsersFromMetadata(metadataState.data);
-      const filtered = existing.filter(u => String(u.telegram_id) !== String(next.telegram_id));
-      filtered.push(next);
-      filtered.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
-      metadataState.data.users = filtered;
-      await writeCatalogMetadata(metadataState.data, metadataState.file);
-      response.status(200).json({ ok: true, user: next });
+      const data = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
+      const list = Array.isArray(data.users) ? data.users : [];
+      const idx = list.findIndex(u => String(u.telegram_id) === String(next.telegram_id));
+      const merged = { ...(idx >= 0 ? list[idx] : {}), ...next };
+      if (idx >= 0) list[idx] = merged; else list.push(merged);
+      await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
+      response.status(200).json({ ok: true, user: merged });
       return;
     }
 

@@ -279,8 +279,7 @@ module.exports = async function handler(request, response) {
   }
 
   if (request.method === "GET") {
-    // CDN'da 30s kesh + 5 daqiqa SWR. Settings tez-tez o'zgarmaydi.
-    response.setHeader("Cache-Control", "public, max-age=0, s-maxage=30, stale-while-revalidate=300");
+    response.setHeader("Cache-Control", "no-store, max-age=0");
   } else {
     response.setHeader("Cache-Control", "no-store, max-age=0");
   }

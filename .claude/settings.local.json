@@ -121,7 +121,9 @@
       "Bash(curl -s -I \"https://kino-telegram-mini-app.vercel.app/api/drive-stream/1pLYOSRLd-JENLD4Dhfc54Df9WFWcl1Uz\")",
       "Bash(curl -s -r 0-7 \"https://kino-telegram-mini-app.vercel.app/api/drive-stream/1pLYOSRLd-JENLD4Dhfc54Df9WFWcl1Uz\" -o /tmp/preroll-head.bin -w \"HTTP %{http_code} | Length: %{size_download} bayt\\\\n\")",
       "Bash(xxd /tmp/preroll-head.bin)",
-      "Bash(git restore *)"
+      "Bash(git restore *)",
+      "Bash(node --check api/broadcast.js)",
+      "Bash(node --check api/users.js)"
     ]
   }
 }
