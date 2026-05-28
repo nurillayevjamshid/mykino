@@ -1,8 +1,9 @@
 const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
-const { readCatalogMetadata, writeCatalogMetadata } = require("./_lib/google-drive");
+const { getJsonFromR2Signed, putJsonToR2 } = require("./_lib/r2-store");
 
 const TG_API = "https://api.telegram.org";
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
+const R2_USERS_KEY = "settings/bot-users.json";
 
 function getBotToken() {
   return String(process.env.BOT_TOKEN || "").trim();
@@ -91,22 +92,18 @@ async function upsertUserBlob(record) {
   await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
 }
 
-async function upsertUserDrive(record) {
-  // Primary storage: Google Drive catalog metadata (.my-kino-metadata.json).
-  const metadataState = await readCatalogMetadata();
-  const data = metadataState.data || {};
-  const raw = data.users;
-  const list = Array.isArray(raw)
-    ? raw
-    : (raw && typeof raw === "object" ? Object.values(raw) : []);
+async function upsertUserR2(record) {
+  // Primary storage: Cloudflare R2 (signed GET to keep user list private).
+  const data = (await getJsonFromR2Signed(R2_USERS_KEY, null)) || { users: [] };
+  const list = Array.isArray(data.users) ? data.users : [];
   const idx = list.findIndex((u) => String(u?.telegram_id) === String(record.telegram_id));
   const merged = idx >= 0
     ? { ...list[idx], ...record, started_at: list[idx]?.started_at || record.started_at }
     : record;
   if (idx >= 0) list[idx] = merged;
   else list.push(merged);
-  data.users = list;
-  await writeCatalogMetadata(data, metadataState.file);
+  list.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
+  await putJsonToR2(R2_USERS_KEY, { users: list, updatedAt: new Date().toISOString() });
 }
 
 async function upsertUser(telegramUser) {
@@ -118,19 +115,19 @@ async function upsertUser(telegramUser) {
     first_name: String(telegramUser.first_name || ""),
     started_at: today,
   };
-  // Try Drive first (private, reliable). Always also try Blob (legacy) — don't fail the request if either fails.
-  let driveOk = false;
+  // R2 — primary (reliable, private). Blob — best-effort legacy.
+  let r2Ok = false;
   try {
-    await upsertUserDrive(record);
-    driveOk = true;
+    await upsertUserR2(record);
+    r2Ok = true;
   } catch (err) {
-    console.error("upsertUser drive error:", err.message);
+    console.error("upsertUser R2 error:", err.message);
   }
   try {
     await upsertUserBlob(record);
   } catch (err) {
-    if (!driveOk) console.error("upsertUser blob error:", err.message);
-    // ignore if Blob is suspended — Drive is the source of truth
+    if (!r2Ok) console.error("upsertUser blob error:", err.message);
+    // ignore Blob if suspended — R2 is the source of truth
   }
 }
 

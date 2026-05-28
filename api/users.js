@@ -1,12 +1,13 @@
 const {
   readCatalogMetadata,
-  writeCatalogMetadata,
   setCors,
 } = require("./_lib/google-drive");
 const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
+const { getJsonFromR2Signed, putJsonToR2 } = require("./_lib/r2-store");
 const { handleWatchProgress } = require("./_lib/watch-progress");
 
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
+const R2_USERS_KEY = "settings/bot-users.json";
 
 async function readRequestBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
@@ -67,6 +68,16 @@ async function tryProxyFromBot() {
 async function readUsersFromBlob() {
   try {
     const data = await readBlobJson(BLOB_USERS_PATHNAME, null);
+    const list = Array.isArray(data?.users) ? data.users : Array.isArray(data) ? data : [];
+    return list.map(normalizeUser).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function readUsersFromR2() {
+  try {
+    const data = await getJsonFromR2Signed(R2_USERS_KEY, null);
     const list = Array.isArray(data?.users) ? data.users : Array.isArray(data) ? data : [];
     return list.map(normalizeUser).filter(Boolean);
   } catch {
@@ -170,7 +181,11 @@ module.exports = async function handler(request, response) {
   try {
     if (request.method === "GET") {
       const isDebug = /[?&]_debug=1/.test(reqUrl);
-      const [blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
+      const [r2Outcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
+        (async () => {
+          try { return { ok: true, users: await readUsersFromR2() }; }
+          catch (e) { return { ok: false, error: e?.message || String(e) }; }
+        })(),
         (async () => {
           try { return { ok: true, users: await readUsersFromBlob() }; }
           catch (e) { return { ok: false, error: e?.message || String(e) }; }
@@ -186,11 +201,17 @@ module.exports = async function handler(request, response) {
           } catch (e) { return { ok: false, error: e?.message || String(e) }; }
         })(),
       ]);
-      const merged = mergeUsers(blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
+      const merged = mergeUsers(r2Outcome.users || [], blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
       if (isDebug) {
         response.status(200).json({
           merged,
-          counts: { blob: blobOutcome.users?.length || 0, proxied: proxiedOutcome.users?.length || 0, metadata: metaOutcome.users?.length || 0 },
+          counts: {
+            r2: r2Outcome.users?.length || 0,
+            blob: blobOutcome.users?.length || 0,
+            proxied: proxiedOutcome.users?.length || 0,
+            metadata: metaOutcome.users?.length || 0,
+          },
+          r2: r2Outcome,
           blob: blobOutcome,
           proxied: proxiedOutcome,
           metadata: metaOutcome,
@@ -208,26 +229,24 @@ module.exports = async function handler(request, response) {
         response.status(400).json({ ok: false, error: "telegram_id kerak." });
         return;
       }
-      // Drive — primary. Blob — best-effort (may be suspended).
+      // R2 — primary (private signed GET). Blob — best-effort legacy.
       let saved = next;
-      let driveOk = false;
-      let driveErr = null;
+      let r2Ok = false;
+      let r2Err = null;
       let blobOk = false;
       let blobErr = null;
       try {
-        const metadataState = await readCatalogMetadata();
-        const data = metadataState.data || {};
-        const existing = readUsersFromMetadata(data);
-        const filtered = existing.filter(u => String(u.telegram_id) !== String(next.telegram_id));
-        const prev = existing.find(u => String(u.telegram_id) === String(next.telegram_id));
+        const data = (await getJsonFromR2Signed(R2_USERS_KEY, null)) || { users: [] };
+        const list = Array.isArray(data.users) ? data.users : [];
+        const idx = list.findIndex(u => String(u.telegram_id) === String(next.telegram_id));
+        const prev = idx >= 0 ? list[idx] : null;
         saved = { ...(prev || {}), ...next, started_at: prev?.started_at || next.started_at };
-        filtered.push(saved);
-        filtered.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
-        data.users = filtered;
-        await writeCatalogMetadata(data, metadataState.file);
-        driveOk = true;
+        if (idx >= 0) list[idx] = saved; else list.push(saved);
+        list.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
+        await putJsonToR2(R2_USERS_KEY, { users: list, updatedAt: new Date().toISOString() });
+        r2Ok = true;
       } catch (err) {
-        driveErr = err?.message || String(err);
+        r2Err = err?.message || String(err);
       }
       try {
         const blob = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
@@ -238,11 +257,11 @@ module.exports = async function handler(request, response) {
         await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
         blobOk = true;
       } catch (err) { blobErr = err?.message || String(err); }
-      if (!driveOk && !blobOk) {
-        response.status(502).json({ ok: false, error: driveErr || blobErr || "Saqlash xato.", driveErr, blobErr });
+      if (!r2Ok && !blobOk) {
+        response.status(502).json({ ok: false, error: r2Err || blobErr || "Saqlash xato.", r2Err, blobErr });
         return;
       }
-      response.status(200).json({ ok: true, user: saved, driveOk, blobOk, driveErr, blobErr });
+      response.status(200).json({ ok: true, user: saved, r2Ok, blobOk, r2Err, blobErr });
       return;
     }
 
