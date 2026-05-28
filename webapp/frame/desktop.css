@@ -1,112 +1,454 @@
 /* =============================================================
- * Desktop overrides for /frame
- * Bu fayl webapp/frame/styles.css'dan keyin yuklanadi va faqat
- * keng ekranlar (>= 900px) uchun layout'ni kengaytiradi.
+ * /frame DESKTOP layout — admin panel uslubida
+ * Bu fayl webapp/frame/styles.css'dan keyin yuklanadi.
  * Mini app fayllariga (webapp/styles.css) ta'siri yo'q.
  * ============================================================= */
 
+/* ---- ADMIN-STYLE TOKENLAR ---- */
+.frame-desktop {
+  --fd-primary: #3d4adf;
+  --fd-primary-dark: #2f3ac4;
+  --fd-primary-soft: #eef0ff;
+  --fd-accent-teal: #1ec98c;
+  --fd-accent-teal-soft: #e3faf0;
+  --fd-page-bg: #eef0f5;
+  --fd-card-bg: #ffffff;
+  --fd-elevated: #f5f6fa;
+  --fd-text: #111827;
+  --fd-text-secondary: #4b5563;
+  --fd-text-muted: #9ca3af;
+  --fd-border: #ececf2;
+  --fd-border-light: #f3f4f8;
+  --fd-shadow-sm: 0 2px 6px rgba(17, 24, 39, 0.05);
+  --fd-shadow: 0 4px 16px rgba(17, 24, 39, 0.06);
+  --fd-shadow-md: 0 10px 24px rgba(17, 24, 39, 0.08);
+  --fd-radius: 14px;
+  --fd-radius-lg: 18px;
+  --fd-radius-xl: 22px;
+  --fd-sidebar-w: 240px;
+  --fd-gap: 18px;
+}
+
+/* ---- 900px va kichik: mini app rejimi (asl ko'rinish) ---- */
+
+/* ---- 900px+ : ADMIN-STYLE LAYOUT ---- */
 @media (min-width: 900px) {
 
-  /* asosiy konteyner — kengroq */
-  .app-shell {
-    width: min(100%, 1280px) !important;
-    max-width: 1280px !important;
-    padding: 24px 32px 120px !important;
-    grid-template-columns: 280px 1fr !important;
-    grid-template-areas:
-      "header  header"
-      "hero    hero"
-      "sidebar movies"
-      "sidebar movies" !important;
-    gap: 24px !important;
+  html, body {
+    background: var(--fd-page-bg) !important;
+    color: var(--fd-text) !important;
+    height: auto !important;
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
 
-  /* topbar to'liq kenglikda */
-  .topbar { grid-area: header; }
-
-  /* hero katta */
-  .hero-carousel {
-    grid-area: hero;
-    max-height: 480px;
-  }
-
-  /* chap sidebar: search + categories + tabs */
-  .search-panel,
-  .category-panel,
-  .quick-tabs {
-    grid-area: sidebar;
-    position: static !important;
-    width: 100% !important;
-    margin: 0 0 16px !important;
-  }
-  .search-panel    { order: 1; }
-  .quick-tabs      { order: 2; }
-  .category-panel  { order: 3; }
-
-  /* CSS Grid bilan order ishlamaydi — JS DOM tartibi ishlatiladi. */
-
-  /* movies'ni o'ng tarafga */
-  #moviesSection,
-  .movies-section,
-  .movies-grid,
-  .movies-wrap {
-    grid-area: movies;
-  }
-
-  /* kinolar gridi — desktop'da 4-5 ustun */
-  .movies-grid,
-  .grid-list {
+  /* body'ni flex container'ga aylantiramiz: sidebar | main */
+  body.frame-desktop {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    grid-template-columns: var(--fd-sidebar-w) 1fr !important;
+    gap: var(--fd-gap) !important;
+    padding: var(--fd-gap) !important;
+    align-items: start;
+  }
+
+  /* splash, modal, backdrop'larni absolute joyiga qaytaramiz */
+  body.frame-desktop > .splash-screen,
+  body.frame-desktop > .ad-modal,
+  body.frame-desktop > .sidebar-backdrop,
+  body.frame-desktop > .movie-modal,
+  body.frame-desktop > .profile-modal,
+  body.frame-desktop > dialog,
+  body.frame-desktop > .mini-player {
+    position: fixed !important;
+    grid-column: 1 / -1;
+  }
+
+  /* ====== SIDEBAR (admin look) ====== */
+  body.frame-desktop > #appSidebar {
+    position: sticky !important;
+    top: var(--fd-gap) !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    width: var(--fd-sidebar-w) !important;
+    max-width: var(--fd-sidebar-w) !important;
+    height: calc(100vh - var(--fd-gap) * 2) !important;
+    background: var(--fd-card-bg) !important;
+    border: 1px solid var(--fd-border) !important;
+    border-radius: var(--fd-radius-xl) !important;
+    box-shadow: var(--fd-shadow-sm) !important;
+    color: var(--fd-text) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 5 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  body.frame-desktop > #appSidebar[aria-hidden="true"] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* sidebar head */
+  body.frame-desktop .sidebar__head {
+    padding: 22px 20px 18px !important;
+    border-bottom: 0 !important;
+    background: transparent !important;
+  }
+  body.frame-desktop .sidebar__close { display: none !important; }
+  body.frame-desktop .sidebar__brand .brand-text__top {
+    color: var(--fd-text) !important;
+    font-size: 17px !important;
+    font-weight: 800 !important;
+  }
+  body.frame-desktop .sidebar__brand .brand-text__bottom {
+    color: var(--fd-text-muted) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 1.4px !important;
+  }
+  body.frame-desktop .sidebar__brand .brand-logo {
+    width: 38px !important;
+    height: 38px !important;
+    background: var(--fd-accent-teal-soft) !important;
+    color: var(--fd-accent-teal) !important;
+    border-radius: 12px !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+  body.frame-desktop .sidebar__brand .brand-logo svg { color: var(--fd-accent-teal) !important; }
+
+  /* sidebar nav */
+  body.frame-desktop .sidebar__nav {
+    flex: 1 !important;
+    padding: 6px 12px 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    overflow-y: auto !important;
+  }
+  body.frame-desktop .sidebar__nav::before {
+    content: "MENU";
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    color: var(--fd-text-muted);
+    padding: 6px 8px 10px;
+  }
+
+  body.frame-desktop .sidebar__item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: 100% !important;
+    padding: 11px 14px !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    color: var(--fd-text-secondary) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    border: 0 !important;
+    cursor: pointer !important;
+    transition: background 0.15s, color 0.15s !important;
+    text-align: left !important;
+    position: relative !important;
+  }
+  body.frame-desktop .sidebar__item svg {
+    width: 18px !important;
+    height: 18px !important;
+    color: var(--fd-text-muted) !important;
+    flex-shrink: 0 !important;
+  }
+  body.frame-desktop .sidebar__item:hover {
+    background: var(--fd-elevated) !important;
+    color: var(--fd-text) !important;
+  }
+  body.frame-desktop .sidebar__item:hover svg { color: var(--fd-primary) !important; }
+
+  body.frame-desktop .sidebar__item.is-active,
+  body.frame-desktop .sidebar__item.active {
+    background: var(--fd-primary) !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 8px 20px -8px rgba(61, 74, 223, 0.6) !important;
+  }
+  body.frame-desktop .sidebar__item.is-active svg,
+  body.frame-desktop .sidebar__item.active svg { color: #fff !important; }
+
+  /* badge'lar */
+  body.frame-desktop .beta-badge,
+  body.frame-desktop .soon-badge {
+    margin-left: auto !important;
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+    border-radius: 999px !important;
+    background: var(--fd-primary-soft) !important;
+    color: var(--fd-primary) !important;
+    font-weight: 600 !important;
+  }
+  body.frame-desktop .soon-badge { background: var(--fd-elevated) !important; color: var(--fd-text-muted) !important; }
+  body.frame-desktop .soon-badge svg { width: 12px !important; height: 12px !important; }
+
+  /* sidebar settings (theme/lang) — pastda */
+  body.frame-desktop .sidebar__divider {
+    display: none !important;
+  }
+  body.frame-desktop .sidebar__section-title {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.4px !important;
+    color: var(--fd-text-muted) !important;
+    padding: 14px 20px 8px !important;
+    text-transform: uppercase !important;
+  }
+  body.frame-desktop .sidebar__settings {
+    padding: 0 12px 18px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+  body.frame-desktop .sidebar-setting {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 9px 14px !important;
+    border-radius: 12px !important;
+    background: var(--fd-elevated) !important;
+    font-size: 13px !important;
+    color: var(--fd-text-secondary) !important;
+  }
+  body.frame-desktop .sidebar-setting svg {
+    width: 16px !important;
+    height: 16px !important;
+    color: var(--fd-text-muted) !important;
+  }
+  body.frame-desktop .sidebar-setting__head {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  /* ====== MAIN SHELL (admin look) ====== */
+  body.frame-desktop > #appShell.app-shell {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: calc(100vh - var(--fd-gap) * 2) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: var(--fd-card-bg) !important;
+    border: 1px solid var(--fd-border) !important;
+    border-radius: var(--fd-radius-xl) !important;
+    box-shadow: var(--fd-shadow-sm) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-areas: none !important;
+    color: var(--fd-text) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* ====== TOPBAR (admin header) ====== */
+  body.frame-desktop .topbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 16px 26px !important;
+    background: rgba(255,255,255,0.96) !important;
+    border-bottom: 1px solid var(--fd-border-light) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    backdrop-filter: blur(8px) !important;
+    min-height: 64px !important;
+    margin: 0 !important;
+  }
+  body.frame-desktop .topbar .brand--center {
+    margin: 0 !important;
+    flex-shrink: 0;
+  }
+  body.frame-desktop .topbar .brand-text__top { color: var(--fd-text) !important; }
+  body.frame-desktop .topbar .brand-text__bottom { color: var(--fd-text-muted) !important; }
+  body.frame-desktop .topbar .brand-logo {
+    color: var(--fd-primary) !important;
+  }
+
+  /* topbar-controls — barcha tugmalar (eski + ko'chirilgan bottom-bar) */
+  body.frame-desktop .topbar-controls {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  /* yangi ko'chirilgan tugmalar (.frame-top-icon) */
+  body.frame-desktop .frame-top-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    background: var(--fd-elevated) !important;
+    border: 1px solid var(--fd-border-light) !important;
+    color: var(--fd-text-secondary) !important;
+    cursor: pointer !important;
+    transition: background 0.15s, color 0.15s, transform 0.12s !important;
+    flex-direction: row !important;
+    gap: 0 !important;
+    box-shadow: none !important;
+  }
+  body.frame-desktop .frame-top-icon:hover {
+    background: var(--fd-primary-soft) !important;
+    color: var(--fd-primary) !important;
+    transform: translateY(-1px) !important;
+  }
+  body.frame-desktop .frame-top-icon.is-active {
+    background: var(--fd-primary) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 12px -4px rgba(61, 74, 223, 0.5) !important;
+  }
+  body.frame-desktop .frame-top-icon .bottom-bar__label {
+    display: none !important;
+  }
+  body.frame-desktop .frame-top-icon .icon-svg,
+  body.frame-desktop .frame-top-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+    color: inherit !important;
+  }
+  body.frame-desktop .frame-top-icon .bottom-bar__avatar {
+    width: 28px !important;
+    height: 28px !important;
+    border-color: transparent !important;
+    background: var(--fd-primary) !important;
+    color: #fff !important;
+    font-size: 11px !important;
+  }
+
+  /* eski search/lang button'lari ham bir xil ko'rinishda */
+  body.frame-desktop .icon-button--top {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    background: var(--fd-elevated) !important;
+    border: 1px solid var(--fd-border-light) !important;
+    color: var(--fd-text-secondary) !important;
+    box-shadow: none !important;
+  }
+  body.frame-desktop .icon-button--top:hover {
+    background: var(--fd-primary-soft) !important;
+    color: var(--fd-primary) !important;
+  }
+  body.frame-desktop .icon-button--top svg { color: inherit !important; }
+
+  /* ====== CONTENT (kinolar) — light theme ====== */
+  body.frame-desktop .search-panel,
+  body.frame-desktop .category-panel {
+    margin: 16px 26px !important;
+    padding: 14px !important;
+    background: var(--fd-elevated) !important;
+    border: 1px solid var(--fd-border-light) !important;
+    border-radius: var(--fd-radius) !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  body.frame-desktop .search-box {
+    background: var(--fd-card-bg) !important;
+    border: 1px solid var(--fd-border) !important;
+    border-radius: 10px !important;
+    color: var(--fd-text) !important;
+    box-shadow: none !important;
+  }
+  body.frame-desktop .search-box input {
+    background: transparent !important;
+    color: var(--fd-text) !important;
+  }
+  body.frame-desktop .search-box input::placeholder { color: var(--fd-text-muted) !important; }
+
+  /* hero — uzun banner kabi qoldiraladi */
+  body.frame-desktop .hero {
+    margin: 18px 26px 8px !important;
+    border-radius: var(--fd-radius-lg) !important;
+    overflow: hidden !important;
+  }
+
+  /* kinolar gridi — desktop'da 5-6 ustun */
+  body.frame-desktop .movie-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
     gap: 16px !important;
+    padding: 18px 26px !important;
+    margin: 0 !important;
   }
 
-  /* poster kartochka hover effekt */
-  .movie-card,
-  .grid-card {
-    transition: transform .18s ease, box-shadow .18s ease;
-    cursor: pointer;
+  /* kinolar kartochkalari hover */
+  body.frame-desktop .movie-card,
+  body.frame-desktop .grid-card {
+    transition: transform .18s, box-shadow .18s !important;
+    cursor: pointer !important;
   }
-  .movie-card:hover,
-  .grid-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(0,0,0,.18);
+  body.frame-desktop .movie-card:hover,
+  body.frame-desktop .grid-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: var(--fd-shadow-md) !important;
   }
 
-  /* tugmalar hover */
-  button, .btn, .chip { transition: background-color .15s, transform .12s; }
-  button:hover, .btn:hover, .chip:hover { transform: translateY(-1px); }
+  /* categories grid */
+  body.frame-desktop .categories-view,
+  body.frame-desktop .category-detail-view {
+    padding: 18px 26px !important;
+  }
+  body.frame-desktop .categories-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    gap: 14px !important;
+  }
 
-  /* sidebar drawer keng */
-  .sidebar { width: 360px !important; }
+  /* footer */
+  body.frame-desktop .app-footer {
+    margin: 24px 26px 24px !important;
+    padding: 18px !important;
+    background: var(--fd-elevated) !important;
+    border: 1px solid var(--fd-border-light) !important;
+    border-radius: var(--fd-radius) !important;
+    color: var(--fd-text-secondary) !important;
+  }
 
-  /* footer to'liq */
-  .app-footer { margin-top: 80px; }
+  /* original bottom-bar konteynerini yashirish (JS allaqachon display:none qildi) */
+  body.frame-desktop .bottom-bar { display: none !important; }
 
-  /* modal kengroq */
-  .movie-modal__dialog,
-  .profile-modal__dialog,
-  .modal-dialog {
-    max-width: 720px !important;
+  /* hamburger ham yashirin */
+  body.frame-desktop #topbarMenuButton { display: none !important; }
+
+  /* dark theme media query'larini neytrallashtirish */
+  body.frame-desktop {
+    --muvi-bg: var(--fd-page-bg);
+    --muvi-text: var(--fd-text);
+    --muvi-glass: var(--fd-elevated);
+    --muvi-border: var(--fd-border);
   }
 }
 
-/* juda katta ekranlar uchun yana kengroq */
+/* ====== 1400px+ kengroq ====== */
 @media (min-width: 1400px) {
-  .app-shell {
-    width: min(100%, 1440px) !important;
-    max-width: 1440px !important;
-    grid-template-columns: 300px 1fr !important;
+  .frame-desktop {
+    --fd-sidebar-w: 260px;
   }
-  .movies-grid,
-  .grid-list {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+  body.frame-desktop .movie-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)) !important;
   }
 }
 
-/* kichik joylar — telegram mini app stubsiga (BackButton, MainButton)
- * desktop'da odatda kerak emas, mayli ko'rinmasin */
-.tg-only,
-.mobile-only {
-  display: none !important;
-}
+/* tegishli mobile-only classlar */
+.tg-only, .mobile-only { display: none !important; }
