@@ -872,6 +872,18 @@
     background: var(--fx-surface-2) !important;
   }
 
+  /* ====== Alohida "Kategoriyalar" sahifa (?view=categories) ====== */
+  body.frame-desktop.fx-page-categories .hero,
+  body.frame-desktop.fx-page-categories #fxHomeCats,
+  body.frame-desktop.fx-page-categories .movie-grid,
+  body.frame-desktop.fx-page-categories .category-row,
+  body.frame-desktop.fx-page-categories #appShell > .app-footer {
+    display: none !important;
+  }
+  body.frame-desktop.fx-page-categories .categories-view {
+    padding-top: calc(var(--fx-topbar-h) + 40px) !important;
+  }
+
   /* ====== Home — kategoriyalar gorizontal qatori ====== */
   body.frame-desktop .fx-home-cats {
     margin: 36px auto 0 !important;
