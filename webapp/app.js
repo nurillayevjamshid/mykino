@@ -3590,28 +3590,35 @@ async function enterFullscreenAndLandscape() {
   }
 
   const tg = getTelegramWebApp();
+  try { tg?.expand?.(); } catch {}
 
-  if (tg) {
-    // 2. Inside Telegram (Android/WebView): use Telegram fullscreen (hides Telegram
-    //    chrome) + a CSS 90° rotate to force landscape. We must NOT also request native
-    //    browser fullscreen here — the rotate transform on top of a native :fullscreen
-    //    element shrinks the video into a corner.
-    try { tg.expand?.(); } catch {}
-    if (typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
+  // 2. Android / desktop: native browser fullscreen on the whole .video-player
+  //    container (keeps our custom controls visible), then lock orientation to
+  //    landscape. Orientation lock is only permitted once we are in fullscreen, so we
+  //    wait for the fullscreenchange event. We intentionally do NOT use the CSS 90°
+  //    rotate here — rotating the player on top of Telegram/native fullscreen is what
+  //    shrank the video into a corner.
+  const nativeOk = requestElFullscreen(videoPlayer);
+
+  if (nativeOk) {
+    const lockWhenFs = () => {
+      if (!getFullscreenElement()) return;
+      tryLockLandscape();
+      document.removeEventListener("fullscreenchange", lockWhenFs);
+      document.removeEventListener("webkitfullscreenchange", lockWhenFs);
+    };
+    document.addEventListener("fullscreenchange", lockWhenFs);
+    document.addEventListener("webkitfullscreenchange", lockWhenFs);
+    setTimeout(lockWhenFs, 60);
+  } else {
+    // 3. Fallback (native fullscreen unsupported): Telegram fullscreen + CSS rotate.
+    if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
       try { tg.requestFullscreen(); } catch {}
     }
-    // Try a real orientation lock; if it works the device physically rotates and
-    // refreshLandscapeView() drops the CSS rotate. Otherwise the rotate kicks in.
     await tryLockLandscape();
     refreshLandscapeView();
-    // The Telegram fullscreen viewport settles asynchronously — re-measure a couple
-    // of times so the rotated layout matches the final screen size.
     setTimeout(refreshLandscapeView, 120);
     setTimeout(refreshLandscapeView, 320);
-  } else {
-    // 3. Desktop / standalone browser: real native fullscreen + orientation lock.
-    requestElFullscreen(videoPlayer);
-    await tryLockLandscape();
   }
 
   syncFullscreenButton();
