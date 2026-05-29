@@ -910,14 +910,14 @@
     gap: 14px !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
-    padding-bottom: 10px !important;
+    padding-bottom: 4px !important;
     scroll-snap-type: x mandatory !important;
-    scrollbar-width: thin;
-    scrollbar-color: var(--fx-surface-2) transparent;
+    scroll-behavior: smooth !important;
+    /* Scrollbar yashirin — sichqoncha/touchpad bilan scroll qilinadi */
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
-  body.frame-desktop .fx-home-cats__list::-webkit-scrollbar { height: 6px; }
-  body.frame-desktop .fx-home-cats__list::-webkit-scrollbar-thumb { background: var(--fx-surface-2); border-radius: 3px; }
-  body.frame-desktop .fx-home-cats__list::-webkit-scrollbar-track { background: transparent; }
+  body.frame-desktop .fx-home-cats__list::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
   body.frame-desktop .fx-home-cats__card {
     all: unset;
     box-sizing: border-box;
