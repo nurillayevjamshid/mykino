@@ -29,6 +29,17 @@ const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 const POSTER_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const POSTER_PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70"><rect width="50" height="70" fill="#1a1f2e"/><text x="25" y="38" text-anchor="middle" font-family="Arial" font-size="9" fill="#ffc73a">No Image</text></svg>');
 
+// r2.dev bepul domeni ko'p so'rovda 403 (throttle) qaytaradi. Rasmni o'z
+// domenimiz (Vercel) orqali proxy qilamiz -> Vercel edge keshlaydi, r2.dev'ga
+// burst urilmaydi. Faqat r2.dev URL'lari proxy qilinadi.
+function proxiedPoster(url) {
+  const u = String(url || '');
+  if (/\.r2\.dev\//i.test(u)) {
+    return '/api/drive-thumbnail?u=' + encodeURIComponent(u);
+  }
+  return u;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -944,12 +955,12 @@ function renderMovies() {
   tbody.innerHTML = moviesToRender.map(movie => `
     <tr data-id="${escapeHtml(movie.id)}">
       <td>
-        <img src="${escapeHtml(movie.poster || POSTER_PLACEHOLDER)}"
+        <img src="${escapeHtml(movie.poster ? proxiedPoster(movie.poster) : POSTER_PLACEHOLDER)}"
              alt="${escapeHtml(movie.name)}" class="movie-poster" loading="lazy" decoding="async" onerror="retryPoster(this)">
       </td>
       <td>
         ${movie.headerImage ? `
-          <img src="${escapeHtml(movie.headerImage)}" alt="Header" class="movie-header-preview" loading="lazy" decoding="async" style="width: 80px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);" onerror="this.style.display='none'">
+          <img src="${escapeHtml(proxiedPoster(movie.headerImage))}" alt="Header" class="movie-header-preview" loading="lazy" decoding="async" style="width: 80px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);" onerror="this.style.display='none'">
         ` : '<span style="color:var(--text-muted); font-size: 11px;">Yo\'q</span>'}
       </td>
       <td><strong>${escapeHtml(movie.name)}</strong><br><small style="color:var(--text-muted)">${escapeHtml(movie.code || '')}</small></td>

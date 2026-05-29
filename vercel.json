@@ -90,6 +90,7 @@
     { "src": "/api/telegram-webhook", "dest": "/api/telegram-webhook.js" },
     { "src": "/api/drive-stream/(.*)", "dest": "/api/drive-stream.js?fileId=$1" },
     { "src": "/api/drive-resolve/(.*)", "dest": "/api/drive-resolve.js?fileId=$1" },
+    { "src": "/api/drive-thumbnail", "dest": "/api/drive-thumbnail.js" },
     { "src": "/api/drive-thumbnail/(.*)", "dest": "/api/drive-thumbnail.js?fileId=$1" },
     { "src": "/admin", "dest": "/webapp/admin/index.html" },
     { "src": "/admin/", "dest": "/webapp/admin/index.html" },
