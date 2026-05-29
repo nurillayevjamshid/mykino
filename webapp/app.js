@@ -3570,7 +3570,6 @@ function applyFsRotate(enable) {
       height: `${w}px`,
       transform: "translate(-50%, -50%) rotate(90deg)",
       transformOrigin: "center center",
-      inset: "auto",
     });
   });
 }
@@ -3649,7 +3648,7 @@ async function enterFullscreenAndLandscape() {
   if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
     try { tg.requestFullscreen(); } catch {}
   }
-  window.__fsDbgNative = requestElFullscreen(videoPlayer);
+  requestElFullscreen(videoPlayer);
   await tryLockLandscape();
 
   // 3. The .video-player overlay already covers the whole viewport (position:fixed
@@ -3663,32 +3662,6 @@ async function enterFullscreenAndLandscape() {
   setTimeout(evaluateFsRotate, 700);
 
   syncFullscreenButton();
-  setTimeout(showFsDebug, 900);
-}
-
-// TEMP diagnostics — shows live fullscreen state on screen so we can see what the
-// Telegram WebView actually does. Remove once landscape works.
-function showFsDebug() {
-  try {
-    const fsEl = getFullscreenElement();
-    const tg = getTelegramWebApp();
-    const r = (el) => { const b = el?.getBoundingClientRect?.(); return b ? `${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}` : "?"; };
-    const vEl = getActiveVideoEl();
-    const msg =
-      `port=${isPortraitOrientation() ? 1 : 0} tgFS=${tg && tg.isFullscreen ? 1 : 0} ` +
-      `rotCls=${videoPlayer.classList.contains("is-fs-rotate") ? 1 : 0}\n` +
-      `player=${videoPlayer.clientWidth}x${videoPlayer.clientHeight}\n` +
-      `mount=${r(videoMount)}\n` +
-      `overlay=${r(playerOverlay)}\n` +
-      `video=${vEl ? r(vEl) : "none"} (${vEl?.videoWidth || 0}x${vEl?.videoHeight || 0})`;
-    if (!playerToast) return;
-    if (toastHideTimer) window.clearTimeout(toastHideTimer);
-    playerToast.style.whiteSpace = "pre-line";
-    playerToast.style.fontSize = "12px";
-    playerToast.textContent = msg;
-    playerToast.hidden = false;
-    toastHideTimer = window.setTimeout(() => { playerToast.hidden = true; }, 12000);
-  } catch {}
 }
 
 function exitFullscreenAndLandscape() {
