@@ -17,7 +17,7 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/frame/styles.css?v=20260528-frame05" />
-  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-homecats03" />
+  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-homecats04" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -1123,12 +1123,13 @@
           })();
 
           if (more) more.addEventListener('click', function () {
-            try {
-              window.open(location.pathname + '?view=categories', '_blank', 'noopener');
-            } catch (_) {
-              var btn = document.querySelector('.bottom-bar__button[data-action="categories-view"]');
-              if (btn) btn.click();
-            }
+            var btn = document.querySelector('.bottom-bar__button[data-action="categories-view"]');
+            if (btn) btn.click();
+            // Nav'da Kategoriyalar linkini faollashtirish
+            document.querySelectorAll('.fx-topnav__link').forEach(function (l) {
+              l.classList.toggle('is-active', l.dataset.fxNav === 'categories');
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           });
 
           fetch('/api/categories', { cache: 'no-store' })
@@ -1136,26 +1137,6 @@
             .then(function (j) { render(Array.isArray(j.categories) ? j.categories : []); })
             .catch(function () { section.style.display = 'none'; });
         })();
-
-        // ===== Deep-link: ?view=categories => alohida "Kategoriyalar" sahifa ko'rinishi =====
-        try {
-          var params = new URLSearchParams(location.search || '');
-          if (params.get('view') === 'categories') {
-            body.classList.add('fx-page-categories');
-            document.title = 'Kategoriyalar — MY PLAYLIST';
-            // Nav'da Kategoriyalar linkini faollashtirish
-            var navLinks = document.querySelectorAll('.fx-topnav__link');
-            navLinks.forEach(function (l) {
-              l.classList.toggle('is-active', l.dataset.fxNav === 'categories');
-            });
-            var openCats = function () {
-              var b = document.querySelector('.bottom-bar__button[data-action="categories-view"]');
-              if (b) b.click();
-              window.scrollTo({ top: 0, behavior: 'auto' });
-            };
-            requestAnimationFrame(function () { setTimeout(openCats, 60); });
-          }
-        } catch (_) {}
 
         // ===== Topbar scroll background =====
         var onScroll = function(){
