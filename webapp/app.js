@@ -5743,11 +5743,16 @@ initApp();
     setTimeout(() => indicator.classList.remove("ptr-snap"), 320);
   };
 
-  // Scroll'ning ANIQ tepasi (iOS rubber band/momentum'ni hisobga olgan holda).
-  const isAtTop = () => {
-    const sy = window.scrollY || document.documentElement.scrollTop || document.body?.scrollTop || 0;
-    return sy <= 0;
+  // MUHIM: sahifani body emas, .app-shell scroll qiladi (body: overflow:hidden).
+  // Shu sabab window.scrollY doim 0 bo'lib qoladi va PTR sahifa o'rtasida ham
+  // ishga tushardi. Asl scroll konteynerning scrollTop'ini o'qiymiz.
+  const scroller = document.querySelector(".app-shell");
+  const getScrollTop = () => {
+    if (scroller) return scroller.scrollTop;
+    return window.scrollY || document.documentElement.scrollTop || document.body?.scrollTop || 0;
   };
+  // Scroll'ning ANIQ tepasi (iOS rubber band/momentum'ni hisobga olgan holda).
+  const isAtTop = () => getScrollTop() <= 0;
 
   const cancelPull = () => {
     if (!pulling) return;
@@ -5759,7 +5764,8 @@ initApp();
   // Recent scroll activity tracker — momentum/inertial scroll tugashi kutilishi kerak.
   let lastScrollAt = 0;
   const SCROLL_QUIET_MS = 250;
-  window.addEventListener("scroll", () => {
+  // Scroll hodisasi window'da emas, .app-shell'da sodir bo'ladi (bubble qilmaydi).
+  (scroller || window).addEventListener("scroll", () => {
     lastScrollAt = Date.now();
     // Agar PTR boshlangan bo'lsa, lekin sahifa scroll qilinyapti — bekor qilish.
     if (pulling && !armed) cancelPull();
