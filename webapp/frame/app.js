@@ -3545,6 +3545,61 @@ function refreshLandscapeView() {
   applyForceLandscape(isPortraitOrientation());
 }
 
+// ---- In-fullscreen CSS rotate (Telegram WebView can't lock orientation) ----
+// When we ARE in real browser fullscreen but the device stays portrait (orientation
+// lock was rejected), rotate the player's children 90° so the video shows landscape.
+// We rotate the children (.video-mount + .player-overlay), NOT the fullscreen element
+// itself — the browser force-sizes the :fullscreen element, but children we can size.
+const FS_ROTATE_ELS = () => [videoMount, playerOverlay].filter(Boolean);
+const FS_ROTATE_PROPS = ["position", "top", "left", "right", "bottom", "width", "height", "transform", "transformOrigin", "inset"];
+
+function clearFsRotate() {
+  FS_ROTATE_ELS().forEach((el) => {
+    FS_ROTATE_PROPS.forEach((p) => {
+      const kebab = p.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+      el.style.removeProperty(kebab);
+    });
+  });
+  videoPlayer.classList.remove("is-fs-rotate");
+}
+
+function applyFsRotate(enable) {
+  if (!enable) {
+    clearFsRotate();
+    return;
+  }
+  // Container fills the screen in fullscreen; read its real size.
+  const w = videoPlayer.clientWidth || window.innerWidth || 0;
+  const h = videoPlayer.clientHeight || window.innerHeight || 0;
+  if (!w || !h) return;
+  // Size children to the SWAPPED dimensions, then rotate 90° → fills the portrait box.
+  videoPlayer.classList.add("is-fs-rotate");
+  FS_ROTATE_ELS().forEach((el) => {
+    Object.assign(el.style, {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      right: "auto",
+      bottom: "auto",
+      width: `${h}px`,
+      height: `${w}px`,
+      transform: "translate(-50%, -50%) rotate(90deg)",
+      transformOrigin: "center center",
+      inset: "auto",
+    });
+  });
+}
+
+function evaluateFsRotate() {
+  // Only relevant while in a real browser fullscreen element.
+  if (!intendedFullscreen || !getFullscreenElement()) {
+    applyFsRotate(false);
+    return;
+  }
+  // If the device managed to rotate to landscape, no CSS rotate needed.
+  applyFsRotate(isPortraitOrientation());
+}
+
 function isAnyFullscreen() {
   return Boolean(getFullscreenElement()) || isTelegramFullscreen() || isIOSVideoFullscreen() || intendedFullscreen;
 }
@@ -3614,6 +3669,10 @@ async function enterFullscreenAndLandscape() {
       tryLockLandscape();
       document.removeEventListener("fullscreenchange", lockWhenFs);
       document.removeEventListener("webkitfullscreenchange", lockWhenFs);
+      // Orientation lock is silently rejected inside Telegram's WebView. Give it a
+      // moment to take effect; if the device is still portrait, rotate via CSS.
+      setTimeout(evaluateFsRotate, 250);
+      setTimeout(evaluateFsRotate, 600);
     };
     document.addEventListener("fullscreenchange", lockWhenFs);
     document.addEventListener("webkitfullscreenchange", lockWhenFs);
@@ -3651,6 +3710,7 @@ function exitFullscreenAndLandscape() {
   }
   unlockOrientation();
   applyForceLandscape(false);
+  applyFsRotate(false);
   syncFullscreenButton();
 }
 
@@ -5103,11 +5163,11 @@ try {
   }
 } catch {}
 
-window.addEventListener("resize", () => { if (intendedFullscreen) refreshLandscapeView(); updateWatermarkPosition(); });
+window.addEventListener("resize", () => { if (intendedFullscreen) { refreshLandscapeView(); evaluateFsRotate(); } updateWatermarkPosition(); });
 
 try {
   const portraitMQ = window.matchMedia("(orientation: portrait)");
-  const onOrientChange = () => { refreshLandscapeView(); syncFullscreenButton(); };
+  const onOrientChange = () => { refreshLandscapeView(); evaluateFsRotate(); syncFullscreenButton(); };
   if (typeof portraitMQ.addEventListener === "function") {
     portraitMQ.addEventListener("change", onOrientChange);
   } else if (typeof portraitMQ.addListener === "function") {
