@@ -3591,12 +3591,14 @@ function applyFsRotate(enable) {
 }
 
 function evaluateFsRotate() {
-  // Only relevant while in a real browser fullscreen element.
-  if (!intendedFullscreen || !getFullscreenElement()) {
+  // NOTE: we intentionally do NOT require getFullscreenElement() here — the Telegram
+  // WebView ignores the Fullscreen API, yet the .video-player overlay still covers the
+  // whole viewport, so the CSS rotate is what actually produces landscape.
+  if (!intendedFullscreen) {
     applyFsRotate(false);
     return;
   }
-  // If the device managed to rotate to landscape, no CSS rotate needed.
+  // If the device already rotated to landscape (real orientation lock), no rotate.
   applyFsRotate(isPortraitOrientation());
 }
 
@@ -3655,38 +3657,25 @@ async function enterFullscreenAndLandscape() {
   const tg = getTelegramWebApp();
   try { tg?.expand?.(); } catch {}
 
-  // 2. Android / desktop: native browser fullscreen on the whole .video-player
-  //    container (keeps our custom controls visible), then lock orientation to
-  //    landscape. Orientation lock is only permitted once we are in fullscreen, so we
-  //    wait for the fullscreenchange event. We intentionally do NOT use the CSS 90°
-  //    rotate here — rotating the player on top of Telegram/native fullscreen is what
-  //    shrank the video into a corner.
-  const nativeOk = requestElFullscreen(videoPlayer);
-
-  if (nativeOk) {
-    const lockWhenFs = () => {
-      if (!getFullscreenElement()) return;
-      tryLockLandscape();
-      document.removeEventListener("fullscreenchange", lockWhenFs);
-      document.removeEventListener("webkitfullscreenchange", lockWhenFs);
-      // Orientation lock is silently rejected inside Telegram's WebView. Give it a
-      // moment to take effect; if the device is still portrait, rotate via CSS.
-      setTimeout(evaluateFsRotate, 250);
-      setTimeout(evaluateFsRotate, 600);
-    };
-    document.addEventListener("fullscreenchange", lockWhenFs);
-    document.addEventListener("webkitfullscreenchange", lockWhenFs);
-    setTimeout(lockWhenFs, 60);
-  } else {
-    // 3. Fallback (native fullscreen unsupported): Telegram fullscreen + CSS rotate.
-    if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
-      try { tg.requestFullscreen(); } catch {}
-    }
-    await tryLockLandscape();
-    refreshLandscapeView();
-    setTimeout(refreshLandscapeView, 120);
-    setTimeout(refreshLandscapeView, 320);
+  // 2. Try to hide Telegram's chrome (Bot API 8.0+) and enter real browser fullscreen
+  //    + orientation lock. On desktop / standalone Chrome this fully works. Inside the
+  //    Telegram WebView the Fullscreen API and orientation lock are silently ignored,
+  //    so none of these can be relied on — they're best-effort.
+  if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
+    try { tg.requestFullscreen(); } catch {}
   }
+  requestElFullscreen(videoPlayer);
+  await tryLockLandscape();
+
+  // 3. The .video-player overlay already covers the whole viewport (position:fixed
+  //    inset:0). If the device is still portrait — i.e. the OS/orientation lock did
+  //    NOT rotate us to landscape — rotate the player content 90° via CSS so the video
+  //    shows landscape. This does NOT depend on the Fullscreen API (which the Telegram
+  //    WebView ignores). Re-run a few times while the viewport settles.
+  evaluateFsRotate();
+  setTimeout(evaluateFsRotate, 120);
+  setTimeout(evaluateFsRotate, 350);
+  setTimeout(evaluateFsRotate, 700);
 
   syncFullscreenButton();
 }
