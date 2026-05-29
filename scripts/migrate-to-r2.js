@@ -20,7 +20,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 const { Readable } = require("stream");
 const { S3Client, HeadObjectCommand } = require("@aws-sdk/client-s3");
 const { Upload } = require("@aws-sdk/lib-storage");
@@ -38,9 +38,16 @@ const {
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
 const ALL = args.includes("--all");
+const FORCE = args.includes("--force");
 const limitIndex = args.indexOf("--limit");
 const LIMIT = limitIndex >= 0 ? Number(args[limitIndex + 1]) || 1 : Infinity;
-const SPECIFIC_ID = args.find((a) => !a.startsWith("--") && a.length > 10);
+const seriesIndex = args.indexOf("--series");
+const SERIES_FILTER = seriesIndex >= 0 ? String(args[seriesIndex + 1] || "").toLowerCase() : "";
+// Bayroqlar qiymatlari (--limit N, --series "nom") SPECIFIC_ID sifatida olinmasligi kerak.
+const FLAG_VALUE_INDICES = new Set();
+if (limitIndex >= 0) FLAG_VALUE_INDICES.add(limitIndex + 1);
+if (seriesIndex >= 0) FLAG_VALUE_INDICES.add(seriesIndex + 1);
+const SPECIFIC_ID = args.find((a, i) => !a.startsWith("--") && a.length > 10 && !FLAG_VALUE_INDICES.has(i));
 
 function requireEnv(name) {
   const value = String(process.env[name] || "").trim();
@@ -90,17 +97,41 @@ function downloadToFile(fileId, destPath) {
   }));
 }
 
-// MKV/AVI/WebM -> MP4. Video H.264 bo'lsa copy (tez, lossless),
-// boshqa bo'lsa libx264 ga re-encode. Audio doim AAC.
+// Video oqimning kodeki va piksel formatini aniqlaydi (ffprobe).
+function probeVideoStream(inputPath) {
+  const res = spawnSync("ffprobe", [
+    "-v", "error",
+    "-select_streams", "v:0",
+    "-show_entries", "stream=codec_name,pix_fmt",
+    "-of", "default=nokey=1:noprint_wrappers=1",
+    inputPath,
+  ], { encoding: "utf8" });
+  const lines = String(res.stdout || "").trim().split(/\r?\n/);
+  return {
+    codec: (lines[0] || "").toLowerCase(),
+    pixFmt: (lines[1] || "").toLowerCase(),
+  };
+}
+
+// Har qanday video -> brauzerda ishlaydigan MP4 (H.264 8-bit + AAC).
+// Manba allaqachon H.264 8-bit (yuv420p) bo'lsa video oqim copy qilinadi
+// (tez, lossless). Aks holda libx264'ga re-encode qilinadi: HEVC/H.265,
+// 10-bit H.264, VP9, AV1 va h.k. iPhone/Android Telegram WebView'da qora
+// ekran (ovoz bor, rasm yo'q) beradi — shuning uchun copy emas, re-encode kerak.
 function convertToMp4(inputPath, outputPath) {
   return new Promise((resolve, reject) => {
-    const tryConvert = (videoCodecArgs, label) => {
+    const { codec, pixFmt } = probeVideoStream(inputPath);
+    const browserSafe = codec === "h264"
+      && (pixFmt === "yuv420p" || pixFmt === "yuvj420p" || pixFmt === "");
+    const reencodeArgs = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p"];
+
+    const runFfmpeg = (videoCodecArgs, label) => {
       log(`    ffmpeg: ${label}`);
       const proc = spawn("ffmpeg", [
         "-y",
         "-i", inputPath,
         "-map", "0:v:0",
-        "-map", "0:a",
+        "-map", "0:a?",
         ...videoCodecArgs,
         "-c:a", "aac",
         "-b:a", "192k",
@@ -115,13 +146,18 @@ function convertToMp4(inputPath, outputPath) {
         if (videoCodecArgs[1] === "copy") {
           // copy ishlamadi (kodek mos emas) -> re-encode'ga o'tish
           log(`    video copy ishlamadi, re-encode'ga o'tilmoqda...`);
-          tryConvert(["-c:v", "libx264", "-preset", "veryfast", "-crf", "21"], "re-encode (libx264)");
+          runFfmpeg(reencodeArgs, "re-encode (libx264)");
         } else {
           reject(new Error(`ffmpeg exit ${code}: ${stderr.slice(-400)}`));
         }
       });
     };
-    tryConvert(["-c:v", "copy"], "video copy + audio AAC");
+
+    if (browserSafe) {
+      runFfmpeg(["-c:v", "copy"], `video copy (h264 ${pixFmt || "8-bit"})`);
+    } else {
+      runFfmpeg(reencodeArgs, `re-encode (libx264, manba: ${codec || "noma'lum"} ${pixFmt || ""})`);
+    }
   });
 }
 
@@ -151,15 +187,16 @@ async function uploadFileToR2(key, filePath, totalBytes) {
   await upload.done();
 }
 
-// MKV/AVI/WebM faylni yuklab olib, MP4'ga aylantirib R2'ga yuklaydi.
-async function migrateMkv(task) {
+// Har qanday videoni yuklab olib, brauzerga mos MP4'ga (H.264 8-bit + AAC)
+// aylantirib R2'ga yuklaydi. MP4-idishli HEVC ham re-encode qilinadi.
+async function migrateVideo(task) {
   const key = objectKey(task.driveFileId);
   const url = publicUrlFor(task.driveFileId);
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mkv2mp4-"));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mykino-r2-"));
   const inputPath = path.join(tmpDir, "input");
   const outputPath = path.join(tmpDir, "output.mp4");
   try {
-    log(`  → MKV yuklab olinmoqda (${Math.round((task.size || 0) / 1048576)} MB)...`);
+    log(`  → yuklab olinmoqda (${Math.round((task.size || 0) / 1048576)} MB)...`);
     await downloadToFile(task.driveFileId, inputPath);
     log(`  → MP4'ga aylantirilmoqda...`);
     const method = await convertToMp4(inputPath, outputPath);
@@ -168,7 +205,7 @@ async function migrateMkv(task) {
     await uploadFileToR2(key, outputPath, outSize);
     log(`  ✓ R2'ga yuklandi: ${url}`);
     await task.writeCdn(url);
-    return { status: "MIGRATED_MKV", url };
+    return { status: "MIGRATED", url };
   } finally {
     try { fs.unlinkSync(inputPath); } catch (_) {}
     try { fs.unlinkSync(outputPath); } catch (_) {}
@@ -187,11 +224,14 @@ async function checkExists(key) {
 }
 
 // Bitta faylni (kino yoki epizod) R2'ga ko'chiradi.
+// Har bir video yuklab olinadi, kodeki tekshiriladi va brauzerga mos MP4'ga
+// aylantirib yuklanadi (H.264 8-bit bo'lsa copy, aks holda libx264 re-encode).
+// --force bilan R2'da allaqachon bor faylni ham qayta konvert qiladi.
 async function uploadOne(task) {
   const key = objectKey(task.driveFileId);
   const url = publicUrlFor(task.driveFileId);
 
-  if (await checkExists(key)) {
+  if (!FORCE && await checkExists(key)) {
     log(`  [SKIP_EXISTS] R2 da allaqachon bor: ${key}`);
     if (!task.cdnUrl) {
       log(`  [PATCH_META] cdnUrl Drive metadata'ga yoziladi...`);
@@ -200,46 +240,7 @@ async function uploadOne(task) {
     return { status: "SKIP_EXISTS", url };
   }
 
-  if (isMkvFile(task.fileName, task.mimeType)) {
-    return migrateMkv(task);
-  }
-
-  log(`  → yuklab olinmoqda va R2'ga upload qilinmoqda (streaming)...`);
-  const upstream = await getDriveMediaResponse(task.driveFileId);
-  const totalBytes = Number(upstream.headers.get("content-length") || 0);
-  const bodyStream = Readable.fromWeb(upstream.body);
-
-  const upload = new Upload({
-    client: s3,
-    params: {
-      Bucket: R2_BUCKET,
-      Key: key,
-      Body: bodyStream,
-      ContentType: "video/mp4",
-    },
-    queueSize: 4,
-    partSize: 16 * 1024 * 1024, // 16MB
-    leavePartsOnError: false,
-  });
-
-  let lastPercent = -1;
-  upload.on("httpUploadProgress", (p) => {
-    if (totalBytes > 0 && p.loaded != null) {
-      const pct = Math.floor((p.loaded / totalBytes) * 100);
-      if (pct !== lastPercent && pct % 10 === 0) {
-        lastPercent = pct;
-        log(`    ${pct}%  (${Math.round(p.loaded / 1048576)} / ${Math.round(totalBytes / 1048576)} MB)`);
-      }
-    }
-  });
-
-  await upload.done();
-  log(`  ✓ R2'ga yuklandi: ${url}`);
-
-  log(`  → cdnUrl Drive metadata'ga yoziladi...`);
-  await task.writeCdn(url);
-
-  return { status: "MIGRATED", url };
+  return migrateVideo(task);
 }
 
 function isVideoFile(fileName, mimeType) {
@@ -346,18 +347,27 @@ async function main() {
     log("Migratsiya boshlash uchun:");
     log("  node scripts/migrate-to-r2.js --apply --limit 1   # 1 ta sinab ko'rish");
     log("  node scripts/migrate-to-r2.js --apply --all       # hammasi (kino + serial)");
+    log("  node scripts/migrate-to-r2.js --apply --force --all              # hammasini qayta konvert (HEVC -> H.264)");
+    log("  node scripts/migrate-to-r2.js --apply --force --series \"nom\"     # bitta serialni qayta konvert");
     return;
   }
+
+  // --force bilan allaqachon ko'chgan fayllarni ham qayta konvert qilish mumkin.
+  const pool = FORCE ? allTasks : needsMigrate;
 
   let targets = [];
   if (SPECIFIC_ID) {
     const target = allTasks.find((t) => t.driveFileId === SPECIFIC_ID);
     if (!target) { log(`Topilmadi: ${SPECIFIC_ID}`); return; }
     targets = [target];
+  } else if (SERIES_FILTER) {
+    targets = pool.filter((t) => t.kind === "episode"
+      && String(t.label || "").toLowerCase().includes(SERIES_FILTER));
+    if (!targets.length) { log(`Mos serial epizodi topilmadi: "${SERIES_FILTER}"`); return; }
   } else if (ALL) {
-    targets = needsMigrate;
+    targets = pool;
   } else {
-    targets = needsMigrate.slice(0, Number.isFinite(LIMIT) ? LIMIT : 1);
+    targets = pool.slice(0, Number.isFinite(LIMIT) ? LIMIT : 1);
   }
 
   log(`Migratsiya qilinadi: ${targets.length} ta video.\n`);
