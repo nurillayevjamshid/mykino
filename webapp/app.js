@@ -3527,6 +3527,13 @@ function refreshLandscapeView() {
     applyForceLandscape(false);
     return;
   }
+  // Never apply the CSS rotate while a real browser fullscreen element is active —
+  // the browser already sizes the element to the screen, and stacking our rotate +
+  // fixed sizing on top of it shrinks the video into a corner.
+  if (getFullscreenElement()) {
+    applyForceLandscape(false);
+    return;
+  }
   applyForceLandscape(isPortraitOrientation());
 }
 
@@ -3584,17 +3591,28 @@ async function enterFullscreenAndLandscape() {
 
   const tg = getTelegramWebApp();
 
-  // 2. Telegram WebApp expand + fullscreen (Bot API 8.0+) — Android Telegram
-  try { tg?.expand?.(); } catch {}
-  if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
-    try { tg.requestFullscreen(); } catch {}
+  if (tg) {
+    // 2. Inside Telegram (Android/WebView): use Telegram fullscreen (hides Telegram
+    //    chrome) + a CSS 90° rotate to force landscape. We must NOT also request native
+    //    browser fullscreen here — the rotate transform on top of a native :fullscreen
+    //    element shrinks the video into a corner.
+    try { tg.expand?.(); } catch {}
+    if (typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
+      try { tg.requestFullscreen(); } catch {}
+    }
+    // Try a real orientation lock; if it works the device physically rotates and
+    // refreshLandscapeView() drops the CSS rotate. Otherwise the rotate kicks in.
+    await tryLockLandscape();
+    refreshLandscapeView();
+    // The Telegram fullscreen viewport settles asynchronously — re-measure a couple
+    // of times so the rotated layout matches the final screen size.
+    setTimeout(refreshLandscapeView, 120);
+    setTimeout(refreshLandscapeView, 320);
+  } else {
+    // 3. Desktop / standalone browser: real native fullscreen + orientation lock.
+    requestElFullscreen(videoPlayer);
+    await tryLockLandscape();
   }
-
-  // 3. Standard browser fullscreen (desktop, Android Chrome)
-  requestElFullscreen(videoPlayer);
-
-  // 4. Android orientation lock — physically rotates device to landscape
-  await tryLockLandscape();
 
   syncFullscreenButton();
 }
