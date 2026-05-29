@@ -3578,7 +3578,6 @@ function applyFsRotate(enable) {
       height: `${w}px`,
       transform: "translate(-50%, -50%) rotate(90deg)",
       transformOrigin: "center center",
-      inset: "auto",
     });
   });
 }
