@@ -3649,14 +3649,19 @@ async function enterFullscreenAndLandscape() {
   const tg = getTelegramWebApp();
   try { tg?.expand?.(); } catch {}
 
-  // 2. Try to hide Telegram's chrome (Bot API 8.0+) and enter real browser fullscreen
-  //    + orientation lock. On desktop / standalone Chrome this fully works. Inside the
-  //    Telegram WebView the Fullscreen API and orientation lock are silently ignored,
-  //    so none of these can be relied on — they're best-effort.
-  if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
-    try { tg.requestFullscreen(); } catch {}
+  // 2. Hide Telegram's chrome / status bar. Inside Telegram (Bot API 8.0+) use
+  //    tg.requestFullscreen() ONLY — it must run synchronously in the click gesture,
+  //    and we must NOT also call the native Fullscreen API: in the WebView the native
+  //    request is ignored anyway, and triggering it here consumes the user-gesture and
+  //    can block tg.requestFullscreen from taking effect (leaving the header visible).
+  if (tg && typeof tg.requestFullscreen === "function") {
+    if (!tg.isFullscreen) { try { tg.requestFullscreen(); } catch {} }
+    // BackButton would force Telegram to keep a header strip — hide it in fullscreen.
+    try { tg.BackButton?.hide?.(); } catch {}
+  } else {
+    // Desktop / standalone browser: real native fullscreen.
+    requestElFullscreen(videoPlayer);
   }
-  requestElFullscreen(videoPlayer);
   await tryLockLandscape();
 
   // 3. The .video-player overlay already covers the whole viewport (position:fixed
@@ -3692,6 +3697,8 @@ function exitFullscreenAndLandscape() {
   unlockOrientation();
   applyForceLandscape(false);
   applyFsRotate(false);
+  // Restore the Telegram BackButton we hid on entering fullscreen.
+  try { tgBackButtonSync(); } catch {}
   syncFullscreenButton();
 }
 
