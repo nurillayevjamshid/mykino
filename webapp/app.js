@@ -3672,19 +3672,22 @@ function showFsDebug() {
   try {
     const fsEl = getFullscreenElement();
     const tg = getTelegramWebApp();
+    const r = (el) => { const b = el?.getBoundingClientRect?.(); return b ? `${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}` : "?"; };
+    const vEl = getActiveVideoEl();
     const msg =
-      `native=${window.__fsDbgNative ? 1 : 0} ` +
-      `fsEl=${fsEl ? (fsEl.id || fsEl.tagName) : "null"} ` +
-      `tgFS=${tg && tg.isFullscreen ? 1 : 0} ` +
-      `portrait=${isPortraitOrientation() ? 1 : 0} ` +
-      `cw=${videoPlayer.clientWidth} ch=${videoPlayer.clientHeight} ` +
-      `iw=${window.innerWidth} ih=${window.innerHeight} ` +
-      `rotCls=${videoPlayer.classList.contains("is-fs-rotate") ? 1 : 0}`;
+      `port=${isPortraitOrientation() ? 1 : 0} tgFS=${tg && tg.isFullscreen ? 1 : 0} ` +
+      `rotCls=${videoPlayer.classList.contains("is-fs-rotate") ? 1 : 0}\n` +
+      `player=${videoPlayer.clientWidth}x${videoPlayer.clientHeight}\n` +
+      `mount=${r(videoMount)}\n` +
+      `overlay=${r(playerOverlay)}\n` +
+      `video=${vEl ? r(vEl) : "none"} (${vEl?.videoWidth || 0}x${vEl?.videoHeight || 0})`;
     if (!playerToast) return;
     if (toastHideTimer) window.clearTimeout(toastHideTimer);
+    playerToast.style.whiteSpace = "pre-line";
+    playerToast.style.fontSize = "12px";
     playerToast.textContent = msg;
     playerToast.hidden = false;
-    toastHideTimer = window.setTimeout(() => { playerToast.hidden = true; }, 9000);
+    toastHideTimer = window.setTimeout(() => { playerToast.hidden = true; }, 12000);
   } catch {}
 }
 
