@@ -40,10 +40,7 @@
   html { color-scheme: dark; }
 
   /* ====== Mobile-bound styles.css qoidalarini bekor qilish (Disney+ banner) ====== */
-  body.frame-desktop .hero__info,
-  body.frame-desktop #heroPlayLabel {
-    display: revert !important;
-  }
+  body.frame-desktop #heroPlayLabel { display: revert !important; }
   /* Foydalanuvchi so'roviga ko'ra: hero'da kino nomi va tavsifi yashirin */
   body.frame-desktop .hero__title,
   body.frame-desktop .hero__desc {
@@ -588,70 +585,50 @@
     flex-shrink: 0 !important;
   }
 
-  body.frame-desktop .hero__info {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    flex-direction: row !important;
-    gap: 8px !important;
-    width: auto !important;
-    height: 46px !important;
-    min-width: 0 !important;
-    padding: 0 22px !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    color: var(--fx-text) !important;
-    border: 1px solid rgba(255, 255, 255, 0.18) !important;
-    border-radius: 999px !important;
-    font-size: 13.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.04em !important;
-    text-transform: uppercase !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-    cursor: pointer !important;
-    backdrop-filter: blur(8px) !important;
-    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, color 0.18s ease !important;
-    flex-shrink: 0 !important;
-    place-items: unset !important;
+  /* ====== Sevimliga tugmasi — toza qayta yozildi ====== */
+  body.frame-desktop #heroInfoButton.hero__info {
+    all: unset;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 46px;
+    padding: 0 22px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font: 700 13.5px/1 'Inter', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.18s, border-color 0.18s, transform 0.18s, color 0.18s;
+    flex-shrink: 0;
   }
-  body.frame-desktop .hero__info::before { content: none !important; }
-  body.frame-desktop .hero__info::after { content: none !important; }
-  body.frame-desktop .hero__info .fx-heroinfo-label {
-    display: inline-block !important;
-    font-size: 13.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.04em !important;
-    text-transform: uppercase !important;
-    line-height: 1 !important;
-    color: inherit !important;
-    white-space: nowrap !important;
+  body.frame-desktop #heroInfoButton.hero__info > svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+    stroke: none;
+    flex: 0 0 auto;
+    transition: fill 0.18s;
   }
-  body.frame-desktop .hero__info:hover {
-    background: rgba(255, 255, 255, 0.14) !important;
-    border-color: rgba(255,255,255,0.32) !important;
-    transform: translateY(-1px) !important;
+  body.frame-desktop #heroInfoButton.hero__info > .fx-heroinfo-label {
+    flex: 0 0 auto;
   }
-  body.frame-desktop .hero__info svg {
-    display: block !important;
-    width: 16px !important;
-    height: 16px !important;
-    flex-shrink: 0 !important;
-    fill: none !important;
-    stroke: currentColor !important;
-    stroke-width: 2 !important;
-    stroke-linecap: round !important;
-    stroke-linejoin: round !important;
-    transition: fill 0.18s ease, color 0.18s ease !important;
+  body.frame-desktop #heroInfoButton.hero__info:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.34);
+    transform: translateY(-1px);
   }
-  body.frame-desktop .hero__info.is-active {
-    color: #ff5d8f !important;
-    border-color: rgba(255, 93, 143, 0.5) !important;
-    background: rgba(255, 93, 143, 0.12) !important;
-  }
-  body.frame-desktop .hero__info.is-active::after { content: none !important; }
-  body.frame-desktop .hero__info.is-active svg {
-    fill: #ff5d8f !important;
-    color: #ff5d8f !important;
+  body.frame-desktop #heroInfoButton.hero__info.is-active {
+    color: #ff5d8f;
+    background: rgba(255, 93, 143, 0.12);
+    border-color: rgba(255, 93, 143, 0.5);
   }
 
   body.frame-desktop .hero__dots {
