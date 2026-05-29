@@ -89,13 +89,36 @@ function isMkvFile(fileName, mimeType) {
   return mime.includes("matroska") || ext === "mkv" || ext === "webm" || ext === "avi";
 }
 
-function downloadToFile(fileId, destPath) {
+function downloadOnce(fileId, destPath) {
   return getDriveMediaResponse(fileId).then((upstream) => new Promise((resolve, reject) => {
     const ws = fs.createWriteStream(destPath);
-    Readable.fromWeb(upstream.body).pipe(ws);
-    ws.on("finish", resolve);
+    const rs = Readable.fromWeb(upstream.body);
+    // Manba oqimi (Drive) o'rtada uzilsa ("other side closed") 'error' hodisasi
+    // ushlanmasa butun jarayon yiqiladi — shuning uchun uni ham reject qilamiz.
+    rs.on("error", (err) => { ws.destroy(); reject(err); });
     ws.on("error", reject);
+    ws.on("finish", resolve);
+    rs.pipe(ws);
   }));
+}
+
+// Drive yuklab olish vaqtinchalik tarmoq uzilishida (UND_ERR_SOCKET) qayta urinadi.
+async function downloadToFile(fileId, destPath, attempts = 3) {
+  let lastErr;
+  for (let i = 1; i <= attempts; i += 1) {
+    try {
+      await downloadOnce(fileId, destPath);
+      return;
+    } catch (err) {
+      lastErr = err;
+      try { fs.unlinkSync(destPath); } catch (_) {}
+      if (i < attempts) {
+        log(`    yuklab olish uzildi (urinish ${i}/${attempts}): ${err.message} — qayta urinilmoqda...`);
+        await new Promise((r) => setTimeout(r, 3000 * i));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 // Video oqimning kodeki va piksel formatini aniqlaydi (ffprobe).
