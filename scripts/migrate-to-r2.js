@@ -39,6 +39,7 @@ const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
 const ALL = args.includes("--all");
 const FORCE = args.includes("--force");
+const EPISODES = args.includes("--episodes");
 const limitIndex = args.indexOf("--limit");
 const LIMIT = limitIndex >= 0 ? Number(args[limitIndex + 1]) || 1 : Infinity;
 const seriesIndex = args.indexOf("--series");
@@ -364,6 +365,9 @@ async function main() {
     targets = pool.filter((t) => t.kind === "episode"
       && String(t.label || "").toLowerCase().includes(SERIES_FILTER));
     if (!targets.length) { log(`Mos serial epizodi topilmadi: "${SERIES_FILTER}"`); return; }
+  } else if (EPISODES) {
+    targets = pool.filter((t) => t.kind === "episode");
+    if (!targets.length) { log("Serial epizodi topilmadi."); return; }
   } else if (ALL) {
     targets = pool;
   } else {
