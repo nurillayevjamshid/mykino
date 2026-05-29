@@ -17,7 +17,7 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/frame/styles.css?v=20260528-frame05" />
-  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-homecats01" />
+  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-homecats02" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -1081,8 +1081,12 @@
           });
 
           if (more) more.addEventListener('click', function () {
-            var btn = document.querySelector('.bottom-bar__button[data-action="categories-view"]');
-            if (btn) btn.click();
+            try {
+              window.open(location.pathname + '?view=categories', '_blank', 'noopener');
+            } catch (_) {
+              var btn = document.querySelector('.bottom-bar__button[data-action="categories-view"]');
+              if (btn) btn.click();
+            }
           });
 
           fetch('/api/categories', { cache: 'no-store' })
@@ -1090,6 +1094,19 @@
             .then(function (j) { render(Array.isArray(j.categories) ? j.categories : []); })
             .catch(function () { section.style.display = 'none'; });
         })();
+
+        // ===== Deep-link: ?view=categories => kategoriyalar ko'rinishini ochish =====
+        try {
+          var params = new URLSearchParams(location.search || '');
+          if (params.get('view') === 'categories') {
+            var openCats = function () {
+              var b = document.querySelector('.bottom-bar__button[data-action="categories-view"]');
+              if (b) b.click();
+            };
+            // Bottom-bar tugmasi DOM'da bo'lishi uchun bir frame kutamiz
+            requestAnimationFrame(function () { setTimeout(openCats, 80); });
+          }
+        } catch (_) {}
 
         // ===== Topbar scroll background =====
         var onScroll = function(){
