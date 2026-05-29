@@ -945,7 +945,7 @@ function renderMovies() {
     <tr data-id="${escapeHtml(movie.id)}">
       <td>
         <img src="${escapeHtml(movie.poster || POSTER_PLACEHOLDER)}"
-             alt="${escapeHtml(movie.name)}" class="movie-poster" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=POSTER_PLACEHOLDER">
+             alt="${escapeHtml(movie.name)}" class="movie-poster" loading="lazy" decoding="async" onerror="retryPoster(this)">
       </td>
       <td>
         ${movie.headerImage ? `
@@ -1931,6 +1931,27 @@ init();
 // Expose for inline handlers / retry buttons
 window.fetchMovies = fetchMovies;
 window.POSTER_PLACEHOLDER = POSTER_PLACEHOLDER;
+
+// r2.dev burst'da ba'zi rasmlarni throttle qiladi -> darhol taslim bo'lmay
+// biroz kutib qayta urinamiz, faqat 2 marta uddasidan chiqmasa placeholder.
+function retryPoster(img) {
+  if (!img || !img.dataset) return;
+  const original = img.dataset.src || img.getAttribute('src');
+  if (original && original.indexOf('data:image') === 0) return; // placeholder, urinmaymiz
+  const tries = Number(img.dataset.retry || 0);
+  if (tries >= 2) {
+    img.onerror = null;
+    img.src = POSTER_PLACEHOLDER;
+    return;
+  }
+  img.dataset.retry = String(tries + 1);
+  img.dataset.src = original;
+  setTimeout(() => {
+    // cache-bust qo'shib qayta so'raymiz (throttle bo'lgan so'rovni yangilash uchun)
+    img.src = original + (original.indexOf('?') === -1 ? '?' : '&') + 'r=' + (tries + 1);
+  }, 600 * (tries + 1));
+}
+window.retryPoster = retryPoster;
 window.editMovie = editMovie;
 window.fetchUsers = fetchUsers;
 
