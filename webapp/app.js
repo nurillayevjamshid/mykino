@@ -903,6 +903,17 @@ function resolveAppUrl(value) {
   return raw;
 }
 
+// r2.dev bepul domeni ko'p so'rovda 403 (throttle) qaytaradi. Poster rasmlarini
+// o'z domenimiz (Vercel) orqali proxy qilamiz -> Vercel edge keshlaydi, r2.dev'ga
+// burst urilmaydi. Faqat r2.dev rasm URL'lari proxy qilinadi (video/cdn emas).
+function proxyPosterUrl(value) {
+  const url = String(value || "").trim();
+  if (/\.r2\.dev\//i.test(url)) {
+    return buildApiUrl(`/api/drive-thumbnail?u=${encodeURIComponent(url)}`);
+  }
+  return url;
+}
+
 function firstUsableImage(...candidates) {
   for (const candidate of candidates) {
     const value = String(candidate || "").trim();
@@ -1226,7 +1237,7 @@ function normalizeMovie(movie, index = 0) {
     year: movie?.year || "",
     hd: toBooleanFlag(movie?.hd ?? movie?.quality === "HD"),
     code: String(movie?.code || "").trim(),
-    posterImage: resolveAppUrl(rawPoster),
+    posterImage: proxyPosterUrl(resolveAppUrl(rawPoster)),
     isPremium: Boolean(movie?.isPremium),
     isTop: Boolean(movie?.isTop),
     sourceType,
@@ -1241,7 +1252,7 @@ function normalizeMovie(movie, index = 0) {
     sourceUrl,
     webViewLink: resolveAppUrl(String(movie?.webViewLink || "").trim()),
     mimeType: String(movie?.mimeType || "").trim(),
-    headerImage: resolveAppUrl(firstUsableImage(movie?.headerImage, movie?.heroPoster)),
+    headerImage: proxyPosterUrl(resolveAppUrl(firstUsableImage(movie?.headerImage, movie?.heroPoster))),
     showInHeader: toBooleanFlag(movie?.showInHeader ?? movie?.heroFeatured),
   };
 
@@ -1251,7 +1262,7 @@ function normalizeMovie(movie, index = 0) {
 
   if (normalized.videoUrl) normalized.videoUrl = resolveAppUrl(normalized.videoUrl);
   if (normalized.streamUrl) normalized.streamUrl = resolveAppUrl(normalized.streamUrl);
-  if (normalized.thumbnail) normalized.thumbnail = resolveAppUrl(normalized.thumbnail);
+  if (normalized.thumbnail) normalized.thumbnail = proxyPosterUrl(resolveAppUrl(normalized.thumbnail));
 
   return normalized;
 }
@@ -4490,7 +4501,7 @@ function normalizeSeriesEntry(raw) {
     id: String(raw?.id || raw?.folderId || ""),
     title: String(raw?.title || raw?.folderName || "Serial").trim(),
     description: String(raw?.description || "").trim(),
-    posterImage: resolveAppUrl(firstUsableImage(raw?.posterImage, raw?.poster)),
+    posterImage: proxyPosterUrl(resolveAppUrl(firstUsableImage(raw?.posterImage, raw?.poster))),
     episodeCount: Number(raw?.episodeCount || orderedEpisodes.length || 0),
     episodes: orderedEpisodes,
   };
