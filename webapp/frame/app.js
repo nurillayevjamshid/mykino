@@ -4400,6 +4400,8 @@ const categoryDetailTitle = document.getElementById("categoryDetailTitle");
 const categoryDetailEmpty = document.getElementById("categoryDetailEmpty");
 const categoryDetailBack = document.getElementById("categoryDetailBack");
 
+try { window.__openCategoryByName = (name) => openCategoryDetailView(name); window.__openSeriesList = () => openSeriesListView(); } catch (_) {}
+
 function openCategoryDetailView(name) {
   if (!categoryDetailView || !categoryDetailGrid) return;
   const targetValue = normalizeCategoryValue(name);
