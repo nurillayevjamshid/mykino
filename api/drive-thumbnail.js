@@ -4,6 +4,47 @@ function getFileId(request) {
   return String(request.query?.fileId || request.query?.id || "").trim();
 }
 
+// Ruxsat etilgan R2 host'lari (ochiq proxy bo'lib qolmasligi uchun).
+function allowedR2Hosts() {
+  const hosts = new Set();
+  const pub = String(process.env.R2_PUBLIC_URL || "").trim();
+  if (pub) {
+    try { hosts.add(new URL(pub).host); } catch (_) { /* ignore */ }
+  }
+  return hosts;
+}
+
+// R2 rasmini Vercel orqali proxy qilib, kuchli kesh bilan stream qiladi.
+// Brauzer r2.dev'ga emas, o'z domenimizga uradi -> r2.dev burst-throttle (403) yo'qoladi.
+async function proxyR2Image(request, response, rawUrl) {
+  let target;
+  try {
+    target = new URL(rawUrl);
+  } catch (_) {
+    response.status(400).end("bad url");
+    return;
+  }
+  const allowed = allowedR2Hosts();
+  // R2_PUBLIC_URL sozlanmagan bo'lsa ham, faqat *.r2.dev domenlariga ruxsat.
+  const isR2Dev = /\.r2\.dev$/i.test(target.host);
+  if (!allowed.has(target.host) && !isR2Dev) {
+    response.status(403).end("forbidden host");
+    return;
+  }
+
+  const upstream = await fetch(target.toString());
+  if (!upstream.ok) {
+    response.writeHead(307, { Location: LOGO_POSTER_URL });
+    response.end();
+    return;
+  }
+  const buffer = Buffer.from(await upstream.arrayBuffer());
+  response.setHeader("Content-Type", upstream.headers.get("content-type") || "image/jpeg");
+  // Vercel edge'da uzoq kesh: rasm o'zgarmas (URL'da unikal hash bor).
+  response.setHeader("Cache-Control", "public, max-age=86400, s-maxage=31536000, stale-while-revalidate=604800, immutable");
+  response.status(200).end(buffer);
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
   if (request.method === "OPTIONS") {
@@ -13,6 +54,18 @@ module.exports = async function handler(request, response) {
 
   if (request.method !== "GET") {
     response.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", error: "Faqat GET ishlaydi." });
+    return;
+  }
+
+  // R2 proxy rejimi: /api/drive-thumbnail?u=<r2-url>
+  const proxyUrl = String(request.query?.u || "").trim();
+  if (proxyUrl) {
+    try {
+      await proxyR2Image(request, response, proxyUrl);
+    } catch (_) {
+      response.writeHead(307, { Location: LOGO_POSTER_URL });
+      response.end();
+    }
     return;
   }
 
