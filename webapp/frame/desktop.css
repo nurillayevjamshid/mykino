@@ -872,15 +872,15 @@
     background: var(--fx-surface-2) !important;
   }
 
-  /* ====== Alohida "Kategoriyalar" sahifa (?view=categories) ====== */
-  body.frame-desktop.fx-page-categories .hero,
-  body.frame-desktop.fx-page-categories #fxHomeCats,
-  body.frame-desktop.fx-page-categories .movie-grid,
-  body.frame-desktop.fx-page-categories .category-row,
-  body.frame-desktop.fx-page-categories #appShell > .app-footer {
+  /* ====== Kategoriyalar ko'rinishi ochilganda boshqa bo'limlar yashirin ====== */
+  body.frame-desktop.is-categories .hero,
+  body.frame-desktop.is-categories #fxHomeCats,
+  body.frame-desktop.is-categories .movie-grid,
+  body.frame-desktop.is-categories .category-row,
+  body.frame-desktop.is-categories #appShell > .app-footer {
     display: none !important;
   }
-  body.frame-desktop.fx-page-categories .categories-view {
+  body.frame-desktop.is-categories .categories-view {
     padding-top: calc(var(--fx-topbar-h) + 40px) !important;
   }
 
