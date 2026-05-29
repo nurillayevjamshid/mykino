@@ -27,6 +27,7 @@ let availableCategories = [];
 const API_URL = '/api';
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 const POSTER_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const POSTER_PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70"><rect width="50" height="70" fill="#1a1f2e"/><text x="25" y="38" text-anchor="middle" font-family="Arial" font-size="9" fill="#ffc73a">No Image</text></svg>');
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -943,12 +944,12 @@ function renderMovies() {
   tbody.innerHTML = moviesToRender.map(movie => `
     <tr data-id="${escapeHtml(movie.id)}">
       <td>
-        <img src="${escapeHtml(movie.poster || 'https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image')}"
-             alt="${escapeHtml(movie.name)}" class="movie-poster" onerror="this.src='https://via.placeholder.com/50x70/1a1f2e/ffc73a?text=No+Image'">
+        <img src="${escapeHtml(movie.poster || POSTER_PLACEHOLDER)}"
+             alt="${escapeHtml(movie.name)}" class="movie-poster" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=POSTER_PLACEHOLDER">
       </td>
       <td>
         ${movie.headerImage ? `
-          <img src="${escapeHtml(movie.headerImage)}" alt="Header" class="movie-header-preview" style="width: 80px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);">
+          <img src="${escapeHtml(movie.headerImage)}" alt="Header" class="movie-header-preview" loading="lazy" decoding="async" style="width: 80px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);" onerror="this.style.display='none'">
         ` : '<span style="color:var(--text-muted); font-size: 11px;">Yo\'q</span>'}
       </td>
       <td><strong>${escapeHtml(movie.name)}</strong><br><small style="color:var(--text-muted)">${escapeHtml(movie.code || '')}</small></td>
@@ -1929,6 +1930,7 @@ init();
 
 // Expose for inline handlers / retry buttons
 window.fetchMovies = fetchMovies;
+window.POSTER_PLACEHOLDER = POSTER_PLACEHOLDER;
 window.editMovie = editMovie;
 window.fetchUsers = fetchUsers;
 
