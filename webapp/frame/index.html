@@ -17,7 +17,7 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/frame/styles.css?v=20260528-frame05" />
-  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-homecats02" />
+  <link rel="stylesheet" href="/static/frame/desktop.css?v=20260528-homecats03" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -1071,6 +1071,13 @@
           }
 
           list.addEventListener('click', function (e) {
+            // Drag tugagandan keyin click bo'lib o'tsa, bekor qilamiz
+            if (list.dataset.dragged === '1') {
+              list.dataset.dragged = '0';
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
             var card = e.target.closest('.fx-home-cats__card');
             if (!card) return;
             if (card.dataset.series === '1' && typeof window.__openSeriesList === 'function') {
@@ -1079,6 +1086,41 @@
               window.__openCategoryByName(card.dataset.cat || '');
             }
           });
+
+          // ===== Mouse drag-to-scroll (sichqoncha bilan tortib scroll) =====
+          (function enableDragScroll() {
+            var isDown = false, startX = 0, startScroll = 0, moved = 0;
+            list.style.cursor = 'grab';
+            list.addEventListener('pointerdown', function (e) {
+              if (e.pointerType === 'touch') return; // touch o'zining scroll'idan foydalanadi
+              isDown = true;
+              moved = 0;
+              startX = e.clientX;
+              startScroll = list.scrollLeft;
+              list.style.cursor = 'grabbing';
+              list.style.scrollBehavior = 'auto';
+              list.setPointerCapture(e.pointerId);
+            });
+            list.addEventListener('pointermove', function (e) {
+              if (!isDown) return;
+              var dx = e.clientX - startX;
+              list.scrollLeft = startScroll - dx;
+              moved = Math.max(moved, Math.abs(dx));
+            });
+            function endDrag(e) {
+              if (!isDown) return;
+              isDown = false;
+              list.style.cursor = 'grab';
+              list.style.scrollBehavior = 'smooth';
+              list.dataset.dragged = moved > 5 ? '1' : '0';
+              try { list.releasePointerCapture(e.pointerId); } catch (_) {}
+            }
+            list.addEventListener('pointerup', endDrag);
+            list.addEventListener('pointercancel', endDrag);
+            list.addEventListener('pointerleave', endDrag);
+            // Drag paytida tasvirlar drag-image bo'lib qolmasin
+            list.addEventListener('dragstart', function (e) { e.preventDefault(); });
+          })();
 
           if (more) more.addEventListener('click', function () {
             try {
@@ -1095,16 +1137,23 @@
             .catch(function () { section.style.display = 'none'; });
         })();
 
-        // ===== Deep-link: ?view=categories => kategoriyalar ko'rinishini ochish =====
+        // ===== Deep-link: ?view=categories => alohida "Kategoriyalar" sahifa ko'rinishi =====
         try {
           var params = new URLSearchParams(location.search || '');
           if (params.get('view') === 'categories') {
+            body.classList.add('fx-page-categories');
+            document.title = 'Kategoriyalar — MY PLAYLIST';
+            // Nav'da Kategoriyalar linkini faollashtirish
+            var navLinks = document.querySelectorAll('.fx-topnav__link');
+            navLinks.forEach(function (l) {
+              l.classList.toggle('is-active', l.dataset.fxNav === 'categories');
+            });
             var openCats = function () {
               var b = document.querySelector('.bottom-bar__button[data-action="categories-view"]');
               if (b) b.click();
+              window.scrollTo({ top: 0, behavior: 'auto' });
             };
-            // Bottom-bar tugmasi DOM'da bo'lishi uchun bir frame kutamiz
-            requestAnimationFrame(function () { setTimeout(openCats, 80); });
+            requestAnimationFrame(function () { setTimeout(openCats, 60); });
           }
         } catch (_) {}
 
