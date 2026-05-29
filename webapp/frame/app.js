@@ -3531,18 +3531,11 @@ function applyForceLandscape(enable) {
 }
 
 function refreshLandscapeView() {
-  if (!intendedFullscreen) {
-    applyForceLandscape(false);
-    return;
-  }
-  // Never apply the CSS rotate while a real browser fullscreen element is active —
-  // the browser already sizes the element to the screen, and stacking our rotate +
-  // fixed sizing on top of it shrinks the video into a corner.
-  if (getFullscreenElement()) {
-    applyForceLandscape(false);
-    return;
-  }
-  applyForceLandscape(isPortraitOrientation());
+  // Unified on the child-rotate mechanism (applyFsRotate). The legacy whole-player
+  // rotate (applyForceLandscape) is kept OFF — running both at once double-rotates the
+  // content (90°+90°=180°, upside-down) and conflicts on sizing.
+  applyForceLandscape(false);
+  evaluateFsRotate();
 }
 
 // ---- In-fullscreen CSS rotate (Telegram WebView can't lock orientation) ----
