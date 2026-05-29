@@ -44,7 +44,7 @@ module.exports = async function handler(request, response) {
 
     const buffer = Buffer.from(await upstream.arrayBuffer());
     response.setHeader("Content-Type", upstream.headers.get("content-type") || "image/jpeg");
-    response.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+    response.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800, immutable");
     response.status(200).end(buffer);
   } catch {
     response.writeHead(307, { Location: LOGO_POSTER_URL });
