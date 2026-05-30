@@ -2710,7 +2710,6 @@ function syncDescriptionToggle() {
 
 let preloadVideoEl = null;
 let preloadVideoUrl = "";
-function hideCodecError() {}
 
 function stopMoviePreload() {
   if (!preloadVideoEl) return;
@@ -3963,7 +3962,6 @@ function renderVideoSource(videoUrl, movie, options = {}) {
   } = options;
   destroyYouTubePlayer();
   clearVideoLoadTimer();
-  hideCodecError();
   videoMount.replaceChildren();
   videoFallback.hidden = true;
   videoExternalLink.hidden = true;
@@ -4072,7 +4070,6 @@ function getInlineSourceLabel(movie) {
 async function openVideoPlayer(movie, options = {}) {
   if (!movie) return;
   stopMoviePreload();
-  hideCodecError();
   const requestId = ++activeVideoRequest;
   activeMovie = movie;
   // startFromBeginning=true bo'lsa, resume vaqti olinmaydi (boshidan).
