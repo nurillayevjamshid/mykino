@@ -3548,6 +3548,24 @@ function clearFsRotate() {
   videoPlayer.classList.remove("is-fs-rotate");
 }
 
+// Height (in CSS px) of the strip at the portrait TOP that Telegram's fullscreen UI
+// (status bar + the "Закрыть"/▼/⋮ controls) occupies. We keep the rotated video below
+// it so the controls don't sit on top of the picture.
+function fsTopInset() {
+  const tg = getTelegramWebApp();
+  if (!tg || !tg.isFullscreen) return 0;
+  let t = 0;
+  try {
+    const sa = tg.safeAreaInset;
+    if (sa && typeof sa.top === "number") t += sa.top;
+    const csa = tg.contentSafeAreaInset;
+    if (csa && typeof csa.top === "number") t += csa.top;
+  } catch {}
+  // Fallback if Telegram doesn't report the insets but we are in its fullscreen.
+  if (t < 1) t = 96;
+  return Math.round(t);
+}
+
 function applyFsRotate(enable) {
   if (!enable) {
     clearFsRotate();
@@ -3557,16 +3575,22 @@ function applyFsRotate(enable) {
   const w = videoPlayer.clientWidth || window.innerWidth || 0;
   const h = videoPlayer.clientHeight || window.innerHeight || 0;
   if (!w || !h) return;
-  // Size children to the SWAPPED dimensions, then rotate 90° → fills the portrait box.
+  // Reserve the top strip for Telegram's fullscreen controls: the video occupies the
+  // portrait region y:[T, h] (full width w, height h-T). After the 90° rotation this
+  // becomes the landscape picture starting just past the controls instead of under them.
+  const T = fsTopInset();
+  const availH = Math.max(h - T, 1);
+  const centerY = T + availH / 2;
+  // Size children to the SWAPPED dimensions, then rotate 90° → fills the available box.
   videoPlayer.classList.add("is-fs-rotate");
   FS_ROTATE_ELS().forEach((el) => {
     Object.assign(el.style, {
       position: "absolute",
-      top: "50%",
+      top: `${centerY}px`,
       left: "50%",
       right: "auto",
       bottom: "auto",
-      width: `${h}px`,
+      width: `${availH}px`,
       height: `${w}px`,
       transform: "translate(-50%, -50%) rotate(90deg)",
       transformOrigin: "center center",
@@ -5138,6 +5162,10 @@ try {
       syncFullscreenButton();
     });
     tgWebApp.onEvent("viewportChanged", () => { refreshLandscapeView(); });
+    // Re-measure when Telegram reports its safe-area / fullscreen-controls insets so the
+    // rotated video sits exactly below the controls.
+    tgWebApp.onEvent("safeAreaChanged", () => { refreshLandscapeView(); });
+    tgWebApp.onEvent("contentSafeAreaChanged", () => { refreshLandscapeView(); });
   }
 } catch {}
 
