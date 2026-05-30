@@ -377,6 +377,7 @@ const videoCurrentTime = document.querySelector("#videoCurrentTime");
 const videoDuration = document.querySelector("#videoDuration");
 const videoBrightness = null;
 const videoBrightnessOverlay = null;
+const videoSpeedLabel = null;
 const videoLockButton = null;
 const videoLockRelease = null;
 const videoVolumeButton = document.querySelector("#videoVolumeButton");
@@ -2817,6 +2818,15 @@ function formatPlaybackTime(seconds) {
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}` : `${minutes}:${String(secs).padStart(2, "0")}`;
 }
 
+function syncSpeedOptions() {
+  updateSpeedLabel();
+}
+
+function updateSpeedLabel() {
+  if (!videoSpeedLabel) return;
+  videoSpeedLabel.textContent = `(${currentSpeed}x)`;
+}
+
 function getActiveVideoEl() {
   return videoMount.querySelector("video");
 }
@@ -3678,16 +3688,9 @@ function createVideoElement(src, movie, options = {}) {
     }
     updateHtml5VideoControls();
     updateWatermarkPosition();
-    scheduleCodecCheck(video, movie, 3000);
   });
   video.addEventListener("resize", () => {
-    if (video.videoWidth > 0 && video.videoHeight > 0) hideCodecError();
     updateWatermarkPosition();
-  });
-  video.addEventListener("timeupdate", () => {
-    if (video.currentTime > 1.5 && video.videoWidth === 0 && video.videoHeight === 0 && !video.paused) {
-      showCodecError(movie);
-    }
   });
   video.addEventListener("ratechange", () => {
     if (Math.abs(video.playbackRate - currentSpeed) > 0.001 && SPEED_OPTIONS.includes(video.playbackRate)) {
@@ -4647,13 +4650,7 @@ document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-ac
   b.addEventListener("click", () => closeCategoryDetailView({ goHome: true }));
 });
 
-categoryList?.addEventListener("click", (event) => {
-
-
-
 document.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
-
-// Custom dropdown handles language changes via click listeners defined above
 
 searchInput?.addEventListener("input", (event) => {
   query = event.target.value.trim();
