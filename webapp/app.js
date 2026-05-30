@@ -77,31 +77,6 @@ const savedTheme = getInitialTheme();
 const themeToggle = document.querySelector(".theme-toggle");
 const WISHLIST_STORAGE_KEY = "kino_wishlist_v1";
 
-const langDropdown = document.querySelector("#langDropdown");
-if (langDropdown) {
-  const trigger = langDropdown.querySelector(".lang-trigger");
-  const options = langDropdown.querySelectorAll(".lang-option");
-  const currentLabel = langDropdown.querySelector(".lang-current");
-
-  trigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    langDropdown.classList.toggle("is-open");
-  });
-
-  options.forEach(option => {
-    option.addEventListener("click", () => {
-      lang = option.dataset.value;
-      localStorage.setItem("kino_lang", lang);
-      langDropdown.classList.remove("is-open");
-      applyCopy();
-    });
-  });
-
-  document.addEventListener("click", () => {
-    langDropdown.classList.remove("is-open");
-  });
-}
-
 const copy = {
   uz: {
     all: "Barchasi",
@@ -349,7 +324,6 @@ const topbarBrand = document.querySelector(".brand");
 const topbarSearchTrigger = document.querySelector(".topbar-search__trigger");
 
 const categoryPanel = document.querySelector("#categoryPanel");
-const categoryList = document.querySelector("#categoryList");
 const movieModal = document.querySelector("#movieModal");
 movieModal?.addEventListener("close", () => { tgBackUnregister("movie-modal"); });
 const modalPoster = document.querySelector("#modalPoster");
@@ -360,12 +334,7 @@ const modalDescriptionToggle = document.querySelector("#modalDescriptionToggle")
 const modalDescriptionToggleLabel = modalDescriptionToggle?.querySelector(".modal-description-toggle__label") || null;
 const modalDescriptionWrap = document.querySelector("#modalDescriptionWrap");
 const modalRating = document.querySelector("#modalRating");
-const likeButton = document.querySelector("#likeButton");
-const dislikeButton = document.querySelector("#dislikeButton");
-const likeCountEl = document.querySelector("#likeCount");
-const dislikeCountEl = document.querySelector("#dislikeCount");
 const watchButton = document.querySelector("#watchButton");
-const movieLaterButton = document.querySelector(".modal-actions .ghost-button");
 const profileModal = document.querySelector("#profileModal");
 profileModal?.addEventListener("close", () => { tgBackUnregister("profile-modal"); });
 const __origProfileShowModal = profileModal?.showModal?.bind(profileModal);
@@ -408,8 +377,6 @@ const videoCurrentTime = document.querySelector("#videoCurrentTime");
 const videoDuration = document.querySelector("#videoDuration");
 const videoBrightness = null;
 const videoBrightnessOverlay = null;
-const videoSpeedButton = null;
-const videoSpeedLabel = null;
 const videoLockButton = null;
 const videoLockRelease = null;
 const videoVolumeButton = document.querySelector("#videoVolumeButton");
@@ -1739,45 +1706,6 @@ function clearMovieProgress(movie) {
   queueProgressRemove(String(movie.id));
 }
 
-function setEmptyState(_title, _text) {}
-
-function updateEmptyState(_list) {}
-
-function buildCategoryOptions() {
-  const map = new Map();
-  map.set("all", plainLabel(t("all")));
-
-  for (const movie of getViewerMovies()) {
-    for (const rawGenre of splitMovieGenres(movie?.genre)) {
-      const value = normalizeCategoryValue(rawGenre);
-      if (!rawGenre || !value || map.has(value)) continue;
-      map.set(value, rawGenre);
-    }
-  }
-
-  const entries = [...map.entries()].map(([value, label]) => ({ value, label }));
-  const allOption = entries.shift();
-  const shuffled = sessionShuffleCategories(entries, (o) => o.value);
-  return allOption ? [allOption, ...shuffled] : shuffled;
-}
-
-function renderCategories() {
-  if (!categoryList) return;
-  const options = buildCategoryOptions();
-  categoryList.innerHTML = "";
-
-  for (const option of options) {
-    const button = document.createElement("button");
-    button.className = `category-chip${option.value === activeCategory ? " is-active" : ""}`;
-    button.type = "button";
-    button.dataset.category = option.value;
-    button.textContent = option.label;
-    categoryList.append(button);
-  }
-}
-
-
-
 function syncNavButtons() {
   document.querySelectorAll('[data-filter="all"]').forEach((button) => {
     button.classList.toggle("is-active", activeFilter === "all" && activeCategory === "all" && !query);
@@ -2220,8 +2148,7 @@ function renderMovies() {
   if (isHomeView && movieLoadState === "ready") {
     grid.classList.add("is-home");
     if (!seriesCatalogLoaded) loadSeriesCatalog();
-    const rowCount = renderHomeRows();
-    updateEmptyState(rowCount > 0 ? getViewerMovies() : []);
+    renderHomeRows();
   } else if (movieLoadState === "loading") {
     // Skeleton: home/category/favorites — barchasi loading paytida shimmerlar.
     grid.classList.toggle("is-home", isHomeView);
@@ -2242,7 +2169,6 @@ function renderMovies() {
       }
       grid.append(frag);
     }
-    updateEmptyState([]);
   } else {
     grid.classList.remove("is-home");
     if (isCategoryPage && movieLoadState === "ready") {
@@ -2251,13 +2177,11 @@ function renderMovies() {
       grid.append(renderFavoritesPageHeader());
     }
     const list = movieLoadState === "ready" ? filteredMovies() : [];
-    updateEmptyState(list);
     for (const movie of list) {
       grid.append(createMovieCard(movie));
     }
   }
 
-  renderCategories();
   syncNavButtons();
   renderHeroCarousel();
 }
@@ -2333,7 +2257,6 @@ function renderProfileModal() {
   renderMusicHistory();
 }
 
-const REACTION_STORAGE_KEY = "mykino:reactions";
 const REACTION_CLIENT_ID_KEY = "mykino:clientId";
 
 function getReactionUserId() {
@@ -2350,52 +2273,6 @@ function getReactionUserId() {
   } catch {
     return `anon-${Date.now()}`;
   }
-}
-
-function readUserReactions() {
-  try {
-    return JSON.parse(localStorage.getItem(REACTION_STORAGE_KEY) || "{}") || {};
-  } catch {
-    return {};
-  }
-}
-
-function writeUserReaction(movieId, reaction) {
-  const map = readUserReactions();
-  if (reaction) map[movieId] = reaction;
-  else delete map[movieId];
-  try { localStorage.setItem(REACTION_STORAGE_KEY, JSON.stringify(map)); } catch {}
-}
-
-function renderReactions(movie) {
-  if (!likeCountEl || !dislikeCountEl) return;
-  const likes = Number(movie.likes || 0) || 0;
-  const dislikes = Number(movie.dislikes || 0) || 0;
-  likeCountEl.textContent = likes;
-  dislikeCountEl.textContent = dislikes;
-  const reactions = readUserReactions();
-  const current = reactions[movie.id];
-  likeButton?.classList.toggle("is-active", current === "like");
-  dislikeButton?.classList.toggle("is-active", current === "dislike");
-}
-
-async function refreshReactionCounts(movie) {
-  try {
-    const userId = getReactionUserId();
-    const url = `/api/movie-reaction?id=${encodeURIComponent(movie.id)}${userId ? `&userId=${encodeURIComponent(userId)}` : ""}`;
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return;
-    const data = await res.json();
-    if (!data || data.ok === false) return;
-    movie.likes = Number(data.likes || 0) || 0;
-    movie.dislikes = Number(data.dislikes || 0) || 0;
-    if (data.userReaction === "like" || data.userReaction === "dislike") {
-      writeUserReaction(movie.id, data.userReaction);
-    } else if (data.userReaction === null) {
-      writeUserReaction(movie.id, null);
-    }
-    if (activeMovie && activeMovie.id === movie.id) renderReactions(movie);
-  } catch {}
 }
 
 // ===== Comments (per-movie) =====
@@ -2666,31 +2543,6 @@ commentsList?.addEventListener("click", (event) => {
   if (commentId) adminDeleteComment(activeMovie, commentId);
 });
 
-async function sendReaction(movie, reaction) {
-  const userId = getReactionUserId();
-  const reactions = readUserReactions();
-  const prev = reactions[movie.id] || null;
-  const next = prev === reaction ? null : reaction;
-  writeUserReaction(movie.id, next);
-  renderReactions({ ...movie,
-    likes: (movie.likes || 0) + (next === "like" ? 1 : 0) - (prev === "like" ? 1 : 0),
-    dislikes: (movie.dislikes || 0) + (next === "dislike" ? 1 : 0) - (prev === "dislike" ? 1 : 0),
-  });
-  try {
-    const res = await fetch("/api/movie-reaction", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: movie.id, userId, reaction: next }),
-    });
-    const data = await res.json().catch(() => null);
-    if (data && data.ok !== false) {
-      movie.likes = Number(data.likes || 0) || 0;
-      movie.dislikes = Number(data.dislikes || 0) || 0;
-      renderReactions(movie);
-    }
-  } catch {}
-}
-
 function setDescriptionExpanded(expanded) {
   if (!modalDescriptionWrap || !modalDescriptionToggle) return;
   modalDescriptionWrap.hidden = !expanded;
@@ -2893,7 +2745,6 @@ function openMovie(movie) {
   // Resume holatini ko'rsatish: agar foydalanuvchi bu kinoni yarmida qoldirgan bo'lsa
   // — "X:XX dan davom" badge'i va "Boshidan" tugmasi paydo bo'ladi.
   syncResumeUiForMovie(movie);
-  renderReactions(movie);
   syncDescriptionToggle();
   movieModal.showModal();
   movieModal.scrollTop = 0;
@@ -2902,7 +2753,6 @@ function openMovie(movie) {
   if (!history.state || !history.state.movieDetail) {
     history.pushState({ movieDetail: true }, "");
   }
-  refreshReactionCounts(movie);
   loadComments(movie);
   startMoviePreload(movie);
   tgBackRegister("movie-modal", () => { try { movieModal.close(); } catch (_) {} });
@@ -2965,29 +2815,6 @@ function formatPlaybackTime(seconds) {
   const minutes = Math.floor((safe % 3600) / 60);
   const secs = safe % 60;
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}` : `${minutes}:${String(secs).padStart(2, "0")}`;
-}
-
-function syncPlaylistNavigationButtons() {
-  // playlist navigation removed (no prev/next buttons in new player UI)
-}
-
-function syncSpeedOptions() {
-  updateSpeedLabel();
-}
-
-function updateSpeedLabel() {
-  if (!videoSpeedLabel) return;
-  const formatted = Number.isInteger(currentSpeed) ? `${currentSpeed}x` : `${currentSpeed}x`;
-  videoSpeedLabel.textContent = `(${formatted})`;
-}
-
-function cycleSpeed() {
-  const idx = SPEED_OPTIONS.indexOf(currentSpeed);
-  const nextIdx = (idx + 1) % SPEED_OPTIONS.length;
-  currentSpeed = SPEED_OPTIONS[nextIdx];
-  playerCore.setRate(currentSpeed);
-  updateSpeedLabel();
-  showPlayerToast(`${currentSpeed}x`);
 }
 
 function getActiveVideoEl() {
@@ -3780,8 +3607,6 @@ async function mountYouTubePlayer(videoUrl, movie, options = {}) {
           lastSavedProgressSecond = -1;
           startYouTubeProgressTimer();
           activeYouTubePlayer.setVolume(100);
-          syncSpeedOptions();
-          syncPlaylistNavigationButtons();
           if (pendingResumeTime >= WATCH_PROGRESS_MIN_SECONDS) {
             activeYouTubePlayer.seekTo(pendingResumeTime, true);
           }
@@ -3801,7 +3626,6 @@ async function mountYouTubePlayer(videoUrl, movie, options = {}) {
         },
         onPlaybackRateChange: () => {
           if (requestId !== activeVideoRequest || videoPlayer.hidden) return;
-          syncSpeedOptions();
         },
         onError: () => {
           if (requestId !== activeVideoRequest || videoPlayer.hidden) return;
@@ -4284,19 +4108,7 @@ function applyCopy() {
     const label = button.querySelector(".bottom-bar__label");
     if (label) label.textContent = musicNavLabel;
   });
-  if (langDropdown) {
-    const currentLabel = langDropdown.querySelector(".lang-current");
-    const options = langDropdown.querySelectorAll(".lang-option");
-    if (currentLabel) {
-      currentLabel.textContent = lang.toUpperCase() === "EN" ? "ENG" : lang.toUpperCase();
-    }
-    options.forEach(opt => {
-      opt.classList.toggle("is-active", opt.dataset.value === lang);
-    });
-  }
-
   if (searchInput) searchInput.placeholder = plainLabel(t("placeholder"));
-  if (movieLaterButton) movieLaterButton.textContent = plainLabel(t("later"));
   if (modalDescriptionToggleLabel) {
     const expanded = modalDescriptionToggle?.classList.contains("is-expanded");
     modalDescriptionToggleLabel.textContent = plainLabel(t(expanded ? "showLess" : "showMore"));
@@ -4325,7 +4137,6 @@ function applyCopy() {
   });
 
   applyTelegramUser();
-  renderCategories();
   renderProfileModal();
   renderMovies();
 }
@@ -4837,14 +4648,6 @@ document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-ac
 });
 
 categoryList?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-category]");
-  if (!button) return;
-  setCategory(button.dataset.category || "all");
-});
-
-
-
-
 
 
 
@@ -5086,16 +4889,6 @@ modalDescriptionToggle?.addEventListener("click", () => {
       modalDescriptionWrap?.scrollIntoView?.({ behavior: "smooth", block: "start" });
     });
   }
-});
-
-likeButton?.addEventListener("click", () => {
-  if (!activeMovie) return;
-  sendReaction(activeMovie, "like");
-});
-
-dislikeButton?.addEventListener("click", () => {
-  if (!activeMovie) return;
-  sendReaction(activeMovie, "dislike");
 });
 
 movieModal?.addEventListener("close", () => {
