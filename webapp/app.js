@@ -5663,6 +5663,106 @@ initApp();
 })();
 // === /Pull-to-refresh ===
 
+// === smooth-wheel (desktop mouse wheel + touchpad tezroq scroll) ===
+// Native wheel scroll desktop/touchpad'da sekin va "og'ir" his qilinadi.
+// Bu blok wheel deltasini kuchaytirib (SPEED) va rAF lerp bilan silliq
+// interpolatsiya qilib, tezroq HAMDA responsivroq scroll beradi.
+// Touch qurilmalar (Android/iOS) bu blokka tegmaydi — ular native momentum
+// scroll bilan ishlaydi (pastdagi touch optimizatsiyasi CSS'da).
+(function attachSmoothWheel() {
+  const scroller = document.querySelector(".app-shell");
+  if (!scroller) return;
+  // Faqat haqiqiy mouse/touchpad uchun — sof touch qurilmalarda o'tkazib yuboramiz,
+  // chunki ularda native momentum scroll allaqachon tez va silliq.
+  const isTouchOnly = matchMedia("(hover: none) and (pointer: coarse)").matches;
+  if (isTouchOnly) return;
+
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // === Sozlamalar (tweak qilish mumkin) ===
+  const SPEED = 1.7;       // wheel tezligi: 1 = native, >1 = tezroq
+  const LINE_PX = 32;      // deltaMode=1 (qatorlar) -> piksel ekvivalenti
+  const PAGE_FRAC = 0.85;  // deltaMode=2 (sahifa) -> viewport ulushi
+  const DAMPING = 0.22;    // har frame'da target tomon yaqinlashish: katta = snappier, kichik = silliqroq
+
+  let target = scroller.scrollTop;
+  let animating = false;
+
+  const maxScroll = () => scroller.scrollHeight - scroller.clientHeight;
+
+  function normalizeDelta(e) {
+    let d = e.deltaY;
+    if (e.deltaMode === 1) d *= LINE_PX;
+    else if (e.deltaMode === 2) d *= scroller.clientHeight * PAGE_FRAC;
+    return d * SPEED;
+  }
+
+  // Event nishoni ichida app-shell'dan boshqa, shu yo'nalishda hali scroll qila
+  // oladigan konteyner bormi? (modal-content, music-list, kategoriya gridi...)
+  // Bo'lsa — native'ga qoldiramiz, aks holda ichki scroll ishlamay qoladi.
+  function hasInnerScroller(node, dir) {
+    let el = node;
+    while (el && el !== scroller && el.nodeType === 1) {
+      const st = getComputedStyle(el);
+      if (/(auto|scroll)/.test(st.overflowY) && el.scrollHeight > el.clientHeight + 1) {
+        const atTop = el.scrollTop <= 0;
+        const atBottom = el.scrollTop >= el.scrollHeight - el.clientHeight - 1;
+        if (dir < 0 && !atTop) return true;
+        if (dir > 0 && !atBottom) return true;
+      }
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  function step() {
+    const cur = scroller.scrollTop;
+    const diff = target - cur;
+    if (Math.abs(diff) < 0.5) {
+      scroller.scrollTop = target;
+      animating = false;
+      return;
+    }
+    scroller.scrollTop = cur + diff * DAMPING;
+    requestAnimationFrame(step);
+  }
+
+  scroller.addEventListener("wheel", (e) => {
+    // Gorizontal niyat (touchpad'da yon swipe) — tegmaymiz.
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    if (e.ctrlKey) return; // Ctrl+wheel = zoom
+    const b = document.body.classList;
+    // Modal/player/sheet ochiq bo'lsa — ularning o'z ichki scroll'i native ishlasin.
+    if (b.contains("is-modal-open") || b.contains("is-player-open")
+      || b.contains("ad-modal-open") || b.contains("has-sheet-open")) return;
+    const dir = e.deltaY < 0 ? -1 : 1;
+    if (hasInnerScroller(e.target, dir)) return;
+    const max = maxScroll();
+    if (max <= 0) return; // scroll qilinadigan joy yo'q
+
+    e.preventDefault();
+    if (reduceMotion) {
+      scroller.scrollTop = Math.max(0, Math.min(max, scroller.scrollTop + normalizeDelta(e)));
+      target = scroller.scrollTop;
+      return;
+    }
+    // Target'ni oldingi target'dan davom ettiramiz — tez ketma-ket wheel'larda
+    // tezlik to'planib, momentum hissi beradi.
+    const base = animating ? target : scroller.scrollTop;
+    target = Math.max(0, Math.min(max, base + normalizeDelta(e)));
+    if (!animating) {
+      animating = true;
+      requestAnimationFrame(step);
+    }
+  }, { passive: false });
+
+  // Boshqa yo'l bilan (scrollbar, klaviatura) scroll qilinsa, target sinxron qolsin.
+  scroller.addEventListener("scroll", () => {
+    if (!animating) target = scroller.scrollTop;
+  }, { passive: true });
+})();
+// === /smooth-wheel ===
+
 // === swipe-gestures (revertable: delete this block) ===
 // Idle vaqtda init — birinchi paint blok qilinmaydi.
 const __initSwipeGestures = function attachSwipeGestures() {

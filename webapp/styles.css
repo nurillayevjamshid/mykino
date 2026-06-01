@@ -6811,6 +6811,19 @@ body {
 }
 
 /* ============================================================
+   Scroll performansi — Android touch lag/jank'ni kamaytirish
+   Ekrandan tashqaridagi kategoriya qatorlari scroll paytida
+   qayta bo'yalmaydi (content-visibility), shu sabab scroll
+   yengilroq va responsivroq his qilinadi. contain-intrinsic-size
+   bilan scrollbar sakrashi oldi olinadi (auto = oxirgi o'lcham
+   eslab qolinadi). Funksionallikka ta'sir qilmaydi.
+   ============================================================ */
+.category-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+
+/* ============================================================
    Hero card — yumshoq burchakli card ko'rinishi
    ============================================================ */
 .hero {
