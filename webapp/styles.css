@@ -818,6 +818,120 @@ html[data-theme="light"] .brand {
 
 
 
+.search-recents {
+  margin-top: 10px;
+  padding: 12px 14px 14px;
+  border-radius: 18px;
+  background: rgba(20, 24, 34, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.32);
+}
+
+.search-recents__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.search-recents__title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(236, 239, 247, 0.6);
+}
+
+.search-recents__clear {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 199, 58, 0.9);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.search-recents__clear:hover {
+  background: rgba(255, 199, 58, 0.12);
+}
+
+.search-recents__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-recents__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(236, 239, 247, 0.88);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 240px;
+}
+
+.search-recents__chip:hover {
+  border-color: rgba(255, 199, 58, 0.4);
+  background: rgba(255, 199, 58, 0.1);
+}
+
+.search-recents__chip-label {
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-recents__chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(236, 239, 247, 0.7);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.search-recents__chip-remove:hover {
+  background: rgba(255, 80, 80, 0.3);
+  color: #fff;
+}
+
+html[data-theme="light"] .search-recents {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 18px 36px rgba(15, 19, 26, 0.08);
+}
+
+html[data-theme="light"] .search-recents__title {
+  color: rgba(15, 19, 26, 0.55);
+}
+
+html[data-theme="light"] .search-recents__chip {
+  background: rgba(15, 19, 26, 0.04);
+  border-color: rgba(15, 19, 26, 0.08);
+  color: #0f131a;
+}
+
+html[data-theme="light"] .search-recents__chip-remove {
+  background: rgba(15, 19, 26, 0.06);
+  color: rgba(15, 19, 26, 0.6);
+}
+
 .quick-tabs {
   display: flex;
   gap: 10px;
