@@ -2001,7 +2001,7 @@ dialog::backdrop {
   width: 100%;
   flex: 1 1 auto;
   min-height: 0;
-  background-size: contain;
+  background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
   background-color: #000;
