@@ -340,6 +340,102 @@ const searchInput = document.querySelector("#searchInput");
 const topbarSearch = document.querySelector(".topbar-search");
 const topbarBrand = document.querySelector(".brand");
 const topbarSearchTrigger = document.querySelector(".topbar-search__trigger");
+const searchRecents = document.querySelector("#searchRecents");
+const searchRecentsList = document.querySelector("#searchRecentsList");
+const searchRecentsClear = document.querySelector("#searchRecentsClear");
+const searchRecentsTitle = document.querySelector("#searchRecentsTitle");
+
+const RECENT_SEARCH_KEY = "kp_recent_searches";
+const RECENT_SEARCH_MAX = 8;
+
+function loadRecentSearches() {
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCH_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((v) => typeof v === "string" && v.trim()).slice(0, RECENT_SEARCH_MAX);
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveRecentSearchesList(list) {
+  try {
+    localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(list.slice(0, RECENT_SEARCH_MAX)));
+  } catch (_) {}
+}
+
+function pushRecentSearch(value) {
+  const v = (value || "").trim();
+  if (v.length < 2) return;
+  const list = loadRecentSearches().filter((x) => x.toLowerCase() !== v.toLowerCase());
+  list.unshift(v);
+  saveRecentSearchesList(list);
+  renderRecentSearches();
+}
+
+function removeRecentSearch(value) {
+  const list = loadRecentSearches().filter((x) => x.toLowerCase() !== value.toLowerCase());
+  saveRecentSearchesList(list);
+  renderRecentSearches();
+}
+
+function clearRecentSearches() {
+  saveRecentSearchesList([]);
+  renderRecentSearches();
+}
+
+function renderRecentSearches() {
+  if (!searchRecents || !searchRecentsList) return;
+  const list = loadRecentSearches();
+  const inputEmpty = !searchInput || !searchInput.value.trim();
+  if (!inputEmpty || list.length === 0) {
+    searchRecents.hidden = true;
+    searchRecentsList.innerHTML = "";
+    return;
+  }
+  searchRecents.hidden = false;
+  searchRecentsList.innerHTML = "";
+  list.forEach((value) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "search-recents__chip";
+    chip.dataset.value = value;
+    const label = document.createElement("span");
+    label.className = "search-recents__chip-label";
+    label.textContent = value;
+    const remove = document.createElement("span");
+    remove.className = "search-recents__chip-remove";
+    remove.textContent = "×";
+    remove.setAttribute("role", "button");
+    remove.setAttribute("aria-label", plainLabel(t("removeHistoryItem")) || "Remove");
+    chip.append(label, remove);
+    chip.addEventListener("click", (event) => {
+      if (event.target === remove) {
+        event.stopPropagation();
+        removeRecentSearch(value);
+        return;
+      }
+      if (!searchInput) return;
+      searchInput.value = value;
+      searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+      pushRecentSearch(value);
+      searchInput.focus();
+    });
+    searchRecentsList.appendChild(chip);
+  });
+}
+
+function updateRecentSearchLabels() {
+  if (searchRecentsTitle) {
+    const map = { uz: "Oxirgi qidiruvlar", ru: "Недавние запросы", en: "Recent searches" };
+    searchRecentsTitle.textContent = map[lang] || map.uz;
+  }
+  if (searchRecentsClear) {
+    searchRecentsClear.textContent = plainLabel(t("clearHistory"));
+  }
+}
 
 const categoryPanel = document.querySelector("#categoryPanel");
 const movieModal = document.querySelector("#movieModal");
@@ -4084,6 +4180,12 @@ function setSearchPanelOpen(nextState) {
   if (!searchPanel) return;
   searchPanel.hidden = !nextState;
   topbarSearch?.classList.toggle("is-open", nextState);
+  if (nextState) {
+    updateRecentSearchLabels();
+    renderRecentSearches();
+  } else if (searchRecents) {
+    searchRecents.hidden = true;
+  }
 }
 
 function toggleSearchPanel(forceOpen) {
@@ -4683,6 +4785,28 @@ searchInput?.addEventListener("input", (event) => {
     // is-music klassi qo'shilgan bo'lsa, music moduli allaqachon yuklangan.
     window.__music?.setQuery?.(query);
   }
+  renderRecentSearches();
+});
+
+searchInput?.addEventListener("focus", () => {
+  updateRecentSearchLabels();
+  renderRecentSearches();
+});
+
+searchInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    pushRecentSearch(searchInput.value);
+    searchInput.blur();
+  }
+});
+
+searchInput?.addEventListener("blur", () => {
+  pushRecentSearch(searchInput.value);
+});
+
+searchRecentsClear?.addEventListener("click", () => {
+  clearRecentSearches();
+  searchInput?.focus();
 });
 
 window.addEventListener("resize", syncTopbarSearchLayout);
