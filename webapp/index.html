@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260526-preroll01" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260601-profilestats01" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -517,8 +517,16 @@
 
       <div class="profile-stats">
         <div class="profile-stat">
-          <span>Ko'rilgan kinolar</span>
+          <span id="statWatchedLabel">Ko'rilgan kino</span>
           <b id="viewCount">0</b>
+        </div>
+        <div class="profile-stat">
+          <span id="statTimeLabel">Tomosha vaqti</span>
+          <b id="statTimeValue">0</b>
+        </div>
+        <div class="profile-stat">
+          <span id="statGenreLabel">Sevimli janr</span>
+          <b id="statGenreValue">—</b>
         </div>
       </div>
 
@@ -794,7 +802,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260529-fsfix10"></script>
+  <script src="/static/app.js?v=20260601-profilestats01"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
