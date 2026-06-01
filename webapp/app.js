@@ -375,10 +375,7 @@ const videoFullscreenButton = document.querySelector("#videoFullscreenButton");
 const videoSeek = document.querySelector("#videoSeek");
 const videoCurrentTime = document.querySelector("#videoCurrentTime");
 const videoDuration = document.querySelector("#videoDuration");
-const videoBrightness = null;
-const videoBrightnessOverlay = null;
 const videoSpeedLabel = null;
-const videoLockButton = null;
 const videoLockRelease = null;
 const videoVolumeButton = document.querySelector("#videoVolumeButton");
 const videoPipButton = document.querySelector("#videoPipButton");
@@ -654,10 +651,6 @@ function splitMovieGenres(value) {
     .filter(Boolean);
 }
 
-function getMovieCategory(movie) {
-  return normalizeCategoryValue(movie?.genre || "kino");
-}
-
 function getMovieCategoryValues(movie) {
   const parts = splitMovieGenres(movie?.genre);
   if (!parts.length) return [normalizeCategoryValue("kino")];
@@ -798,10 +791,6 @@ function getPosterImage(movie) {
 
 
 
-function isDataImageValue(value) {
-  return String(value || "").trim().startsWith("data:image/");
-}
-
 function posterStyle(movie) {
   const source = getPosterImage(movie);
   // Agar hech qanday URL yo'q bo'lsa (blob: filtrlandi yoki umuman yo'q) — canvas poster.
@@ -815,8 +804,9 @@ function posterStyle(movie) {
   return `data-poster="${safe}"`;
 }
 
-const lazyPosterObserver = (() => {
-  if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return null;
+// Poster lazy-load: IntersectionObserver + MutationObserver yon-effekt sifatida.
+(() => {
+  if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
   const io = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
@@ -842,8 +832,6 @@ const lazyPosterObserver = (() => {
   });
   if (document.body) mo.observe(document.body, { childList: true, subtree: true });
   else document.addEventListener("DOMContentLoaded", () => mo.observe(document.body, { childList: true, subtree: true }), { once: true });
-
-  return io;
 })();
 
 
@@ -2644,7 +2632,6 @@ function tgBackButtonSync() {
 
 // === Kino modali "Do'stga ulashish" tugmasi (poster ustida, o'ng tepada) ===
 const SHARE_BOT_USERNAME = "mykinoplay_bot";
-const SHARE_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
 
 function buildShareUrl(movie) {
   const code = String(movie?.code || movie?.id || "").trim();
@@ -2818,10 +2805,6 @@ function formatPlaybackTime(seconds) {
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}` : `${minutes}:${String(secs).padStart(2, "0")}`;
 }
 
-function syncSpeedOptions() {
-  updateSpeedLabel();
-}
-
 function updateSpeedLabel() {
   if (!videoSpeedLabel) return;
   videoSpeedLabel.textContent = `(${currentSpeed}x)`;
@@ -2912,11 +2895,6 @@ function updateHtml5VideoControls() {
       saveMovieProgress(activeMovie, currentTime, duration);
     }
   }
-}
-
-function applyBrightness(value) {
-  const normalized = Math.max(0.2, Math.min(1, Number(value) / 100));
-  videoPlayer.style.setProperty("--player-brightness", String(normalized));
 }
 
 function setPlayerLocked(locked) {
@@ -3189,17 +3167,6 @@ function toggleYouTubePlayback() {
   window.setTimeout(updateYouTubeControls, 50);
 }
 
-function toggleYouTubeMute() {
-  if (!activeYouTubePlayer) return;
-  if (activeYouTubePlayer.isMuted?.()) {
-    if (Number(activeYouTubePlayer.getVolume?.() || 0) === 0) activeYouTubePlayer.setVolume(100);
-    activeYouTubePlayer.unMute();
-  } else {
-    activeYouTubePlayer.mute();
-  }
-  updateYouTubeControls();
-}
-
 function seekYouTubeBy(deltaSeconds) {
   if (!activeYouTubePlayer) return;
   const current = Number(activeYouTubePlayer.getCurrentTime?.() || 0);
@@ -3208,15 +3175,6 @@ function seekYouTubeBy(deltaSeconds) {
   activeYouTubePlayer.seekTo(nextTime, true);
   pendingSeekTime = nextTime;
   isAdjustingSeek = false;
-  updateYouTubeControls();
-}
-
-function updateYouTubeVolume(value) {
-  if (!activeYouTubePlayer) return;
-  const safeVolume = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
-  activeYouTubePlayer.setVolume(safeVolume);
-  if (safeVolume === 0) activeYouTubePlayer.mute();
-  else activeYouTubePlayer.unMute();
   updateYouTubeControls();
 }
 
@@ -3272,15 +3230,6 @@ function requestElFullscreen(el) {
   } catch {
     return false;
   }
-}
-
-function lockLandscapeOrientation() {
-  try {
-    const orient = screen.orientation;
-    if (orient && typeof orient.lock === "function") {
-      orient.lock("landscape").catch(() => {});
-    }
-  } catch {}
 }
 
 function unlockOrientation() {
@@ -4206,13 +4155,10 @@ function openMusicView() { ensureMusicModule().then((m) => m?.openMusicView?.())
 function closeMusicView() { window.__music?.closeMusicView?.(); }
 function openAllArtists() { ensureMusicModule().then((m) => m?.openAllArtists?.()).catch(() => {}); }
 function closeAllArtists() { window.__music?.closeAllArtists?.(); }
-function openAllSongs() { ensureMusicModule().then((m) => m?.openAllSongs?.()).catch(() => {}); }
 function closeAllSongs() { window.__music?.closeAllSongs?.(); }
-function openArtistDetail(name) { ensureMusicModule().then((m) => m?.openArtistDetail?.(name)).catch(() => {}); }
 function closeArtistDetail() { window.__music?.closeArtistDetail?.(); }
 function playMusicTrack(track) { ensureMusicModule().then((m) => m?.playMusicTrack?.(track)).catch(() => {}); }
 function scrollMusicTop() { window.__music?.scrollMusicTop?.(); }
-function renderMusicList() { window.__music?.renderMusicList?.(); }
 
 // ===== Categories view (bottom-bar) =====
 const categoriesView = document.getElementById("categoriesView");
@@ -5140,37 +5086,6 @@ function startMoviesPolling() {
       silentReloadMovies();
       start();
     }
-  });
-}
-
-function waitForImageReady(image, timeoutMs = 3000) {
-  return new Promise((resolve) => {
-    if (!image) {
-      resolve(false);
-      return;
-    }
-
-    if (image.complete && image.naturalWidth > 0) {
-      resolve(true);
-      return;
-    }
-
-    let settled = false;
-    let timeoutId = 0;
-    const finish = (ok) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeoutId);
-      image.removeEventListener("load", onLoad);
-      image.removeEventListener("error", onError);
-      resolve(ok);
-    };
-    const onLoad = () => finish(true);
-    const onError = () => finish(false);
-
-    image.addEventListener("load", onLoad, { once: true });
-    image.addEventListener("error", onError, { once: true });
-    timeoutId = window.setTimeout(() => finish(false), timeoutMs);
   });
 }
 
