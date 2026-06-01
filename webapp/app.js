@@ -538,16 +538,23 @@ function getUserInitials(user) {
 function applyTelegramUser() {
   const user = getTelegramUser();
   if (!user) {
-    profileName.textContent = t("profile");
-    profileUsername.textContent = t("noUsername");
-    if (profileUserId) {
-      profileUserId.textContent = "";
-      profileUserId.hidden = true;
+    if (profileName) profileName.textContent = t("profile");
+    if (profileUsername) {
+      profileUsername.textContent = t("noUsername");
+      profileUsername.hidden = false;
     }
-    avatar.textContent = "KI";
-    avatar.hidden = false;
-    avatarPhoto.hidden = true;
-    avatarPhoto.removeAttribute("src");
+    if (profileUserId) {
+      profileUserId.textContent = "ID: —";
+      profileUserId.hidden = false;
+    }
+    if (avatar) {
+      avatar.textContent = "KI";
+      avatar.hidden = false;
+    }
+    if (avatarPhoto) {
+      avatarPhoto.hidden = true;
+      avatarPhoto.removeAttribute("src");
+    }
     if (headerAvatar) {
       headerAvatar.textContent = "KI";
       headerAvatar.hidden = false;
@@ -567,21 +574,19 @@ function applyTelegramUser() {
     return;
   }
 
-  const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ");
+  const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
   const initials = getUserInitials(user);
-  profileName.textContent = displayName || t("profile");
+  if (profileName) profileName.textContent = displayName || t("profile");
   const username = String(user.username || "").trim();
-  profileUsername.textContent = username ? `@${username}` : t("noUsername");
-  if (profileUserId) {
-    if (user.id) {
-      profileUserId.textContent = `ID: ${user.id}`;
-      profileUserId.hidden = false;
-    } else {
-      profileUserId.textContent = "";
-      profileUserId.hidden = true;
-    }
+  if (profileUsername) {
+    profileUsername.textContent = username ? `@${username}` : t("noUsername");
+    profileUsername.hidden = false;
   }
-  avatar.textContent = initials;
+  if (profileUserId) {
+    profileUserId.textContent = user.id ? `ID: ${user.id}` : "ID: —";
+    profileUserId.hidden = false;
+  }
+  if (avatar) avatar.textContent = initials;
   if (headerAvatar) {
     headerAvatar.textContent = initials;
     headerAvatar.hidden = false;
@@ -593,8 +598,8 @@ function applyTelegramUser() {
   const profileButtonLabel = displayName ? `${displayName} profili` : "Profil";
   document.querySelectorAll("[data-action='profile']").forEach((button) => setControlLabel(button, profileButtonLabel));
   const candidatePhotos = [];
-  if (user.photo_url) candidatePhotos.push(String(user.photo_url));
   if (user.id) candidatePhotos.push(`${runtimeApiBase}/api/user-photo?userId=${encodeURIComponent(user.id)}`);
+  if (user.photo_url) candidatePhotos.push(String(user.photo_url));
   if (candidatePhotos.length) {
     const applyPhoto = (src) => {
       avatarPhoto.src = src;
