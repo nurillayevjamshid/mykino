@@ -92,6 +92,12 @@ const copy = {
     ratingLabel: "Reyting",
     later: "Keyinroq",
     watchedLabel: "Ko'rilgan kinolar",
+    statWatched: "Ko'rilgan kino",
+    statTime: "Tomosha vaqti",
+    statGenre: "Sevimli janr",
+    statGenreNone: "—",
+    unitHour: "s",
+    unitMin: "min",
     clearHistory: "Tozalash",
     removeHistoryItem: "O'chirish",
     emptyTitle: "Hech narsa topilmadi",
@@ -147,6 +153,12 @@ const copy = {
     ratingLabel: "Рейтинг",
     later: "Позже",
     watchedLabel: "Просмотренные фильмы",
+    statWatched: "Просмотрено",
+    statTime: "Время просмотра",
+    statGenre: "Любимый жанр",
+    statGenreNone: "—",
+    unitHour: "ч",
+    unitMin: "мин",
     clearHistory: "Очистить",
     removeHistoryItem: "Удалить",
     emptyTitle: "Ничего не найдено",
@@ -202,6 +214,12 @@ const copy = {
     ratingLabel: "Rating",
     later: "Later",
     watchedLabel: "Watched movies",
+    statWatched: "Watched",
+    statTime: "Watch time",
+    statGenre: "Top genre",
+    statGenreNone: "—",
+    unitHour: "h",
+    unitMin: "m",
     clearHistory: "Clear",
     removeHistoryItem: "Remove",
     emptyTitle: "No results",
@@ -355,6 +373,11 @@ const topbarAvatarPhoto = document.querySelector("#topbarAvatarPhoto");
 const avatar = document.querySelector("#avatar");
 const avatarPhoto = document.querySelector("#avatarPhoto");
 const viewCount = document.querySelector("#viewCount");
+const statWatchedLabel = document.querySelector("#statWatchedLabel");
+const statTimeLabel = document.querySelector("#statTimeLabel");
+const statTimeValue = document.querySelector("#statTimeValue");
+const statGenreLabel = document.querySelector("#statGenreLabel");
+const statGenreValue = document.querySelector("#statGenreValue");
 const watchedMovieList = document.querySelector("#watchedMovieList");
 const watchedMovieCount = document.querySelector("#watchedMovieCount");
 const watchedMovieEmpty = document.querySelector("#watchedMovieEmpty");
@@ -2228,6 +2251,56 @@ function renderProfileHistory() {
   }
 }
 
+function formatWatchDuration(totalSeconds) {
+  const safe = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  if (hours > 0) {
+    return `${hours} ${t("unitHour")} ${minutes} ${t("unitMin")}`;
+  }
+  return `${minutes} ${t("unitMin")}`;
+}
+
+function computeFavoriteGenre(entries) {
+  const counts = new Map();
+  for (const entry of entries) {
+    const raw = String(entry?.genre || "").trim();
+    if (!raw) continue;
+    for (const part of raw.split(/[,/|]+/)) {
+      const genre = part.trim();
+      if (!genre || /^kino$/i.test(genre)) continue;
+      counts.set(genre, (counts.get(genre) || 0) + 1);
+    }
+  }
+  let best = "";
+  let bestCount = 0;
+  for (const [genre, count] of counts) {
+    if (count > bestCount) {
+      best = genre;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+function renderProfileStats() {
+  const entries = getWatchedMovieEntries();
+  if (statWatchedLabel) statWatchedLabel.textContent = t("statWatched");
+  if (statTimeLabel) statTimeLabel.textContent = t("statTime");
+  if (statGenreLabel) statGenreLabel.textContent = t("statGenre");
+  if (viewCount) viewCount.textContent = String(entries.length);
+  if (statTimeValue) {
+    const totalSeconds = entries.reduce(
+      (sum, entry) => sum + Math.max(0, Number(entry?.progress) || 0),
+      0
+    );
+    statTimeValue.textContent = formatWatchDuration(totalSeconds);
+  }
+  if (statGenreValue) {
+    statGenreValue.textContent = computeFavoriteGenre(entries) || t("statGenreNone");
+  }
+}
+
 function renderProfileModal() {
   const user = getTelegramUser();
   applyTelegramUser();
@@ -2241,7 +2314,7 @@ function renderProfileModal() {
   if (watchedMovieEmpty) {
     watchedMovieEmpty.textContent = t("historyEmpty");
   }
-  viewCount.textContent = watchedCount;
+  renderProfileStats();
   renderProfileHistory();
   renderMusicHistory();
 }

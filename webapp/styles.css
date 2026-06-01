@@ -3602,29 +3602,31 @@ html[data-theme="light"] .profile-userid {
 
 .profile-stats {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 18px;
 }
 
 .profile-stat {
-  padding: 14px 14px 12px;
+  padding: 14px 12px 12px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(18px);
+  text-align: center;
 }
 
 .profile-stat span {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
   margin-bottom: 6px;
 }
 
 .profile-stat b {
-  font-size: 18px;
+  font-size: 17px;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .profile-history {
@@ -4049,7 +4051,7 @@ html[data-theme="light"] .empty-state strong {
   }
 
   .profile-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .profile-history__item {
