@@ -7093,21 +7093,21 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  margin-left: 8px;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: rgba(17, 17, 17, 0.08);
+  background: transparent;
   color: #111;
   cursor: pointer;
   flex: 0 0 auto;
-  transition: background 0.15s ease;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
 }
 
 .search-box__clear:hover {
-  background: rgba(17, 17, 17, 0.18);
+  opacity: 1;
 }
 
 .search-box__clear[hidden] {
@@ -7115,22 +7115,12 @@ body {
 }
 
 .search-box__clear .icon-svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   stroke: currentColor;
-  stroke-width: 2.4;
+  stroke-width: 2.8;
   stroke-linecap: round;
   fill: none;
-}
-
-.topbar-search__panel .search-box__clear {
-  background: rgba(17, 17, 17, 0.08);
-  color: #111;
-}
-
-html[data-theme="dark"] .search-box__clear {
-  background: rgba(17, 17, 17, 0.1);
-  color: #111;
 }
 
 .topbar-search.is-open .topbar-search__trigger {
