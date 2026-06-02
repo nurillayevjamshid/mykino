@@ -350,6 +350,7 @@ const searchInput = document.querySelector("#searchInput");
 const topbarSearch = document.querySelector(".topbar-search");
 const topbarBrand = document.querySelector(".brand");
 const topbarSearchTrigger = document.querySelector(".topbar-search__trigger");
+const searchClearBtn = document.querySelector("#searchClearBtn");
 const searchRecents = document.querySelector("#searchRecents");
 const searchRecentsList = document.querySelector("#searchRecentsList");
 const searchRecentsClear = document.querySelector("#searchRecentsClear");
@@ -4196,6 +4197,9 @@ function setSearchPanelOpen(nextState) {
   } else if (searchRecents) {
     searchRecents.hidden = true;
   }
+  if (searchClearBtn) {
+    searchClearBtn.hidden = !(nextState && searchInput && searchInput.value.length > 0);
+  }
 }
 
 function toggleSearchPanel(forceOpen) {
@@ -4788,6 +4792,11 @@ document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-ac
 
 document.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
 
+function syncSearchClearBtn() {
+  if (!searchClearBtn) return;
+  searchClearBtn.hidden = !(searchInput && searchInput.value.length > 0);
+}
+
 searchInput?.addEventListener("input", (event) => {
   query = event.target.value.trim();
   renderMovies();
@@ -4796,6 +4805,21 @@ searchInput?.addEventListener("input", (event) => {
     window.__music?.setQuery?.(query);
   }
   renderRecentSearches();
+  syncSearchClearBtn();
+});
+
+searchClearBtn?.addEventListener("click", (event) => {
+  event.preventDefault();
+  if (!searchInput) return;
+  searchInput.value = "";
+  query = "";
+  renderMovies();
+  if (document.body.classList.contains("is-music")) {
+    window.__music?.setQuery?.("");
+  }
+  renderRecentSearches();
+  syncSearchClearBtn();
+  searchInput.focus();
 });
 
 searchInput?.addEventListener("focus", () => {
@@ -4824,8 +4848,19 @@ window.addEventListener("orientationchange", syncTopbarSearchLayout);
 syncTopbarSearchLayout();
 
 document.addEventListener("click", (event) => {
-  if (searchPanel.hidden || !topbarSearch) return;
-  if (topbarSearch.contains(event.target) || event.target.closest("[data-action='search']")) return;
+  if (!searchPanel || searchPanel.hidden || !topbarSearch) return;
+  if (
+    topbarSearch.contains(event.target) ||
+    searchPanel.contains(event.target) ||
+    event.target.closest("[data-action='search']")
+  ) return;
+  setSearchPanelOpen(false);
+  syncNavButtons();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!searchPanel || searchPanel.hidden) return;
   setSearchPanelOpen(false);
   syncNavButtons();
 });
