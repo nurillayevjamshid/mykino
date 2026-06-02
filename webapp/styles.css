@@ -9957,3 +9957,174 @@ html.is-android .profile-modal::backdrop {
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+   GLASS / DEPTH POLISH — iOS-style finishing touches
+   (taklif #4: backdrop blur, inner highlight, premium depth)
+   ============================================================ */
+
+/* Bottom nav — yanada tiniq glass + ichki nur chizig'i (premium his) */
+.bottom-bar__inner {
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  position: relative;
+}
+.bottom-bar__inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 38%);
+  opacity: 0.9;
+}
+html[data-theme="dark"] .bottom-bar__inner::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 42%);
+}
+html.is-android .bottom-bar__inner {
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+/* Search panel — fokuslanganda accent glow (jonlanish) */
+.search-box.glass-panel {
+  transition:
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+.search-box.glass-panel:focus-within {
+  border-color: rgba(255, 199, 58, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 0 0 4px rgba(255, 199, 58, 0.14),
+    0 10px 28px rgba(0, 0, 0, 0.28);
+}
+html[data-theme="light"] .search-box.glass-panel:focus-within {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 4px rgba(255, 199, 58, 0.18),
+    0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Comments sheet — iOS sheet his (qattiq oq emas, glass) */
+.comments-sheet__panel {
+  border-radius: 24px 24px 0 0;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 -24px 60px rgba(0, 0, 0, 0.32);
+}
+html[data-theme="dark"] .comments-sheet__panel {
+  background: rgba(21, 23, 27, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 -24px 60px rgba(0, 0, 0, 0.6);
+}
+.comments-sheet__grabber {
+  width: 40px;
+  height: 5px;
+  margin-top: 12px;
+  transition: background var(--dur-base) var(--ease-out), width var(--dur-base) var(--ease-out);
+}
+.comments-sheet__grabber:hover,
+.comments-sheet__grabber:active {
+  width: 56px;
+  background: rgba(0, 0, 0, 0.3);
+}
+html[data-theme="dark"] .comments-sheet__grabber:hover,
+html[data-theme="dark"] .comments-sheet__grabber:active {
+  background: rgba(255, 255, 255, 0.36);
+}
+
+/* Modal — ichki yorug'lik chizig'i (premium ramka) */
+.movie-modal,
+.profile-modal {
+  position: relative;
+}
+.movie-modal::before,
+.profile-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  z-index: 3;
+}
+html[data-theme="light"] .movie-modal::before,
+html[data-theme="light"] .profile-modal::before {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Movie card — yuqori ichki yorug'lik (poster ustida nozik nur) */
+.movie-card {
+  position: relative;
+}
+.movie-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 22%);
+  z-index: 2;
+  mix-blend-mode: overlay;
+}
+html[data-theme="light"] .movie-card::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 18%);
+  mix-blend-mode: soft-light;
+}
+
+/* Top bar — scroll'da tiniq glass paydo bo'lsin (hozir oddiy) */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: linear-gradient(180deg, rgba(10, 11, 14, 0.55), rgba(10, 11, 14, 0.15));
+}
+html[data-theme="light"] .topbar {
+  background: linear-gradient(180deg, rgba(250, 250, 251, 0.85), rgba(250, 250, 251, 0.4));
+}
+html.is-android .topbar {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--bg, #0a0b0e);
+}
+html.is-android[data-theme="light"] .topbar {
+  background: #fafafb;
+}
+
+/* Sidebar — iOS-style glass surface */
+.sidebar {
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+}
+.sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%);
+}
+html[data-theme="light"] .sidebar::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), transparent 24%);
+}
+
+/* Mini player (musiqa) — pastki nav ustida glass capsule */
+.mini-player {
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 14px 40px rgba(0, 0, 0, 0.5);
+}
+html[data-theme="light"] .mini-player {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 14px 40px rgba(0, 0, 0, 0.12);
+}
