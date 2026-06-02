@@ -669,6 +669,46 @@ function bindEvents() {
     if (action === 'edit') editMovie(movieId);
   });
 
+  // "Kino" kategoriya tekshiruvi — faqat placeholder "Kino" kategoriyali kinolarni ko'rsatadi
+  document.getElementById('kinoCategoryAlertBtn')?.addEventListener('click', () => {
+    const onlyKino = movies.filter((m) => {
+      const cats = splitCategories(m.category).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      return cats.length === 1 && cats[0] === 'kino';
+    });
+    const body = document.getElementById('kinoCategoryModalBody');
+    if (body) {
+      if (onlyKino.length === 0) {
+        body.innerHTML = `<div class="kino-category-empty">Hammasi joyida — "Kino" kategoriyali (kategoriyasi belgilanmagan) kinolar yo'q.</div>`;
+      } else {
+        body.innerHTML = `
+          <p class="form-hint" style="margin:0 0 12px;">Quyidagi <strong>${onlyKino.length}</strong> ta kinoda faqat "Kino" placeholder kategoriya turibdi — haqiqiy kategoriya tayinlash kerak.</p>
+          <ul class="kino-category-list">
+            ${onlyKino.map(m => `
+              <li>
+                <img src="${escapeHtml(m.poster ? proxiedPoster(m.poster) : POSTER_PLACEHOLDER)}" alt="" style="width:36px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="retryPoster(this)">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(m.name)}</div>
+                  <div class="kc-code">${escapeHtml(m.code || m.id)}</div>
+                </div>
+                <button type="button" class="btn btn-secondary" data-edit-kino-id="${escapeHtml(m.id)}" style="padding:6px 10px;font-size:12px;">Tahrirlash</button>
+              </li>
+            `).join('')}
+          </ul>
+        `;
+      }
+    }
+    document.getElementById('kinoCategoryModal')?.classList.add('active');
+  });
+  document.getElementById('closeKinoCategoryModal')?.addEventListener('click', () => {
+    document.getElementById('kinoCategoryModal')?.classList.remove('active');
+  });
+  document.getElementById('kinoCategoryModalBody')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-edit-kino-id]');
+    if (!btn) return;
+    document.getElementById('kinoCategoryModal')?.classList.remove('active');
+    editMovie(btn.dataset.editKinoId);
+  });
+
   // Modal closes
   document.getElementById('closeMovieModal')?.addEventListener('click', closeMovieModal);
   document.getElementById('cancelMovie')?.addEventListener('click', closeMovieModal);
@@ -947,7 +987,7 @@ function renderMovies() {
   }
 
   // Update movie count in section header
-  const sectionHeader = document.querySelector('#moviesSection .section-header h2');
+  const sectionHeader = document.getElementById('moviesListTitle');
   if (sectionHeader) {
     sectionHeader.textContent = `Kinolar ro'yxati (${movies.length})`;
   }
