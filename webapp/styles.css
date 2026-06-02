@@ -7067,11 +7067,14 @@ body {
 
 .topbar-search__panel .search-box input {
   font-size: 14px;
-  color: var(--c-text);
+  color: #111111;
+  -webkit-text-fill-color: #111111;
+  caret-color: #111111;
 }
 
 .topbar-search__panel .search-box input::placeholder {
-  color: var(--c-text-mute);
+  color: rgba(17, 17, 17, 0.5);
+  -webkit-text-fill-color: rgba(17, 17, 17, 0.5);
 }
 
 .topbar-search.is-open .topbar-search__trigger {
