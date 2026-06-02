@@ -1824,10 +1824,7 @@ function renderMusicHistory() {
         <span>${escapeHtml(e.artist)}</span>
       </div>
       <button class="profile-history__remove" type="button" data-music-history-remove="${escapeHtml(e.youtubeId)}" aria-label="O'chirish" title="O'chirish">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M18 6 6 18"></path>
-          <path d="m6 6 12 12"></path>
-        </svg>
+        <span class="ms-icon ms-icon--sm icon-svg" aria-hidden="true">close</span>
       </button>
     </article>
   `).join("");
@@ -2142,9 +2139,7 @@ function createMovieCard(movie) {
         <span class="rating"><span>&#9733;</span> ${escapeHtml(ratingText)}</span>
       </span>
       <button class="wishlist-toggle${inWishlist ? " is-active" : ""}" type="button" aria-pressed="${inWishlist ? "true" : "false"}" aria-label="Sevimlilarga qo'shish" data-wishlist-id="${escapeHtml(movie.id)}">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-        </svg>
+        <span class="ms-icon${inWishlist ? " ms-icon--fill" : ""}" aria-hidden="true">favorite</span>
       </button>
     </span>
     <span class="card-copy">
@@ -2183,7 +2178,7 @@ function createMoreCard(categoryValue) {
   card.innerHTML = `
     <span class="more-card__inner">
       <span class="more-card__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"></polyline></svg>
+        <span class="ms-icon ms-icon--md" aria-hidden="true">chevron_right</span>
       </span>
       <span class="more-card__label">${escapeHtml(plainLabel(t("seeMore")))}</span>
     </span>
@@ -2231,9 +2226,7 @@ function renderHomeRows() {
       <header class="category-row__head">
         <h3 class="category-row__title">${escapeHtml(group.label)}</h3>
         <button class="category-row__more" type="button" data-category="${escapeHtml(group.value)}" aria-label="${escapeHtml(group.label)} - ${escapeHtml(moreLabel)}">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <polyline points="9 6 15 12 9 18"></polyline>
-          </svg>
+          <span class="ms-icon ms-icon--md" aria-hidden="true">chevron_right</span>
         </button>
       </header>
       <div class="category-row__list" role="list"></div>
@@ -2264,9 +2257,7 @@ function renderHomeSeriesRow() {
     <header class="category-row__head">
       <h3 class="category-row__title">Seriallar</h3>
       <button class="category-row__more" type="button" aria-label="Seriallar">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <polyline points="9 6 15 12 9 18"></polyline>
-        </svg>
+        <span class="ms-icon ms-icon--md" aria-hidden="true">chevron_right</span>
       </button>
     </header>
     <div class="category-row__list" role="list"></div>
@@ -2284,7 +2275,7 @@ function renderHomeSeriesRow() {
     moreCard.innerHTML = `
       <span class="more-card__inner">
         <span class="more-card__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"></polyline></svg>
+          <span class="ms-icon ms-icon--md" aria-hidden="true">chevron_right</span>
         </span>
         <span class="more-card__label">${escapeHtml(plainLabel(t("seeMore")))}</span>
       </span>
@@ -2311,9 +2302,7 @@ function renderCategoryPageHeader() {
   header.className = "category-page__head";
   header.innerHTML = `
     <button class="category-page__back" type="button" aria-label="Orqaga">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <polyline points="15 6 9 12 15 18"></polyline>
-      </svg>
+      <span class="ms-icon ms-icon--lg" aria-hidden="true">chevron_left</span>
     </button>
     <h2 class="category-page__title"></h2>
   `;
@@ -2330,9 +2319,7 @@ function renderFavoritesPageHeader() {
   header.className = "category-page__head";
   header.innerHTML = `
     <button class="category-page__back" type="button" aria-label="Orqaga">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <polyline points="15 6 9 12 15 18"></polyline>
-      </svg>
+      <span class="ms-icon ms-icon--lg" aria-hidden="true">chevron_left</span>
     </button>
     <h2 class="category-page__title"></h2>
   `;
@@ -2443,10 +2430,7 @@ function renderProfileHistory() {
         <small>${entry.progress >= WATCH_PROGRESS_MIN_SECONDS ? `${t("continueAt")} ${formatPlaybackTime(entry.progress)}` : plainLabel(t("watch"))}</small>
       </div>
       <button class="profile-history__remove" type="button" data-history-remove="${escapeHtml(entry.id)}" aria-label="${escapeHtml(t("removeHistoryItem"))}" title="${escapeHtml(t("removeHistoryItem"))}">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M18 6 6 18"></path>
-          <path d="m6 6 12 12"></path>
-        </svg>
+        <span class="ms-icon ms-icon--sm icon-svg" aria-hidden="true">close</span>
       </button>
     `;
 
@@ -2653,7 +2637,7 @@ function renderCommentItem(comment) {
   const time = escapeHtml(formatRelativeTime(comment.createdAt));
   const text = escapeHtml(String(comment.text || ""));
   const adminBtn = isCommentAdmin()
-    ? `<button class="comment__delete" type="button" data-comment-delete="${escapeHtml(comment.id)}" title="O'chirish" aria-label="O'chirish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg></button>`
+    ? `<button class="comment__delete" type="button" data-comment-delete="${escapeHtml(comment.id)}" title="O'chirish" aria-label="O'chirish"><span class="ms-icon ms-icon--sm" aria-hidden="true">delete_outline</span></button>`
     : "";
   return `
     <article class="comment" data-comment-id="${escapeHtml(comment.id)}">
@@ -4818,7 +4802,7 @@ function openSeriesDetailView(series) {
         <li><button class="episode-row" type="button" data-ep-index="${index}">
           <span class="episode-row__num">${n + 1}</span>
           <span class="episode-row__title">${escapeHtml(ep.title || ("Qism " + (index + 1)))}</span>
-          <svg class="episode-row__play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+          <span class="ms-icon ms-icon--fill episode-row__play" aria-hidden="true">play_arrow</span>
         </button></li>`).join("")}</ol>`
     : `<p class="episode-empty">Bu faslda hali qism yo'q.</p>`;
   let bodyHtml;
@@ -5046,11 +5030,7 @@ function syncSidebarMusicItem() {
   } else {
     item.dataset.sidebarAction = "music";
     item.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M9 18V5l12-2v13"></path>
-        <circle cx="6" cy="18" r="3"></circle>
-        <circle cx="18" cy="16" r="3"></circle>
-      </svg>
+      <span class="ms-icon" aria-hidden="true">music_note</span>
       <span data-i18n="musicNav">Musiqa</span>
       <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
   }
@@ -5663,7 +5643,7 @@ function showAdModal(ad) {
   }
 
   if (targetUrl && (ad.buttonText || "").trim()) {
-    cta.innerHTML = '<span class="ad-modal__cta-label"></span><span class="ad-modal__cta-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span>';
+    cta.innerHTML = '<span class="ad-modal__cta-label"></span><span class="ad-modal__cta-arrow ms-icon" aria-hidden="true">arrow_forward</span>';
     cta.querySelector('.ad-modal__cta-label').textContent = ad.buttonText.trim();
     cta.href = targetUrl;
     cta.hidden = false;
