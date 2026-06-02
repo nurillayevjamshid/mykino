@@ -176,20 +176,20 @@
   }
 
   const MUSIC_CATEGORY_ICONS = {
-    all: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
-    pop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><circle cx="12" cy="14" r="6"/><path d="M8 2h8"/></svg>',
-    rap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="3" height="8" rx="1"/><rect x="10" y="4" width="3" height="14" rx="1"/><rect x="16" y="8" width="3" height="10" rx="1"/></svg>',
-    rock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l3 6-3 12 6-6 6 6-3-12 3-6-6 4z"/></svg>',
-    jazz: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v10"/><circle cx="10" cy="15" r="4"/><path d="M14 3l6 3"/></svg>',
-    classic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V8l8-4 8 4v12"/><path d="M8 20v-6m4 6v-6m4 6v-6"/></svg>',
-    electronic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>',
-    uzbek: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.5 6h6l-5 4 2 7-5.5-4-5.5 4 2-7-5-4h6z"/></svg>',
-    folk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V8l10-3v10"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="15" r="3"/></svg>',
-    hiphop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="3" height="8" rx="1"/><rect x="10" y="4" width="3" height="14" rx="1"/><rect x="16" y="8" width="3" height="10" rx="1"/></svg>',
+    all: '<span class="ms-icon" aria-hidden="true">library_music</span>',
+    pop: '<span class="ms-icon" aria-hidden="true">star</span>',
+    rap: '<span class="ms-icon" aria-hidden="true">mic</span>',
+    rock: '<span class="ms-icon" aria-hidden="true">bolt</span>',
+    jazz: '<span class="ms-icon" aria-hidden="true">music_note</span>',
+    classic: '<span class="ms-icon" aria-hidden="true">piano</span>',
+    electronic: '<span class="ms-icon" aria-hidden="true">graphic_eq</span>',
+    uzbek: '<span class="ms-icon" aria-hidden="true">auto_awesome</span>',
+    folk: '<span class="ms-icon" aria-hidden="true">album</span>',
+    hiphop: '<span class="ms-icon" aria-hidden="true">queue_music</span>',
   };
 
-  const MUSIC_ARTIST_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>';
-  const MUSIC_DEFAULT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+  const MUSIC_ARTIST_ICON = '<span class="ms-icon" aria-hidden="true">person</span>';
+  const MUSIC_DEFAULT_ICON = '<span class="ms-icon" aria-hidden="true">music_note</span>';
 
   function musicCategoryIcon(value) {
     const key = String(value || "").toLowerCase().replace(/[^a-z]/g, "");
@@ -285,10 +285,10 @@
           </button>
           <div class="music-row__actions">
             <button class="music-row__btn music-row__btn--add ${inPl ? "is-added" : ""}" type="button" data-music-add="${id}" aria-label="Playlistga qo'shish">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              <span class="ms-icon" aria-hidden="true">add</span>
             </button>
             <button class="music-row__btn music-row__btn--play" type="button" data-music-row="${id}" aria-label="Play">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
+              <span class="ms-icon ms-icon--fill" aria-hidden="true">play_arrow</span>
             </button>
           </div>
         </div>
@@ -323,7 +323,7 @@
     panel.innerHTML = `
       <header class="music-artist-detail__head">
         <button class="music-artist-detail__back" type="button" data-allsongs-back aria-label="Orqaga">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
+          <span class="ms-icon ms-icon--lg" aria-hidden="true">chevron_left</span>
         </button>
         <h1 class="music-artist-detail__name">Hamma musiqalar</h1>
       </header>
@@ -413,7 +413,7 @@
     panel.innerHTML = `
       <header class="music-artist-detail__head">
         <button class="music-artist-detail__back" type="button" data-allartists-back aria-label="Orqaga">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
+          <span class="ms-icon ms-icon--lg" aria-hidden="true">chevron_left</span>
         </button>
         <h1 class="music-artist-detail__name">Barcha qo'shiqchilar</h1>
       </header>
@@ -471,11 +471,7 @@
       <div class="music-beta-modal__backdrop" data-music-beta-close></div>
       <div class="music-beta-modal__card" role="dialog" aria-modal="true">
         <div class="music-beta-modal__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9.5"></circle>
-            <path d="M9.3 9.2a2.8 2.8 0 0 1 5.4.9c0 1.9-2.7 2.4-2.7 4.2"></path>
-            <line x1="12" y1="17.6" x2="12.01" y2="17.6"></line>
-          </svg>
+          <span class="ms-icon ms-icon--lg" aria-hidden="true">help_outline</span>
         </div>
         <p class="music-beta-modal__text">Hozirda musiqa bo'limi beta versiyada ishlamoqda. Yaqin vaqtlarda yanada ko'proq sizga yoqadigan qo'shiqlar qo'shiladi.</p>
         <button class="music-beta-modal__btn" type="button" data-music-beta-close>Tushunarli</button>
@@ -594,7 +590,7 @@
     panel.innerHTML = `
       <header class="music-artist-detail__head">
         <button class="music-artist-detail__back" type="button" data-artist-detail-back aria-label="Orqaga">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
+          <span class="ms-icon ms-icon--lg" aria-hidden="true">chevron_left</span>
         </button>
         <h1 class="music-artist-detail__name" id="musicArtistDetailName"></h1>
       </header>
@@ -641,10 +637,10 @@
           </button>
           <div class="music-row__actions">
             <button class="music-row__btn music-row__btn--add ${inPl ? "is-added" : ""}" type="button" data-music-add="${id}" aria-label="Playlistga qo'shish">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              <span class="ms-icon" aria-hidden="true">add</span>
             </button>
             <button class="music-row__btn music-row__btn--play" type="button" data-music-row="${id}" aria-label="Play">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
+              <span class="ms-icon ms-icon--fill" aria-hidden="true">play_arrow</span>
             </button>
           </div>
         </div>
