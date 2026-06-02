@@ -2857,10 +2857,14 @@ function syncResumeUiForMovie(movie) {
   }
   if (watchRestartButton) watchRestartButton.hidden = !hasResume;
   if (watchButton) {
+    const watchLabel = plainLabel(t("watch"));
+    const resumeLabel = plainLabel(t("continueAt"));
     watchButton.setAttribute(
       "aria-label",
-      hasResume ? `Davom etish (${formatPlaybackTime(seconds)})` : "Tomosha qilish",
+      hasResume ? `${resumeLabel} (${formatPlaybackTime(seconds)})` : watchLabel,
     );
+    const labelEl = watchButton.querySelector(".watch-button__label");
+    if (labelEl) labelEl.textContent = hasResume ? resumeLabel : watchLabel;
   }
 }
 
@@ -4334,6 +4338,10 @@ function applyCopy() {
     if (!key) return;
     el.textContent = plainLabel(t(key));
   });
+
+  if (activeMovie) {
+    try { syncResumeUiForMovie(activeMovie); } catch (_) {}
+  }
 
   applyTelegramUser();
   renderCategories();
