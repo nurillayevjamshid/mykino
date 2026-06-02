@@ -1339,7 +1339,9 @@ function isLaunchReadyMovie(movie) {
 }
 
 function getViewerMovies() {
-  return movies;
+  // Faqat R2 ga ko'chirilgan (cdnUrl bor) kinolar ko'rinadi.
+  // Yangi qo'shilgan, hali R2 ga o'tmagan kinolar tomoshabinga chiqmaydi.
+  return movies.filter((movie) => String(movie?.cdnUrl || "").trim());
 }
 
 function hasPlayableEmbedSource(movie) {
