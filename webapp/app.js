@@ -1013,7 +1013,7 @@ function posterStyle(movie) {
       if (url) applyPoster(el, url);
       io.unobserve(el);
     }
-  }, { rootMargin: "300px 0px", threshold: 0.01 });
+  }, { rootMargin: "300px 600px", threshold: 0.01 });
 
   const mo = new MutationObserver((mutations) => {
     for (const m of mutations) {
