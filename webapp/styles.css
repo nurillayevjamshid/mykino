@@ -1010,6 +1010,17 @@ html[data-theme="light"] .search-recents__chip-remove {
   color: var(--text);
   background: transparent;
   font-size: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.search-box input::-webkit-search-cancel-button,
+.search-box input::-webkit-search-decoration,
+.search-box input::-webkit-search-results-button,
+.search-box input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
 }
 
 .search-box input::placeholder {
