@@ -672,7 +672,7 @@ function bindEvents() {
   // "Kino" kategoriya tekshiruvi — faqat placeholder "Kino" kategoriyali kinolarni ko'rsatadi
   document.getElementById('kinoCategoryAlertBtn')?.addEventListener('click', () => {
     const onlyKino = movies.filter((m) => {
-      const cats = splitCategories(m.category).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      const cats = splitCategories(m.category).map(s => s.toLowerCase());
       return cats.length === 1 && cats[0] === 'kino';
     });
     const body = document.getElementById('kinoCategoryModalBody');
