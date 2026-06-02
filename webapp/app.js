@@ -974,17 +974,43 @@ function posterStyle(movie) {
 }
 
 // Poster lazy-load: IntersectionObserver + MutationObserver yon-effekt sifatida.
+// MUHIM (Android scroll perf): poster IO ishlaganda bir vaqtning o'zida ko'p
+// background-image dekodi main thread'ni bloklaydi ("biroz qotib qoladi").
+// Shuning uchun: (1) yangi Image() bilan oldindan decode() qilamiz — bitmap
+// browser cache'da hozir bo'ladi, bg-image qo'yilganda decode bepul. (2) DOM
+// yozishni requestIdleCallback'ga ko'chiramiz — scroll faol bo'lsa kutadi.
 (() => {
   if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
+  const ric = window.requestIdleCallback
+    ? (fn) => window.requestIdleCallback(fn, { timeout: 500 })
+    : (fn) => setTimeout(fn, 80);
+
+  const applyPoster = (el, url) => {
+    if (!el || !url) return;
+    const img = new Image();
+    img.decoding = "async";
+    const swap = () => {
+      ric(() => {
+        el.style.setProperty("--poster-image", `url('${url}')`);
+        el.removeAttribute("data-poster");
+      });
+    };
+    if (typeof img.decode === "function") {
+      img.src = url;
+      img.decode().then(swap).catch(swap);
+    } else {
+      img.onload = swap;
+      img.onerror = swap;
+      img.src = url;
+    }
+  };
+
   const io = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
       const el = entry.target;
       const url = el.getAttribute("data-poster");
-      if (url) {
-        el.style.setProperty("--poster-image", `url('${url}')`);
-        el.removeAttribute("data-poster");
-      }
+      if (url) applyPoster(el, url);
       io.unobserve(el);
     }
   }, { rootMargin: "300px 0px", threshold: 0.01 });
@@ -1905,15 +1931,21 @@ function renderHeroSlide(movie) {
       const safeUrlValue = imageUrl.replaceAll("'", "%27");
       heroBackdrop.classList.remove("is-loaded");
       const probe = new Image();
-      probe.onload = () => {
+      probe.decoding = "async";
+      // decode() bilan bitmap tayyor bo'lgach yangilaymiz — Android'da scroll
+      // paytida hero almashinishi main thread'ni bloklamasin.
+      const apply = () => {
         heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
         heroBackdrop.classList.add("is-loaded");
       };
-      probe.onerror = () => {
-        heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
-        heroBackdrop.classList.add("is-loaded");
-      };
-      probe.src = imageUrl;
+      if (typeof probe.decode === "function") {
+        probe.src = imageUrl;
+        probe.decode().then(apply).catch(apply);
+      } else {
+        probe.onload = apply;
+        probe.onerror = apply;
+        probe.src = imageUrl;
+      }
     } else {
       heroBackdrop.style.backgroundImage = "linear-gradient(135deg, #1f1f1f, #050505)";
       heroBackdrop.classList.add("is-loaded");
@@ -1949,10 +1981,50 @@ function renderHeroDots() {
     .join("");
 }
 
+// Hero rotate'ni scroll/visibility holatlariga bog'lash uchun yordamchi flag'lar.
+// Android'da scroll paytida hero almashinishi yangi rasm decode'iga sabab bo'lib,
+// scroll'da "qotib qolish" his qildirardi. Endi rotate scroll tugagach va hero
+// ko'rinib turgan paytdagina ishlaydi.
+let __heroIsScrolling = false;
+let __heroScrollTimer = null;
+let __heroIsVisible = true;
+let __heroVisibilityObserver = null;
+
+function __ensureHeroVisibilityObserver() {
+  if (__heroVisibilityObserver || typeof IntersectionObserver === "undefined") return;
+  const heroSection = document.getElementById("heroSection");
+  if (!heroSection) return;
+  __heroVisibilityObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      __heroIsVisible = entry.isIntersecting;
+    }
+  }, { threshold: 0.1 });
+  __heroVisibilityObserver.observe(heroSection);
+}
+
+function __attachHeroScrollPause() {
+  if (__attachHeroScrollPause.__done) return;
+  __attachHeroScrollPause.__done = true;
+  const scroller = document.querySelector(".app-shell") || window;
+  scroller.addEventListener("scroll", () => {
+    __heroIsScrolling = true;
+    if (__heroScrollTimer) clearTimeout(__heroScrollTimer);
+    __heroScrollTimer = setTimeout(() => { __heroIsScrolling = false; }, 250);
+  }, { passive: true });
+  document.addEventListener("visibilitychange", () => {
+    // Sahifa fonda — rotate'ga hojat yo'q, lekin keyin tiklanadi.
+    __heroIsScrolling = document.hidden;
+  });
+}
+
 function startHeroAutoRotate() {
   stopHeroAutoRotate();
   if (heroSlides.length <= 1) return;
+  __attachHeroScrollPause();
+  __ensureHeroVisibilityObserver();
   heroIntervalId = window.setInterval(() => {
+    // Scroll yoki tab fonida bo'lsa — bu tick'ni o'tkazib yuboramiz.
+    if (__heroIsScrolling || !__heroIsVisible || document.hidden) return;
     heroActiveIndex = (heroActiveIndex + 1) % heroSlides.length;
     renderHeroSlide(heroSlides[heroActiveIndex]);
   }, HERO_ROTATE_INTERVAL_MS);
