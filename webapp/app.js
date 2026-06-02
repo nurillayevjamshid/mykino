@@ -4183,8 +4183,16 @@ async function openVideoPlayer(movie, options = {}) {
   if (cdnUrl || driveFileId) {
     let playbackUrl = cdnUrl;
     if (!playbackUrl && driveFileId) {
-      const directUrl = await resolveDriveDirectVideoUrl(driveFileId);
-      playbackUrl = directUrl || buildDriveStreamUrl(driveFileId);
+      // Gesture'ni saqlash uchun resolve so'rovini KUTMAYMIZ. Cache tayyor bo'lsa,
+      // direct URL'ni ishlatamiz; aks holda darhol proxy stream'dan boshlaymiz
+      // va resolve'ni fonda qilamiz (keyingi marta cache'dan tushadi).
+      const cached = driveDirectUrlCache.get(driveFileId);
+      if (cached && cached.expiresAt > Date.now()) {
+        playbackUrl = cached.url;
+      } else {
+        playbackUrl = buildDriveStreamUrl(driveFileId);
+        resolveDriveDirectVideoUrl(driveFileId).catch(() => {});
+      }
     }
     if (requestId !== activeVideoRequest) return;
     renderVideoSource(playbackUrl, movie, {
