@@ -17,6 +17,16 @@ let lang = savedLang;
 const pageParams = new URLSearchParams(window.location.search);
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 
+// Android: backdrop-filter sticky/fixed pill-larda har scroll frame'da qayta
+// blur qilinib juda sekin ishlaydi. UA aniqlangach <html>'ga is-android klassi
+// qo'yiladi va CSS'da og'ir blur'lar solid background bilan almashtiriladi.
+try {
+  const ua = navigator.userAgent || "";
+  if (/Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua)) {
+    document.documentElement.classList.add("is-android");
+  }
+} catch (_) {}
+
 if (tg) {
   tg.ready();
   tg.expand();
