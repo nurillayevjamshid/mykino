@@ -2203,6 +2203,7 @@ function buildHomeCategoryGroups() {
     for (const rawGenre of list) {
       const value = normalizeCategoryValue(rawGenre || "kino");
       if (!value) continue;
+      if (value === "kino") continue;
       const label = rawGenre || "Kino";
       if (!groups.has(value)) groups.set(value, { value, label, movies: [] });
       groups.get(value).movies.push(movie);
