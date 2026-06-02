@@ -3,6 +3,8 @@ const HERO_ROTATE_INTERVAL_MS = 6500;
 const PROD_API_BASE = window.location.protocol === "file:" ? "https://kino-telegram-mini-app.vercel.app" : "";
 const API_BASE_STORAGE_KEY = "kino_api_base_v1";
 const DEBUG_USER_STORAGE_KEY = "kino_debug_user_v1";
+const CACHED_USER_STORAGE_KEY = "kino_tg_user_v1";
+const CACHED_USER_PHOTO_KEY = "kino_tg_user_photo_v1";
 const LOCAL_API_BASES = ["http://127.0.0.1:8080", "http://localhost:8080"];
 const DEFAULT_DEBUG_USER = {
   id: 679291909,
@@ -625,13 +627,41 @@ function parseInitDataUser(initData) {
   }
 }
 
+function cacheTelegramUser(user) {
+  if (!user || !user.id) return;
+  try {
+    localStorage.setItem(CACHED_USER_STORAGE_KEY, JSON.stringify({
+      id: user.id,
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      username: user.username || "",
+      photo_url: user.photo_url || "",
+      language_code: user.language_code || "",
+      is_premium: !!user.is_premium,
+      cached_at: Date.now(),
+    }));
+  } catch (_) {}
+}
+
+function readCachedTelegramUser() {
+  const cached = readStoredJson(CACHED_USER_STORAGE_KEY);
+  return cached && cached.id ? cached : null;
+}
+
 function getTelegramUser() {
-  return (
+  const live =
     tg?.initDataUnsafe?.user ||
     parseInitDataUser(tg?.initData) ||
-    readDebugTelegramUser() ||
-    null
-  );
+    null;
+  if (live && live.id) {
+    cacheTelegramUser(live);
+    return live;
+  }
+  // Telegram client ba'zan initData ni kech yuboradi yoki refresh paytida bo'sh bo'ladi —
+  // shu sababli oxirgi ko'rilgan foydalanuvchi cache'dan olinadi, profil yo'qolib ketmasin.
+  const cached = readCachedTelegramUser();
+  if (cached) return cached;
+  return readDebugTelegramUser() || null;
 }
 
 function getUserInitials(user) {
@@ -705,6 +735,9 @@ function applyTelegramUser() {
   const profileButtonLabel = displayName ? `${displayName} profili` : "Profil";
   document.querySelectorAll("[data-action='profile']").forEach((button) => setControlLabel(button, profileButtonLabel));
   const candidatePhotos = [];
+  let cachedPhotoSrc = "";
+  try { cachedPhotoSrc = localStorage.getItem(CACHED_USER_PHOTO_KEY) || ""; } catch (_) {}
+  if (cachedPhotoSrc) candidatePhotos.push(cachedPhotoSrc);
   if (user.id) candidatePhotos.push(`${runtimeApiBase}/api/user-photo?userId=${encodeURIComponent(user.id)}`);
   if (user.photo_url) candidatePhotos.push(String(user.photo_url));
   if (candidatePhotos.length) {
@@ -722,6 +755,7 @@ function applyTelegramUser() {
         topbarAvatarPhoto.hidden = false;
       }
       if (topbarAvatarInitials) topbarAvatarInitials.hidden = true;
+      try { localStorage.setItem(CACHED_USER_PHOTO_KEY, src); } catch (_) {}
     };
     const revertToInitials = () => {
       avatarPhoto.hidden = true;
@@ -4286,6 +4320,25 @@ function applyCopy() {
   renderProfileModal();
   renderMovies();
 }
+
+// Telegram WebApp ba'zi qurilmalarda (iOS/Desktop) initDataUnsafe.user'ni
+// birinchi paint'dan keyin to'ldiradi. Live foydalanuvchi hali yo'q bo'lsa,
+// bir necha marta qayta tekshirib avatar/username/ID ni qo'yamiz.
+(function scheduleTelegramUserRetries() {
+  if (typeof window === "undefined") return;
+  const delays = [250, 800, 2000, 5000];
+  delays.forEach((ms) => {
+    setTimeout(() => {
+      try {
+        const live = tg?.initDataUnsafe?.user || parseInitDataUser(tg?.initData);
+        if (live && live.id) {
+          cacheTelegramUser(live);
+          applyTelegramUser();
+        }
+      } catch (_) {}
+    }, ms);
+  });
+})();
 
 document.querySelectorAll("[data-filter]").forEach((button) => {
   button.addEventListener("click", () => setFilter(button.dataset.filter));
