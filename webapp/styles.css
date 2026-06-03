@@ -8766,13 +8766,10 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 #heroPlayLabel { display: none !important; }
 .hero__title {
   display: block !important;
-  position: absolute !important;
-  right: 12px !important;
-  bottom: 10px !important;
-  left: auto !important;
-  top: auto !important;
+  position: static !important;
+  order: 2 !important;
   margin: 0 !important;
-  z-index: 3;
+  margin-left: auto !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   line-height: 1.2 !important;
@@ -8815,17 +8812,20 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 
 .hero__inner {
   position: absolute;
-  inset: auto auto 10px 12px !important;
+  inset: auto 12px 10px 12px !important;
   padding: 0 !important;
   text-align: left !important;
-  align-items: flex-start !important;
-  bottom: 10px !important;
-  left: 12px !important;
-  right: auto !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
 }
 .hero__actions {
   gap: 0 !important;
   justify-content: flex-start !important;
+  order: 1 !important;
+  flex: 0 0 auto;
 }
 .hero__play {
   width: 36px !important;
