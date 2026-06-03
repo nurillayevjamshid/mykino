@@ -1278,7 +1278,7 @@ function buildGeneratedPosterDataUrl(movie) {
       <rect width="720" height="1080" fill="url(#bg)"/>
       <circle cx="585" cy="170" r="132" fill="rgba(255,204,79,0.22)"/>
       <circle cx="162" cy="902" r="176" fill="rgba(84,130,255,0.12)"/>
-      <rect x="48" y="48" width="624" height="984" rx="42" fill="rgba(12,16,24,0.28)" stroke="url(#glass)" stroke-width="1.5"/>
+      <rect x="48" y="48" width="624" height="984" rx="42" fill="rgba(12,16,24,0.28)" stroke="url(#glass)" stroke-width="2"/>
       <text x="74" y="166" fill="#f8d25c" font-size="28" font-family="Inter, Arial, sans-serif" letter-spacing="2">MY PLAYLIST</text>
       <text x="74" y="820" fill="#ffffff" font-size="62" font-weight="700" font-family="Georgia, Times New Roman, serif">${safeTitle}</text>
       <text x="74" y="888" fill="rgba(255,255,255,0.78)" font-size="28" font-family="Inter, Arial, sans-serif">${safeSubtitle}</text>
@@ -2653,7 +2653,7 @@ function renderCommentItem(comment) {
   const time = escapeHtml(formatRelativeTime(comment.createdAt));
   const text = escapeHtml(String(comment.text || ""));
   const adminBtn = isCommentAdmin()
-    ? `<button class="comment__delete" type="button" data-comment-delete="${escapeHtml(comment.id)}" title="O'chirish" aria-label="O'chirish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg></button>`
+    ? `<button class="comment__delete" type="button" data-comment-delete="${escapeHtml(comment.id)}" title="O'chirish" aria-label="O'chirish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg></button>`
     : "";
   return `
     <article class="comment" data-comment-id="${escapeHtml(comment.id)}">
@@ -5060,7 +5060,7 @@ function syncSidebarMusicItem() {
   } else {
     item.dataset.sidebarAction = "music";
     item.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 18V5l12-2v13"></path>
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
@@ -5677,7 +5677,7 @@ function showAdModal(ad) {
   }
 
   if (targetUrl && (ad.buttonText || "").trim()) {
-    cta.innerHTML = '<span class="ad-modal__cta-label"></span><span class="ad-modal__cta-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span>';
+    cta.innerHTML = '<span class="ad-modal__cta-label"></span><span class="ad-modal__cta-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span>';
     cta.querySelector('.ad-modal__cta-label').textContent = ad.buttonText.trim();
     cta.href = targetUrl;
     cta.hidden = false;
