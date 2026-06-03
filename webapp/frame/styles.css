@@ -2636,15 +2636,15 @@ html[data-theme="light"] .watch-button--round {
 .watch-button.watch-button--pill {
   position: relative;
   width: auto;
-  min-width: 240px;
+  min-width: 0;
   height: 58px;
   min-height: 58px;
-  padding: 6px 8px 6px 24px;
+  padding: 6px 6px 6px 18px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: center;
+  gap: 8px;
   background: linear-gradient(180deg, #3b8bff 0%, #2E7CF6 55%, #1f6df0 100%) !important;
   color: #ffffff !important;
   border: 0 !important;
