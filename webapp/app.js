@@ -4485,7 +4485,7 @@ function ensureMusicModule() {
   if (__musicModulePromise) return __musicModulePromise;
   __musicModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music.js?v=20260525-musicsplit01";
+    script.src = "/static/music.js?v=20260603-icons2px01";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
