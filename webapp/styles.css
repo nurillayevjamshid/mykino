@@ -8761,32 +8761,10 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
   overflow: hidden;
 }
 .hero__gradient { display: none !important; }
+.hero__title,
 .hero__desc,
 .hero__info,
 #heroPlayLabel { display: none !important; }
-.hero__title {
-  display: block !important;
-  position: static !important;
-  order: 2 !important;
-  margin: 0 !important;
-  margin-left: auto !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  line-height: 1.2 !important;
-  padding: 4px 10px !important;
-  color: #fff !important;
-  background: rgba(0, 0, 0, 0.42) !important;
-  backdrop-filter: blur(8px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(140%) !important;
-  border-radius: 999px !important;
-  max-width: 55%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  letter-spacing: 0.01em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  pointer-events: none;
-}
 .hero__dots {
   position: absolute;
   left: 0; right: 0;
@@ -8812,20 +8790,17 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 
 .hero__inner {
   position: absolute;
-  inset: auto 12px 10px 12px !important;
+  inset: auto auto 10px 12px !important;
   padding: 0 !important;
   text-align: left !important;
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 8px !important;
+  align-items: flex-start !important;
+  bottom: 10px !important;
+  left: 12px !important;
+  right: auto !important;
 }
 .hero__actions {
   gap: 0 !important;
   justify-content: flex-start !important;
-  order: 1 !important;
-  flex: 0 0 auto;
 }
 .hero__play {
   width: 36px !important;
