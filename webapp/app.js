@@ -6160,6 +6160,148 @@ initApp();
 })();
 // === /smooth-wheel ===
 
+// === Android touch momentum boost ===
+// Android Chrome WebView'da native vertikal scroll "og'ir" his qilinadi —
+// barmoq 1px tortsa, scroll ham ~1px. iOS'da inertia kuchli, lekin Android'da
+// kamroq. Bu modul Android'da app-shell touchmove'ni qo'lda boshqaradi:
+//   • barmoq harakatini MULTIPLIER bilan kuchaytiradi (kuchliroq)
+//   • touchend'dan keyin rAF inertia bilan davom etadi (yumshoqroq tugaydi)
+// Ichki scroll konteynerlar (kategoriya rowlar, modal, player, sheet) bezovta
+// qilinmaydi — ular o'z native scroll'i bilan ishlaydi. PTR (pull-to-refresh)
+// tepada pastga tortish vaziyatida bypass bo'ladi, native PTR handleri ishlaydi.
+(function attachAndroidTouchBoost() {
+  if (!document.documentElement.classList.contains("is-android")) return;
+  const scroller = document.querySelector(".app-shell");
+  if (!scroller) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  // === Tweak qilinadigan sozlamalar ===
+  const MULTIPLIER = 1.55;     // barmoq harakatini necha barobar kuchaytirish (1 = native)
+  const FRICTION = 0.94;       // inertia decay (har frame'da velocity * FRICTION). Katta = uzoqroq sirpanadi
+  const MIN_VELOCITY = 0.04;   // px/ms — bundan past tezlikda inertia to'xtaydi
+  const MAX_VELOCITY = 4.5;    // px/ms — cheksiz tezlanmasin
+  const INNER_SCROLLERS =
+    ".category-row__list, .music-card-row, .music-filter-row, .music-carousel," +
+    " .music-artists, .modal-content, .modal-poster, .video-player, .ad-modal," +
+    " .comments-sheet__scroll, .season-tabs, .quick-tabs, .profile-card," +
+    " .category-detail-view__grid, .music-list, .music-fullplayer," +
+    " input, textarea, select";
+
+  let touching = false;
+  let bypass = false;
+  let lastY = 0;
+  let lastT = 0;
+  let velocity = 0;
+  let rafId = 0;
+
+  const maxScroll = () => scroller.scrollHeight - scroller.clientHeight;
+
+  function isBlockedByOverlay() {
+    const b = document.body.classList;
+    return b.contains("is-modal-open") || b.contains("is-player-open")
+        || b.contains("ad-modal-open") || b.contains("has-sheet-open");
+  }
+
+  function shouldBypass(target) {
+    if (isBlockedByOverlay()) return true;
+    if (!target || target.nodeType !== 1) return false;
+    return !!target.closest?.(INNER_SCROLLERS);
+  }
+
+  function stopInertia() {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+  }
+
+  function inertiaStep() {
+    if (Math.abs(velocity) < MIN_VELOCITY) {
+      rafId = 0;
+      return;
+    }
+    const max = maxScroll();
+    const next = scroller.scrollTop + velocity * 16; // ~16ms frame
+    if (next <= 0) {
+      scroller.scrollTop = 0;
+      rafId = 0;
+      return;
+    }
+    if (next >= max) {
+      scroller.scrollTop = max;
+      rafId = 0;
+      return;
+    }
+    scroller.scrollTop = next;
+    velocity *= FRICTION;
+    rafId = requestAnimationFrame(inertiaStep);
+  }
+
+  scroller.addEventListener("touchstart", (e) => {
+    bypass = shouldBypass(e.target);
+    stopInertia();
+    if (bypass || !e.touches[0]) return;
+    lastY = e.touches[0].clientY;
+    lastT = e.timeStamp || performance.now();
+    velocity = 0;
+    touching = true;
+  }, { passive: true });
+
+  scroller.addEventListener("touchmove", (e) => {
+    if (!touching || bypass) return;
+    if (e.touches.length > 1) { bypass = true; return; }
+    const t = e.touches[0];
+    if (!t) return;
+    const now = e.timeStamp || performance.now();
+    const dy = t.clientY - lastY;
+    const dt = Math.max(1, now - lastT);
+
+    // PTR sohasi: scroll tepada va barmoq pastga tortyapti —
+    // native pull-to-refresh ishlasin, bezovta qilmaymiz.
+    if (scroller.scrollTop <= 0 && dy > 0) {
+      bypass = true;
+      velocity = 0;
+      return;
+    }
+
+    const move = -dy * MULTIPLIER; // scrollTop o'zgarishi: pastga = +
+    const max = maxScroll();
+    if (max <= 0) return;
+    scroller.scrollTop = Math.max(0, Math.min(max, scroller.scrollTop + move));
+
+    // velocity: scrollTop o'zgarishi tezligi (px/ms)
+    let v = move / dt;
+    if (v > MAX_VELOCITY) v = MAX_VELOCITY;
+    else if (v < -MAX_VELOCITY) v = -MAX_VELOCITY;
+    // Yumshatish — yangi va eski velocity'ni aralashtirib stabil tezlik
+    velocity = velocity * 0.35 + v * 0.65;
+
+    lastY = t.clientY;
+    lastT = now;
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
+
+  const onEnd = () => {
+    if (!touching) { bypass = false; return; }
+    touching = false;
+    if (bypass) { bypass = false; return; }
+    if (Math.abs(velocity) >= MIN_VELOCITY) {
+      rafId = requestAnimationFrame(inertiaStep);
+    }
+  };
+  scroller.addEventListener("touchend", onEnd, { passive: true });
+  scroller.addEventListener("touchcancel", onEnd, { passive: true });
+
+  // Foydalanuvchi sahifa ichida tugma bossa yoki dasturiy scroll bo'lsa,
+  // ungacha bo'lgan inertia'ni to'xtatamiz.
+  scroller.addEventListener("scroll", () => {
+    // Faqat agar inertia bizning emas (dasturiy scrollTo va h.k.) bo'lsa to'xtatish.
+    // Bizning inertia rAF ichida o'zi scroll qiladi — bu listener ham ishlaydi,
+    // lekin velocity allaqachon to'g'ri, hech narsa qilmaymiz.
+  }, { passive: true });
+})();
+// === /Android touch momentum boost ===
+
 // === swipe-gestures (revertable: delete this block) ===
 // Idle vaqtda init — birinchi paint blok qilinmaydi.
 const __initSwipeGestures = function attachSwipeGestures() {
