@@ -444,15 +444,6 @@
         <div class="modal-meta" id="modalMeta"></div>
         <div class="modal-rating" id="modalRating" aria-hidden="true"></div>
         <div class="watch-actions" id="watchActions">
-          <button class="watch-resume-chip" id="watchResumeChip" type="button" hidden>
-            <span class="watch-resume-chip__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
-            </span>
-            <span class="watch-resume-chip__text">
-              <span class="watch-resume-chip__time" id="watchResumeChipTime"></span>
-              <span class="watch-resume-chip__label" data-i18n="continueAt">Davom etish</span>
-            </span>
-          </button>
           <button class="watch-button watch-button--pill" id="watchButton" type="button" aria-label="Tomosha qilish">
             <span class="watch-button__label" data-i18n="watch">Tomosha qilish</span>
             <span class="watch-button__icon" aria-hidden="true">
@@ -460,7 +451,15 @@
             </span>
             <span class="watch-button__resume" id="watchResumeBadge" hidden></span>
           </button>
-          <button class="watch-restart" id="watchRestartButton" type="button" aria-label="Boshidan ko'rish" hidden></button>
+          <button class="watch-resume-chip" id="watchResumeChip" type="button" hidden>
+            <span class="watch-resume-chip__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+            </span>
+            <span class="watch-resume-chip__text">
+              <span class="watch-resume-chip__time" id="watchResumeChipTime"></span>
+              <span class="watch-resume-chip__label">dan davom etish</span>
+            </span>
+          </button>
         </div>
         <button class="modal-description-toggle" id="modalDescriptionToggle" type="button" aria-expanded="false">
           <span class="modal-description-toggle__label">Show More</span>
