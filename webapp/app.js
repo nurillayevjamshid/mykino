@@ -2966,41 +2966,47 @@ document.getElementById("modalShareButton")?.addEventListener("click", (e) => {
 const watchActionsEl = document.getElementById("watchActions");
 const watchResumeBadge = document.getElementById("watchResumeBadge");
 const watchRestartButton = document.getElementById("watchRestartButton");
+const watchResumeChip = document.getElementById("watchResumeChip");
+const watchResumeChipTime = document.getElementById("watchResumeChipTime");
 
 function syncResumeUiForMovie(movie) {
   const seconds = Math.max(0, Math.floor(Number(getMovieProgressSeconds(movie)) || 0));
   const hasResume = seconds >= WATCH_PROGRESS_MIN_SECONDS;
   if (watchActionsEl) watchActionsEl.classList.toggle("has-resume", hasResume);
   if (watchResumeBadge) {
+    watchResumeBadge.textContent = "";
+    watchResumeBadge.hidden = true;
+  }
+  if (watchRestartButton) watchRestartButton.hidden = true;
+  if (watchResumeChip) {
+    watchResumeChip.hidden = !hasResume;
     if (hasResume) {
-      watchResumeBadge.textContent = formatPlaybackTime(seconds);
-      watchResumeBadge.hidden = false;
+      const resumeLabel = plainLabel(t("continueAt"));
+      watchResumeChip.setAttribute(
+        "aria-label",
+        `${resumeLabel} (${formatPlaybackTime(seconds)})`,
+      );
     } else {
-      watchResumeBadge.textContent = "";
-      watchResumeBadge.hidden = true;
+      watchResumeChip.removeAttribute("aria-label");
     }
   }
-  if (watchRestartButton) watchRestartButton.hidden = !hasResume;
+  if (watchResumeChipTime) {
+    watchResumeChipTime.textContent = hasResume ? formatPlaybackTime(seconds) : "";
+  }
   if (watchButton) {
     const watchLabel = plainLabel(t("watch"));
-    const resumeLabel = plainLabel(t("continueAt"));
-    watchButton.setAttribute(
-      "aria-label",
-      hasResume ? `${resumeLabel} (${formatPlaybackTime(seconds)})` : watchLabel,
-    );
+    watchButton.setAttribute("aria-label", watchLabel);
     const labelEl = watchButton.querySelector(".watch-button__label");
-    if (labelEl) labelEl.textContent = hasResume ? resumeLabel : watchLabel;
+    if (labelEl) labelEl.textContent = watchLabel;
   }
 }
 
-watchRestartButton?.addEventListener("click", (event) => {
+watchResumeChip?.addEventListener("click", (event) => {
   event.preventDefault();
   event.stopPropagation();
   if (!activeMovie) return;
   try { haptic.medium(); } catch (_) {}
-  // Resume vaqtini bekor qilish — video boshidan ochiladi.
-  // Asl progress saqlanadi (movie tugagach yana yangilanadi).
-  openVideoPlayer(activeMovie, { startFromBeginning: true });
+  openVideoPlayer(activeMovie);
 });
 
 function openMovie(movie) {
@@ -5311,7 +5317,7 @@ document.addEventListener("click", (event) => {
   if (watchTarget) {
     const movieId = watchTarget.dataset.movieId || "";
     const movie = movies.find((item) => String(item.id) === movieId) || activeMovie;
-    openVideoPlayer(movie);
+    openVideoPlayer(movie, { startFromBeginning: true });
     return;
   }
 
