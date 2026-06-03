@@ -9644,39 +9644,78 @@ body.is-music .profile-history:not(.profile-history--music) { display: none !imp
 }
 body.ad-modal-open { overflow: hidden; }
 
-/* === Resume prompt: watch button + "Boshidan" === */
+/* === Resume prompt: "Davom etish" chip above the watch button === */
 .watch-actions {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
 }
 .watch-button {
   position: relative;
 }
-.watch-button__resume {
-  position: absolute;
-  top: -8px;
-  right: -10px;
-  min-width: 44px;
-  padding: 4px 10px;
+/* Eski qizil badge — ishlatilmaydi, har doim yashirin */
+.watch-button__resume { display: none !important; }
+
+.watch-resume-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 10px;
   border-radius: 999px;
-  background: var(--c-accent, #e50914);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--c-text, #fff);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 0 2px var(--c-bg, #0b0d12);
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, opacity 0.18s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.watch-resume-chip[hidden] { display: none !important; }
+.watch-resume-chip:active {
+  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.14);
+}
+.watch-resume-chip__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  white-space: nowrap;
-  pointer-events: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--c-accent, #e50914);
+  color: #fff;
 }
-[data-theme="light"] .watch-button__resume {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), 0 0 0 2px #fff;
+.watch-resume-chip__icon svg {
+  width: 12px;
+  height: 12px;
+}
+.watch-resume-chip__text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+.watch-resume-chip__time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.watch-resume-chip__label {
+  opacity: 0.85;
+  font-weight: 500;
+}
+[data-theme="light"] .watch-resume-chip {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1a1a1a;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .watch-resume-chip:active {
+  background: rgba(0, 0, 0, 0.1);
 }
 .watch-restart {
   display: inline-flex;
