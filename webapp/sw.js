@@ -1,4 +1,4 @@
-const VERSION = "v20260602-playgap01";
+const VERSION = "v20260603-herotitle01";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
