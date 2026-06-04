@@ -181,39 +181,51 @@ function pickThumb(thumbs) {
   return (thumbs.maxres || thumbs.standard || thumbs.high || thumbs.medium || thumbs.default || {}).url || "";
 }
 
-async function fetchUploadedVideos(uploadsPlaylistId, maxResults = 50) {
+async function fetchUploadedVideos(uploadsPlaylistId, maxResults = 200) {
   if (!uploadsPlaylistId) return [];
-  const pl = await ytFetch("playlistItems", {
-    part: "snippet,contentDetails",
-    playlistId: uploadsPlaylistId,
-    maxResults,
-  });
-  const items = pl?.items || [];
-  const ids = items.map((it) => it.contentDetails?.videoId).filter(Boolean);
-  if (!ids.length) return [];
-  // Durations + statistics bitta chaqiruvda
-  const vresp = await ytFetch("videos", {
-    part: "contentDetails,statistics,snippet",
-    id: ids.join(","),
-    maxResults: 50,
-  });
-  const byId = new Map();
-  for (const v of (vresp?.items || [])) byId.set(v.id, v);
-  return ids.map((id) => {
-    const v = byId.get(id);
-    if (!v) return null;
-    const sn = v.snippet || {};
-    const dur = isoToSeconds(v.contentDetails?.duration);
-    return {
-      videoId: id,
-      title: sn.title || "",
-      thumb: pickThumb(sn.thumbnails),
-      publishedAt: sn.publishedAt || "",
-      durationSec: dur,
-      isShort: dur > 0 && dur <= 60,
-      viewCount: Number(v.statistics?.viewCount || 0),
+  const allItems = [];
+  let pageToken = "";
+  // YouTube API har safar max 50 qaytaradi — pagination bilan hammasini olamiz
+  while (allItems.length < maxResults) {
+    const batchSize = Math.min(50, maxResults - allItems.length);
+    const params = {
+      part: "snippet,contentDetails",
+      playlistId: uploadsPlaylistId,
+      maxResults: batchSize,
     };
-  }).filter(Boolean);
+    if (pageToken) params.pageToken = pageToken;
+    const pl = await ytFetch("playlistItems", params);
+    const items = pl?.items || [];
+    allItems.push(...items);
+    pageToken = pl?.nextPageToken || "";
+    if (!pageToken || !items.length) break;
+  }
+  const ids = allItems.map((it) => it.contentDetails?.videoId).filter(Boolean);
+  if (!ids.length) return [];
+  // Durations + statistics — 50 tadan bo'lib chaqiramiz
+  const videos = [];
+  for (let i = 0; i < ids.length; i += 50) {
+    const batch = ids.slice(i, i + 50);
+    const vresp = await ytFetch("videos", {
+      part: "contentDetails,statistics,snippet",
+      id: batch.join(","),
+      maxResults: 50,
+    });
+    for (const v of (vresp?.items || [])) {
+      const sn = v.snippet || {};
+      const dur = isoToSeconds(v.contentDetails?.duration);
+      videos.push({
+        videoId: v.id,
+        title: sn.title || "",
+        thumb: pickThumb(sn.thumbnails),
+        publishedAt: sn.publishedAt || "",
+        durationSec: dur,
+        isShort: dur > 0 && dur <= 60,
+        viewCount: Number(v.statistics?.viewCount || 0),
+      });
+    }
+  }
+  return videos;
 }
 
 async function fetchPlaylists(channelId, maxResults = 25) {
@@ -249,7 +261,7 @@ async function getChannelView(channelId) {
   if (!item) throw Object.assign(new Error("Kanal topilmadi."), { statusCode: 404 });
   const channel = shapeChannel(item);
   const [videosAll, playlists] = await Promise.all([
-    fetchUploadedVideos(channel.uploadsPlaylistId, 50),
+    fetchUploadedVideos(channel.uploadsPlaylistId, 200),
     fetchPlaylists(channelId, 25),
   ]);
   const videos = videosAll.filter((v) => !v.isShort);
