@@ -5088,10 +5088,36 @@ function syncSidebarMusicItem() {
   }
 }
 
+function syncSidebarPodcastsItem() {
+  const item = document.getElementById("sidebarPodcastsItem");
+  if (!item) return;
+  const isPodcasts = document.body.classList.contains("is-podcasts");
+  if (isPodcasts) {
+    item.dataset.sidebarAction = "kino-back";
+    item.innerHTML = `
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+        <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+      </svg>
+      <span>Kino</span>`;
+  } else {
+    item.dataset.sidebarAction = "podcasts";
+    item.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="9" y="2" width="6" height="13" rx="3"></rect>
+        <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
+        <line x1="12" y1="19" x2="12" y2="22"></line>
+      </svg>
+      <span data-i18n="tvNav">Potkastlar</span>
+      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
+  }
+}
+
 function setSidebarOpen(open) {
   if (!appSidebar || !sidebarBackdrop) return;
   if (open) {
     syncSidebarMusicItem();
+    syncSidebarPodcastsItem();
     sidebarBackdrop.hidden = false;
     requestAnimationFrame(() => {
       appSidebar.classList.add("is-open");
@@ -5131,11 +5157,13 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     const action = el.dataset.sidebarAction;
     e.preventDefault();
     if (action === "music") {
+      closePodcastsView();
       openMusicView();
       setSidebarOpen(false);
       return;
     }
     if (action === "podcasts") {
+      closeMusicView();
       openPodcastsView();
       setSidebarOpen(false);
       return;
@@ -5149,6 +5177,8 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       return;
     }
     if (action === "favorites") {
+      closeMusicView();
+      closePodcastsView();
       setFilter("favorites");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
     } else if (action === "profile") {
