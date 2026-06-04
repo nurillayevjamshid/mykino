@@ -120,9 +120,6 @@
 
     return `
       <header class="pod-topbar">
-        <button class="pod-topbar__back" type="button" data-pod-close aria-label="Orqaga">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-        </button>
         <div class="pod-topbar__title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="9" y="2" width="6" height="13" rx="3"></rect>
@@ -132,6 +129,13 @@
           <span>Potkastlar</span>
         </div>
       </header>
+      <section class="pod-header-section">
+        <div class="pod-header-section__bg"></div>
+        <div class="pod-header-section__inner">
+          <h2 class="pod-header-section__title">Potkastlar</h2>
+          <p class="pod-header-section__desc">Eng sara o'zbek podcast kanallari bir joyda</p>
+        </div>
+      </section>
       <div class="pod-list">
         ${channels.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali kanal qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube kanal qo'shing</div></div>`}
       </div>
