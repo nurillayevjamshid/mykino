@@ -11573,6 +11573,7 @@ html[data-theme="light"] .podcasts-view .pod-topbar--channel {
 html[data-theme="light"] .podcasts-view .pod-topbar__back,
 html[data-theme="light"] .podcasts-view .pod-topbar__title,
 html[data-theme="light"] .podcasts-view .pod-topbar__title--ch { color: #1a1d2e; }
+html[data-theme="light"] .podcasts-view .pod-topbar__share { color: #555; }
 html[data-theme="light"] .podcasts-view .pod-channel-row {
   background:
     linear-gradient(135deg, rgba(255,255,255,.96), rgba(246,248,255,.88)),
