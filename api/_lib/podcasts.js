@@ -131,6 +131,7 @@ function normalizeStored(ch) {
     addedAt: Number(ch.addedAt || Date.now()),
     order: Number.isFinite(Number(ch.order)) ? Number(ch.order) : 0,
     snapshot: ch.snapshot || null,
+    featured: Boolean(ch.featured),
   };
 }
 
@@ -338,6 +339,19 @@ async function handlePodcastsRequest(request, response) {
           if (r) await r.del(`podcasts:view:${channelId}`);
         } catch (_) {}
         response.status(200).json({ ok: true, channel: list[idx] });
+        return;
+      }
+
+      if (action === "update") {
+        const channelId = String(body.channelId || "");
+        if (!channelId) { response.status(400).json({ ok: false, error: "channelId kerak." }); return; }
+        const list = await readChannels();
+        const idx = list.findIndex((c) => c.channelId === channelId);
+        if (idx < 0) { response.status(404).json({ ok: false, error: "Topilmadi." }); return; }
+        if (body.featured !== undefined) list[idx].featured = Boolean(body.featured);
+        if (body.order !== undefined) list[idx].order = Number(body.order);
+        await writeChannels(list);
+        response.status(200).json({ ok: true, channel: list[idx], channels: list });
         return;
       }
 

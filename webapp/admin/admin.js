@@ -3245,10 +3245,16 @@ function renderPodcasts() {
             <div style="font-size:12px;color:var(--text-muted,#666);margin-top:4px;">${formatCount(s.subscriberCount)} obunachi · ${formatCount(s.videoCount)} video</div>
           </div>
         </div>
-        <div style="padding:0 14px 14px;display:flex;gap:8px;">
-          <a class="btn btn-secondary" href="https://www.youtube.com/channel/${escapeHtml(c.channelId)}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:13px;padding:8px;">YouTube</a>
-          <button class="btn btn-secondary" data-pod-refresh="${escapeHtml(c.channelId)}" style="font-size:13px;padding:8px 12px;">↻</button>
-          <button class="btn btn-danger" data-pod-delete="${escapeHtml(c.channelId)}|${escapeHtml(s.title || c.channelId)}" style="font-size:13px;padding:8px 12px;">O'chirish</button>
+        <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none;">
+            <input type="checkbox" ${c.featured ? 'checked' : ''} data-pod-featured="${escapeHtml(c.channelId)}" style="width:18px;height:18px;accent-color:var(--primary,#3b82f6);cursor:pointer;">
+            <span>Header sectionda ko'rsatish</span>
+          </label>
+          <div style="display:flex;gap:8px;">
+            <a class="btn btn-secondary" href="https://www.youtube.com/channel/${escapeHtml(c.channelId)}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:13px;padding:8px;">YouTube</a>
+            <button class="btn btn-secondary" data-pod-refresh="${escapeHtml(c.channelId)}" style="font-size:13px;padding:8px 12px;">↻</button>
+            <button class="btn btn-danger" data-pod-delete="${escapeHtml(c.channelId)}|${escapeHtml(s.title || c.channelId)}" style="font-size:13px;padding:8px 12px;">O'chirish</button>
+          </div>
         </div>
       </div>
     `;
@@ -3313,6 +3319,24 @@ async function refreshPodcastChannel(channelId) {
   }
 }
 
+async function togglePodcastFeatured(channelId, featured) {
+  try {
+    const r = await fetch(`${API_URL}/podcasts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', channelId, featured }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'Yangilab bo\'lmadi.');
+    const idx = podcastChannels.findIndex((c) => c.channelId === channelId);
+    if (idx >= 0 && data.channel) podcastChannels[idx] = data.channel;
+    showNotification(featured ? 'Header sectionda ko\'rsatiladi ✅' : 'Header sectiondan olib tashlandi');
+  } catch (err) {
+    showNotification('Xato: ' + err.message, 'error');
+    renderPodcasts();
+  }
+}
+
 document.getElementById('podcastForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
   const input = document.getElementById('podcastInput')?.value.trim();
@@ -3328,5 +3352,9 @@ document.getElementById('podcastsListGrid')?.addEventListener('click', (e) => {
   }
   const ref = e.target.closest('[data-pod-refresh]');
   if (ref) refreshPodcastChannel(ref.dataset.podRefresh);
+});
+document.getElementById('podcastsListGrid')?.addEventListener('change', (e) => {
+  const cb = e.target.closest('[data-pod-featured]');
+  if (cb) togglePodcastFeatured(cb.dataset.podFeatured, cb.checked);
 });
 
