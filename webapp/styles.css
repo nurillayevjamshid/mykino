@@ -11432,6 +11432,13 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
 .podcasts-view .pod-ch-desc {
   font-size: 13px; color: var(--text-3, #5a6076);
   margin-top: 8px; line-height: 1.45;
+  cursor: pointer;
+}
+.podcasts-view .pod-ch-desc__btn {
+  color: var(--accent, #ffc73a);
+  font-weight: 700;
+  font-size: 12px;
+  margin-left: 4px;
 }
 .podcasts-view .pod-ch-actions { display: flex; gap: 10px; margin: 14px 0 0; }
 .podcasts-view .pod-ch-sub {
