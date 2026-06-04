@@ -1,6 +1,6 @@
 "use strict";
 
-const { test, describe, afterEach } = require("node:test");
+const { test, describe, afterEach, mock } = require("node:test");
 const assert = require("node:assert/strict");
 
 const { createMockReq, createMockRes } = require("../helpers/mock-http");
@@ -55,6 +55,7 @@ describe("api/broadcast.js — auth & input validation", () => {
       process.env = originalEnv;
       originalEnv = null;
     }
+    mock.restoreAll();
   });
 
   function setEnv(overrides) {
@@ -169,6 +170,7 @@ describe("api/broadcast.js — happy path", () => {
       originalEnv = null;
     }
     telegramCalls = null;
+    mock.restoreAll();
   });
 
   function setEnv(overrides) {
@@ -177,6 +179,14 @@ describe("api/broadcast.js — happy path", () => {
   }
 
   test("sends to all recipients and reports sent/failed counts", async () => {
+    const googleDrive = require("../../api/_lib/google-drive");
+    const blobStore = require("../../api/_lib/blob-store");
+    const r2Store = require("../../api/_lib/r2-store");
+
+    mock.method(googleDrive, "readCatalogMetadata", async () => ({ file: null, data: { users: [{ id: 111 }, { id: 222 }, { id: 333 }] } }));
+    mock.method(blobStore, "readBlobJson", async () => ({ users: [{ id: 111 }, { id: 222 }, { id: 333 }] }));
+    mock.method(r2Store, "getJsonFromR2Signed", async () => ({ users: [{ id: 111 }, { id: 222 }, { id: 333 }] }));
+
     setEnv({ ADMIN_PASSWORD: "secret", BOT_TOKEN: "fake-token" });
     telegramCalls = [];
 
@@ -184,7 +194,7 @@ describe("api/broadcast.js — happy path", () => {
       // User-list sources return three users total (we dedupe in the handler).
       [
         (url) => isUserListUrl(url),
-        () => jsonResponse({ users: [111, 222, 333] }),
+        () => jsonResponse({ users: [{ id: 111 }, { id: 222 }, { id: 333 }] }),
       ],
       // Telegram sendMessage returns ok.
       [
@@ -217,12 +227,20 @@ describe("api/broadcast.js — happy path", () => {
   });
 
   test("retries on 429 and counts as sent when retry succeeds", async () => {
+    const googleDrive = require("../../api/_lib/google-drive");
+    const blobStore = require("../../api/_lib/blob-store");
+    const r2Store = require("../../api/_lib/r2-store");
+
+    mock.method(googleDrive, "readCatalogMetadata", async () => ({ file: null, data: { users: [{ id: 42 }] } }));
+    mock.method(blobStore, "readBlobJson", async () => ({ users: [{ id: 42 }] }));
+    mock.method(r2Store, "getJsonFromR2Signed", async () => ({ users: [{ id: 42 }] }));
+
     setEnv({ ADMIN_PASSWORD: "secret", BOT_TOKEN: "fake-token" });
     telegramCalls = [];
     let callIndex = 0;
 
     restoreFetch = installFetchStub([
-      [(url) => isUserListUrl(url), () => jsonResponse({ users: [42] })],
+      [(url) => isUserListUrl(url), () => jsonResponse({ users: [{ id: 42 }] })],
       [
         isTelegramSend,
         (url, init) => {

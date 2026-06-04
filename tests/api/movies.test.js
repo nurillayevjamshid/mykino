@@ -81,13 +81,12 @@ describe("api/movies.js", () => {
   afterEach(() => {
     if (restoreFetch) restoreFetch();
     restoreFetch = null;
+    mock.restoreAll();
   });
 
   test("GET /api/movies returns array and sets ETag", async () => {
-    restoreFetch = installFetchStub(
-      (url) => String(url).startsWith("https://www.googleapis.com/"),
-      () => jsonResponse({ files: DRIVE_MOVIES.map((m) => ({ id: m.fileId, name: m.title })) })
-    );
+    const googleDrive = require("../../api/_lib/google-drive");
+    mock.method(googleDrive, "listDriveMovies", async () => DRIVE_MOVIES);
 
     const handler = loadHandler();
     const req = createMockReq({ method: "GET", url: "/api/movies" });
@@ -103,10 +102,8 @@ describe("api/movies.js", () => {
   });
 
   test("GET /api/movies returns 304 when If-None-Match matches", async () => {
-    restoreFetch = installFetchStub(
-      (url) => String(url).startsWith("https://www.googleapis.com/"),
-      () => jsonResponse({ files: DRIVE_MOVIES.map((m) => ({ id: m.fileId, name: m.title })) })
-    );
+    const googleDrive = require("../../api/_lib/google-drive");
+    mock.method(googleDrive, "listDriveMovies", async () => DRIVE_MOVIES);
 
     const handler = loadHandler();
     const firstReq = createMockReq({ method: "GET", url: "/api/movies" });
@@ -128,11 +125,10 @@ describe("api/movies.js", () => {
   });
 
   test("GET /api/movies falls back to local JSON when Drive fails", async () => {
-    // Make Drive fail with a 500.
-    restoreFetch = installFetchStub(
-      (url) => String(url).startsWith("https://www.googleapis.com/"),
-      () => new Response("internal error", { status: 500 })
-    );
+    const googleDrive = require("../../api/_lib/google-drive");
+    mock.method(googleDrive, "listDriveMovies", async () => {
+      throw new Error("Drive fails");
+    });
 
     const handler = loadHandler();
     const req = createMockReq({ method: "GET", url: "/api/movies" });
