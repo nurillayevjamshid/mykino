@@ -3196,7 +3196,7 @@ function updateHtml5VideoControls() {
     const rounded = Math.floor(currentTime);
     if (rounded !== lastSavedProgressSecond && rounded % 5 === 0) {
       lastSavedProgressSecond = rounded;
-      saveMovieProgress(activeMovie, currentTime, duration);
+      persistActiveWatchProgress(currentTime, duration);
     }
   }
 }
@@ -3387,7 +3387,18 @@ function syncActiveMovieProgress(force = false) {
   }
 
   lastSavedProgressSecond = rounded;
-  saveMovieProgress(activeMovie, currentTime, duration);
+  persistActiveWatchProgress(currentTime, duration);
+}
+
+// Faol pleyer uchun progress saqlash — potkast bo'lsa alohida store'ga
+// (kino watchProgress / server bilan aralashmaydi), aks holda kino store'iga.
+function persistActiveWatchProgress(currentTime, duration) {
+  if (!activeMovie) return;
+  if (activeMovie._podcast) {
+    savePodcastProgress(activeMovie.youtubeVideoId, currentTime, duration);
+  } else {
+    saveMovieProgress(activeMovie, currentTime, duration);
+  }
 }
 
 function updateYouTubeControls() {
@@ -4160,8 +4171,15 @@ async function openVideoPlayer(movie, options = {}) {
   activeMovie = movie;
   const isPodcastCtx = Boolean(options?._podcast || movie?._podcast);
   document.body.classList.toggle("is-podcast-context", isPodcastCtx);
-  // startFromBeginning=true yoki potkast kontekstida resume vaqti olinmaydi.
-  pendingResumeTime = (options?.startFromBeginning || isPodcastCtx) ? 0 : getMovieProgressSeconds(movie);
+  // startFromBeginning=true bo'lsa boshidan. Potkastlar uchun alohida progress
+  // store'idan resume olinadi (kinolardagidek davom ettirib ko'rish).
+  if (options?.startFromBeginning) {
+    pendingResumeTime = 0;
+  } else if (isPodcastCtx) {
+    pendingResumeTime = getPodcastProgressSeconds(movie?.youtubeVideoId);
+  } else {
+    pendingResumeTime = getMovieProgressSeconds(movie);
+  }
   if (!isPodcastCtx) {
     markMovieWatched(movie, pendingResumeTime);
     syncWatchedCount();
@@ -4291,7 +4309,8 @@ window.__playYouTubeStandalone = function (videoId, opts = {}) {
     youtubeVideoId: id,
     _podcast: true,
   };
-  return openVideoPlayer(pseudoMovie, { _podcast: true, startFromBeginning: true });
+  // startFromBeginning bermasak — kinolardagidek saqlangan joydan davom etadi.
+  return openVideoPlayer(pseudoMovie, { _podcast: true, startFromBeginning: Boolean(opts.startFromBeginning) });
 };
 
 function setFilter(filter) {
@@ -4562,6 +4581,49 @@ function getPodcastHistory() {
 
 function clearPodcastHistory() {
   try { localStorage.removeItem("podcastHistory"); } catch (_) {}
+  try { localStorage.removeItem(PODCAST_PROGRESS_KEY); } catch (_) {}
+}
+
+// ===== Potkast tomosha progressi (resume — kinolardagidek) =====
+const PODCAST_PROGRESS_KEY = "podcastProgress";
+
+function readPodcastProgressStore() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PODCAST_PROGRESS_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_) { return {}; }
+}
+
+function writePodcastProgressStore(store) {
+  try { localStorage.setItem(PODCAST_PROGRESS_KEY, JSON.stringify(store)); } catch (_) {}
+}
+
+function getPodcastProgressSeconds(videoId) {
+  if (!videoId) return 0;
+  const seconds = Number(readPodcastProgressStore()[String(videoId)]?.time || 0);
+  return Number.isFinite(seconds) ? seconds : 0;
+}
+
+function savePodcastProgress(videoId, currentTime, duration) {
+  if (!videoId) return;
+  const safeTime = Math.max(0, Math.floor(Number(currentTime) || 0));
+  const safeDuration = Math.max(0, Math.floor(Number(duration) || 0));
+  const store = readPodcastProgressStore();
+  const key = String(videoId);
+  // Boshida yoki oxiriga yetganda — saqlamaymiz (kino logikasidek).
+  if (!safeDuration || safeTime < WATCH_PROGRESS_MIN_SECONDS || safeTime >= safeDuration - WATCH_PROGRESS_END_GAP) {
+    delete store[key];
+  } else {
+    store[key] = { time: safeTime, duration: safeDuration, updatedAt: Date.now() };
+  }
+  writePodcastProgressStore(store);
+}
+
+function clearPodcastProgress(videoId) {
+  if (!videoId) return;
+  const store = readPodcastProgressStore();
+  delete store[String(videoId)];
+  writePodcastProgressStore(store);
 }
 
 function renderPodcastProfileModal() {
@@ -4611,12 +4673,16 @@ function renderPodcastProfileModal() {
     card.className = "profile-history__item";
     card.tabIndex = 0;
     card.setAttribute("role", "button");
+    const resumeSec = getPodcastProgressSeconds(item.videoId);
+    const small = resumeSec >= WATCH_PROGRESS_MIN_SECONDS
+      ? `${t("continueAt")} ${formatPlaybackTime(resumeSec)}`
+      : (item.durationSec ? fmtDur(item.durationSec) : "Podcast");
     card.innerHTML = `
       <div class="profile-history__poster" style="--poster-image: url('${esc(item.thumb || "").replaceAll("'", "%27")}')"></div>
       <div class="profile-history__copy">
         <strong>${esc(item.title || "Podcast")}</strong>
         <span>${esc(item.channelTitle || "")}</span>
-        <small>${item.durationSec ? fmtDur(item.durationSec) : "Podcast"}</small>
+        <small>${esc(small)}</small>
       </div>
       <button class="profile-history__remove" type="button" data-pod-history-remove="${esc(item.videoId)}" aria-label="O'chirish" title="O'chirish">
         <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -4642,6 +4708,7 @@ function renderPodcastProfileModal() {
       const vid = btn.dataset.podHistoryRemove;
       let h = getPodcastHistory().filter((x) => x.videoId !== vid);
       try { localStorage.setItem("podcastHistory", JSON.stringify(h)); } catch (_) {}
+      clearPodcastProgress(vid);
       renderPodcastProfileModal();
     });
   });
