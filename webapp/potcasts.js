@@ -92,26 +92,69 @@
     return data; // { channel, videos, shorts, playlists }
   }
 
-  // ---------- Featured kanallar (header section uchun) ----------
+  // ---------- Featured kanallar (header section uchun — hero style) ----------
 
   function buildFeaturedChannels() {
     const featured = channels.filter((c) => c.featured);
     if (!featured.length) return "";
-    const cards = featured.map((c) => {
+    // Agar bitta bo'lsa — katta hero, ko'p bo'lsa — carousel
+    if (featured.length === 1) {
+      return buildSingleHero(featured[0]);
+    }
+    return buildFeaturedCarousel(featured);
+  }
+
+  function buildSingleHero(c) {
+    const s = c.snapshot || {};
+    const banner = s.banner || "";
+    const avatar = s.avatar || "";
+    const bgStyle = banner ? `background-image:url('${escapeHtml(banner)}')` : "";
+    return `
+      <div class="pod-hero" data-pod-open="${escapeHtml(c.channelId)}">
+        <div class="pod-hero__bg" style="${bgStyle}"></div>
+        <div class="pod-hero__gradient"></div>
+        <div class="pod-hero__inner">
+          ${avatar ? `<img class="pod-hero__avatar" src="${escapeHtml(avatar)}" alt="" />` : ""}
+          <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
+          <p class="pod-hero__meta">${formatCount(s.subscriberCount)} obunachi · ${formatCount(s.videoCount)} video</p>
+          <button class="pod-hero__btn" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
+            <span>Ko'rish</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildFeaturedCarousel(list) {
+    const slides = list.map((c, i) => {
       const s = c.snapshot || {};
-      const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
+      const banner = s.banner || "";
+      const avatar = s.avatar || "";
+      const bgStyle = banner ? `background-image:url('${escapeHtml(banner)}')` : "";
       return `
-        <button class="pod-featured-card" type="button" data-pod-open="${escapeHtml(c.channelId)}">
-          <div class="pod-featured-card__avatar">${avatar}</div>
-          <div class="pod-featured-card__info">
-            <div class="pod-featured-card__title">${escapeHtml(s.title || c.channelId)}</div>
-            <div class="pod-featured-card__meta">${formatCount(s.subscriberCount)} obunachi</div>
+        <div class="pod-hero-slide ${i === 0 ? "is-active" : ""}" data-pod-open="${escapeHtml(c.channelId)}">
+          <div class="pod-hero__bg" style="${bgStyle}"></div>
+          <div class="pod-hero__gradient"></div>
+          <div class="pod-hero__inner">
+            ${avatar ? `<img class="pod-hero__avatar" src="${escapeHtml(avatar)}" alt="" />` : ""}
+            <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
+            <p class="pod-hero__meta">${formatCount(s.subscriberCount)} obunachi · ${formatCount(s.videoCount)} video</p>
+            <button class="pod-hero__btn" type="button">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
+              <span>Ko'rish</span>
+            </button>
           </div>
-          <svg class="pod-featured-card__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        </button>
+        </div>
       `;
     }).join("");
-    return `<div class="pod-featured-row">${cards}</div>`;
+    const dots = list.map((_, i) => `<span class="pod-hero-dot ${i === 0 ? "is-active" : ""}" data-pod-hero-dot="${i}"></span>`).join("");
+    return `
+      <div class="pod-hero-carousel">
+        <div class="pod-hero-slides">${slides}</div>
+        <div class="pod-hero-dots">${dots}</div>
+      </div>
+    `;
   }
 
   // ---------- List view (qo'shilgan kanallar) ----------
@@ -353,11 +396,41 @@
       closePodcastsView();
     });
     podcastsRoot.querySelectorAll("[data-pod-open]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        if (e.target.closest(".pod-hero__btn")) { e.preventDefault(); e.stopPropagation(); }
         haptic("light");
         renderChannel(btn.dataset.podOpen);
       });
     });
+    // Carousel dots
+    const dots = podcastsRoot.querySelectorAll("[data-pod-hero-dot]");
+    if (dots.length) {
+      dots.forEach((dot) => {
+        dot.addEventListener("click", () => {
+          haptic("light");
+          switchHeroSlide(Number(dot.dataset.podHeroDot));
+        });
+      });
+      startHeroRotation();
+    }
+  }
+
+  let heroRotateTimer = null;
+  function startHeroRotation() {
+    clearInterval(heroRotateTimer);
+    heroRotateTimer = setInterval(() => {
+      const slides = podcastsRoot.querySelectorAll(".pod-hero-slide");
+      if (slides.length < 2) return;
+      const active = podcastsRoot.querySelector(".pod-hero-slide.is-active");
+      const idx = active ? [...slides].indexOf(active) : 0;
+      switchHeroSlide((idx + 1) % slides.length);
+    }, 5000);
+  }
+  function switchHeroSlide(idx) {
+    const slides = podcastsRoot.querySelectorAll(".pod-hero-slide");
+    const dots = podcastsRoot.querySelectorAll("[data-pod-hero-dot]");
+    slides.forEach((s, i) => s.classList.toggle("is-active", i === idx));
+    dots.forEach((d, i) => d.classList.toggle("is-active", i === idx));
   }
 
   function wireChannelEvents() {

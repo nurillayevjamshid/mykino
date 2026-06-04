@@ -7325,7 +7325,99 @@ html[data-theme="light"] .pod-header-section {
 html[data-theme="light"] .pod-header-section__title { color: #1a1d2e; }
 html[data-theme="light"] .pod-header-section__desc { color: #555a6e; }
 
-/* Featured kanal kartalari */
+/* Featured kanal kartalari — hero style */
+.pod-hero,
+.pod-hero-slide {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  min-height: 180px;
+  cursor: pointer;
+}
+.pod-hero-slide { display: none; }
+.pod-hero-slide.is-active { display: block; }
+.pod-hero__bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #2a1a4e 0%, #1a1040 100%);
+  background-size: cover;
+  background-position: center;
+}
+.pod-hero__gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.15) 100%);
+}
+.pod-hero__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 22px 18px 20px;
+}
+.pod-hero__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+.pod-hero__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.pod-hero__meta {
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+  margin: 4px 0 0;
+}
+.pod-hero__btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.pod-hero__btn:active { transform: scale(0.95); }
+.pod-hero__btn svg { width: 16px; height: 16px; }
+
+/* Carousel dots */
+.pod-hero-carousel { position: relative; }
+.pod-hero-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.pod-hero-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-4);
+  border: 0;
+  cursor: pointer;
+  transition: width 0.2s, background 0.2s;
+}
+.pod-hero-dot.is-active {
+  width: 18px;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+/* Eski featured card stillari (fallback) */
 .pod-featured-row {
   display: flex;
   flex-direction: column;
