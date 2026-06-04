@@ -107,14 +107,12 @@
   function buildSingleHero(c) {
     const s = c.snapshot || {};
     const banner = s.banner || "";
-    const avatar = s.avatar || "";
     const bgStyle = banner ? `background-image:url('${escapeHtml(banner)}')` : "";
     return `
       <div class="pod-hero" data-pod-open="${escapeHtml(c.channelId)}">
         <div class="pod-hero__bg" style="${bgStyle}"></div>
         <div class="pod-hero__gradient"></div>
         <div class="pod-hero__inner">
-          ${avatar ? `<img class="pod-hero__avatar" src="${escapeHtml(avatar)}" alt="" />` : ""}
           <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
           <button class="pod-hero__btn" type="button">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
@@ -129,14 +127,12 @@
     const slides = list.map((c, i) => {
       const s = c.snapshot || {};
       const banner = s.banner || "";
-      const avatar = s.avatar || "";
       const bgStyle = banner ? `background-image:url('${escapeHtml(banner)}')` : "";
       return `
         <div class="pod-hero-slide ${i === 0 ? "is-active" : ""}" data-pod-open="${escapeHtml(c.channelId)}">
           <div class="pod-hero__bg" style="${bgStyle}"></div>
           <div class="pod-hero__gradient"></div>
           <div class="pod-hero__inner">
-            ${avatar ? `<img class="pod-hero__avatar" src="${escapeHtml(avatar)}" alt="" />` : ""}
             <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
             <button class="pod-hero__btn" type="button">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
