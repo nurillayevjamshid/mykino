@@ -460,16 +460,17 @@
     const desc = (ch.description || "").slice(0, 200);
     const avatar = ch.avatar || "";
     const link = `https://t.me/mykinoplay_bot?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
-    let text = "";
-    if (avatar) text += `${avatar}\n\n`;
-    text += `🎙️ ${ch.title || ""}\n`;
+    let text = `🎙️ ${ch.title || ""}\n`;
     text += `👥 ${subText} · 🎬 ${vidText}\n`;
     if (handle) text += `📺 ${handle}\n`;
     if (desc) text += `\n${desc}\n`;
-    text += `\n🔗 ${link}`;
-    const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
-    try { window.open(url, "_blank"); } catch (_) {
-      try { window.Telegram?.WebApp?.openTelegramLink(url); } catch (_) {}
+    text += `\n▶️ Ko'rish: ${link}`;
+    // Telegram link preview uchun avatar URL ni url parametriga beramiz — rasm chiqadi
+    const shareUrl = avatar
+      ? `https://t.me/share/url?url=${encodeURIComponent(avatar)}&text=${encodeURIComponent(text)}`
+      : `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+    try { window.open(shareUrl, "_blank"); } catch (_) {
+      try { window.Telegram?.WebApp?.openTelegramLink(shareUrl); } catch (_) {}
     }
   }
 
