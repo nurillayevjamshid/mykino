@@ -4511,7 +4511,7 @@ function ensurePotcastsModule() {
   if (__potcastsModulePromise) return __potcastsModulePromise;
   __potcastsModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts.js?v=20260604-real01";
+    script.src = "/static/potcasts.js?v=20260604-real02";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
