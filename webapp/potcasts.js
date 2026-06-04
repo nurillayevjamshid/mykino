@@ -458,13 +458,12 @@
     const vidText = formatCount(ch.videoCount) + " video";
     const avatar = ch.avatar || "";
     const link = `https://t.me/mykinoplay_bot?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
-    let text = `${ch.title || ""}\n\n`;
+    let text = "";
+    if (avatar) text += `${avatar}\n`;
+    text += `${ch.title || ""}\n\n`;
     text += `👥 ${subText}\n`;
-    text += `🎬 ${vidText}\n\n`;
-    text += `▶️ ${link}`;
-    const shareUrl = avatar
-      ? `https://t.me/share/url?url=${encodeURIComponent(avatar)}&text=${encodeURIComponent(text)}`
-      : `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+    text += `🎬 ${vidText}`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
     try { window.open(shareUrl, "_blank"); } catch (_) {
       try { window.Telegram?.WebApp?.openTelegramLink(shareUrl); } catch (_) {}
     }
