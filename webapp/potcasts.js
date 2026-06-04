@@ -512,55 +512,79 @@
   function openPlayer(videoId) {
     state.playingVideoId = videoId;
     // Faqat pleyer qismini qayta render qilamiz, ro'yxat hech qachon yo'qolmaydi
-    let overlay = document.getElementById("podPlayer");
-    if (overlay) overlay.remove();
+    document.getElementById("podPlayer")?.remove();
     podcastsRoot.insertAdjacentHTML("beforeend", buildPlayerOverlay());
     document.body.classList.add("is-pod-player");
     podcastsRoot.querySelector("[data-pod-close-player]")?.addEventListener("click", closePlayer);
     mountPlayer();
   }
 
+  function destroyYtPlayer() {
+    if (ytPlayer) {
+      try { ytPlayer.destroy?.(); } catch (_) {}
+    }
+    ytPlayer = null;
+    ytReady = false;
+  }
+
   function closePlayer() {
     state.playingVideoId = "";
     document.body.classList.remove("is-pod-player");
+    destroyYtPlayer();
     document.getElementById("podPlayer")?.remove();
-    if (ytPlayer) {
-      try { ytPlayer.stopVideo?.(); } catch (_) {}
-    }
+  }
+
+  function showPlayerFallback(videoId) {
+    const frame = document.querySelector("#podPlayer .pod-player__frame");
+    if (!frame) return;
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    frame.innerHTML = `
+      <div class="pod-player__fallback">
+        <p>Bu videoni ilova ichida ochib bo'lmadi.<br>Kanal egasi uni tashqi saytda ko'rsatishni cheklagan bo'lishi mumkin.</p>
+        <a class="pod-btn" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">YouTube'da ochish</a>
+      </div>`;
   }
 
   function mountPlayer() {
     if (!state.playingVideoId) return;
+    const videoId = state.playingVideoId;
     const slot = document.getElementById("podYtPlayer");
     if (!slot) return;
-    const loadYt = () => {
+    // Har safar yangi pleyer yaratamiz — eski iframe overlay bilan birga
+    // olib tashlangani uchun eski ytPlayer obyekti o'lik bo'lib qoladi.
+    destroyYtPlayer();
+    try {
+      if (typeof window.ensureYouTubeApi === "function") window.ensureYouTubeApi();
+    } catch (_) {}
+    const tryInit = () => {
+      if (state.playingVideoId !== videoId) return;          // boshqa video ochildi
+      if (!document.getElementById("podYtPlayer")) return;   // pleyer yopildi
+      if (!window.YT?.Player) { setTimeout(tryInit, 200); return; }
       try {
-        if (typeof window.ensureYouTubeApi === "function") {
-          window.ensureYouTubeApi();
-        }
-      } catch (_) {}
-      const tryInit = () => {
-        if (!window.YT?.Player) {
-          setTimeout(tryInit, 200);
-          return;
-        }
-        if (!ytPlayer) {
-          ytPlayer = new YT.Player("podYtPlayer", {
-            height: "100%",
-            width: "100%",
-            videoId: state.playingVideoId,
-            playerVars: { playsinline: 1, autoplay: 1, rel: 0, modestbranding: 1 },
-            events: {
-              onReady: () => { ytReady = true; try { ytPlayer.playVideo(); } catch (_) {} },
-            },
-          });
-        } else {
-          try { ytPlayer.loadVideoById(state.playingVideoId); } catch (_) {}
-        }
-      };
-      tryInit();
+        ytPlayer = new YT.Player("podYtPlayer", {
+          host: "https://www.youtube-nocookie.com",
+          height: "100%",
+          width: "100%",
+          videoId,
+          playerVars: {
+            autoplay: 1,
+            playsinline: 1,
+            rel: 0,
+            modestbranding: 1,
+            enablejsapi: 1,
+            iv_load_policy: 3,
+            origin: window.location.origin,
+          },
+          events: {
+            onReady: () => { ytReady = true; try { ytPlayer.playVideo(); } catch (_) {} },
+            onError: () => { showPlayerFallback(videoId); },
+          },
+        });
+      } catch (_) {
+        showPlayerFallback(videoId);
+      }
     };
-    loadYt();
+    tryInit();
   }
 
   function openPodcastsView() {

@@ -11161,4 +11161,27 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
   height: 100% !important;
   border: 0; display: block;
 }
+.pod-player__fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  color: #fff;
+  background: #0f172a;
+}
+.pod-player__fallback p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+.pod-player__fallback .pod-btn {
+  background: #ff0000;
+  text-decoration: none;
+}
 body.is-pod-player { overflow: hidden; }
