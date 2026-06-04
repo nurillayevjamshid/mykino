@@ -266,43 +266,25 @@
     `;
   }
 
-  // ---------- Video player modal (youtube-nocookie iframe) ----------
+  // ---------- Video pleyer — kino bo'limidagi custom pleyer (iOS/Android/PC mos) ----------
+  // YouTube'ning o'z UI'si o'rniga kino bo'limining unified pleyer. Tashqi YouTube'ga chiqmaydi.
+
+  function findVideoTitle(videoId) {
+    if (!currentChannelData) return "";
+    const all = [...(currentChannelData.videos || []), ...(currentChannelData.shorts || [])];
+    return all.find((v) => v.videoId === videoId)?.title || "";
+  }
 
   function openPlayer(videoId) {
-    let modal = document.getElementById("podPlayerModal");
-    if (!modal) {
-      modal = document.createElement("div");
-      modal.id = "podPlayerModal";
-      modal.className = "pod-player-modal";
-      modal.innerHTML = `
-        <div class="pod-player-modal__backdrop" data-pod-player-close></div>
-        <div class="pod-player-modal__card">
-          <button class="pod-player-modal__close" type="button" data-pod-player-close aria-label="Yopish">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-          <div class="pod-player-modal__iframe-wrap">
-            <iframe id="podPlayerIframe" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-      modal.addEventListener("click", (e) => {
-        if (e.target.closest("[data-pod-player-close]")) closePlayer();
-      });
+    if (typeof window.__playYouTubeStandalone === "function") {
+      window.__playYouTubeStandalone(videoId, { title: findVideoTitle(videoId) });
+      return;
     }
-    const iframe = modal.querySelector("#podPlayerIframe");
-    iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
-    modal.classList.add("is-visible");
-    document.body.classList.add("is-pod-player-open");
+    showToast("Pleyer hali yuklanmadi — qaytadan urinib ko'ring.");
   }
 
   function closePlayer() {
-    const modal = document.getElementById("podPlayerModal");
-    if (!modal) return;
-    const iframe = modal.querySelector("#podPlayerIframe");
-    if (iframe) iframe.src = "";
-    modal.classList.remove("is-visible");
-    document.body.classList.remove("is-pod-player-open");
+    // Kino pleyer o'zining yopish mexanizmi bilan ishlaydi (TG back, X tugma).
   }
 
   // ---------- Rendering & events ----------
