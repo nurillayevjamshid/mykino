@@ -116,7 +116,6 @@
         <div class="pod-hero__inner">
           ${avatar ? `<img class="pod-hero__avatar" src="${escapeHtml(avatar)}" alt="" />` : ""}
           <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
-          <p class="pod-hero__meta">${formatCount(s.subscriberCount)} obunachi · ${formatCount(s.videoCount)} video</p>
           <button class="pod-hero__btn" type="button">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
             <span>Ko'rish</span>
@@ -139,7 +138,6 @@
           <div class="pod-hero__inner">
             ${avatar ? `<img class="pod-hero__avatar" src="${escapeHtml(avatar)}" alt="" />` : ""}
             <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
-            <p class="pod-hero__meta">${formatCount(s.subscriberCount)} obunachi · ${formatCount(s.videoCount)} video</p>
             <button class="pod-hero__btn" type="button">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
               <span>Ko'rish</span>
@@ -194,15 +192,8 @@
           <span>Potkastlar</span>
         </div>
       </header>
-      <section class="pod-header-section">
-        <div class="pod-header-section__bg"></div>
-        <div class="pod-header-section__inner">
-          <h2 class="pod-header-section__title">Potkastlar</h2>
-          <p class="pod-header-section__desc">Eng sara o'zbek podcast kanallari bir joyda</p>
-          ${buildFeaturedChannels()}
-        </div>
-      </section>
       <div class="pod-list">
+        ${buildFeaturedChannels()}
         ${channels.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali kanal qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube kanal qo'shing</div></div>`}
       </div>
     `;

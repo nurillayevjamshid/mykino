@@ -7286,44 +7286,10 @@ body.is-podcasts .app-shell > .app-footer { display: none !important; }
   border: 1px solid rgba(255, 199, 58, 0.35);
 }
 
-/* Podcast header section — kino bo'limidagi hero kabi */
+/* Podcast header section */
 .pod-header-section {
-  position: relative;
-  margin: 0 0 6px;
-  padding: 28px 18px 22px;
-  border-radius: 18px;
-  overflow: hidden;
-  background: linear-gradient(135deg, var(--bg-2) 0%, var(--bg-elevated) 100%);
+  display: none;
 }
-.pod-header-section__bg {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 30% 20%, var(--accent-soft) 0%, transparent 60%);
-  opacity: 0.7;
-  pointer-events: none;
-}
-.pod-header-section__inner {
-  position: relative;
-  z-index: 1;
-}
-.pod-header-section__title {
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  color: var(--text-1);
-  margin: 0 0 6px;
-}
-.pod-header-section__desc {
-  font-size: 14px;
-  color: var(--text-3);
-  margin: 0;
-  line-height: 1.45;
-}
-html[data-theme="light"] .pod-header-section {
-  background: linear-gradient(135deg, #f0f1f5 0%, #e8e9ef 100%);
-}
-html[data-theme="light"] .pod-header-section__title { color: #1a1d2e; }
-html[data-theme="light"] .pod-header-section__desc { color: #555a6e; }
 
 /* Featured kanal kartalari — hero style */
 .pod-hero,
@@ -7331,8 +7297,9 @@ html[data-theme="light"] .pod-header-section__desc { color: #555a6e; }
   position: relative;
   border-radius: 18px;
   overflow: hidden;
-  min-height: 180px;
+  min-height: 160px;
   cursor: pointer;
+  margin-bottom: 12px;
 }
 .pod-hero-slide { display: none; }
 .pod-hero-slide.is-active { display: block; }
