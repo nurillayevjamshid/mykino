@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Node smoke tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Run smoke tests
+        run: npm run test:ci
+        env:
+          # Tests stub network calls, but provide safe defaults so handlers
+          # that read env at module load don't blow up.
+          ADMIN_PASSWORD: ci-admin-password
+          BOT_TOKEN: ""
+          GOOGLE_DRIVE_FOLDER_ID: ""
+          R2_ENDPOINT: ""
+          R2_BUCKET: ""
+          R2_ACCESS_KEY_ID: ""
+          R2_SECRET_ACCESS_KEY: ""
+          R2_PUBLIC_URL: ""
+          BLOB_READ_WRITE_TOKEN: ""
+
+      - name: Upload TAP log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tap-log
+          path: tap.log
+          if-no-files-found: ignore
