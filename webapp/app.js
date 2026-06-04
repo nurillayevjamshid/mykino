@@ -4507,13 +4507,24 @@ function setActiveBottomTab(action) {
   });
 }
 
+function hideAllCustomViews() {
+  closeMusicView();
+  closePodcastsView();
+  closeCategoriesView();
+  if (seriesListView) seriesListView.hidden = true;
+  if (seriesDetailView) seriesDetailView.hidden = true;
+  document.body.classList.remove("is-series-list", "is-series-detail");
+  const catComing = document.getElementById("categoryComingSoon");
+  const favComing = document.getElementById("favoritesComingSoon");
+  const histView = document.getElementById("podHistoryView");
+  if (catComing) catComing.hidden = true;
+  if (favComing) favComing.hidden = true;
+  if (histView) histView.hidden = true;
+}
+
 document.querySelectorAll("[data-action='podcasts-tab']").forEach((btn) => {
   btn.addEventListener("click", () => {
-    closeMusicView();
-    closeCategoriesView();
-    if (seriesListView) seriesListView.hidden = true;
-    if (seriesDetailView) seriesDetailView.hidden = true;
-    document.body.classList.remove("is-series-list", "is-series-detail");
+    hideAllCustomViews();
     openPodcastsView();
     setActiveBottomTab("podcasts-tab");
   });
@@ -4521,25 +4532,67 @@ document.querySelectorAll("[data-action='podcasts-tab']").forEach((btn) => {
 
 document.querySelectorAll("[data-action='home-tab']").forEach((btn) => {
   btn.addEventListener("click", () => {
-    closeMusicView();
-    closePodcastsView();
-    closeCategoriesView();
-    setFilter("all");
-    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    hideAllCustomViews();
+    const catComing = document.getElementById("categoryComingSoon");
+    if (catComing) catComing.hidden = false;
     setActiveBottomTab("home-tab");
   });
 });
 
 document.querySelectorAll(".bottom-bar [data-action='favorites']").forEach((btn) => {
   btn.addEventListener("click", () => {
-    closeMusicView();
-    closePodcastsView();
-    closeCategoriesView();
-    setFilter("favorites");
-    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    hideAllCustomViews();
+    const favComing = document.getElementById("favoritesComingSoon");
+    if (favComing) favComing.hidden = false;
     setActiveBottomTab("favorites");
   });
 });
+
+document.querySelectorAll(".bottom-bar [data-action='profile']").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    hideAllCustomViews();
+    renderPodcastHistory();
+    const histView = document.getElementById("podHistoryView");
+    if (histView) histView.hidden = false;
+    setActiveBottomTab("profile");
+  });
+});
+
+function renderPodcastHistory() {
+  const list = document.getElementById("podHistoryList");
+  const empty = document.getElementById("podHistoryEmpty");
+  if (!list || !empty) return;
+  const history = JSON.parse(localStorage.getItem("podcastHistory") || "[]");
+  if (!history.length) {
+    list.innerHTML = "";
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+  const fmtDur = window.__podUtils?.formatDuration || ((s) => String(s));
+  const fmtTime = window.__podUtils?.timeAgo || ((s) => s);
+  const esc = window.__podUtils?.escapeHtml || ((s) => s);
+  list.innerHTML = history.map((item) => `
+    <button class="pod-history-card" type="button" data-pod-play-history="${esc(item.videoId)}">
+      <div class="pod-history-card__thumb" style="background-image:url('${esc(item.thumb || "")}')">
+        ${item.durationSec ? `<span class="pod-history-card__dur">${fmtDur(item.durationSec)}</span>` : ""}
+      </div>
+      <div class="pod-history-card__body">
+        <div class="pod-history-card__title">${esc(item.title || "")}</div>
+        <div class="pod-history-card__ch">${esc(item.channelTitle || "")}</div>
+        <div class="pod-history-card__time">${fmtTime(item.watchedAt)}</div>
+      </div>
+    </button>
+  `).join("");
+  list.querySelectorAll("[data-pod-play-history]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const vid = el.dataset.podPlayHistory;
+      if (typeof window.__playYouTubeStandalone === "function") {
+        window.__playYouTubeStandalone(vid, { title: "" });
+      }
+    });
+  });
+}
 
 // ===== Music modul: lazy-loader + stubs =====
 // Musiqa kodi alohida webapp/music.js fayliga ko'chirildi va faqat kerak bo'lganda yuklanadi.
