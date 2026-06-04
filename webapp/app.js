@@ -4551,47 +4551,102 @@ document.querySelectorAll(".bottom-bar [data-action='favorites']").forEach((btn)
 document.querySelectorAll(".bottom-bar [data-action='profile']").forEach((btn) => {
   btn.addEventListener("click", () => {
     hideAllCustomViews();
-    renderPodcastHistory();
-    const histView = document.getElementById("podHistoryView");
-    if (histView) histView.hidden = false;
+    renderPodcastProfileModal();
     setActiveBottomTab("profile");
   });
 });
 
-function renderPodcastHistory() {
-  const list = document.getElementById("podHistoryList");
-  const empty = document.getElementById("podHistoryEmpty");
-  if (!list || !empty) return;
-  const history = JSON.parse(localStorage.getItem("podcastHistory") || "[]");
-  if (!history.length) {
-    list.innerHTML = "";
-    empty.hidden = false;
-    return;
+function getPodcastHistory() {
+  try { return JSON.parse(localStorage.getItem("podcastHistory") || "[]"); } catch (_) { return []; }
+}
+
+function clearPodcastHistory() {
+  try { localStorage.removeItem("podcastHistory"); } catch (_) {}
+}
+
+function renderPodcastProfileModal() {
+  if (!profileModal) return;
+  const entries = getPodcastHistory();
+
+  // Sarlavha va label'larni podcast uchun o'zgartirish
+  if (profileName) profileName.textContent = "Podcast foydalanuvchi";
+  if (watchedHistoryTitle) watchedHistoryTitle.textContent = "Ko'rilgan podcast videolar";
+  if (watchedMovieEmpty) watchedMovieEmpty.textContent = "Hali ko'rilgan podcast video yo'q.";
+  if (statWatchedLabel) statWatchedLabel.textContent = "Ko'rilgan video";
+  if (statTimeLabel) statTimeLabel.textContent = "Tomosha vaqti";
+  if (statGenreLabel) statGenreLabel.parentElement.style.display = "none";
+
+  // Statistika
+  if (viewCount) viewCount.textContent = String(entries.length);
+  if (statTimeValue) {
+    const totalSec = entries.reduce((sum, e) => sum + Math.max(0, Number(e.durationSec) || 0), 0);
+    statTimeValue.textContent = formatWatchDuration(totalSec);
   }
-  empty.hidden = true;
+  if (statGenreValue) statGenreValue.textContent = "—";
+
+  // Tozalash tugmasi
+  if (clearHistoryButton) {
+    clearHistoryButton.textContent = "Tozalash";
+    clearHistoryButton.hidden = entries.length === 0;
+    clearHistoryButton.onclick = () => {
+      clearPodcastHistory();
+      renderPodcastProfileModal();
+    };
+  }
+
+  // Musiqiy tarixni yashirish
+  const musicSection = profileModal.querySelector(".profile-history--music");
+  if (musicSection) musicSection.hidden = true;
+
+  // Podcast tarixini ko'rsatish
+  if (!watchedMovieList) return;
+  watchedMovieList.innerHTML = "";
+  watchedMovieEmpty.hidden = entries.length > 0;
+
   const fmtDur = window.__podUtils?.formatDuration || ((s) => String(s));
-  const fmtTime = window.__podUtils?.timeAgo || ((s) => s);
   const esc = window.__podUtils?.escapeHtml || ((s) => s);
-  list.innerHTML = history.map((item) => `
-    <button class="pod-history-card" type="button" data-pod-play-history="${esc(item.videoId)}">
-      <div class="pod-history-card__thumb" style="background-image:url('${esc(item.thumb || "")}')">
-        ${item.durationSec ? `<span class="pod-history-card__dur">${fmtDur(item.durationSec)}</span>` : ""}
+
+  for (const item of entries) {
+    const card = document.createElement("article");
+    card.className = "profile-history__item";
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.innerHTML = `
+      <div class="profile-history__poster" style="--poster-image: url('${esc(item.thumb || "").replaceAll("'", "%27")}')"></div>
+      <div class="profile-history__copy">
+        <strong>${esc(item.title || "Podcast")}</strong>
+        <span>${esc(item.channelTitle || "")}</span>
+        <small>${item.durationSec ? fmtDur(item.durationSec) : "Podcast"}</small>
       </div>
-      <div class="pod-history-card__body">
-        <div class="pod-history-card__title">${esc(item.title || "")}</div>
-        <div class="pod-history-card__ch">${esc(item.channelTitle || "")}</div>
-        <div class="pod-history-card__time">${fmtTime(item.watchedAt)}</div>
-      </div>
-    </button>
-  `).join("");
-  list.querySelectorAll("[data-pod-play-history]").forEach((el) => {
-    el.addEventListener("click", () => {
-      const vid = el.dataset.podPlayHistory;
+      <button class="profile-history__remove" type="button" data-pod-history-remove="${esc(item.videoId)}" aria-label="O'chirish" title="O'chirish">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+    `;
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("[data-pod-history-remove]")) return;
+      profileModal.close();
       if (typeof window.__playYouTubeStandalone === "function") {
-        window.__playYouTubeStandalone(vid, { title: "" });
+        window.__playYouTubeStandalone(item.videoId, { title: item.title || "" });
       }
     });
+    watchedMovieList.append(card);
+  }
+
+ // O'chirish tugmalari
+  watchedMovieList.querySelectorAll("[data-pod-history-remove]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const vid = btn.dataset.podHistoryRemove;
+      let h = getPodcastHistory().filter((x) => x.videoId !== vid);
+      try { localStorage.setItem("podcastHistory", JSON.stringify(h)); } catch (_) {}
+      renderPodcastProfileModal();
+    });
   });
+
+  profileModal.showModal();
 }
 
 // ===== Music modul: lazy-loader + stubs =====
