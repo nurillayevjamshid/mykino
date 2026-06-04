@@ -11337,7 +11337,24 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
 .podcasts-view .pod-channel-row__meta {
   font-size: 12px; color: var(--text-3, #5a6076); margin-top: 4px;
   line-height: 1.25;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.podcasts-view .pod-channel-row__tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.podcasts-view .pod-channel-row__tag--green {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: #fff;
+}
+.podcasts-view .pod-channel-row__tag--yellow {
+  background: linear-gradient(135deg, #ffc107, #ffcd38);
+  color: #333;
 }
 .podcasts-view .pod-channel-row__desc {
   font-size: 12px; color: var(--text-4, #8a90a4); margin-top: 5px;

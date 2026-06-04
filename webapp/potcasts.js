@@ -149,7 +149,7 @@
     const items = channels.map((c) => {
       const s = c.snapshot || {};
       const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
-      const meta = `${formatCount(s.videoCount)} video · ${formatCount(s.subscriberCount)} obunachi`;
+      const meta = `<span class="pod-channel-row__tag pod-channel-row__tag--green">${formatCount(s.videoCount)} video</span><span class="pod-channel-row__tag pod-channel-row__tag--yellow">${formatCount(s.subscriberCount)} obunachi</span>`;
       return `
         <button class="pod-channel-row" type="button" data-pod-open="${escapeHtml(c.channelId)}">
           <span class="pod-channel-row__glow" aria-hidden="true"></span>
