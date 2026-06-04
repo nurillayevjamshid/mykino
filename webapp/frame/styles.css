@@ -4101,7 +4101,6 @@ html[data-theme="light"] .avatar-photo {
 
 html[data-theme="light"] .profile-card {
   position: relative;
-  overflow: hidden;
 }
 
 html[data-theme="light"] .profile-card::before {
