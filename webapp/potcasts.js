@@ -305,14 +305,8 @@
                 <span class="pod-ch-dot">·</span>
                 <span>${formatCount(ch.videoCount)} video</span>
               </div>
-              ${ch.description ? `<div class="pod-ch-desc">${escapeHtml(ch.description.slice(0, 160))}${ch.description.length > 160 ? "…" : ""}</div>` : ""}
+              ${ch.description ? `<div class="pod-ch-desc" data-pod-desc-toggle><span class="pod-ch-desc__text">${escapeHtml(ch.description.slice(0, 160))}</span>${ch.description.length > 160 ? `<span class="pod-ch-desc__dots">…</span><span class="pod-ch-desc__full" hidden>${escapeHtml(ch.description.slice(160))}</span><span class="pod-ch-desc__btn">Batafsil</span>` : ""}</div>` : ""}
             </div>
-          </div>
-          <div class="pod-ch-actions">
-            <button class="pod-ch-sub" type="button" data-pod-subscribe>
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-              <span>Obuna bo'lish</span>
-            </button>
           </div>
         </div>
         <nav class="pod-ch-tabs">
@@ -436,9 +430,22 @@
         }
       });
     });
-    podcastsRoot.querySelector("[data-pod-subscribe]")?.addEventListener("click", () => {
-      haptic("medium");
-      showToast("Obuna bo'lish funksiyasi yaqin orada");
+    podcastsRoot.querySelector("[data-pod-desc-toggle]")?.addEventListener("click", () => {
+      haptic("light");
+      const el = podcastsRoot.querySelector("[data-pod-desc-toggle]");
+      if (!el) return;
+      const dots = el.querySelector(".pod-ch-desc__dots");
+      const full = el.querySelector(".pod-ch-desc__full");
+      const btn = el.querySelector(".pod-ch-desc__btn");
+      if (full && full.hidden) {
+        full.hidden = false;
+        if (dots) dots.style.display = "none";
+        if (btn) btn.textContent = "Yashirish";
+      } else if (full) {
+        full.hidden = true;
+        if (dots) dots.style.display = "";
+        if (btn) btn.textContent = "Batafsil";
+      }
     });
     podcastsRoot.querySelector("[data-pod-share]")?.addEventListener("click", () => {
       haptic("medium");
