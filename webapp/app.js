@@ -4489,7 +4489,6 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
   button.addEventListener("click", (event) => {
     if (button.closest(".bottom-bar")) {
       event.preventDefault();
-      // Musiqa tugmasi — har doim musiqa bosh sahifasiga qaytaradi
       closeArtistDetail();
       closeAllSongs();
       closeAllArtists();
@@ -4498,6 +4497,47 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
       return;
     }
     toggleCategoryPanel();
+  });
+});
+
+// ===== Bottom bar tabs — Podcast, Bosh sahifa, Sevimlilar, Profil =====
+function setActiveBottomTab(action) {
+  document.querySelectorAll(".bottom-bar .bottom-bar__button").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.action === action);
+  });
+}
+
+document.querySelectorAll("[data-action='podcasts-tab']").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    closeMusicView();
+    closeCategoriesView();
+    if (seriesListView) seriesListView.hidden = true;
+    if (seriesDetailView) seriesDetailView.hidden = true;
+    document.body.classList.remove("is-series-list", "is-series-detail");
+    openPodcastsView();
+    setActiveBottomTab("podcasts-tab");
+  });
+});
+
+document.querySelectorAll("[data-action='home-tab']").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    closeMusicView();
+    closePodcastsView();
+    closeCategoriesView();
+    setFilter("all");
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    setActiveBottomTab("home-tab");
+  });
+});
+
+document.querySelectorAll(".bottom-bar [data-action='favorites']").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    closeMusicView();
+    closePodcastsView();
+    closeCategoriesView();
+    setFilter("favorites");
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    setActiveBottomTab("favorites");
   });
 });
 
@@ -4600,8 +4640,7 @@ function openCategoriesView() {
   categoriesView.hidden = false;
   document.body.classList.add("is-categories");
   window.scrollTo({ top: 0, behavior: "smooth" });
-  document.querySelectorAll(".bottom-bar [data-action='categories-view']").forEach((b) => b.classList.add("is-active"));
-  document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-action='favorites']").forEach((b) => b.classList.remove("is-active"));
+  setActiveBottomTab("home-tab");
   if (!categoriesLoaded) loadCategoriesCatalog();
   tgBackRegister("categories-view", () => { try { closeCategoriesView(); setFilter("all"); } catch (_) {} });
 }
@@ -4610,7 +4649,6 @@ function closeCategoriesView() {
   if (!categoriesView) return;
   categoriesView.hidden = true;
   document.body.classList.remove("is-categories");
-  document.querySelectorAll(".bottom-bar [data-action='categories-view']").forEach((b) => b.classList.remove("is-active"));
   tgBackUnregister("categories-view");
 }
 
@@ -4621,7 +4659,7 @@ document.querySelectorAll("[data-action='categories-view']").forEach((btn) => {
   });
 });
 
-document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-action='favorites'], .bottom-bar [data-action='profile']").forEach((b) => {
+document.querySelectorAll(".bottom-bar [data-action='profile']").forEach((b) => {
   b.addEventListener("click", closeCategoriesView);
 });
 
