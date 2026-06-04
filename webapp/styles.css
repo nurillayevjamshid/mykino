@@ -7739,6 +7739,17 @@ html[data-theme="light"] .pod-toast {
   box-shadow: 0 12px 32px rgba(124, 58, 237, 0.18);
 }
 
+html[data-theme="light"] .podcasts-view { color: #1a1d2e; }
+html[data-theme="light"] .podcasts-view .pod-topbar__title { color: #1a1d2e; }
+html[data-theme="light"] .podcasts-view .pod-section__title { color: #1a1d2e; }
+html[data-theme="light"] .podcasts-view .pod-show-card__name { color: #1a1d2e; }
+html[data-theme="light"] .podcasts-view .pod-show-card__host { color: #5a6076; }
+html[data-theme="light"] .podcasts-view .pod-ep__title { color: #1a1d2e; }
+html[data-theme="light"] .podcasts-view .pod-ep__show { color: #5a6076; }
+html[data-theme="light"] .podcasts-view .pod-ep__meta { color: #7a8094; }
+html[data-theme="light"] .podcasts-view .pod-empty-mini,
+html[data-theme="light"] .podcasts-view .pod-foot { color: #5a6076; }
+
 .music-topbar {
   position: sticky;
   top: 0;
