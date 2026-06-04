@@ -28,6 +28,11 @@ function createMockRes() {
     },
     send(payload) {
       this.body = payload;
+      if (typeof payload === "string" && this.headers["Content-Type"] && this.headers["Content-Type"].includes("application/json")) {
+        try {
+          this.body = JSON.parse(payload);
+        } catch (_) {}
+      }
       this.ended = true;
       return this;
     },
