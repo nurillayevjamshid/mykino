@@ -11544,6 +11544,31 @@ html[data-theme="light"] .coming-soon-view__title { color: #1a1d2e; }
   font-size: 11px; font-weight: 600;
   padding: 3px 6px; border-radius: 4px;
 }
+.podcasts-view .pod-vid-card__thumb {
+  position: relative;
+}
+.podcasts-view .pod-fav-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 3;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.14);
+  color: #fff; cursor: pointer;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: transform .2s, background .2s, color .2s, border-color .2s;
+}
+.podcasts-view .pod-fav-btn:hover { transform: scale(1.08); background: rgba(0,0,0,.7); }
+.podcasts-view .pod-fav-btn svg {
+  width: 16px; height: 16px; display: block;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  transition: fill .2s, stroke .2s;
+}
+.podcasts-view .pod-fav-btn.is-active {
+  background: rgba(228,50,60,.85); border-color: rgba(255,255,255,.25);
+  color: #fff;
+}
+.podcasts-view .pod-fav-btn.is-active svg {
+  fill: currentColor; stroke: currentColor;
+}
 .podcasts-view .pod-vid-card__title {
   font-size: 14px; font-weight: 600; line-height: 1.35;
   margin: 8px 0 4px; color: var(--text-1, #1a1d2e);
