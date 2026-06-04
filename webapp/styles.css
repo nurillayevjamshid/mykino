@@ -11269,3 +11269,47 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
 }
 body.is-pod-player-open { overflow: hidden; }
 
+/* Light theme overrides — musiqa palitrasi (#1a1d2e / #5a6076 / #fff) */
+html[data-theme="light"] .podcasts-view {
+  color: #1a1d2e;
+  background: var(--bg-0, #fff);
+}
+html[data-theme="light"] .podcasts-view .pod-topbar,
+html[data-theme="light"] .podcasts-view .pod-topbar--channel {
+  background: var(--bg-0, #fff);
+  border-bottom-color: rgba(0,0,0,.06);
+}
+html[data-theme="light"] .podcasts-view .pod-topbar__back,
+html[data-theme="light"] .podcasts-view .pod-topbar__title,
+html[data-theme="light"] .podcasts-view .pod-topbar__title--ch { color: #1a1d2e; }
+html[data-theme="light"] .podcasts-view .pod-channel-row {
+  background: #f5f6f9;
+  border-color: rgba(0,0,0,.06);
+}
+html[data-theme="light"] .podcasts-view .pod-channel-row__title,
+html[data-theme="light"] .podcasts-view .pod-ch-name,
+html[data-theme="light"] .podcasts-view .pod-ch-section__title,
+html[data-theme="light"] .podcasts-view .pod-vid-card__title,
+html[data-theme="light"] .podcasts-view .pod-short-card__title,
+html[data-theme="light"] .podcasts-view .pod-pl-card__title,
+html[data-theme="light"] .podcasts-view .pod-empty__title,
+html[data-theme="light"] .podcasts-view .pod-ch-tab.is-active { color: #1a1d2e; }
+html[data-theme="light"] .podcasts-view .pod-channel-row__meta,
+html[data-theme="light"] .podcasts-view .pod-channel-row__desc,
+html[data-theme="light"] .podcasts-view .pod-ch-meta,
+html[data-theme="light"] .podcasts-view .pod-ch-desc,
+html[data-theme="light"] .podcasts-view .pod-vid-card__meta,
+html[data-theme="light"] .podcasts-view .pod-short-card__meta,
+html[data-theme="light"] .podcasts-view .pod-ch-tab,
+html[data-theme="light"] .podcasts-view .pod-loading,
+html[data-theme="light"] .podcasts-view .pod-empty { color: #5a6076; }
+html[data-theme="light"] .podcasts-view .pod-channel-row__arrow { color: #8a90a4; }
+html[data-theme="light"] .podcasts-view .pod-ch-tabs { border-bottom-color: rgba(0,0,0,.08); }
+html[data-theme="light"] .podcasts-view .pod-ch-tab.is-active { border-bottom-color: #1a1d2e; }
+html[data-theme="light"] .podcasts-view .pod-ch-avatar { border-color: #fff; }
+html[data-theme="light"] .podcasts-view .pod-ch-sub {
+  background: #1a1d2e; color: #fff;
+}
+html[data-theme="light"] .podcasts-view .pod-topbar__back:hover { background: rgba(0,0,0,.06); }
+html[data-theme="light"] .podcasts-view .pod-loading__spinner { border-color: rgba(0,0,0,.1); border-top-color: var(--accent, #ffc73a); }
+
