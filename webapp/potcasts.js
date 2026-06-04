@@ -329,11 +329,38 @@
   }
 
   function openPlayer(videoId) {
+    // Tomosha tarixiga saqlash
+    savePodcastHistory(videoId);
     if (typeof window.__playYouTubeStandalone === "function") {
       window.__playYouTubeStandalone(videoId, { title: findVideoTitle(videoId) });
       return;
     }
     showToast("Pleyer hali yuklanmadi — qaytadan urinib ko'ring.");
+  }
+
+  function savePodcastHistory(videoId) {
+    if (!currentChannelData) return;
+    const all = [...(currentChannelData.videos || []), ...(currentChannelData.shorts || [])];
+    const video = all.find((v) => v.videoId === videoId);
+    if (!video) return;
+    const ch = currentChannelData.channel || {};
+    let history = [];
+    try { history = JSON.parse(localStorage.getItem("podcastHistory") || "[]"); } catch (_) {}
+    // O'chirish (dublikat)
+    history = history.filter((h) => h.videoId !== videoId);
+    // Boshiga qo'shish
+    history.unshift({
+      videoId,
+      title: video.title || "",
+      thumb: video.thumb || "",
+      durationSec: video.durationSec || 0,
+      channelTitle: ch.title || "",
+      channelId: ch.channelId || "",
+      watchedAt: new Date().toISOString(),
+    });
+    // Maksimal 50 ta
+    if (history.length > 50) history = history.slice(0, 50);
+    try { localStorage.setItem("podcastHistory", JSON.stringify(history)); } catch (_) {}
   }
 
   function closePlayer() {
@@ -513,4 +540,6 @@
   }
 
   window.__potcasts = { openPodcastsView, closePodcastsView };
+  // Util funksiyalarni tashqariga chiqarish (app.js history uchun)
+  window.__podUtils = { formatDuration, timeAgo, escapeHtml };
 })();
