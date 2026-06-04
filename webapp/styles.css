@@ -7255,8 +7255,8 @@ body.is-podcasts .movie-grid,
 body.is-podcasts .app-shell > .app-footer { display: none !important; }
 
 .podcasts-view .pod-topbar {
-  position: sticky;
-  top: 0;
+  position: relative;
+  top: auto;
   z-index: 5;
   display: flex;
   justify-content: center;
