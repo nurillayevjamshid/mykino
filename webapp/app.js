@@ -2143,7 +2143,7 @@ function createMovieCard(movie) {
       </span>
       <button class="wishlist-toggle${inWishlist ? " is-active" : ""}" type="button" aria-pressed="${inWishlist ? "true" : "false"}" aria-label="Sevimlilarga qo'shish" data-wishlist-id="${escapeHtml(movie.id)}">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
         </svg>
       </button>
     </span>
@@ -4485,7 +4485,7 @@ function ensureMusicModule() {
   if (__musicModulePromise) return __musicModulePromise;
   __musicModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music.js?v=20260603-icons2px01";
+    script.src = "/static/music.js?v=20260603-icons2px02";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
