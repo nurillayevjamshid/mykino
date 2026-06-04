@@ -94,20 +94,14 @@
         <span data-i18n="musicNav">Musiqa</span>
         <span class="beta-badge" aria-hidden="true">Beta versiya</span>
       </button>
-      <button class="sidebar__item sidebar__item--soon" type="button" data-sidebar-action="tv" aria-disabled="true">
+      <button class="sidebar__item" type="button" id="sidebarPodcastsItem" data-sidebar-action="podcasts">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="9" y="2" width="6" height="13" rx="3"></rect>
           <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
           <line x1="12" y1="19" x2="12" y2="22"></line>
         </svg>
         <span data-i18n="tvNav">Potkastlar</span>
-        <span class="soon-badge" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"></circle>
-            <path d="M12 7v5l3 2"></path>
-          </svg>
-          <span class="soon-badge__text" data-i18n="comingSoon">Tez kunda</span>
-        </span>
+        <span class="beta-badge" aria-hidden="true">Beta versiya</span>
       </button>
       <button class="sidebar__item" type="button" data-sidebar-action="favorites">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -361,6 +355,10 @@
       </footer>
 
       <div class="music-view__spacer"></div>
+    </section>
+
+    <section class="podcasts-view" id="podcastsView" hidden aria-label="Potkastlar">
+      <div class="podcasts-view__inner" id="podcastsRoot"></div>
     </section>
 
     <nav class="bottom-bar" aria-label="Mini app menyusi">

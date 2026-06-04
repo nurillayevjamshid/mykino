@@ -4504,6 +4504,23 @@ function closeArtistDetail() { window.__music?.closeArtistDetail?.(); }
 function playMusicTrack(track) { ensureMusicModule().then((m) => m?.playMusicTrack?.(track)).catch(() => {}); }
 function scrollMusicTop() { window.__music?.scrollMusicTop?.(); }
 
+// Potkastlar moduli — alohida webapp/potcasts.js fayl, lazy-load.
+let __potcastsModulePromise = null;
+function ensurePotcastsModule() {
+  if (window.__potcasts) return Promise.resolve(window.__potcasts);
+  if (__potcastsModulePromise) return __potcastsModulePromise;
+  __potcastsModulePromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/static/potcasts.js?v=20260604-01";
+    script.onload = () => resolve(window.__potcasts);
+    script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
+    document.head.appendChild(script);
+  });
+  return __potcastsModulePromise;
+}
+function openPodcastsView() { ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
+function closePodcastsView() { window.__potcasts?.closePodcastsView?.(); }
+
 // ===== Categories view (bottom-bar) =====
 const categoriesView = document.getElementById("categoriesView");
 const categoriesGrid = document.getElementById("categoriesGrid");
@@ -5111,18 +5128,20 @@ document.addEventListener("keydown", (e) => {
 document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
   el.addEventListener("click", (e) => {
     const action = el.dataset.sidebarAction;
-    if (action === "tv") {
-      e.preventDefault();
-      return;
-    }
     e.preventDefault();
     if (action === "music") {
       openMusicView();
       setSidebarOpen(false);
       return;
     }
+    if (action === "podcasts") {
+      openPodcastsView();
+      setSidebarOpen(false);
+      return;
+    }
     if (action === "kino-back") {
       closeMusicView();
+      closePodcastsView();
       setFilter("all");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
       setSidebarOpen(false);
