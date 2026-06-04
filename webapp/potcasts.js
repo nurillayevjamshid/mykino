@@ -381,6 +381,9 @@
     currentView = "list";
     currentChannelId = null;
     currentChannelData = null;
+    if (typeof window.tgBackUnregister === "function") {
+      window.tgBackUnregister("podcasts-channel");
+    }
     podcastsRoot.innerHTML = buildList();
     wireListEvents();
   }
@@ -390,6 +393,9 @@
     currentChannelId = channelId;
     currentTab = "home";
     podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Kanal yuklanmoqda...</div></div>`;
+    if (typeof window.tgBackRegister === "function") {
+      window.tgBackRegister("podcasts-channel", () => renderList());
+    }
     try {
       const data = await loadChannelView(channelId);
       currentChannelData = data;
@@ -470,6 +476,9 @@
     podcastsView.hidden = false;
     document.body.classList.add("is-podcasts");
     document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window.tgBackRegister === "function") {
+      window.tgBackRegister("podcasts-list", () => closePodcastsView());
+    }
     if (!loaded) {
       podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Yuklanmoqda...</div></div>`;
       await loadChannels();
@@ -482,6 +491,10 @@
     podcastsView.hidden = true;
     document.body.classList.remove("is-podcasts");
     closePlayer();
+    if (typeof window.tgBackUnregister === "function") {
+      window.tgBackUnregister("podcasts-list");
+      window.tgBackUnregister("podcasts-channel");
+    }
   }
 
   function setQuery(q) {

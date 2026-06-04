@@ -3988,6 +3988,10 @@ html[data-theme="light"] .profile-userid {
 html[data-theme="light"] {
   color-scheme: light;
   --text: #20173a;
+  --text-1: #20173a;
+  --text-2: rgba(32, 23, 58, 0.84);
+  --text-3: rgba(94, 85, 126, 0.68);
+  --text-4: rgba(94, 85, 126, 0.40);
   --muted: rgba(94, 85, 126, 0.74);
   --glass-line: rgba(137, 119, 196, 0.16);
   --glass: rgba(255, 255, 255, 0.88);
