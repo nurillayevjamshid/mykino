@@ -181,7 +181,7 @@ function pickThumb(thumbs) {
   return (thumbs.maxres || thumbs.standard || thumbs.high || thumbs.medium || thumbs.default || {}).url || "";
 }
 
-async function fetchUploadedVideos(uploadsPlaylistId, maxResults = 200) {
+async function fetchUploadedVideos(uploadsPlaylistId, maxResults = 9999) {
   if (!uploadsPlaylistId) return [];
   const allItems = [];
   let pageToken = "";
@@ -261,7 +261,7 @@ async function getChannelView(channelId) {
   if (!item) throw Object.assign(new Error("Kanal topilmadi."), { statusCode: 404 });
   const channel = shapeChannel(item);
   const [videosAll, playlists] = await Promise.all([
-    fetchUploadedVideos(channel.uploadsPlaylistId, 200),
+    fetchUploadedVideos(channel.uploadsPlaylistId, 9999),
     fetchPlaylists(channelId, 25),
   ]);
   const videos = videosAll.filter((v) => !v.isShort);
