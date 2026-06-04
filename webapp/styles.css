@@ -11551,23 +11551,39 @@ html[data-theme="light"] .coming-soon-view__title { color: #1a1d2e; }
   position: absolute; top: 8px; right: 8px; z-index: 3;
   width: 30px; height: 30px; border-radius: 50%;
   display: grid; place-items: center;
-  background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.14);
-  color: #fff; cursor: pointer;
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  transition: transform .2s, background .2s, color .2s, border-color .2s;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
-.podcasts-view .pod-fav-btn:hover { transform: scale(1.08); background: rgba(0,0,0,.7); }
+.podcasts-view .pod-fav-btn:hover {
+  transform: scale(1.08);
+  background: rgba(0, 0, 0, 0.7);
+}
 .podcasts-view .pod-fav-btn svg {
-  width: 16px; height: 16px; display: block;
-  fill: none; stroke: currentColor; stroke-width: 2;
-  transition: fill .2s, stroke .2s;
+  width: 16px;
+  height: 16px;
+  display: block;
+  transition: fill 0.2s ease, stroke 0.2s ease;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .podcasts-view .pod-fav-btn.is-active {
-  background: rgba(228,50,60,.85); border-color: rgba(255,255,255,.25);
-  color: #fff;
+  background: linear-gradient(135deg, var(--c-accent) 0%, var(--c-accent-strong) 100%);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(229, 9, 20, 0.5);
 }
 .podcasts-view .pod-fav-btn.is-active svg {
-  fill: currentColor; stroke: currentColor;
+  fill: currentColor;
+  stroke: currentColor;
 }
 .podcasts-view .pod-vid-card__title {
   font-size: 14px; font-weight: 600; line-height: 1.35;
