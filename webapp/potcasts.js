@@ -1,5 +1,5 @@
 // Potkastlar moduli — real YouTube kanallar.
-// Tashqariga: window.__potcasts = { openPodcastsView, closePodcastsView }
+// Tashqariga: window.__potcasts = { openPodcastsView, closePodcastsView, setQuery, setFilter }
 (function () {
   "use strict";
 
@@ -18,6 +18,55 @@
   let currentChannelData = null;
   let currentTab = "home"; // "home" | "videos" | "shorts" | "playlists"
   let toastTimer = null;
+  let searchQuery = "";
+  let filterMode = "all"; // "all" | "favorites"
+
+  const SUB_STORAGE_KEY = "podcasts_subscribed_v1";
+
+  function readSubscribedChannels() {
+    try {
+      return JSON.parse(localStorage.getItem(SUB_STORAGE_KEY) || "[]");
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function toggleSubscribeChannel(channelId) {
+    const list = readSubscribedChannels();
+    const idx = list.indexOf(channelId);
+    let isSubbed = false;
+    if (idx === -1) {
+      list.push(channelId);
+      isSubbed = true;
+    } else {
+      list.splice(idx, 1);
+      isSubbed = false;
+    }
+    try {
+      localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(list));
+      if (tg?.CloudStorage) {
+        tg.CloudStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(list), () => {});
+      }
+    } catch (_) {}
+    return isSubbed;
+  }
+
+  function updateSubscribeButton(btn, isSubbed) {
+    if (!btn) return;
+    btn.classList.toggle("is-subbed", isSubbed);
+    const span = btn.querySelector("span");
+    if (span) {
+      span.textContent = isSubbed ? "Obunadasiz" : "Obuna bo'lish";
+    }
+    const svg = btn.querySelector("svg");
+    if (svg) {
+      if (isSubbed) {
+        svg.innerHTML = `<path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>`;
+      } else {
+        svg.innerHTML = `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>`;
+      }
+    }
+  }
 
   function escapeHtml(str) {
     return String(str || "")
@@ -95,7 +144,23 @@
   // ---------- List view (qo'shilgan kanallar) ----------
 
   function buildList() {
-    const items = channels.map((c) => {
+    const subbedList = readSubscribedChannels();
+    let filtered = channels;
+    if (filterMode === "favorites") {
+      filtered = channels.filter((c) => subbedList.includes(c.channelId));
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((c) => {
+        const s = c.snapshot || {};
+        const title = (s.title || "").toLowerCase();
+        const handle = (s.handle || "").toLowerCase();
+        const desc = (s.description || "").toLowerCase();
+        return title.includes(q) || handle.includes(q) || desc.includes(q);
+      });
+    }
+
+    const items = filtered.map((c) => {
       const s = c.snapshot || {};
       const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
       const meta = `${escapeHtml(s.handle || "YouTube kanal")} · ${formatCount(s.subscriberCount)} obunachi`;
@@ -118,6 +183,8 @@
       `;
     }).join("");
 
+    const titleText = filterMode === "favorites" ? "Sevimli Potkastlar" : "Potkastlar";
+
     return `
       <header class="pod-topbar">
         <button class="pod-topbar__back" type="button" data-pod-close aria-label="Orqaga">
@@ -129,11 +196,11 @@
             <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
             <line x1="12" y1="19" x2="12" y2="22"></line>
           </svg>
-          <span>Potkastlar</span>
+          <span>${escapeHtml(titleText)}</span>
         </div>
       </header>
       <div class="pod-list">
-        ${channels.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali kanal qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube kanal qo'shing</div></div>`}
+        ${filtered.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Kanal topilmadi</div><div class="pod-empty__hint">${filterMode === "favorites" ? "Sevimli kanallaringiz yo'q." : "Qidiruv bo'yicha kanallar topilmadi."}</div></div>`}
       </div>
     `;
   }
@@ -174,7 +241,14 @@
   }
 
   function buildTabContent(data) {
-    const { videos = [], shorts = [], playlists = [] } = data;
+    let { videos = [], shorts = [], playlists = [] } = data;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      videos = videos.filter((v) => (v.title || "").toLowerCase().includes(q));
+      shorts = shorts.filter((v) => (v.title || "").toLowerCase().includes(q));
+      playlists = playlists.filter((v) => (v.title || "").toLowerCase().includes(q));
+    }
+
     if (currentTab === "home") {
       const latest = videos.slice(0, 1);
       const recent = videos.slice(1, 9);
@@ -232,6 +306,13 @@
       { id: "shorts", label: "Shorts" },
       { id: "playlists", label: "Playlistlar" },
     ];
+    const isSubbed = readSubscribedChannels().includes(ch.channelId);
+    const subBtnClass = isSubbed ? "pod-ch-sub is-subbed" : "pod-ch-sub";
+    const subBtnText = isSubbed ? "Obunadasiz" : "Obuna bo'lish";
+    const subBtnIcon = isSubbed
+      ? `<path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>`
+      : `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>`;
+
     return `
       <header class="pod-topbar pod-topbar--channel">
         <button class="pod-topbar__back" type="button" data-pod-back-to-list aria-label="Orqaga">
@@ -257,9 +338,9 @@
             </div>
           </div>
           <div class="pod-ch-actions">
-            <button class="pod-ch-sub" type="button" data-pod-subscribe>
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-              <span>Obuna bo'lish</span>
+            <button class="${subBtnClass}" type="button" data-pod-subscribe>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${subBtnIcon}</svg>
+              <span>${subBtnText}</span>
             </button>
           </div>
         </div>
@@ -354,9 +435,12 @@
         }
       });
     });
-    podcastsRoot.querySelector("[data-pod-subscribe]")?.addEventListener("click", () => {
+    const subBtn = podcastsRoot.querySelector("[data-pod-subscribe]");
+    subBtn?.addEventListener("click", () => {
       haptic("medium");
-      showToast("Obuna bo'lish funksiyasi yaqin orada");
+      const isSubbed = toggleSubscribeChannel(currentChannelId);
+      updateSubscribeButton(subBtn, isSubbed);
+      showToast(isSubbed ? "Obuna bo'lindi" : "Obunadan chiqildi");
     });
     wireContentEvents();
   }
@@ -400,5 +484,27 @@
     closePlayer();
   }
 
-  window.__potcasts = { openPodcastsView, closePodcastsView };
+  function setQuery(q) {
+    searchQuery = String(q || "").trim();
+    if (currentView === "list") {
+      renderList();
+    } else if (currentView === "channel" && currentChannelData) {
+      const content = podcastsRoot.querySelector("#podChContent");
+      if (content) {
+        content.innerHTML = buildTabContent(currentChannelData);
+        wireContentEvents();
+      }
+    }
+  }
+
+  function setFilter(filter) {
+    filterMode = filter === "favorites" ? "favorites" : "all";
+    if (currentView === "list") {
+      renderList();
+    } else {
+      renderList();
+    }
+  }
+
+  window.__potcasts = { openPodcastsView, closePodcastsView, setQuery, setFilter };
 })();

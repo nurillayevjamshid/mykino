@@ -1833,6 +1833,71 @@ function renderMusicHistory() {
   `).join("");
 }
 
+function podcastHistoryKey() {
+  const uid = getTelegramUser()?.id;
+  return `kino_podcast_history_v1_${uid || "guest"}`;
+}
+function readPodcastHistoryStore() {
+  try {
+    const p = JSON.parse(localStorage.getItem(podcastHistoryKey()) || "{}");
+    return p && typeof p === "object" ? p : {};
+  } catch { return {}; }
+}
+function writePodcastHistoryStore(store) {
+  try { localStorage.setItem(podcastHistoryKey(), JSON.stringify(store)); } catch {}
+}
+function recordPodcastWatch(movie) {
+  if (!movie?.youtubeVideoId) return;
+  const store = readPodcastHistoryStore();
+  store[movie.youtubeVideoId] = {
+    youtubeVideoId: movie.youtubeVideoId,
+    title: movie.title || "Video",
+    watchedAt: Date.now(),
+  };
+  writePodcastHistoryStore(store);
+  try { syncWatchedCount?.(); } catch (_) {}
+}
+function getPodcastHistoryEntries() {
+  return Object.values(readPodcastHistoryStore())
+    .filter((e) => e && typeof e === "object" && e.youtubeVideoId)
+    .sort((a, b) => Number(b.watchedAt || 0) - Number(a.watchedAt || 0))
+    .slice(0, 50);
+}
+function removePodcastHistoryItem(id) {
+  const store = readPodcastHistoryStore();
+  delete store[id];
+  writePodcastHistoryStore(store);
+}
+function clearPodcastHistory() {
+  localStorage.removeItem(podcastHistoryKey());
+}
+function renderPodcastHistory() {
+  const listEl = document.getElementById("podcastHistoryList");
+  if (!listEl) return;
+  const countEl = document.getElementById("podcastHistoryCount");
+  const emptyEl = document.getElementById("podcastHistoryEmpty");
+  const clearBtn = document.getElementById("clearPodcastHistoryButton");
+  const entries = getPodcastHistoryEntries();
+  if (countEl) countEl.textContent = `${entries.length} ta`;
+  if (emptyEl) emptyEl.hidden = entries.length > 0;
+  if (clearBtn) clearBtn.hidden = entries.length === 0;
+  listEl.innerHTML = entries.map((e) => `
+    <article class="profile-history__item" role="button" tabindex="0" data-podcast-history="${escapeHtml(e.youtubeVideoId)}">
+      <div class="profile-history__poster" style="--poster-image: url('https://i.ytimg.com/vi/${escapeHtml(e.youtubeVideoId)}/mqdefault.jpg')"></div>
+      <div class="profile-history__copy">
+        <strong>${escapeHtml(e.title)}</strong>
+        <span>YouTube video</span>
+      </div>
+      <button class="profile-history__remove" type="button" data-podcast-history-remove="${escapeHtml(e.youtubeVideoId)}" aria-label="O'chirish" title="O'chirish">
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+    </article>
+  `).join("");
+}
+
 function getMovieProgressEntry(movie) {
   if (!movie?.id) return null;
   const entry = readWatchProgressStore()[String(movie.id)];
@@ -2538,6 +2603,7 @@ function renderProfileModal() {
   renderProfileStats();
   renderProfileHistory();
   renderMusicHistory();
+  try { renderPodcastHistory(); } catch (_) {}
 }
 
 const REACTION_CLIENT_ID_KEY = "mykino:clientId";
@@ -4165,6 +4231,8 @@ async function openVideoPlayer(movie, options = {}) {
   if (!isPodcastCtx) {
     markMovieWatched(movie, pendingResumeTime);
     syncWatchedCount();
+  } else {
+    try { recordPodcastWatch(movie); } catch (_) {}
   }
   if (movieModal.open) movieModal.close();
   videoTitle.textContent = movie.title || "Kino";
@@ -4295,6 +4363,16 @@ window.__playYouTubeStandalone = function (videoId, opts = {}) {
 };
 
 function setFilter(filter) {
+  if (document.body.classList.contains("is-podcasts")) {
+    if (filter === "all") {
+      closePodcastsView();
+    } else if (filter === "favorites") {
+      activeFilter = "favorites";
+      window.__potcasts?.setFilter?.("favorites");
+      syncNavButtons();
+      return;
+    }
+  }
   activeFilter = filter;
   if (filter === "all" || filter === "favorites") {
     activeCategory = "all";
@@ -4997,6 +5075,9 @@ searchInput?.addEventListener("input", (event) => {
     // is-music klassi qo'shilgan bo'lsa, music moduli allaqachon yuklangan.
     window.__music?.setQuery?.(query);
   }
+  if (document.body.classList.contains("is-podcasts")) {
+    window.__potcasts?.setQuery?.(query);
+  }
   renderRecentSearches();
   syncSearchClearBtn();
 });
@@ -5009,6 +5090,9 @@ searchClearBtn?.addEventListener("click", (event) => {
   renderMovies();
   if (document.body.classList.contains("is-music")) {
     window.__music?.setQuery?.("");
+  }
+  if (document.body.classList.contains("is-podcasts")) {
+    window.__potcasts?.setQuery?.("");
   }
   renderRecentSearches();
   syncSearchClearBtn();
@@ -5290,6 +5374,28 @@ document.getElementById("musicHistoryList")?.addEventListener("click", (event) =
       m?.playMusicTrack?.(track);
     }
   }).catch(() => {});
+});
+
+document.getElementById("clearPodcastHistoryButton")?.addEventListener("click", () => {
+  clearPodcastHistory();
+  renderPodcastHistory();
+});
+
+document.getElementById("podcastHistoryList")?.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-podcast-history-remove]");
+  if (removeButton) {
+    event.stopPropagation();
+    removePodcastHistoryItem(removeButton.dataset.podcastHistoryRemove || "");
+    renderPodcastHistory();
+    return;
+  }
+  const itemEl = event.target.closest("[data-podcast-history]");
+  if (itemEl) {
+    const youtubeId = itemEl.dataset.podcastHistory;
+    const title = itemEl.querySelector(".profile-history__copy strong")?.textContent || "Video";
+    try { profileModal.close(); } catch (_) {}
+    window.__playYouTubeStandalone?.(youtubeId, { title });
+  }
 });
 
 document.querySelectorAll("[data-close]").forEach((button) => {
