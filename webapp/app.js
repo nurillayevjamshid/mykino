@@ -3880,10 +3880,16 @@ async function mountYouTubePlayer(videoUrl, movie, options = {}) {
           if (requestId !== activeVideoRequest || videoPlayer.hidden) return;
           clearYouTubeAutoAdvanceTimer();
           if (activeYouTubePlayer.getPlayerState?.() === window.YT.PlayerState.ENDED) {
-            clearMovieProgress(activeMovie);
-            youtubeAutoAdvanceTimer = window.setTimeout(() => {
-              if (!playNextMovie()) updateYouTubeControls();
-            }, 350);
+            if (activeMovie?._podcast) {
+              youtubeAutoAdvanceTimer = window.setTimeout(() => {
+                try { closeVideoPlayer(); } catch (_) {}
+              }, 350);
+            } else {
+              clearMovieProgress(activeMovie);
+              youtubeAutoAdvanceTimer = window.setTimeout(() => {
+                if (!playNextMovie()) updateYouTubeControls();
+              }, 350);
+            }
           }
           updateYouTubeControls();
         },
@@ -4152,10 +4158,14 @@ async function openVideoPlayer(movie, options = {}) {
   stopMoviePreload();
   const requestId = ++activeVideoRequest;
   activeMovie = movie;
-  // startFromBeginning=true bo'lsa, resume vaqti olinmaydi (boshidan).
-  pendingResumeTime = options?.startFromBeginning ? 0 : getMovieProgressSeconds(movie);
-  markMovieWatched(movie, pendingResumeTime);
-  syncWatchedCount();
+  const isPodcastCtx = Boolean(options?._podcast || movie?._podcast);
+  document.body.classList.toggle("is-podcast-context", isPodcastCtx);
+  // startFromBeginning=true yoki potkast kontekstida resume vaqti olinmaydi.
+  pendingResumeTime = (options?.startFromBeginning || isPodcastCtx) ? 0 : getMovieProgressSeconds(movie);
+  if (!isPodcastCtx) {
+    markMovieWatched(movie, pendingResumeTime);
+    syncWatchedCount();
+  }
   if (movieModal.open) movieModal.close();
   videoTitle.textContent = movie.title || "Kino";
   videoPlayer.hidden = false;
@@ -4263,11 +4273,26 @@ function closeVideoPlayer() {
   setVideoLoading(false);
   videoPlayer.hidden = true;
   document.body.classList.remove("is-player-open");
+  document.body.classList.remove("is-podcast-context");
   if (videoPipButton) videoPipButton.classList.remove("is-active");
   exitPipIfActive();
   if (isAnyFullscreen()) exitFullscreenAndLandscape();
   tgBackUnregister("video-player");
 }
+
+// Tashqi modullar (masalan, potcasts.js) uchun kino pleyerini standalone YouTube
+// rejimida ochish. Watched/progress/next-movie skip qilinadi.
+window.__playYouTubeStandalone = function (videoId, opts = {}) {
+  const id = String(videoId || "").trim();
+  if (!id) return;
+  const pseudoMovie = {
+    id: `_yt_${id}`,
+    title: String(opts.title || "Video"),
+    youtubeVideoId: id,
+    _podcast: true,
+  };
+  return openVideoPlayer(pseudoMovie, { _podcast: true, startFromBeginning: true });
+};
 
 function setFilter(filter) {
   activeFilter = filter;
@@ -4511,7 +4536,7 @@ function ensurePotcastsModule() {
   if (__potcastsModulePromise) return __potcastsModulePromise;
   __potcastsModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts.js?v=20260604-04-yt";
+    script.src = "/static/potcasts.js?v=20260604-05-player";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
