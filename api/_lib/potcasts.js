@@ -4,7 +4,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { setCors } = require("./_lib/google-drive");
+const { setCors } = require("./google-drive");
 
 const SEED_FILE = path.join(process.cwd(), "data", "potcasts.json");
 const REDIS_KEY = "potcasts:channels:v1";
