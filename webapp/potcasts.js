@@ -185,11 +185,26 @@
 
   // ---------- Channel view (YouTube-style) ----------
 
+  // Podcast sevimlilar (localStorage)
+  function getPodcastFavorites() {
+    try { return new Set(JSON.parse(localStorage.getItem("podcastFavorites") || "[]")); } catch (_) { return new Set(); }
+  }
+  function togglePodcastFavorite(videoId) {
+    const favs = getPodcastFavorites();
+    if (favs.has(videoId)) { favs.delete(videoId); } else { favs.add(videoId); }
+    try { localStorage.setItem("podcastFavorites", JSON.stringify([...favs])); } catch (_) {}
+    return favs.has(videoId);
+  }
+
   function buildVideoCard(v) {
+    const isFav = getPodcastFavorites().has(v.videoId);
     return `
       <button class="pod-vid-card" type="button" data-pod-play-video="${escapeHtml(v.videoId)}">
         <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
           <span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>
+          <button class="pod-fav-btn${isFav ? " is-active" : ""}" type="button" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Sevimlilarga" aria-pressed="${isFav}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
+          </button>
         </div>
         <div class="pod-vid-card__title">${escapeHtml(v.title)}</div>
         <div class="pod-vid-card__meta">${formatCount(v.viewCount)} ko'rishlar · ${escapeHtml(timeAgo(v.publishedAt))}</div>
@@ -503,9 +518,22 @@
   function wireContentEvents() {
     podcastsRoot.querySelectorAll("[data-pod-play-video]").forEach((el) => {
       el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-pod-fav]")) return;
         e.preventDefault();
         haptic("light");
         openPlayer(el.dataset.podPlayVideo);
+      });
+    });
+    // Sevimlilar tugmasi
+    podcastsRoot.querySelectorAll("[data-pod-fav]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        haptic("medium");
+        const vid = btn.dataset.podFav;
+        const isActive = togglePodcastFavorite(vid);
+        btn.classList.toggle("is-active", isActive);
+        btn.setAttribute("aria-pressed", String(isActive));
       });
     });
     // Playlist link'lari — YouTube'ga o'tmasin, in-app pleyer ochsin (birinchi videoni)
@@ -540,6 +568,6 @@
   }
 
   window.__potcasts = { openPodcastsView, closePodcastsView };
-  // Util funksiyalarni tashqariga chiqarish (app.js history uchun)
-  window.__podUtils = { formatDuration, timeAgo, escapeHtml };
+  // Util funksiyalarni tashqariga chiqarish (app.js history/favorites uchun)
+  window.__podUtils = { formatDuration, timeAgo, escapeHtml, getPodcastFavorites, togglePodcastFavorite };
 })();
