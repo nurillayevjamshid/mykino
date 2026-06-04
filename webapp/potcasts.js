@@ -92,6 +92,28 @@
     return data; // { channel, videos, shorts, playlists }
   }
 
+  // ---------- Featured kanallar (header section uchun) ----------
+
+  function buildFeaturedChannels() {
+    const featured = channels.filter((c) => c.featured);
+    if (!featured.length) return "";
+    const cards = featured.map((c) => {
+      const s = c.snapshot || {};
+      const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
+      return `
+        <button class="pod-featured-card" type="button" data-pod-open="${escapeHtml(c.channelId)}">
+          <div class="pod-featured-card__avatar">${avatar}</div>
+          <div class="pod-featured-card__info">
+            <div class="pod-featured-card__title">${escapeHtml(s.title || c.channelId)}</div>
+            <div class="pod-featured-card__meta">${formatCount(s.subscriberCount)} obunachi</div>
+          </div>
+          <svg class="pod-featured-card__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      `;
+    }).join("");
+    return `<div class="pod-featured-row">${cards}</div>`;
+  }
+
   // ---------- List view (qo'shilgan kanallar) ----------
 
   function buildList() {
@@ -134,6 +156,7 @@
         <div class="pod-header-section__inner">
           <h2 class="pod-header-section__title">Potkastlar</h2>
           <p class="pod-header-section__desc">Eng sara o'zbek podcast kanallari bir joyda</p>
+          ${buildFeaturedChannels()}
         </div>
       </section>
       <div class="pod-list">
