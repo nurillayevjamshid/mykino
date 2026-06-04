@@ -98,15 +98,22 @@
     const items = channels.map((c) => {
       const s = c.snapshot || {};
       const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
+      const meta = `${escapeHtml(s.handle || "YouTube kanal")} · ${formatCount(s.subscriberCount)} obunachi`;
       return `
         <button class="pod-channel-row" type="button" data-pod-open="${escapeHtml(c.channelId)}">
+          <span class="pod-channel-row__glow" aria-hidden="true"></span>
           <div class="pod-channel-row__avatar">${avatar}</div>
           <div class="pod-channel-row__body">
-            <div class="pod-channel-row__title">${escapeHtml(s.title || c.channelId)}</div>
-            <div class="pod-channel-row__meta">${escapeHtml(s.handle || "")} ${s.handle ? "·" : ""} ${formatCount(s.subscriberCount)} obunachi</div>
+            <div class="pod-channel-row__head">
+              <div class="pod-channel-row__title">${escapeHtml(s.title || c.channelId)}</div>
+              <span class="pod-channel-row__pill">${formatCount(s.subscriberCount)}</span>
+            </div>
+            <div class="pod-channel-row__meta">${meta}</div>
             <div class="pod-channel-row__desc">${escapeHtml((s.description || "").slice(0, 90))}${(s.description || "").length > 90 ? "…" : ""}</div>
           </div>
-          <svg class="pod-channel-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          <span class="pod-channel-row__go" aria-hidden="true">
+            <svg class="pod-channel-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </span>
         </button>
       `;
     }).join("");
