@@ -81,6 +81,7 @@
     { "src": "/api/series-update", "dest": "/api/movies.js?_series=1" },
     { "src": "/api/watch-progress", "dest": "/api/users.js?_watch=1" },
     { "src": "/api/music", "dest": "/api/music.js" },
+    { "src": "/api/podcasts", "dest": "/api/music.js?_podcasts=1" },
     { "src": "/api/categories", "dest": "/api/categories.js" },
     { "src": "/api/upload-image", "dest": "/api/upload-image.js" },
     { "src": "/api/settings", "dest": "/api/settings.js" },

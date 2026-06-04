@@ -1,5 +1,4 @@
-// Potkastlar moduli — beta, mock data bilan vizual shell.
-// Real audio integratsiyasi qo'shilganda data manbalari almashtiriladi.
+// Potkastlar moduli — real YouTube kanallar.
 // Tashqariga: window.__potcasts = { openPodcastsView, closePodcastsView }
 (function () {
   "use strict";
@@ -12,87 +11,48 @@
     try { tg?.HapticFeedback?.impactOccurred?.(kind); } catch (_) {}
   };
 
-  const CATEGORIES = [
-    { id: "all", label: "Barchasi" },
-    { id: "suhbat", label: "Suhbat" },
-    { id: "biznes", label: "Biznes" },
-    { id: "tech", label: "Texnologiya" },
-    { id: "madaniyat", label: "Madaniyat" },
-    { id: "tarix", label: "Tarix" },
-    { id: "sport", label: "Sport" },
-    { id: "hayot", label: "Hayot" },
-    { id: "yumor", label: "Yumor" },
-  ];
-
-  const FEATURED = [
-    {
-      id: "f1",
-      title: "OYBEK SHOW",
-      tagline: "Mehmonlar bilan jonli suhbat — har juma kechqurun",
-      ep: "Yangi epizod: \"O'zbekiston IT bozori\"",
-      cov: "g1",
-      mono: "O",
-    },
-    {
-      id: "f2",
-      title: "Texnokratlar",
-      tagline: "Texnologiya, startaplar va kelajak",
-      ep: "AI agentlar inson o'rnini bosadimi?",
-      cov: "g2",
-      mono: "T",
-    },
-    {
-      id: "f3",
-      title: "Bizneschilar",
-      tagline: "Tadbirkorlar haqiqiy hikoyalari",
-      ep: "0 dan milliongacha: 7 yilda",
-      cov: "g3",
-      mono: "B",
-    },
-  ];
-
-  const SHOWS = [
-    { id: "s1", name: "OYBEK SHOW", host: "Oybek Mamatkulov", cat: "suhbat", cov: "g1", mono: "O" },
-    { id: "s2", name: "Texnokratlar", host: "Sardor Allayarov", cat: "tech", cov: "g2", mono: "T" },
-    { id: "s3", name: "Bizneschilar", host: "Hasan Ravshanov", cat: "biznes", cov: "g3", mono: "B" },
-    { id: "s4", name: "Madaniyat soati", host: "Nodira Karimova", cat: "madaniyat", cov: "g4", mono: "M" },
-    { id: "s5", name: "Tarixning sirlari", host: "Bahodir Eshonov", cat: "tarix", cov: "g5", mono: "T" },
-    { id: "s6", name: "Sport Live", host: "Akmal Yusupov", cat: "sport", cov: "g6", mono: "S" },
-    { id: "s7", name: "Hayot darslari", host: "Dilshoda Rasulova", cat: "hayot", cov: "g7", mono: "H" },
-    { id: "s8", name: "Yumor Time", host: "Komediya jamoasi", cat: "yumor", cov: "g8", mono: "Y" },
-    { id: "s9", name: "Faylasuflar", host: "Jamshid Tursunov", cat: "suhbat", cov: "g9", mono: "F" },
-    { id: "s10", name: "Startup Kitchen", host: "Anvar Qodirov", cat: "biznes", cov: "g10", mono: "S" },
-  ];
-
-  const EPISODES = [
-    { id: "e1", title: "AI agentlar inson o'rnini bosadimi?", showId: "s2", dur: "48 daq", when: "Bugun", isNew: true, dot: 0.18 },
-    { id: "e2", title: "O'zbekiston IT bozori — 2026", showId: "s1", dur: "1 soat 12 daq", when: "Kecha", isNew: true, dot: 0.62 },
-    { id: "e3", title: "0 dan milliongacha: 7 yilda", showId: "s3", dur: "54 daq", when: "2 kun oldin", isNew: false, dot: 0 },
-    { id: "e4", title: "Amir Temur strategiyalari", showId: "s5", dur: "1 soat 04 daq", when: "3 kun oldin", isNew: false, dot: 0.85 },
-    { id: "e5", title: "Stress va miya — neyrolog bilan", showId: "s7", dur: "42 daq", when: "4 kun oldin", isNew: false, dot: 0 },
-    { id: "e6", title: "El-yurt ovozi: zamonaviy musiqa", showId: "s4", dur: "37 daq", when: "5 kun oldin", isNew: false, dot: 0 },
-    { id: "e7", title: "Premyer-liga: tahlil va prognoz", showId: "s6", dur: "29 daq", when: "1 hafta oldin", isNew: false, dot: 0 },
-    { id: "e8", title: "Stand-up: tunes hayot", showId: "s8", dur: "33 daq", when: "1 hafta oldin", isNew: false, dot: 0 },
-  ];
-
-  const showById = (id) => SHOWS.find((s) => s.id === id);
-
-  let currentCategory = "all";
-  let currentQuery = "";
-  let rendered = false;
+  let channels = [];
+  let loaded = false;
+  let currentView = "list"; // "list" | "channel"
+  let currentChannelId = null;
+  let currentChannelData = null;
+  let currentTab = "home"; // "home" | "videos" | "shorts" | "playlists"
   let toastTimer = null;
 
   function escapeHtml(str) {
     return String(str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
-  function coverHtml(cov, mono, size = "md") {
-    return `<div class="pod-cov pod-cov--${size} pod-cov--${cov}"><span>${escapeHtml(mono)}</span></div>`;
+  function formatCount(n) {
+    const x = Number(n || 0);
+    if (x >= 1_000_000) return (x / 1_000_000).toFixed(x >= 10_000_000 ? 0 : 1).replace(/\.0$/, "") + "M";
+    if (x >= 1_000) return (x / 1_000).toFixed(x >= 10_000 ? 0 : 1).replace(/\.0$/, "") + "K";
+    return String(x);
+  }
+
+  function formatDuration(sec) {
+    const s = Number(sec || 0);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const ss = s % 60;
+    if (h) return `${h}:${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+    return `${m}:${String(ss).padStart(2, "0")}`;
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return "";
+    const t = new Date(iso).getTime();
+    if (!t) return "";
+    const diff = Math.max(0, Date.now() - t);
+    const d = Math.floor(diff / 86400000);
+    if (d < 1) return "Bugun";
+    if (d < 2) return "Kecha";
+    if (d < 7) return `${d} kun oldin`;
+    if (d < 30) return `${Math.floor(d / 7)} hafta oldin`;
+    if (d < 365) return `${Math.floor(d / 30)} oy oldin`;
+    return `${Math.floor(d / 365)} yil oldin`;
   }
 
   function showToast(msg) {
@@ -109,129 +69,53 @@
     toastTimer = setTimeout(() => el.classList.remove("is-visible"), 1600);
   }
 
-  function buildHero() {
-    const cards = FEATURED.map((f) => `
-      <article class="pod-hero-card pod-hero-card--${f.cov}" data-pod-play="${escapeHtml(f.id)}">
-        <div class="pod-hero-card__bg"></div>
-        <div class="pod-hero-card__glow"></div>
-        <div class="pod-hero-card__body">
-          <span class="pod-hero-card__badge">★ Tavsiya</span>
-          <h3 class="pod-hero-card__title">${escapeHtml(f.title)}</h3>
-          <p class="pod-hero-card__tagline">${escapeHtml(f.tagline)}</p>
-          <div class="pod-hero-card__ep">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
-            <span>${escapeHtml(f.ep)}</span>
-          </div>
-        </div>
-        <div class="pod-hero-card__mono">${escapeHtml(f.mono)}</div>
-      </article>
-    `).join("");
-    return `
-      <div class="pod-hero">
-        <div class="pod-hero__track" id="podHeroTrack">${cards}</div>
-        <div class="pod-hero__dots" id="podHeroDots">
-          ${FEATURED.map((_, i) => `<span class="pod-hero__dot ${i === 0 ? "is-active" : ""}" data-pod-dot="${i}"></span>`).join("")}
-        </div>
-      </div>
-    `;
-  }
+  // ---------- API ----------
 
-  function buildCategories() {
-    return `
-      <div class="pod-categories" id="podCategories">
-        ${CATEGORIES.map((c) => `
-          <button class="pod-chip ${c.id === currentCategory ? "is-active" : ""}" type="button" data-pod-cat="${escapeHtml(c.id)}">${escapeHtml(c.label)}</button>
-        `).join("")}
-      </div>
-    `;
-  }
-
-  function buildShowsRow() {
-    const list = SHOWS.filter((s) => currentCategory === "all" || s.cat === currentCategory);
-    if (!list.length) return "";
-    return `
-      <section class="pod-section">
-        <header class="pod-section__head">
-          <h2 class="pod-section__title">Mashhur potkastlar</h2>
-          <button class="pod-section__more" type="button" data-pod-more="shows">Hammasi</button>
-        </header>
-        <div class="pod-shows" id="podShowsRow">
-          ${list.map((s) => `
-            <button class="pod-show-card" type="button" data-pod-show="${escapeHtml(s.id)}">
-              ${coverHtml(s.cov, s.mono, "lg")}
-              <div class="pod-show-card__name">${escapeHtml(s.name)}</div>
-              <div class="pod-show-card__host">${escapeHtml(s.host)}</div>
-            </button>
-          `).join("")}
-        </div>
-      </section>
-    `;
-  }
-
-  function buildEpisodesList() {
-    const cat = currentCategory;
-    const q = currentQuery.trim().toLowerCase();
-    const list = EPISODES.filter((e) => {
-      const sh = showById(e.showId);
-      if (!sh) return false;
-      if (cat !== "all" && sh.cat !== cat) return false;
-      if (q) {
-        const hay = `${e.title} ${sh.name} ${sh.host}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-    if (!list.length) {
-      return `
-        <section class="pod-section">
-          <header class="pod-section__head">
-            <h2 class="pod-section__title">Yangi epizodlar</h2>
-          </header>
-          <div class="pod-empty-mini">Bu kategoriya bo'yicha epizodlar topilmadi</div>
-        </section>
-      `;
+  async function loadChannels() {
+    try {
+      const r = await fetch("/api/podcasts");
+      const data = await r.json();
+      if (!data.ok) throw new Error(data.error || "Yuklab bo'lmadi.");
+      channels = Array.isArray(data.channels) ? data.channels : [];
+      loaded = true;
+    } catch (err) {
+      console.error("podcasts loadChannels:", err);
+      channels = [];
+      loaded = true;
     }
-    return `
-      <section class="pod-section">
-        <header class="pod-section__head">
-          <h2 class="pod-section__title">Yangi epizodlar</h2>
-          <button class="pod-section__more" type="button" data-pod-more="episodes">Hammasi</button>
-        </header>
-        <div class="pod-episodes">
-          ${list.map((e) => {
-            const sh = showById(e.showId);
-            const progress = e.dot && e.dot > 0 ? `<div class="pod-ep__progress"><span style="width:${Math.round(e.dot * 100)}%"></span></div>` : "";
-            const newBadge = e.isNew ? `<span class="pod-ep__new">YANGI</span>` : "";
-            return `
-              <article class="pod-ep-row" data-pod-play="${escapeHtml(e.id)}">
-                ${coverHtml(sh.cov, sh.mono, "sm")}
-                <div class="pod-ep__body">
-                  <div class="pod-ep__top">
-                    ${newBadge}
-                    <span class="pod-ep__show">${escapeHtml(sh.name)}</span>
-                  </div>
-                  <h3 class="pod-ep__title">${escapeHtml(e.title)}</h3>
-                  <div class="pod-ep__meta">
-                    <span>${escapeHtml(e.when)}</span>
-                    <span class="pod-ep__sep">•</span>
-                    <span>${escapeHtml(e.dur)}</span>
-                  </div>
-                  ${progress}
-                </div>
-                <button class="pod-ep__play" type="button" aria-label="O'ynash">
-                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="7 4 20 12 7 20 7 4"></polygon></svg>
-                </button>
-              </article>
-            `;
-          }).join("")}
-        </div>
-      </section>
-    `;
   }
 
-  function buildTopBar() {
+  async function loadChannelView(channelId) {
+    const r = await fetch(`/api/podcasts?channelId=${encodeURIComponent(channelId)}`);
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || "Kanalni yuklab bo'lmadi.");
+    return data; // { channel, videos, shorts, playlists }
+  }
+
+  // ---------- List view (qo'shilgan kanallar) ----------
+
+  function buildList() {
+    const items = channels.map((c) => {
+      const s = c.snapshot || {};
+      const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
+      return `
+        <button class="pod-channel-row" type="button" data-pod-open="${escapeHtml(c.channelId)}">
+          <div class="pod-channel-row__avatar">${avatar}</div>
+          <div class="pod-channel-row__body">
+            <div class="pod-channel-row__title">${escapeHtml(s.title || c.channelId)}</div>
+            <div class="pod-channel-row__meta">${escapeHtml(s.handle || "")} ${s.handle ? "·" : ""} ${formatCount(s.subscriberCount)} obunachi</div>
+            <div class="pod-channel-row__desc">${escapeHtml((s.description || "").slice(0, 90))}${(s.description || "").length > 90 ? "…" : ""}</div>
+          </div>
+          <svg class="pod-channel-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      `;
+    }).join("");
+
     return `
       <header class="pod-topbar">
+        <button class="pod-topbar__back" type="button" data-pod-close aria-label="Orqaga">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
         <div class="pod-topbar__title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="9" y="2" width="6" height="13" rx="3"></rect>
@@ -239,121 +123,292 @@
             <line x1="12" y1="19" x2="12" y2="22"></line>
           </svg>
           <span>Potkastlar</span>
-          <span class="pod-topbar__beta">BETA</span>
-        </div>
-        <div class="pod-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-          <input type="search" id="podSearchInput" placeholder="Potkast yoki epizod izlash..." autocomplete="off" />
         </div>
       </header>
+      <div class="pod-list">
+        ${channels.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali kanal qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube kanal qo'shing</div></div>`}
+      </div>
     `;
   }
 
-  function renderAll() {
-    if (!podcastsRoot) return;
-    podcastsRoot.innerHTML = `
-      ${buildTopBar()}
-      ${buildHero()}
-      ${buildCategories()}
-      ${buildShowsRow()}
-      ${buildEpisodesList()}
-      <div class="pod-foot">Bo'lim beta versiyada — yaqin orada real audio epizodlar qo'shiladi</div>
+  // ---------- Channel view (YouTube-style) ----------
+
+  function buildVideoCard(v) {
+    return `
+      <button class="pod-vid-card" type="button" data-pod-play-video="${escapeHtml(v.videoId)}">
+        <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
+          <span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>
+        </div>
+        <div class="pod-vid-card__title">${escapeHtml(v.title)}</div>
+        <div class="pod-vid-card__meta">${formatCount(v.viewCount)} ko'rishlar · ${escapeHtml(timeAgo(v.publishedAt))}</div>
+      </button>
     `;
-    wireEvents();
-    wireHero();
   }
 
-  function rerenderBody() {
-    const head = podcastsRoot.querySelector(".pod-topbar");
-    const hero = podcastsRoot.querySelector(".pod-hero");
-    const oldChips = podcastsRoot.querySelector(".pod-categories");
-    const restHtml = `${buildShowsRow()}${buildEpisodesList()}<div class="pod-foot">Bo'lim beta versiyada — yaqin orada real audio epizodlar qo'shiladi</div>`;
-    podcastsRoot.innerHTML = "";
-    if (head) podcastsRoot.appendChild(head);
-    if (hero) podcastsRoot.appendChild(hero);
-    const chipsWrap = document.createElement("div");
-    chipsWrap.innerHTML = buildCategories();
-    podcastsRoot.appendChild(chipsWrap.firstElementChild);
-    const restWrap = document.createElement("div");
-    restWrap.innerHTML = restHtml;
-    while (restWrap.firstChild) podcastsRoot.appendChild(restWrap.firstChild);
-    wireEvents();
+  function buildShortCard(v) {
+    return `
+      <button class="pod-short-card" type="button" data-pod-play-video="${escapeHtml(v.videoId)}">
+        <div class="pod-short-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')"></div>
+        <div class="pod-short-card__title">${escapeHtml(v.title)}</div>
+        <div class="pod-short-card__meta">${formatCount(v.viewCount)} ko'rishlar</div>
+      </button>
+    `;
   }
 
-  function wireEvents() {
-    podcastsRoot.querySelectorAll("[data-pod-cat]").forEach((btn) => {
+  function buildPlaylistCard(p) {
+    return `
+      <a class="pod-pl-card" href="https://www.youtube.com/playlist?list=${escapeHtml(p.playlistId)}" target="_blank" rel="noopener" data-pod-pl="${escapeHtml(p.playlistId)}">
+        <div class="pod-pl-card__thumb" style="background-image:url('${escapeHtml(p.thumb)}')">
+          <span class="pod-pl-card__count">${p.itemCount} video</span>
+        </div>
+        <div class="pod-pl-card__title">${escapeHtml(p.title)}</div>
+      </a>
+    `;
+  }
+
+  function buildTabContent(data) {
+    const { videos = [], shorts = [], playlists = [] } = data;
+    if (currentTab === "home") {
+      const latest = videos.slice(0, 1);
+      const recent = videos.slice(1, 9);
+      const shortsRow = shorts.slice(0, 10);
+      return `
+        ${latest.length ? `
+          <section class="pod-ch-section">
+            <h3 class="pod-ch-section__title">So'nggi yuklangan</h3>
+            <div class="pod-vid-grid pod-vid-grid--featured">
+              ${buildVideoCard(latest[0])}
+            </div>
+          </section>` : ""}
+        ${shortsRow.length ? `
+          <section class="pod-ch-section">
+            <h3 class="pod-ch-section__title">Shorts</h3>
+            <div class="pod-shorts-row">
+              ${shortsRow.map(buildShortCard).join("")}
+            </div>
+          </section>` : ""}
+        ${recent.length ? `
+          <section class="pod-ch-section">
+            <h3 class="pod-ch-section__title">Videolar</h3>
+            <div class="pod-vid-grid">
+              ${recent.map(buildVideoCard).join("")}
+            </div>
+          </section>` : ""}
+        ${playlists.length ? `
+          <section class="pod-ch-section">
+            <h3 class="pod-ch-section__title">Playlistlar</h3>
+            <div class="pod-pl-row">
+              ${playlists.slice(0, 8).map(buildPlaylistCard).join("")}
+            </div>
+          </section>` : ""}
+        ${(!videos.length && !shorts.length && !playlists.length) ? `<div class="pod-empty"><div class="pod-empty__title">Kontent topilmadi</div></div>` : ""}
+      `;
+    }
+    if (currentTab === "videos") {
+      return `<div class="pod-vid-grid">${videos.map(buildVideoCard).join("") || `<div class="pod-empty"><div class="pod-empty__title">Videolar yo'q</div></div>`}</div>`;
+    }
+    if (currentTab === "shorts") {
+      return `<div class="pod-shorts-grid">${shorts.map(buildShortCard).join("") || `<div class="pod-empty"><div class="pod-empty__title">Shortslar yo'q</div></div>`}</div>`;
+    }
+    if (currentTab === "playlists") {
+      return `<div class="pod-pl-grid">${playlists.map(buildPlaylistCard).join("") || `<div class="pod-empty"><div class="pod-empty__title">Playlistlar yo'q</div></div>`}</div>`;
+    }
+    return "";
+  }
+
+  function buildChannelView(data) {
+    const ch = data.channel || {};
+    const banner = ch.banner ? `<div class="pod-ch-banner" style="background-image:url('${escapeHtml(ch.banner)}')"></div>` : `<div class="pod-ch-banner pod-ch-banner--fallback"></div>`;
+    const tabs = [
+      { id: "home", label: "Asosiy" },
+      { id: "videos", label: "Videolar" },
+      { id: "shorts", label: "Shorts" },
+      { id: "playlists", label: "Playlistlar" },
+    ];
+    return `
+      <header class="pod-topbar pod-topbar--channel">
+        <button class="pod-topbar__back" type="button" data-pod-back-to-list aria-label="Orqaga">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="pod-topbar__title pod-topbar__title--ch">${escapeHtml(ch.title || "")}</div>
+      </header>
+      <div class="pod-ch">
+        ${banner}
+        <div class="pod-ch-head">
+          <div class="pod-ch-head__row">
+            <div class="pod-ch-avatar">${ch.avatar ? `<img src="${escapeHtml(ch.avatar)}" alt="" />` : ""}</div>
+            <div class="pod-ch-info">
+              <h1 class="pod-ch-name">${escapeHtml(ch.title || "")}</h1>
+              <div class="pod-ch-meta">
+                <span>${escapeHtml(ch.handle || "")}</span>
+                ${ch.handle ? '<span class="pod-ch-dot">·</span>' : ""}
+                <span>${formatCount(ch.subscriberCount)} obunachi</span>
+                <span class="pod-ch-dot">·</span>
+                <span>${formatCount(ch.videoCount)} video</span>
+              </div>
+              ${ch.description ? `<div class="pod-ch-desc">${escapeHtml(ch.description.slice(0, 160))}${ch.description.length > 160 ? "…" : ""}</div>` : ""}
+            </div>
+          </div>
+          <div class="pod-ch-actions">
+            <button class="pod-ch-sub" type="button" data-pod-subscribe>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+              <span>Obuna bo'lish</span>
+            </button>
+          </div>
+        </div>
+        <nav class="pod-ch-tabs">
+          ${tabs.map((t) => `<button type="button" class="pod-ch-tab ${t.id === currentTab ? "is-active" : ""}" data-pod-ch-tab="${t.id}">${t.label}</button>`).join("")}
+        </nav>
+        <div class="pod-ch-content" id="podChContent">
+          ${buildTabContent(data)}
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- Video player modal (youtube-nocookie iframe) ----------
+
+  function openPlayer(videoId) {
+    let modal = document.getElementById("podPlayerModal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "podPlayerModal";
+      modal.className = "pod-player-modal";
+      modal.innerHTML = `
+        <div class="pod-player-modal__backdrop" data-pod-player-close></div>
+        <div class="pod-player-modal__card">
+          <button class="pod-player-modal__close" type="button" data-pod-player-close aria-label="Yopish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+          <div class="pod-player-modal__iframe-wrap">
+            <iframe id="podPlayerIframe" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.addEventListener("click", (e) => {
+        if (e.target.closest("[data-pod-player-close]")) closePlayer();
+      });
+    }
+    const iframe = modal.querySelector("#podPlayerIframe");
+    iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
+    modal.classList.add("is-visible");
+    document.body.classList.add("is-pod-player-open");
+  }
+
+  function closePlayer() {
+    const modal = document.getElementById("podPlayerModal");
+    if (!modal) return;
+    const iframe = modal.querySelector("#podPlayerIframe");
+    if (iframe) iframe.src = "";
+    modal.classList.remove("is-visible");
+    document.body.classList.remove("is-pod-player-open");
+  }
+
+  // ---------- Rendering & events ----------
+
+  function renderList() {
+    currentView = "list";
+    currentChannelId = null;
+    currentChannelData = null;
+    podcastsRoot.innerHTML = buildList();
+    wireListEvents();
+  }
+
+  async function renderChannel(channelId) {
+    currentView = "channel";
+    currentChannelId = channelId;
+    currentTab = "home";
+    podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Kanal yuklanmoqda...</div></div>`;
+    try {
+      const data = await loadChannelView(channelId);
+      currentChannelData = data;
+      podcastsRoot.innerHTML = buildChannelView(data);
+      wireChannelEvents();
+    } catch (err) {
+      podcastsRoot.innerHTML = `<div class="pod-empty"><div class="pod-empty__title">Xato</div><div class="pod-empty__hint">${escapeHtml(err.message)}</div><button class="pod-ch-sub" type="button" data-pod-back-to-list style="margin-top:14px;">Orqaga</button></div>`;
+      podcastsRoot.querySelector("[data-pod-back-to-list]")?.addEventListener("click", renderList);
+    }
+  }
+
+  function wireListEvents() {
+    podcastsRoot.querySelector("[data-pod-close]")?.addEventListener("click", () => {
+      haptic("light");
+      closePodcastsView();
+    });
+    podcastsRoot.querySelectorAll("[data-pod-open]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const id = btn.dataset.podCat;
-        if (id === currentCategory) return;
-        currentCategory = id;
         haptic("light");
-        rerenderBody();
+        renderChannel(btn.dataset.podOpen);
       });
     });
+  }
 
-    const search = podcastsRoot.querySelector("#podSearchInput");
-    if (search) {
-      search.value = currentQuery;
-      let t = null;
-      search.addEventListener("input", () => {
-        clearTimeout(t);
-        t = setTimeout(() => {
-          currentQuery = search.value || "";
-          const old = podcastsRoot.querySelector(".pod-episodes")?.closest(".pod-section");
-          const emptyOld = podcastsRoot.querySelector(".pod-empty-mini")?.closest(".pod-section");
-          const newHtml = buildEpisodesList();
-          const wrap = document.createElement("div");
-          wrap.innerHTML = newHtml;
-          if (old) old.replaceWith(wrap.firstElementChild);
-          else if (emptyOld) emptyOld.replaceWith(wrap.firstElementChild);
-          else podcastsRoot.appendChild(wrap.firstElementChild);
-          wireEvents();
-        }, 180);
+  function wireChannelEvents() {
+    podcastsRoot.querySelector("[data-pod-back-to-list]")?.addEventListener("click", () => {
+      haptic("light");
+      renderList();
+    });
+    podcastsRoot.querySelectorAll("[data-pod-ch-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.podChTab;
+        if (tab === currentTab) return;
+        currentTab = tab;
+        haptic("light");
+        podcastsRoot.querySelectorAll("[data-pod-ch-tab]").forEach((b) => {
+          b.classList.toggle("is-active", b.dataset.podChTab === tab);
+        });
+        const content = podcastsRoot.querySelector("#podChContent");
+        if (content && currentChannelData) {
+          content.innerHTML = buildTabContent(currentChannelData);
+          wireContentEvents();
+        }
       });
-    }
+    });
+    podcastsRoot.querySelector("[data-pod-subscribe]")?.addEventListener("click", () => {
+      haptic("medium");
+      showToast("Obuna bo'lish funksiyasi yaqin orada");
+    });
+    wireContentEvents();
+  }
 
-    podcastsRoot.querySelectorAll("[data-pod-play], [data-pod-show], [data-pod-more]").forEach((el) => {
+  function wireContentEvents() {
+    podcastsRoot.querySelectorAll("[data-pod-play-video]").forEach((el) => {
       el.addEventListener("click", (e) => {
-        if (e.target.closest("[data-pod-cat]")) return;
+        e.preventDefault();
         haptic("light");
-        showToast("Tez orada o'ynash imkoniyati qo'shiladi");
+        openPlayer(el.dataset.podPlayVideo);
+      });
+    });
+    // Playlist link'lari — YouTube'ga o'tmasin, in-app pleyer ochsin (birinchi videoni)
+    podcastsRoot.querySelectorAll("[data-pod-pl]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
+        haptic("light");
+        showToast("Playlist tez orada qo'shiladi");
       });
     });
   }
 
-  function wireHero() {
-    const track = podcastsRoot.querySelector("#podHeroTrack");
-    const dots = podcastsRoot.querySelectorAll("[data-pod-dot]");
-    if (!track || !dots.length) return;
-    const updateDot = () => {
-      const i = Math.round(track.scrollLeft / track.clientWidth);
-      dots.forEach((d, idx) => d.classList.toggle("is-active", idx === i));
-    };
-    track.addEventListener("scroll", () => {
-      requestAnimationFrame(updateDot);
-    }, { passive: true });
-    dots.forEach((d, i) => {
-      d.addEventListener("click", () => {
-        track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" });
-      });
-    });
-  }
+  // ---------- Public API ----------
 
-  function openPodcastsView() {
+  async function openPodcastsView() {
     if (!podcastsView) return;
-    if (!rendered) {
-      renderAll();
-      rendered = true;
-    }
     podcastsView.hidden = false;
     document.body.classList.add("is-podcasts");
     document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    if (!loaded) {
+      podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Yuklanmoqda...</div></div>`;
+      await loadChannels();
+    }
+    renderList();
   }
 
   function closePodcastsView() {
     if (!podcastsView) return;
     podcastsView.hidden = true;
     document.body.classList.remove("is-podcasts");
+    closePlayer();
   }
 
   window.__potcasts = { openPodcastsView, closePodcastsView };
