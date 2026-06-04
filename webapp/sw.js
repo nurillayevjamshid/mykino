@@ -1,4 +1,4 @@
-const VERSION = "v20260603-icons2px";
+const VERSION = "v20260603-icons2px02";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
