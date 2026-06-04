@@ -165,6 +165,28 @@
       `;
     }).join("");
 
+    // Statistika kartochkalari
+    const totalVideos = channels.reduce((sum, c) => sum + Number((c.snapshot || {}).videoCount || 0), 0);
+    const totalSubs = channels.reduce((sum, c) => sum + Number((c.snapshot || {}).subscriberCount || 0), 0);
+    const statsHtml = channels.length ? `
+      <div class="pod-stats-row">
+        <div class="pod-stat-card pod-stat-card--green">
+          <div class="pod-stat-card__icon">🎬</div>
+          <div class="pod-stat-card__info">
+            <div class="pod-stat-card__number">${formatCount(totalVideos)}</div>
+            <div class="pod-stat-card__label">ta video</div>
+          </div>
+        </div>
+        <div class="pod-stat-card pod-stat-card--yellow">
+          <div class="pod-stat-card__icon">👥</div>
+          <div class="pod-stat-card__info">
+            <div class="pod-stat-card__number">${formatCount(totalSubs)}</div>
+            <div class="pod-stat-card__label">obunachi</div>
+          </div>
+        </div>
+      </div>
+    ` : "";
+
     return `
       <header class="pod-topbar">
         <div class="pod-topbar__title">
@@ -178,6 +200,7 @@
       </header>
       <div class="pod-list">
         ${buildFeaturedChannels()}
+        ${statsHtml}
         ${channels.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali kanal qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube kanal qo'shing</div></div>`}
       </div>
     `;

@@ -7334,7 +7334,7 @@ body.is-podcasts .app-shell > .app-footer { display: none !important; }
   margin-bottom: 10px;
 }
 .pod-hero__title {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 800;
   color: #fff;
   margin: 0;
@@ -11160,6 +11160,60 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
   flex-direction: column;
   gap: 10px;
 }
+
+/* Statistika kartochkalari — yashil video + sariq obunachi */
+.pod-stats-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.pod-stat-card {
+  flex: 1;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+.pod-stat-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,.25);
+}
+.pod-stat-card__info {
+  display: flex;
+  flex-direction: column;
+}
+.pod-stat-card__number {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.pod-stat-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: .85;
+  margin-top: 2px;
+}
+.pod-stat-card--green {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+.pod-stat-card--yellow {
+  background: linear-gradient(135deg, #ffc107, #ffcd38);
+  color: #333;
+}
+.pod-stat-card--yellow .pod-stat-card__icon {
+  background: rgba(0,0,0,.1);
+}
+
 .podcasts-view .pod-channel-row {
   position: relative;
   isolation: isolate;
