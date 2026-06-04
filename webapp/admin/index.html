@@ -62,6 +62,16 @@
               <span class="nav-text">Musiqa</span>
             </a>
           </li>
+          <li class="nav-item" data-section="podcasts">
+            <a href="#" class="nav-link">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="2" width="6" height="13" rx="3"></rect>
+                <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="22"></line>
+              </svg>
+              <span class="nav-text">Potkastlar</span>
+            </a>
+          </li>
           <li class="nav-item" data-section="categories">
             <a href="#" class="nav-link">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -425,6 +435,78 @@
               </div>
             </div>
           </div><!-- /artists tabpanel -->
+        </section>
+
+        <!-- Podcasts Section -->
+        <section class="content-section" id="podcastsSection">
+          <div class="section-header">
+            <h2>Potkast kanallari</h2>
+            <p class="form-hint">YouTube kanal linkini joylang — kanal nomi, rasmi va oxirgi ~15 ta video RSS orqali avtomatik tortib olinadi.</p>
+          </div>
+
+          <div class="form-card">
+            <h3 class="form-card__title">Yangi potkast kanal qo'shish</h3>
+            <form id="podcastForm" class="movie-form" autocomplete="off">
+              <div class="form-row form-row--single">
+                <div class="form-group">
+                  <label for="podcastUrl">YouTube kanal linki</label>
+                  <input type="text" id="podcastUrl" placeholder="https://www.youtube.com/@KanalNomi yoki https://www.youtube.com/channel/UC..." required />
+                  <small class="form-hint">Qabul qilinadi: <code>youtube.com/@handle</code>, <code>youtube.com/channel/UC...</code>, <code>youtube.com/c/Nomi</code>, <code>youtube.com/user/Nomi</code></small>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="podcastCategory">Kategoriya</label>
+                  <select id="podcastCategory">
+                    <option value="Boshqa">Boshqa</option>
+                    <option value="Suhbat">Suhbat</option>
+                    <option value="Biznes">Biznes</option>
+                    <option value="Texnologiya">Texnologiya</option>
+                    <option value="Madaniyat">Madaniyat</option>
+                    <option value="Tarix">Tarix</option>
+                    <option value="Sport">Sport</option>
+                    <option value="Hayot">Hayot</option>
+                    <option value="Yumor">Yumor</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="podcastNameOverride">Ko'rsatiladigan nom (ixtiyoriy)</label>
+                  <input type="text" id="podcastNameOverride" placeholder="Bo'sh qoldirsangiz, kanal nomi avtomatik olinadi" />
+                </div>
+              </div>
+              <div class="form-row">
+                <button type="submit" class="btn btn-primary" id="podcastSubmitBtn">
+                  <span class="btn-text">Kanal qo'shish</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="podcastResetBtn">Tozalash</button>
+              </div>
+              <div class="form-status" id="podcastFormStatus" hidden></div>
+            </form>
+          </div>
+
+          <div class="form-card">
+            <div class="form-card__header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <h3 class="form-card__title" style="margin:0;">Qo'shilgan kanallar (<span id="podcastCount">0</span>)</h3>
+              <button type="button" class="btn btn-secondary" id="podcastReloadBtn">Yangilash</button>
+            </div>
+            <div class="table-wrapper">
+              <table class="data-table" id="podcastTable">
+                <thead>
+                  <tr>
+                    <th style="width:60px;">#</th>
+                    <th>Kanal</th>
+                    <th>Kategoriya</th>
+                    <th>Videolar</th>
+                    <th>Yangilangan</th>
+                    <th style="width:180px;">Amallar</th>
+                  </tr>
+                </thead>
+                <tbody id="podcastTableBody">
+                  <tr><td colspan="6" style="text-align:center; padding:20px; color:#888;">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <!-- Categories Section -->
