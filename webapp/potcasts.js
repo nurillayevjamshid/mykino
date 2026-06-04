@@ -454,18 +454,14 @@
   function shareChannel() {
     if (!currentChannelData) return;
     const ch = currentChannelData.channel || {};
-    const handle = ch.handle || "";
     const subText = formatCount(ch.subscriberCount) + " obunachi";
     const vidText = formatCount(ch.videoCount) + " video";
-    const desc = (ch.description || "").slice(0, 200);
     const avatar = ch.avatar || "";
     const link = `https://t.me/mykinoplay_bot?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
-    let text = `🎙️ ${ch.title || ""}\n`;
-    text += `👥 ${subText} · 🎬 ${vidText}\n`;
-    if (handle) text += `📺 ${handle}\n`;
-    if (desc) text += `\n${desc}\n`;
-    text += `\n▶️ Ko'rish: ${link}`;
-    // Telegram link preview uchun avatar URL ni url parametriga beramiz — rasm chiqadi
+    let text = `${ch.title || ""}\n\n`;
+    text += `👥 ${subText}\n`;
+    text += `🎬 ${vidText}\n\n`;
+    text += `▶️ ${link}`;
     const shareUrl = avatar
       ? `https://t.me/share/url?url=${encodeURIComponent(avatar)}&text=${encodeURIComponent(text)}`
       : `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
