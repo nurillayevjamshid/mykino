@@ -7334,7 +7334,7 @@ body.is-podcasts .app-shell > .app-footer { display: none !important; }
   margin-bottom: 10px;
 }
 .pod-hero__title {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 800;
   color: #fff;
   margin: 0;
@@ -11315,10 +11315,11 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
 .podcasts-view .pod-channel-row__title {
   min-width: 0;
   flex: 1;
-  font-weight: 800; font-size: 15px;
-  line-height: 1.15;
+  font-weight: 800; font-size: 18px;
+  line-height: 1.2;
   color: var(--text-1, #1a1d2e);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-bottom: 6px;
 }
 .podcasts-view .pod-channel-row__pill {
   flex: 0 0 auto;
@@ -11349,11 +11350,11 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
   white-space: nowrap;
 }
 .podcasts-view .pod-channel-row__tag--green {
-  background: linear-gradient(135deg, #28a745, #20c997);
+  background: linear-gradient(135deg, rgba(40,167,69,.55), rgba(32,201,151,.55));
   color: #fff;
 }
 .podcasts-view .pod-channel-row__tag--yellow {
-  background: linear-gradient(135deg, #ffc107, #ffcd38);
+  background: linear-gradient(135deg, rgba(255,193,7,.55), rgba(255,205,56,.55));
   color: #333;
 }
 .podcasts-view .pod-channel-row__desc {
