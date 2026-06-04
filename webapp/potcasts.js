@@ -458,8 +458,11 @@
     const subText = formatCount(ch.subscriberCount) + " obunachi";
     const vidText = formatCount(ch.videoCount) + " video";
     const desc = (ch.description || "").slice(0, 200);
+    const avatar = ch.avatar || "";
     const link = `https://t.me/mykinoplay_bot?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
-    let text = `🎙️ ${ch.title || ""}\n`;
+    let text = "";
+    if (avatar) text += `${avatar}\n\n`;
+    text += `🎙️ ${ch.title || ""}\n`;
     text += `👥 ${subText} · 🎬 ${vidText}\n`;
     if (handle) text += `📺 ${handle}\n`;
     if (desc) text += `\n${desc}\n`;
