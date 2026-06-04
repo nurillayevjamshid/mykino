@@ -14,6 +14,7 @@ let userSearchQuery = '';
 const SECTION_TITLES = {
   movies: 'Kinolar',
   music: 'Musiqa',
+  podcasts: 'Potkastlar',
   categories: 'Kategoriyalar',
   users: 'Obunachilar',
   ad: 'Reklama',
@@ -455,6 +456,7 @@ function switchSection(name) {
   const sections = {
     movies: 'moviesSection',
     music: 'musicSection',
+    podcasts: 'podcastsSection',
     categories: 'categoriesSection',
     users: 'usersSection',
     ad: 'adSection',
@@ -477,6 +479,7 @@ function switchSection(name) {
 
   if (name === 'users') fetchUsers();
   if (name === 'music') fetchMusic();
+  if (name === 'podcasts') fetchPodcasts();
   if (name === 'categories') fetchCategories();
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
 
@@ -3192,4 +3195,138 @@ document.getElementById('preRollAdClearBtn')?.addEventListener('click', () => {
 });
 
 document.getElementById('preRollAdReloadBtn')?.addEventListener('click', () => loadPreRollDriveVideos());
+
+// ============ POTKASTLAR ============
+let podcastChannels = [];
+
+function formatCount(n) {
+  const x = Number(n || 0);
+  if (x >= 1_000_000) return (x / 1_000_000).toFixed(x >= 10_000_000 ? 0 : 1).replace(/\.0$/, '') + 'M';
+  if (x >= 1_000) return (x / 1_000).toFixed(x >= 10_000 ? 0 : 1).replace(/\.0$/, '') + 'K';
+  return String(x);
+}
+
+async function fetchPodcasts() {
+  const grid = document.getElementById('podcastsListGrid');
+  const summary = document.getElementById('podcastsStorageSummary');
+  if (grid) grid.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Kanallar yuklanmoqda...</p></div>';
+  try {
+    const r = await fetch(`${API_URL}/podcasts`);
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'Yuklab bo\'lmadi.');
+    podcastChannels = Array.isArray(data.channels) ? data.channels : [];
+    renderPodcasts();
+    if (summary) summary.textContent = `${podcastChannels.length} ta kanal qo'shilgan.`;
+  } catch (err) {
+    console.error('podcasts fetch:', err);
+    if (grid) grid.innerHTML = `<div class="empty-state error-state"><h3>Kanallarni yuklab bo'lmadi</h3><p>${escapeHtml(err.message)}</p></div>`;
+    if (summary) summary.textContent = 'Xatolik: ' + err.message;
+  }
+}
+
+function renderPodcasts() {
+  const grid = document.getElementById('podcastsListGrid');
+  if (!grid) return;
+  if (!podcastChannels.length) {
+    grid.innerHTML = '<div class="empty-state"><p>Hali kanal qo\'shilmagan.</p></div>';
+    return;
+  }
+  grid.innerHTML = podcastChannels.map((c) => {
+    const s = c.snapshot || {};
+    const banner = s.banner ? `background:url('${escapeHtml(s.banner)}') center/cover no-repeat;` : 'background:linear-gradient(135deg,#3d4adf,#7c4ad4);';
+    return `
+      <div class="podcast-admin-card" style="border:1px solid var(--border,#e3e6ec);border-radius:14px;overflow:hidden;background:var(--card,#fff);">
+        <div style="height:80px;${banner}"></div>
+        <div style="display:flex;gap:12px;padding:14px;align-items:flex-start;margin-top:-30px;">
+          <img src="${escapeHtml(s.avatar || '')}" alt="" style="width:56px;height:56px;border-radius:50%;border:3px solid var(--card,#fff);object-fit:cover;background:#eee;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:15px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.title || c.channelId)}</div>
+            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:2px;">${escapeHtml(s.handle || '')}</div>
+            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:4px;">${formatCount(s.subscriberCount)} obunachi · ${formatCount(s.videoCount)} video</div>
+          </div>
+        </div>
+        <div style="padding:0 14px 14px;display:flex;gap:8px;">
+          <a class="btn btn-secondary" href="https://www.youtube.com/channel/${escapeHtml(c.channelId)}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:13px;padding:8px;">YouTube</a>
+          <button class="btn btn-secondary" data-pod-refresh="${escapeHtml(c.channelId)}" style="font-size:13px;padding:8px 12px;">↻</button>
+          <button class="btn btn-danger" data-pod-delete="${escapeHtml(c.channelId)}|${escapeHtml(s.title || c.channelId)}" style="font-size:13px;padding:8px 12px;">O'chirish</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function addPodcastChannel(input) {
+  const btn = document.getElementById('podcastSubmitBtn');
+  const hint = document.getElementById('podcastInputHint');
+  if (btn) { btn.disabled = true; btn.textContent = 'Qo\'shilmoqda...'; }
+  if (hint) { hint.textContent = 'YouTube\'dan ma\'lumot olinmoqda...'; hint.style.color = ''; }
+  try {
+    const r = await fetch(`${API_URL}/podcasts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add', input }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'Qo\'shib bo\'lmadi.');
+    podcastChannels = Array.isArray(data.channels) ? data.channels : podcastChannels;
+    renderPodcasts();
+    document.getElementById('podcastInput').value = '';
+    if (hint) { hint.textContent = `Qo'shildi: ${data.channel?.snapshot?.title || ''}`; hint.style.color = '#28a745'; }
+  } catch (err) {
+    if (hint) { hint.textContent = 'Xato: ' + err.message; hint.style.color = '#ff6b6b'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '+ Kanal qo\'shish'; }
+  }
+}
+
+async function deletePodcastChannel(channelId, title) {
+  if (!confirm(`O'chirilsinmi: ${title}?`)) return;
+  try {
+    const r = await fetch(`${API_URL}/podcasts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', channelId }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'O\'chirib bo\'lmadi.');
+    podcastChannels = Array.isArray(data.channels) ? data.channels : podcastChannels.filter((c) => c.channelId !== channelId);
+    renderPodcasts();
+  } catch (err) {
+    alert('Xato: ' + err.message);
+  }
+}
+
+async function refreshPodcastChannel(channelId) {
+  try {
+    const r = await fetch(`${API_URL}/podcasts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'refresh', channelId }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'Yangilab bo\'lmadi.');
+    const idx = podcastChannels.findIndex((c) => c.channelId === channelId);
+    if (idx >= 0 && data.channel) podcastChannels[idx] = data.channel;
+    renderPodcasts();
+  } catch (err) {
+    alert('Xato: ' + err.message);
+  }
+}
+
+document.getElementById('podcastForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = document.getElementById('podcastInput')?.value.trim();
+  if (input) addPodcastChannel(input);
+});
+document.getElementById('podcastReloadBtn')?.addEventListener('click', () => fetchPodcasts());
+document.getElementById('podcastsListGrid')?.addEventListener('click', (e) => {
+  const del = e.target.closest('[data-pod-delete]');
+  if (del) {
+    const [id, title] = del.dataset.podDelete.split('|');
+    deletePodcastChannel(id, title);
+    return;
+  }
+  const ref = e.target.closest('[data-pod-refresh]');
+  if (ref) refreshPodcastChannel(ref.dataset.podRefresh);
+});
 

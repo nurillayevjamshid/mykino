@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { setCors } = require("./_lib/google-drive");
+const { handlePodcastsRequest } = require("./_lib/podcasts");
 
 const SEED_FILE = path.join(process.cwd(), "data", "music.json");
 const REDIS_KEY = "music:tracks:v1";
@@ -324,6 +325,10 @@ module.exports = async function handler(request, response) {
   const resource = String(request.query?.resource || "").toLowerCase();
   if (resource === "artists") {
     await handleArtistsRequest(request, response);
+    return;
+  }
+  if (resource === "podcasts" || request.query?._podcasts) {
+    await handlePodcastsRequest(request, response);
     return;
   }
 
