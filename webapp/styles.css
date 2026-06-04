@@ -11119,8 +11119,12 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
   position: sticky;
   top: 0;
   z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   background: var(--bg-0, #fff);
   border-bottom: 1px solid rgba(0,0,0,.06);
+  padding: 10px 12px;
 }
 .podcasts-view .pod-topbar__title--ch {
   font-size: 16px;
@@ -11128,7 +11132,26 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
+  flex: 1;
+  margin: 0 8px;
 }
+.podcasts-view .pod-topbar__share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-2, #999);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+}
+.podcasts-view .pod-topbar__share:active { background: var(--surface-2); }
+.podcasts-view .pod-topbar__share svg { width: 20px; height: 20px; }
 
 /* List view */
 .podcasts-view .pod-list {
