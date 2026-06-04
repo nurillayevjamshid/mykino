@@ -322,6 +322,11 @@ module.exports = async function handler(request, response) {
   response.setHeader("Cache-Control", "no-store, max-age=0");
 
   const resource = String(request.query?.resource || "").toLowerCase();
+  // Potkast API alohida serverless funksiya bo'lmasligi uchun (Hobby plan 12 ta
+  // funksiya limiti) shu endpoint orqali delegatsiya qilinadi: /api/potcasts.
+  if (resource === "potcasts" || resource === "podcasts") {
+    return require("./_lib/potcasts.js")(request, response);
+  }
   if (resource === "artists") {
     await handleArtistsRequest(request, response);
     return;
