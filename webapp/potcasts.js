@@ -114,10 +114,6 @@
         <div class="pod-hero__gradient"></div>
         <div class="pod-hero__inner">
           <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
-          <button class="pod-hero__btn" type="button">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
-            <span>Ko'rish</span>
-          </button>
         </div>
       </div>
     `;
@@ -134,10 +130,6 @@
           <div class="pod-hero__gradient"></div>
           <div class="pod-hero__inner">
             <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
-            <button class="pod-hero__btn" type="button">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
-              <span>Ko'rish</span>
-            </button>
           </div>
         </div>
       `;
