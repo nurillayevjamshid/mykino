@@ -7242,11 +7242,11 @@ body.is-music .bottom-bar__button--music-only { display: flex; }
 body.is-music .bottom-bar [data-filter="all"] { display: none !important; }
 
 .podcasts-view {
-  background: var(--bg-0);
+  background: transparent;
   color: var(--text);
   padding: 0 0 110px;
-  border-radius: 18px;
-  margin: 6px 0 12px;
+  border-radius: 0;
+  margin: 0;
   font-family: inherit;
 }
 .podcasts-view[hidden] { display: none; }
@@ -7262,7 +7262,7 @@ body.is-podcasts .app-shell > .app-footer { display: none !important; }
   justify-content: center;
   align-items: center;
   padding: 14px 16px 10px;
-  background: var(--bg-0);
+  background: transparent;
 }
 .podcasts-view .pod-topbar__title {
   display: flex;
@@ -11642,12 +11642,12 @@ body.is-pod-player-open { overflow: hidden; }
 /* Light theme overrides — musiqa palitrasi (#1a1d2e / #5a6076 / #fff) */
 html[data-theme="light"] .podcasts-view {
   color: #1a1d2e;
-  background: var(--bg-0, #fff);
+  background: transparent;
 }
 html[data-theme="light"] .podcasts-view .pod-topbar,
 html[data-theme="light"] .podcasts-view .pod-topbar--channel {
-  background: var(--bg-0, #fff);
-  border-bottom-color: rgba(0,0,0,.06);
+  background: transparent;
+  border-bottom-color: transparent;
 }
 html[data-theme="light"] .podcasts-view .pod-topbar__back,
 html[data-theme="light"] .podcasts-view .pod-topbar__title,
