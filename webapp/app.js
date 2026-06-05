@@ -4561,8 +4561,12 @@ document.querySelectorAll("[data-action='home-tab']").forEach((btn) => {
 document.querySelectorAll(".bottom-bar [data-action='favorites']").forEach((btn) => {
   btn.addEventListener("click", () => {
     hideAllCustomViews();
-    const favComing = document.getElementById("favoritesComingSoon");
-    if (favComing) favComing.hidden = false;
+    try {
+      window.__potcasts?.openSavedView?.();
+    } catch (_) {
+      const favComing = document.getElementById("favoritesComingSoon");
+      if (favComing) favComing.hidden = false;
+    }
     setActiveBottomTab("favorites");
   });
 });
