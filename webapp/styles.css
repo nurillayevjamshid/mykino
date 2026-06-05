@@ -7236,13 +7236,12 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
 body.is-music .hero,
 body.is-music .movie-grid,
 body.is-music .app-shell > .app-footer { display: none !important; }
-.bottom-bar__button--music-only { display: none; }
-body.is-music .bottom-bar__button--movie-only { display: none; }
-body.is-music .bottom-bar__button--music-only { display: flex; }
-body.is-music .bottom-bar__button:not(.bottom-bar__button--music-only):not([data-action="profile"]) { display: none; }
-body.is-podcasts .bottom-bar__button--movie-only { display: none; }
-body.is-podcasts .bottom-bar__button--music-only { display: none; }
-body.is-music .bottom-bar [data-filter="all"] { display: none !important; }
+
+/* 3 ta alohida bottom-bar — sektsiyaga qarab almashtiriladi */
+.bottom-bar--music,
+.bottom-bar--podcast { display: none !important; }
+body.is-music .bottom-bar--movie { display: none !important; }
+body.is-music .bottom-bar--music { display: flex !important; }
 
 .podcasts-view {
   background: transparent;
@@ -7256,10 +7255,9 @@ body.is-music .bottom-bar [data-filter="all"] { display: none !important; }
 body.is-podcasts .hero,
 body.is-podcasts .movie-grid,
 body.is-podcasts .app-shell > .app-footer { display: none !important; }
-.bottom-bar__button--podcast-only { display: none; }
-body.is-podcasts .bottom-bar__button--movie-only { display: none !important; }
-body.is-podcasts .bottom-bar__button--music-only { display: none !important; }
-body.is-podcasts .bottom-bar__button--podcast-only { display: flex; }
+body.is-podcasts .bottom-bar--movie { display: none !important; }
+body.is-podcasts .bottom-bar--music { display: none !important; }
+body.is-podcasts .bottom-bar--podcast { display: flex !important; }
 
 .podcasts-view .pod-topbar {
   position: relative;
