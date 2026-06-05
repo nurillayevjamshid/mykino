@@ -440,6 +440,68 @@
           </span>
           <span class="bottom-bar__label">Profil</span>
         </button>
+        <button class="bottom-bar__button bottom-bar__button--movie-only" type="button" data-filter="all" aria-label="Kino" title="Kino">
+          <svg class="icon-svg movie-nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+            <path d="M7 3v18"></path>
+            <path d="M17 3v18"></path>
+            <path d="M3 12h18"></path>
+            <path d="M3 7.5h4"></path>
+            <path d="M3 16.5h4"></path>
+            <path d="M17 7.5h4"></path>
+            <path d="M17 16.5h4"></path>
+          </svg>
+          <span class="bottom-bar__label">Kino</span>
+        </button>
+        <button class="bottom-bar__button bottom-bar__button--movie-only" type="button" data-action="categories-view" aria-label="Kategoriyalar" title="Kategoriyalar">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+          </svg>
+          <span class="bottom-bar__label" data-i18n="categories">Kategoriya</span>
+        </button>
+        <button class="bottom-bar__button bottom-bar__button--movie-only" type="button" data-action="favorites" aria-label="Sevimlilar" title="Sevimlilar">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+          </svg>
+          <span class="bottom-bar__label" data-i18n="favoritesNav">Sevimlilar</span>
+        </button>
+        <button class="bottom-bar__button bottom-bar__button--music-only" type="button" data-action="categories" aria-label="Musiqa" title="Musiqa">
+          <svg class="icon-svg music-nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"></path>
+            <circle cx="6" cy="18" r="3"></circle>
+            <circle cx="18" cy="16" r="3"></circle>
+          </svg>
+          <span class="bottom-bar__label">Musiqa</span>
+        </button>
+        <button class="bottom-bar__button bottom-bar__button--music-only" type="button" data-action="artists" aria-label="Musiqachilar" title="Musiqachilar">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="13" rx="3"></rect>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <path d="M12 19v3"></path>
+            <path d="M8 22h8"></path>
+          </svg>
+          <span class="bottom-bar__label">Qo'shiqchilar</span>
+        </button>
+        <button class="bottom-bar__button bottom-bar__button--music-only" type="button" data-action="playlist" aria-label="Playlist" title="Playlist">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15V6"></path>
+            <circle cx="16" cy="16" r="2.5"></circle>
+            <path d="M3 6h13"></path>
+            <path d="M3 12h10"></path>
+            <path d="M3 18h7"></path>
+          </svg>
+          <span class="bottom-bar__label">Playlist</span>
+        </button>
+        <button class="bottom-bar__button bottom-bar__button--music-only profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
+          <span class="bottom-bar__avatar">
+            <img class="profile-trigger__photo" id="headerAvatarPhotoMusic" alt="Telegram user" hidden />
+            <span class="profile-trigger__initials" id="headerAvatarMusic">KI</span>
+          </span>
+          <span class="bottom-bar__label" data-i18n="profileNav">Profil</span>
+        </button>
       </div>
     </nav>
   </main>
