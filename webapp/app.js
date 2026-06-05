@@ -2523,6 +2523,11 @@ function renderProfileStats() {
 }
 
 function renderProfileModal() {
+  // Bo'lim bo'yicha tegishli renderga yo'naltirish (podcast ichida — podcast tarixi).
+  if (document.body.classList.contains("is-podcasts")) {
+    renderPodcastProfileModal();
+    return;
+  }
   const user = getTelegramUser();
   applyTelegramUser();
   if (watchedHistoryTitle) {
@@ -5277,6 +5282,9 @@ document.addEventListener("keydown", (event) => {
 
 document.querySelectorAll("[data-action='profile']").forEach((button) => {
   button.addEventListener("click", () => {
+    // Bottom-bar profile tugmasi alohida handler bilan boshqariladi (4574-qator) —
+    // u bo'lim (podcast/music/kino) bo'yicha to'g'ri renderni chaqiradi.
+    if (button.closest(".bottom-bar")) return;
     renderProfileModal();
     profileModal.showModal();
   });
