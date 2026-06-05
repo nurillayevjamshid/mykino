@@ -4762,8 +4762,6 @@ function renderPodcastProfileModal() {
       renderPodcastProfileModal();
     });
   });
-
-  profileModal.showModal();
 }
 
 // ===== Music modul: lazy-loader + stubs =====
