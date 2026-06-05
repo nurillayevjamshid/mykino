@@ -4554,16 +4554,16 @@ document.querySelectorAll("[data-action='podcasts-tab']").forEach((btn) => {
   });
 });
 
-document.querySelectorAll("[data-action='home-tab']").forEach((btn) => {
+document.querySelectorAll("[data-action='podcast-discover']").forEach((btn) => {
   btn.addEventListener("click", () => {
     hideAllCustomViews();
     const catComing = document.getElementById("categoryComingSoon");
     if (catComing) catComing.hidden = false;
-    setActiveBottomTab("home-tab");
+    setActiveBottomTab("podcast-discover");
   });
 });
 
-document.querySelectorAll(".bottom-bar [data-action='favorites']").forEach((btn) => {
+document.querySelectorAll(".bottom-bar [data-action='podcast-saved']").forEach((btn) => {
   btn.addEventListener("click", () => {
     hideAllCustomViews();
     try {
@@ -4572,7 +4572,7 @@ document.querySelectorAll(".bottom-bar [data-action='favorites']").forEach((btn)
       const favComing = document.getElementById("favoritesComingSoon");
       if (favComing) favComing.hidden = false;
     }
-    setActiveBottomTab("favorites");
+    setActiveBottomTab("podcast-saved");
   });
 });
 
@@ -4824,7 +4824,7 @@ function openCategoriesView() {
   categoriesView.hidden = false;
   document.body.classList.add("is-categories");
   window.scrollTo({ top: 0, behavior: "smooth" });
-  setActiveBottomTab("home-tab");
+  setActiveBottomTab("categories-view");
   if (!categoriesLoaded) loadCategoriesCatalog();
   tgBackRegister("categories-view", () => { try { closeCategoriesView(); setFilter("all"); } catch (_) {} });
 }
