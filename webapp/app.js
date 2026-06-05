@@ -4584,8 +4584,12 @@ document.querySelectorAll("[data-action='podcasts-tab']").forEach((btn) => {
 document.querySelectorAll("[data-action='podcast-discover']").forEach((btn) => {
   btn.addEventListener("click", () => {
     hideAllCustomViews();
-    const catComing = document.getElementById("categoryComingSoon");
-    if (catComing) catComing.hidden = false;
+    try {
+      window.__potcasts?.openCategoriesView?.();
+    } catch (_) {
+      const catComing = document.getElementById("categoryComingSoon");
+      if (catComing) catComing.hidden = false;
+    }
     setActiveBottomTab("podcast-discover");
   });
 });
