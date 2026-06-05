@@ -7253,6 +7253,10 @@ body.is-music .bottom-bar [data-filter="all"] { display: none !important; }
 body.is-podcasts .hero,
 body.is-podcasts .movie-grid,
 body.is-podcasts .app-shell > .app-footer { display: none !important; }
+.bottom-bar__button--podcast-only { display: none; }
+body.is-podcasts .bottom-bar__button--movie-only { display: none !important; }
+body.is-podcasts .bottom-bar__button--music-only { display: none !important; }
+body.is-podcasts .bottom-bar__button--podcast-only { display: flex; }
 
 .podcasts-view .pod-topbar {
   position: relative;
