@@ -4881,7 +4881,13 @@ document.querySelectorAll("[data-action='categories-view']").forEach((btn) => {
 });
 
 document.querySelectorAll(".bottom-bar [data-action='profile']").forEach((b) => {
-  b.addEventListener("click", closeCategoriesView);
+  b.addEventListener("click", () => {
+    closeCategoriesView();
+    try {
+      renderProfileModal();
+      profileModal.showModal();
+    } catch (_) {}
+  });
 });
 
 categoriesGrid?.addEventListener("click", (event) => {
