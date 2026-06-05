@@ -7239,7 +7239,7 @@ body.is-music .app-shell > .app-footer { display: none !important; }
 .bottom-bar__button--music-only { display: none; }
 body.is-music .bottom-bar__button--movie-only { display: none; }
 body.is-music .bottom-bar__button--music-only { display: flex; }
-body.is-music .bottom-bar__button:not(.bottom-bar__button--music-only) { display: none; }
+body.is-music .bottom-bar__button:not(.bottom-bar__button--music-only):not([data-action="profile"]) { display: none; }
 body.is-podcasts .bottom-bar__button--movie-only { display: none; }
 body.is-podcasts .bottom-bar__button--music-only { display: none; }
 body.is-music .bottom-bar [data-filter="all"] { display: none !important; }
