@@ -229,31 +229,31 @@
     const favs = getPodcastFavorites();
     const isFav = favs.has(v.videoId);
     return `
-      <button class="pod-vid-card" type="button" data-pod-play-video="${escapeHtml(v.videoId)}">
+      <div class="pod-vid-card" role="button" tabindex="0" data-pod-play-video="${escapeHtml(v.videoId)}">
         <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
           <span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>
-          <button class="pod-fav-btn${isFav ? " is-active" : ""}" type="button" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
+          <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
             ${bookmarkSvg()}
-          </button>
+          </span>
         </div>
         <div class="pod-vid-card__title">${escapeHtml(v.title)}</div>
         <div class="pod-vid-card__meta">${formatCount(v.viewCount)} ko'rishlar · ${escapeHtml(timeAgo(v.publishedAt))}</div>
-      </button>
+      </div>
     `;
   }
 
   function buildShortCard(v) {
     const isFav = getPodcastFavorites().has(v.videoId);
     return `
-      <button class="pod-short-card" type="button" data-pod-play-video="${escapeHtml(v.videoId)}">
+      <div class="pod-short-card" role="button" tabindex="0" data-pod-play-video="${escapeHtml(v.videoId)}">
         <div class="pod-short-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
-          <button class="pod-fav-btn${isFav ? " is-active" : ""}" type="button" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
+          <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
             ${bookmarkSvg()}
-          </button>
+          </span>
         </div>
         <div class="pod-short-card__title">${escapeHtml(v.title)}</div>
         <div class="pod-short-card__meta">${formatCount(v.viewCount)} ko'rishlar</div>
-      </button>
+      </div>
     `;
   }
 
@@ -625,16 +625,16 @@
 
   function buildSavedCard(v) {
     return `
-      <button class="pod-vid-card" type="button" data-pod-play-saved="${escapeHtml(v.videoId)}">
+      <div class="pod-vid-card" role="button" tabindex="0" data-pod-play-saved="${escapeHtml(v.videoId)}">
         <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb || "")}')">
           ${v.durationSec ? `<span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>` : ""}
-          <button class="pod-fav-btn is-active" type="button" data-pod-saved-remove="${escapeHtml(v.videoId)}" aria-label="O'chirish" aria-pressed="true">
+          <span class="pod-fav-btn is-active" role="button" tabindex="0" data-pod-saved-remove="${escapeHtml(v.videoId)}" aria-label="O'chirish" aria-pressed="true">
             ${bookmarkSvg()}
-          </button>
+          </span>
         </div>
         <div class="pod-vid-card__title">${escapeHtml(v.title || "Noma'lum video")}</div>
         <div class="pod-vid-card__meta">${escapeHtml(v.channelTitle || "")}</div>
-      </button>
+      </div>
     `;
   }
 
