@@ -699,7 +699,131 @@
     renderSavedView();
   }
 
-  window.__potcasts = { openPodcastsView, closePodcastsView, openSavedView: openPodcastsSavedView };
+  // ---------- Kategoriyalar view (Ruscha / O'zbekcha / Inglizcha) ----------
+
+  function detectChannelLang(channel) {
+    const snap = channel?.snapshot || {};
+    const country = String(snap.country || "").toUpperCase();
+    if (country === "UZ") return "uz";
+    if (["RU", "KZ", "BY", "UA", "KG", "TJ"].includes(country)) return "ru";
+    if (["US", "GB", "CA", "AU", "IN", "IE", "NZ", "ZA"].includes(country)) return "en";
+    const text = `${snap.title || ""} ${snap.description || ""}`;
+    if (/[Ѐ-ӿ]/.test(text)) return "ru";
+    if (/\b(o'|sh|ch|g'|uchun|haqida|qanday|ekan|bo'l)\b/i.test(text)) return "uz";
+    if (/[a-zA-Z]/.test(text) && !/[Ѐ-ӿ]/.test(text)) return "en";
+    return "uz";
+  }
+
+  const LANG_META = {
+    uz: { title: "O'zbekcha", emoji: "🇺🇿", grad: "linear-gradient(135deg, #00b894 0%, #00cec9 100%)" },
+    ru: { title: "Ruscha", emoji: "🇷🇺", grad: "linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)" },
+    en: { title: "Inglizcha", emoji: "🇬🇧", grad: "linear-gradient(135deg, #4a69ff 0%, #7b5cff 100%)" },
+  };
+
+  function buildCategoryCard(lang, count) {
+    const meta = LANG_META[lang];
+    return `
+      <button class="pod-cat-card" type="button" data-pod-cat="${lang}" style="background:${meta.grad}">
+        <span class="pod-cat-card__flag" aria-hidden="true">${meta.emoji}</span>
+        <span class="pod-cat-card__body">
+          <span class="pod-cat-card__title">${meta.title}</span>
+          <span class="pod-cat-card__count">${count} kanal</span>
+        </span>
+        <svg class="pod-cat-card__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+    `;
+  }
+
+  function renderCategoriesView() {
+    currentView = "categories";
+    currentChannelId = null;
+    currentChannelData = null;
+    const counts = { uz: 0, ru: 0, en: 0 };
+    channels.forEach((c) => { counts[detectChannelLang(c)]++; });
+    podcastsRoot.innerHTML = `
+      <header class="pod-topbar">
+        <div class="pod-topbar__title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+          </svg>
+          <span>Kategoriyalar</span>
+        </div>
+      </header>
+      <div class="pod-cat-list">
+        ${buildCategoryCard("uz", counts.uz)}
+        ${buildCategoryCard("ru", counts.ru)}
+        ${buildCategoryCard("en", counts.en)}
+      </div>
+    `;
+    podcastsRoot.querySelectorAll("[data-pod-cat]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        haptic("light");
+        renderLanguageList(btn.dataset.podCat);
+      });
+    });
+  }
+
+  function renderLanguageList(lang) {
+    currentView = "lang-list";
+    const meta = LANG_META[lang] || LANG_META.uz;
+    const filtered = channels.filter((c) => detectChannelLang(c) === lang);
+    const items = filtered.map((c) => {
+      const s = c.snapshot || {};
+      const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
+      const tags = `<span class="pod-channel-row__tag pod-channel-row__tag--green">${formatCount(s.videoCount)} video</span><span class="pod-channel-row__tag pod-channel-row__tag--yellow">${formatCount(s.subscriberCount)} obunachi</span>`;
+      return `
+        <button class="pod-channel-row" type="button" data-pod-open="${escapeHtml(c.channelId)}">
+          <span class="pod-channel-row__glow" aria-hidden="true"></span>
+          <div class="pod-channel-row__avatar">${avatar}</div>
+          <div class="pod-channel-row__body">
+            <div class="pod-channel-row__title">${escapeHtml(s.title || c.channelId)}</div>
+            <div class="pod-channel-row__meta">${tags}</div>
+          </div>
+          <span class="pod-channel-row__go" aria-hidden="true">
+            <svg class="pod-channel-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </span>
+        </button>
+      `;
+    }).join("");
+    podcastsRoot.innerHTML = `
+      <header class="pod-topbar pod-topbar--channel">
+        <button class="pod-topbar__back" type="button" data-pod-back-to-categories aria-label="Orqaga">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="pod-topbar__title pod-topbar__title--ch">${meta.emoji} ${meta.title}</div>
+        <span style="width:34px"></span>
+      </header>
+      <div class="pod-list">
+        ${filtered.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">${meta.emoji}</div><div class="pod-empty__title">Bu tilda kanal yo'q</div><div class="pod-empty__hint">Boshqa kategoriyani tanlang</div></div>`}
+      </div>
+    `;
+    podcastsRoot.querySelector("[data-pod-back-to-categories]")?.addEventListener("click", () => {
+      haptic("light");
+      renderCategoriesView();
+    });
+    podcastsRoot.querySelectorAll("[data-pod-open]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        haptic("light");
+        renderChannel(btn.dataset.podOpen);
+      });
+    });
+  }
+
+  async function openPodcastsCategoriesView() {
+    if (!podcastsView) return;
+    podcastsView.hidden = false;
+    document.body.classList.add("is-podcasts");
+    if (!loaded) {
+      podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Yuklanmoqda...</div></div>`;
+      await loadChannels();
+    }
+    renderCategoriesView();
+  }
+
+  window.__potcasts = { openPodcastsView, closePodcastsView, openSavedView: openPodcastsSavedView, openCategoriesView: openPodcastsCategoriesView };
   // Util funksiyalarni tashqariga chiqarish (app.js history/favorites uchun)
   window.__podUtils = { formatDuration, timeAgo, escapeHtml, getPodcastFavorites, togglePodcastFavorite, getSavedPodcastVideos };
 })();
