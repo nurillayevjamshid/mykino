@@ -7241,7 +7241,7 @@ body.is-music .app-shell > .app-footer { display: none !important; }
 .bottom-bar--music,
 .bottom-bar--podcast { display: none !important; }
 body.is-music .bottom-bar--movie { display: none !important; }
-body.is-music .bottom-bar--music { display: flex !important; }
+body.is-music .bottom-bar--music { display: block !important; }
 
 .podcasts-view {
   background: transparent;
@@ -7257,7 +7257,7 @@ body.is-podcasts .movie-grid,
 body.is-podcasts .app-shell > .app-footer { display: none !important; }
 body.is-podcasts .bottom-bar--movie { display: none !important; }
 body.is-podcasts .bottom-bar--music { display: none !important; }
-body.is-podcasts .bottom-bar--podcast { display: flex !important; }
+body.is-podcasts .bottom-bar--podcast { display: block !important; }
 
 .podcasts-view .pod-topbar {
   position: relative;
