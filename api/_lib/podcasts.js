@@ -124,6 +124,12 @@ function shapeChannel(item) {
   };
 }
 
+const LANG_ALLOWED = ["uz", "ru", "en"];
+function normalizeLang(v) {
+  const s = String(v || "").toLowerCase().trim();
+  return LANG_ALLOWED.includes(s) ? s : "";
+}
+
 function normalizeStored(ch) {
   if (!ch || typeof ch !== "object" || !ch.channelId) return null;
   return {
@@ -132,6 +138,7 @@ function normalizeStored(ch) {
     order: Number.isFinite(Number(ch.order)) ? Number(ch.order) : 0,
     snapshot: ch.snapshot || null,
     featured: Boolean(ch.featured),
+    lang: normalizeLang(ch.lang),
   };
 }
 
@@ -329,6 +336,7 @@ async function handlePodcastsRequest(request, response) {
           addedAt: Date.now(),
           order: list.length,
           snapshot,
+          lang: normalizeLang(body.lang),
         };
         list.push(entry);
         const ok = await writeChannels(list);
@@ -362,6 +370,7 @@ async function handlePodcastsRequest(request, response) {
         if (idx < 0) { response.status(404).json({ ok: false, error: "Topilmadi." }); return; }
         if (body.featured !== undefined) list[idx].featured = Boolean(body.featured);
         if (body.order !== undefined) list[idx].order = Number(body.order);
+        if (body.lang !== undefined) list[idx].lang = normalizeLang(body.lang);
         await writeChannels(list);
         response.status(200).json({ ok: true, channel: list[idx], channels: list });
         return;

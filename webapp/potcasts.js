@@ -702,6 +702,8 @@
   // ---------- Kategoriyalar view (Ruscha / O'zbekcha / Inglizcha) ----------
 
   function detectChannelLang(channel) {
+    const manual = String(channel?.lang || "").toLowerCase();
+    if (manual === "uz" || manual === "ru" || manual === "en") return manual;
     const snap = channel?.snapshot || {};
     const country = String(snap.country || "").toUpperCase();
     if (country === "UZ") return "uz";

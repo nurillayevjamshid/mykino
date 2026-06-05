@@ -3198,6 +3198,8 @@ document.getElementById('preRollAdReloadBtn')?.addEventListener('click', () => l
 
 // ============ POTKASTLAR ============
 let podcastChannels = [];
+let podcastNewLang = 'uz';
+const POD_LANG_LABEL = { uz: "🇺🇿 O'zbekcha", ru: '🇷🇺 Ruscha', en: '🇬🇧 Inglizcha' };
 
 function formatCount(n) {
   const x = Number(n || 0);
@@ -3246,6 +3248,12 @@ function renderPodcasts() {
           </div>
         </div>
         <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted,#666);margin-bottom:4px;">Kategoriya (til)</div>
+            <div class="pod-lang-row">
+              ${['uz','ru','en'].map((l) => `<button type="button" class="pod-lang-mini${(c.lang || '') === l ? ' is-active' : ''}" data-pod-set-lang="${escapeHtml(c.channelId)}|${l}">${POD_LANG_LABEL[l]}</button>`).join('')}
+            </div>
+          </div>
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none;">
             <input type="checkbox" ${c.featured ? 'checked' : ''} data-pod-featured="${escapeHtml(c.channelId)}" style="width:18px;height:18px;accent-color:var(--primary,#3b82f6);cursor:pointer;">
             <span>Header sectionda ko'rsatish</span>
@@ -3270,7 +3278,7 @@ async function addPodcastChannel(input) {
     const r = await fetch(`${API_URL}/podcasts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'add', input }),
+      body: JSON.stringify({ action: 'add', input, lang: podcastNewLang }),
     });
     const data = await r.json();
     if (!r.ok || !data.ok) throw new Error(data.error || 'Qo\'shib bo\'lmadi.');
@@ -3342,6 +3350,32 @@ document.getElementById('podcastForm')?.addEventListener('submit', (e) => {
   const input = document.getElementById('podcastInput')?.value.trim();
   if (input) addPodcastChannel(input);
 });
+document.getElementById('podcastLangPicker')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-pod-lang]');
+  if (!btn) return;
+  podcastNewLang = btn.dataset.podLang;
+  document.querySelectorAll('#podcastLangPicker .pod-lang-opt').forEach((b) => {
+    b.classList.toggle('is-active', b.dataset.podLang === podcastNewLang);
+  });
+});
+
+async function setPodcastLang(channelId, lang) {
+  try {
+    const r = await fetch(`${API_URL}/podcasts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', channelId, lang }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'Yangilab bo\'lmadi.');
+    const idx = podcastChannels.findIndex((c) => c.channelId === channelId);
+    if (idx >= 0 && data.channel) podcastChannels[idx] = data.channel;
+    renderPodcasts();
+    showNotification(`Kategoriya: ${POD_LANG_LABEL[lang] || lang}`);
+  } catch (err) {
+    showNotification('Xato: ' + err.message, 'error');
+  }
+}
 document.getElementById('podcastReloadBtn')?.addEventListener('click', () => fetchPodcasts());
 document.getElementById('podcastsListGrid')?.addEventListener('click', (e) => {
   const del = e.target.closest('[data-pod-delete]');
@@ -3351,7 +3385,12 @@ document.getElementById('podcastsListGrid')?.addEventListener('click', (e) => {
     return;
   }
   const ref = e.target.closest('[data-pod-refresh]');
-  if (ref) refreshPodcastChannel(ref.dataset.podRefresh);
+  if (ref) { refreshPodcastChannel(ref.dataset.podRefresh); return; }
+  const setLang = e.target.closest('[data-pod-set-lang]');
+  if (setLang) {
+    const [id, lang] = setLang.dataset.podSetLang.split('|');
+    setPodcastLang(id, lang);
+  }
 });
 document.getElementById('podcastsListGrid')?.addEventListener('change', (e) => {
   const cb = e.target.closest('[data-pod-featured]');
