@@ -185,25 +185,55 @@
 
   // ---------- Channel view (YouTube-style) ----------
 
-  // Podcast sevimlilar (localStorage)
-  function getPodcastFavorites() {
-    try { return new Set(JSON.parse(localStorage.getItem("podcastFavorites") || "[]")); } catch (_) { return new Set(); }
+  // Podcast saqlanganlar (localStorage) — bookmark format: { [videoId]: {meta} }
+  function readSavedStore() {
+    try {
+      const raw = localStorage.getItem("podcastFavorites");
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const obj = {};
+        for (const id of parsed) { if (id) obj[String(id)] = { videoId: String(id) }; }
+        return obj;
+      }
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (_) { return {}; }
   }
-  function togglePodcastFavorite(videoId) {
-    const favs = getPodcastFavorites();
-    if (favs.has(videoId)) { favs.delete(videoId); } else { favs.add(videoId); }
-    try { localStorage.setItem("podcastFavorites", JSON.stringify([...favs])); } catch (_) {}
-    return favs.has(videoId);
+  function writeSavedStore(store) {
+    try { localStorage.setItem("podcastFavorites", JSON.stringify(store)); } catch (_) {}
+  }
+  function getPodcastFavorites() {
+    return new Set(Object.keys(readSavedStore()));
+  }
+  function getSavedPodcastVideos() {
+    const store = readSavedStore();
+    return Object.values(store).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  }
+  function togglePodcastFavorite(videoId, meta) {
+    const store = readSavedStore();
+    const key = String(videoId);
+    if (store[key]) {
+      delete store[key];
+    } else {
+      store[key] = { videoId: key, ...(meta || {}), savedAt: Date.now() };
+    }
+    writeSavedStore(store);
+    return !!store[key];
+  }
+
+  function bookmarkSvg() {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>`;
   }
 
   function buildVideoCard(v) {
-    const isFav = getPodcastFavorites().has(v.videoId);
+    const favs = getPodcastFavorites();
+    const isFav = favs.has(v.videoId);
     return `
       <button class="pod-vid-card" type="button" data-pod-play-video="${escapeHtml(v.videoId)}">
         <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
           <span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>
-          <button class="pod-fav-btn${isFav ? " is-active" : ""}" type="button" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Sevimlilarga" aria-pressed="${isFav}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
+          <button class="pod-fav-btn${isFav ? " is-active" : ""}" type="button" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
+            ${bookmarkSvg()}
           </button>
         </div>
         <div class="pod-vid-card__title">${escapeHtml(v.title)}</div>
@@ -213,9 +243,14 @@
   }
 
   function buildShortCard(v) {
+    const isFav = getPodcastFavorites().has(v.videoId);
     return `
       <button class="pod-short-card" type="button" data-pod-play-video="${escapeHtml(v.videoId)}">
-        <div class="pod-short-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')"></div>
+        <div class="pod-short-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
+          <button class="pod-fav-btn${isFav ? " is-active" : ""}" type="button" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
+            ${bookmarkSvg()}
+          </button>
+        </div>
         <div class="pod-short-card__title">${escapeHtml(v.title)}</div>
         <div class="pod-short-card__meta">${formatCount(v.viewCount)} ko'rishlar</div>
       </button>
@@ -341,6 +376,23 @@
     if (!currentChannelData) return "";
     const all = [...(currentChannelData.videos || []), ...(currentChannelData.shorts || [])];
     return all.find((v) => v.videoId === videoId)?.title || "";
+  }
+
+  function findVideoMeta(videoId) {
+    if (!currentChannelData) return null;
+    const all = [...(currentChannelData.videos || []), ...(currentChannelData.shorts || [])];
+    const video = all.find((v) => v.videoId === videoId);
+    if (!video) return null;
+    const ch = currentChannelData.channel || {};
+    return {
+      title: video.title || "",
+      thumb: video.thumb || "",
+      durationSec: video.durationSec || 0,
+      viewCount: video.viewCount || 0,
+      publishedAt: video.publishedAt || "",
+      channelTitle: ch.title || "",
+      channelId: ch.channelId || "",
+    };
   }
 
   function openPlayer(videoId) {
@@ -524,16 +576,18 @@
         openPlayer(el.dataset.podPlayVideo);
       });
     });
-    // Sevimlilar tugmasi
+    // Saqlash tugmasi (bookmark)
     podcastsRoot.querySelectorAll("[data-pod-fav]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
         haptic("medium");
         const vid = btn.dataset.podFav;
-        const isActive = togglePodcastFavorite(vid);
+        const meta = findVideoMeta(vid);
+        const isActive = togglePodcastFavorite(vid, meta);
         btn.classList.toggle("is-active", isActive);
         btn.setAttribute("aria-pressed", String(isActive));
+        showToast(isActive ? "Saqlandi" : "Saqlanganlardan o'chirildi");
       });
     });
     // Playlist link'lari — YouTube'ga o'tmasin, in-app pleyer ochsin (birinchi videoni)
@@ -567,7 +621,85 @@
     closePlayer();
   }
 
-  window.__potcasts = { openPodcastsView, closePodcastsView };
+  // ---------- Saqlangan videolar view ----------
+
+  function buildSavedCard(v) {
+    return `
+      <button class="pod-vid-card" type="button" data-pod-play-saved="${escapeHtml(v.videoId)}">
+        <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb || "")}')">
+          ${v.durationSec ? `<span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>` : ""}
+          <button class="pod-fav-btn is-active" type="button" data-pod-saved-remove="${escapeHtml(v.videoId)}" aria-label="O'chirish" aria-pressed="true">
+            ${bookmarkSvg()}
+          </button>
+        </div>
+        <div class="pod-vid-card__title">${escapeHtml(v.title || "Noma'lum video")}</div>
+        <div class="pod-vid-card__meta">${escapeHtml(v.channelTitle || "")}</div>
+      </button>
+    `;
+  }
+
+  function renderSavedView() {
+    if (!podcastsView) return;
+    podcastsView.hidden = false;
+    document.body.classList.add("is-podcasts");
+    currentView = "saved";
+    currentChannelId = null;
+    currentChannelData = null;
+    const saved = getSavedPodcastVideos();
+    const body = saved.length
+      ? `<div class="pod-vid-grid">${saved.map(buildSavedCard).join("")}</div>`
+      : `<div class="pod-empty"><div class="pod-empty__icon">🔖</div><div class="pod-empty__title">Saqlangan video yo'q</div><div class="pod-empty__hint">Videoning o'ng burchagidagi bookmark tugmasini bosing</div></div>`;
+    podcastsRoot.innerHTML = `
+      <header class="pod-topbar">
+        <div class="pod-topbar__title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Saqlangan</span>
+        </div>
+      </header>
+      <div class="pod-list">${body}</div>
+    `;
+    wireSavedEvents();
+  }
+
+  function wireSavedEvents() {
+    podcastsRoot.querySelectorAll("[data-pod-play-saved]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-pod-saved-remove]")) return;
+        e.preventDefault();
+        haptic("light");
+        const vid = el.dataset.podPlaySaved;
+        const meta = readSavedStore()[vid];
+        if (typeof window.__playYouTubeStandalone === "function") {
+          window.__playYouTubeStandalone(vid, { title: meta?.title || "" });
+        }
+      });
+    });
+    podcastsRoot.querySelectorAll("[data-pod-saved-remove]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        haptic("medium");
+        togglePodcastFavorite(btn.dataset.podSavedRemove);
+        showToast("Saqlanganlardan o'chirildi");
+        renderSavedView();
+      });
+    });
+  }
+
+  function openPodcastsSavedView() {
+    if (!loaded) {
+      podcastsView.hidden = false;
+      document.body.classList.add("is-podcasts");
+      podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Yuklanmoqda...</div></div>`;
+      loadChannels().finally(renderSavedView);
+      return;
+    }
+    renderSavedView();
+  }
+
+  window.__potcasts = { openPodcastsView, closePodcastsView, openSavedView: openPodcastsSavedView };
   // Util funksiyalarni tashqariga chiqarish (app.js history/favorites uchun)
-  window.__podUtils = { formatDuration, timeAgo, escapeHtml, getPodcastFavorites, togglePodcastFavorite };
+  window.__podUtils = { formatDuration, timeAgo, escapeHtml, getPodcastFavorites, togglePodcastFavorite, getSavedPodcastVideos };
 })();
