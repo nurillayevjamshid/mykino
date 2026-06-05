@@ -5391,15 +5391,19 @@ function syncSidebarPodcastsItem() {
   if (!item) return;
   const isPodcasts = document.body.classList.contains("is-podcasts");
   const isMusic = document.body.classList.contains("is-music");
-  if (isMusic) {
-    item.dataset.sidebarAction = "kino-back";
+  if (isPodcasts) {
+    // Potkast bo'limida 2-slot: Musiqa
+    item.dataset.sidebarAction = "music";
     item.innerHTML = `
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
-        <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 18V5l12-2v13"></path>
+        <circle cx="6" cy="18" r="3"></circle>
+        <circle cx="18" cy="16" r="3"></circle>
       </svg>
-      <span>Kino</span>`;
+      <span data-i18n="musicNav">Musiqa</span>
+      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
   } else {
+    // Kino yoki Musiqa bo'limida 2-slot: Potkastlar
     item.dataset.sidebarAction = "podcasts";
     item.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
