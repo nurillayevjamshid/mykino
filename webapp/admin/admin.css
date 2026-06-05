@@ -1456,3 +1456,9 @@ body {
   background: #e8f1ff !important;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
 }
+
+/* Podcast lang picker */
+.pod-lang-opt.is-active { background: #3b82f6 !important; color: #fff !important; border-color: #3b82f6 !important; }
+.pod-lang-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.pod-lang-row .pod-lang-mini { font-size: 11px; padding: 4px 10px; border: 1px solid var(--border, #e3e6ec); border-radius: 999px; background: transparent; cursor: pointer; color: var(--text-muted, #666); }
+.pod-lang-row .pod-lang-mini.is-active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
