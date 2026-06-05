@@ -1,4 +1,4 @@
-const VERSION = "v20260605-kinonavbar";
+const VERSION = "v20260605-kinonavbar2";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;

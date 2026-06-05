@@ -4576,11 +4576,21 @@ document.querySelectorAll(".bottom-bar [data-action='podcast-saved']").forEach((
   });
 });
 
-document.querySelectorAll(".bottom-bar [data-action='profile']").forEach((btn) => {
+// Kino bottom-bar: Kino tugmasi — har doim bosh sahifaga qaytaradi (custom view'lar yopiladi)
+document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((btn) => {
   btn.addEventListener("click", () => {
     hideAllCustomViews();
-    renderPodcastProfileModal();
-    setActiveBottomTab("profile");
+    setFilter("all");
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+  });
+});
+
+// Kino bottom-bar: Sevimlilar — custom view'larni yopib favorites filtriga o'tadi
+document.querySelectorAll(".bottom-bar [data-action='favorites']").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    hideAllCustomViews();
+    setFilter("favorites");
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
 
