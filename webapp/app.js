@@ -5741,17 +5741,68 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+// ===== Movie cache (localStorage) — kinolar darrov ko'rinishi uchun =====
+const MOVIE_CACHE_KEY = "kp_movie_cache_v1";
+const MOVIE_CACHE_TTL = 30 * 60 * 1000; // 30 daqiqa
+
+function readMovieCache() {
+  try {
+    const raw = localStorage.getItem(MOVIE_CACHE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || !Array.isArray(data.movies) || !data.ts) return null;
+    if (Date.now() - data.ts > MOVIE_CACHE_TTL) return null;
+    return data.movies;
+  } catch {
+    return null;
+  }
+}
+
+function writeMovieCache(rawPayload) {
+  try {
+    localStorage.setItem(MOVIE_CACHE_KEY, JSON.stringify({ movies: rawPayload, ts: Date.now() }));
+  } catch { /* quota exceeded — jim o'tkazamiz */ }
+}
+
+// Poster preload: birinchi N ta rasmni oldindan yuklash
+function preloadPosters(movieList, count = 8) {
+  const slice = movieList.slice(0, count);
+  for (const m of slice) {
+    const url = m?.posterImage;
+    if (!url || url.startsWith("data:")) continue;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+  }
+}
+
 async function loadMovies() {
   await resolveApiBase();
   // Wishlist'ni Telegram CloudStorage'dan tiklash — sessiyalar orasida saqlanishi uchun.
   // Bu loadMovies bilan parallel ketishi mumkin; render qilishdan oldin tugashi yetarli.
   const wishlistSyncPromise = syncWishlistFromCloud();
+
+  // 1) localStorage cache'dan darrov ko'rsatish
+  const cachedRaw = readMovieCache();
+  if (cachedRaw && cachedRaw.length) {
+    movies = sessionShuffleMovies(cachedRaw.map((movie, index) => normalizeMovie(movie, index)));
+    movieLoadState = "ready";
+    syncWatchedCount();
+    applyCopy();
+    renderMovies();
+    renderHeroCarousel();
+    preloadPosters(movies);
+    // Fon yangilash — foydalanuvchi kutmaydi
+    refreshMoviesSilently(wishlistSyncPromise);
+    return;
+  }
+
+  // 2) Cache yo'q — birinchi marta yoki TTL tugagan
   movieLoadState = "loading";
   movieLoadError = "";
   renderMovies();
 
   try {
-    // SW + CDN SWR ishlatadi — `no-store` ni olib tashladik, ETag/Cache-Control faollashadi.
     const response = await fetch(buildApiUrl("/api/movies"), {
       headers: { Accept: "application/json" },
     });
@@ -5759,9 +5810,11 @@ async function loadMovies() {
     if (!response.ok || !Array.isArray(payload)) {
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
+    writeMovieCache(payload);
     movies = sessionShuffleMovies(payload.map((movie, index) => normalizeMovie(movie, index)));
     movieLoadState = "ready";
     renderHeroCarousel();
+    preloadPosters(movies);
   } catch (error) {
     movies = [];
     movieLoadState = "error";
@@ -5786,6 +5839,31 @@ async function loadMovies() {
   }
 }
 
+// Cache bor holatda fon yangilash — UI bloklanmaydi
+async function refreshMoviesSilently(wishlistSyncPromise) {
+  try {
+    const response = await fetch(buildApiUrl("/api/movies"), {
+      headers: { Accept: "application/json" },
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !Array.isArray(payload)) return;
+    writeMovieCache(payload);
+    const newMovies = sessionShuffleMovies(payload.map((movie, index) => normalizeMovie(movie, index)));
+    // Faqat o'zgarish bo'lsa yangilash (flash oldini olish)
+    if (JSON.stringify(newMovies.map(m => m.id)) !== JSON.stringify(movies.map(m => m.id))) {
+      movies = newMovies;
+      renderHeroCarousel();
+      renderMovies();
+      preloadPosters(movies);
+    }
+  } catch { /* fon xatosi — jim */ }
+
+  try {
+    const didMerge = await wishlistSyncPromise;
+    if (didMerge) renderMovies();
+  } catch { /* */ }
+}
+
 // Silent background reload for polling (doesn't show loading state)
 async function silentReloadMovies() {
   await resolveApiBase();
@@ -5799,6 +5877,7 @@ async function silentReloadMovies() {
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
 
+    writeMovieCache(payload);
     const newMovies = sessionShuffleMovies(payload.map((movie, index) => normalizeMovie(movie, index)));
 
     movies = newMovies;
