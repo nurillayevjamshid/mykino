@@ -5238,7 +5238,8 @@ function syncSidebarMusicItem() {
   const item = document.getElementById("sidebarMusicItem");
   if (!item) return;
   const isMusic = document.body.classList.contains("is-music");
-  if (isMusic) {
+  const isPodcasts = document.body.classList.contains("is-podcasts");
+  if (isMusic || isPodcasts) {
     item.dataset.sidebarAction = "kino-back";
     item.innerHTML = `
       <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -5263,7 +5264,8 @@ function syncSidebarPodcastsItem() {
   const item = document.getElementById("sidebarPodcastsItem");
   if (!item) return;
   const isPodcasts = document.body.classList.contains("is-podcasts");
-  if (isPodcasts) {
+  const isMusic = document.body.classList.contains("is-music");
+  if (isMusic) {
     item.dataset.sidebarAction = "kino-back";
     item.innerHTML = `
       <svg viewBox="0 0 32 32" aria-hidden="true">
