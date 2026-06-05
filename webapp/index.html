@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260605-kinonavbar" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260605-3navs" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -364,9 +364,9 @@
     <!-- Kategoriya placeholder -->
     <section class="coming-soon-view" id="categoryComingSoon" hidden>
       <div class="coming-soon-view__inner">
-        <div class="coming-soon-view__icon">🎧</div>
-        <h2 class="coming-soon-view__title">Kashf et</h2>
-        <p class="coming-soon-view__text">Yaqinda sozlanadi</p>
+        <div class="coming-soon-view__icon">📂</div>
+        <h2 class="coming-soon-view__title">Kategoriyalar</h2>
+        <p class="coming-soon-view__text">Bu yerda podcast kategoriyalari bo'ladi</p>
       </div>
     </section>
 
@@ -381,9 +381,10 @@
 
     <!-- Podcast tomosha tarixi (Profil) — endi profile modal ishlatiladi -->
 
-    <nav class="bottom-bar" aria-label="Mini app menyusi">
+    <!-- Kinolar bo'limi uchun pastki navbar -->
+    <nav class="bottom-bar bottom-bar--movie" aria-label="Kino menyusi">
       <div class="bottom-bar__inner">
-        <button class="bottom-bar__button bottom-bar__button--movie-only is-active" type="button" data-filter="all" aria-label="Kino" title="Kino">
+        <button class="bottom-bar__button is-active" type="button" data-filter="all" aria-label="Kino" title="Kino">
           <svg class="icon-svg movie-nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="3"></rect>
             <path d="M7 3v18"></path>
@@ -396,7 +397,7 @@
           </svg>
           <span class="bottom-bar__label">Kino</span>
         </button>
-        <button class="bottom-bar__button bottom-bar__button--movie-only" type="button" data-action="categories-view" aria-label="Kategoriyalar" title="Kategoriyalar">
+        <button class="bottom-bar__button" type="button" data-action="categories-view" aria-label="Kategoriyalar" title="Kategoriyalar">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
             <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
@@ -405,29 +406,83 @@
           </svg>
           <span class="bottom-bar__label" data-i18n="categories">Kategoriya</span>
         </button>
-        <button class="bottom-bar__button bottom-bar__button--movie-only" type="button" data-action="favorites" aria-label="Sevimlilar" title="Sevimlilar">
+        <button class="bottom-bar__button" type="button" data-action="favorites" aria-label="Sevimlilar" title="Sevimlilar">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
           </svg>
           <span class="bottom-bar__label" data-i18n="favoritesNav">Sevimlilar</span>
         </button>
-        <button class="bottom-bar__button bottom-bar__button--podcast-only" type="button" data-action="podcasts-tab" aria-label="Podcast" title="Podcast">
+        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
+          <span class="bottom-bar__avatar">
+            <img class="profile-trigger__photo headerAvatarPhoto" id="headerAvatarPhoto" alt="Telegram user" hidden />
+            <span class="profile-trigger__initials headerAvatar" id="headerAvatar">KI</span>
+          </span>
+          <span class="bottom-bar__label">Profil</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Musiqalar bo'limi uchun pastki navbar -->
+    <nav class="bottom-bar bottom-bar--music" aria-label="Musiqa menyusi">
+      <div class="bottom-bar__inner">
+        <button class="bottom-bar__button" type="button" data-action="categories" aria-label="Musiqa" title="Musiqa">
+          <svg class="icon-svg music-nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 16.8V5.8l9.4-2v10.7"></path>
+            <path d="M9 8.8 18.4 7"></path>
+            <ellipse class="nav-icon-fill" cx="6.4" cy="17.1" rx="2.9" ry="2.2" transform="rotate(-10 6.4 17.1)"></ellipse>
+            <ellipse class="nav-icon-fill" cx="15.8" cy="14.8" rx="2.9" ry="2.2" transform="rotate(-10 15.8 14.8)"></ellipse>
+          </svg>
+          <span class="bottom-bar__label">Musiqa</span>
+        </button>
+        <button class="bottom-bar__button" type="button" data-action="artists" aria-label="Qo'shiqchilar" title="Qo'shiqchilar">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect class="nav-icon-fill" x="8" y="2.5" width="8" height="13.5" rx="4" fill="currentColor" stroke="none"></rect>
+            <path d="M4.8 10.8v1.4a7.2 7.2 0 0 0 14.4 0v-1.4"></path>
+            <line x1="12" y1="19.4" x2="12" y2="22"></line>
+            <line x1="8.4" y1="22" x2="15.6" y2="22"></line>
+          </svg>
+          <span class="bottom-bar__label">Qo'shiqchilar</span>
+        </button>
+        <button class="bottom-bar__button" type="button" data-action="playlist" aria-label="Playlist" title="Playlist">
+          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="14" y2="6"></line>
+            <line x1="3" y1="12" x2="14" y2="12"></line>
+            <line x1="3" y1="18" x2="10" y2="18"></line>
+            <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
+          </svg>
+          <span class="bottom-bar__label">Playlist</span>
+        </button>
+        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
+          <span class="bottom-bar__avatar">
+            <img class="profile-trigger__photo headerAvatarPhoto" alt="Telegram user" hidden />
+            <span class="profile-trigger__initials headerAvatar">KI</span>
+          </span>
+          <span class="bottom-bar__label">Profil</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Podcastlar bo'limi uchun pastki navbar -->
+    <nav class="bottom-bar bottom-bar--podcast" aria-label="Podcast menyusi">
+      <div class="bottom-bar__inner">
+        <button class="bottom-bar__button" type="button" data-action="podcasts-tab" aria-label="Podcastlar" title="Podcastlar">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="9" y="2" width="6" height="13" rx="3"></rect>
             <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
             <line x1="12" y1="19" x2="12" y2="22"></line>
           </svg>
-          <span class="bottom-bar__label">Podcast</span>
+          <span class="bottom-bar__label">Podcastlar</span>
         </button>
-        <button class="bottom-bar__button bottom-bar__button--podcast-only" type="button" data-action="podcast-discover" aria-label="Kashf et" title="Kashf et">
+        <button class="bottom-bar__button" type="button" data-action="podcast-discover" aria-label="Kategoriyalar" title="Kategoriyalar">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
-            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"></path>
-            <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
           </svg>
-          <span class="bottom-bar__label">Kashf et</span>
+          <span class="bottom-bar__label">Kategoriya</span>
         </button>
-        <button class="bottom-bar__button bottom-bar__button--podcast-only" type="button" data-action="podcast-saved" aria-label="Saqlangan" title="Saqlangan">
+        <button class="bottom-bar__button" type="button" data-action="podcast-saved" aria-label="Saqlanganlar" title="Saqlanganlar">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
           </svg>
@@ -435,8 +490,8 @@
         </button>
         <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
           <span class="bottom-bar__avatar">
-            <img class="profile-trigger__photo" id="headerAvatarPhoto" alt="Telegram user" hidden />
-            <span class="profile-trigger__initials" id="headerAvatar">KI</span>
+            <img class="profile-trigger__photo headerAvatarPhoto" alt="Telegram user" hidden />
+            <span class="profile-trigger__initials headerAvatar">KI</span>
           </span>
           <span class="bottom-bar__label">Profil</span>
         </button>
@@ -895,7 +950,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260605-kinonavbar2"></script>
+  <script src="/static/app.js?v=20260605-3navs"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });

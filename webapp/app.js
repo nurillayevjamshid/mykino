@@ -475,8 +475,17 @@ if (profileModal && __origProfileShowModal) {
 const profileName = document.querySelector("#profileName");
 const profileUsername = document.querySelector("#profileUsername");
 const profileUserId = document.querySelector("#profileUserId");
-const headerAvatar = document.querySelector("#headerAvatar");
-const headerAvatarPhoto = document.querySelector("#headerAvatarPhoto");
+const headerAvatarEls = Array.from(document.querySelectorAll(".headerAvatar"));
+const headerAvatarPhotoEls = Array.from(document.querySelectorAll(".headerAvatarPhoto"));
+const headerAvatar = {
+  set textContent(v) { headerAvatarEls.forEach((el) => { el.textContent = v; }); },
+  set hidden(v) { headerAvatarEls.forEach((el) => { el.hidden = v; }); },
+};
+const headerAvatarPhoto = {
+  set src(v) { headerAvatarPhotoEls.forEach((el) => { el.src = v; }); },
+  set hidden(v) { headerAvatarPhotoEls.forEach((el) => { el.hidden = v; }); },
+  removeAttribute(name) { headerAvatarPhotoEls.forEach((el) => el.removeAttribute(name)); },
+};
 const topbarAvatarInitials = document.querySelector("#topbarAvatarInitials");
 const topbarAvatarPhoto = document.querySelector("#topbarAvatarPhoto");
 const avatar = document.querySelector("#avatar");
@@ -4506,6 +4515,24 @@ document.querySelectorAll("[data-action='artists']").forEach((button) => {
     event.preventDefault();
     openMusicView();
     openAllArtists();
+  });
+});
+
+document.querySelectorAll(".bottom-bar [data-action='playlist']").forEach((button) => {
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    try {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.showPopup) {
+        tg.showPopup({ title: "Playlistlar", message: "Tez orada", buttons: [{ type: "ok" }] });
+      } else if (tg?.showAlert) {
+        tg.showAlert("Tez orada");
+      } else {
+        alert("Tez orada");
+      }
+    } catch (_) {
+      try { alert("Tez orada"); } catch (__) {}
+    }
   });
 });
 
