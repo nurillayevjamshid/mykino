@@ -141,6 +141,8 @@ const copy = {
     footerTagline: "Eng sara kinolar mini-ilovasi",
     footerCopy: "© 2026 Kino Play. Barcha huquqlar himoyalangan.",
     tvNav: "Potkastlar",
+    kinoNav: "Kino",
+    betaBadge: "Beta versiya",
     favoritesNav: "Sevimlilar",
     profileNav: "Profil",
     settings: "Sozlamalar",
@@ -202,6 +204,8 @@ const copy = {
     footerTagline: "Мини-приложение лучших фильмов",
     footerCopy: "© 2026 Kino Play. Все права защищены.",
     tvNav: "Подкасты",
+    kinoNav: "Кино",
+    betaBadge: "Бета-версия",
     favoritesNav: "Избранное",
     profileNav: "Профиль",
     settings: "Настройки",
@@ -263,6 +267,8 @@ const copy = {
     footerTagline: "Mini app for the best movies",
     footerCopy: "© 2026 Kino Play. All rights reserved.",
     tvNav: "Podcasts",
+    kinoNav: "Movies",
+    betaBadge: "Beta",
     favoritesNav: "Favorites",
     profileNav: "Profile",
     settings: "Settings",
@@ -971,72 +977,10 @@ function getPosterImage(movie) {
 
 function posterStyle(movie) {
   const source = getPosterImage(movie);
-  // Agar hech qanday URL yo'q bo'lsa (blob: filtrlandi yoki umuman yo'q) — canvas poster.
   const effective = source || buildGeneratedPosterDataUrl(movie);
   const safe = effective.replaceAll("'", "%27").replaceAll(")", "%29").replaceAll('"', "%22");
-  // data: URL (admin yuklagan yoki generatsiya) — IO kutmasdan to'g'ridan-to'g'ri style.
-  if (effective.startsWith("data:")) {
-    return `style="--poster-image: url('${safe}')"`;
-  }
-  // https: URL — lazy load (IntersectionObserver orqali).
-  return `data-poster="${safe}"`;
+  return `style="--poster-image: url('${safe}')"`;
 }
-
-// Poster lazy-load: IntersectionObserver + MutationObserver yon-effekt sifatida.
-// MUHIM (Android scroll perf): poster IO ishlaganda bir vaqtning o'zida ko'p
-// background-image dekodi main thread'ni bloklaydi ("biroz qotib qoladi").
-// Shuning uchun: (1) yangi Image() bilan oldindan decode() qilamiz — bitmap
-// browser cache'da hozir bo'ladi, bg-image qo'yilganda decode bepul. (2) DOM
-// yozishni requestIdleCallback'ga ko'chiramiz — scroll faol bo'lsa kutadi.
-(() => {
-  if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
-  const ric = window.requestIdleCallback
-    ? (fn) => window.requestIdleCallback(fn, { timeout: 500 })
-    : (fn) => setTimeout(fn, 80);
-
-  const applyPoster = (el, url) => {
-    if (!el || !url) return;
-    const img = new Image();
-    img.decoding = "async";
-    const swap = () => {
-      ric(() => {
-        el.style.setProperty("--poster-image", `url('${url}')`);
-        el.removeAttribute("data-poster");
-      });
-    };
-    if (typeof img.decode === "function") {
-      img.src = url;
-      img.decode().then(swap).catch(swap);
-    } else {
-      img.onload = swap;
-      img.onerror = swap;
-      img.src = url;
-    }
-  };
-
-  const io = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      const el = entry.target;
-      const url = el.getAttribute("data-poster");
-      if (url) applyPoster(el, url);
-      io.unobserve(el);
-    }
-  }, { rootMargin: "300px 600px", threshold: 0.01 });
-
-  const mo = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      for (const node of m.addedNodes) {
-        if (node.nodeType !== 1) continue;
-        if (node.hasAttribute && node.hasAttribute("data-poster")) io.observe(node);
-        const inner = node.querySelectorAll ? node.querySelectorAll("[data-poster]") : [];
-        for (const child of inner) io.observe(child);
-      }
-    }
-  });
-  if (document.body) mo.observe(document.body, { childList: true, subtree: true });
-  else document.addEventListener("DOMContentLoaded", () => mo.observe(document.body, { childList: true, subtree: true }), { once: true });
-})();
 
 
 
@@ -5264,6 +5208,9 @@ searchInput?.addEventListener("input", (event) => {
     // is-music klassi qo'shilgan bo'lsa, music moduli allaqachon yuklangan.
     window.__music?.setQuery?.(query);
   }
+  if (document.body.classList.contains("is-podcasts")) {
+    window.__potcasts?.setQuery?.(query);
+  }
   renderRecentSearches();
   syncSearchClearBtn();
 });
@@ -5276,6 +5223,9 @@ searchClearBtn?.addEventListener("click", (event) => {
   renderMovies();
   if (document.body.classList.contains("is-music")) {
     window.__music?.setQuery?.("");
+  }
+  if (document.body.classList.contains("is-podcasts")) {
+    window.__potcasts?.setQuery?.("");
   }
   renderRecentSearches();
   syncSearchClearBtn();
@@ -5370,7 +5320,7 @@ function syncSidebarMusicItem() {
         <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
         <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
       </svg>
-      <span>Kino</span>`;
+      <span data-i18n="kinoNav">${plainLabel(t("kinoNav"))}</span>`;
   } else {
     item.dataset.sidebarAction = "music";
     item.innerHTML = `
@@ -5379,8 +5329,8 @@ function syncSidebarMusicItem() {
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
       </svg>
-      <span data-i18n="musicNav">Musiqa</span>
-      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
+      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>
+      <span class="beta-badge" aria-hidden="true" data-i18n="betaBadge">${plainLabel(t("betaBadge"))}</span>`;
   }
 }
 
@@ -5398,8 +5348,8 @@ function syncSidebarPodcastsItem() {
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
       </svg>
-      <span data-i18n="musicNav">Musiqa</span>
-      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
+      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>
+      <span class="beta-badge" aria-hidden="true" data-i18n="betaBadge">${plainLabel(t("betaBadge"))}</span>`;
   } else {
     // Kino yoki Musiqa bo'limida 2-slot: Potkastlar
     item.dataset.sidebarAction = "podcasts";
@@ -5409,8 +5359,8 @@ function syncSidebarPodcastsItem() {
         <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
         <line x1="12" y1="19" x2="12" y2="22"></line>
       </svg>
-      <span data-i18n="tvNav">Potkastlar</span>
-      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
+      <span data-i18n="tvNav">${plainLabel(t("tvNav"))}</span>
+      <span class="beta-badge" aria-hidden="true" data-i18n="betaBadge">${plainLabel(t("betaBadge"))}</span>`;
   }
 }
 
@@ -5501,10 +5451,21 @@ sidebarLangPills?.querySelectorAll(".lang-pill").forEach((pill) => {
     if (!next) return;
     lang = next;
     localStorage.setItem("kino_lang", next);
+    try { syncSidebarMusicItem(); } catch (_) {}
+    try { syncSidebarPodcastsItem(); } catch (_) {}
     try { applyCopy(); } catch (_) {}
     syncSidebarSettings();
+    try {
+      window.dispatchEvent(new CustomEvent("kino-lang-change", { detail: { lang: next } }));
+    } catch (_) {}
   });
 });
+
+// Tashqi modullar (potcasts.js, music.js) uchun til/translate ko'prik
+window.__i18n = {
+  get lang() { return lang; },
+  t: (key) => { try { return t(key); } catch (_) { return key; } },
+};
 
 const _origApplyTheme = applyTheme;
 applyTheme = function (t) {

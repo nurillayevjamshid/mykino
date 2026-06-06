@@ -2,6 +2,12 @@ const { setCors } = require("./_lib/google-drive");
 const { uploadImageToR2, uploadFileToR2 } = require("./_lib/r2-store");
 
 const REDIS_KEY = "categories:v1";
+const POD_LANGS_KEY = "podcast-langs:v1";
+const POD_LANG_DEFAULTS = {
+  uz: { name: "O'zbekcha", image: "" },
+  ru: { name: "Ruscha", image: "" },
+  en: { name: "Inglizcha", image: "" },
+};
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 // Vercel serverless body cheklovi 4.5 MB. base64 33% inflation bilan ~3 MB real fayl.
 const MAX_VIDEO_BYTES = 3 * 1024 * 1024;
@@ -124,6 +130,43 @@ async function handleUpload(body) {
   return directUrl;
 }
 
+function normalizePodLangs(raw) {
+  const src = (raw && typeof raw === "object") ? raw : {};
+  const out = {};
+  for (const key of ["uz", "ru", "en"]) {
+    const entry = (src[key] && typeof src[key] === "object") ? src[key] : {};
+    const name = String(entry.name || POD_LANG_DEFAULTS[key].name).trim() || POD_LANG_DEFAULTS[key].name;
+    const image = String(entry.image || "").trim();
+    out[key] = { name, image };
+  }
+  return out;
+}
+
+async function readPodLangs() {
+  const client = await getRedis();
+  if (!client) return normalizePodLangs(null);
+  try {
+    const raw = await client.get(POD_LANGS_KEY);
+    if (!raw) return normalizePodLangs(null);
+    return normalizePodLangs(JSON.parse(raw));
+  } catch (err) {
+    console.warn("redis get pod-langs xato:", err.message);
+    return normalizePodLangs(null);
+  }
+}
+
+async function writePodLangs(map) {
+  const client = await getRedis();
+  if (!client) return false;
+  try {
+    await client.set(POD_LANGS_KEY, JSON.stringify(map));
+    return true;
+  } catch (err) {
+    console.warn("redis set pod-langs xato:", err.message);
+    return false;
+  }
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
   if (request.method === "OPTIONS") { response.status(204).end(); return; }
@@ -131,6 +174,45 @@ module.exports = async function handler(request, response) {
     response.setHeader("Cache-Control", "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
   } else {
     response.setHeader("Cache-Control", "no-store, max-age=0");
+  }
+
+  const url = new URL(request.url || "/", "http://localhost");
+  const type = String(url.searchParams.get("type") || "").toLowerCase();
+
+  if (type === "podcast-langs") {
+    if (request.method === "GET") {
+      try {
+        const langs = await readPodLangs();
+        response.status(200).json({ ok: true, langs, storage: isRedisEnabled() ? "redis" : "none" });
+      } catch (err) {
+        response.status(500).json({ ok: false, error: err.message || "Yuklab bo'lmadi." });
+      }
+      return;
+    }
+    if (request.method === "POST" || request.method === "PUT") {
+      try {
+        const body = await readBody(request);
+        if (body.action === "upload") {
+          const link = await handleUpload({ ...body, name: body.name || "pod-lang" });
+          response.status(200).json({ ok: true, url: link });
+          return;
+        }
+        if (!isRedisEnabled()) {
+          response.status(503).json({ ok: false, error: "Vercel Redis sozlanmagan." });
+          return;
+        }
+        const current = await readPodLangs();
+        const next = normalizePodLangs({ ...current, ...(body.langs || body || {}) });
+        const ok = await writePodLangs(next);
+        if (!ok) { response.status(500).json({ ok: false, error: "Saqlash muvaffaqiyatsiz." }); return; }
+        response.status(200).json({ ok: true, langs: next });
+      } catch (err) {
+        response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
+      }
+      return;
+    }
+    response.status(405).json({ ok: false, error: "Method not allowed." });
+    return;
   }
 
   if (request.method === "GET") {
