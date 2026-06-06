@@ -971,21 +971,29 @@
     const ch = currentChannelData.channel || {};
     const tg = window.Telegram?.WebApp;
     const userId = tg?.initDataUnsafe?.user?.id;
+    const ver = tg?.version || "0";
+    const hasShare = typeof tg?.shareMessage === "function";
+    const debug = (msg) => { try { tg?.showAlert ? tg.showAlert(msg) : alert(msg); } catch (_) { alert(msg); } };
     // Yashirin link uchun: bot serverda savePreparedInlineMessage qiladi,
     // so'ng Telegram.WebApp.shareMessage(id) bilan ulashamiz.
-    if (userId && typeof tg?.shareMessage === "function") {
+    if (userId && hasShare) {
       try {
         const r = await fetch("/api/music?resource=podcasts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "share", channelId: ch.channelId, userId: String(userId) }),
         });
-        const data = await r.json();
+        const data = await r.json().catch(() => null);
         if (data?.ok && data.preparedMessageId) {
           tg.shareMessage(data.preparedMessageId);
           return;
         }
-      } catch (_) {}
+        debug("Share xato: " + (data?.error || "noma'lum"));
+      } catch (e) {
+        debug("Share fetch xato: " + (e?.message || e));
+      }
+    } else {
+      debug(`Share API yo'q: userId=${userId || "?"} hasShare=${hasShare} ver=${ver}`);
     }
     // Fallback: eski t.me/share/url (yashirin link ishlamaydi, lekin ishlaydi)
     const subText = formatCount(ch.subscriberCount) + " " + T("shareSubs");
