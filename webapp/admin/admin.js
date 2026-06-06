@@ -396,7 +396,7 @@ function closeMoreSheet() {
 
 function syncBottomNavActive(name) {
   // Faqat bottom-nav'da haqiqatan bo'lgan tab'lar — qolganlari "Boshqa" tugmasini active qiladi.
-  const mainItems = ['movies', 'music'];
+  const mainItems = ['movies', 'music', 'podcasts'];
   document.querySelectorAll('.bottom-nav-item[data-section]').forEach(li => {
     const key = li.dataset.section;
     const isActive = key === name || (key === 'more' && !mainItems.includes(name));
