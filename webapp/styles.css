@@ -11435,6 +11435,13 @@ html[data-theme="light"] .coming-soon-view__title { color: #1a1d2e; }
   gap: 14px;
   padding: 16px 14px 100px;
 }
+.podcasts-view .pod-cat-row { min-height: 96px; }
+.podcasts-view .pod-cat-row__avatar {
+  width: 64px; height: 64px;
+  border-radius: 18px;
+  font-size: 30px;
+  background: linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.04));
+}
 .podcasts-view .pod-cat-card {
   position: relative;
   display: flex;

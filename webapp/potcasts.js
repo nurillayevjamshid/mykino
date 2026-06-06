@@ -88,7 +88,10 @@
 
   async function loadChannels() {
     try {
-      const r = await fetch("/api/podcasts");
+      const [r] = await Promise.all([
+        fetch("/api/podcasts"),
+        loadLangMeta(),
+      ]);
       const data = await r.json();
       if (!data.ok) throw new Error(data.error || "Yuklab bo'lmadi.");
       channels = Array.isArray(data.channels) ? data.channels : [];
@@ -821,22 +824,51 @@
     return "uz";
   }
 
-  const LANG_META = {
-    uz: { title: "O'zbekcha", emoji: "🇺🇿", grad: "linear-gradient(135deg, #00b894 0%, #00cec9 100%)" },
-    ru: { title: "Ruscha", emoji: "🇷🇺", grad: "linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)" },
-    en: { title: "Inglizcha", emoji: "🇬🇧", grad: "linear-gradient(135deg, #4a69ff 0%, #7b5cff 100%)" },
+  const LANG_DEFAULTS = {
+    uz: { title: "O'zbekcha", emoji: "🇺🇿" },
+    ru: { title: "Ruscha", emoji: "🇷🇺" },
+    en: { title: "Inglizcha", emoji: "🇬🇧" },
   };
+  let LANG_META = {
+    uz: { ...LANG_DEFAULTS.uz, image: "" },
+    ru: { ...LANG_DEFAULTS.ru, image: "" },
+    en: { ...LANG_DEFAULTS.en, image: "" },
+  };
+
+  async function loadLangMeta() {
+    try {
+      const r = await fetch("/api/categories?type=podcast-langs");
+      const data = await r.json();
+      const src = data && data.ok && data.langs ? data.langs : {};
+      ["uz", "ru", "en"].forEach((k) => {
+        const e = src[k] || {};
+        LANG_META[k] = {
+          title: String(e.name || LANG_DEFAULTS[k].title).trim() || LANG_DEFAULTS[k].title,
+          image: String(e.image || "").trim(),
+          emoji: LANG_DEFAULTS[k].emoji,
+        };
+      });
+    } catch (_) { /* defaults qoladi */ }
+  }
 
   function buildCategoryCard(lang, count) {
     const meta = LANG_META[lang];
+    const avatar = meta.image
+      ? `<img src="${escapeHtml(meta.image)}" alt="" />`
+      : `<span>${meta.emoji}</span>`;
     return `
-      <button class="pod-cat-card" type="button" data-pod-cat="${lang}" style="background:${meta.grad}">
-        <span class="pod-cat-card__flag" aria-hidden="true">${meta.emoji}</span>
-        <span class="pod-cat-card__body">
-          <span class="pod-cat-card__title">${meta.title}</span>
-          <span class="pod-cat-card__count">${count} kanal</span>
+      <button class="pod-channel-row pod-cat-row" type="button" data-pod-cat="${lang}">
+        <span class="pod-channel-row__glow" aria-hidden="true"></span>
+        <div class="pod-channel-row__avatar pod-cat-row__avatar">${avatar}</div>
+        <div class="pod-channel-row__body">
+          <div class="pod-channel-row__title">${escapeHtml(meta.title)}</div>
+          <div class="pod-channel-row__meta">
+            <span class="pod-channel-row__tag pod-channel-row__tag--green">${count} kanal</span>
+          </div>
+        </div>
+        <span class="pod-channel-row__go" aria-hidden="true">
+          <svg class="pod-channel-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </span>
-        <svg class="pod-cat-card__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </button>
     `;
   }

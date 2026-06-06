@@ -479,7 +479,7 @@ function switchSection(name) {
 
   if (name === 'users') fetchUsers();
   if (name === 'music') fetchMusic();
-  if (name === 'podcasts') fetchPodcasts();
+  if (name === 'podcasts') { fetchPodcasts(); fetchPodLangs(); }
   if (name === 'categories') fetchCategories();
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
 
@@ -3376,6 +3376,147 @@ async function setPodcastLang(channelId, lang) {
     showNotification('Xato: ' + err.message, 'error');
   }
 }
+// ---- Til kategoriyalari (Mini app podcast Kategoriyalar) ----
+const POD_LANG_KEYS = ['uz', 'ru', 'en'];
+const POD_LANG_DEFAULTS = {
+  uz: { name: "O'zbekcha", image: '' },
+  ru: { name: 'Ruscha', image: '' },
+  en: { name: 'Inglizcha', image: '' },
+};
+let podLangsState = JSON.parse(JSON.stringify(POD_LANG_DEFAULTS));
+
+function renderPodLangsEditor() {
+  const root = document.getElementById('podLangsEditor');
+  if (!root) return;
+  root.innerHTML = POD_LANG_KEYS.map((k) => {
+    const e = podLangsState[k] || POD_LANG_DEFAULTS[k];
+    const img = e.image
+      ? `<img src="${escapeHtml(e.image)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+      : `<span style="color:#999;font-size:12px;">Rasm yo'q</span>`;
+    return `
+      <div class="pod-lang-card" data-pod-lang-card="${k}" style="border:1px solid var(--border,#e3e6ec);border-radius:14px;padding:14px;background:var(--card,#fff);display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:54px;height:54px;border-radius:14px;overflow:hidden;background:#f1f3f7;display:flex;align-items:center;justify-content:center;flex:0 0 auto;" data-pod-lang-preview>${img}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted,#666);font-weight:700;">${k.toUpperCase()}</div>
+            <input type="text" class="form-input" data-pod-lang-name value="${escapeHtml(e.name || '')}" placeholder="Nomi" style="margin-top:4px;">
+          </div>
+        </div>
+        <label class="btn btn-secondary" style="font-size:13px;padding:8px 10px;text-align:center;cursor:pointer;">
+          Rasm yuklash
+          <input type="file" accept="image/*" data-pod-lang-file style="display:none;">
+        </label>
+        <input type="text" class="form-input" data-pod-lang-url value="${escapeHtml(e.image || '')}" placeholder="https://... (yoki yuklashdan keyin avto)">
+      </div>
+    `;
+  }).join('');
+}
+
+async function fetchPodLangs() {
+  const hint = document.getElementById('podLangsHint');
+  try {
+    const r = await fetch(`${API_URL}/categories?type=podcast-langs`);
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'Yuklab bo\'lmadi.');
+    POD_LANG_KEYS.forEach((k) => {
+      const e = (data.langs && data.langs[k]) || POD_LANG_DEFAULTS[k];
+      podLangsState[k] = { name: e.name || POD_LANG_DEFAULTS[k].name, image: e.image || '' };
+    });
+    renderPodLangsEditor();
+    if (hint) { hint.textContent = 'Yuklandi'; hint.style.color = ''; }
+  } catch (err) {
+    if (hint) { hint.textContent = 'Xato: ' + err.message; hint.style.color = '#ff6b6b'; }
+  }
+}
+
+function readPodLangsFromInputs() {
+  const root = document.getElementById('podLangsEditor');
+  if (!root) return podLangsState;
+  POD_LANG_KEYS.forEach((k) => {
+    const card = root.querySelector(`[data-pod-lang-card="${k}"]`);
+    if (!card) return;
+    const name = card.querySelector('[data-pod-lang-name]')?.value.trim() || POD_LANG_DEFAULTS[k].name;
+    const image = card.querySelector('[data-pod-lang-url]')?.value.trim() || '';
+    podLangsState[k] = { name, image };
+  });
+  return podLangsState;
+}
+
+async function uploadPodLangImage(file) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(new Error('Faylni o\'qib bo\'lmadi.'));
+    fr.readAsDataURL(file);
+  });
+  const r = await fetch(`${API_URL}/categories?type=podcast-langs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'upload', dataUrl, name: 'pod-lang' }),
+  });
+  const data = await r.json();
+  if (!r.ok || !data.ok) throw new Error(data.error || 'Yuklab bo\'lmadi.');
+  return data.url;
+}
+
+document.getElementById('podLangsEditor')?.addEventListener('change', async (e) => {
+  const fileInput = e.target.closest('[data-pod-lang-file]');
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    const card = fileInput.closest('[data-pod-lang-card]');
+    const hint = document.getElementById('podLangsHint');
+    try {
+      if (hint) { hint.textContent = 'Rasm yuklanmoqda...'; hint.style.color = ''; }
+      const url = await uploadPodLangImage(fileInput.files[0]);
+      const urlInput = card.querySelector('[data-pod-lang-url]');
+      if (urlInput) urlInput.value = url;
+      const preview = card.querySelector('[data-pod-lang-preview]');
+      if (preview) preview.innerHTML = `<img src="${escapeHtml(url)}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
+      if (hint) { hint.textContent = 'Rasm yuklandi. "Saqlash" tugmasini bosing.'; hint.style.color = '#28a745'; }
+    } catch (err) {
+      if (hint) { hint.textContent = 'Xato: ' + err.message; hint.style.color = '#ff6b6b'; }
+    } finally {
+      fileInput.value = '';
+    }
+  }
+});
+
+document.getElementById('podLangsEditor')?.addEventListener('input', (e) => {
+  const urlInput = e.target.closest('[data-pod-lang-url]');
+  if (!urlInput) return;
+  const card = urlInput.closest('[data-pod-lang-card]');
+  const preview = card?.querySelector('[data-pod-lang-preview]');
+  const val = urlInput.value.trim();
+  if (preview) {
+    preview.innerHTML = val
+      ? `<img src="${escapeHtml(val)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+      : `<span style="color:#999;font-size:12px;">Rasm yo'q</span>`;
+  }
+});
+
+document.getElementById('podLangsSaveBtn')?.addEventListener('click', async () => {
+  const hint = document.getElementById('podLangsHint');
+  const btn = document.getElementById('podLangsSaveBtn');
+  const langs = readPodLangsFromInputs();
+  if (btn) { btn.disabled = true; btn.textContent = 'Saqlanmoqda...'; }
+  try {
+    const r = await fetch(`${API_URL}/categories?type=podcast-langs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ langs }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'Saqlab bo\'lmadi.');
+    if (hint) { hint.textContent = 'Saqlandi ✅'; hint.style.color = '#28a745'; }
+    showNotification('Til kategoriyalari saqlandi');
+  } catch (err) {
+    if (hint) { hint.textContent = 'Xato: ' + err.message; hint.style.color = '#ff6b6b'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Saqlash'; }
+  }
+});
+
+document.getElementById('podLangsReloadBtn')?.addEventListener('click', () => fetchPodLangs());
+
 document.getElementById('podcastReloadBtn')?.addEventListener('click', () => fetchPodcasts());
 document.getElementById('podcastsListGrid')?.addEventListener('click', (e) => {
   const del = e.target.closest('[data-pod-delete]');
