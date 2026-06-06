@@ -555,16 +555,6 @@
     }).join("");
 
     return `
-      <header class="pod-topbar">
-        <div class="pod-topbar__title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="9" y="2" width="6" height="13" rx="3"></rect>
-            <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
-            <line x1="12" y1="19" x2="12" y2="22"></line>
-          </svg>
-          <span>${escapeHtml(T("headerTitle"))}</span>
-        </div>
-      </header>
       <div class="pod-list">
         ${currentQuery ? "" : buildFeaturedChannels()}
         ${currentQuery && filtered.length ? `<h3 class="pod-ch-section__title">${escapeHtml(T("sectionChannels"))}</h3>` : ""}
