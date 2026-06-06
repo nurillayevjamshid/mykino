@@ -499,12 +499,12 @@
   }
 
   function buildFeaturedCarousel(list) {
-    const slides = list.map((c, i) => {
+    const cards = list.map((c) => {
       const s = c.snapshot || {};
       const banner = s.banner || "";
       const bgStyle = banner ? `background-image:url('${escapeHtml(banner)}')` : "";
       return `
-        <div class="pod-hero-slide ${i === 0 ? "is-active" : ""}" data-pod-open="${escapeHtml(c.channelId)}">
+        <div class="pod-hero-card-scroll" data-pod-open="${escapeHtml(c.channelId)}">
           <div class="pod-hero__bg" style="${bgStyle}"></div>
           <div class="pod-hero__gradient"></div>
           <div class="pod-hero__inner">
@@ -513,12 +513,8 @@
         </div>
       `;
     }).join("");
-    const dots = list.map((_, i) => `<span class="pod-hero-dot ${i === 0 ? "is-active" : ""}" data-pod-hero-dot="${i}"></span>`).join("");
     return `
-      <div class="pod-hero-carousel">
-        <div class="pod-hero-slides">${slides}</div>
-        <div class="pod-hero-dots">${dots}</div>
-      </div>
+      <div class="pod-hero-scroll-track">${cards}</div>
     `;
   }
 
@@ -569,7 +565,6 @@
           <span>${escapeHtml(T("headerTitle"))}</span>
         </div>
       </header>
-      <div class="pod-list">
       <div class="pod-list">
         ${currentQuery ? "" : buildFeaturedChannels()}
         ${currentQuery && filtered.length ? `<h3 class="pod-ch-section__title">${escapeHtml(T("sectionChannels"))}</h3>` : ""}
@@ -888,35 +883,6 @@
     });
     // Search natijasidagi video kartochkalar
     wireSearchVideosEvents();
-    // Carousel dots
-    const dots = podcastsRoot.querySelectorAll("[data-pod-hero-dot]");
-    if (dots.length) {
-      dots.forEach((dot) => {
-        dot.addEventListener("click", () => {
-          haptic("light");
-          switchHeroSlide(Number(dot.dataset.podHeroDot));
-        });
-      });
-      startHeroRotation();
-    }
-  }
-
-  let heroRotateTimer = null;
-  function startHeroRotation() {
-    clearInterval(heroRotateTimer);
-    heroRotateTimer = setInterval(() => {
-      const slides = podcastsRoot.querySelectorAll(".pod-hero-slide");
-      if (slides.length < 2) return;
-      const active = podcastsRoot.querySelector(".pod-hero-slide.is-active");
-      const idx = active ? [...slides].indexOf(active) : 0;
-      switchHeroSlide((idx + 1) % slides.length);
-    }, 5000);
-  }
-  function switchHeroSlide(idx) {
-    const slides = podcastsRoot.querySelectorAll(".pod-hero-slide");
-    const dots = podcastsRoot.querySelectorAll("[data-pod-hero-dot]");
-    slides.forEach((s, i) => s.classList.toggle("is-active", i === idx));
-    dots.forEach((d, i) => d.classList.toggle("is-active", i === idx));
   }
 
   function wireChannelEvents() {
