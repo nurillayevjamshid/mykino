@@ -13,6 +13,15 @@
 
   let channels = [];
   let loaded = false;
+
+  function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
   let currentView = "list"; // "list" | "channel"
   let currentChannelId = null;
   let currentChannelData = null;
@@ -152,7 +161,7 @@
   // ---------- List view (qo'shilgan kanallar) ----------
 
   function buildList() {
-    const items = channels.map((c) => {
+    const items = shuffleArray(channels).map((c) => {
       const s = c.snapshot || {};
       const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
       const meta = `<span class="pod-channel-row__tag pod-channel-row__tag--green">${formatCount(s.videoCount)} video</span><span class="pod-channel-row__tag pod-channel-row__tag--yellow">${formatCount(s.subscriberCount)} obunachi</span>`;
@@ -867,7 +876,7 @@
   function renderLanguageList(lang) {
     currentView = "lang-list";
     const meta = LANG_META[lang] || LANG_META.uz;
-    const filtered = channels.filter((c) => detectChannelLang(c) === lang);
+    const filtered = shuffleArray(channels.filter((c) => detectChannelLang(c) === lang));
     const items = filtered.map((c) => {
       const s = c.snapshot || {};
       const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
