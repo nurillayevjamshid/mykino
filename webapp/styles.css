@@ -11664,6 +11664,91 @@ html[data-theme="light"] .coming-soon-view__title { color: #1a1d2e; }
   font-size: 12px; color: var(--text-3, #5a6076);
 }
 
+/* NEW badge */
+.podcasts-view .pod-vid-card__new {
+  position: absolute; top: 8px; left: 8px; z-index: 3;
+  padding: 3px 7px; border-radius: 4px;
+  background: linear-gradient(135deg, #ff4444 0%, #e63946 100%);
+  color: #fff; font-size: 9.5px; font-weight: 800;
+  letter-spacing: 0.06em;
+  box-shadow: 0 2px 8px rgba(230, 57, 70, 0.45);
+  animation: podNewPulse 2s ease-in-out infinite;
+}
+@keyframes podNewPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(230, 57, 70, 0.45); }
+  50% { box-shadow: 0 2px 14px rgba(230, 57, 70, 0.7); }
+}
+
+/* Progress bar */
+.podcasts-view .pod-vid-card__progress {
+  height: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.12);
+  overflow: hidden; margin-top: 6px;
+}
+.podcasts-view .pod-vid-card__progress span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--accent-strong, #e63946), var(--accent, #ff6b6b));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Davom etish section */
+.podcasts-view .pod-continue {
+  margin-bottom: 20px;
+}
+.podcasts-view .pod-continue-row {
+  display: flex; gap: 12px;
+  overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  margin: 0 -16px; padding: 0 16px 4px;
+}
+.podcasts-view .pod-continue-row::-webkit-scrollbar { display: none; }
+.podcasts-view .pod-continue-card {
+  flex: 0 0 155px;
+  background: transparent; border: 0; padding: 0;
+  text-align: left; cursor: pointer; color: inherit;
+  scroll-snap-align: start;
+  transition: transform 0.15s;
+}
+.podcasts-view .pod-continue-card:active { transform: scale(0.97); }
+.podcasts-view .pod-continue-card__thumb {
+  position: relative;
+  width: 100%; aspect-ratio: 16/9;
+  background: var(--surface-2, #1a1d2e) center/cover no-repeat;
+  border-radius: 12px; overflow: hidden;
+}
+.podcasts-view .pod-continue-card__dur {
+  position: absolute; right: 6px; bottom: 6px;
+  background: rgba(0,0,0,.85); color: #fff;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 5px; border-radius: 4px;
+}
+.podcasts-view .pod-continue-card__play {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background: rgba(0,0,0,0.3);
+  opacity: 0; transition: opacity 0.2s;
+}
+.podcasts-view .pod-continue-card:hover .pod-continue-card__play,
+.podcasts-view .pod-continue-card:active .pod-continue-card__play {
+  opacity: 1;
+}
+.podcasts-view .pod-continue-card__play svg {
+  width: 32px; height: 32px; color: #fff;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+.podcasts-view .pod-continue-card__title {
+  font-size: 13px; font-weight: 600; line-height: 1.3;
+  margin: 7px 0 2px; color: var(--text-1, #1a1d2e);
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.podcasts-view .pod-continue-card__meta {
+  font-size: 11px; color: var(--text-3, #5a6076);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* Shorts row + grid */
 .podcasts-view .pod-shorts-row {
   display: flex; gap: 10px;
@@ -11845,4 +11930,22 @@ html[data-theme="light"] .podcasts-view .pod-ch-sub {
 }
 html[data-theme="light"] .podcasts-view .pod-topbar__back:hover { background: rgba(0,0,0,.06); }
 html[data-theme="light"] .podcasts-view .pod-loading__spinner { border-color: rgba(0,0,0,.1); border-top-color: var(--accent, #ffc73a); }
+
+/* Light: NEW badge */
+html[data-theme="light"] .podcasts-view .pod-vid-card__new {
+  box-shadow: 0 2px 8px rgba(230, 57, 70, 0.35);
+}
+
+/* Light: Progress bar */
+html[data-theme="light"] .podcasts-view .pod-vid-card__progress {
+  background: rgba(0,0,0,0.08);
+}
+
+/* Light: Davom etish */
+html[data-theme="light"] .podcasts-view .pod-continue-card__thumb {
+  background: #e8e8ed;
+}
+html[data-theme="light"] .podcasts-view .pod-continue-card__play {
+  background: rgba(0,0,0,0.15);
+}
 

@@ -143,6 +143,39 @@
     `;
   }
 
+  // ---------- Davom etish (Continue Watching) ----------
+
+  function buildContinueWatching() {
+    let history = [];
+    try { history = JSON.parse(localStorage.getItem("podcastHistory") || "[]"); } catch (_) {}
+    if (!history.length) return "";
+    // Faqat eng so'nggi 6 ta
+    const recent = history.slice(0, 6);
+    const cards = recent.map((v) => {
+      return `
+        <div class="pod-continue-card" role="button" tabindex="0" data-pod-play-history="${escapeHtml(v.videoId)}">
+          <div class="pod-continue-card__thumb" style="background-image:url('${escapeHtml(v.thumb || "")}')">
+            ${v.durationSec ? `<span class="pod-continue-card__dur">${formatDuration(v.durationSec)}</span>` : ""}
+            <span class="pod-continue-card__play">
+              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </span>
+          </div>
+          <div class="pod-continue-card__title">${escapeHtml(v.title || "Noma'lum")}</div>
+          <div class="pod-continue-card__meta">${escapeHtml(v.channelTitle || "")}</div>
+        </div>
+      `;
+    }).join("");
+    return `
+      <section class="pod-section pod-continue">
+        <div class="pod-section__head">
+          <h3 class="pod-section__title">⏱ Davom etish</h3>
+          <button class="pod-section__more" type="button" data-pod-clear-history>Barchasini tozalash</button>
+        </div>
+        <div class="pod-continue-row">${cards}</div>
+      </section>
+    `;
+  }
+
   // ---------- List view (qo'shilgan kanallar) ----------
 
   function buildList() {
@@ -177,6 +210,7 @@
         </div>
       </header>
       <div class="pod-list">
+        ${buildContinueWatching()}
         ${buildFeaturedChannels()}
         ${channels.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali kanal qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube kanal qo'shing</div></div>`}
       </div>
@@ -225,12 +259,23 @@
     return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>`;
   }
 
-  function buildVideoCard(v) {
+  // NEW badge — 48 soat ichida chiqqan videolar uchun
+  function isNewVideo(publishedAt) {
+    if (!publishedAt) return false;
+    const t = new Date(publishedAt).getTime();
+    if (!t) return false;
+    return (Date.now() - t) < 48 * 3600 * 1000;
+  }
+
+  function buildVideoCard(v, opts) {
     const favs = getPodcastFavorites();
     const isFav = favs.has(v.videoId);
+    const showNew = opts?.showNewBadge !== false && isNewVideo(v.publishedAt);
+    const progress = opts?.progress || 0; // 0-100 foiz
     return `
       <div class="pod-vid-card" role="button" tabindex="0" data-pod-play-video="${escapeHtml(v.videoId)}">
         <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
+          ${showNew ? '<span class="pod-vid-card__new">YANGI</span>' : ""}
           <span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>
           <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
             ${bookmarkSvg()}
@@ -238,15 +283,18 @@
         </div>
         <div class="pod-vid-card__title">${escapeHtml(v.title)}</div>
         <div class="pod-vid-card__meta">${formatCount(v.viewCount)} ko'rishlar · ${escapeHtml(timeAgo(v.publishedAt))}</div>
+        ${progress > 0 ? `<div class="pod-vid-card__progress"><span style="width:${Math.min(progress, 100)}%"></span></div>` : ""}
       </div>
     `;
   }
 
   function buildShortCard(v) {
     const isFav = getPodcastFavorites().has(v.videoId);
+    const showNew = isNewVideo(v.publishedAt);
     return `
       <div class="pod-short-card" role="button" tabindex="0" data-pod-play-video="${escapeHtml(v.videoId)}">
         <div class="pod-short-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
+          ${showNew ? '<span class="pod-vid-card__new">YANGI</span>' : ""}
           <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
             ${bookmarkSvg()}
           </span>
@@ -483,6 +531,24 @@
       });
       startHeroRotation();
     }
+    // Davom etish kartochkalari
+    podcastsRoot.querySelectorAll("[data-pod-play-history]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
+        haptic("light");
+        const vid = el.dataset.podPlayHistory;
+        if (typeof window.__playYouTubeStandalone === "function") {
+          window.__playYouTubeStandalone(vid, { title: "" });
+        }
+      });
+    });
+    // Tarixni tozalash
+    podcastsRoot.querySelector("[data-pod-clear-history]")?.addEventListener("click", () => {
+      haptic("medium");
+      try { localStorage.removeItem("podcastHistory"); } catch (_) {}
+      showToast("Tarix tozalandi");
+      renderList();
+    });
   }
 
   let heroRotateTimer = null;
