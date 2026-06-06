@@ -5202,6 +5202,9 @@ searchInput?.addEventListener("input", (event) => {
     // is-music klassi qo'shilgan bo'lsa, music moduli allaqachon yuklangan.
     window.__music?.setQuery?.(query);
   }
+  if (document.body.classList.contains("is-podcasts")) {
+    window.__potcasts?.setQuery?.(query);
+  }
   renderRecentSearches();
   syncSearchClearBtn();
 });
@@ -5214,6 +5217,9 @@ searchClearBtn?.addEventListener("click", (event) => {
   renderMovies();
   if (document.body.classList.contains("is-music")) {
     window.__music?.setQuery?.("");
+  }
+  if (document.body.classList.contains("is-podcasts")) {
+    window.__potcasts?.setQuery?.("");
   }
   renderRecentSearches();
   syncSearchClearBtn();
