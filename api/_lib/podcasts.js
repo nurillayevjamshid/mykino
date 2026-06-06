@@ -250,8 +250,13 @@ async function fetchPlaylists(channelId, maxResults = 25) {
   }));
 }
 
+// Dastlabki yuklashda faqat oxirgi N video — kop videoli kanal uchun "kop zagruzka"ni
+// kamaytirish uchun (YT API chaqiruvlari va thumbnail soni keskin kamayadi).
+const INITIAL_VIDEOS_LIMIT = 60;
+
 async function getChannelView(channelId) {
-  const cacheKey = `podcasts:view:${channelId}`;
+  // v2 — limit o'zgardi, eski cache'ni invalid qilamiz
+  const cacheKey = `podcasts:view:v2:${channelId}`;
   const redis = await getRedis();
   if (redis) {
     try {
@@ -268,7 +273,7 @@ async function getChannelView(channelId) {
   if (!item) throw Object.assign(new Error("Kanal topilmadi."), { statusCode: 404 });
   const channel = shapeChannel(item);
   const [videosAll, playlists] = await Promise.all([
-    fetchUploadedVideos(channel.uploadsPlaylistId, 9999),
+    fetchUploadedVideos(channel.uploadsPlaylistId, INITIAL_VIDEOS_LIMIT),
     fetchPlaylists(channelId, 25),
   ]);
   const videos = videosAll.filter((v) => !v.isShort);
@@ -316,7 +321,7 @@ async function handlePodcastsRequest(request, response) {
         // Cache'ni ham tozalash
         try {
           const r = await getRedis();
-          if (r) await r.del(`podcasts:view:${channelId}`);
+          if (r) await r.del(`podcasts:view:v2:${channelId}`);
         } catch (_) {}
         response.status(200).json({ ok: true, channels: next });
         return;
@@ -356,7 +361,7 @@ async function handlePodcastsRequest(request, response) {
         await writeChannels(list);
         try {
           const r = await getRedis();
-          if (r) await r.del(`podcasts:view:${channelId}`);
+          if (r) await r.del(`podcasts:view:v2:${channelId}`);
         } catch (_) {}
         response.status(200).json({ ok: true, channel: list[idx] });
         return;
