@@ -966,22 +966,41 @@
     wireContentEvents();
   }
 
-  function shareChannel() {
+  async function shareChannel() {
     if (!currentChannelData) return;
     const ch = currentChannelData.channel || {};
+    const tg = window.Telegram?.WebApp;
+    const userId = tg?.initDataUnsafe?.user?.id;
+    // Yashirin link uchun: bot serverda savePreparedInlineMessage qiladi,
+    // so'ng Telegram.WebApp.shareMessage(id) bilan ulashamiz.
+    if (userId && typeof tg?.shareMessage === "function") {
+      try {
+        const r = await fetch("/api/music?resource=podcasts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "share", channelId: ch.channelId, userId: String(userId) }),
+        });
+        const data = await r.json();
+        if (data?.ok && data.preparedMessageId) {
+          tg.shareMessage(data.preparedMessageId);
+          return;
+        }
+      } catch (_) {}
+    }
+    // Fallback: eski t.me/share/url (yashirin link ishlamaydi, lekin ishlaydi)
     const subText = formatCount(ch.subscriberCount) + " " + T("shareSubs");
     const vidText = formatCount(ch.videoCount) + " " + T("shareVideo");
     const avatar = ch.avatar || "";
     const link = `https://t.me/mykinoplay_bot?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
-    let text = `${ch.title || ""}\n\n`;
+    let text = `Potkast nomi: ${ch.title || ""}\n\n`;
     text += `👥 ${subText}\n`;
     text += `🎬 ${vidText}\n\n`;
-    text += `▶️ ${link}`;
+    text += `▶️ Potkastni ko'rish: ${link}`;
     const shareUrl = avatar
       ? `https://t.me/share/url?url=${encodeURIComponent(avatar)}&text=${encodeURIComponent(text)}`
       : `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
     try { window.open(shareUrl, "_blank"); } catch (_) {
-      try { window.Telegram?.WebApp?.openTelegramLink(shareUrl); } catch (_) {}
+      try { tg?.openTelegramLink(shareUrl); } catch (_) {}
     }
   }
 

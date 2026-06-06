@@ -304,6 +304,77 @@ async function handlePodcastsRequest(request, response) {
       const body = await readBody(request);
       const action = String(body.action || (request.method === "DELETE" ? "delete" : "add")).toLowerCase();
 
+      if (action === "share") {
+        const channelId = String(body.channelId || "").trim();
+        const userId = String(body.userId || "").trim();
+        if (!channelId || !/^\d+$/.test(userId)) {
+          response.status(400).json({ ok: false, error: "channelId va userId kerak." });
+          return;
+        }
+        const token = String(process.env.BOT_TOKEN || "").trim();
+        if (!token) { response.status(500).json({ ok: false, error: "BOT_TOKEN sozlanmagan." }); return; }
+        // Kanal ma'lumotini olamiz (avatar, title, sub/video count)
+        const list = await readChannels();
+        const stored = list.find((c) => c.channelId === channelId);
+        let ch = stored?.snapshot || null;
+        if (!ch) {
+          try { const view = await getChannelView(channelId); ch = view.channel; } catch (_) { ch = { channelId, title: "" }; }
+        }
+        const title = ch.title || "";
+        const subs = Number(ch.subscriberCount || 0);
+        const vids = Number(ch.videoCount || 0);
+        const avatar = ch.avatar || ch.banner || "";
+        const link = `https://t.me/mykinoplay_bot?startapp=pod_${encodeURIComponent(channelId)}`;
+        const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const fmt = (n) => {
+          if (!n) return "0";
+          if (n >= 1_000_000) return (n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1).replace(/\.0$/, "") + "M";
+          if (n >= 1_000) return (n / 1_000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "") + "K";
+          return String(n);
+        };
+        const html = `<b>Potkast nomi:</b> ${esc(title)}\n\n` +
+          `👥 ${fmt(subs)} obunachi\n` +
+          `🎬 ${fmt(vids)} video\n\n` +
+          `▶️ <a href="${esc(link)}">Potkastni ko'rish</a>`;
+        const resultId = `pod_${channelId}_${Date.now().toString(36)}`.slice(0, 64);
+        const result = avatar
+          ? {
+              type: "photo",
+              id: resultId,
+              photo_url: avatar,
+              thumbnail_url: avatar,
+              title,
+              caption: html,
+              parse_mode: "HTML",
+            }
+          : {
+              type: "article",
+              id: resultId,
+              title: title || "Potkast",
+              input_message_content: { message_text: html, parse_mode: "HTML" },
+            };
+        const tgUrl = `https://api.telegram.org/bot${token}/savePreparedInlineMessage`;
+        const tgRes = await fetch(tgUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: Number(userId),
+            result,
+            allow_user_chats: true,
+            allow_bot_chats: true,
+            allow_group_chats: true,
+            allow_channel_chats: true,
+          }),
+        });
+        const tgJson = await tgRes.json().catch(() => null);
+        if (!tgRes.ok || !tgJson?.ok) {
+          response.status(502).json({ ok: false, error: tgJson?.description || "savePreparedInlineMessage failed" });
+          return;
+        }
+        response.status(200).json({ ok: true, preparedMessageId: tgJson.result.id, expirationDate: tgJson.result.expiration_date });
+        return;
+      }
+
       if (action === "delete") {
         const channelId = String(body.channelId || "");
         if (!channelId) {
