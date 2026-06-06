@@ -971,72 +971,10 @@ function getPosterImage(movie) {
 
 function posterStyle(movie) {
   const source = getPosterImage(movie);
-  // Agar hech qanday URL yo'q bo'lsa (blob: filtrlandi yoki umuman yo'q) — canvas poster.
   const effective = source || buildGeneratedPosterDataUrl(movie);
   const safe = effective.replaceAll("'", "%27").replaceAll(")", "%29").replaceAll('"', "%22");
-  // data: URL (admin yuklagan yoki generatsiya) — IO kutmasdan to'g'ridan-to'g'ri style.
-  if (effective.startsWith("data:")) {
-    return `style="--poster-image: url('${safe}')"`;
-  }
-  // https: URL — lazy load (IntersectionObserver orqali).
-  return `data-poster="${safe}"`;
+  return `style="--poster-image: url('${safe}')"`;
 }
-
-// Poster lazy-load: IntersectionObserver + MutationObserver yon-effekt sifatida.
-// MUHIM (Android scroll perf): poster IO ishlaganda bir vaqtning o'zida ko'p
-// background-image dekodi main thread'ni bloklaydi ("biroz qotib qoladi").
-// Shuning uchun: (1) yangi Image() bilan oldindan decode() qilamiz — bitmap
-// browser cache'da hozir bo'ladi, bg-image qo'yilganda decode bepul. (2) DOM
-// yozishni requestIdleCallback'ga ko'chiramiz — scroll faol bo'lsa kutadi.
-(() => {
-  if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
-  const ric = window.requestIdleCallback
-    ? (fn) => window.requestIdleCallback(fn, { timeout: 500 })
-    : (fn) => setTimeout(fn, 80);
-
-  const applyPoster = (el, url) => {
-    if (!el || !url) return;
-    const img = new Image();
-    img.decoding = "async";
-    const swap = () => {
-      ric(() => {
-        el.style.setProperty("--poster-image", `url('${url}')`);
-        el.removeAttribute("data-poster");
-      });
-    };
-    if (typeof img.decode === "function") {
-      img.src = url;
-      img.decode().then(swap).catch(swap);
-    } else {
-      img.onload = swap;
-      img.onerror = swap;
-      img.src = url;
-    }
-  };
-
-  const io = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      const el = entry.target;
-      const url = el.getAttribute("data-poster");
-      if (url) applyPoster(el, url);
-      io.unobserve(el);
-    }
-  }, { rootMargin: "300px 600px", threshold: 0.01 });
-
-  const mo = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      for (const node of m.addedNodes) {
-        if (node.nodeType !== 1) continue;
-        if (node.hasAttribute && node.hasAttribute("data-poster")) io.observe(node);
-        const inner = node.querySelectorAll ? node.querySelectorAll("[data-poster]") : [];
-        for (const child of inner) io.observe(child);
-      }
-    }
-  });
-  if (document.body) mo.observe(document.body, { childList: true, subtree: true });
-  else document.addEventListener("DOMContentLoaded", () => mo.observe(document.body, { childList: true, subtree: true }), { once: true });
-})();
 
 
 
