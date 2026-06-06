@@ -551,6 +551,9 @@
             <div class="pod-channel-row__title">${escapeHtml(s.title || c.channelId)}</div>
             <div class="pod-channel-row__meta">${meta}</div>
           </div>
+          <span class="pod-channel-row__go" aria-hidden="true">
+            <svg class="pod-channel-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </span>
         </button>
       `;
     }).join("");
@@ -567,10 +570,11 @@
         </div>
       </header>
       <div class="pod-list">
+      <div class="pod-list">
         ${currentQuery ? "" : buildFeaturedChannels()}
         ${currentQuery && filtered.length ? `<h3 class="pod-ch-section__title">${escapeHtml(T("sectionChannels"))}</h3>` : ""}
         ${filtered.length
-          ? `<div class="pod-channels-scroll">${items}</div>`
+          ? items
           : (channels.length
               ? (currentQuery ? "" : `<div class="pod-empty"><div class="pod-empty__icon">🔎</div><div class="pod-empty__title">${escapeHtml(T("emptyNothingTitle"))}</div><div class="pod-empty__hint">${escapeHtml(T("emptyNothingHint"))}</div></div>`)
               : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">${escapeHtml(T("emptyNoPodcastsTitle"))}</div><div class="pod-empty__hint">${escapeHtml(T("emptyNoPodcastsHint"))}</div></div>`)}
