@@ -106,7 +106,7 @@
   async function loadChannelView(channelId) {
     const r = await fetch(`/api/podcasts?channelId=${encodeURIComponent(channelId)}`);
     const data = await r.json();
-    if (!data.ok) throw new Error(data.error || "Kanalni yuklab bo'lmadi.");
+    if (!data.ok) throw new Error(data.error || "Potkastni yuklab bo'lmadi.");
     return data; // { channel, videos, shorts, playlists }
   }
 
@@ -196,7 +196,7 @@
       </header>
       <div class="pod-list">
         ${buildFeaturedChannels()}
-        ${channels.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali kanal qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube kanal qo'shing</div></div>`}
+        ${channels.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali potkast qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube potkast qo'shing</div></div>`}
       </div>
     `;
   }
@@ -357,13 +357,6 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>
         <div class="pod-topbar__title pod-topbar__title--ch">${escapeHtml(ch.title || "")}</div>
-        <button class="pod-topbar__share" type="button" data-pod-share aria-label="Ulashish">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
-            <polyline points="16 6 12 2 8 6"></polyline>
-            <line x1="12" y1="2" x2="12" y2="15"></line>
-          </svg>
-        </button>
       </header>
       <div class="pod-ch">
         ${banner}
@@ -475,7 +468,7 @@
     visibleVideos = RENDER_BATCH;
     visibleShorts = RENDER_BATCH;
     if (loadMoreObserver) { try { loadMoreObserver.disconnect(); } catch (_) {} loadMoreObserver = null; }
-    podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Kanal yuklanmoqda...</div></div>`;
+    podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Potkast yuklanmoqda...</div></div>`;
     try {
       const data = await loadChannelView(channelId);
       currentChannelData = data;
@@ -863,7 +856,7 @@
         <div class="pod-channel-row__body">
           <div class="pod-channel-row__title">${escapeHtml(meta.title)}</div>
           <div class="pod-channel-row__meta">
-            <span class="pod-channel-row__tag pod-channel-row__tag--green">${count} kanal</span>
+            <span class="pod-channel-row__tag pod-channel-row__tag--green">${count} potkast</span>
           </div>
         </div>
         <span class="pod-channel-row__go" aria-hidden="true">
@@ -936,7 +929,7 @@
         <span style="width:34px"></span>
       </header>
       <div class="pod-list">
-        ${filtered.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">${meta.emoji}</div><div class="pod-empty__title">Bu tilda kanal yo'q</div><div class="pod-empty__hint">Boshqa kategoriyani tanlang</div></div>`}
+        ${filtered.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">${meta.emoji}</div><div class="pod-empty__title">Bu tilda potkast yo'q</div><div class="pod-empty__hint">Boshqa kategoriyani tanlang</div></div>`}
       </div>
     `;
     podcastsRoot.querySelector("[data-pod-back-to-categories]")?.addEventListener("click", () => {
