@@ -15,6 +15,13 @@
   let loaded = false;
   let currentQuery = "";
   let currentLang = null;
+  // channelId → { channel, videos, shorts, playlists, fetchedAt }
+  const channelViewCache = new Map();
+  let prefetchStarted = false;
+  let prefetchInFlight = 0;
+  let prefetchDone = 0;
+  const PREFETCH_CONCURRENCY = 3;
+  const SEARCH_VIDEOS_LIMIT = 60;
 
   function shuffleArray(arr) {
     const a = arr.slice();
@@ -98,6 +105,8 @@
       if (!data.ok) throw new Error(data.error || "Yuklab bo'lmadi.");
       channels = Array.isArray(data.channels) ? data.channels : [];
       loaded = true;
+      // Asosiy sahifa qidiruvi videolarni ham topishi uchun fonda yuklab boshlaymiz.
+      startPrefetchAllChannelViews();
     } catch (err) {
       console.error("podcasts loadChannels:", err);
       channels = [];
@@ -106,10 +115,175 @@
   }
 
   async function loadChannelView(channelId) {
+    const cached = channelViewCache.get(channelId);
+    if (cached) return cached;
     const r = await fetch(`/api/podcasts?channelId=${encodeURIComponent(channelId)}`);
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || "Potkastni yuklab bo'lmadi.");
+    channelViewCache.set(channelId, data);
     return data; // { channel, videos, shorts, playlists }
+  }
+
+  // Hamma kanallarning videolarini fonda yuklab keladi — qidiruv asosiy sahifadan
+  // video sarlavhalari bo'yicha ishlasin uchun.
+  function startPrefetchAllChannelViews() {
+    if (prefetchStarted) return;
+    prefetchStarted = true;
+    prefetchDone = 0;
+    const queue = channels.map((c) => c.channelId).filter(Boolean);
+    let i = 0;
+    const next = () => {
+      while (prefetchInFlight < PREFETCH_CONCURRENCY && i < queue.length) {
+        const id = queue[i++];
+        if (channelViewCache.has(id)) { prefetchDone++; continue; }
+        prefetchInFlight++;
+        fetch(`/api/podcasts?channelId=${encodeURIComponent(id)}`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data && data.ok) channelViewCache.set(id, data);
+          })
+          .catch(() => {})
+          .finally(() => {
+            prefetchInFlight--;
+            prefetchDone++;
+            // Qidiruv ochiq turgan bo'lsa, natijalarni yangilab boramiz.
+            if (currentQuery && currentView === "list") {
+              refreshSearchVideosSection();
+            }
+            next();
+          });
+      }
+    };
+    next();
+  }
+
+  // Asosiy ro'yxat ichidagi "Videolar" qidiruv natijasini qayta chizadi
+  // (kanallar ro'yxatini qayta yozmaymiz — faqat shu seksiyani yangilaymiz).
+  function refreshSearchVideosSection() {
+    const host = podcastsRoot.querySelector("[data-pod-search-videos]");
+    if (!host) return;
+    host.outerHTML = buildSearchVideosSection();
+    wireSearchVideosEvents();
+  }
+
+  function collectSearchVideos() {
+    if (!currentQuery) return [];
+    const out = [];
+    for (const c of channels) {
+      const view = channelViewCache.get(c.channelId);
+      if (!view) continue;
+      const chTitle = view.channel?.title || c.snapshot?.title || "";
+      const all = [...(view.videos || []), ...(view.shorts || [])];
+      for (const v of all) {
+        if (matchesQuery(v.title)) {
+          out.push({ ...v, channelId: c.channelId, channelTitle: chTitle });
+          if (out.length >= SEARCH_VIDEOS_LIMIT * 2) break;
+        }
+      }
+      if (out.length >= SEARCH_VIDEOS_LIMIT * 2) break;
+    }
+    // Eng yangi ko'rilganlar oldinga
+    out.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+    return out.slice(0, SEARCH_VIDEOS_LIMIT);
+  }
+
+  function buildSearchVideoCard(v) {
+    const favs = getPodcastFavorites();
+    const isFav = favs.has(v.videoId);
+    return `
+      <div class="pod-vid-card" role="button" tabindex="0" data-pod-search-play="${escapeHtml(v.channelId)}|${escapeHtml(v.videoId)}">
+        <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
+          <span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>
+          <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
+            ${bookmarkSvg()}
+          </span>
+        </div>
+        <div class="pod-vid-card__title">${escapeHtml(v.title)}</div>
+        <div class="pod-vid-card__meta">${escapeHtml(v.channelTitle)} · ${formatCount(v.viewCount)} ko'rishlar</div>
+      </div>
+    `;
+  }
+
+  function buildSearchVideosSection() {
+    if (!currentQuery) return `<div data-pod-search-videos hidden></div>`;
+    const items = collectSearchVideos();
+    const totalChannels = channels.length;
+    const progress = prefetchDone < totalChannels
+      ? `<div class="pod-ch-section__hint">Videolar yuklanmoqda… (${prefetchDone}/${totalChannels})</div>`
+      : "";
+    const body = items.length
+      ? `<div class="pod-vid-grid">${items.map(buildSearchVideoCard).join("")}</div>`
+      : (prefetchDone < totalChannels
+          ? ""
+          : `<div class="pod-empty pod-empty--inline"><div class="pod-empty__title">Bu so'rov bo'yicha video topilmadi</div></div>`);
+    return `
+      <section class="pod-ch-section" data-pod-search-videos>
+        <h3 class="pod-ch-section__title">Videolar</h3>
+        ${progress}
+        ${body}
+      </section>
+    `;
+  }
+
+  function wireSearchVideosEvents() {
+    podcastsRoot.querySelectorAll("[data-pod-search-play]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-pod-fav]")) return;
+        e.preventDefault();
+        haptic("light");
+        const [chId, vId] = String(el.dataset.podSearchPlay || "").split("|");
+        playSearchVideo(chId, vId);
+      });
+    });
+    podcastsRoot.querySelectorAll("[data-pod-search-videos] [data-pod-fav]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        haptic("medium");
+        const vid = btn.dataset.podFav;
+        // search natijasi ichidan meta yig'amiz
+        const meta = findSearchVideoMeta(vid);
+        const isActive = togglePodcastFavorite(vid, meta);
+        btn.classList.toggle("is-active", isActive);
+        btn.setAttribute("aria-pressed", String(isActive));
+        showToast(isActive ? "Saqlandi" : "Saqlanganlardan o'chirildi");
+      });
+    });
+  }
+
+  function findSearchVideoMeta(videoId) {
+    for (const c of channels) {
+      const view = channelViewCache.get(c.channelId);
+      if (!view) continue;
+      const all = [...(view.videos || []), ...(view.shorts || [])];
+      const v = all.find((x) => x.videoId === videoId);
+      if (v) {
+        return {
+          title: v.title || "",
+          thumb: v.thumb || "",
+          durationSec: v.durationSec || 0,
+          viewCount: v.viewCount || 0,
+          publishedAt: v.publishedAt || "",
+          channelTitle: view.channel?.title || "",
+          channelId: c.channelId,
+        };
+      }
+    }
+    return null;
+  }
+
+  function playSearchVideo(channelId, videoId) {
+    const view = channelViewCache.get(channelId);
+    if (view) {
+      currentChannelData = view; // openPlayer/savePodcastHistory shu kontekstdan foydalanadi
+    }
+    if (typeof window.__playYouTubeStandalone === "function") {
+      const meta = findSearchVideoMeta(videoId);
+      savePodcastHistory(videoId);
+      window.__playYouTubeStandalone(videoId, { title: meta?.title || "" });
+      return;
+    }
+    showToast("Pleyer hali yuklanmadi — qaytadan urinib ko'ring.");
   }
 
   // ---------- Featured kanallar (header section uchun — hero style) ----------
@@ -212,11 +386,13 @@
       </header>
       <div class="pod-list">
         ${currentQuery ? "" : buildFeaturedChannels()}
+        ${currentQuery && filtered.length ? `<h3 class="pod-ch-section__title">Kanallar</h3>` : ""}
         ${filtered.length
           ? items
           : (channels.length
-              ? `<div class="pod-empty"><div class="pod-empty__icon">🔎</div><div class="pod-empty__title">Hech narsa topilmadi</div><div class="pod-empty__hint">Boshqa so'z bilan qidirib ko'ring</div></div>`
+              ? (currentQuery ? "" : `<div class="pod-empty"><div class="pod-empty__icon">🔎</div><div class="pod-empty__title">Hech narsa topilmadi</div><div class="pod-empty__hint">Boshqa so'z bilan qidirib ko'ring</div></div>`)
               : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali potkast qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube potkast qo'shing</div></div>`)}
+        ${currentQuery ? buildSearchVideosSection() : ""}
       </div>
     `;
   }
@@ -517,6 +693,8 @@
         renderChannel(btn.dataset.podOpen);
       });
     });
+    // Search natijasidagi video kartochkalar
+    wireSearchVideosEvents();
     // Carousel dots
     const dots = podcastsRoot.querySelectorAll("[data-pod-hero-dot]");
     if (dots.length) {
@@ -736,6 +914,8 @@
     if (!loaded) {
       podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Yuklanmoqda...</div></div>`;
       await loadChannels();
+    } else {
+      startPrefetchAllChannelViews();
     }
     renderList();
   }
