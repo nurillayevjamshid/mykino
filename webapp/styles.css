@@ -11166,6 +11166,27 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
   gap: 10px;
 }
 
+/* Kanallar — gorizontal scroll (iOS/Android mos) */
+.pod-channels-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+  margin: 0 -12px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.pod-channels-scroll::-webkit-scrollbar { display: none; }
+.pod-channels-scroll .pod-channel-row {
+  flex: 0 0 260px;
+  min-height: 88px;
+  scroll-snap-align: start;
+}
+
 /* Statistika kartochkalari — yashil video + sariq obunachi */
 .pod-stats-row {
   display: flex;
