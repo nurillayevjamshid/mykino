@@ -625,22 +625,75 @@
     const sentinel = podcastsRoot.querySelector("[data-pod-load-more]");
     if (!sentinel || typeof IntersectionObserver === "undefined") return;
     const scrollRoot = document.getElementById("appShell") || null;
+    let busy = false;
     loadMoreObserver = new IntersectionObserver((entries) => {
       for (const en of entries) {
-        if (!en.isIntersecting) continue;
-        const which = en.target.dataset.podLoadMore;
-        if (which === "videos") visibleVideos += RENDER_BATCH;
-        else if (which === "shorts") visibleShorts += RENDER_BATCH;
-        else continue;
-        const content = podcastsRoot.querySelector("#podChContent");
-        if (content && currentChannelData) {
-          content.innerHTML = buildTabContent(currentChannelData);
-          wireContentEvents();
-        }
+        if (!en.isIntersecting || busy) continue;
+        busy = true;
+        try { loadMoreObserver.disconnect(); } catch (_) {}
+        loadMoreObserver = null;
+        appendMore(en.target.dataset.podLoadMore);
+        // Yangi batch chizilgach yangi sentinel uchun observer qaytadan o'rnatamiz
+        setupLoadMoreObserver();
         break;
       }
-    }, { root: scrollRoot, rootMargin: "400px 0px", threshold: 0 });
+    }, { root: scrollRoot, rootMargin: "300px 0px", threshold: 0 });
     loadMoreObserver.observe(sentinel);
+  }
+
+  // Mavjud grid'ga yana RENDER_BATCH ta kartochka qo'shadi (innerHTML qayta yozilmaydi).
+  function appendMore(which) {
+    if (!currentChannelData) return;
+    const grid = podcastsRoot.querySelector(`[data-pod-grid="${which}"]`);
+    const sentinel = podcastsRoot.querySelector(`[data-pod-load-more="${which}"]`);
+    if (!grid) return;
+    let list, start, end, builder;
+    if (which === "videos") {
+      list = currentChannelData.videos || [];
+      start = visibleVideos;
+      end = Math.min(list.length, start + RENDER_BATCH);
+      visibleVideos = end;
+      builder = buildVideoCard;
+    } else if (which === "shorts") {
+      list = currentChannelData.shorts || [];
+      start = visibleShorts;
+      end = Math.min(list.length, start + RENDER_BATCH);
+      visibleShorts = end;
+      builder = buildShortCard;
+    } else {
+      return;
+    }
+    if (start >= end) { if (sentinel) sentinel.remove(); return; }
+    const html = list.slice(start, end).map(builder).join("");
+    grid.insertAdjacentHTML("beforeend", html);
+    // Yangi kartochkalardagi event'larni ulash (faqat oxirgi qo'shilganlar)
+    const newCards = Array.from(grid.children).slice(start);
+    newCards.forEach((card) => {
+      const vid = card.dataset.podPlayVideo;
+      if (vid) {
+        card.addEventListener("click", (e) => {
+          if (e.target.closest("[data-pod-fav]")) return;
+          e.preventDefault();
+          haptic("light");
+          openPlayer(vid);
+        });
+      }
+      const favBtn = card.querySelector("[data-pod-fav]");
+      if (favBtn) {
+        favBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          haptic("medium");
+          const fv = favBtn.dataset.podFav;
+          const meta = findVideoMeta(fv);
+          const isActive = togglePodcastFavorite(fv, meta);
+          favBtn.classList.toggle("is-active", isActive);
+          favBtn.setAttribute("aria-pressed", String(isActive));
+          showToast(isActive ? "Saqlandi" : "Saqlanganlardan o'chirildi");
+        });
+      }
+    });
+    if (end >= list.length && sentinel) sentinel.remove();
   }
 
   // ---------- Public API ----------
