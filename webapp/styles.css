@@ -7367,26 +7367,26 @@ body.is-podcasts .bottom-bar--podcast { display: block !important; }
 .pod-hero__btn svg { width: 16px; height: 16px; }
 
 /* Carousel dots */
-.pod-hero-carousel { position: relative; }
-.pod-hero-dots {
+.pod-hero-scroll-track {
   display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  margin: 0 -12px;
+  padding: 0 12px 10px;
 }
-.pod-hero-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-4);
-  border: 0;
+.pod-hero-scroll-track::-webkit-scrollbar { display: none; }
+.pod-hero-card-scroll {
+  position: relative;
+  flex: 0 0 calc(100% - 48px);
+  min-height: 160px;
+  border-radius: 18px;
+  overflow: hidden;
   cursor: pointer;
-  transition: width 0.2s, background 0.2s;
-}
-.pod-hero-dot.is-active {
-  width: 18px;
-  border-radius: 4px;
-  background: var(--accent);
+  scroll-snap-align: start;
 }
 
 /* Eski featured card stillari (fallback) */
