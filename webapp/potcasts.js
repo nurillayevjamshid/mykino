@@ -743,6 +743,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>
         <div class="pod-topbar__title pod-topbar__title--ch">${escapeHtml(ch.title || "")}</div>
+        <button class="pod-topbar__share" type="button" data-pod-share aria-label="Ulashish">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
+            <polyline points="16 6 12 2 8 6"></polyline>
+            <line x1="12" y1="2" x2="12" y2="15"></line>
+          </svg>
+        </button>
       </header>
       <div class="pod-ch">
         ${banner}
