@@ -18,6 +18,12 @@
   let currentChannelData = null;
   let currentTab = "home"; // "home" | "videos" | "shorts" | "playlists"
   let toastTimer = null;
+  // Kop videoli kanallarda hamma kartochka birdan chizilmasligi uchun
+  // batchlab ko'rsatamiz — scroll oxiriga yetganda yana qo'shiladi.
+  const RENDER_BATCH = 24;
+  let visibleVideos = RENDER_BATCH;
+  let visibleShorts = RENDER_BATCH;
+  let loadMoreObserver = null;
 
   function escapeHtml(str) {
     return String(str || "")
@@ -307,10 +313,16 @@
       `;
     }
     if (currentTab === "videos") {
-      return `<div class="pod-vid-grid">${videos.map(buildVideoCard).join("") || `<div class="pod-empty"><div class="pod-empty__title">Videolar yo'q</div></div>`}</div>`;
+      if (!videos.length) return `<div class="pod-empty"><div class="pod-empty__title">Videolar yo'q</div></div>`;
+      const shown = videos.slice(0, visibleVideos);
+      const hasMore = videos.length > shown.length;
+      return `<div class="pod-vid-grid" data-pod-grid="videos">${shown.map(buildVideoCard).join("")}</div>${hasMore ? `<div class="pod-load-sentinel" data-pod-load-more="videos" style="height:1px;"></div>` : ""}`;
     }
     if (currentTab === "shorts") {
-      return `<div class="pod-shorts-grid">${shorts.map(buildShortCard).join("") || `<div class="pod-empty"><div class="pod-empty__title">Shortslar yo'q</div></div>`}</div>`;
+      if (!shorts.length) return `<div class="pod-empty"><div class="pod-empty__title">Shortslar yo'q</div></div>`;
+      const shown = shorts.slice(0, visibleShorts);
+      const hasMore = shorts.length > shown.length;
+      return `<div class="pod-shorts-grid" data-pod-grid="shorts">${shown.map(buildShortCard).join("")}</div>${hasMore ? `<div class="pod-load-sentinel" data-pod-load-more="shorts" style="height:1px;"></div>` : ""}`;
     }
     if (currentTab === "playlists") {
       return `<div class="pod-pl-grid">${playlists.map(buildPlaylistCard).join("") || `<div class="pod-empty"><div class="pod-empty__title">Playlistlar yo'q</div></div>`}</div>`;
@@ -448,6 +460,9 @@
     currentView = "channel";
     currentChannelId = channelId;
     currentTab = "home";
+    visibleVideos = RENDER_BATCH;
+    visibleShorts = RENDER_BATCH;
+    if (loadMoreObserver) { try { loadMoreObserver.disconnect(); } catch (_) {} loadMoreObserver = null; }
     podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Kanal yuklanmoqda...</div></div>`;
     try {
       const data = await loadChannelView(channelId);
@@ -513,6 +528,9 @@
         const tab = btn.dataset.podChTab;
         if (tab === currentTab) return;
         currentTab = tab;
+        // Yangi tab — batchni boshidan
+        visibleVideos = RENDER_BATCH;
+        visibleShorts = RENDER_BATCH;
         haptic("light");
         podcastsRoot.querySelectorAll("[data-pod-ch-tab]").forEach((b) => {
           b.classList.toggle("is-active", b.dataset.podChTab === tab);
@@ -598,6 +616,31 @@
         showToast("Playlist tez orada qo'shiladi");
       });
     });
+    // Scroll oxiriga yetganda yana RENDER_BATCH ta video qo'shamiz
+    setupLoadMoreObserver();
+  }
+
+  function setupLoadMoreObserver() {
+    if (loadMoreObserver) { try { loadMoreObserver.disconnect(); } catch (_) {} loadMoreObserver = null; }
+    const sentinel = podcastsRoot.querySelector("[data-pod-load-more]");
+    if (!sentinel || typeof IntersectionObserver === "undefined") return;
+    const scrollRoot = document.getElementById("appShell") || null;
+    loadMoreObserver = new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        const which = en.target.dataset.podLoadMore;
+        if (which === "videos") visibleVideos += RENDER_BATCH;
+        else if (which === "shorts") visibleShorts += RENDER_BATCH;
+        else continue;
+        const content = podcastsRoot.querySelector("#podChContent");
+        if (content && currentChannelData) {
+          content.innerHTML = buildTabContent(currentChannelData);
+          wireContentEvents();
+        }
+        break;
+      }
+    }, { root: scrollRoot, rootMargin: "400px 0px", threshold: 0 });
+    loadMoreObserver.observe(sentinel);
   }
 
   // ---------- Public API ----------

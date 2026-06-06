@@ -250,12 +250,7 @@ async function fetchPlaylists(channelId, maxResults = 25) {
   }));
 }
 
-// Dastlabki yuklashda faqat oxirgi N video — kop videoli kanal uchun "kop zagruzka"ni
-// kamaytirish uchun (YT API chaqiruvlari va thumbnail soni keskin kamayadi).
-const INITIAL_VIDEOS_LIMIT = 60;
-
 async function getChannelView(channelId) {
-  // v2 — limit o'zgardi, eski cache'ni invalid qilamiz
   const cacheKey = `podcasts:view:v2:${channelId}`;
   const redis = await getRedis();
   if (redis) {
@@ -273,7 +268,7 @@ async function getChannelView(channelId) {
   if (!item) throw Object.assign(new Error("Kanal topilmadi."), { statusCode: 404 });
   const channel = shapeChannel(item);
   const [videosAll, playlists] = await Promise.all([
-    fetchUploadedVideos(channel.uploadsPlaylistId, INITIAL_VIDEOS_LIMIT),
+    fetchUploadedVideos(channel.uploadsPlaylistId, 9999),
     fetchPlaylists(channelId, 25),
   ]);
   const videos = videosAll.filter((v) => !v.isShort);
