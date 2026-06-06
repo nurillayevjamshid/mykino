@@ -462,18 +462,9 @@
     if (view) {
       currentChannelData = view; // openPlayer/savePodcastHistory shu kontekstdan foydalanadi
     }
-    savePodcastHistory(videoId);
-    const meta = findSearchVideoMeta(videoId);
-    if (typeof window.__podcastPlayer?.play === "function") {
-      const ch = view?.channel || {};
-      window.__podcastPlayer.play(videoId, {
-        title: meta?.title || "",
-        channel: ch.title || "",
-        thumb: meta?.thumb || "",
-      });
-      return;
-    }
     if (typeof window.__playYouTubeStandalone === "function") {
+      const meta = findSearchVideoMeta(videoId);
+      savePodcastHistory(videoId);
       window.__playYouTubeStandalone(videoId, { title: meta?.title || "" });
       return;
     }
@@ -818,19 +809,6 @@
   function openPlayer(videoId) {
     // Tomosha tarixiga saqlash
     savePodcastHistory(videoId);
-    // Bottom sheet podcast player
-    if (typeof window.__podcastPlayer?.play === "function") {
-      const ch = currentChannelData?.channel || {};
-      const all = [...(currentChannelData?.videos || []), ...(currentChannelData?.shorts || [])];
-      const video = all.find((v) => v.videoId === videoId);
-      window.__podcastPlayer.play(videoId, {
-        title: video?.title || findVideoTitle(videoId),
-        channel: ch.title || "",
-        thumb: video?.thumb || "",
-      });
-      return;
-    }
-    // Fallback — eski video player
     if (typeof window.__playYouTubeStandalone === "function") {
       window.__playYouTubeStandalone(videoId, { title: findVideoTitle(videoId) });
       return;
@@ -1220,13 +1198,7 @@
         haptic("light");
         const vid = el.dataset.podPlaySaved;
         const meta = readSavedStore()[vid];
-        if (typeof window.__podcastPlayer?.play === "function") {
-          window.__podcastPlayer.play(vid, {
-            title: meta?.title || "",
-            channel: meta?.channelTitle || "",
-            thumb: meta?.thumb || "",
-          });
-        } else if (typeof window.__playYouTubeStandalone === "function") {
+        if (typeof window.__playYouTubeStandalone === "function") {
           window.__playYouTubeStandalone(vid, { title: meta?.title || "" });
         }
       });
