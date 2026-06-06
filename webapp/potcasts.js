@@ -13,6 +13,8 @@
 
   let channels = [];
   let loaded = false;
+  let currentQuery = "";
+  let currentLang = null;
 
   function shuffleArray(arr) {
     const a = arr.slice();
@@ -163,8 +165,22 @@
 
   // ---------- List view (qo'shilgan kanallar) ----------
 
+  function matchesQuery(text) {
+    if (!currentQuery) return true;
+    return String(text || "").toLowerCase().includes(currentQuery);
+  }
+
+  function filterChannels(list) {
+    if (!currentQuery) return list;
+    return list.filter((c) => {
+      const s = c.snapshot || {};
+      return matchesQuery(s.title) || matchesQuery(s.description) || matchesQuery(c.channelId);
+    });
+  }
+
   function buildList() {
-    const items = shuffleArray(channels).map((c) => {
+    const filtered = filterChannels(channels);
+    const items = shuffleArray(filtered).map((c) => {
       const s = c.snapshot || {};
       const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
       const meta = `<span class="pod-channel-row__tag pod-channel-row__tag--green">${formatCount(s.videoCount)} video</span><span class="pod-channel-row__tag pod-channel-row__tag--yellow">${formatCount(s.subscriberCount)} obunachi</span>`;
@@ -195,8 +211,12 @@
         </div>
       </header>
       <div class="pod-list">
-        ${buildFeaturedChannels()}
-        ${channels.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali potkast qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube potkast qo'shing</div></div>`}
+        ${currentQuery ? "" : buildFeaturedChannels()}
+        ${filtered.length
+          ? items
+          : (channels.length
+              ? `<div class="pod-empty"><div class="pod-empty__icon">🔎</div><div class="pod-empty__title">Hech narsa topilmadi</div><div class="pod-empty__hint">Boshqa so'z bilan qidirib ko'ring</div></div>`
+              : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali potkast qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube potkast qo'shing</div></div>`)}
       </div>
     `;
   }
@@ -287,7 +307,12 @@
   }
 
   function buildTabContent(data) {
-    const { videos = [], shorts = [], playlists = [] } = data;
+    let { videos = [], shorts = [], playlists = [] } = data;
+    if (currentQuery) {
+      videos = videos.filter((v) => matchesQuery(v.title));
+      shorts = shorts.filter((v) => matchesQuery(v.title));
+      playlists = playlists.filter((p) => matchesQuery(p.title));
+    }
     if (currentTab === "home") {
       const latest = videos.slice(0, 1);
       const recent = videos.slice(1, 9);
@@ -746,7 +771,8 @@
     currentView = "saved";
     currentChannelId = null;
     currentChannelData = null;
-    const saved = getSavedPodcastVideos();
+    const savedAll = getSavedPodcastVideos();
+    const saved = currentQuery ? savedAll.filter((v) => matchesQuery(v.title) || matchesQuery(v.channelTitle)) : savedAll;
     const body = saved.length
       ? `<div class="pod-vid-grid">${saved.map(buildSavedCard).join("")}</div>`
       : `<div class="pod-empty"><div class="pod-empty__icon">🔖</div><div class="pod-empty__title">Saqlangan video yo'q</div><div class="pod-empty__hint">Videoning o'ng burchagidagi bookmark tugmasini bosing</div></div>`;
@@ -900,8 +926,10 @@
 
   function renderLanguageList(lang) {
     currentView = "lang-list";
+    currentLang = lang;
     const meta = LANG_META[lang] || LANG_META.uz;
-    const filtered = shuffleArray(channels.filter((c) => detectChannelLang(c) === lang));
+    const langChannels = channels.filter((c) => detectChannelLang(c) === lang);
+    const filtered = shuffleArray(filterChannels(langChannels));
     const items = filtered.map((c) => {
       const s = c.snapshot || {};
       const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
@@ -929,7 +957,11 @@
         <span style="width:34px"></span>
       </header>
       <div class="pod-list">
-        ${filtered.length ? items : `<div class="pod-empty"><div class="pod-empty__icon">${meta.emoji}</div><div class="pod-empty__title">Bu tilda potkast yo'q</div><div class="pod-empty__hint">Boshqa kategoriyani tanlang</div></div>`}
+        ${filtered.length
+          ? items
+          : (currentQuery
+              ? `<div class="pod-empty"><div class="pod-empty__icon">🔎</div><div class="pod-empty__title">Hech narsa topilmadi</div><div class="pod-empty__hint">Boshqa so'z bilan qidirib ko'ring</div></div>`
+              : `<div class="pod-empty"><div class="pod-empty__icon">${meta.emoji}</div><div class="pod-empty__title">Bu tilda potkast yo'q</div><div class="pod-empty__hint">Boshqa kategoriyani tanlang</div></div>`)}
       </div>
     `;
     podcastsRoot.querySelector("[data-pod-back-to-categories]")?.addEventListener("click", () => {
@@ -955,7 +987,29 @@
     renderCategoriesView();
   }
 
-  window.__potcasts = { openPodcastsView, closePodcastsView, openSavedView: openPodcastsSavedView, openCategoriesView: openPodcastsCategoriesView };
+  function setQuery(q) {
+    const next = String(q || "").trim().toLowerCase();
+    if (next === currentQuery) return;
+    currentQuery = next;
+    if (!podcastsView || podcastsView.hidden) return;
+    if (currentView === "list") {
+      renderList();
+    } else if (currentView === "lang-list" && currentLang) {
+      renderLanguageList(currentLang);
+    } else if (currentView === "channel" && currentChannelData) {
+      visibleVideos = RENDER_BATCH;
+      visibleShorts = RENDER_BATCH;
+      const content = podcastsRoot.querySelector("#podChContent");
+      if (content) {
+        content.innerHTML = buildTabContent(currentChannelData);
+        wireContentEvents();
+      }
+    } else if (currentView === "saved") {
+      renderSavedView();
+    }
+  }
+
+  window.__potcasts = { openPodcastsView, closePodcastsView, openSavedView: openPodcastsSavedView, openCategoriesView: openPodcastsCategoriesView, setQuery };
   // Util funksiyalarni tashqariga chiqarish (app.js history/favorites uchun)
   window.__podUtils = { formatDuration, timeAgo, escapeHtml, getPodcastFavorites, togglePodcastFavorite, getSavedPodcastVideos };
 })();
