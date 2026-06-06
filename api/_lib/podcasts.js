@@ -251,7 +251,8 @@ async function fetchPlaylists(channelId, maxResults = 25) {
 }
 
 async function getChannelView(channelId) {
-  const cacheKey = `podcasts:view:v2:${channelId}`;
+  // v3 — eski (60-cap'li) cache'larni invalid qilish
+  const cacheKey = `podcasts:view:v3:${channelId}`;
   const redis = await getRedis();
   if (redis) {
     try {
@@ -316,7 +317,7 @@ async function handlePodcastsRequest(request, response) {
         // Cache'ni ham tozalash
         try {
           const r = await getRedis();
-          if (r) await r.del(`podcasts:view:v2:${channelId}`);
+          if (r) await r.del(`podcasts:view:v3:${channelId}`);
         } catch (_) {}
         response.status(200).json({ ok: true, channels: next });
         return;
@@ -356,7 +357,7 @@ async function handlePodcastsRequest(request, response) {
         await writeChannels(list);
         try {
           const r = await getRedis();
-          if (r) await r.del(`podcasts:view:v2:${channelId}`);
+          if (r) await r.del(`podcasts:view:v3:${channelId}`);
         } catch (_) {}
         response.status(200).json({ ok: true, channel: list[idx] });
         return;
