@@ -141,6 +141,8 @@ const copy = {
     footerTagline: "Eng sara kinolar mini-ilovasi",
     footerCopy: "© 2026 Kino Play. Barcha huquqlar himoyalangan.",
     tvNav: "Potkastlar",
+    kinoNav: "Kino",
+    betaBadge: "Beta versiya",
     favoritesNav: "Sevimlilar",
     profileNav: "Profil",
     settings: "Sozlamalar",
@@ -202,6 +204,8 @@ const copy = {
     footerTagline: "Мини-приложение лучших фильмов",
     footerCopy: "© 2026 Kino Play. Все права защищены.",
     tvNav: "Подкасты",
+    kinoNav: "Кино",
+    betaBadge: "Бета-версия",
     favoritesNav: "Избранное",
     profileNav: "Профиль",
     settings: "Настройки",
@@ -263,6 +267,8 @@ const copy = {
     footerTagline: "Mini app for the best movies",
     footerCopy: "© 2026 Kino Play. All rights reserved.",
     tvNav: "Podcasts",
+    kinoNav: "Movies",
+    betaBadge: "Beta",
     favoritesNav: "Favorites",
     profileNav: "Profile",
     settings: "Settings",
@@ -5314,7 +5320,7 @@ function syncSidebarMusicItem() {
         <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
         <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
       </svg>
-      <span>Kino</span>`;
+      <span data-i18n="kinoNav">${plainLabel(t("kinoNav"))}</span>`;
   } else {
     item.dataset.sidebarAction = "music";
     item.innerHTML = `
@@ -5323,8 +5329,8 @@ function syncSidebarMusicItem() {
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
       </svg>
-      <span data-i18n="musicNav">Musiqa</span>
-      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
+      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>
+      <span class="beta-badge" aria-hidden="true" data-i18n="betaBadge">${plainLabel(t("betaBadge"))}</span>`;
   }
 }
 
@@ -5342,8 +5348,8 @@ function syncSidebarPodcastsItem() {
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
       </svg>
-      <span data-i18n="musicNav">Musiqa</span>
-      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
+      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>
+      <span class="beta-badge" aria-hidden="true" data-i18n="betaBadge">${plainLabel(t("betaBadge"))}</span>`;
   } else {
     // Kino yoki Musiqa bo'limida 2-slot: Potkastlar
     item.dataset.sidebarAction = "podcasts";
@@ -5353,8 +5359,8 @@ function syncSidebarPodcastsItem() {
         <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
         <line x1="12" y1="19" x2="12" y2="22"></line>
       </svg>
-      <span data-i18n="tvNav">Potkastlar</span>
-      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
+      <span data-i18n="tvNav">${plainLabel(t("tvNav"))}</span>
+      <span class="beta-badge" aria-hidden="true" data-i18n="betaBadge">${plainLabel(t("betaBadge"))}</span>`;
   }
 }
 
@@ -5445,10 +5451,21 @@ sidebarLangPills?.querySelectorAll(".lang-pill").forEach((pill) => {
     if (!next) return;
     lang = next;
     localStorage.setItem("kino_lang", next);
+    try { syncSidebarMusicItem(); } catch (_) {}
+    try { syncSidebarPodcastsItem(); } catch (_) {}
     try { applyCopy(); } catch (_) {}
     syncSidebarSettings();
+    try {
+      window.dispatchEvent(new CustomEvent("kino-lang-change", { detail: { lang: next } }));
+    } catch (_) {}
   });
 });
+
+// Tashqi modullar (potcasts.js, music.js) uchun til/translate ko'prik
+window.__i18n = {
+  get lang() { return lang; },
+  t: (key) => { try { return t(key); } catch (_) { return key; } },
+};
 
 const _origApplyTheme = applyTheme;
 applyTheme = function (t) {

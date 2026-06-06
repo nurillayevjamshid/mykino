@@ -6,6 +6,191 @@
   const podcastsView = document.getElementById("podcastsView");
   const podcastsRoot = document.getElementById("podcastsRoot");
 
+  // ===== i18n =====
+  const I18N = {
+    uz: {
+      headerTitle: "Potkastlar",
+      catTitle: "Kategoriyalar",
+      savedTitle: "Saqlangan",
+      back: "Orqaga",
+      saveBtn: "Saqlash",
+      removeBtn: "O'chirish",
+      savedToast: "Saqlandi",
+      unsavedToast: "Saqlanganlardan o'chirildi",
+      tabHome: "Asosiy",
+      tabVideos: "Videolar",
+      tabShorts: "Shorts",
+      tabPlaylists: "Playlistlar",
+      sectionLatest: "So'nggi yuklangan",
+      sectionShorts: "Shorts",
+      sectionVideos: "Videolar",
+      sectionPlaylists: "Playlistlar",
+      sectionChannels: "Kanallar",
+      emptyNothingTitle: "Hech narsa topilmadi",
+      emptyNothingHint: "Boshqa so'z bilan qidirib ko'ring",
+      emptyNoPodcastsTitle: "Hali potkast qo'shilmagan",
+      emptyNoPodcastsHint: "Admin paneldan YouTube potkast qo'shing",
+      emptyNoVideos: "Bu so'rov bo'yicha video topilmadi",
+      emptyNoLangPodcasts: "Bu tilda potkast yo'q",
+      emptyChooseOther: "Boshqa kategoriyani tanlang",
+      emptySavedTitle: "Saqlangan video yo'q",
+      emptySavedHint: "Videoning o'ng burchagidagi bookmark tugmasini bosing",
+      emptyContent: "Kontent topilmadi",
+      noVideos: "Videolar yo'q",
+      noShorts: "Shortslar yo'q",
+      noPlaylists: "Playlistlar yo'q",
+      loading: "Yuklanmoqda...",
+      loadingPodcast: "Potkast yuklanmoqda...",
+      playerNotReady: "Pleyer hali yuklanmadi — qaytadan urinib ko'ring.",
+      playlistSoon: "Playlist tez orada qo'shiladi",
+      more: "Batafsil",
+      hide: "Yashirish",
+      errorTitle: "Xato",
+      prefetching: (a, b) => `Videolar yuklanmoqda… (${a}/${b})`,
+      unitPodcasts: "potkast",
+      unitVideo: "video",
+      unitSubs: "obunachi",
+      unitViews: "ko'rishlar",
+      today: "Bugun",
+      yesterday: "Kecha",
+      daysAgo: (n) => `${n} kun oldin`,
+      weeksAgo: (n) => `${n} hafta oldin`,
+      monthsAgo: (n) => `${n} oy oldin`,
+      yearsAgo: (n) => `${n} yil oldin`,
+      unknownVideo: "Noma'lum video",
+      langUz: "O'zbekcha",
+      langRu: "Ruscha",
+      langEn: "Inglizcha",
+      shareSubs: "obunachi",
+      shareVideo: "video",
+    },
+    ru: {
+      headerTitle: "Подкасты",
+      catTitle: "Категории",
+      savedTitle: "Сохранённые",
+      back: "Назад",
+      saveBtn: "Сохранить",
+      removeBtn: "Удалить",
+      savedToast: "Сохранено",
+      unsavedToast: "Удалено из сохранённых",
+      tabHome: "Главная",
+      tabVideos: "Видео",
+      tabShorts: "Shorts",
+      tabPlaylists: "Плейлисты",
+      sectionLatest: "Последнее",
+      sectionShorts: "Shorts",
+      sectionVideos: "Видео",
+      sectionPlaylists: "Плейлисты",
+      sectionChannels: "Каналы",
+      emptyNothingTitle: "Ничего не найдено",
+      emptyNothingHint: "Попробуйте другой запрос",
+      emptyNoPodcastsTitle: "Подкастов пока нет",
+      emptyNoPodcastsHint: "Добавьте YouTube-подкаст в админ-панели",
+      emptyNoVideos: "По этому запросу видео не найдено",
+      emptyNoLangPodcasts: "На этом языке подкастов нет",
+      emptyChooseOther: "Выберите другую категорию",
+      emptySavedTitle: "Нет сохранённых видео",
+      emptySavedHint: "Нажмите на закладку в углу видео, чтобы сохранить",
+      emptyContent: "Контент не найден",
+      noVideos: "Нет видео",
+      noShorts: "Нет Shorts",
+      noPlaylists: "Нет плейлистов",
+      loading: "Загрузка...",
+      loadingPodcast: "Загружается подкаст...",
+      playerNotReady: "Плеер ещё не загрузился — попробуйте ещё раз.",
+      playlistSoon: "Плейлисты скоро появятся",
+      more: "Подробнее",
+      hide: "Скрыть",
+      errorTitle: "Ошибка",
+      prefetching: (a, b) => `Видео загружаются… (${a}/${b})`,
+      unitPodcasts: "подкаст",
+      unitVideo: "видео",
+      unitSubs: "подписчиков",
+      unitViews: "просмотров",
+      today: "Сегодня",
+      yesterday: "Вчера",
+      daysAgo: (n) => `${n} дн. назад`,
+      weeksAgo: (n) => `${n} нед. назад`,
+      monthsAgo: (n) => `${n} мес. назад`,
+      yearsAgo: (n) => `${n} г. назад`,
+      unknownVideo: "Неизвестное видео",
+      langUz: "Узбекский",
+      langRu: "Русский",
+      langEn: "Английский",
+      shareSubs: "подписчиков",
+      shareVideo: "видео",
+    },
+    en: {
+      headerTitle: "Podcasts",
+      catTitle: "Categories",
+      savedTitle: "Saved",
+      back: "Back",
+      saveBtn: "Save",
+      removeBtn: "Remove",
+      savedToast: "Saved",
+      unsavedToast: "Removed from saved",
+      tabHome: "Home",
+      tabVideos: "Videos",
+      tabShorts: "Shorts",
+      tabPlaylists: "Playlists",
+      sectionLatest: "Latest",
+      sectionShorts: "Shorts",
+      sectionVideos: "Videos",
+      sectionPlaylists: "Playlists",
+      sectionChannels: "Channels",
+      emptyNothingTitle: "Nothing found",
+      emptyNothingHint: "Try another query",
+      emptyNoPodcastsTitle: "No podcasts yet",
+      emptyNoPodcastsHint: "Add a YouTube podcast from admin",
+      emptyNoVideos: "No videos for this query",
+      emptyNoLangPodcasts: "No podcasts in this language",
+      emptyChooseOther: "Pick another category",
+      emptySavedTitle: "No saved videos",
+      emptySavedHint: "Tap the bookmark on a video to save it",
+      emptyContent: "Nothing here",
+      noVideos: "No videos",
+      noShorts: "No shorts",
+      noPlaylists: "No playlists",
+      loading: "Loading...",
+      loadingPodcast: "Loading podcast...",
+      playerNotReady: "Player not ready — try again.",
+      playlistSoon: "Playlists coming soon",
+      more: "More",
+      hide: "Hide",
+      errorTitle: "Error",
+      prefetching: (a, b) => `Videos loading… (${a}/${b})`,
+      unitPodcasts: "podcasts",
+      unitVideo: "videos",
+      unitSubs: "subscribers",
+      unitViews: "views",
+      today: "Today",
+      yesterday: "Yesterday",
+      daysAgo: (n) => `${n} days ago`,
+      weeksAgo: (n) => `${n} weeks ago`,
+      monthsAgo: (n) => `${n} months ago`,
+      yearsAgo: (n) => `${n} years ago`,
+      unknownVideo: "Unknown video",
+      langUz: "Uzbek",
+      langRu: "Russian",
+      langEn: "English",
+      shareSubs: "subscribers",
+      shareVideo: "videos",
+    },
+  };
+  function uiLang() {
+    try {
+      const l = (window.__i18n && window.__i18n.lang) || localStorage.getItem("kino_lang") || "uz";
+      return I18N[l] ? l : "uz";
+    } catch (_) { return "uz"; }
+  }
+  function T(key, ...args) {
+    const tbl = I18N[uiLang()] || I18N.uz;
+    const v = tbl[key];
+    if (typeof v === "function") return v(...args);
+    if (v != null) return v;
+    return I18N.uz[key] != null ? (typeof I18N.uz[key] === "function" ? I18N.uz[key](...args) : I18N.uz[key]) : key;
+  }
+
   const tg = window.Telegram?.WebApp;
   const haptic = (kind = "light") => {
     try { tg?.HapticFeedback?.impactOccurred?.(kind); } catch (_) {}
@@ -71,12 +256,12 @@
     if (!t) return "";
     const diff = Math.max(0, Date.now() - t);
     const d = Math.floor(diff / 86400000);
-    if (d < 1) return "Bugun";
-    if (d < 2) return "Kecha";
-    if (d < 7) return `${d} kun oldin`;
-    if (d < 30) return `${Math.floor(d / 7)} hafta oldin`;
-    if (d < 365) return `${Math.floor(d / 30)} oy oldin`;
-    return `${Math.floor(d / 365)} yil oldin`;
+    if (d < 1) return T("today");
+    if (d < 2) return T("yesterday");
+    if (d < 7) return T("daysAgo", d);
+    if (d < 30) return T("weeksAgo", Math.floor(d / 7));
+    if (d < 365) return T("monthsAgo", Math.floor(d / 30));
+    return T("yearsAgo", Math.floor(d / 365));
   }
 
   function showToast(msg) {
@@ -194,12 +379,12 @@
       <div class="pod-vid-card" role="button" tabindex="0" data-pod-search-play="${escapeHtml(v.channelId)}|${escapeHtml(v.videoId)}">
         <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
           <span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>
-          <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
+          <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="${escapeHtml(T("saveBtn"))}" aria-pressed="${isFav}">
             ${bookmarkSvg()}
           </span>
         </div>
         <div class="pod-vid-card__title">${escapeHtml(v.title)}</div>
-        <div class="pod-vid-card__meta">${escapeHtml(v.channelTitle)} · ${formatCount(v.viewCount)} ko'rishlar</div>
+        <div class="pod-vid-card__meta">${escapeHtml(v.channelTitle)} · ${formatCount(v.viewCount)} ${escapeHtml(T("unitViews"))}</div>
       </div>
     `;
   }
@@ -209,16 +394,16 @@
     const items = collectSearchVideos();
     const totalChannels = channels.length;
     const progress = prefetchDone < totalChannels
-      ? `<div class="pod-ch-section__hint">Videolar yuklanmoqda… (${prefetchDone}/${totalChannels})</div>`
+      ? `<div class="pod-ch-section__hint">${escapeHtml(T("prefetching", prefetchDone, totalChannels))}</div>`
       : "";
     const body = items.length
       ? `<div class="pod-vid-grid">${items.map(buildSearchVideoCard).join("")}</div>`
       : (prefetchDone < totalChannels
           ? ""
-          : `<div class="pod-empty pod-empty--inline"><div class="pod-empty__title">Bu so'rov bo'yicha video topilmadi</div></div>`);
+          : `<div class="pod-empty pod-empty--inline"><div class="pod-empty__title">${escapeHtml(T("emptyNoVideos"))}</div></div>`);
     return `
       <section class="pod-ch-section" data-pod-search-videos>
-        <h3 class="pod-ch-section__title">Videolar</h3>
+        <h3 class="pod-ch-section__title">${escapeHtml(T("sectionVideos"))}</h3>
         ${progress}
         ${body}
       </section>
@@ -246,7 +431,7 @@
         const isActive = togglePodcastFavorite(vid, meta);
         btn.classList.toggle("is-active", isActive);
         btn.setAttribute("aria-pressed", String(isActive));
-        showToast(isActive ? "Saqlandi" : "Saqlanganlardan o'chirildi");
+        showToast(isActive ? T("savedToast") : T("unsavedToast"));
       });
     });
   }
@@ -283,7 +468,7 @@
       window.__playYouTubeStandalone(videoId, { title: meta?.title || "" });
       return;
     }
-    showToast("Pleyer hali yuklanmadi — qaytadan urinib ko'ring.");
+    showToast(T("playerNotReady"));
   }
 
   // ---------- Featured kanallar (header section uchun — hero style) ----------
@@ -357,7 +542,7 @@
     const items = shuffleArray(filtered).map((c) => {
       const s = c.snapshot || {};
       const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
-      const meta = `<span class="pod-channel-row__tag pod-channel-row__tag--green">${formatCount(s.videoCount)} video</span><span class="pod-channel-row__tag pod-channel-row__tag--yellow">${formatCount(s.subscriberCount)} obunachi</span>`;
+      const meta = `<span class="pod-channel-row__tag pod-channel-row__tag--green">${formatCount(s.videoCount)} ${escapeHtml(T("unitVideo"))}</span><span class="pod-channel-row__tag pod-channel-row__tag--yellow">${formatCount(s.subscriberCount)} ${escapeHtml(T("unitSubs"))}</span>`;
       return `
         <button class="pod-channel-row" type="button" data-pod-open="${escapeHtml(c.channelId)}">
           <span class="pod-channel-row__glow" aria-hidden="true"></span>
@@ -381,17 +566,17 @@
             <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
             <line x1="12" y1="19" x2="12" y2="22"></line>
           </svg>
-          <span>Potkastlar</span>
+          <span>${escapeHtml(T("headerTitle"))}</span>
         </div>
       </header>
       <div class="pod-list">
         ${currentQuery ? "" : buildFeaturedChannels()}
-        ${currentQuery && filtered.length ? `<h3 class="pod-ch-section__title">Kanallar</h3>` : ""}
+        ${currentQuery && filtered.length ? `<h3 class="pod-ch-section__title">${escapeHtml(T("sectionChannels"))}</h3>` : ""}
         ${filtered.length
           ? items
           : (channels.length
-              ? (currentQuery ? "" : `<div class="pod-empty"><div class="pod-empty__icon">🔎</div><div class="pod-empty__title">Hech narsa topilmadi</div><div class="pod-empty__hint">Boshqa so'z bilan qidirib ko'ring</div></div>`)
-              : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">Hali potkast qo'shilmagan</div><div class="pod-empty__hint">Admin paneldan YouTube potkast qo'shing</div></div>`)}
+              ? (currentQuery ? "" : `<div class="pod-empty"><div class="pod-empty__icon">🔎</div><div class="pod-empty__title">${escapeHtml(T("emptyNothingTitle"))}</div><div class="pod-empty__hint">${escapeHtml(T("emptyNothingHint"))}</div></div>`)
+              : `<div class="pod-empty"><div class="pod-empty__icon">🎙️</div><div class="pod-empty__title">${escapeHtml(T("emptyNoPodcastsTitle"))}</div><div class="pod-empty__hint">${escapeHtml(T("emptyNoPodcastsHint"))}</div></div>`)}
         ${currentQuery ? buildSearchVideosSection() : ""}
       </div>
     `;
@@ -446,12 +631,12 @@
       <div class="pod-vid-card" role="button" tabindex="0" data-pod-play-video="${escapeHtml(v.videoId)}">
         <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
           <span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>
-          <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
+          <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="${escapeHtml(T("saveBtn"))}" aria-pressed="${isFav}">
             ${bookmarkSvg()}
           </span>
         </div>
         <div class="pod-vid-card__title">${escapeHtml(v.title)}</div>
-        <div class="pod-vid-card__meta">${formatCount(v.viewCount)} ko'rishlar · ${escapeHtml(timeAgo(v.publishedAt))}</div>
+        <div class="pod-vid-card__meta">${formatCount(v.viewCount)} ${escapeHtml(T("unitViews"))} · ${escapeHtml(timeAgo(v.publishedAt))}</div>
       </div>
     `;
   }
@@ -461,12 +646,12 @@
     return `
       <div class="pod-short-card" role="button" tabindex="0" data-pod-play-video="${escapeHtml(v.videoId)}">
         <div class="pod-short-card__thumb" style="background-image:url('${escapeHtml(v.thumb)}')">
-          <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="Saqlash" aria-pressed="${isFav}">
+          <span class="pod-fav-btn${isFav ? " is-active" : ""}" role="button" tabindex="0" data-pod-fav="${escapeHtml(v.videoId)}" aria-label="${escapeHtml(T("saveBtn"))}" aria-pressed="${isFav}">
             ${bookmarkSvg()}
           </span>
         </div>
         <div class="pod-short-card__title">${escapeHtml(v.title)}</div>
-        <div class="pod-short-card__meta">${formatCount(v.viewCount)} ko'rishlar</div>
+        <div class="pod-short-card__meta">${formatCount(v.viewCount)} ${escapeHtml(T("unitViews"))}</div>
       </div>
     `;
   }
@@ -475,7 +660,7 @@
     return `
       <a class="pod-pl-card" href="https://www.youtube.com/playlist?list=${escapeHtml(p.playlistId)}" target="_blank" rel="noopener" data-pod-pl="${escapeHtml(p.playlistId)}">
         <div class="pod-pl-card__thumb" style="background-image:url('${escapeHtml(p.thumb)}')">
-          <span class="pod-pl-card__count">${p.itemCount} video</span>
+          <span class="pod-pl-card__count">${p.itemCount} ${escapeHtml(T("unitVideo"))}</span>
         </div>
         <div class="pod-pl-card__title">${escapeHtml(p.title)}</div>
       </a>
@@ -496,49 +681,49 @@
       return `
         ${latest.length ? `
           <section class="pod-ch-section">
-            <h3 class="pod-ch-section__title">So'nggi yuklangan</h3>
+            <h3 class="pod-ch-section__title">${escapeHtml(T("sectionLatest"))}</h3>
             <div class="pod-vid-grid pod-vid-grid--featured">
               ${buildVideoCard(latest[0])}
             </div>
           </section>` : ""}
         ${shortsRow.length ? `
           <section class="pod-ch-section">
-            <h3 class="pod-ch-section__title">Shorts</h3>
+            <h3 class="pod-ch-section__title">${escapeHtml(T("sectionShorts"))}</h3>
             <div class="pod-shorts-row">
               ${shortsRow.map(buildShortCard).join("")}
             </div>
           </section>` : ""}
         ${recent.length ? `
           <section class="pod-ch-section">
-            <h3 class="pod-ch-section__title">Videolar</h3>
+            <h3 class="pod-ch-section__title">${escapeHtml(T("sectionVideos"))}</h3>
             <div class="pod-vid-grid">
               ${recent.map(buildVideoCard).join("")}
             </div>
           </section>` : ""}
         ${playlists.length ? `
           <section class="pod-ch-section">
-            <h3 class="pod-ch-section__title">Playlistlar</h3>
+            <h3 class="pod-ch-section__title">${escapeHtml(T("sectionPlaylists"))}</h3>
             <div class="pod-pl-row">
               ${playlists.slice(0, 8).map(buildPlaylistCard).join("")}
             </div>
           </section>` : ""}
-        ${(!videos.length && !shorts.length && !playlists.length) ? `<div class="pod-empty"><div class="pod-empty__title">Kontent topilmadi</div></div>` : ""}
+        ${(!videos.length && !shorts.length && !playlists.length) ? `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("emptyContent"))}</div></div>` : ""}
       `;
     }
     if (currentTab === "videos") {
-      if (!videos.length) return `<div class="pod-empty"><div class="pod-empty__title">Videolar yo'q</div></div>`;
+      if (!videos.length) return `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("noVideos"))}</div></div>`;
       const shown = videos.slice(0, visibleVideos);
       const hasMore = videos.length > shown.length;
       return `<div class="pod-vid-grid" data-pod-grid="videos">${shown.map(buildVideoCard).join("")}</div>${hasMore ? `<div class="pod-load-sentinel" data-pod-load-more="videos" style="height:1px;"></div>` : ""}`;
     }
     if (currentTab === "shorts") {
-      if (!shorts.length) return `<div class="pod-empty"><div class="pod-empty__title">Shortslar yo'q</div></div>`;
+      if (!shorts.length) return `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("noShorts"))}</div></div>`;
       const shown = shorts.slice(0, visibleShorts);
       const hasMore = shorts.length > shown.length;
       return `<div class="pod-shorts-grid" data-pod-grid="shorts">${shown.map(buildShortCard).join("")}</div>${hasMore ? `<div class="pod-load-sentinel" data-pod-load-more="shorts" style="height:1px;"></div>` : ""}`;
     }
     if (currentTab === "playlists") {
-      return `<div class="pod-pl-grid">${playlists.map(buildPlaylistCard).join("") || `<div class="pod-empty"><div class="pod-empty__title">Playlistlar yo'q</div></div>`}</div>`;
+      return `<div class="pod-pl-grid">${playlists.map(buildPlaylistCard).join("") || `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("noPlaylists"))}</div></div>`}</div>`;
     }
     return "";
   }
@@ -547,14 +732,14 @@
     const ch = data.channel || {};
     const banner = ch.banner ? `<div class="pod-ch-banner" style="background-image:url('${escapeHtml(ch.banner)}')"></div>` : `<div class="pod-ch-banner pod-ch-banner--fallback"></div>`;
     const tabs = [
-      { id: "home", label: "Asosiy" },
-      { id: "videos", label: "Videolar" },
-      { id: "shorts", label: "Shorts" },
-      { id: "playlists", label: "Playlistlar" },
+      { id: "home", label: T("tabHome") },
+      { id: "videos", label: T("tabVideos") },
+      { id: "shorts", label: T("tabShorts") },
+      { id: "playlists", label: T("tabPlaylists") },
     ];
     return `
       <header class="pod-topbar pod-topbar--channel">
-        <button class="pod-topbar__back" type="button" data-pod-back-to-list aria-label="Orqaga">
+        <button class="pod-topbar__back" type="button" data-pod-back-to-list aria-label="${escapeHtml(T("back"))}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>
         <div class="pod-topbar__title pod-topbar__title--ch">${escapeHtml(ch.title || "")}</div>
@@ -569,11 +754,11 @@
               <div class="pod-ch-meta">
                 <span>${escapeHtml(ch.handle || "")}</span>
                 ${ch.handle ? '<span class="pod-ch-dot">·</span>' : ""}
-                <span>${formatCount(ch.subscriberCount)} obunachi</span>
+                <span>${formatCount(ch.subscriberCount)} ${escapeHtml(T("unitSubs"))}</span>
                 <span class="pod-ch-dot">·</span>
-                <span>${formatCount(ch.videoCount)} video</span>
+                <span>${formatCount(ch.videoCount)} ${escapeHtml(T("unitVideo"))}</span>
               </div>
-              ${ch.description ? `<div class="pod-ch-desc" data-pod-desc-toggle><span class="pod-ch-desc__text">${escapeHtml(ch.description.slice(0, 160))}</span>${ch.description.length > 160 ? `<span class="pod-ch-desc__dots">…</span><span class="pod-ch-desc__full" hidden>${escapeHtml(ch.description.slice(160))}</span><span class="pod-ch-desc__btn">Batafsil</span>` : ""}</div>` : ""}
+              ${ch.description ? `<div class="pod-ch-desc" data-pod-desc-toggle><span class="pod-ch-desc__text">${escapeHtml(ch.description.slice(0, 160))}</span>${ch.description.length > 160 ? `<span class="pod-ch-desc__dots">…</span><span class="pod-ch-desc__full" hidden>${escapeHtml(ch.description.slice(160))}</span><span class="pod-ch-desc__btn">${escapeHtml(T("more"))}</span>` : ""}</div>` : ""}
             </div>
           </div>
         </div>
@@ -669,14 +854,14 @@
     visibleVideos = RENDER_BATCH;
     visibleShorts = RENDER_BATCH;
     if (loadMoreObserver) { try { loadMoreObserver.disconnect(); } catch (_) {} loadMoreObserver = null; }
-    podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Potkast yuklanmoqda...</div></div>`;
+    podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>${escapeHtml(T("loadingPodcast"))}</div></div>`;
     try {
       const data = await loadChannelView(channelId);
       currentChannelData = data;
       podcastsRoot.innerHTML = buildChannelView(data);
       wireChannelEvents();
     } catch (err) {
-      podcastsRoot.innerHTML = `<div class="pod-empty"><div class="pod-empty__title">Xato</div><div class="pod-empty__hint">${escapeHtml(err.message)}</div><button class="pod-ch-sub" type="button" data-pod-back-to-list style="margin-top:14px;">Orqaga</button></div>`;
+      podcastsRoot.innerHTML = `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("errorTitle"))}</div><div class="pod-empty__hint">${escapeHtml(err.message)}</div><button class="pod-ch-sub" type="button" data-pod-back-to-list style="margin-top:14px;">${escapeHtml(T("back"))}</button></div>`;
       podcastsRoot.querySelector("[data-pod-back-to-list]")?.addEventListener("click", renderList);
     }
   }
@@ -760,11 +945,11 @@
       if (full && full.hidden) {
         full.hidden = false;
         if (dots) dots.style.display = "none";
-        if (btn) btn.textContent = "Yashirish";
+        if (btn) btn.textContent = T("hide");
       } else if (full) {
         full.hidden = true;
         if (dots) dots.style.display = "";
-        if (btn) btn.textContent = "Batafsil";
+        if (btn) btn.textContent = T("more");
       }
     });
     podcastsRoot.querySelector("[data-pod-share]")?.addEventListener("click", () => {
@@ -777,8 +962,8 @@
   function shareChannel() {
     if (!currentChannelData) return;
     const ch = currentChannelData.channel || {};
-    const subText = formatCount(ch.subscriberCount) + " obunachi";
-    const vidText = formatCount(ch.videoCount) + " video";
+    const subText = formatCount(ch.subscriberCount) + " " + T("shareSubs");
+    const vidText = formatCount(ch.videoCount) + " " + T("shareVideo");
     const avatar = ch.avatar || "";
     const link = `https://t.me/mykinoplay_bot?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
     let text = `${ch.title || ""}\n\n`;
@@ -813,7 +998,7 @@
         const isActive = togglePodcastFavorite(vid, meta);
         btn.classList.toggle("is-active", isActive);
         btn.setAttribute("aria-pressed", String(isActive));
-        showToast(isActive ? "Saqlandi" : "Saqlanganlardan o'chirildi");
+        showToast(isActive ? T("savedToast") : T("unsavedToast"));
       });
     });
     // Playlist link'lari — YouTube'ga o'tmasin, in-app pleyer ochsin (birinchi videoni)
@@ -821,7 +1006,7 @@
       el.addEventListener("click", (e) => {
         e.preventDefault();
         haptic("light");
-        showToast("Playlist tez orada qo'shiladi");
+        showToast(T("playlistSoon"));
       });
     });
     // Scroll oxiriga yetganda yana RENDER_BATCH ta video qo'shamiz
@@ -897,7 +1082,7 @@
           const isActive = togglePodcastFavorite(fv, meta);
           favBtn.classList.toggle("is-active", isActive);
           favBtn.setAttribute("aria-pressed", String(isActive));
-          showToast(isActive ? "Saqlandi" : "Saqlanganlardan o'chirildi");
+          showToast(isActive ? T("savedToast") : T("unsavedToast"));
         });
       }
     });
@@ -912,7 +1097,7 @@
     document.body.classList.add("is-podcasts");
     document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
     if (!loaded) {
-      podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Yuklanmoqda...</div></div>`;
+      podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>${escapeHtml(T("loading"))}</div></div>`;
       await loadChannels();
     } else {
       startPrefetchAllChannelViews();
@@ -934,11 +1119,11 @@
       <div class="pod-vid-card" role="button" tabindex="0" data-pod-play-saved="${escapeHtml(v.videoId)}">
         <div class="pod-vid-card__thumb" style="background-image:url('${escapeHtml(v.thumb || "")}')">
           ${v.durationSec ? `<span class="pod-vid-card__dur">${formatDuration(v.durationSec)}</span>` : ""}
-          <span class="pod-fav-btn is-active" role="button" tabindex="0" data-pod-saved-remove="${escapeHtml(v.videoId)}" aria-label="O'chirish" aria-pressed="true">
+          <span class="pod-fav-btn is-active" role="button" tabindex="0" data-pod-saved-remove="${escapeHtml(v.videoId)}" aria-label="${escapeHtml(T("removeBtn"))}" aria-pressed="true">
             ${bookmarkSvg()}
           </span>
         </div>
-        <div class="pod-vid-card__title">${escapeHtml(v.title || "Noma'lum video")}</div>
+        <div class="pod-vid-card__title">${escapeHtml(v.title || T("unknownVideo"))}</div>
         <div class="pod-vid-card__meta">${escapeHtml(v.channelTitle || "")}</div>
       </div>
     `;
@@ -955,14 +1140,14 @@
     const saved = currentQuery ? savedAll.filter((v) => matchesQuery(v.title) || matchesQuery(v.channelTitle)) : savedAll;
     const body = saved.length
       ? `<div class="pod-vid-grid">${saved.map(buildSavedCard).join("")}</div>`
-      : `<div class="pod-empty"><div class="pod-empty__icon">🔖</div><div class="pod-empty__title">Saqlangan video yo'q</div><div class="pod-empty__hint">Videoning o'ng burchagidagi bookmark tugmasini bosing</div></div>`;
+      : `<div class="pod-empty"><div class="pod-empty__icon">🔖</div><div class="pod-empty__title">${escapeHtml(T("emptySavedTitle"))}</div><div class="pod-empty__hint">${escapeHtml(T("emptySavedHint"))}</div></div>`;
     podcastsRoot.innerHTML = `
       <header class="pod-topbar">
         <div class="pod-topbar__title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
           </svg>
-          <span>Saqlangan</span>
+          <span>${escapeHtml(T("savedTitle"))}</span>
         </div>
       </header>
       <div class="pod-list">${body}</div>
@@ -989,7 +1174,7 @@
         e.stopPropagation();
         haptic("medium");
         togglePodcastFavorite(btn.dataset.podSavedRemove);
-        showToast("Saqlanganlardan o'chirildi");
+        showToast(T("unsavedToast"));
         renderSavedView();
       });
     });
@@ -999,7 +1184,7 @@
     if (!loaded) {
       podcastsView.hidden = false;
       document.body.classList.add("is-podcasts");
-      podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Yuklanmoqda...</div></div>`;
+      podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>${escapeHtml(T("loading"))}</div></div>`;
       loadChannels().finally(renderSavedView);
       return;
     }
@@ -1024,15 +1209,22 @@
   }
 
   const LANG_DEFAULTS = {
-    uz: { title: "O'zbekcha", emoji: "🇺🇿" },
-    ru: { title: "Ruscha", emoji: "🇷🇺" },
-    en: { title: "Inglizcha", emoji: "🇬🇧" },
+    uz: { titleKey: "langUz", emoji: "🇺🇿" },
+    ru: { titleKey: "langRu", emoji: "🇷🇺" },
+    en: { titleKey: "langEn", emoji: "🇬🇧" },
   };
   let LANG_META = {
-    uz: { ...LANG_DEFAULTS.uz, image: "" },
-    ru: { ...LANG_DEFAULTS.ru, image: "" },
-    en: { ...LANG_DEFAULTS.en, image: "" },
+    uz: { customTitle: "", image: "", emoji: LANG_DEFAULTS.uz.emoji },
+    ru: { customTitle: "", image: "", emoji: LANG_DEFAULTS.ru.emoji },
+    en: { customTitle: "", image: "", emoji: LANG_DEFAULTS.en.emoji },
   };
+  function langMetaTitle(code) {
+    const m = LANG_META[code] || LANG_META.uz;
+    // Admin paneldan custom nom berilgan bo'lsa — uni hurmat qilamiz,
+    // aks holda joriy UI tilidagi nom (T) ishlatiladi.
+    if (m.customTitle) return m.customTitle;
+    return T(LANG_DEFAULTS[code]?.titleKey || "langUz");
+  }
 
   async function loadLangMeta() {
     try {
@@ -1042,7 +1234,7 @@
       ["uz", "ru", "en"].forEach((k) => {
         const e = src[k] || {};
         LANG_META[k] = {
-          title: String(e.name || LANG_DEFAULTS[k].title).trim() || LANG_DEFAULTS[k].title,
+          customTitle: String(e.name || "").trim(),
           image: String(e.image || "").trim(),
           emoji: LANG_DEFAULTS[k].emoji,
         };
@@ -1060,9 +1252,9 @@
         <span class="pod-channel-row__glow" aria-hidden="true"></span>
         <div class="pod-channel-row__avatar pod-cat-row__avatar">${avatar}</div>
         <div class="pod-channel-row__body">
-          <div class="pod-channel-row__title">${escapeHtml(meta.title)}</div>
+          <div class="pod-channel-row__title">${escapeHtml(langMetaTitle(lang))}</div>
           <div class="pod-channel-row__meta">
-            <span class="pod-channel-row__tag pod-channel-row__tag--green">${count} potkast</span>
+            <span class="pod-channel-row__tag pod-channel-row__tag--green">${count} ${escapeHtml(T("unitPodcasts"))}</span>
           </div>
         </div>
         <span class="pod-channel-row__go" aria-hidden="true">
@@ -1087,7 +1279,7 @@
             <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
             <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
           </svg>
-          <span>Kategoriyalar</span>
+          <span>${escapeHtml(T("catTitle"))}</span>
         </div>
       </header>
       <div class="pod-cat-list">
@@ -1113,7 +1305,7 @@
     const items = filtered.map((c) => {
       const s = c.snapshot || {};
       const avatar = s.avatar ? `<img src="${escapeHtml(s.avatar)}" alt="" />` : `<span>${escapeHtml((s.title || "?").charAt(0))}</span>`;
-      const tags = `<span class="pod-channel-row__tag pod-channel-row__tag--green">${formatCount(s.videoCount)} video</span><span class="pod-channel-row__tag pod-channel-row__tag--yellow">${formatCount(s.subscriberCount)} obunachi</span>`;
+      const tags = `<span class="pod-channel-row__tag pod-channel-row__tag--green">${formatCount(s.videoCount)} ${escapeHtml(T("unitVideo"))}</span><span class="pod-channel-row__tag pod-channel-row__tag--yellow">${formatCount(s.subscriberCount)} ${escapeHtml(T("unitSubs"))}</span>`;
       return `
         <button class="pod-channel-row" type="button" data-pod-open="${escapeHtml(c.channelId)}">
           <span class="pod-channel-row__glow" aria-hidden="true"></span>
@@ -1130,18 +1322,18 @@
     }).join("");
     podcastsRoot.innerHTML = `
       <header class="pod-topbar pod-topbar--channel">
-        <button class="pod-topbar__back" type="button" data-pod-back-to-categories aria-label="Orqaga">
+        <button class="pod-topbar__back" type="button" data-pod-back-to-categories aria-label="${escapeHtml(T("back"))}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>
-        <div class="pod-topbar__title pod-topbar__title--ch">${meta.emoji} ${meta.title}</div>
+        <div class="pod-topbar__title pod-topbar__title--ch">${meta.emoji} ${escapeHtml(langMetaTitle(lang))}</div>
         <span style="width:34px"></span>
       </header>
       <div class="pod-list">
         ${filtered.length
           ? items
           : (currentQuery
-              ? `<div class="pod-empty"><div class="pod-empty__icon">🔎</div><div class="pod-empty__title">Hech narsa topilmadi</div><div class="pod-empty__hint">Boshqa so'z bilan qidirib ko'ring</div></div>`
-              : `<div class="pod-empty"><div class="pod-empty__icon">${meta.emoji}</div><div class="pod-empty__title">Bu tilda potkast yo'q</div><div class="pod-empty__hint">Boshqa kategoriyani tanlang</div></div>`)}
+              ? `<div class="pod-empty"><div class="pod-empty__icon">🔎</div><div class="pod-empty__title">${escapeHtml(T("emptyNothingTitle"))}</div><div class="pod-empty__hint">${escapeHtml(T("emptyNothingHint"))}</div></div>`
+              : `<div class="pod-empty"><div class="pod-empty__icon">${meta.emoji}</div><div class="pod-empty__title">${escapeHtml(T("emptyNoLangPodcasts"))}</div><div class="pod-empty__hint">${escapeHtml(T("emptyChooseOther"))}</div></div>`)}
       </div>
     `;
     podcastsRoot.querySelector("[data-pod-back-to-categories]")?.addEventListener("click", () => {
@@ -1161,7 +1353,7 @@
     podcastsView.hidden = false;
     document.body.classList.add("is-podcasts");
     if (!loaded) {
-      podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>Yuklanmoqda...</div></div>`;
+      podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>${escapeHtml(T("loading"))}</div></div>`;
       await loadChannels();
     }
     renderCategoriesView();
@@ -1188,6 +1380,26 @@
       renderSavedView();
     }
   }
+
+  // Tizimdagi til o'zgarsa — joriy ko'rinishni qayta chizamiz.
+  function rerenderCurrent() {
+    if (!podcastsView || podcastsView.hidden) return;
+    if (currentView === "list") {
+      renderList();
+    } else if (currentView === "categories") {
+      renderCategoriesView();
+    } else if (currentView === "lang-list" && currentLang) {
+      renderLanguageList(currentLang);
+    } else if (currentView === "channel" && currentChannelData) {
+      podcastsRoot.innerHTML = buildChannelView(currentChannelData);
+      wireChannelEvents();
+    } else if (currentView === "saved") {
+      renderSavedView();
+    }
+  }
+  try {
+    window.addEventListener("kino-lang-change", rerenderCurrent);
+  } catch (_) {}
 
   window.__potcasts = { openPodcastsView, closePodcastsView, openSavedView: openPodcastsSavedView, openCategoriesView: openPodcastsCategoriesView, setQuery };
   // Util funksiyalarni tashqariga chiqarish (app.js history/favorites uchun)
