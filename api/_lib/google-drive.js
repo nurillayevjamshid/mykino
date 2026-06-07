@@ -50,6 +50,10 @@ function invalidateListCache(key) {
     entry.value = null;
     entry.expiresAt = 0;
     entry.inflight = null;
+    // R2 keshni ham tozalash
+    if (key === "movies") {
+      putJsonToR2(MOVIE_R2_CACHE_KEY, { movies: [], ts: 0 }).catch(() => {});
+    }
     return;
   }
   for (const k of Object.keys(listCache)) {
@@ -57,6 +61,8 @@ function invalidateListCache(key) {
     listCache[k].expiresAt = 0;
     listCache[k].inflight = null;
   }
+  // Barcha R2 keshlarni tozalash
+  putJsonToR2(MOVIE_R2_CACHE_KEY, { movies: [], ts: 0 }).catch(() => {});
 }
 
 function setCors(response) {
@@ -1001,7 +1007,21 @@ async function deleteMovieComment(fileId, commentId) {
 }
 
 
+const MOVIE_R2_CACHE_KEY = "cache/movies.json";
+const MOVIE_R2_CACHE_TTL_MS = 600_000; // 10 daqiqa
+
 async function listDriveMoviesUncached() {
+  // Cold start bo'lganda R2'dan tezkor o'qish (100ms vs 3-4s Drive API)
+  try {
+    const r2Cache = await getJsonFromR2(MOVIE_R2_CACHE_KEY, null);
+    if (r2Cache && r2Cache.movies && r2Cache.ts && (Date.now() - r2Cache.ts < MOVIE_R2_CACHE_TTL_MS)) {
+      // R2 kesh yangi — Drive API'ga murojaat qilmaymiz
+      // Fon'da Drive'dan yangilash
+      refreshMoviesFromDrive(r2Cache.movies).catch(() => {});
+      return r2Cache.movies;
+    }
+  } catch (_) { /* R2 xatolik — Drive'dan olishda davom etamiz */ }
+
   const { folderId } = getDriveConfig();
   try {
     await getDriveFileMetadata(folderId, "id,name,mimeType");
@@ -1010,6 +1030,58 @@ async function listDriveMoviesUncached() {
       error.code = "GOOGLE_DRIVE_FOLDER_NOT_SHARED";
       error.message = "Google Drive papkasi service account uchun ochilmagan. Papkani share qilib bering.";
     }
+    throw error;
+  }
+  const files = [];
+  let pageToken = "";
+  const metadataState = await readCatalogMetadata();
+  const metadataMap = metadataState.data?.movies && typeof metadataState.data.movies === "object"
+    ? metadataState.data.movies
+    : {};
+
+  do {
+    const payload = await driveFetchJson("", {
+      query: {
+        q: `'${folderId}' in parents and trashed=false and mimeType contains 'video/'`,
+        orderBy: "createdTime desc",
+        pageSize: 100,
+        pageToken,
+        supportsAllDrives: "true",
+        includeItemsFromAllDrives: "true",
+        fields:
+          "nextPageToken,files(id,name,description,appProperties,mimeType,createdTime,modifiedTime,size,thumbnailLink,webViewLink,videoMediaMetadata(width,height,durationMillis))",
+      },
+    });
+
+    files.push(...(payload.files || []));
+    pageToken = payload.nextPageToken || "";
+  } while (pageToken);
+
+  const movies = files.map((file, index) => toDriveMovie(file, index, metadataMap));
+
+  // R2'ga keshga yozish (keyingi cold start uchun)
+  putJsonToR2(MOVIE_R2_CACHE_KEY, { movies, ts: Date.now() }).catch(() => {});
+
+  return movies;
+}
+
+// R2 keshni fon'da yangilash (Drive API dan)
+async function refreshMoviesFromDrive(currentMovies) {
+  try {
+    const freshMovies = await listDriveMoviesFromDrive();
+    if (freshMovies && freshMovies.length) {
+      await putJsonToR2(MOVIE_R2_CACHE_KEY, { movies: freshMovies, ts: Date.now() });
+    }
+  } catch (_) { /* fon xatolik — jim */ }
+}
+
+// Drive'dan to'g'ridan-to'g'ri olish (R2 keshsiz)
+async function listDriveMoviesFromDrive() {
+  const { folderId } = getDriveConfig();
+  try {
+    await getDriveFileMetadata(folderId, "id,name,mimeType");
+  } catch (error) {
+    if (error.statusCode === 404) return null;
     throw error;
   }
   const files = [];
