@@ -1007,15 +1007,23 @@ function resolveAppUrl(value) {
   return raw;
 }
 
-// r2.dev bepul domeni ko'p so'rovda 403 (throttle) qaytaradi. Poster rasmlarini
-// o'z domenimiz (Vercel) orqali proxy qilamiz -> Vercel edge keshlaydi, r2.dev'ga
-// burst urilmaydi. Faqat r2.dev rasm URL'lari proxy qilinadi (video/cdn emas).
+// Eski Cloudflare R2 bepul domeni (pub-xxx.r2.dev) qattiq throttle qilingan.
+// Endi custom domen r2.myplaylist.uz ulangan — bazadagi cdnUrl'lar hali eski
+// hostga ishora qilsa ham, mijoz tomonda darrov yangi tezroq hostga
+// almashtirib yuboramiz. Shu bilan migratsiyani kutmasdan tezlikka erishamiz.
+const R2_OLD_HOST = "pub-42c7619e0f49402bb099364c0b589eca.r2.dev";
+const R2_NEW_HOST = "r2.myplaylist.uz";
+function rewriteR2Host(value) {
+  const url = String(value || "");
+  if (!url || !url.includes(R2_OLD_HOST)) return url;
+  return url.split(R2_OLD_HOST).join(R2_NEW_HOST);
+}
+
+// Rasmlar uchun: eski r2.dev'ni custom domenga to'g'ridan-to'g'ri almashtiramiz.
+// Proxy (drive-thumbnail) endi kerak emas — custom domen Cloudflare edge'da
+// keshlaydi, throttling yo'q.
 function proxyPosterUrl(value) {
-  const url = String(value || "").trim();
-  if (/\.r2\.dev\//i.test(url)) {
-    return buildApiUrl(`/api/drive-thumbnail?u=${encodeURIComponent(url)}`);
-  }
-  return url;
+  return rewriteR2Host(String(value || "").trim());
 }
 
 function firstUsableImage(...candidates) {
@@ -1349,7 +1357,7 @@ function normalizeMovie(movie, index = 0) {
     sourceType,
     fileId,
     driveFileId: String(movie?.driveFileId || movie?.fileId || movie?.googleDriveFileId || "").trim(),
-    cdnUrl: String(movie?.cdnUrl || "").trim(),
+    cdnUrl: rewriteR2Host(String(movie?.cdnUrl || "").trim()),
     fileName,
     telegramVideoFileId: fileId,
     telegramFileId: fileId,
@@ -4960,7 +4968,7 @@ function normalizeSeriesEntry(raw) {
       defaultTitle: String(ep?.defaultTitle || ep?.title || `Qism ${i + 1}`).trim(),
       fileName: String(ep?.fileName || "").trim(),
       mimeType: String(ep?.mimeType || "").trim(),
-      cdnUrl: String(ep?.cdnUrl || "").trim(),
+      cdnUrl: rewriteR2Host(String(ep?.cdnUrl || "").trim()),
       season: Number.isFinite(rawSeason) && rawSeason > 0 ? rawSeason : 1,
     };
   }).filter((ep) => ep.id).sort(compareSeriesEpisodes);
@@ -5916,7 +5924,7 @@ async function loadAppSettings() {
       if (data && data.preRollAd) {
         const pr = data.preRollAd;
         // R2 cdnUrl mavjud bo'lsa — tezroq ochiladi. Aks holda Drive stream.
-        const cdnUrl = String(pr.cdnUrl || "").trim();
+        const cdnUrl = rewriteR2Host(String(pr.cdnUrl || "").trim());
         const playUrl = cdnUrl
           || (pr.videoDriveId ? buildDriveStreamUrl(pr.videoDriveId) : (pr.videoUrl || ""));
         if (pr.enabled && playUrl) {
