@@ -26,6 +26,9 @@
       sectionVideos: "Videolar",
       sectionPlaylists: "Playlistlar",
       sectionChannels: "Kanallar",
+      sectionFresh48: "So'nggi 48 soatda",
+      justNow: "Hozirgina",
+      hoursAgo: (n) => `${n} soat oldin`,
       emptyNothingTitle: "Hech narsa topilmadi",
       emptyNothingHint: "Boshqa so'z bilan qidirib ko'ring",
       emptyNoPodcastsTitle: "Hali potkast qo'shilmagan",
@@ -82,6 +85,9 @@
       sectionVideos: "Видео",
       sectionPlaylists: "Плейлисты",
       sectionChannels: "Каналы",
+      sectionFresh48: "За последние 48 часов",
+      justNow: "Только что",
+      hoursAgo: (n) => `${n} ч. назад`,
       emptyNothingTitle: "Ничего не найдено",
       emptyNothingHint: "Попробуйте другой запрос",
       emptyNoPodcastsTitle: "Подкастов пока нет",
@@ -138,6 +144,9 @@
       sectionVideos: "Videos",
       sectionPlaylists: "Playlists",
       sectionChannels: "Channels",
+      sectionFresh48: "Last 48 hours",
+      justNow: "Just now",
+      hoursAgo: (n) => `${n}h ago`,
       emptyNothingTitle: "Nothing found",
       emptyNothingHint: "Try another query",
       emptyNoPodcastsTitle: "No podcasts yet",
@@ -332,8 +341,9 @@
             prefetchInFlight--;
             prefetchDone++;
             // Qidiruv ochiq turgan bo'lsa, natijalarni yangilab boramiz.
-            if (currentQuery && currentView === "list") {
-              refreshSearchVideosSection();
+            if (currentView === "list") {
+              if (currentQuery) refreshSearchVideosSection();
+              else refreshFreshSection();
             }
             next();
           });
@@ -471,6 +481,87 @@
     showToast(T("playerNotReady"));
   }
 
+  // ---------- So'nggi 48 soatda chiqqan videolar (musiqachilar cardlari uslubida) ----------
+
+  const FRESH_WINDOW_MS = 48 * 60 * 60 * 1000;
+  const FRESH_LIMIT = 24;
+
+  function freshTimeAgo(iso) {
+    if (!iso) return "";
+    const t = new Date(iso).getTime();
+    if (!t) return "";
+    const diff = Math.max(0, Date.now() - t);
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 1) return T("justNow");
+    return T("hoursAgo", hours);
+  }
+
+  function collectFreshVideos() {
+    const cutoff = Date.now() - FRESH_WINDOW_MS;
+    const out = [];
+    const seen = new Set();
+    for (const c of channels) {
+      const view = channelViewCache.get(c.channelId);
+      if (!view) continue;
+      const chTitle = view.channel?.title || c.snapshot?.title || "";
+      const all = [...(view.videos || []), ...(view.shorts || [])];
+      for (const v of all) {
+        if (!v.publishedAt) continue;
+        const ts = new Date(v.publishedAt).getTime();
+        if (!ts || ts < cutoff) continue;
+        if (seen.has(v.videoId)) continue;
+        seen.add(v.videoId);
+        out.push({ ...v, _ts: ts, channelId: c.channelId, channelTitle: chTitle });
+      }
+    }
+    out.sort((a, b) => b._ts - a._ts);
+    return out.slice(0, FRESH_LIMIT);
+  }
+
+  function buildFreshCard(v) {
+    return `
+      <button class="pod-fresh-card" type="button" data-pod-fresh-play="${escapeHtml(v.channelId)}|${escapeHtml(v.videoId)}" style="background-image:url('${escapeHtml(v.thumb)}')">
+        <span class="pod-fresh-card__shade"></span>
+        <span class="pod-fresh-card__badge">${escapeHtml(freshTimeAgo(v.publishedAt))}</span>
+        <span class="pod-fresh-card__body">
+          <span class="pod-fresh-card__title">${escapeHtml(v.title)}</span>
+          <span class="pod-fresh-card__channel">${escapeHtml(v.channelTitle)}</span>
+        </span>
+      </button>
+    `;
+  }
+
+  function buildFreshSection() {
+    const items = collectFreshVideos();
+    if (!items.length) return `<div data-pod-fresh hidden></div>`;
+    return `
+      <section class="pod-fresh" data-pod-fresh>
+        <h3 class="pod-fresh__title">${escapeHtml(T("sectionFresh48"))}</h3>
+        <div class="pod-fresh__row">
+          ${items.map(buildFreshCard).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function refreshFreshSection() {
+    const host = podcastsRoot.querySelector("[data-pod-fresh]");
+    if (!host) return;
+    host.outerHTML = buildFreshSection();
+    wireFreshEvents();
+  }
+
+  function wireFreshEvents() {
+    podcastsRoot.querySelectorAll("[data-pod-fresh-play]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
+        haptic("light");
+        const [chId, vId] = String(el.dataset.podFreshPlay || "").split("|");
+        if (chId && vId) playSearchVideo(chId, vId);
+      });
+    });
+  }
+
   // ---------- Featured kanallar (header section uchun — hero style) ----------
 
   function buildFeaturedChannels() {
@@ -556,6 +647,7 @@
 
     return `
       <div class="pod-list">
+        ${currentQuery ? "" : buildFreshSection()}
         ${currentQuery ? "" : buildFeaturedChannels()}
         ${currentQuery && filtered.length ? `<h3 class="pod-ch-section__title">${escapeHtml(T("sectionChannels"))}</h3>` : ""}
         ${filtered.length
@@ -873,6 +965,8 @@
     });
     // Search natijasidagi video kartochkalar
     wireSearchVideosEvents();
+    // So'nggi 48 soatda chiqqan videolar
+    wireFreshEvents();
   }
 
   function wireChannelEvents() {
