@@ -1227,14 +1227,6 @@
       ? `<div class="pod-vid-grid">${saved.map(buildSavedCard).join("")}</div>`
       : `<div class="pod-empty"><div class="pod-empty__icon">🔖</div><div class="pod-empty__title">${escapeHtml(T("emptySavedTitle"))}</div><div class="pod-empty__hint">${escapeHtml(T("emptySavedHint"))}</div></div>`;
     podcastsRoot.innerHTML = `
-      <header class="pod-topbar">
-        <div class="pod-topbar__title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span>${escapeHtml(T("savedTitle"))}</span>
-        </div>
-      </header>
       <div class="pod-list">${body}</div>
     `;
     wireSavedEvents();
@@ -1356,17 +1348,6 @@
     const counts = { uz: 0, ru: 0, en: 0 };
     channels.forEach((c) => { counts[detectChannelLang(c)]++; });
     podcastsRoot.innerHTML = `
-      <header class="pod-topbar">
-        <div class="pod-topbar__title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
-            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-          </svg>
-          <span>${escapeHtml(T("catTitle"))}</span>
-        </div>
-      </header>
       <div class="pod-cat-list">
         ${buildCategoryCard("uz", counts.uz)}
         ${buildCategoryCard("ru", counts.ru)}
