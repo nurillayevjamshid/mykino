@@ -589,6 +589,7 @@
         <div class="hero__bg${bgLoaded}" data-pod-hero-bg style="${bgStyle}"></div>
         <div class="hero__shimmer"></div>
         <div class="hero__gradient"></div>
+        <div class="pod-hero-kino__name" data-pod-hero-name>${escapeHtml(s.title || c.channelId)}</div>
         <div class="hero__inner">
           <h1 class="hero__title" data-pod-hero-title>${escapeHtml(s.title || c.channelId)}</h1>
           <p class="hero__desc" data-pod-hero-desc>${escapeHtml(desc)}</p>
@@ -677,6 +678,8 @@
     }
     if (title) title.textContent = s.title || c.channelId;
     if (desc) desc.textContent = String(s.description || "").trim();
+    const nameEl = hero.querySelector("[data-pod-hero-name]");
+    if (nameEl) nameEl.textContent = s.title || c.channelId;
     hero.querySelectorAll("[data-pod-hero-dot]").forEach((d, i) => {
       d.classList.toggle("is-active", i === podHeroIndex);
     });

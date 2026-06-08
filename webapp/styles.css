@@ -7255,6 +7255,33 @@ body.is-music .bottom-bar--music { display: block !important; }
 body.is-podcasts #heroSection,
 body.is-podcasts .movie-grid,
 body.is-podcasts .app-shell > .app-footer { display: none !important; }
+
+/* Potkast hero — kanal nomi har doim ko'rinadigan chip (yuqori chap burchak) */
+.pod-hero-kino { touch-action: pan-y; }
+.pod-hero-kino__name {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 3;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  display: inline-block;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
 body.is-podcasts .bottom-bar--movie { display: none !important; }
 body.is-podcasts .bottom-bar--music { display: none !important; }
 body.is-podcasts .bottom-bar--podcast { display: block !important; }
