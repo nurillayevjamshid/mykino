@@ -7252,7 +7252,7 @@ body.is-music .bottom-bar--music { display: block !important; }
   font-family: inherit;
 }
 .podcasts-view[hidden] { display: none; }
-body.is-podcasts .hero,
+body.is-podcasts #heroSection,
 body.is-podcasts .movie-grid,
 body.is-podcasts .app-shell > .app-footer { display: none !important; }
 body.is-podcasts .bottom-bar--movie { display: none !important; }
