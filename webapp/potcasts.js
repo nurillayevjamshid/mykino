@@ -592,19 +592,6 @@
         <div class="hero__inner">
           <h1 class="hero__title" data-pod-hero-title>${escapeHtml(s.title || c.channelId)}</h1>
           <p class="hero__desc" data-pod-hero-desc>${escapeHtml(desc)}</p>
-          <div class="hero__actions">
-            <button class="hero__play" type="button" data-pod-hero-play>
-              <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
-              <span>${escapeHtml(T("heroWatch"))}</span>
-            </button>
-            <button class="hero__info" type="button" data-pod-hero-info aria-label="Batafsil">
-              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-            </button>
-          </div>
         </div>
         ${dots}
       </section>
