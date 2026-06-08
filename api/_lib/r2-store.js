@@ -236,12 +236,17 @@ async function uploadFileToR2(dataUrl, fileNamePrefix, options = {}) {
   const dateStamp = amzDate.slice(0, 8);
   const payloadHash = sha256Hex(body);
 
+  // Cache-Control: Cloudflare edge va brauzerga kinoni 1 yilga keshlash ruxsati.
+  // Faylga uniq hash qo'shilgan (Date.now() + randomBytes), shuning uchun immutable
+  // — kino segmentlari edge'da qoladi, har range so'rovi R2 origin'ga bormaydi.
+  const cacheControl = "public, max-age=31536000, immutable";
   const canonicalHeaders =
-    `content-type:${contentType}\n`
+    `cache-control:${cacheControl}\n`
+    + `content-type:${contentType}\n`
     + `host:${host}\n`
     + `x-amz-content-sha256:${payloadHash}\n`
     + `x-amz-date:${amzDate}\n`;
-  const signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
+  const signedHeaders = "cache-control;content-type;host;x-amz-content-sha256;x-amz-date";
   const canonicalUri = url.pathname.split("/").map(encodeURIComponent).join("/");
   const canonicalRequest = ["PUT", canonicalUri, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
 
@@ -257,6 +262,7 @@ async function uploadFileToR2(dataUrl, fileNamePrefix, options = {}) {
   const response = await fetch(url, {
     method: "PUT",
     headers: {
+      "Cache-Control": cacheControl,
       "Content-Type": contentType,
       Host: host,
       "x-amz-content-sha256": payloadHash,
