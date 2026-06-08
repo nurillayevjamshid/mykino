@@ -611,8 +611,10 @@
       const c = podHeroList[podHeroIndex];
       if (c) renderChannel(c.channelId);
     };
+    let swiped = false;
     hero.addEventListener("click", (e) => {
       if (e.target.closest(".hero__dots, .hero__dot")) return;
+      if (swiped) { swiped = false; return; }
       haptic("light");
       openCurrent();
     });
@@ -624,7 +626,38 @@
         restartPodHeroRotation();
       });
     });
-    if (podHeroList.length > 1) startPodHeroRotation();
+    if (podHeroList.length > 1) {
+      let sx = 0, sy = 0, active = false;
+      hero.addEventListener("touchstart", (e) => {
+        if (!e.touches[0]) return;
+        sx = e.touches[0].clientX;
+        sy = e.touches[0].clientY;
+        active = true;
+        swiped = false;
+        stopPodHeroRotation();
+      }, { passive: true });
+      hero.addEventListener("touchmove", (e) => {
+        if (!active || !e.touches[0]) return;
+        const dx = e.touches[0].clientX - sx;
+        const dy = e.touches[0].clientY - sy;
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 12) active = false;
+      }, { passive: true });
+      const finish = (e) => {
+        if (!active) { restartPodHeroRotation(); return; }
+        active = false;
+        const t = e.changedTouches && e.changedTouches[0];
+        const dx = t ? t.clientX - sx : 0;
+        if (Math.abs(dx) > 40) {
+          swiped = true;
+          const dir = dx < 0 ? 1 : -1;
+          switchPodHero(podHeroIndex + dir);
+        }
+        restartPodHeroRotation();
+      };
+      hero.addEventListener("touchend", finish);
+      hero.addEventListener("touchcancel", finish);
+      startPodHeroRotation();
+    }
   }
 
   function switchPodHero(idx) {
@@ -1527,4 +1560,43 @@
   window.__potcasts = { openPodcastsView, closePodcastsView, openSavedView: openPodcastsSavedView, openCategoriesView: openPodcastsCategoriesView, setQuery };
   // Util funksiyalarni tashqariga chiqarish (app.js history/favorites uchun)
   window.__podUtils = { formatDuration, timeAgo, escapeHtml, getPodcastFavorites, togglePodcastFavorite, getSavedPodcastVideos };
+
+  // ---------- Background preload ----------
+  // "So'nggi 48 soat" bo'limi foydalanuvchi potkast tabga kirgan paytda emas,
+  // ilova ochilishi bilanoq fonda yuklanib, doimiy tayyor tursin.
+  // Asosiy sahifa renderiga xalal bermaslik uchun idle yoki kichik delay bilan.
+  function backgroundPreloadPodcasts() {
+    try {
+      if (!loaded) {
+        loadChannels();
+      } else {
+        startPrefetchAllChannelViews();
+      }
+    } catch (_) {}
+  }
+  function schedulePreload(delay) {
+    const run = () => backgroundPreloadPodcasts();
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(run, { timeout: 4000 });
+    } else {
+      setTimeout(run, delay);
+    }
+  }
+  // Birinchi preload — ilova yuklangach
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    schedulePreload(800);
+  } else {
+    window.addEventListener("DOMContentLoaded", () => schedulePreload(800), { once: true });
+  }
+  // Keshni yangilab turish: har 10 daqiqada yangi kanal ma'lumotlarini olib kelamiz
+  // (yangi 48 soatlik videolar paydo bo'lganda ham doimiy tayyor tursin).
+  const PRELOAD_REFRESH_MS = 10 * 60 * 1000;
+  setInterval(() => {
+    if (document.hidden) return;
+    // Keshni tozalab qaytadan to'ldiramiz
+    channelViewCache.clear();
+    prefetchStarted = false;
+    prefetchDone = 0;
+    backgroundPreloadPodcasts();
+  }, PRELOAD_REFRESH_MS);
 })();
