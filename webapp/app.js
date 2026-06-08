@@ -3894,12 +3894,26 @@ function createVideoElement(src, movie, options = {}) {
     startupTimeout = 9000,
     preload = "auto",
   } = normalizedOptions;
-  const video = document.createElement("video");
-  video.src = src;
+  let video;
+  // Modal ochilganda yashirin preload qilingan element bo'lsa — qaytadan yuklamasdan
+  // o'shani ko'tarib chiqamiz. Aks holda preload behuda ketardi va kino qaytadan
+  // 0-baytdan yuklab boshlanardi (kech ochilish sababi).
+  if (preloadVideoEl && preloadVideoUrl === src) {
+    video = preloadVideoEl;
+    video.removeAttribute("aria-hidden");
+    video.style.cssText = "";
+    video.muted = false;
+    preloadVideoEl = null;
+    preloadVideoUrl = "";
+  } else {
+    stopMoviePreload();
+    video = document.createElement("video");
+    video.preload = preload;
+    video.src = src;
+  }
   video.controls = false;
   video.setAttribute("controlsList", "nodownload nofullscreen noremoteplayback noplaybackrate");
   video.playsInline = true;
-  video.preload = preload;
   video.autoplay = true;
   video.setAttribute("playsinline", "");
   video.setAttribute("webkit-playsinline", "");
@@ -4124,7 +4138,8 @@ function getInlineSourceLabel(movie) {
 
 async function openVideoPlayer(movie, options = {}) {
   if (!movie) return;
-  stopMoviePreload();
+  // Preload elementini bu yerda o'chirmaymiz — createVideoElement src mos kelsa
+  // o'shani qaytadan ishlatadi, mos kelmasa o'zi to'xtatadi.
   const requestId = ++activeVideoRequest;
   activeMovie = movie;
   const isPodcastCtx = Boolean(options?._podcast || movie?._podcast);
