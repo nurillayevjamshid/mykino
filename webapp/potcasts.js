@@ -27,6 +27,7 @@
       sectionPlaylists: "Playlistlar",
       sectionChannels: "Kanallar",
       sectionFresh48: "So'nggi 48 soatda",
+      heroWatch: "Ko'rish",
       justNow: "Hozirgina",
       hoursAgo: (n) => `${n} soat oldin`,
       emptyNothingTitle: "Hech narsa topilmadi",
@@ -86,6 +87,7 @@
       sectionPlaylists: "Плейлисты",
       sectionChannels: "Каналы",
       sectionFresh48: "За последние 48 часов",
+      heroWatch: "Смотреть",
       justNow: "Только что",
       hoursAgo: (n) => `${n} ч. назад`,
       emptyNothingTitle: "Ничего не найдено",
@@ -145,6 +147,7 @@
       sectionPlaylists: "Playlists",
       sectionChannels: "Channels",
       sectionFresh48: "Last 48 hours",
+      heroWatch: "Watch",
       justNow: "Just now",
       hoursAgo: (n) => `${n}h ago`,
       emptyNothingTitle: "Nothing found",
@@ -564,49 +567,114 @@
 
   // ---------- Featured kanallar (header section uchun — hero style) ----------
 
+  // Featured kanallarni kino bo'limidagi hero (#heroSection) bilan bir xil
+  // ko'rinish va xulq-atvorda chiqaramiz: full-width rounded backdrop, gradient,
+  // sarlavha + tavsif, Ko'rish/Info tugmalari, pastda dots, 5s da avto-aylanish.
   function buildFeaturedChannels() {
     const featured = channels.filter((c) => c.featured);
     if (!featured.length) return "";
-    // Agar bitta bo'lsa — katta hero, ko'p bo'lsa — carousel
-    if (featured.length === 1) {
-      return buildSingleHero(featured[0]);
-    }
-    return buildFeaturedCarousel(featured);
-  }
-
-  function buildSingleHero(c) {
+    podHeroList = featured;
+    if (podHeroIndex >= featured.length) podHeroIndex = 0;
+    const c = featured[podHeroIndex];
     const s = c.snapshot || {};
-    const banner = s.banner || "";
+    const banner = s.banner || s.avatar || "";
     const bgStyle = banner ? `background-image:url('${escapeHtml(banner)}')` : "";
+    const bgLoaded = banner ? " is-loaded" : "";
+    const desc = String(s.description || "").trim();
+    const dots = featured.length > 1
+      ? `<div class="hero__dots">${featured.map((_, i) => `<span class="hero__dot${i === podHeroIndex ? " is-active" : ""}" data-pod-hero-dot="${i}"></span>`).join("")}</div>`
+      : "";
     return `
-      <div class="pod-hero" data-pod-open="${escapeHtml(c.channelId)}">
-        <div class="pod-hero__bg" style="${bgStyle}"></div>
-        <div class="pod-hero__gradient"></div>
-        <div class="pod-hero__inner">
-          <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
-        </div>
-      </div>
-    `;
-  }
-
-  function buildFeaturedCarousel(list) {
-    const cards = list.map((c) => {
-      const s = c.snapshot || {};
-      const banner = s.banner || "";
-      const bgStyle = banner ? `background-image:url('${escapeHtml(banner)}')` : "";
-      return `
-        <div class="pod-hero-card-scroll" data-pod-open="${escapeHtml(c.channelId)}">
-          <div class="pod-hero__bg" style="${bgStyle}"></div>
-          <div class="pod-hero__gradient"></div>
-          <div class="pod-hero__inner">
-            <h3 class="pod-hero__title">${escapeHtml(s.title || c.channelId)}</h3>
+      <section class="hero pod-hero-kino" data-pod-hero>
+        <div class="hero__bg${bgLoaded}" data-pod-hero-bg style="${bgStyle}"></div>
+        <div class="hero__shimmer"></div>
+        <div class="hero__gradient"></div>
+        <div class="hero__inner">
+          <h1 class="hero__title" data-pod-hero-title>${escapeHtml(s.title || c.channelId)}</h1>
+          <p class="hero__desc" data-pod-hero-desc>${escapeHtml(desc)}</p>
+          <div class="hero__actions">
+            <button class="hero__play" type="button" data-pod-hero-play>
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+              <span>${escapeHtml(T("heroWatch"))}</span>
+            </button>
+            <button class="hero__info" type="button" data-pod-hero-info aria-label="Batafsil">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </button>
           </div>
         </div>
-      `;
-    }).join("");
-    return `
-      <div class="pod-hero-scroll-track">${cards}</div>
+        ${dots}
+      </section>
     `;
+  }
+
+  // Pod hero carousel holati
+  let podHeroList = [];
+  let podHeroIndex = 0;
+  let podHeroRotateTimer = null;
+  const POD_HERO_ROTATE_MS = 5000;
+
+  function wirePodHero() {
+    const hero = podcastsRoot.querySelector("[data-pod-hero]");
+    if (!hero || !podHeroList.length) return;
+    const openCurrent = () => {
+      const c = podHeroList[podHeroIndex];
+      if (c) renderChannel(c.channelId);
+    };
+    hero.addEventListener("click", (e) => {
+      if (e.target.closest(".hero__dots, .hero__dot")) return;
+      haptic("light");
+      openCurrent();
+    });
+    hero.querySelectorAll("[data-pod-hero-dot]").forEach((d) => {
+      d.addEventListener("click", (e) => {
+        e.stopPropagation();
+        haptic("light");
+        switchPodHero(Number(d.dataset.podHeroDot));
+        restartPodHeroRotation();
+      });
+    });
+    if (podHeroList.length > 1) startPodHeroRotation();
+  }
+
+  function switchPodHero(idx) {
+    if (!podHeroList.length) return;
+    podHeroIndex = ((idx % podHeroList.length) + podHeroList.length) % podHeroList.length;
+    const c = podHeroList[podHeroIndex];
+    const s = c.snapshot || {};
+    const hero = podcastsRoot.querySelector("[data-pod-hero]");
+    if (!hero) return;
+    const bg = hero.querySelector("[data-pod-hero-bg]");
+    const title = hero.querySelector("[data-pod-hero-title]");
+    const desc = hero.querySelector("[data-pod-hero-desc]");
+    const banner = s.banner || s.avatar || "";
+    if (bg) {
+      bg.style.backgroundImage = banner ? `url('${banner.replaceAll("'", "%27")}')` : "";
+      bg.classList.toggle("is-loaded", Boolean(banner));
+    }
+    if (title) title.textContent = s.title || c.channelId;
+    if (desc) desc.textContent = String(s.description || "").trim();
+    hero.querySelectorAll("[data-pod-hero-dot]").forEach((d, i) => {
+      d.classList.toggle("is-active", i === podHeroIndex);
+    });
+  }
+
+  function startPodHeroRotation() {
+    stopPodHeroRotation();
+    podHeroRotateTimer = setInterval(() => {
+      if (document.hidden) return;
+      if (currentView !== "list") return;
+      switchPodHero(podHeroIndex + 1);
+    }, POD_HERO_ROTATE_MS);
+  }
+  function stopPodHeroRotation() {
+    if (podHeroRotateTimer) { clearInterval(podHeroRotateTimer); podHeroRotateTimer = null; }
+  }
+  function restartPodHeroRotation() {
+    if (podHeroList.length > 1) startPodHeroRotation();
   }
 
   // ---------- List view (qo'shilgan kanallar) ----------
@@ -967,6 +1035,8 @@
     wireSearchVideosEvents();
     // So'nggi 48 soatda chiqqan videolar
     wireFreshEvents();
+    // Featured kanallar hero (kino-style)
+    wirePodHero();
   }
 
   function wireChannelEvents() {
