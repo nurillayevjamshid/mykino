@@ -193,6 +193,9 @@ async function uploadFileToR2(key, filePath, totalBytes) {
       Key: key,
       Body: fs.createReadStream(filePath),
       ContentType: "video/mp4",
+      // Cloudflare edge va brauzer 1 yilga keshlaydi — range so'rovlari R2
+      // origin'ga bormaydi, kinoning o'rtasida qotish kamayadi.
+      CacheControl: "public, max-age=31536000, immutable",
     },
     queueSize: 4,
     partSize: 16 * 1024 * 1024,
