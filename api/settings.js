@@ -289,6 +289,33 @@ module.exports = async function handler(request, response) {
     response.setHeader("Cache-Control", "no-store, max-age=0");
   }
 
+  // GET ?action=debug-r2 — R2_PUBLIC_URL domeni tekshiruvi (HTML page, telefonda ochiladi)
+  if (request.method === "GET") {
+    const debugUrl = new URL(request.url || "/", "http://localhost");
+    if (debugUrl.searchParams.get("action") === "debug-r2") {
+      const raw = String(process.env.R2_PUBLIC_URL || "").trim();
+      let domain = "(bo'sh)";
+      let kind = "BELGISIZ";
+      try {
+        const u = new URL(raw);
+        domain = u.host;
+        if (/\.r2\.dev$/i.test(u.host)) kind = "BEPUL r2.dev (throttle) — custom domenga ko'chiring";
+        else kind = "CUSTOM domen (yaxshi) — Cache Rule qo'shsangiz to'liq tezlik";
+      } catch (_) {}
+      response.setHeader("Content-Type", "text/html; charset=utf-8");
+      response.setHeader("Cache-Control", "no-store");
+      response.status(200).send(
+        `<!doctype html><meta name=viewport content="width=device-width">`
+        + `<body style="font:16px system-ui;padding:20px;line-height:1.5">`
+        + `<h2>R2 Debug</h2>`
+        + `<p><b>R2_PUBLIC_URL domen:</b><br><code style="background:#eee;padding:6px;display:inline-block;word-break:break-all">${domain}</code></p>`
+        + `<p><b>Holat:</b> ${kind}</p>`
+        + `</body>`
+      );
+      return;
+    }
+  }
+
   // GET ?action=ad-videos — Drive'dagi "reklama" papkasidagi videolar ro'yxati
   if (request.method === "GET") {
     const url = new URL(request.url || "/", "http://localhost");
