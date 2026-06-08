@@ -647,8 +647,8 @@
 
     return `
       <div class="pod-list">
-        ${currentQuery ? "" : buildFreshSection()}
         ${currentQuery ? "" : buildFeaturedChannels()}
+        ${currentQuery ? "" : buildFreshSection()}
         ${currentQuery && filtered.length ? `<h3 class="pod-ch-section__title">${escapeHtml(T("sectionChannels"))}</h3>` : ""}
         ${filtered.length
           ? items
