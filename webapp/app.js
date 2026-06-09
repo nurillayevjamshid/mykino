@@ -5789,6 +5789,7 @@ async function loadMovies() {
   try {
     const response = await fetch(buildApiUrl("/api/movies"), {
       headers: { Accept: "application/json" },
+      cache: "no-store",
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
@@ -5828,6 +5829,7 @@ async function refreshMoviesSilently(wishlistSyncPromise) {
   try {
     const response = await fetch(buildApiUrl("/api/movies"), {
       headers: { Accept: "application/json" },
+      cache: "no-store",
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) return;
@@ -5855,6 +5857,7 @@ async function silentReloadMovies() {
   try {
     const response = await fetch(buildApiUrl("/api/movies"), {
       headers: { Accept: "application/json" },
+      cache: "no-store",
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
