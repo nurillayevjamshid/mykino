@@ -184,7 +184,7 @@ async function fetchMovies() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/movies`);
+    const response = await fetch(`${API_URL}/movies?t=${Date.now()}`);
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       throw new Error(errorData?.error || `Server xatolik: ${response.status}`);
@@ -1331,7 +1331,7 @@ async function handleMovieSubmit(e) {
       updatePayload.description = movieData.description;
     }
     const finalPoster = selectedPosterDataUrl || document.getElementById('moviePosterUrl').value.trim();
-    if (finalPoster && (!currentMovie || finalPoster !== currentMovie.poster)) {
+    if (!currentMovie || finalPoster !== currentMovie.poster) {
       updatePayload.posterImage = finalPoster;
     }
 
@@ -1534,7 +1534,7 @@ async function fetchSeries() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/series`);
+    const response = await fetch(`${API_URL}/series?t=${Date.now()}`);
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       throw new Error(errorData?.error || `Server xatolik: ${response.status}`);
@@ -3213,7 +3213,7 @@ async function fetchPodcasts() {
   const summary = document.getElementById('podcastsStorageSummary');
   if (grid) grid.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Kanallar yuklanmoqda...</p></div>';
   try {
-    const r = await fetch(`${API_URL}/podcasts`);
+    const r = await fetch(`${API_URL}/podcasts?t=${Date.now()}`);
     const data = await r.json();
     if (!r.ok || !data.ok) throw new Error(data.error || 'Yuklab bo\'lmadi.');
     podcastChannels = Array.isArray(data.channels) ? data.channels : [];
