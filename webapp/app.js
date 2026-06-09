@@ -5834,7 +5834,8 @@ async function refreshMoviesSilently(wishlistSyncPromise) {
     writeMovieCache(payload);
     const newMovies = sessionShuffleMovies(payload.map((movie, index) => normalizeMovie(movie, index)));
     // Faqat o'zgarish bo'lsa yangilash (flash oldini olish)
-    if (JSON.stringify(newMovies.map(m => m.id)) !== JSON.stringify(movies.map(m => m.id))) {
+    const getFingerprint = (list) => list.map(m => `${m.id}_${m.title}_${m.genre}_${m.rating}_${m.hd}_${m.posterImage}_${m.headerImage}_${m.showInHeader}`).join('|');
+    if (getFingerprint(newMovies) !== getFingerprint(movies)) {
       movies = newMovies;
       renderHeroCarousel();
       renderMovies();
