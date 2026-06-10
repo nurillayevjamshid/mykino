@@ -4528,7 +4528,6 @@ function setActiveBottomTab(action) {
 function hideAllCustomViews() {
   closeMusicView();
   closePodcastsView();
-  closeFootballView();
   closeCategoriesView();
   if (seriesListView) seriesListView.hidden = true;
   if (seriesDetailView) seriesDetailView.hidden = true;
@@ -4776,80 +4775,6 @@ function ensurePotcastsModule() {
 }
 function openPodcastsView() { ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
 function closePodcastsView() { window.__potcasts?.closePodcastsView?.(); }
-
-// ===== Football View =====
-const footballView = document.getElementById("footballView");
-
-function openFootballView() {
-  if (!footballView) return;
-  footballView.hidden = false;
-  document.body.classList.add("is-football");
-  syncSidebarFootballItem();
-}
-
-function closeFootballView() {
-  if (!footballView) return;
-  footballView.hidden = true;
-  document.body.classList.remove("is-football");
-  syncSidebarFootballItem();
-}
-
-function syncSidebarFootballItem() {
-  const item = document.getElementById("sidebarFootballItem");
-  if (!item) return;
-  const isFootball = document.body.classList.contains("is-football");
-  if (isFootball) {
-    item.dataset.sidebarAction = "kino-back";
-    item.innerHTML = `
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
-        <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
-      </svg>
-      <span data-i18n="kinoNav">Kino</span>`;
-  } else {
-    item.dataset.sidebarAction = "football";
-    item.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"></circle>
-        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
-        <path d="M2 12h20"></path>
-        <path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10A15 15 0 0 1 12 2"></path>
-      </svg>
-      <span data-i18n="footballNav">Futbol</span>
-      <span class="beta-badge" aria-hidden="true">Tez orada</span>`;
-  }
-}
-
-// Football bottom bar tugmalari
-document.querySelectorAll("[data-action='football-matches']").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    setActiveBottomTab("football-matches");
-  });
-});
-
-document.querySelectorAll("[data-action='football-leagues']").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    setActiveBottomTab("football-leagues");
-    try {
-      const tg = window.Telegram?.WebApp;
-      if (tg?.showPopup) {
-        tg.showPopup({ title: "Ligalar", message: "Tez orada", buttons: [{ type: "ok" }] });
-      } else { alert("Tez orada"); }
-    } catch (_) { try { alert("Tez orada"); } catch (__) {} }
-  });
-});
-
-document.querySelectorAll("[data-action='football-news']").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    setActiveBottomTab("football-news");
-    try {
-      const tg = window.Telegram?.WebApp;
-      if (tg?.showPopup) {
-        tg.showPopup({ title: "Yangiliklar", message: "Tez orada", buttons: [{ type: "ok" }] });
-      } else { alert("Tez orada"); }
-    } catch (_) { try { alert("Tez orada"); } catch (__) {} }
-  });
-});
 
 // ===== Categories view (bottom-bar) =====
 const categoriesView = document.getElementById("categoriesView");
@@ -5513,22 +5438,13 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     }
     if (action === "podcasts") {
       closeMusicView();
-      closeFootballView();
       openPodcastsView();
-      setSidebarOpen(false);
-      return;
-    }
-    if (action === "football") {
-      closeMusicView();
-      closePodcastsView();
-      openFootballView();
       setSidebarOpen(false);
       return;
     }
     if (action === "kino-back") {
       closeMusicView();
       closePodcastsView();
-      closeFootballView();
       setFilter("all");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
       setSidebarOpen(false);
