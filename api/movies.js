@@ -208,11 +208,13 @@ module.exports = async function handler(request, response) {
     || /[?&]_series=1/.test(request.url || "");
 
   if (request.method === "GET") {
-    // CDN'da 5 daqiqa kesh, 10 daqiqa stale-while-revalidate.
-    // Brauzer/SW darrov tekshiradi (max-age=0), ammo CDN/Vercel javobni darrov beradi.
-    // Cold start bo'lganda ham stale keshdan darrov javob qaytadi.
-    response.setHeader("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=600");
-    response.setHeader("Vary", "Accept-Encoding");
+    if (isShare) {
+      response.setHeader("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=600");
+      response.setHeader("Vary", "Accept-Encoding");
+    } else {
+      response.setHeader("Cache-Control", "private, no-cache, no-store, max-age=0");
+      response.setHeader("Vary", "Accept-Encoding, X-TG-Init-Data, Authorization");
+    }
   } else {
     response.setHeader("Cache-Control", "no-store, max-age=0");
   }
