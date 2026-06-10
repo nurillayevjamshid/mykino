@@ -102,16 +102,6 @@
         </svg>
         <span data-i18n="tvNav">Potkastlar</span>
       </button>
-      <button class="sidebar__item" type="button" id="sidebarFootballItem" data-sidebar-action="football">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
-          <path d="M2 12h20"></path>
-          <path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10A15 15 0 0 1 12 2"></path>
-        </svg>
-        <span data-i18n="footballNav">Futbol</span>
-        <span class="beta-badge" aria-hidden="true">Tez orada</span>
-      </button>
       <button class="sidebar__item" type="button" data-sidebar-action="favorites">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
@@ -471,82 +461,6 @@
       </div>
     </nav>
 
-    <!-- Futbol bo'limi -->
-    <section class="football-view" id="footballView" hidden aria-label="Futbol">
-      <div class="football-view__header">
-        <h2 class="football-view__title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
-            <path d="M2 12h20"></path>
-            <path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10A15 15 0 0 1 12 2"></path>
-          </svg>
-          Futbol
-        </h2>
-        <p class="football-view__subtitle">Yangiliklar, natijalar va live o'yinlar</p>
-      </div>
-
-      <!-- Live o'yinlar -->
-      <div class="football-section">
-        <h3 class="football-section__title">
-          <span class="football-live-dot"></span>
-          Live o'yinlar
-        </h3>
-        <div class="football-matches" id="footballLiveMatches">
-          <div class="football-empty">
-            <span class="football-empty__icon">⚽</span>
-            <p>Hozircha live o'yinlar yo'q</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Kutilayotgan o'yinlar -->
-      <div class="football-section">
-        <h3 class="football-section__title">Kutilayotgan o'yinlar</h3>
-        <div class="football-matches" id="footballUpcomingMatches">
-          <div class="football-empty">
-            <span class="football-empty__icon">📅</span>
-            <p>Tez orada e'lon qilinadi</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Oxirgi natijalar -->
-      <div class="football-section">
-        <h3 class="football-section__title">Oxirgi natijalar</h3>
-        <div class="football-matches" id="footballRecentResults">
-          <div class="football-empty">
-            <span class="football-empty__icon">🏆</span>
-            <p>Natijalar hali yo'q</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Yangiliklar -->
-      <div class="football-section">
-        <h3 class="football-section__title">Yangiliklar</h3>
-        <div class="football-news" id="footballNews">
-          <div class="football-empty">
-            <span class="football-empty__icon">📰</span>
-            <p>Yangiliklar hali qo'shilmagan</p>
-          </div>
-        </div>
-      </div>
-
-      <footer class="app-footer" aria-label="Sayt ma'lumotlari">
-        <div class="app-footer__brand">
-          <span class="app-footer__logo" aria-hidden="true">
-            <svg viewBox="0 0 32 32">
-              <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
-              <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
-            </svg>
-          </span>
-          <span class="app-footer__name">MY PLAYLIST</span>
-        </div>
-        <p class="app-footer__copy">© 2026 My Playlist. Barcha huquqlar himoyalangan.</p>
-      </footer>
-    </section>
-
     <!-- Podcastlar bo'limi uchun pastki navbar -->
     <nav class="bottom-bar bottom-bar--podcast" aria-label="Podcast menyusi">
       <div class="bottom-bar__inner">
@@ -572,47 +486,6 @@
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
           </svg>
           <span class="bottom-bar__label">Saqlangan</span>
-        </button>
-        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
-          <span class="bottom-bar__avatar">
-            <img class="profile-trigger__photo headerAvatarPhoto" alt="Telegram user" hidden />
-            <span class="profile-trigger__initials headerAvatar">KI</span>
-          </span>
-          <span class="bottom-bar__label">Profil</span>
-        </button>
-      </div>
-    </nav>
-
-    <!-- Futbol bo'limi uchun pastki navbar -->
-    <nav class="bottom-bar bottom-bar--football" aria-label="Futbol menyusi">
-      <div class="bottom-bar__inner">
-        <button class="bottom-bar__button is-active" type="button" data-action="football-matches" aria-label="O'yinlar" title="O'yinlar">
-          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
-            <path d="M2 12h20"></path>
-          </svg>
-          <span class="bottom-bar__label">O'yinlar</span>
-        </button>
-        <button class="bottom-bar__button" type="button" data-action="football-leagues" aria-label="Ligalar" title="Ligalar">
-          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-            <path d="M4 22h16"></path>
-            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-          </svg>
-          <span class="bottom-bar__label">Ligalar</span>
-        </button>
-        <button class="bottom-bar__button" type="button" data-action="football-news" aria-label="Yangiliklar" title="Yangiliklar">
-          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path>
-            <path d="M18 14h-8"></path>
-            <path d="M15 18h-5"></path>
-            <path d="M10 6h8v4h-8V6Z"></path>
-          </svg>
-          <span class="bottom-bar__label">Yangiliklar</span>
         </button>
         <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
           <span class="bottom-bar__avatar">
