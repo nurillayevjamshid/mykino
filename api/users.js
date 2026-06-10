@@ -1,6 +1,6 @@
+const { authorizeRequest } = require("./_lib/auth");
 const {
   readCatalogMetadata,
-  setCors,
 } = require("./_lib/google-drive");
 const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
 const { getJsonFromR2Signed, putJsonToR2 } = require("./_lib/r2-store");
@@ -158,10 +158,7 @@ async function handleUserPhoto(request, response) {
 }
 
 module.exports = async function handler(request, response) {
-  setCors(response);
-
-  if (request.method === "OPTIONS") {
-    response.status(204).end();
+  if (!(await authorizeRequest(request, response))) {
     return;
   }
 

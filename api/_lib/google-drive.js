@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const { uploadImageToR2, putJsonToR2, getJsonFromR2 } = require("./r2-store");
+const { generateSignedToken } = require("./auth");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
 const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3/files";
@@ -66,9 +67,9 @@ function invalidateListCache(key) {
 }
 
 function setCors(response) {
-  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader("Access-Control-Allow-Origin", process.env.WEBAPP_URL || "https://kino-telegram-mini-app.vercel.app");
   response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
-  response.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type, Range, Authorization, X-TG-Init-Data, X-API-Key, X-Admin-Password");
 }
 
 function getEnv(name) {
@@ -546,8 +547,14 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const rawHeaderImage = trimString(override?.headerImage || override?.heroPoster || override?.headerPoster || override?.heroImage);
   const headerImage = resolveStoredHeaderImage(rawHeaderImage);
 
-  const fallbackPosterImage = file.thumbnailLink ? `/api/drive-thumbnail/${encodeURIComponent(file.id)}` : LOGO_POSTER_URL;
-  const finalPosterImage = posterImage || fallbackPosterImage;
+  const botToken = process.env.BOT_TOKEN || "";
+  const tokenParam = botToken ? `?token=${generateSignedToken(file.id, botToken)}` : "";
+
+  const fallbackPosterImage = file.thumbnailLink ? `/api/drive-thumbnail/${encodeURIComponent(file.id)}${tokenParam}` : LOGO_POSTER_URL;
+  let finalPosterImage = posterImage || fallbackPosterImage;
+  if (posterImage && posterImage.startsWith("/api/drive-thumbnail")) {
+    finalPosterImage = `${posterImage}${posterImage.includes("?") ? "&" : "?"}token=${generateSignedToken(file.id, botToken)}`;
+  }
   const showInHeader = safeBooleanFlag(override?.showInHeader) && (!rawHeaderImage || Boolean(headerImage));
   const finalDescription = sanitizePublicDescription(override?.description) || description;
   const finalTitle = trimString(override?.title) || title;
@@ -595,8 +602,8 @@ function toDriveMovie(file, index, metadataMap = {}) {
     headerCrop: sanitizeHeaderCrop(override?.headerCrop),
     likes: reactionCounts.likes,
     dislikes: reactionCounts.dislikes,
-    streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
-    videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
+    streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}${tokenParam}`,
+    videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}${tokenParam}`,
     cdnUrl: trimString(override?.cdnUrl),
     sourceUrl: file.webViewLink || "",
     webViewLink: file.webViewLink || "",

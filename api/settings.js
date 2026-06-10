@@ -1,9 +1,9 @@
+const { authorizeRequest } = require("./_lib/auth");
 const {
   getDriveConfig,
   getDriveFileMetadata,
   isServiceAccountStorageQuotaError,
   listAdVideos,
-  setCors,
   readCatalogMetadata,
   updateDriveFileMetadata,
   writeCatalogMetadata,
@@ -276,10 +276,7 @@ async function readPersistedSettings(settings) {
 }
 
 module.exports = async function handler(request, response) {
-  setCors(response);
-
-  if (request.method === "OPTIONS") {
-    response.status(204).end();
+  if (!(await authorizeRequest(request, response))) {
     return;
   }
 

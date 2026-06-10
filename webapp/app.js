@@ -1,4 +1,26 @@
 const tg = window.Telegram?.WebApp;
+
+// Global fetch monkey-patching to automatically inject Telegram WebApp authorization headers
+(function() {
+  const originalFetch = window.fetch;
+  window.fetch = function(url, options) {
+    options = options || {};
+    const urlStr = String(url);
+    const isApi = urlStr.startsWith('/api/') || (window.location.origin && urlStr.startsWith(window.location.origin + '/api/'));
+    if (isApi) {
+      options.headers = options.headers || {};
+      if (window.Telegram?.WebApp?.initData) {
+        options.headers['X-TG-Init-Data'] = window.Telegram.WebApp.initData;
+      }
+      const adminPass = localStorage.getItem('adminPassword');
+      if (adminPass) {
+        options.headers['X-Admin-Password'] = adminPass;
+      }
+    }
+    return originalFetch(url, options);
+  };
+})();
+
 const HERO_ROTATE_INTERVAL_MS = 6500;
 const PROD_API_BASE = window.location.protocol === "file:" ? "https://kino-telegram-mini-app.vercel.app" : "";
 const API_BASE_STORAGE_KEY = "kino_api_base_v1";

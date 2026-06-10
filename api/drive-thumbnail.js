@@ -1,4 +1,5 @@
-const { LOGO_POSTER_URL, getAccessToken, getDriveFileMetadata, setCors } = require("./_lib/google-drive");
+const { LOGO_POSTER_URL, getAccessToken, getDriveFileMetadata } = require("./_lib/google-drive");
+const { verifySignedToken, isOriginAllowed, setCorsHeaders } = require("./_lib/auth");
 
 function getFileId(request) {
   return String(request.query?.fileId || request.query?.id || "").trim();
@@ -46,7 +47,7 @@ async function proxyR2Image(request, response, rawUrl) {
 }
 
 module.exports = async function handler(request, response) {
-  setCors(response);
+  setCorsHeaders(request, response);
   if (request.method === "OPTIONS") {
     response.status(204).end();
     return;
@@ -57,9 +58,28 @@ module.exports = async function handler(request, response) {
     return;
   }
 
+  const referer = request.headers.referer;
+  const origin = request.headers.origin;
+
+  let isClientAllowed = false;
+  if (origin && isOriginAllowed(origin)) {
+    isClientAllowed = true;
+  } else if (referer) {
+    try {
+      const refOrigin = new URL(referer).origin;
+      if (isOriginAllowed(refOrigin)) {
+        isClientAllowed = true;
+      }
+    } catch (_) {}
+  }
+
   // R2 proxy rejimi: /api/drive-thumbnail?u=<r2-url>
   const proxyUrl = String(request.query?.u || "").trim();
   if (proxyUrl) {
+    if (!isClientAllowed) {
+      response.status(403).end("forbidden");
+      return;
+    }
     try {
       await proxyR2Image(request, response, proxyUrl);
     } catch (_) {
@@ -75,6 +95,16 @@ module.exports = async function handler(request, response) {
       response.writeHead(307, { Location: LOGO_POSTER_URL });
       response.end();
       return;
+    }
+
+    if (!isClientAllowed) {
+      const token = request.query?.token;
+      const botToken = process.env.BOT_TOKEN;
+      if (!verifySignedToken(fileId, token, botToken)) {
+        response.writeHead(307, { Location: LOGO_POSTER_URL });
+        response.end();
+        return;
+      }
     }
 
     const metadata = await getDriveFileMetadata(fileId, "id,name,thumbnailLink");

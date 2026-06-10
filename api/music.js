@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { setCors } = require("./_lib/google-drive");
+const { authorizeRequest } = require("./_lib/auth");
 const { handlePodcastsRequest } = require("./_lib/podcasts");
 
 const SEED_FILE = path.join(process.cwd(), "data", "music.json");
@@ -318,8 +318,9 @@ async function handleArtistsRequest(request, response) {
 }
 
 module.exports = async function handler(request, response) {
-  setCors(response);
-  if (request.method === "OPTIONS") { response.status(204).end(); return; }
+  if (!(await authorizeRequest(request, response))) {
+    return;
+  }
   response.setHeader("Cache-Control", "no-store, max-age=0");
 
   const resource = String(request.query?.resource || "").toLowerCase();

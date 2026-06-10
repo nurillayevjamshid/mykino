@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const { authorizeRequest } = require("./_lib/auth");
 const {
   listDriveMovies,
   listDriveSeries,
@@ -197,9 +198,7 @@ async function handleSeriesUpdate(request, response) {
 }
 
 module.exports = async function handler(request, response) {
-  setCors(response);
-  if (request.method === "OPTIONS") {
-    response.status(204).end();
+  if (!(await authorizeRequest(request, response, { allowShare: true }))) {
     return;
   }
 

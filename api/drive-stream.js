@@ -1,5 +1,6 @@
 const { Readable } = require("stream");
-const { getDriveMediaResponse, getAccessToken, setCors } = require("./_lib/google-drive");
+const { verifySignedToken, setCorsHeaders } = require("./_lib/auth");
+const { getDriveMediaResponse, getAccessToken } = require("./_lib/google-drive");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
 
@@ -32,7 +33,7 @@ async function resolveDriveDirectUrl(fileId) {
 }
 
 module.exports = async function handler(request, response) {
-  setCors(response);
+  setCorsHeaders(request, response);
   if (request.method === "OPTIONS") {
     response.status(204).end();
     return;
@@ -47,6 +48,13 @@ module.exports = async function handler(request, response) {
     const fileId = getFileId(request);
     if (!fileId) {
       response.status(400).json({ ok: false, code: "FILE_ID_MISSING", error: "fileId ko'rsatilmagan." });
+      return;
+    }
+
+    const token = request.query?.token;
+    const botToken = process.env.BOT_TOKEN;
+    if (!verifySignedToken(fileId, token, botToken)) {
+      response.status(403).json({ ok: false, code: "LINK_EXPIRED", error: "Havola muddati tugagan yoki ruxsat berilmagan." });
       return;
     }
 

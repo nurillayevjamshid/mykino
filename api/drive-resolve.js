@@ -1,4 +1,5 @@
-const { getAccessToken, setCors } = require("./_lib/google-drive");
+const { authorizeRequest } = require("./_lib/auth");
+const { getAccessToken } = require("./_lib/google-drive");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
 
@@ -31,8 +32,9 @@ async function resolveDirectUrl(fileId) {
 }
 
 module.exports = async function handler(request, response) {
-  setCors(response);
-  if (request.method === "OPTIONS") { response.status(204).end(); return; }
+  if (!(await authorizeRequest(request, response))) {
+    return;
+  }
   if (request.method !== "GET") {
     response.status(405).json({ ok: false, error: "Faqat GET." });
     return;
