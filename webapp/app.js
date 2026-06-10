@@ -5782,6 +5782,221 @@ function preloadPosters(movieList, count = 8) {
   }
 }
 
+function showAccessDeniedScreen() {
+  if (document.getElementById("accessDeniedScreen")) return;
+
+  // Hide UI elements
+  const appShell = document.getElementById("appShell");
+  if (appShell) {
+    appShell.style.display = "none";
+  }
+  const splashScreen = document.getElementById("splashScreen");
+  if (splashScreen) {
+    splashScreen.style.display = "none";
+  }
+  const sidebar = document.getElementById("appSidebar");
+  if (sidebar) {
+    sidebar.style.display = "none";
+  }
+  const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+  if (sidebarBackdrop) {
+    sidebarBackdrop.style.display = "none";
+  }
+  const adModal = document.getElementById("adModal");
+  if (adModal) {
+    adModal.style.display = "none";
+  }
+
+  // Inject CSS
+  if (!document.getElementById("accessDeniedStyles")) {
+    const styleEl = document.createElement("style");
+    styleEl.id = "accessDeniedStyles";
+    styleEl.textContent = `
+      .access-denied-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(circle at center, #1b162c 0%, #080a10 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999999;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #ffffff;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .access-denied-card {
+        background: rgba(255, 255, 255, 0.02);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 28px;
+        padding: 40px 24px;
+        max-width: 420px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+        animation: cardFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes cardFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(30px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .access-denied-icon-container {
+        position: relative;
+        width: 90px;
+        height: 90px;
+        margin: 0 auto 24px auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .access-denied-icon-glow {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 90px;
+        height: 90px;
+        background: rgba(239, 68, 68, 0.15);
+        border-radius: 50%;
+        filter: blur(14px);
+        animation: pulseGlow 2.5s infinite ease-in-out;
+      }
+      @keyframes pulseGlow {
+        0%, 100% {
+          transform: scale(0.85);
+          opacity: 0.4;
+        }
+        50% {
+          transform: scale(1.15);
+          opacity: 0.8;
+        }
+      }
+      .access-denied-icon {
+        position: relative;
+        width: 72px;
+        height: 72px;
+        color: #ef4444;
+        filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.5));
+      }
+      .access-denied-title {
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 16px;
+        letter-spacing: 0.8px;
+        color: #ff4d4d;
+        text-transform: uppercase;
+      }
+      .access-denied-desc {
+        font-size: 14px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.75);
+        margin-bottom: 32px;
+      }
+      .access-denied-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+        color: #ffffff;
+        border: none;
+        border-radius: 14px;
+        padding: 16px 28px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        width: 100%;
+        box-sizing: border-box;
+        text-decoration: none;
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+      }
+      .access-denied-btn:active {
+        transform: scale(0.97);
+      }
+      .access-denied-btn:hover {
+        background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+        box-shadow: 0 8px 20px rgba(124, 58, 237, 0.5);
+      }
+      .access-denied-footer {
+        margin-top: 28px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
+  // Texts
+  const textUz = {
+    title: "Kirish taqiqlangan",
+    desc: "Ushbu mini-ilova faqat rasmiy Telegram bot orqali ishlaydi. Uchinchi tomon yoki klon botlar orqali kirish taqiqlangan.",
+    btn: "Rasmiy botni ochish"
+  };
+  const textRu = {
+    title: "Доступ ограничен",
+    desc: "Это мини-приложение работает только через официальный Telegram-бот. Доступ через сторонние или клонированные боты заблокирован.",
+    btn: "Открыть официальный бот"
+  };
+  const textEn = {
+    title: "Access Denied",
+    desc: "This mini-app only runs via the official Telegram bot. Access through unauthorized or cloned bots is restricted.",
+    btn: "Open Official Bot"
+  };
+
+  let activeText = textUz;
+  const currentLang = (typeof lang !== "undefined" ? lang : "uz").toLowerCase();
+  if (currentLang === "ru") {
+    activeText = textRu;
+  } else if (currentLang === "en") {
+    activeText = textEn;
+  }
+
+  const container = document.createElement("div");
+  container.className = "access-denied-screen";
+  container.id = "accessDeniedScreen";
+
+  container.innerHTML = `
+    <div class="access-denied-card">
+      <div class="access-denied-icon-container">
+        <div class="access-denied-icon-glow"></div>
+        <svg class="access-denied-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h1 class="access-denied-title">${activeText.title}</h1>
+      <p class="access-denied-desc">${activeText.desc}</p>
+      <button class="access-denied-btn" id="accessDeniedBtn">${activeText.btn}</button>
+      <div class="access-denied-footer">@meningmykino_bot</div>
+    </div>
+  `;
+
+  document.body.appendChild(container);
+
+  const btn = document.getElementById("accessDeniedBtn");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const botUrl = "https://t.me/meningmykino_bot";
+      if (window.Telegram?.WebApp?.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(botUrl);
+      } else {
+        window.open(botUrl, "_blank");
+      }
+    });
+  }
+}
+
 async function loadMovies() {
   await resolveApiBase();
   // Wishlist'ni Telegram CloudStorage'dan tiklash — sessiyalar orasida saqlanishi uchun.
@@ -5817,6 +6032,7 @@ async function loadMovies() {
     if (!response.ok || !Array.isArray(payload)) {
       if (response.status === 401) {
         localStorage.removeItem(MOVIE_CACHE_KEY);
+        showAccessDeniedScreen();
       }
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
@@ -5864,6 +6080,7 @@ async function refreshMoviesSilently(wishlistSyncPromise) {
         movieLoadState = "error";
         movieLoadError = payload?.error || "Ruxsat berilmadi.";
         renderMovies();
+        showAccessDeniedScreen();
       }
       return;
     }
@@ -5902,6 +6119,7 @@ async function silentReloadMovies() {
         movieLoadState = "error";
         movieLoadError = payload?.error || "Ruxsat berilmadi.";
         renderMovies();
+        showAccessDeniedScreen();
       }
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
