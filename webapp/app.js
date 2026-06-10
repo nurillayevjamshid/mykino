@@ -5825,7 +5825,7 @@ async function loadMovies() {
   } catch (error) {
     movies = [];
     movieLoadState = "error";
-    movieLoadError = t("loadErrorText");
+    movieLoadError = error.message || t("loadErrorText");
   }
 
   syncWatchedCount();
