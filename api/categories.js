@@ -1,4 +1,4 @@
-const { setCors } = require("./_lib/google-drive");
+const { authorizeRequest } = require("./_lib/auth");
 const { uploadImageToR2, uploadFileToR2 } = require("./_lib/r2-store");
 
 const REDIS_KEY = "categories:v1";
@@ -168,8 +168,9 @@ async function writePodLangs(map) {
 }
 
 module.exports = async function handler(request, response) {
-  setCors(response);
-  if (request.method === "OPTIONS") { response.status(204).end(); return; }
+  if (!(await authorizeRequest(request, response))) {
+    return;
+  }
   if (request.method === "GET") {
     response.setHeader("Cache-Control", "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
   } else {

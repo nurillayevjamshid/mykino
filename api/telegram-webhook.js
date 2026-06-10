@@ -129,6 +129,23 @@ async function upsertUser(telegramUser) {
     if (!r2Ok) console.error("upsertUser blob error:", err.message);
     // ignore Blob if suspended — R2 is the source of truth
   }
+  
+  // Google Drive Metadata (Kafolatli zaxira)
+  try {
+    const { readCatalogMetadata, writeCatalogMetadata } = require("./_lib/google-drive");
+    const metadataState = await readCatalogMetadata();
+    if (metadataState.file) {
+      const data = metadataState.data;
+      const list = Array.isArray(data.users) ? data.users : (data.users ? Object.values(data.users) : []);
+      const idx = list.findIndex(u => String(u.telegram_id) === String(record.telegram_id));
+      const merged = idx >= 0 ? { ...list[idx], ...record, started_at: list[idx].started_at || record.started_at } : record;
+      if (idx >= 0) list[idx] = merged; else list.push(merged);
+      data.users = list.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
+      await writeCatalogMetadata(data, metadataState.file);
+    }
+  } catch (err) {
+    console.error("upsertUser metadata error:", err.message);
+  }
 }
 
 async function sendStart(chatId) {

@@ -1,3 +1,4 @@
+const { authorizeRequest } = require("./_lib/auth");
 const {
   getMovieReaction,
   setMovieReaction,
@@ -28,10 +29,7 @@ function getAction(request, body) {
 }
 
 module.exports = async function handler(request, response) {
-  setCors(response);
-
-  if (request.method === "OPTIONS") {
-    response.status(204).end();
+  if (!(await authorizeRequest(request, response))) {
     return;
   }
 
