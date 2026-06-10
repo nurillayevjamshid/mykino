@@ -172,7 +172,8 @@ module.exports = async function handler(request, response) {
     return;
   }
   if (request.method === "GET") {
-    response.setHeader("Cache-Control", "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
+    response.setHeader("Cache-Control", "private, no-cache, no-store, max-age=0");
+    response.setHeader("Vary", "Accept-Encoding, X-TG-Init-Data, Authorization");
   } else {
     response.setHeader("Cache-Control", "no-store, max-age=0");
   }
