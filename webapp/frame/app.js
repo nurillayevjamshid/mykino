@@ -5316,6 +5316,9 @@ async function loadMovies() {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
+      if (response.status === 401) {
+        localStorage.removeItem(MOVIE_CACHE_KEY);
+      }
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
     movies = sessionShuffleMovies(payload.map((movie, index) => normalizeMovie(movie, index)));
@@ -5355,6 +5358,13 @@ async function silentReloadMovies() {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
+      if (response.status === 401) {
+        localStorage.removeItem(MOVIE_CACHE_KEY);
+        movies = [];
+        movieLoadState = "error";
+        movieLoadError = payload?.error || "Ruxsat berilmadi.";
+        renderMovies();
+      }
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
 
