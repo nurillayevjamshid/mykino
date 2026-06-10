@@ -4776,6 +4776,36 @@ function ensurePotcastsModule() {
 function openPodcastsView() { ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
 function closePodcastsView() { window.__potcasts?.closePodcastsView?.(); }
 
+// FIFA JCH 2026 view
+function openFifaView() {
+  closeMusicView();
+  closePodcastsView();
+  const shell = document.getElementById("appShell");
+  const fifaView = document.getElementById("fifaView");
+  if (!fifaView) return;
+  // Asosiy kinolar sahifasini yashirish
+  document.getElementById("heroSection")?.setAttribute("hidden", "");
+  document.getElementById("movieGrid")?.setAttribute("hidden", "");
+  document.getElementById("categoriesView")?.setAttribute("hidden", "");
+  document.getElementById("categoryDetailView")?.setAttribute("hidden", "");
+  document.getElementById("seriesListView")?.setAttribute("hidden", "");
+  document.getElementById("seriesDetailView")?.setAttribute("hidden", "");
+  document.querySelectorAll(".bottom-bar--movie").forEach(el => el.style.display = "none");
+  fifaView.hidden = false;
+  shell?.scrollTo({ top: 0 });
+  document.body.dataset.activeView = "fifa";
+}
+function closeFifaView() {
+  const fifaView = document.getElementById("fifaView");
+  if (!fifaView || fifaView.hidden) return;
+  fifaView.hidden = true;
+  // Asosiy kinolar sahifasini qaytarish
+  document.getElementById("heroSection")?.removeAttribute("hidden");
+  document.getElementById("movieGrid")?.removeAttribute("hidden");
+  document.querySelectorAll(".bottom-bar--movie").forEach(el => el.style.display = "");
+  delete document.body.dataset.activeView;
+}
+
 // ===== Categories view (bottom-bar) =====
 const categoriesView = document.getElementById("categoriesView");
 const categoriesGrid = document.getElementById("categoriesGrid");
@@ -5432,19 +5462,27 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     e.preventDefault();
     if (action === "music") {
       closePodcastsView();
+      closeFifaView();
       openMusicView();
       setSidebarOpen(false);
       return;
     }
     if (action === "podcasts") {
       closeMusicView();
+      closeFifaView();
       openPodcastsView();
+      setSidebarOpen(false);
+      return;
+    }
+    if (action === "fifa") {
+      openFifaView();
       setSidebarOpen(false);
       return;
     }
     if (action === "kino-back") {
       closeMusicView();
       closePodcastsView();
+      closeFifaView();
       setFilter("all");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
       setSidebarOpen(false);
@@ -5453,6 +5491,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     if (action === "favorites") {
       closeMusicView();
       closePodcastsView();
+      closeFifaView();
       setFilter("favorites");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
     } else if (action === "profile") {

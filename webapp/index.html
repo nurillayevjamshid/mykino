@@ -102,6 +102,14 @@
         </svg>
         <span data-i18n="tvNav">Potkastlar</span>
       </button>
+      <button class="sidebar__item" type="button" id="sidebarFifaItem" data-sidebar-action="fifa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20M2 12h20"></path>
+        </svg>
+        <span>FIFA JCH 2026</span>
+        <span class="new-badge" aria-hidden="true">Yangi</span>
+      </button>
       <button class="sidebar__item" type="button" data-sidebar-action="favorites">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
@@ -358,6 +366,35 @@
 
     <section class="podcasts-view" id="podcastsView" hidden aria-label="Potkastlar">
       <div class="podcasts-view__inner" id="podcastsRoot"></div>
+    </section>
+
+    <section class="fifa-view" id="fifaView" hidden aria-label="FIFA JCH 2026">
+      <div class="fifa-view__inner">
+        <div class="fifa-view__hero">
+          <div class="fifa-view__icon">⚽</div>
+          <h2 class="fifa-view__title">FIFA Jahon Chempionati 2026</h2>
+          <p class="fifa-view__subtitle">Tez kunda ma'lumotlar qo'shiladi</p>
+        </div>
+        <div class="fifa-view__content" id="fifaContent">
+          <div class="fifa-view__placeholder">
+            <div class="fifa-view__placeholder-icon">🏟️</div>
+            <p class="fifa-view__placeholder-text">Bu bo'limda FIFA JCH 2026 haqida barcha ma'lumotlar, o'yinlar jadvali, natijalar va boshqa qiziqarli kontentlar joylanadi.</p>
+          </div>
+        </div>
+      </div>
+      <footer class="app-footer" aria-label="Sayt ma'lumotlari">
+        <div class="app-footer__brand">
+          <span class="app-footer__logo" aria-hidden="true">
+            <svg viewBox="0 0 32 32">
+              <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+              <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+            </svg>
+          </span>
+          <span class="app-footer__name">MY PLAYLIST</span>
+        </div>
+        <p class="app-footer__tagline">FIFA JCH 2026</p>
+        <p class="app-footer__copy">&copy; 2026 My Playlist. Barcha huquqlar himoyalangan.</p>
+      </footer>
     </section>
 
     <!-- Kategoriya placeholder -->

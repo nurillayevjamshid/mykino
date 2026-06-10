@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: dark;
 
   /* === SURFACES === */
@@ -11984,3 +11984,133 @@ html[data-theme="light"] .podcasts-view .pod-ch-sub {
 html[data-theme="light"] .podcasts-view .pod-topbar__back:hover { background: rgba(0,0,0,.06); }
 html[data-theme="light"] .podcasts-view .pod-loading__spinner { border-color: rgba(0,0,0,.1); border-top-color: var(--accent, #ffc73a); }
 
+/* ================ NEW BADGE (sidebar) ================ */
+.sidebar__item > .new-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b35, #f7c948);
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+  animation: newBadgePulse 2s ease-in-out infinite;
+}
+@keyframes newBadgePulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4); }
+  50%      { box-shadow: 0 2px 16px rgba(255, 107, 53, 0.7); }
+}
+
+/* ================ FIFA JCH 2026 VIEW ================ */
+.fifa-view {
+  min-height: 100vh;
+  padding: 0 0 calc(80px + var(--safe-bottom, 0px));
+}
+.fifa-view[hidden] { display: none; }
+.fifa-view__inner {
+  padding: 20px 16px;
+}
+
+/* Hero block */
+.fifa-view__hero {
+  text-align: center;
+  padding: 48px 20px 36px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #1a3a2a 0%, #0d2818 50%, #1a3a2a 100%);
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.fifa-view__hero::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(247, 201, 72, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.fifa-view__hero::after {
+  content: "";
+  position: absolute;
+  bottom: -30px;
+  left: -30px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.fifa-view__icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: fifaBounce 2.5s ease-in-out infinite;
+}
+@keyframes fifaBounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.fifa-view__title {
+  font-size: clamp(22px, 6vw, 32px);
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+.fifa-view__subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Content placeholder */
+.fifa-view__content {
+  padding: 0;
+}
+.fifa-view__placeholder {
+  text-align: center;
+  padding: 40px 20px;
+  border-radius: 20px;
+  background: var(--bg-1, rgba(255, 255, 255, 0.04));
+  border: 1px dashed var(--c-border, rgba(255, 255, 255, 0.1));
+}
+.fifa-view__placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.fifa-view__placeholder-text {
+  font-size: 14px;
+  color: var(--text-3, #5a6076);
+  line-height: 1.6;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+/* Light theme overrides */
+html[data-theme="light"] .fifa-view__hero {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%);
+}
+html[data-theme="light"] .fifa-view__title {
+  color: #1b5e20;
+  text-shadow: none;
+}
+html[data-theme="light"] .fifa-view__subtitle {
+  color: #388e3c;
+}
+html[data-theme="light"] .fifa-view__placeholder {
+  background: #f5f5f5;
+  border-color: #ddd;
+}
+html[data-theme="light"] .fifa-view__placeholder-text {
+  color: #666;
+}
