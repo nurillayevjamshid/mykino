@@ -4791,6 +4791,7 @@ function openFifaView() {
   document.getElementById("seriesListView")?.setAttribute("hidden", "");
   document.getElementById("seriesDetailView")?.setAttribute("hidden", "");
   document.querySelectorAll(".bottom-bar--movie").forEach(el => el.style.display = "none");
+  document.querySelectorAll(".bottom-bar--fifa").forEach(el => el.style.display = "flex");
   fifaView.hidden = false;
   shell?.scrollTo({ top: 0 });
   document.body.dataset.activeView = "fifa";
@@ -4803,6 +4804,7 @@ function closeFifaView() {
   document.getElementById("heroSection")?.removeAttribute("hidden");
   document.getElementById("movieGrid")?.removeAttribute("hidden");
   document.querySelectorAll(".bottom-bar--movie").forEach(el => el.style.display = "");
+  document.querySelectorAll(".bottom-bar--fifa").forEach(el => el.style.display = "none");
   delete document.body.dataset.activeView;
 }
 
