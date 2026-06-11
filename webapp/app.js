@@ -7149,7 +7149,7 @@ if ("requestIdleCallback" in window) {
 // === /swipe-gestures ===
 
 // ============================================================
-// FIFA JCH 2026 — view, banner, tablar, placeholder data
+// FIFA JCH 2026 — view, banner, tablar, REAL data (openfootball + worldcup26.ir)
 // ============================================================
 (function initFifaModule() {
   const fifaView = document.getElementById("fifaView");
@@ -7157,60 +7157,186 @@ if ("requestIdleCallback" in window) {
   const appShell = document.getElementById("appShell");
   if (!fifaView) return;
 
-  // --- Placeholder data (real manba keyin ulanadi) ---
-  const FIFA_DATA = {
-    matches: [
-      {
-        day: "11-iyun, payshanba",
-        items: [
-          { home: "Meksika", homeFlag: "🇲🇽", away: "Argentina", awayFlag: "🇦🇷", time: "20:00", status: "live", minute: "62'", score: "1 : 1" },
-          { home: "Kanada", homeFlag: "🇨🇦", away: "Marokash", awayFlag: "🇲🇦", time: "23:00", status: "upcoming" },
-        ],
-      },
-      {
-        day: "12-iyun, juma",
-        items: [
-          { home: "AQSh", homeFlag: "🇺🇸", away: "Braziliya", awayFlag: "🇧🇷", time: "21:00", status: "upcoming" },
-          { home: "Ispaniya", homeFlag: "🇪🇸", away: "Yaponiya", awayFlag: "🇯🇵", time: "00:30", status: "upcoming" },
-          { home: "Fransiya", homeFlag: "🇫🇷", away: "Avstraliya", awayFlag: "🇦🇺", time: "03:00", status: "upcoming" },
-        ],
-      },
-      {
-        day: "13-iyun, shanba",
-        items: [
-          { home: "Angliya", homeFlag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", away: "Niderlandiya", awayFlag: "🇳🇱", time: "21:00", status: "upcoming" },
-          { home: "Portugaliya", homeFlag: "🇵🇹", away: "Urugvay", awayFlag: "🇺🇾", time: "00:00", status: "upcoming" },
-        ],
-      },
-    ],
-    groups: [
-      {
-        name: "Guruh A",
-        rows: [
-          { team: "Meksika", flag: "🇲🇽", p: 3, w: 2, d: 1, l: 0, gf: 5, ga: 2, pts: 7 },
-          { team: "Argentina", flag: "🇦🇷", p: 3, w: 2, d: 0, l: 1, gf: 4, ga: 2, pts: 6 },
-          { team: "Marokash", flag: "🇲🇦", p: 3, w: 1, d: 0, l: 2, gf: 2, ga: 4, pts: 3 },
-          { team: "Kanada", flag: "🇨🇦", p: 3, w: 0, d: 1, l: 2, gf: 1, ga: 4, pts: 1 },
-        ],
-      },
-      {
-        name: "Guruh B",
-        rows: [
-          { team: "Ispaniya", flag: "🇪🇸", p: 3, w: 3, d: 0, l: 0, gf: 7, ga: 1, pts: 9 },
-          { team: "Braziliya", flag: "🇧🇷", p: 3, w: 2, d: 0, l: 1, gf: 5, ga: 3, pts: 6 },
-          { team: "AQSh", flag: "🇺🇸", p: 3, w: 1, d: 0, l: 2, gf: 2, ga: 4, pts: 3 },
-          { team: "Yaponiya", flag: "🇯🇵", p: 3, w: 0, d: 0, l: 3, gf: 1, ga: 7, pts: 0 },
-        ],
-      },
-    ],
+  // Jamoa nomi (openfootball EN) → { uz, flag }
+  // JCH 2026: 47 ta tasdiqlangan + play-off g'oliblari uchun placeholder mapping.
+  const TEAM_MAP = {
+    "Mexico":              { uz: "Meksika",         flag: "🇲🇽" },
+    "South Africa":        { uz: "Janubiy Afrika",  flag: "🇿🇦" },
+    "South Korea":         { uz: "Janubiy Koreya",  flag: "🇰🇷" },
+    "Czech Republic":      { uz: "Chexiya",         flag: "🇨🇿" },
+    "Canada":              { uz: "Kanada",          flag: "🇨🇦" },
+    "Bosnia & Herzegovina":{ uz: "Bosniya",         flag: "🇧🇦" },
+    "Qatar":               { uz: "Qatar",           flag: "🇶🇦" },
+    "Switzerland":         { uz: "Shveytsariya",    flag: "🇨🇭" },
+    "Brazil":              { uz: "Braziliya",       flag: "🇧🇷" },
+    "Morocco":             { uz: "Marokash",        flag: "🇲🇦" },
+    "Haiti":               { uz: "Gaiti",           flag: "🇭🇹" },
+    "Scotland":            { uz: "Shotlandiya",     flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
+    "USA":                 { uz: "AQSh",            flag: "🇺🇸" },
+    "Paraguay":            { uz: "Paragvay",        flag: "🇵🇾" },
+    "Australia":           { uz: "Avstraliya",      flag: "🇦🇺" },
+    "Turkey":              { uz: "Turkiya",         flag: "🇹🇷" },
+    "Germany":             { uz: "Germaniya",       flag: "🇩🇪" },
+    "Curaçao":             { uz: "Kyurasao",        flag: "🇨🇼" },
+    "Ivory Coast":         { uz: "Kot-d'Ivuar",     flag: "🇨🇮" },
+    "Ecuador":             { uz: "Ekvador",         flag: "🇪🇨" },
+    "Netherlands":         { uz: "Niderlandiya",    flag: "🇳🇱" },
+    "Japan":               { uz: "Yaponiya",        flag: "🇯🇵" },
+    "Sweden":              { uz: "Shvetsiya",       flag: "🇸🇪" },
+    "Tunisia":             { uz: "Tunis",           flag: "🇹🇳" },
+    "Argentina":           { uz: "Argentina",       flag: "🇦🇷" },
+    "Algeria":             { uz: "Jazoir",          flag: "🇩🇿" },
+    "Austria":             { uz: "Avstriya",        flag: "🇦🇹" },
+    "Belgium":             { uz: "Belgiya",         flag: "🇧🇪" },
+    "Cape Verde":          { uz: "Kabo-Verde",      flag: "🇨🇻" },
+    "Colombia":            { uz: "Kolumbiya",       flag: "🇨🇴" },
+    "Croatia":             { uz: "Xorvatiya",       flag: "🇭🇷" },
+    "DR Congo":            { uz: "Kongo DR",        flag: "🇨🇩" },
+    "Egypt":               { uz: "Misr",            flag: "🇪🇬" },
+    "England":             { uz: "Angliya",         flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+    "France":              { uz: "Fransiya",        flag: "🇫🇷" },
+    "Ghana":               { uz: "Gana",            flag: "🇬🇭" },
+    "Iran":                { uz: "Eron",            flag: "🇮🇷" },
+    "Iraq":                { uz: "Iroq",            flag: "🇮🇶" },
+    "Jordan":              { uz: "Iordaniya",       flag: "🇯🇴" },
+    "New Zealand":         { uz: "Yangi Zelandiya", flag: "🇳🇿" },
+    "Norway":              { uz: "Norvegiya",       flag: "🇳🇴" },
+    "Panama":              { uz: "Panama",          flag: "🇵🇦" },
+    "Portugal":            { uz: "Portugaliya",     flag: "🇵🇹" },
+    "Saudi Arabia":        { uz: "Saudiya Arabistoni", flag: "🇸🇦" },
+    "Senegal":             { uz: "Senegal",         flag: "🇸🇳" },
+    "Spain":               { uz: "Ispaniya",        flag: "🇪🇸" },
+    "Uruguay":             { uz: "Urugvay",         flag: "🇺🇾" },
+    "Uzbekistan":          { uz: "O'zbekiston",     flag: "🇺🇿" },
   };
+  const teamUz = (name) => (TEAM_MAP[name]?.uz) || name || "—";
+  const teamFlag = (name) => (TEAM_MAP[name]?.flag) || "🏳️";
+
+  // O'zbek hafta kunlari va oylari
+  const WD = ["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"];
+  const MO = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
+
+  // Match vaqtini Toshkent (UTC+5) ga o'tkazish
+  // openfootball format: "13:00 UTC-6"
+  function parseKickoff(dateStr, timeStr) {
+    if (!dateStr || !timeStr) return null;
+    const m = String(timeStr).trim().match(/^(\d{1,2}):(\d{2})\s*UTC([+-]\d{1,2})$/i);
+    if (!m) return null;
+    const [, hh, mm, off] = m;
+    // Local kickoff ISO with offset
+    const offNum = Number(off);
+    const sign = offNum >= 0 ? "+" : "-";
+    const absOff = String(Math.abs(offNum)).padStart(2, "0");
+    const iso = `${dateStr}T${hh.padStart(2, "0")}:${mm}:00${sign}${absOff}:00`;
+    const d = new Date(iso);
+    return Number.isFinite(d.getTime()) ? d : null;
+  }
+  function fmtTashkentTime(d) {
+    if (!d) return "";
+    return new Intl.DateTimeFormat("uz-UZ", { timeZone: "Asia/Tashkent", hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
+  }
+  function fmtTashkentDayKey(d) {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tashkent", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  }
+  function fmtDayLabel(d) {
+    // "11-iyun, payshanba"
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tashkent", year: "numeric", month: "2-digit", day: "2-digit", weekday: "long" }).formatToParts(d);
+    const day = Number(parts.find((p) => p.type === "day").value);
+    const month = Number(parts.find((p) => p.type === "month").value) - 1;
+    const dt = new Date(`${fmtTashkentDayKey(d)}T00:00:00Z`);
+    const wd = WD[dt.getUTCDay()];
+    return `${day}-${MO[month]}, ${wd}`;
+  }
+
+  let FIFA_DATA = { matches: [], groups: [] };
+  let loadState = "idle"; // idle | loading | ready | error
+
+  function normalizeFromPayload(payload) {
+    const schedule = payload?.schedule?.matches || [];
+    const liveMap = payload?.liveMap || {};
+    const standings = payload?.standings || [];
+
+    // Match'larni Toshkent kuniga guruhlash
+    const byDay = new Map();
+    for (const m of schedule) {
+      const kickoff = parseKickoff(m.date, m.time);
+      if (!kickoff) continue;
+      const dayKey = fmtTashkentDayKey(kickoff);
+      const live = liveMap[`${m.team1}|${m.team2}`.toLowerCase()] || null;
+      const status = (live?.status === "live" || live?.status === "inprogress" || live?.status === "playing") ? "live"
+                   : (live?.status === "finished" || live?.status === "ft" || live?.status === "ended") ? "finished"
+                   : "upcoming";
+      const score = live && live.score_home != null && live.score_away != null
+                    ? `${live.score_home} : ${live.score_away}` : null;
+      const item = {
+        home: teamUz(m.team1),
+        away: teamUz(m.team2),
+        homeFlag: teamFlag(m.team1),
+        awayFlag: teamFlag(m.team2),
+        time: fmtTashkentTime(kickoff),
+        kickoff: kickoff.toISOString(),
+        group: m.group || "",
+        ground: m.ground || "",
+        status,
+        score,
+        minute: live?.minute ? String(live.minute) + (String(live.minute).includes("'") ? "" : "'") : null,
+      };
+      if (!byDay.has(dayKey)) byDay.set(dayKey, { date: kickoff, items: [] });
+      byDay.get(dayKey).items.push(item);
+    }
+
+    const matches = Array.from(byDay.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([, val]) => ({
+        day: fmtDayLabel(val.date),
+        items: val.items.sort((a, b) => a.kickoff.localeCompare(b.kickoff)),
+      }));
+
+    // Standings'da inglizcha jamoa nomi → uzbek
+    const groups = standings.map((g) => ({
+      name: g.name?.startsWith("Group") ? g.name.replace("Group", "Guruh") : `Guruh ${g.name}`,
+      rows: (g.rows || []).map((r) => ({
+        team: teamUz(r.team),
+        flag: teamFlag(r.team),
+        p: r.p, w: r.w, d: r.d, l: r.l, gf: r.gf, ga: r.ga, pts: r.pts,
+      })),
+    }));
+
+    return { matches, groups };
+  }
+
+  async function loadFifaData() {
+    if (loadState === "loading" || loadState === "ready") return;
+    loadState = "loading";
+    try {
+      const res = await fetch("/api/categories?type=fifa", { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const payload = await res.json();
+      FIFA_DATA = normalizeFromPayload(payload);
+      loadState = "ready";
+    } catch (err) {
+      console.warn("FIFA fetch xato:", err.message);
+      loadState = "error";
+    }
+  }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // --- Empty/loading helpers ---
+  function emptyHtml(title, sub) {
+    return `<div class="fifa-live-empty">
+              <div class="fifa-live-empty__icon">⚽</div>
+              <div class="fifa-live-empty__title">${title}</div>
+              <div>${sub || ""}</div>
+            </div>`;
+  }
 
   // --- Render: Matchlar ---
   function renderMatches() {
     const panel = document.getElementById("fifaPanelMatches");
     if (!panel) return;
+    if (loadState === "loading") { panel.innerHTML = emptyHtml("Yuklanmoqda...", "JCH 2026 jadvali olinmoqda."); return; }
+    if (!FIFA_DATA.matches.length) { panel.innerHTML = emptyHtml("Jadval topilmadi", "Manba vaqtincha javob bermayapti."); return; }
     panel.innerHTML = FIFA_DATA.matches.map((day) => `
       <div class="fifa-day">${esc(day.day)}</div>
       ${day.items.map((m) => {
@@ -7292,6 +7418,8 @@ if ("requestIdleCallback" in window) {
   function renderGroups() {
     const panel = document.getElementById("fifaPanelGroups");
     if (!panel) return;
+    if (loadState === "loading") { panel.innerHTML = emptyHtml("Yuklanmoqda...", "Guruh jadvali olinmoqda."); return; }
+    if (!FIFA_DATA.groups.length) { panel.innerHTML = emptyHtml("Hali jadval yo'q", "Birinchi turlar tugagandan keyin ko'rinadi."); return; }
     panel.innerHTML = FIFA_DATA.groups.map((g) => `
       <div class="fifa-group">
         <div class="fifa-group__head"><span>${esc(g.name)}</span></div>
@@ -7336,18 +7464,20 @@ if ("requestIdleCallback" in window) {
   });
 
   // --- Open / close ---
-  let rendered = false;
-  function openFifaView() {
+  async function openFifaView() {
     fifaView.hidden = false;
     document.body.classList.add("is-fifa");
-    if (!rendered) {
-      renderMatches();
-      renderLive();
-      renderGroups();
-      rendered = true;
-    }
+    // Loading placeholder darhol ko'rinsin
+    renderMatches();
+    renderLive();
+    renderGroups();
     appShell?.scrollTo({ top: 0, behavior: "smooth" });
     try { tgBackRegister?.("fifa", () => closeFifaView()); } catch (_) {}
+    // Real ma'lumotni fetch qilib qayta render
+    await loadFifaData();
+    renderMatches();
+    renderLive();
+    renderGroups();
   }
   function closeFifaView() {
     fifaView.hidden = true;

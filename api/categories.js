@@ -167,7 +167,130 @@ async function writePodLangs(map) {
   }
 }
 
+// =========================================================================
+// FIFA JCH 2026 ma'lumotlari (proxy + kesh).
+// Jadval: openfootball/worldcup.json (public domain, CORS OK)
+// LIVE/standings: worldcup26.ir/get/{games,groups,teams} (CORS yo'q — proxy)
+// 5 daqiqali in-memory kesh — funktsiya isitilgan paytda tashqi so'rovni kamaytiradi.
+// =========================================================================
+const FIFA_CACHE = { data: null, at: 0 };
+const FIFA_TTL_MS = 5 * 60 * 1000;
+const FIFA_SCHEDULE_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
+const FIFA_LIVE_GAMES_URL = "https://worldcup26.ir/get/games";
+const FIFA_LIVE_GROUPS_URL = "https://worldcup26.ir/get/groups";
+const FIFA_LIVE_TEAMS_URL = "https://worldcup26.ir/get/teams";
+
+async function fetchJson(url, timeoutMs = 6000) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": "mykino-fifa/1.0" } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function buildFifaPayload() {
+  const [scheduleRes, gamesRes, groupsRes, teamsRes] = await Promise.allSettled([
+    fetchJson(FIFA_SCHEDULE_URL),
+    fetchJson(FIFA_LIVE_GAMES_URL),
+    fetchJson(FIFA_LIVE_GROUPS_URL),
+    fetchJson(FIFA_LIVE_TEAMS_URL),
+  ]);
+
+  const schedule = scheduleRes.status === "fulfilled" ? scheduleRes.value : null;
+  const liveGames = gamesRes.status === "fulfilled" ? gamesRes.value : null;
+  const liveGroups = groupsRes.status === "fulfilled" ? groupsRes.value : null;
+  const liveTeams = teamsRes.status === "fulfilled" ? teamsRes.value : null;
+
+  // Live games'ni "team1|team2" kalit bilan map qilamiz
+  const liveMap = new Map();
+  const arr = Array.isArray(liveGames) ? liveGames : (liveGames?.games || []);
+  for (const g of arr) {
+    const home = String(g.home_team_name || g.home_team || g.home || "").trim();
+    const away = String(g.away_team_name || g.away_team || g.away || "").trim();
+    if (!home || !away) continue;
+    liveMap.set(`${home}|${away}`.toLowerCase(), {
+      status: String(g.status || "").toLowerCase(),
+      score_home: g.home_score ?? g.score_home ?? null,
+      score_away: g.away_score ?? g.score_away ?? null,
+      minute: g.minute ?? g.time_elapsed ?? null,
+    });
+  }
+
+  // Team id → name (worldcup26.ir teams uchun)
+  const teamIdName = new Map();
+  const tArr = Array.isArray(liveTeams) ? liveTeams : (liveTeams?.teams || []);
+  for (const t of tArr) {
+    const id = String(t.team_id ?? t._id ?? t.id ?? "").trim();
+    const name = String(t.name || t.team || "").trim();
+    if (id && name) teamIdName.set(id, name);
+  }
+
+  const groupsArr = Array.isArray(liveGroups) ? liveGroups : (liveGroups?.groups || []);
+  const standings = groupsArr.map((g) => ({
+    name: String(g.name || "").trim(),
+    rows: (g.teams || []).map((row) => ({
+      team: teamIdName.get(String(row.team_id)) || `Team ${row.team_id}`,
+      p: Number(row.mp || 0),
+      w: Number(row.w || 0),
+      d: Number(row.d || 0),
+      l: Number(row.l || 0),
+      gf: Number(row.gf || 0),
+      ga: Number(row.ga || 0),
+      pts: Number(row.pts || 0),
+    })),
+  })).filter((g) => g.name);
+
+  return {
+    updatedAt: new Date().toISOString(),
+    schedule: schedule || { matches: [] },
+    liveMap: Object.fromEntries(liveMap),
+    standings,
+    sources: {
+      schedule: scheduleRes.status,
+      games: gamesRes.status,
+      groups: groupsRes.status,
+      teams: teamsRes.status,
+    },
+  };
+}
+
+async function handleFifa(request, response) {
+  const now = Date.now();
+  if (FIFA_CACHE.data && now - FIFA_CACHE.at < FIFA_TTL_MS) {
+    response.setHeader("X-Fifa-Cache", "HIT");
+    response.status(200).json(FIFA_CACHE.data);
+    return;
+  }
+  try {
+    const data = await buildFifaPayload();
+    FIFA_CACHE.data = data;
+    FIFA_CACHE.at = now;
+    response.setHeader("X-Fifa-Cache", "MISS");
+    response.status(200).json(data);
+  } catch (err) {
+    if (FIFA_CACHE.data) {
+      response.setHeader("X-Fifa-Cache", "STALE");
+      response.status(200).json(FIFA_CACHE.data);
+      return;
+    }
+    response.status(502).json({ ok: false, error: err.message || "FIFA manbasi javob bermadi." });
+  }
+}
+
 module.exports = async function handler(request, response) {
+  // FIFA route — auth talab qilmaydi (umumiy public data)
+  const earlyUrl = new URL(request.url || "/", "http://localhost");
+  if (String(earlyUrl.searchParams.get("type") || "").toLowerCase() === "fifa") {
+    response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    response.setHeader("Vary", "Accept-Encoding");
+    await handleFifa(request, response);
+    return;
+  }
+
   if (!(await authorizeRequest(request, response))) {
     return;
   }
