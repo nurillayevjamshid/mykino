@@ -5374,8 +5374,7 @@ function syncSidebarMusicItem() {
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
       </svg>
-      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>
-      <span class="beta-badge" aria-hidden="true" data-i18n="betaBadge">${plainLabel(t("betaBadge"))}</span>`;
+      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>`;
   }
 }
 
@@ -5393,8 +5392,7 @@ function syncSidebarPodcastsItem() {
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
       </svg>
-      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>
-      <span class="beta-badge" aria-hidden="true" data-i18n="betaBadge">${plainLabel(t("betaBadge"))}</span>`;
+      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>`;
   } else {
     // Kino yoki Musiqa bo'limida 2-slot: Potkastlar
     item.dataset.sidebarAction = "podcasts";
@@ -5404,8 +5402,7 @@ function syncSidebarPodcastsItem() {
         <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
         <line x1="12" y1="19" x2="12" y2="22"></line>
       </svg>
-      <span data-i18n="tvNav">${plainLabel(t("tvNav"))}</span>
-      <span class="beta-badge" aria-hidden="true" data-i18n="betaBadge">${plainLabel(t("betaBadge"))}</span>`;
+      <span data-i18n="tvNav">${plainLabel(t("tvNav"))}</span>`;
   }
 }
 
