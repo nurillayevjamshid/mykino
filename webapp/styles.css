@@ -12183,6 +12183,88 @@ html[data-theme="light"] .fifa-view__promo {
   background: #f0f1f6;
   border-color: rgba(13,40,110,.08);
 }
+.fifa-view__promo[hidden] { display: none; }
+
+/* Jonli efir (yopiq kanal) promo kartasi — bosiladigan */
+.fifa-view__promo--live {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  border-color: rgba(255,255,255,.10);
+  background: linear-gradient(135deg, #16264f 0%, #0d2a6e 55%, #c81e3a 140%);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.fifa-view__promo--live:active { transform: scale(.985); }
+.fifa-view__promo--live:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.fifa-view__promo-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+.fifa-view__promo-inner {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px 18px;
+}
+.fifa-view__promo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e2123b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  margin-bottom: 4px;
+}
+.fifa-view__promo-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  animation: fifa-promo-pulse 1.4s ease-in-out infinite;
+}
+@keyframes fifa-promo-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .35; transform: scale(.7); }
+}
+.fifa-view__promo-title {
+  color: #fff;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+.fifa-view__promo-sub {
+  color: rgba(255,255,255,.82);
+  font-size: 13px;
+  line-height: 1.3;
+  text-shadow: 0 1px 6px rgba(0,0,0,.4);
+}
+.fifa-view__promo-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: #fff;
+  color: #0d2a6e;
+  font-size: 14px;
+  font-weight: 700;
+}
+.fifa-view__promo-cta svg { width: 16px; height: 16px; }
 
 .fifa-tabs {
   display: flex;

@@ -6172,6 +6172,7 @@ function startMoviesPolling() {
 
 let pendingAd = null;
 let activePreRollAd = null;
+let fifaLiveConfig = null;
 
 async function loadAppSettings() {
   let timeoutId = 0;
@@ -6205,6 +6206,13 @@ async function loadAppSettings() {
       } else {
         activePreRollAd = null;
       }
+      // FIFA "Jonli efir" yopiq kanal promo kartasi
+      if (data && data.fifaLive && data.fifaLive.enabled && data.fifaLive.channelUrl) {
+        fifaLiveConfig = data.fifaLive;
+      } else {
+        fifaLiveConfig = null;
+      }
+      try { window.renderFifaLivePromo?.(); } catch (_) {}
     }
   } catch (e) {
     // Ignore error, use default
@@ -7521,10 +7529,70 @@ if ("requestIdleCallback" in window) {
     b.addEventListener("click", () => setActiveTab(b.dataset.fifaTab));
   });
 
+  // --- Jonli efir promo kartasi (yopiq Telegram kanal) ---
+  function renderFifaLivePromo() {
+    const promo = fifaView.querySelector(".fifa-view__promo");
+    if (!promo) return;
+    const cfg = (typeof fifaLiveConfig !== "undefined" && fifaLiveConfig) || null;
+    if (!cfg || !cfg.channelUrl) {
+      // Config yo'q — bo'sh placeholder holatiga qaytamiz
+      promo.hidden = true;
+      promo.classList.remove("fifa-view__promo--live");
+      promo.innerHTML = "";
+      promo.removeAttribute("role");
+      promo.removeAttribute("tabindex");
+      return;
+    }
+    const title = esc(cfg.title || "Jonli efir");
+    const subtitle = esc(cfg.subtitle || "JCH 2026 o'yinlarini jonli tomosha qiling");
+    const buttonText = esc(cfg.buttonText || "Kanalga kirish");
+    const bg = cfg.imageUrl
+      ? `style="background-image:linear-gradient(180deg,rgba(8,12,22,.25),rgba(8,12,22,.85)),url('${esc(cfg.imageUrl)}')"`
+      : "";
+    promo.hidden = false;
+    promo.classList.add("fifa-view__promo--live");
+    promo.setAttribute("role", "button");
+    promo.setAttribute("tabindex", "0");
+    promo.removeAttribute("aria-hidden");
+    promo.innerHTML = `
+      <div class="fifa-view__promo-bg" ${bg} aria-hidden="true"></div>
+      <div class="fifa-view__promo-inner">
+        <span class="fifa-view__promo-badge"><span class="fifa-view__promo-dot"></span>LIVE</span>
+        <div class="fifa-view__promo-title">${title}</div>
+        <div class="fifa-view__promo-sub">${subtitle}</div>
+        <span class="fifa-view__promo-cta">
+          ${buttonText}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </span>
+      </div>`;
+    const open = () => openFifaLiveChannel(cfg.channelUrl);
+    promo.onclick = open;
+    promo.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+    };
+  }
+
+  function openFifaLiveChannel(url) {
+    const target = String(url || "").trim();
+    if (!target) return;
+    try {
+      const tg = window.Telegram?.WebApp;
+      // Yopiq kanal — Telegram ichida ochiladi (t.me/+... invite link)
+      if (tg?.openTelegramLink) { tg.openTelegramLink(target); return; }
+      if (tg?.openLink) { tg.openLink(target); return; }
+      window.open(target, "_blank", "noopener");
+    } catch (_) {
+      window.open(target, "_blank", "noopener");
+    }
+  }
+
+  window.renderFifaLivePromo = renderFifaLivePromo;
+
   // --- Open / close ---
   async function openFifaView() {
     fifaView.hidden = false;
     document.body.classList.add("is-fifa");
+    renderFifaLivePromo();
     // Loading placeholder darhol ko'rinsin
     renderMatches();
     renderGroups();

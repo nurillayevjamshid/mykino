@@ -254,12 +254,33 @@ function normalizePreRollAd(raw, adCdnMap = null) {
   };
 }
 
+// FIFA "Jonli efir" promo karta — yopiq (private) Telegram kanalga ulanadi.
+// channelUrl: t.me/+invayt_hash yoki t.me/joinchat/hash (yopiq kanal taklif havolasi).
+function normalizeFifaLive(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const channelUrl = normalizeAdTelegramUrl(source.channelUrl || "");
+  return {
+    enabled: Boolean(source.enabled),
+    channelUrl,
+    title: trimString(source.title).slice(0, 80),
+    subtitle: trimString(source.subtitle).slice(0, 120),
+    buttonText: trimString(source.buttonText).slice(0, 40),
+    imageUrl: source.imageUrl ? normalizePublicImageUrl(source.imageUrl) : "",
+  };
+}
+
 async function readPersistedSettings(settings) {
-  if (hasOwn(settings, "splashImageUrl") || hasOwn(settings, "ad") || hasOwn(settings, "preRollAd")) {
+  if (
+    hasOwn(settings, "splashImageUrl") ||
+    hasOwn(settings, "ad") ||
+    hasOwn(settings, "preRollAd") ||
+    hasOwn(settings, "fifaLive")
+  ) {
     return {
       splashImageUrl: readStoredPublicImageUrl(settings.splashImageUrl),
       ad: normalizeAd(settings.ad),
       preRollAd: normalizePreRollAd(settings.preRollAd, settings.adCdn),
+      fifaLive: normalizeFifaLive(settings.fifaLive),
     };
   }
 
@@ -269,9 +290,15 @@ async function readPersistedSettings(settings) {
       splashImageUrl: readStoredPublicImageUrl(folderSettings.splashImageUrl),
       ad: normalizeAd(folderSettings.ad),
       preRollAd: normalizePreRollAd(folderSettings.preRollAd, folderSettings.adCdn),
+      fifaLive: normalizeFifaLive(folderSettings.fifaLive),
     };
   } catch {
-    return { splashImageUrl: "", ad: normalizeAd(null), preRollAd: normalizePreRollAd(null) };
+    return {
+      splashImageUrl: "",
+      ad: normalizeAd(null),
+      preRollAd: normalizePreRollAd(null),
+      fifaLive: normalizeFifaLive(null),
+    };
   }
 }
 
@@ -364,6 +391,10 @@ module.exports = async function handler(request, response) {
         nextSettings.preRollAd = normalizePreRollAd(body.preRollAd);
       }
 
+      if (hasOwn(body, "fifaLive")) {
+        nextSettings.fifaLive = normalizeFifaLive(body.fifaLive);
+      }
+
       metadataState.data.settings = nextSettings;
       try {
         await writeCatalogMetadata(metadataState.data, metadataState.file);
@@ -380,6 +411,7 @@ module.exports = async function handler(request, response) {
         splashImageUrl: nextSettings.splashImageUrl || "",
         ad: normalizeAd(nextSettings.ad),
         preRollAd: normalizePreRollAd(nextSettings.preRollAd),
+        fifaLive: normalizeFifaLive(nextSettings.fifaLive),
       });
       return;
     }
