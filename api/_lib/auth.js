@@ -63,7 +63,7 @@ function verifyTelegramWebappInitData(initData, botToken) {
       .join("\n");
 
     const secretKey = crypto
-      .createHmac("sha256", "WebApps")
+      .createHmac("sha256", "WebAppData")
       .update(botToken)
       .digest();
 
