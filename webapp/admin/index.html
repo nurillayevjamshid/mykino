@@ -582,6 +582,17 @@
             <div class="ad-tab-item" data-ad-tab-item="broadcast">
               <button type="button" class="ad-tab" data-ad-tab="broadcast" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">Xabar yuborish</button>
             </div>
+            <div class="ad-tab-item" data-ad-tab-item="fifalive">
+              <button type="button" class="ad-tab" data-ad-tab="fifalive" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">FIFA Jonli</button>
+              <label class="ad-visibility-toggle" for="fifaLiveEnabled" title="FIFA Jonli promo kartani ko'rsatish/yashirish">
+                <input type="checkbox" id="fifaLiveEnabled" class="ad-visibility-toggle__input">
+                <span class="ad-visibility-toggle__track" aria-hidden="true">
+                  <span class="ad-visibility-toggle__text ad-visibility-toggle__text--off">OFF</span>
+                  <span class="ad-visibility-toggle__text ad-visibility-toggle__text--on">ON</span>
+                  <span class="ad-visibility-toggle__knob"></span>
+                </span>
+              </label>
+            </div>
           </div>
 
           <!-- Mini app reklama tab -->
@@ -766,6 +777,71 @@
                   </ul>
                 </div>
               </aside>
+            </div>
+          </div>
+
+          <!-- FIFA Jonli (yopiq kanal promo) tab -->
+          <div class="ad-tabpanel" data-ad-tabpanel="fifalive" hidden>
+            <div class="section-header">
+              <h2>FIFA Jonli — yopiq kanal promo</h2>
+              <div class="section-header__hint" style="color:var(--text-muted);font-size:13px;">
+                FIFA JCH 2026 bo'limining tepasida "Jonli efirni ko'rish" kartasi chiqadi. Bosilganda
+                <strong>yopiq (private) Telegram kanal</strong> taklif havolasi ochiladi — foydalanuvchi a'zo bo'lib jonli efirlarni ko'radi.
+              </div>
+            </div>
+
+            <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:720px;">
+
+              <div class="form-group">
+                <label>Karta rasmi (ixtiyoriy)</label>
+                <div class="poster-upload" id="fifaLiveUploadArea" style="aspect-ratio:16/9;max-width:360px;">
+                  <input type="file" id="fifaLiveImageFile" class="poster-upload-input" accept="image/*">
+                  <div class="poster-upload-content" id="fifaLiveUploadContent">
+                    <div class="poster-upload-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                    </div>
+                    <div class="poster-upload-text">Rasm yuklash</div>
+                    <div class="poster-upload-hint">Tavsiya: 16:9 (gorizontal) · Max 5MB</div>
+                  </div>
+                  <img src="" alt="FIFA Jonli" id="fifaLiveImagePreview" class="poster-upload-preview" style="display:none;">
+                </div>
+                <div style="margin-top:10px;">
+                  <input type="text" id="fifaLiveImageUrl" class="form-input" placeholder="Yoki rasm URL'ini kiriting (https://...)">
+                </div>
+                <div class="form-hint" style="margin-top:6px;color:var(--text-muted);font-size:12px;">Bo'sh qoldirilsa, standart gradient karta ko'rsatiladi.</div>
+              </div>
+
+              <div class="form-group">
+                <label>Yopiq kanal taklif havolasi (invite link)</label>
+                <input type="url" id="fifaLiveChannelUrl" class="form-input" placeholder="https://t.me/+AbCdEf123...">
+                <small class="form-hint">Yopiq kanalda <strong>Invite Link</strong> oching (t.me/+... yoki t.me/joinchat/...) va shu yerga joylang. Bosilganda Telegram ichida ochiladi.</small>
+              </div>
+
+              <div class="form-group">
+                <label>Sarlavha</label>
+                <input type="text" id="fifaLiveTitle" class="form-input" maxlength="80" placeholder="Jonli efir">
+              </div>
+
+              <div class="form-group">
+                <label>Tagsatr (subtitle)</label>
+                <input type="text" id="fifaLiveSubtitle" class="form-input" maxlength="120" placeholder="JCH 2026 o'yinlarini jonli tomosha qiling">
+              </div>
+
+              <div class="form-group">
+                <label>Tugma matni</label>
+                <input type="text" id="fifaLiveButtonText" class="form-input" maxlength="40" placeholder="Kanalga kirish">
+              </div>
+
+              <div class="modal-actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+                <button type="button" class="btn btn-secondary" id="fifaLiveClearBtn">Tozalash</button>
+                <button type="button" class="btn btn-primary" id="fifaLiveSaveBtn">Saqlash</button>
+              </div>
+
+              <div id="fifaLiveSaveStatus" style="margin-top:12px;font-size:13px;"></div>
             </div>
           </div>
         </section>
