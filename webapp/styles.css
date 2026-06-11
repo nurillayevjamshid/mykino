@@ -12334,6 +12334,20 @@ body.is-fifa .app-footer { display: none !important; }
 }
 .fifa-live-empty__icon { font-size: 36px; margin-bottom: 8px; }
 .fifa-live-empty__title { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text, #fff); }
+.fifa-live-empty--loading { padding: 44px 16px; }
+.fifa-spinner {
+  width: 38px;
+  height: 38px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  border: 3px solid rgba(120, 140, 200, .18);
+  border-top-color: #3b82f6;
+  border-right-color: #6366f1;
+  animation: fifaSpin .85s linear infinite;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, .22);
+}
+@keyframes fifaSpin { to { transform: rotate(360deg); } }
+html[data-theme="light"] .fifa-spinner { border-color: rgba(59, 130, 246, .15); border-top-color: #3b82f6; border-right-color: #6366f1; }
 
 .fifa-upcoming-title {
   font-size: 13px;
