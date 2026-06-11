@@ -6206,7 +6206,7 @@ async function loadAppSettings() {
       } else {
         activePreRollAd = null;
       }
-      // FIFA "Jonli efir" yopiq kanal promo kartasi
+      // FIFA "Jonli efir" translatsiya promo kartasi (Telegram jonli efir havolasi)
       if (data && data.fifaLive && data.fifaLive.enabled && data.fifaLive.channelUrl) {
         fifaLiveConfig = data.fifaLive;
       } else {
@@ -7529,7 +7529,7 @@ if ("requestIdleCallback" in window) {
     b.addEventListener("click", () => setActiveTab(b.dataset.fifaTab));
   });
 
-  // --- Jonli efir promo kartasi (yopiq Telegram kanal) ---
+  // --- Jonli efir promo kartasi (Telegram jonli efir / translatsiya havolasi) ---
   function renderFifaLivePromo() {
     const promo = fifaView.querySelector(".fifa-view__promo");
     if (!promo) return;
@@ -7577,7 +7577,8 @@ if ("requestIdleCallback" in window) {
     if (!target) return;
     try {
       const tg = window.Telegram?.WebApp;
-      // Yopiq kanal — Telegram ichida ochiladi (t.me/+... invite link)
+      // Telegram jonli efir — Telegram ichida to'g'ridan-to'g'ri ochiladi
+      // (t.me/kanal?livestream=... — bu turdagi efirni app ichida embed qilib bo'lmaydi)
       if (tg?.openTelegramLink) { tg.openTelegramLink(target); return; }
       if (tg?.openLink) { tg.openLink(target); return; }
       window.open(target, "_blank", "noopener");
