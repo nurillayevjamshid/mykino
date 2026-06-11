@@ -7469,14 +7469,12 @@ if ("requestIdleCallback" in window) {
     document.body.classList.add("is-fifa");
     // Loading placeholder darhol ko'rinsin
     renderMatches();
-    renderLive();
     renderGroups();
     appShell?.scrollTo({ top: 0, behavior: "smooth" });
     try { tgBackRegister?.("fifa", () => closeFifaView()); } catch (_) {}
     // Real ma'lumotni fetch qilib qayta render
     await loadFifaData();
     renderMatches();
-    renderLive();
     renderGroups();
   }
   function closeFifaView() {
