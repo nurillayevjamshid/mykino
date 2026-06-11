@@ -12170,6 +12170,20 @@ body.is-fifa .app-footer { display: none !important; }
   margin: 0;
 }
 
+.fifa-view__promo {
+  margin-top: 12px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 18px;
+  background: var(--surface-2, rgba(255,255,255,.05));
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: 0 12px 28px -18px rgba(13,40,110,.7);
+}
+html[data-theme="light"] .fifa-view__promo {
+  background: #f0f1f6;
+  border-color: rgba(13,40,110,.08);
+}
+
 .fifa-tabs {
   display: flex;
   gap: 8px;
