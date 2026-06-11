@@ -12113,6 +12113,8 @@ body.is-fifa .categories-view,
 body.is-fifa .hero,
 body.is-fifa .search-section,
 body.is-fifa .fifa-banner,
+body.is-fifa .topbar-search,
+body.is-fifa .bottom-bar,
 body.is-fifa .app-footer { display: none !important; }
 
 .fifa-view__hero {
