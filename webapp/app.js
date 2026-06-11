@@ -7280,7 +7280,12 @@ if ("requestIdleCallback" in window) {
     for (const m of schedule) {
       const kickoff = parseKickoff(m.date, m.time);
       if (!kickoff) continue;
-      const dayKey = fmtTashkentDayKey(kickoff);
+      // 00:00 (Toshkent) da boshlanadigan o'yinlarni 23:55 (oldingi kun) sifatida ko'rsatamiz —
+      // obunachi sanani chalkashtirmasligi uchun.
+      const displayKickoff = fmtTashkentTime(kickoff) === "00:00"
+        ? new Date(kickoff.getTime() - 5 * 60 * 1000)
+        : kickoff;
+      const dayKey = fmtTashkentDayKey(displayKickoff);
       const live = liveMap[`${m.team1}|${m.team2}`.toLowerCase()] || null;
       const status = (live?.status === "live" || live?.status === "inprogress" || live?.status === "playing") ? "live"
                    : (live?.status === "finished" || live?.status === "ft" || live?.status === "ended") ? "finished"
@@ -7292,15 +7297,15 @@ if ("requestIdleCallback" in window) {
         away: teamUz(m.team2),
         homeFlag: teamFlagHtml(m.team1),
         awayFlag: teamFlagHtml(m.team2),
-        time: fmtTashkentTime(kickoff),
-        kickoff: kickoff.toISOString(),
+        time: fmtTashkentTime(displayKickoff),
+        kickoff: displayKickoff.toISOString(),
         group: m.group || "",
         ground: m.ground || "",
         status,
         score,
         minute: live?.minute ? String(live.minute) + (String(live.minute).includes("'") ? "" : "'") : null,
       };
-      if (!byDay.has(dayKey)) byDay.set(dayKey, { date: kickoff, items: [] });
+      if (!byDay.has(dayKey)) byDay.set(dayKey, { date: displayKickoff, items: [] });
       byDay.get(dayKey).items.push(item);
     }
 
