@@ -5758,9 +5758,9 @@ html[data-theme="dark"] .soon-badge {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  padding: 5px 11px;
+  padding: 3px 7px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1;

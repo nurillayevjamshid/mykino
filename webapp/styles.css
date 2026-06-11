@@ -5901,9 +5901,9 @@ html[data-theme="dark"] .soon-badge {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  padding: 5px 11px;
+  padding: 3px 7px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1;
@@ -11992,15 +11992,16 @@ html[data-theme="light"] .podcasts-view .pod-loading__spinner { border-color: rg
 .sidebar__item--fifa { position: relative; }
 .fifa-badge {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: .08em;
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ff2d55, #ff5e3a);
+  letter-spacing: .04em;
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: #ff2d55;
   color: #fff;
   text-transform: uppercase;
-  box-shadow: 0 4px 10px rgba(255,45,85,.35);
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(255,45,85,.35);
 }
 
 /* --- Bosh ekran banner --- */
