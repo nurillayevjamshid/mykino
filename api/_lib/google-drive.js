@@ -23,9 +23,8 @@ let accessTokenCache = {
   expiresAt: 0,
 };
 
-// Memory cache (per warm Lambda instance). 5 daqiqa TTL — Drive API yukini kamaytiradi.
-// Cold start bo'lganda ham birinchi so'rov natijasi 5 daqiqa keshda qoladi.
-const LIST_CACHE_TTL_MS = 300_000;
+// Memory cache (per warm Lambda instance). 15 soniya TTL — Drive API yukini kamaytiradi, yangilanishlar tez yetib boradi.
+const LIST_CACHE_TTL_MS = 15_000;
 const listCache = {
   movies: { value: null, expiresAt: 0, inflight: null },
   series: { value: null, expiresAt: 0, inflight: null },

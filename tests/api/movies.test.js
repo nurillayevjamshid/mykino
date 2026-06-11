@@ -77,10 +77,20 @@ function installFetchStub(matcher, responder) {
 
 describe("api/movies.js", () => {
   let restoreFetch;
+  let originalEnv;
+
+  beforeEach(() => {
+    originalEnv = { ...process.env };
+    process.env = { ...process.env, BOT_TOKEN: "fake-token", WEBAPP_URL: "https://kino-telegram-mini-app.vercel.app" };
+  });
 
   afterEach(() => {
     if (restoreFetch) restoreFetch();
     restoreFetch = null;
+    if (originalEnv) {
+      process.env = originalEnv;
+      originalEnv = null;
+    }
     mock.restoreAll();
   });
 
@@ -89,7 +99,7 @@ describe("api/movies.js", () => {
     mock.method(googleDrive, "listDriveMovies", async () => DRIVE_MOVIES);
 
     const handler = loadHandler();
-    const req = createMockReq({ method: "GET", url: "/api/movies" });
+    const req = createMockReq({ method: "GET", url: "/api/movies", headers: { "x-api-key": "fake-token" } });
     const res = createMockRes();
     await handler(req, res);
 
@@ -106,7 +116,7 @@ describe("api/movies.js", () => {
     mock.method(googleDrive, "listDriveMovies", async () => DRIVE_MOVIES);
 
     const handler = loadHandler();
-    const firstReq = createMockReq({ method: "GET", url: "/api/movies" });
+    const firstReq = createMockReq({ method: "GET", url: "/api/movies", headers: { "x-api-key": "fake-token" } });
     const firstRes = createMockRes();
     await handler(firstReq, firstRes);
     const etag = firstRes.headers["ETag"];
@@ -115,7 +125,7 @@ describe("api/movies.js", () => {
     const secondReq = createMockReq({
       method: "GET",
       url: "/api/movies",
-      headers: { "if-none-match": etag },
+      headers: { "if-none-match": etag, "x-api-key": "fake-token" },
     });
     const secondRes = createMockRes();
     await handler(secondReq, secondRes);
@@ -131,7 +141,7 @@ describe("api/movies.js", () => {
     });
 
     const handler = loadHandler();
-    const req = createMockReq({ method: "GET", url: "/api/movies" });
+    const req = createMockReq({ method: "GET", url: "/api/movies", headers: { "x-api-key": "fake-token" } });
     const res = createMockRes();
     await handler(req, res);
 
@@ -150,13 +160,13 @@ describe("api/movies.js", () => {
     await handler(req, res);
 
     assert.equal(res.statusCode, 204);
-    assert.equal(res.headers["Access-Control-Allow-Origin"], "*");
+    assert.equal(res.headers["Access-Control-Allow-Origin"], "https://kino-telegram-mini-app.vercel.app");
     assert.match(res.headers["Access-Control-Allow-Methods"], /GET/);
   });
 
   test("POST /api/movies returns 405 Method Not Allowed", async () => {
     const handler = loadHandler();
-    const req = createMockReq({ method: "POST", url: "/api/movies" });
+    const req = createMockReq({ method: "POST", url: "/api/movies", headers: { "x-api-key": "fake-token" } });
     const res = createMockRes();
     await handler(req, res);
 
@@ -192,6 +202,7 @@ describe("api/movies.js", () => {
     const req = createMockReq({
       method: "PUT",
       url: "/api/movies?_series=1",
+      headers: { "x-api-key": "fake-token" },
       body: { description: "no id here" },
     });
     const res = createMockRes();
@@ -209,13 +220,12 @@ describe("api/movies.js", () => {
     );
 
     const handler = loadHandler();
-    const req = createMockReq({ method: "GET", url: "/api/movies" });
+    const req = createMockReq({ method: "GET", url: "/api/movies", headers: { "x-api-key": "fake-token" } });
     const res = createMockRes();
     await handler(req, res);
 
     const cc = res.headers["Cache-Control"];
     assert.ok(cc, "Cache-Control should be set on GET");
-    assert.match(cc, /s-maxage=\d+/);
-    assert.match(cc, /stale-while-revalidate=\d+/);
+    assert.equal(cc, "private, no-cache, no-store, max-age=0");
   });
 });

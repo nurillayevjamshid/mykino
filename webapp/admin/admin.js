@@ -1134,7 +1134,7 @@ function updatePosterPreview(url) {
   if (!img || !uploadArea) return;
 
   if (url) {
-    img.src = url;
+    img.src = proxiedPoster(url);
     img.style.display = 'block';
     uploadArea.classList.add('has-preview');
   } else {
@@ -1203,7 +1203,7 @@ function updateHeaderPreview(url) {
   if (!img || !uploadArea) return;
 
   if (url) {
-    img.src = url;
+    img.src = proxiedPoster(url);
     img.style.display = 'block';
     uploadArea.classList.add('has-preview');
   } else {
@@ -1630,7 +1630,7 @@ function renderSeries() {
 function updateSeriesPosterPreview(url) {
   const preview = document.getElementById('seriesPosterPreview');
   if (!preview) return;
-  preview.style.backgroundImage = url ? `url('${String(url).replace(/'/g, "%27")}')` : '';
+  preview.style.backgroundImage = url ? `url('${String(proxiedPoster(url)).replace(/'/g, "%27")}')` : '';
 }
 
 function updateSeriesDescriptionCounter() {
@@ -2442,7 +2442,7 @@ async function renderArtistsCardGrid() {
 function setArtistPreview(url) {
   const preview = document.getElementById('artistImagePreview');
   if (!preview) return;
-  preview.style.backgroundImage = url ? `url('${url.replaceAll("'", '%27')}')` : 'none';
+  preview.style.backgroundImage = url ? `url('${String(proxiedPoster(url)).replaceAll("'", '%27')}')` : 'none';
 }
 
 function showArtistsListView() {
@@ -2642,7 +2642,7 @@ function setCategoryPreview(url) {
   const preview = document.getElementById('categoryImagePreview');
   if (!preview) return;
   if (url) {
-    preview.style.backgroundImage = `url('${url.replaceAll("'", "%27")}')`;
+    preview.style.backgroundImage = `url('${String(proxiedPoster(url)).replaceAll("'", "%27")}')`;
   } else {
     preview.style.backgroundImage = 'none';
   }
@@ -2878,7 +2878,7 @@ function setAdPreview(url) {
   const area = document.getElementById('adUploadArea');
   if (!img || !area) return;
   if (url) {
-    img.src = url;
+    img.src = proxiedPoster(url);
     img.style.display = 'block';
     area.classList.add('has-preview');
   } else {
