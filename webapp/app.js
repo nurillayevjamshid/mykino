@@ -7212,6 +7212,31 @@ if ("requestIdleCallback" in window) {
   const teamUz = (name) => (TEAM_MAP[name]?.uz) || name || "—";
   const teamFlag = (name) => (TEAM_MAP[name]?.flag) || "🏳️";
 
+  // Windows/Telegram desktop emoji bayroqlarni rangli ko'rsatmaydi —
+  // shuning uchun PNG bayroqlarni (flagcdn.com) ishlatamiz.
+  function flagToIsoCode(flag) {
+    if (!flag) return "";
+    if (flag.includes("\u{E0073}\u{E0063}\u{E0074}")) return "gb-sct";
+    if (flag.includes("\u{E0065}\u{E006E}\u{E0067}")) return "gb-eng";
+    if (flag.includes("\u{E0077}\u{E006C}\u{E0073}")) return "gb-wls";
+    const letters = [];
+    for (const ch of Array.from(flag)) {
+      const cp = ch.codePointAt(0);
+      if (cp >= 0x1F1E6 && cp <= 0x1F1FF) {
+        letters.push(String.fromCharCode(0x61 + (cp - 0x1F1E6)));
+      }
+    }
+    return letters.slice(0, 2).join("");
+  }
+  function teamFlagHtml(name) {
+    const flag = teamFlag(name);
+    const iso = flagToIsoCode(flag);
+    const alt = (TEAM_MAP[name]?.uz) || name || "";
+    const altSafe = String(alt).replace(/"/g, "&quot;");
+    if (!iso) return `<span class="fifa-flag fifa-flag--emoji">${flag}</span>`;
+    return `<img class="fifa-flag fifa-flag--img" loading="lazy" decoding="async" src="https://flagcdn.com/w40/${iso}.png" srcset="https://flagcdn.com/w80/${iso}.png 2x" alt="${altSafe}">`;
+  }
+
   // O'zbek hafta kunlari va oylari
   const WD = ["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"];
   const MO = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
@@ -7271,8 +7296,8 @@ if ("requestIdleCallback" in window) {
       const item = {
         home: teamUz(m.team1),
         away: teamUz(m.team2),
-        homeFlag: teamFlag(m.team1),
-        awayFlag: teamFlag(m.team2),
+        homeFlag: teamFlagHtml(m.team1),
+        awayFlag: teamFlagHtml(m.team2),
         time: fmtTashkentTime(kickoff),
         kickoff: kickoff.toISOString(),
         group: m.group || "",
@@ -7297,7 +7322,7 @@ if ("requestIdleCallback" in window) {
       name: g.name?.startsWith("Group") ? g.name.replace("Group", "Guruh") : `Guruh ${g.name}`,
       rows: (g.rows || []).map((r) => ({
         team: teamUz(r.team),
-        flag: teamFlag(r.team),
+        flag: teamFlagHtml(r.team),
         p: r.p, w: r.w, d: r.d, l: r.l, gf: r.gf, ga: r.ga, pts: r.pts,
       })),
     }));
@@ -7350,11 +7375,11 @@ if ("requestIdleCallback" in window) {
           <div class="fifa-match${isLive ? " fifa-match--live" : ""}">
             <div class="fifa-match__team fifa-match__team--home">
               <span class="fifa-match__name">${esc(m.home)}</span>
-              <span class="fifa-match__flag">${esc(m.homeFlag)}</span>
+              <span class="fifa-match__flag">${m.homeFlag}</span>
             </div>
             <div class="fifa-match__center">${center}</div>
             <div class="fifa-match__team fifa-match__team--away">
-              <span class="fifa-match__flag">${esc(m.awayFlag)}</span>
+              <span class="fifa-match__flag">${m.awayFlag}</span>
               <span class="fifa-match__name">${esc(m.away)}</span>
             </div>
           </div>
@@ -7373,7 +7398,7 @@ if ("requestIdleCallback" in window) {
       ? live.map((m) => `
           <div class="fifa-live-card">
             <span class="fifa-live-card__label"><span class="fifa-banner__live-dot"></span>HOZIR LIVE</span>
-            <div class="fifa-live-card__teams">${esc(m.homeFlag)} ${esc(m.home)} ${esc(m.score || "-")} ${esc(m.away)} ${esc(m.awayFlag)}</div>
+            <div class="fifa-live-card__teams">${m.homeFlag} ${esc(m.home)} ${esc(m.score || "-")} ${esc(m.away)} ${m.awayFlag}</div>
             <div class="fifa-live-card__meta">${esc(m.minute || "")} · ${esc(m.time)}</div>
             <button class="fifa-live-card__cta" type="button" data-fifa-watch>
               <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
@@ -7392,14 +7417,14 @@ if ("requestIdleCallback" in window) {
           <div class="fifa-match">
             <div class="fifa-match__team fifa-match__team--home">
               <span class="fifa-match__name">${esc(m.home)}</span>
-              <span class="fifa-match__flag">${esc(m.homeFlag)}</span>
+              <span class="fifa-match__flag">${m.homeFlag}</span>
             </div>
             <div class="fifa-match__center">
               <div class="fifa-match__score">vs</div>
               <div class="fifa-match__time">${esc(m.time)}</div>
             </div>
             <div class="fifa-match__team fifa-match__team--away">
-              <span class="fifa-match__flag">${esc(m.awayFlag)}</span>
+              <span class="fifa-match__flag">${m.awayFlag}</span>
               <span class="fifa-match__name">${esc(m.away)}</span>
             </div>
           </div>
@@ -7433,7 +7458,7 @@ if ("requestIdleCallback" in window) {
           <tbody>
             ${g.rows.map((r) => `
               <tr>
-                <td class="fifa-cell--team">${esc(r.flag)} ${esc(r.team)}</td>
+                <td class="fifa-cell--team">${r.flag} ${esc(r.team)}</td>
                 <td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
                 <td>${r.gf}:${r.ga}</td>
                 <td class="fifa-cell--pts">${r.pts}</td>
