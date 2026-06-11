@@ -12123,15 +12123,16 @@ body.is-fifa .app-footer { display: none !important; }
   overflow: hidden;
   padding: 26px 22px;
   margin-top: 10px;
-  background: linear-gradient(135deg, #0a1a3d 0%, #15327a 50%, #1f56b8 100%);
+  min-height: 168px;
+  background: #0a1a3d url("assets/fifa-wc2026.png") center/cover no-repeat;
   color: #fff;
   box-shadow: 0 18px 40px -20px rgba(13,40,110,.9);
 }
 .fifa-view__hero-bg {
   position: absolute; inset: 0;
   background:
-    radial-gradient(160px 160px at 90% 10%, rgba(255,255,255,.22), transparent 70%),
-    radial-gradient(220px 220px at 0% 100%, rgba(255,45,85,.28), transparent 70%);
+    linear-gradient(180deg, rgba(8,18,46,.05) 0%, rgba(8,18,46,.55) 65%, rgba(8,18,46,.85) 100%),
+    linear-gradient(90deg, rgba(8,18,46,.55) 0%, rgba(8,18,46,.15) 45%, rgba(8,18,46,0) 100%);
   pointer-events: none;
 }
 .fifa-view__hero-inner { position: relative; z-index: 1; }
