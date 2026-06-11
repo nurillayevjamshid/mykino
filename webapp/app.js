@@ -7213,28 +7213,22 @@ if ("requestIdleCallback" in window) {
   const teamFlag = (name) => (TEAM_MAP[name]?.flag) || "🏳️";
 
   // Windows/Telegram desktop emoji bayroqlarni rangli ko'rsatmaydi —
-  // shuning uchun PNG bayroqlarni (flagcdn.com) ishlatamiz.
-  function flagToIsoCode(flag) {
-    if (!flag) return "";
-    if (flag.includes("\u{E0073}\u{E0063}\u{E0074}")) return "gb-sct";
-    if (flag.includes("\u{E0065}\u{E006E}\u{E0067}")) return "gb-eng";
-    if (flag.includes("\u{E0077}\u{E006C}\u{E0073}")) return "gb-wls";
-    const letters = [];
-    for (const ch of Array.from(flag)) {
-      const cp = ch.codePointAt(0);
-      if (cp >= 0x1F1E6 && cp <= 0x1F1FF) {
-        letters.push(String.fromCharCode(0x61 + (cp - 0x1F1E6)));
-      }
-    }
-    return letters.slice(0, 2).join("");
+  // Twemoji (Twitter SVG, iOS uslubiga juda yaqin) ishlatamiz.
+  // Emoji'dagi har codepoint hex'ga: "1f1fa-1f1ff.svg" formatida.
+  function emojiToTwemojiName(emoji) {
+    return Array.from(emoji)
+      .map((ch) => ch.codePointAt(0).toString(16))
+      .filter((cp) => cp !== "fe0f")
+      .join("-");
   }
   function teamFlagHtml(name) {
     const flag = teamFlag(name);
-    const iso = flagToIsoCode(flag);
+    const fileName = emojiToTwemojiName(flag);
     const alt = (TEAM_MAP[name]?.uz) || name || "";
     const altSafe = String(alt).replace(/"/g, "&quot;");
-    if (!iso) return `<span class="fifa-flag fifa-flag--emoji">${flag}</span>`;
-    return `<img class="fifa-flag fifa-flag--img" loading="lazy" decoding="async" src="https://flagcdn.com/w40/${iso}.png" srcset="https://flagcdn.com/w80/${iso}.png 2x" alt="${altSafe}">`;
+    if (!fileName) return `<span class="fifa-flag fifa-flag--emoji">${flag}</span>`;
+    const url = `https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/${fileName}.svg`;
+    return `<img class="fifa-flag fifa-flag--img" loading="lazy" decoding="async" src="${url}" alt="${altSafe}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fifa-flag fifa-flag--emoji',textContent:'${flag}'}))">`;
   }
 
   // O'zbek hafta kunlari va oylari

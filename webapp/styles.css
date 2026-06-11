@@ -12220,23 +12220,21 @@ body.is-fifa .app-footer { display: none !important; }
   justify-content: center;
 }
 .fifa-flag--img {
-  width: 28px;
-  height: 20px;
-  object-fit: cover;
-  border-radius: 3px;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.12);
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
   display: block;
 }
 .fifa-cell--team .fifa-flag--img {
-  width: 22px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   vertical-align: middle;
   margin-right: 6px;
   display: inline-block;
 }
 .fifa-live-card__teams .fifa-flag--img {
-  width: 24px;
-  height: 17px;
+  width: 22px;
+  height: 22px;
   vertical-align: middle;
   display: inline-block;
 }
