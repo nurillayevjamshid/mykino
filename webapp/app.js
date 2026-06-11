@@ -7317,15 +7317,41 @@ if ("requestIdleCallback" in window) {
         items: val.items.sort((a, b) => a.kickoff.localeCompare(b.kickoff)),
       }));
 
-    // Standings'da inglizcha jamoa nomi → uzbek
-    const groups = standings.map((g) => ({
-      name: g.name?.startsWith("Group") ? g.name.replace("Group", "Guruh") : `Guruh ${g.name}`,
-      rows: (g.rows || []).map((r) => ({
-        team: teamUz(r.team),
-        flag: teamFlagHtml(r.team),
-        p: r.p, w: r.w, d: r.d, l: r.l, gf: r.gf, ga: r.ga, pts: r.pts,
-      })),
-    }));
+    // Guruhlarni openfootball jadvalidan quramiz — kanonik A→L tartibi,
+    // jamoa nomlari ham shu yerdan (worldcup26.ir teams endpointi to'liq emas).
+    const groupTeams = new Map();
+    for (const m of schedule) {
+      const gname = String(m.group || "").trim();
+      if (!/^Group\s+[A-L]$/i.test(gname)) continue;
+      if (!groupTeams.has(gname)) groupTeams.set(gname, new Map());
+      const gt = groupTeams.get(gname);
+      for (const name of [m.team1, m.team2]) {
+        if (name && !gt.has(name)) gt.set(name, { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 });
+      }
+      const live = liveMap[`${m.team1}|${m.team2}`.toLowerCase()];
+      const isFinished = live && (live.status === "finished" || live.status === "ft" || live.status === "ended");
+      if (isFinished && live.score_home != null && live.score_away != null) {
+        const h = Number(live.score_home), a = Number(live.score_away);
+        const t1 = gt.get(m.team1), t2 = gt.get(m.team2);
+        if (t1 && t2 && Number.isFinite(h) && Number.isFinite(a)) {
+          t1.p++; t2.p++;
+          t1.gf += h; t1.ga += a; t2.gf += a; t2.ga += h;
+          if (h > a) { t1.w++; t2.l++; t1.pts += 3; }
+          else if (h < a) { t2.w++; t1.l++; t2.pts += 3; }
+          else { t1.d++; t2.d++; t1.pts++; t2.pts++; }
+        }
+      }
+    }
+
+    const groups = [...groupTeams.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([name, gt]) => {
+        const letter = name.replace(/^Group\s+/i, "");
+        const rows = [...gt.entries()]
+          .map(([team, s]) => ({ team: teamUz(team), flag: teamFlagHtml(team), ...s }))
+          .sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || a.team.localeCompare(b.team));
+        return { name: `Guruh ${letter}`, rows };
+      });
 
     return { matches, groups };
   }
