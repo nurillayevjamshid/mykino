@@ -5978,7 +5978,7 @@ function showAccessDeniedScreen() {
       <h1 class="access-denied-title">${activeText.title}</h1>
       <p class="access-denied-desc">${activeText.desc}</p>
       <button class="access-denied-btn" id="accessDeniedBtn">${activeText.btn}</button>
-      <div class="access-denied-footer">@meningmykino_bot</div>
+      <div class="access-denied-footer">@mykinoplay_bot</div>
     </div>
   `;
 
@@ -5987,7 +5987,7 @@ function showAccessDeniedScreen() {
   const btn = document.getElementById("accessDeniedBtn");
   if (btn) {
     btn.addEventListener("click", () => {
-      const botUrl = "https://t.me/meningmykino_bot";
+      const botUrl = "https://t.me/mykinoplay_bot";
       if (window.Telegram?.WebApp?.openTelegramLink) {
         window.Telegram.WebApp.openTelegramLink(botUrl);
       } else {
