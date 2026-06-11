@@ -7375,12 +7375,20 @@ if ("requestIdleCallback" in window) {
               <div>${sub || ""}</div>
             </div>`;
   }
+  function loadingHtml(title, sub) {
+    return `<div class="fifa-live-empty fifa-live-empty--loading">
+              <div class="fifa-spinner" aria-hidden="true"></div>
+              <div class="fifa-live-empty__title">${title}</div>
+              <div>${sub || ""}</div>
+            </div>`;
+  }
+  const isLoading = () => loadState === "loading" || loadState === "idle";
 
   // --- Render: Matchlar ---
   function renderMatches() {
     const panel = document.getElementById("fifaPanelMatches");
     if (!panel) return;
-    if (loadState === "loading") { panel.innerHTML = emptyHtml("Yuklanmoqda...", "JCH 2026 jadvali olinmoqda."); return; }
+    if (isLoading()) { panel.innerHTML = loadingHtml("Matchlar jadvali yuklanmoqda…", "Iltimos, biroz kuting."); return; }
     if (!FIFA_DATA.matches.length) { panel.innerHTML = emptyHtml("Jadval topilmadi", "Manba vaqtincha javob bermayapti."); return; }
     panel.innerHTML = FIFA_DATA.matches.map((day) => `
       <div class="fifa-day">${esc(day.day)}</div>
@@ -7463,7 +7471,7 @@ if ("requestIdleCallback" in window) {
   function renderGroups() {
     const panel = document.getElementById("fifaPanelGroups");
     if (!panel) return;
-    if (loadState === "loading") { panel.innerHTML = emptyHtml("Yuklanmoqda...", "Guruh jadvali olinmoqda."); return; }
+    if (isLoading()) { panel.innerHTML = loadingHtml("Guruhlar yuklanmoqda…", "Iltimos, biroz kuting."); return; }
     if (!FIFA_DATA.groups.length) { panel.innerHTML = emptyHtml("Hali jadval yo'q", "Birinchi turlar tugagandan keyin ko'rinadi."); return; }
     panel.innerHTML = FIFA_DATA.groups.map((g) => `
       <div class="fifa-group">
