@@ -4965,8 +4965,7 @@ function syncSidebarMusicItem() {
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
       </svg>
-      <span data-i18n="musicNav">Musiqa</span>
-      <span class="beta-badge" aria-hidden="true">Beta versiya</span>`;
+      <span data-i18n="musicNav">Musiqa</span>`;
   }
 }
 
