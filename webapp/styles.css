@@ -12124,7 +12124,12 @@ body.is-fifa .app-footer { display: none !important; }
   padding: 26px 22px;
   margin-top: 10px;
   min-height: 168px;
-  background: #0a1a3d url("assets/fifa-wc2026.png") center/cover no-repeat;
+  background: #0a1a3d url("assets/fifa-wc2026.jpg") center/cover no-repeat;
+  background-image: image-set(url("assets/fifa-wc2026.webp") type("image/webp"), url("assets/fifa-wc2026.jpg") type("image/jpeg"));
+  background-color: #0a1a3d;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #fff;
   box-shadow: 0 18px 40px -20px rgba(13,40,110,.9);
 }
