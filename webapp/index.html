@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260606-eager-posters" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260611-fifa-jch-2026" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
@@ -101,6 +101,14 @@
           <line x1="12" y1="19" x2="12" y2="22"></line>
         </svg>
         <span data-i18n="tvNav">Potkastlar</span>
+      </button>
+      <button class="sidebar__item sidebar__item--fifa" type="button" id="sidebarFifaItem" data-sidebar-action="fifa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.5"></circle>
+          <path d="M12 2.5 14.6 7l4.7 1-3.4 3.6.9 4.9-4.8-2.4-4.8 2.4.9-4.9L4.7 8l4.7-1Z"></path>
+        </svg>
+        <span>FIFA JCH 2026</span>
+        <span class="fifa-badge" aria-hidden="true">LIVE</span>
       </button>
       <button class="sidebar__item" type="button" data-sidebar-action="favorites">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -241,6 +249,24 @@
       </div>
     </section>
 
+    <button class="fifa-banner" type="button" id="fifaHomeBanner" aria-label="FIFA JCH 2026 bo'limi">
+      <span class="fifa-banner__glow" aria-hidden="true"></span>
+      <span class="fifa-banner__live" aria-hidden="true">
+        <span class="fifa-banner__live-dot"></span>
+        LIVE
+      </span>
+      <span class="fifa-banner__body">
+        <span class="fifa-banner__kicker">JAHON CHEMPIONATI</span>
+        <span class="fifa-banner__title">FIFA JCH 2026</span>
+        <span class="fifa-banner__sub">Matchlar, jonli efir va guruhlar</span>
+      </span>
+      <span class="fifa-banner__cta" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 6l6 6-6 6"></path>
+        </svg>
+      </span>
+    </button>
+
     <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
 
     <section class="categories-view" id="categoriesView" hidden aria-label="Kategoriyalar">
@@ -358,6 +384,28 @@
 
     <section class="podcasts-view" id="podcastsView" hidden aria-label="Potkastlar">
       <div class="podcasts-view__inner" id="podcastsRoot"></div>
+    </section>
+
+    <section class="fifa-view" id="fifaView" hidden aria-label="FIFA JCH 2026">
+      <header class="fifa-view__hero">
+        <div class="fifa-view__hero-bg" aria-hidden="true"></div>
+        <div class="fifa-view__hero-inner">
+          <span class="fifa-view__kicker">FIFA WORLD CUP</span>
+          <h2 class="fifa-view__title">JCH 2026</h2>
+          <p class="fifa-view__sub">USA · Canada · Mexico</p>
+        </div>
+      </header>
+      <nav class="fifa-tabs" role="tablist" aria-label="FIFA bo'limlar">
+        <button class="fifa-tab is-active" type="button" role="tab" data-fifa-tab="matches" aria-selected="true">Matchlar</button>
+        <button class="fifa-tab" type="button" role="tab" data-fifa-tab="live" aria-selected="false">Jonli efir</button>
+        <button class="fifa-tab" type="button" role="tab" data-fifa-tab="groups" aria-selected="false">Guruhlar</button>
+      </nav>
+      <div class="fifa-panels">
+        <div class="fifa-panel is-active" id="fifaPanelMatches" role="tabpanel"></div>
+        <div class="fifa-panel" id="fifaPanelLive" role="tabpanel" hidden></div>
+        <div class="fifa-panel" id="fifaPanelGroups" role="tabpanel" hidden></div>
+      </div>
+      <div class="fifa-view__spacer"></div>
     </section>
 
     <!-- Kategoriya placeholder -->
@@ -894,7 +942,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260608-r2-custom-host"></script>
+  <script src="/static/app.js?v=20260611-fifa-jch-2026"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });

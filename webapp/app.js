@@ -5460,13 +5460,22 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     }
     if (action === "podcasts") {
       closeMusicView();
+      closeFifaView();
       openPodcastsView();
+      setSidebarOpen(false);
+      return;
+    }
+    if (action === "fifa") {
+      closeMusicView();
+      closePodcastsView();
+      openFifaView();
       setSidebarOpen(false);
       return;
     }
     if (action === "kino-back") {
       closeMusicView();
       closePodcastsView();
+      closeFifaView();
       setFilter("all");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
       setSidebarOpen(false);
@@ -5475,6 +5484,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     if (action === "favorites") {
       closeMusicView();
       closePodcastsView();
+      closeFifaView();
       setFilter("favorites");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
     } else if (action === "profile") {
@@ -7140,3 +7150,226 @@ if ("requestIdleCallback" in window) {
   setTimeout(__initSwipeGestures, 600);
 }
 // === /swipe-gestures ===
+
+// ============================================================
+// FIFA JCH 2026 — view, banner, tablar, placeholder data
+// ============================================================
+(function initFifaModule() {
+  const fifaView = document.getElementById("fifaView");
+  const fifaBanner = document.getElementById("fifaHomeBanner");
+  const appShell = document.getElementById("appShell");
+  if (!fifaView) return;
+
+  // --- Placeholder data (real manba keyin ulanadi) ---
+  const FIFA_DATA = {
+    matches: [
+      {
+        day: "11-iyun, payshanba",
+        items: [
+          { home: "Meksika", homeFlag: "🇲🇽", away: "Argentina", awayFlag: "🇦🇷", time: "20:00", status: "live", minute: "62'", score: "1 : 1" },
+          { home: "Kanada", homeFlag: "🇨🇦", away: "Marokash", awayFlag: "🇲🇦", time: "23:00", status: "upcoming" },
+        ],
+      },
+      {
+        day: "12-iyun, juma",
+        items: [
+          { home: "AQSh", homeFlag: "🇺🇸", away: "Braziliya", awayFlag: "🇧🇷", time: "21:00", status: "upcoming" },
+          { home: "Ispaniya", homeFlag: "🇪🇸", away: "Yaponiya", awayFlag: "🇯🇵", time: "00:30", status: "upcoming" },
+          { home: "Fransiya", homeFlag: "🇫🇷", away: "Avstraliya", awayFlag: "🇦🇺", time: "03:00", status: "upcoming" },
+        ],
+      },
+      {
+        day: "13-iyun, shanba",
+        items: [
+          { home: "Angliya", homeFlag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", away: "Niderlandiya", awayFlag: "🇳🇱", time: "21:00", status: "upcoming" },
+          { home: "Portugaliya", homeFlag: "🇵🇹", away: "Urugvay", awayFlag: "🇺🇾", time: "00:00", status: "upcoming" },
+        ],
+      },
+    ],
+    groups: [
+      {
+        name: "Guruh A",
+        rows: [
+          { team: "Meksika", flag: "🇲🇽", p: 3, w: 2, d: 1, l: 0, gf: 5, ga: 2, pts: 7 },
+          { team: "Argentina", flag: "🇦🇷", p: 3, w: 2, d: 0, l: 1, gf: 4, ga: 2, pts: 6 },
+          { team: "Marokash", flag: "🇲🇦", p: 3, w: 1, d: 0, l: 2, gf: 2, ga: 4, pts: 3 },
+          { team: "Kanada", flag: "🇨🇦", p: 3, w: 0, d: 1, l: 2, gf: 1, ga: 4, pts: 1 },
+        ],
+      },
+      {
+        name: "Guruh B",
+        rows: [
+          { team: "Ispaniya", flag: "🇪🇸", p: 3, w: 3, d: 0, l: 0, gf: 7, ga: 1, pts: 9 },
+          { team: "Braziliya", flag: "🇧🇷", p: 3, w: 2, d: 0, l: 1, gf: 5, ga: 3, pts: 6 },
+          { team: "AQSh", flag: "🇺🇸", p: 3, w: 1, d: 0, l: 2, gf: 2, ga: 4, pts: 3 },
+          { team: "Yaponiya", flag: "🇯🇵", p: 3, w: 0, d: 0, l: 3, gf: 1, ga: 7, pts: 0 },
+        ],
+      },
+    ],
+  };
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // --- Render: Matchlar ---
+  function renderMatches() {
+    const panel = document.getElementById("fifaPanelMatches");
+    if (!panel) return;
+    panel.innerHTML = FIFA_DATA.matches.map((day) => `
+      <div class="fifa-day">${esc(day.day)}</div>
+      ${day.items.map((m) => {
+        const isLive = m.status === "live";
+        const center = isLive
+          ? `<div class="fifa-match__score">${esc(m.score || "-")}</div>
+             <div class="fifa-match__status"><span class="fifa-match__status-dot"></span>${esc(m.minute || "LIVE")}</div>`
+          : `<div class="fifa-match__score">vs</div>
+             <div class="fifa-match__time">${esc(m.time)}</div>`;
+        return `
+          <div class="fifa-match${isLive ? " fifa-match--live" : ""}">
+            <div class="fifa-match__team fifa-match__team--home">
+              <span class="fifa-match__name">${esc(m.home)}</span>
+              <span class="fifa-match__flag">${esc(m.homeFlag)}</span>
+            </div>
+            <div class="fifa-match__center">${center}</div>
+            <div class="fifa-match__team fifa-match__team--away">
+              <span class="fifa-match__flag">${esc(m.awayFlag)}</span>
+              <span class="fifa-match__name">${esc(m.away)}</span>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    `).join("");
+  }
+
+  // --- Render: Jonli efir ---
+  function renderLive() {
+    const panel = document.getElementById("fifaPanelLive");
+    if (!panel) return;
+    const live = FIFA_DATA.matches.flatMap((d) => d.items).filter((m) => m.status === "live");
+    const upcoming = FIFA_DATA.matches.flatMap((d) => d.items).filter((m) => m.status !== "live").slice(0, 3);
+    const liveHtml = live.length
+      ? live.map((m) => `
+          <div class="fifa-live-card">
+            <span class="fifa-live-card__label"><span class="fifa-banner__live-dot"></span>HOZIR LIVE</span>
+            <div class="fifa-live-card__teams">${esc(m.homeFlag)} ${esc(m.home)} ${esc(m.score || "-")} ${esc(m.away)} ${esc(m.awayFlag)}</div>
+            <div class="fifa-live-card__meta">${esc(m.minute || "")} · ${esc(m.time)}</div>
+            <button class="fifa-live-card__cta" type="button" data-fifa-watch>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+              Tomosha qilish
+            </button>
+          </div>
+        `).join("")
+      : `<div class="fifa-live-empty">
+           <div class="fifa-live-empty__icon">📺</div>
+           <div class="fifa-live-empty__title">Hozir jonli efir yo'q</div>
+           <div>Yaqin matchlar pastda ko'rsatilgan.</div>
+         </div>`;
+    const upcomingHtml = upcoming.length
+      ? `<div class="fifa-upcoming-title">Yaqin matchlar</div>` +
+        upcoming.map((m) => `
+          <div class="fifa-match">
+            <div class="fifa-match__team fifa-match__team--home">
+              <span class="fifa-match__name">${esc(m.home)}</span>
+              <span class="fifa-match__flag">${esc(m.homeFlag)}</span>
+            </div>
+            <div class="fifa-match__center">
+              <div class="fifa-match__score">vs</div>
+              <div class="fifa-match__time">${esc(m.time)}</div>
+            </div>
+            <div class="fifa-match__team fifa-match__team--away">
+              <span class="fifa-match__flag">${esc(m.awayFlag)}</span>
+              <span class="fifa-match__name">${esc(m.away)}</span>
+            </div>
+          </div>
+        `).join("")
+      : "";
+    panel.innerHTML = liveHtml + upcomingHtml;
+    panel.querySelectorAll("[data-fifa-watch]").forEach((b) => {
+      b.addEventListener("click", () => {
+        try { window.Telegram?.WebApp?.showAlert?.("Jonli efir tez orada ulanadi"); }
+        catch (_) { alert("Jonli efir tez orada ulanadi"); }
+      });
+    });
+  }
+
+  // --- Render: Guruhlar ---
+  function renderGroups() {
+    const panel = document.getElementById("fifaPanelGroups");
+    if (!panel) return;
+    panel.innerHTML = FIFA_DATA.groups.map((g) => `
+      <div class="fifa-group">
+        <div class="fifa-group__head"><span>${esc(g.name)}</span></div>
+        <table class="fifa-group__table">
+          <thead>
+            <tr>
+              <th style="text-align:left">Jamoa</th>
+              <th>O</th><th>G</th><th>D</th><th>M</th><th>+/-</th><th>O</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${g.rows.map((r) => `
+              <tr>
+                <td class="fifa-cell--team">${esc(r.flag)} ${esc(r.team)}</td>
+                <td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
+                <td>${r.gf}:${r.ga}</td>
+                <td class="fifa-cell--pts">${r.pts}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `).join("");
+  }
+
+  // --- Tab switching ---
+  function setActiveTab(tab) {
+    fifaView.querySelectorAll(".fifa-tab").forEach((b) => {
+      const isOn = b.dataset.fifaTab === tab;
+      b.classList.toggle("is-active", isOn);
+      b.setAttribute("aria-selected", isOn ? "true" : "false");
+    });
+    fifaView.querySelectorAll(".fifa-panel").forEach((p) => {
+      const isOn = p.id === "fifaPanel" + tab.charAt(0).toUpperCase() + tab.slice(1);
+      p.classList.toggle("is-active", isOn);
+      p.hidden = !isOn;
+    });
+  }
+
+  fifaView.querySelectorAll(".fifa-tab").forEach((b) => {
+    b.addEventListener("click", () => setActiveTab(b.dataset.fifaTab));
+  });
+
+  // --- Open / close ---
+  let rendered = false;
+  function openFifaView() {
+    fifaView.hidden = false;
+    document.body.classList.add("is-fifa");
+    if (!rendered) {
+      renderMatches();
+      renderLive();
+      renderGroups();
+      rendered = true;
+    }
+    appShell?.scrollTo({ top: 0, behavior: "smooth" });
+    try { tgBackRegister?.("fifa", () => closeFifaView()); } catch (_) {}
+  }
+  function closeFifaView() {
+    fifaView.hidden = true;
+    document.body.classList.remove("is-fifa");
+    try { tgBackUnregister?.("fifa"); } catch (_) {}
+  }
+  window.openFifaView = openFifaView;
+  window.closeFifaView = closeFifaView;
+
+  // --- Banner click ---
+  fifaBanner?.addEventListener("click", () => {
+    try { closeMusicView?.(); } catch (_) {}
+    try { closePodcastsView?.(); } catch (_) {}
+    openFifaView();
+  });
+})();
+
+// Global stubs (modul yuklanmagan holatlar uchun)
+if (typeof window.openFifaView !== "function") window.openFifaView = function () {};
+if (typeof window.closeFifaView !== "function") window.closeFifaView = function () {};
+function openFifaView() { return window.openFifaView(); }
+function closeFifaView() { return window.closeFifaView(); }
