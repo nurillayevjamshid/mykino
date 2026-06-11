@@ -12215,6 +12215,30 @@ body.is-fifa .app-footer { display: none !important; }
 .fifa-match__flag {
   font-size: 22px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fifa-flag--img {
+  width: 28px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.12);
+  display: block;
+}
+.fifa-cell--team .fifa-flag--img {
+  width: 22px;
+  height: 16px;
+  vertical-align: middle;
+  margin-right: 6px;
+  display: inline-block;
+}
+.fifa-live-card__teams .fifa-flag--img {
+  width: 24px;
+  height: 17px;
+  vertical-align: middle;
+  display: inline-block;
 }
 .fifa-match__name {
   font-size: 14px;
