@@ -783,10 +783,11 @@
           <!-- FIFA Jonli (yopiq kanal promo) tab -->
           <div class="ad-tabpanel" data-ad-tabpanel="fifalive" hidden>
             <div class="section-header">
-              <h2>FIFA Jonli — yopiq kanal promo</h2>
+              <h2>FIFA Jonli — translatsiya promo</h2>
               <div class="section-header__hint" style="color:var(--text-muted);font-size:13px;">
                 FIFA JCH 2026 bo'limining tepasida "Jonli efirni ko'rish" kartasi chiqadi. Bosilganda
-                <strong>yopiq (private) Telegram kanal</strong> taklif havolasi ochiladi — foydalanuvchi a'zo bo'lib jonli efirlarni ko'radi.
+                <strong>Telegram jonli efir (translatsiya)</strong> ochiladi. Eslatma: Telegram jonli efirini
+                app ichida ko'rsatib bo'lmaydi — Telegram'da ochiladi. To'liq app ichida ko'rsatish uchun HLS (.m3u8) stream kerak.
               </div>
             </div>
 
@@ -816,9 +817,9 @@
               </div>
 
               <div class="form-group">
-                <label>Yopiq kanal taklif havolasi (invite link)</label>
-                <input type="url" id="fifaLiveChannelUrl" class="form-input" placeholder="https://t.me/+AbCdEf123...">
-                <small class="form-hint">Yopiq kanalda <strong>Invite Link</strong> oching (t.me/+... yoki t.me/joinchat/...) va shu yerga joylang. Bosilganda Telegram ichida ochiladi.</small>
+                <label>Translatsiya havolasi (Telegram jonli efir)</label>
+                <input type="url" id="fifaLiveChannelUrl" class="form-input" placeholder="https://t.me/kanal?livestream=...">
+                <small class="form-hint">Jonli efir / translatsiya havolasini joylang (masalan <code>https://t.me/kanal?livestream=...</code>). Bosilganda Telegram'da jonli efir to'g'ridan-to'g'ri ochiladi.</small>
               </div>
 
               <div class="form-group">
@@ -833,7 +834,7 @@
 
               <div class="form-group">
                 <label>Tugma matni</label>
-                <input type="text" id="fifaLiveButtonText" class="form-input" maxlength="40" placeholder="Kanalga kirish">
+                <input type="text" id="fifaLiveButtonText" class="form-input" maxlength="40" placeholder="Jonli efirni ko'rish">
               </div>
 
               <div class="modal-actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">

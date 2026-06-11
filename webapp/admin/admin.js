@@ -3075,7 +3075,7 @@ async function saveFifaLiveSettings(options = {}) {
 
   if (enabled && !channelUrl) {
     if (options.revertOnFail && enabledEl) enabledEl.checked = lastSavedFifaLiveEnabled;
-    setFifaLiveStatus("FIFA Jonli'ni ON qilish uchun avval yopiq kanal taklif havolasini kiriting.", 'error');
+    setFifaLiveStatus("FIFA Jonli'ni ON qilish uchun avval translatsiya havolasini kiriting.", 'error');
     return false;
   }
 
@@ -3096,7 +3096,7 @@ async function saveFifaLiveSettings(options = {}) {
     if (enabledEl) enabledEl.checked = lastSavedFifaLiveEnabled;
 
     if (channelUrl && !saved.channelUrl) {
-      setFifaLiveStatus("Taklif havolasi noto'g'ri — to'liq Telegram URL kiriting (masalan: https://t.me/+AbCdEf...).", 'error');
+      setFifaLiveStatus("Havola noto'g'ri — to'liq Telegram URL kiriting (masalan: https://t.me/kanal?livestream=...).", 'error');
     } else {
       setFifaLiveStatus(lastSavedFifaLiveEnabled ? "Saqlandi. FIFA Jonli ON — mini appda ko'rinadi." : "Saqlandi. FIFA Jonli OFF — mini appda ko'rinmaydi.", 'ok');
     }

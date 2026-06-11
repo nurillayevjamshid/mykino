@@ -254,8 +254,8 @@ function normalizePreRollAd(raw, adCdnMap = null) {
   };
 }
 
-// FIFA "Jonli efir" promo karta — yopiq (private) Telegram kanalga ulanadi.
-// channelUrl: t.me/+invayt_hash yoki t.me/joinchat/hash (yopiq kanal taklif havolasi).
+// FIFA "Jonli efir" promo karta — Telegram jonli efir (translatsiya) havolasiga ulanadi.
+// channelUrl: t.me/kanal?livestream=... yoki boshqa t.me/tg havola.
 function normalizeFifaLive(raw) {
   const source = raw && typeof raw === "object" ? raw : {};
   const channelUrl = normalizeAdTelegramUrl(source.channelUrl || "");
