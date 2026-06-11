@@ -7235,6 +7235,7 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
 .music-view[hidden] { display: none; }
 body.is-music .hero,
 body.is-music .movie-grid,
+body.is-music .fifa-banner,
 body.is-music .app-shell > .app-footer { display: none !important; }
 
 /* 3 ta alohida bottom-bar — sektsiyaga qarab almashtiriladi */
@@ -7254,6 +7255,7 @@ body.is-music .bottom-bar--music { display: block !important; }
 .podcasts-view[hidden] { display: none; }
 body.is-podcasts #heroSection,
 body.is-podcasts .movie-grid,
+body.is-podcasts .fifa-banner,
 body.is-podcasts .app-shell > .app-footer { display: none !important; }
 
 /* Potkast hero — kanal nomi har doim ko'rinadigan chip (yuqori chap burchak) */
