@@ -39,6 +39,7 @@ const SECTION_TITLES = {
   categories: 'Kategoriyalar',
   users: 'Obunachilar',
   ad: 'Reklama',
+  fifaLive: 'FIFA Jonli',
 };
 
 // Modal kategoriyalari uchun: tanlangan + mavjudlar ro'yxati
@@ -481,6 +482,7 @@ function switchSection(name) {
     categories: 'categoriesSection',
     users: 'usersSection',
     ad: 'adSection',
+    fifaLive: 'fifaLiveSection',
   };
   const targetId = sections[name];
   if (!targetId) return;
@@ -503,6 +505,7 @@ function switchSection(name) {
   if (name === 'podcasts') { fetchPodcasts(); fetchPodLangs(); }
   if (name === 'categories') fetchCategories();
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
+  if (name === 'fifaLive') { loadFifaLiveMatch(); }
 
   if (window.innerWidth <= 768) {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -3691,4 +3694,135 @@ document.getElementById('podcastsListGrid')?.addEventListener('change', (e) => {
   const cb = e.target.closest('[data-pod-featured]');
   if (cb) togglePodcastFeatured(cb.dataset.podFeatured, cb.checked);
 });
+
+// ===================== FIFA Jonli (promo card) =====================
+let fifaLiveLoaded = false;
+let fifaLiveUploadedUrl = '';
+
+function setFifaLiveStatus(msg, kind) {
+  const el = document.getElementById('fifaLiveSaveStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
+}
+
+function setFifaLivePreview(url) {
+  const img = document.getElementById('fifaLiveImagePreview');
+  const content = document.getElementById('fifaLiveUploadContent');
+  if (!img || !content) return;
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    content.style.display = 'none';
+  } else {
+    img.src = '';
+    img.style.display = 'none';
+    content.style.display = '';
+  }
+}
+
+function fifaLiveIsoToLocalInput(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+async function loadFifaLiveMatch() {
+  if (fifaLiveLoaded) return;
+  try {
+    const res = await fetch('/api/categories?type=fifa-live', { cache: 'no-store' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    const m = json.match || {};
+    const coverEl = document.getElementById('fifaLiveCoverUrl');
+    const titleEl = document.getElementById('fifaLiveTitle');
+    const tgEl = document.getElementById('fifaLiveTelegramUrl');
+    const startEl = document.getElementById('fifaLiveStartsAt');
+    const liveEl = document.getElementById('fifaLiveIsLive');
+    if (coverEl) coverEl.value = m.coverUrl || '';
+    if (titleEl) titleEl.value = m.title || '';
+    if (tgEl) tgEl.value = m.telegramUrl || '';
+    if (startEl) startEl.value = fifaLiveIsoToLocalInput(m.startsAt);
+    if (liveEl) liveEl.checked = Boolean(m.isLive);
+    fifaLiveUploadedUrl = m.coverUrl || '';
+    setFifaLivePreview(m.coverUrl || '');
+    fifaLiveLoaded = true;
+  } catch (err) {
+    setFifaLiveStatus(`Yuklashda xato: ${err.message}`, 'error');
+  }
+}
+
+async function saveFifaLiveMatch() {
+  const title = (document.getElementById('fifaLiveTitle')?.value || '').trim();
+  const coverUrl = (document.getElementById('fifaLiveCoverUrl')?.value || fifaLiveUploadedUrl || '').trim();
+  const telegramUrl = (document.getElementById('fifaLiveTelegramUrl')?.value || '').trim();
+  const startsAtLocal = (document.getElementById('fifaLiveStartsAt')?.value || '').trim();
+  const isLive = document.getElementById('fifaLiveIsLive')?.checked || false;
+
+  if (!title) { setFifaLiveStatus("O'yin nomini kiriting.", 'error'); return; }
+  if (!telegramUrl) { setFifaLiveStatus("OBS stream havolasini (.m3u8) kiriting.", 'error'); return; }
+
+  const startsAt = startsAtLocal ? new Date(startsAtLocal).toISOString() : '';
+
+  setFifaLiveStatus('Saqlanmoqda...');
+  try {
+    const res = await fetch('/api/categories?type=fifa-live', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, coverUrl, telegramUrl, startsAt, isLive }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    setFifaLiveStatus(isLive ? "Saqlandi. Card mini app'da JONLI badge bilan ko'rinadi." : 'Saqlandi.', 'ok');
+  } catch (err) {
+    setFifaLiveStatus(`Xato: ${err.message}`, 'error');
+  }
+}
+
+async function deleteFifaLiveMatch() {
+  if (!confirm("FIFA Jonli card ma'lumotlarini o'chirishni xohlaysizmi?")) return;
+  setFifaLiveStatus("O'chirilmoqda...");
+  try {
+    const res = await fetch('/api/categories?type=fifa-live', { method: 'DELETE' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    ['fifaLiveTitle', 'fifaLiveTelegramUrl', 'fifaLiveCoverUrl', 'fifaLiveStartsAt'].forEach((id) => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const liveEl = document.getElementById('fifaLiveIsLive'); if (liveEl) liveEl.checked = false;
+    fifaLiveUploadedUrl = '';
+    setFifaLivePreview('');
+    setFifaLiveStatus("O'chirildi. Mini app'da card ko'rinmaydi.", 'ok');
+  } catch (err) {
+    setFifaLiveStatus(`Xato: ${err.message}`, 'error');
+  }
+}
+
+document.getElementById('fifaLiveImageFile')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0]; if (!file) return;
+  setFifaLiveStatus('Rasm yuklanmoqda...');
+  try {
+    const raw = await readFileAsDataUrl(file);
+    const dataUrl = await compressImageDataUrl(raw, 1600, 900, 0.85);
+    const url = await uploadCategoryImage(dataUrl, 'fifa-live-' + Date.now().toString(36));
+    fifaLiveUploadedUrl = url;
+    const urlEl = document.getElementById('fifaLiveCoverUrl');
+    if (urlEl) urlEl.value = url;
+    setFifaLivePreview(url);
+    setFifaLiveStatus('Rasm yuklandi. Saqlashni unutmang.', 'ok');
+  } catch (err) {
+    setFifaLiveStatus(`Yuklashda xato: ${err.message}`, 'error');
+  }
+});
+
+document.getElementById('fifaLiveCoverUrl')?.addEventListener('input', (e) => {
+  const v = (e.target.value || '').trim();
+  fifaLiveUploadedUrl = v;
+  setFifaLivePreview(v);
+});
+
+document.getElementById('fifaLiveSaveBtn')?.addEventListener('click', saveFifaLiveMatch);
+document.getElementById('fifaLiveDeleteBtn')?.addEventListener('click', deleteFifaLiveMatch);
 
