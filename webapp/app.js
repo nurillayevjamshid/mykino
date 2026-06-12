@@ -7694,6 +7694,9 @@ if ("requestIdleCallback" in window) {
       #fifaHlsModal.controls-hidden .fifa-player__top,
       #fifaHlsModal.controls-hidden .fifa-player__bottom { opacity:0; pointer-events:none; }
       #fifaHlsModal .fifa-player__icon-btn { width:42px; height:42px; border-radius:50%; border:0; background:rgba(20,20,22,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; touch-action:manipulation; }
+      #fifaHlsModal .fifa-player__center-btn { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:78px; height:78px; border-radius:50%; border:0; background:rgba(20,20,22,.72); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; z-index:5; touch-action:manipulation; box-shadow:0 6px 22px rgba(0,0,0,.4); }
+      #fifaHlsModal .fifa-player__center-btn[hidden] { display:none; }
+      #fifaHlsModal .fifa-player__center-btn:active { transform:translate(-50%,-50%) scale(.94); }
       #fifaHlsModal .fifa-player__icon-btn:active { transform:scale(.94); }
       #fifaHlsModal .fifa-player__badge { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:14px; background:#e53935; color:#fff; font-size:12px; font-weight:700; letter-spacing:.5px; }
       #fifaHlsModal .fifa-player__dot { width:8px; height:8px; border-radius:50%; background:#fff; animation:fifaPlayerPulse 1.4s infinite; }
@@ -7706,6 +7709,56 @@ if ("requestIdleCallback" in window) {
     style.id = "fifaPlayerStyles";
     style.textContent = css;
     document.head.appendChild(style);
+  }
+
+  function setCenterPlayState(modal, isPlaying) {
+    const btn = modal.querySelector("#fifaHlsPlayPause");
+    if (!btn) return;
+    if (isPlaying) {
+      btn.hidden = true;
+    } else {
+      btn.hidden = false;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor"><path d="m8 5 12 7-12 7z"/></svg>`;
+    }
+  }
+
+  function togglePlayPause(modal) {
+    const video = modal.querySelector("#fifaHlsVideo");
+    const audio = modal.querySelector("#fifaHlsAudio");
+    if (!video) return;
+    if (video.paused) {
+      // Stream uzilgan bo'lsa srcObject'ni qaytadan biriktiramiz
+      if (!video.srcObject && activeStream) {
+        try { video.srcObject = activeStream; } catch (_) {}
+      }
+      video.play().catch((err) => console.warn("[play] video", err.message));
+      if (audio && audio.srcObject) {
+        audio.muted = false;
+        audio.volume = 1.0;
+        audio.play().catch((err) => console.warn("[play] audio", err.message));
+        updateMuteIcon(modal, false);
+      }
+      setCenterPlayState(modal, true);
+    } else {
+      video.pause();
+      if (audio) { try { audio.pause(); } catch (_) {} }
+      setCenterPlayState(modal, false);
+    }
+  }
+
+  function attachPlayPauseSync(modal) {
+    const video = modal.querySelector("#fifaHlsVideo");
+    if (!video || video.dataset.ppSyncBound === "1") return;
+    video.dataset.ppSyncBound = "1";
+    video.addEventListener("play", () => setCenterPlayState(modal, true));
+    video.addEventListener("playing", () => setCenterPlayState(modal, true));
+    video.addEventListener("pause", () => {
+      // Audio'ni ham pauza qilamiz, agar video pauza bo'lgan bo'lsa
+      const audio = modal.querySelector("#fifaHlsAudio");
+      if (audio && !audio.paused) { try { audio.pause(); } catch (_) {} }
+      setCenterPlayState(modal, false);
+    });
+    video.addEventListener("ended", () => setCenterPlayState(modal, false));
   }
 
   function updateMuteIcon(modal, muted) {
@@ -7785,6 +7838,8 @@ if ("requestIdleCallback" in window) {
       // Fullscreen yopildi — kadrlarni qaytaramiz. iOS srcObject'ni
       // tozalashi mumkin, shuning uchun saqlangan activeStream'dan tiklaymiz.
       // Kichik kechikish: iOS chiqish animatsiyasi tugab DOM barqarorlashsin.
+      // Avtomatik play() qilmaymiz — markazdagi tugma chiqadi va foydalanuvchi
+      // bosib davom etadi (audio'ni ham vaqtincha pauza qilamiz).
       setTimeout(() => {
         const stream = video.srcObject || activeStream;
         if (stream) {
@@ -7793,7 +7848,11 @@ if ("requestIdleCallback" in window) {
             video.srcObject = stream;
           } catch (_) {}
         }
-        video.play().catch(() => {});
+        try { video.pause(); } catch (_) {}
+        const audio = document.getElementById("fifaHlsAudio");
+        if (audio) { try { audio.pause(); } catch (_) {} }
+        const modal = document.getElementById("fifaHlsModal");
+        if (modal) setCenterPlayState(modal, false);
       }, 150);
     };
     document.addEventListener("fullscreenchange", recover);
@@ -8046,6 +8105,9 @@ if ("requestIdleCallback" in window) {
       modal.innerHTML = `
         <video id="fifaHlsVideo" playsinline autoplay webkit-playsinline x5-playsinline muted></video>
         <audio id="fifaHlsAudio" playsinline autoplay style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px"></audio>
+        <button type="button" id="fifaHlsPlayPause" class="fifa-player__center-btn" aria-label="O'ynatish/Pauza" hidden>
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor"><path d="m8 5 12 7-12 7z"/></svg>
+        </button>
         <div class="fifa-player__top">
           <span class="fifa-player__badge"><span class="fifa-player__dot"></span>JONLI</span>
           <button type="button" id="fifaHlsClose" class="fifa-player__icon-btn" aria-label="Yopish">
@@ -8107,6 +8169,13 @@ if ("requestIdleCallback" in window) {
           toggleFullscreen(modal);
           return;
         }
+        const playBtn = e.target.closest && e.target.closest("#fifaHlsPlayPause");
+        if (playBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          togglePlayPause(modal);
+          return;
+        }
         // Video ustiga bosish — pauza qilmaymiz, faqat UI'ni yashiramiz/ko'rsatamiz
         if (e.target.id === "fifaHlsVideo") {
           e.preventDefault();
@@ -8117,6 +8186,7 @@ if ("requestIdleCallback" in window) {
       // mute toggle ikki marta ishlaydi (ovoz yoqilib darhol qaytib o'chadi)
       modal.addEventListener("click", handleTap);
       attachFullscreenRecovery(modal);
+      attachPlayPauseSync(modal);
     }
     modal.hidden = false;
     modal.classList.remove("controls-hidden");
