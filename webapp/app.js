@@ -7637,6 +7637,7 @@ if ("requestIdleCallback" in window) {
 
   let activeHlsInstance = null;
   let activeWhepPc = null;
+  let activeStream = null;
 
   function injectPlayerStylesOnce() {
     if (document.getElementById("fifaPlayerStyles")) return;
@@ -7698,8 +7699,9 @@ if ("requestIdleCallback" in window) {
     const recover = () => {
       const inFs = document.fullscreenElement || document.webkitFullscreenElement || video.webkitDisplayingFullscreen;
       if (inFs) return;
-      // Fullscreen yopildi — kadrlarni qaytaramiz
-      const stream = video.srcObject;
+      // Fullscreen yopildi — kadrlarni qaytaramiz. iOS srcObject'ni
+      // tozalashi mumkin, shuning uchun saqlangan activeStream'dan tiklaymiz.
+      const stream = video.srcObject || activeStream;
       if (stream) {
         try {
           video.srcObject = null;
@@ -7741,11 +7743,14 @@ if ("requestIdleCallback" in window) {
     const btn = document.createElement("button");
     btn.id = "fifaPlayerOverlay";
     btn.type = "button";
-    btn.style.cssText = "position:absolute;inset:0;z-index:10;background:rgba(0,0,0,.4);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;";
+    btn.style.cssText = "position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.4);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;";
     btn.innerHTML = `<span style="width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="36" height="36" fill="#111"><path d="m8 5 12 7-12 7z"/></svg></span>`;
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
       video.muted = false;
+      video.volume = 1.0;
       video.play().catch(() => {});
+      updateMuteIcon(modal, false);
       removePlayerOverlay();
     }, { once: true });
     modal.appendChild(btn);
@@ -7770,9 +7775,8 @@ if ("requestIdleCallback" in window) {
         if (playStarted) return;
         playStarted = true;
         try {
-          // Audio track'lar yoqilgan bo'lishi shart (default true, lekin
-          // ba'zi WHEP serverlar disabled holatda yuborishi mumkin)
           stream.getAudioTracks?.().forEach((t) => { try { t.enabled = true; } catch (_) {} });
+          activeStream = stream;
           video.srcObject = stream;
           video.volume = 1.0;
         } catch (err) {
@@ -7781,28 +7785,20 @@ if ("requestIdleCallback" in window) {
           playStarted = false;
           return;
         }
-        // Avval ovozli avtoplay sinab ko'ramiz (foydalanuvchi "Tomosha qilish"
-        // tugmasini bosgan — gesture bor). Brauzer to'sib qo'ysa — muted'da
-        // qaytadan urinamiz va ovoz uchun overlay ko'rsatamiz.
+        // Mobil/embed WebView'larda autoplay faqat MUTED bo'lganda kafolatlanadi.
+        // Shuning uchun har doim muted bilan boshlaymiz va markazda yorqin
+        // "Ovozni yoqish" tugmasini ko'rsatamiz — bir tap bilan ovoz qo'shiladi.
         const modal = document.getElementById("fifaHlsModal");
-        video.muted = false;
+        video.muted = true;
+        if (modal) updateMuteIcon(modal, true);
         try {
           await video.play();
           setStatus("");
-          if (modal) updateMuteIcon(modal, false);
+          showUnmuteHint(video);
         } catch (err) {
-          console.warn("[whep] unmuted play blocked, retrying muted", err.message);
-          video.muted = true;
-          if (modal) updateMuteIcon(modal, true);
-          try {
-            await video.play();
-            setStatus("");
-            showUnmuteHint(video);
-          } catch (err2) {
-            console.warn("[whep] muted play also blocked", err2.message);
-            setStatus("Avtoplay bloklandi — ekranni bosing");
-            showTapToPlayHint(video);
-          }
+          console.warn("[whep] muted play blocked", err.message);
+          setStatus("Avtoplay bloklandi — ekranni bosing");
+          showTapToPlayHint(video);
         }
       };
       pc.ontrack = (e) => {
@@ -7890,27 +7886,43 @@ if ("requestIdleCallback" in window) {
       `;
       document.body.appendChild(modal);
       injectPlayerStylesOnce();
-      modal.querySelector("#fifaHlsClose").addEventListener("click", (e) => {
-        e.stopPropagation();
-        closeHlsPlayerModal();
-      });
-      modal.querySelector("#fifaHlsMute").addEventListener("click", (e) => {
-        e.stopPropagation();
-        const v = modal.querySelector("#fifaHlsVideo");
-        v.muted = !v.muted;
-        updateMuteIcon(modal, v.muted);
-      });
-      modal.querySelector("#fifaHlsFs").addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleFullscreen(modal);
-      });
-      // Video ustiga bosish — live oqim uchun pauza qilmaymiz, faqat
-      // boshqaruv panellarini ko'rsatish/yashirish (autohide).
-      const video = modal.querySelector("#fifaHlsVideo");
-      video.addEventListener("click", (e) => {
-        e.preventDefault();
-        modal.classList.toggle("controls-hidden");
-      });
+      // Event delegation — agar DOM ichidagi tugmalar qaytadan yaratilsa ham
+      // bog'lanish saqlanadi (iOS WebView fullscreen'dan keyin tugma listenerlari
+      // ba'zan tushib qoladi)
+      const handleTap = (e) => {
+        const closeBtn = e.target.closest && e.target.closest("#fifaHlsClose");
+        if (closeBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeHlsPlayerModal();
+          return;
+        }
+        const muteBtn = e.target.closest && e.target.closest("#fifaHlsMute");
+        if (muteBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const v = modal.querySelector("#fifaHlsVideo");
+          v.muted = !v.muted;
+          if (!v.muted) { v.volume = 1.0; v.play?.().catch(() => {}); }
+          updateMuteIcon(modal, v.muted);
+          removePlayerOverlay();
+          return;
+        }
+        const fsBtn = e.target.closest && e.target.closest("#fifaHlsFs");
+        if (fsBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFullscreen(modal);
+          return;
+        }
+        // Video ustiga bosish — pauza qilmaymiz, faqat UI'ni yashiramiz/ko'rsatamiz
+        if (e.target.id === "fifaHlsVideo") {
+          e.preventDefault();
+          modal.classList.toggle("controls-hidden");
+        }
+      };
+      modal.addEventListener("click", handleTap);
+      modal.addEventListener("touchend", handleTap);
       attachFullscreenRecovery(modal);
     }
     modal.hidden = false;
@@ -8021,6 +8033,7 @@ if ("requestIdleCallback" in window) {
     activeHlsInstance = null;
     try { activeWhepPc?.close?.(); } catch (_) {}
     activeWhepPc = null;
+    activeStream = null;
     removePlayerOverlay();
 
     // FIFA ko'rinishi to'liq ekran/iOS o'zgarishlari sabab yashirilib qolgan
