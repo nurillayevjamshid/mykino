@@ -4325,6 +4325,7 @@ function setFilter(filter) {
     setSearchPanelOpen(false);
     if (categoryPanel) categoryPanel.hidden = true;
   }
+  document.body.classList.toggle("is-favorites", filter === "favorites");
   renderMovies();
 }
 

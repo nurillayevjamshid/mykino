@@ -12117,6 +12117,11 @@ body.is-fifa .topbar-search,
 body.is-fifa .bottom-bar,
 body.is-fifa .app-footer { display: none !important; }
 
+/* FIFA banner faqat asosiy sahifada — kategoriyalar va sevimlilarda yashir */
+body.is-categories .fifa-banner,
+body.is-category-detail .fifa-banner,
+body.is-favorites .fifa-banner { display: none !important; }
+
 .fifa-view__hero {
   position: relative;
   border-radius: 22px;
