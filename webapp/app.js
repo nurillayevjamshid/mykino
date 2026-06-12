@@ -7852,16 +7852,9 @@ if ("requestIdleCallback" in window) {
         playStarted = true;
         const modal = document.getElementById("fifaHlsModal");
         try {
-          const audioTracks = stream.getAudioTracks?.() || [];
-          audioTracks.forEach((t) => { try { t.enabled = true; } catch (_) {} });
+          // Audio track allaqachon ontrack handler'da alohida <audio>'ga ulangan.
+          // Bu yerda faqat video pipeline'ini ishga tushiramiz.
           activeStream = stream;
-          // iOS WebKit bag: muted boshlangan <video>'ni keyin unmute qilsang ham
-          // WebRTC audio jonlanmaydi. Shuning uchun audio'ni alohida <audio>
-          // elementga ajratamiz — "Ovozni yoqish" gesture'ida play() qilinadi.
-          const audioEl = modal?.querySelector("#fifaHlsAudio");
-          if (audioEl && audioTracks.length) {
-            try { audioEl.srcObject = new MediaStream(audioTracks); } catch (_) {}
-          }
           video.srcObject = stream;
         } catch (err) {
           console.warn("[whep] srcObject assign failed", err.message);
@@ -7886,6 +7879,20 @@ if ("requestIdleCallback" in window) {
       pc.ontrack = (e) => {
         console.log("[whep] ontrack", e.track.kind, e.streams?.length, "dim=", e.track.getSettings?.());
         const stream = e.streams && e.streams[0];
+        // Audio track alohida elementga — gesture ichida play() qilinadi
+        if (e.track.kind === "audio") {
+          const modal = document.getElementById("fifaHlsModal");
+          const audioEl = modal?.querySelector("#fifaHlsAudio");
+          if (audioEl) {
+            try {
+              e.track.enabled = true;
+              audioEl.srcObject = new MediaStream([e.track]);
+              console.log("[whep] audio track attached to <audio>");
+            } catch (err) {
+              console.warn("[whep] audio attach failed", err.message);
+            }
+          }
+        }
         if (stream) startPlayback(stream);
       };
       pc.oniceconnectionstatechange = () => {
