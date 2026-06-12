@@ -7643,6 +7643,7 @@ if ("requestIdleCallback" in window) {
     if (document.getElementById("fifaPlayerStyles")) return;
     const css = `
       #fifaHlsModal { position:fixed; inset:0; z-index:9999; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+      #fifaHlsModal[hidden] { display:none !important; }
       #fifaHlsModal #fifaHlsVideo { width:100%; height:100%; object-fit:contain; background:#000; display:block; }
       #fifaHlsModal .fifa-player__top { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:14px 16px calc(14px + env(safe-area-inset-top, 0px)); padding-top:calc(14px + env(safe-area-inset-top, 0px)); background:linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,0)); transition:opacity .2s; }
       #fifaHlsModal .fifa-player__bottom { position:absolute; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background:linear-gradient(0deg, rgba(0,0,0,.6), rgba(0,0,0,0)); transition:opacity .2s; }
@@ -7701,14 +7702,17 @@ if ("requestIdleCallback" in window) {
       if (inFs) return;
       // Fullscreen yopildi — kadrlarni qaytaramiz. iOS srcObject'ni
       // tozalashi mumkin, shuning uchun saqlangan activeStream'dan tiklaymiz.
-      const stream = video.srcObject || activeStream;
-      if (stream) {
-        try {
-          video.srcObject = null;
-          video.srcObject = stream;
-        } catch (_) {}
-      }
-      video.play().catch(() => {});
+      // Kichik kechikish: iOS chiqish animatsiyasi tugab DOM barqarorlashsin.
+      setTimeout(() => {
+        const stream = video.srcObject || activeStream;
+        if (stream) {
+          try {
+            video.srcObject = null;
+            video.srcObject = stream;
+          } catch (_) {}
+        }
+        video.play().catch(() => {});
+      }, 150);
     };
     document.addEventListener("fullscreenchange", recover);
     document.addEventListener("webkitfullscreenchange", recover);
@@ -7921,8 +7925,9 @@ if ("requestIdleCallback" in window) {
           modal.classList.toggle("controls-hidden");
         }
       };
+      // Faqat click — touchend ham qo'shilsa, iOS'da ikkalasi ketma-ket otilib
+      // mute toggle ikki marta ishlaydi (ovoz yoqilib darhol qaytib o'chadi)
       modal.addEventListener("click", handleTap);
-      modal.addEventListener("touchend", handleTap);
       attachFullscreenRecovery(modal);
     }
     modal.hidden = false;
