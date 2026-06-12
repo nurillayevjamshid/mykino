@@ -5379,6 +5379,31 @@ function syncSidebarMusicItem() {
   }
 }
 
+function syncSidebarFifaItem() {
+  const item = document.getElementById("sidebarFifaItem");
+  if (!item) return;
+  const isFifa = document.body.classList.contains("is-fifa");
+  if (isFifa) {
+    item.dataset.sidebarAction = "kino-back";
+    item.innerHTML = `
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+        <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+      </svg>
+      <span data-i18n="kinoNav">${plainLabel(t("kinoNav"))}</span>`;
+    item.classList.remove("sidebar__item--fifa");
+  } else {
+    item.dataset.sidebarAction = "fifa";
+    item.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9.5"></circle>
+        <path d="M12 2.5 14.6 7l4.7 1-3.4 3.6.9 4.9-4.8-2.4-4.8 2.4.9-4.9L4.7 8l4.7-1Z"></path>
+      </svg>
+      <span>FIFA JCH 2026</span>`;
+    item.classList.add("sidebar__item--fifa");
+  }
+}
+
 function syncSidebarPodcastsItem() {
   const item = document.getElementById("sidebarPodcastsItem");
   if (!item) return;
@@ -5412,6 +5437,7 @@ function setSidebarOpen(open) {
   if (open) {
     syncSidebarMusicItem();
     syncSidebarPodcastsItem();
+    syncSidebarFifaItem();
     sidebarBackdrop.hidden = false;
     requestAnimationFrame(() => {
       appSidebar.classList.add("is-open");
@@ -5452,6 +5478,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     e.preventDefault();
     if (action === "music") {
       closePodcastsView();
+      closeFifaView();
       openMusicView();
       setSidebarOpen(false);
       return;
@@ -5506,6 +5533,7 @@ sidebarLangPills?.querySelectorAll(".lang-pill").forEach((pill) => {
     localStorage.setItem("kino_lang", next);
     try { syncSidebarMusicItem(); } catch (_) {}
     try { syncSidebarPodcastsItem(); } catch (_) {}
+    try { syncSidebarFifaItem(); } catch (_) {}
     try { applyCopy(); } catch (_) {}
     syncSidebarSettings();
     try {
