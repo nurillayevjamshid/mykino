@@ -7756,27 +7756,63 @@ if ("requestIdleCallback" in window) {
     modal.appendChild(btn);
   }
 
-  // Ovozni gesture ichida yoqish — alohida <audio> element orqali (iOS uchun),
-  // usiz oddiy video.muted=false yo'li bilan
+  // iOS WebKit'da WebRTC audio'ni "unlock" qilish uchun AudioContext kerak —
+  // gesture ichida bir marta resume qilinsa, keyingi audio play()'lar ishlaydi
+  let audioUnlockCtx = null;
+  function unlockAudioContext() {
+    try {
+      if (!audioUnlockCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) audioUnlockCtx = new Ctx();
+      }
+      if (audioUnlockCtx && audioUnlockCtx.state === "suspended") {
+        audioUnlockCtx.resume().catch(() => {});
+      }
+      // Bo'sh buffer chaling — iOS'da audio output rejimini ochadi
+      if (audioUnlockCtx) {
+        const buf = audioUnlockCtx.createBuffer(1, 1, 22050);
+        const src = audioUnlockCtx.createBufferSource();
+        src.buffer = buf;
+        src.connect(audioUnlockCtx.destination);
+        src.start(0);
+      }
+    } catch (err) {
+      console.warn("[audio] unlock ctx", err.message);
+    }
+  }
+
+  // Ovozni gesture ichida yoqish — alohida <audio> element orqali (iOS uchun)
   function enableLiveAudio(modal, video) {
+    unlockAudioContext();
     const a = modal?.querySelector("#fifaHlsAudio");
+    let done = false;
     if (a && a.srcObject) {
       a.muted = false;
       a.volume = 1.0;
       a.play().then(() => {
         console.log("[audio] separate element playing");
+        done = true;
       }).catch((err) => {
         console.warn("[audio] separate element failed, falling back", err.message);
-        video.muted = false;
-        video.volume = 1.0;
-        video.play().catch(() => {});
       });
-    } else {
+    }
+    // Parallel ravishda video.muted=false ham qilamiz — iOS re-attach trick
+    // bilan: srcObject'ni qaytadan biriktirish ba'zan audio pipeline'ni jonlatadi
+    try {
       video.muted = false;
       video.volume = 1.0;
+      const s = video.srcObject;
+      if (s) {
+        video.srcObject = null;
+        video.srcObject = s;
+      }
       video.play().catch(() => {});
-    }
+    } catch (_) {}
     updateMuteIcon(modal, false);
+    // Diagnostika — qaysi yo'l ishlayotganini bilish uchun
+    setTimeout(() => {
+      console.log("[audio] state video.muted=", video.muted, "audio.paused=", a?.paused, "audio.muted=", a?.muted, "ctx=", audioUnlockCtx?.state);
+    }, 500);
   }
   function showTapToPlayHint(video) {
     removePlayerOverlay();
@@ -7913,8 +7949,8 @@ if ("requestIdleCallback" in window) {
       modal.setAttribute("role", "dialog");
       modal.setAttribute("aria-modal", "true");
       modal.innerHTML = `
-        <video id="fifaHlsVideo" playsinline autoplay webkit-playsinline x5-playsinline></video>
-        <audio id="fifaHlsAudio" style="display:none"></audio>
+        <video id="fifaHlsVideo" playsinline autoplay webkit-playsinline x5-playsinline muted></video>
+        <audio id="fifaHlsAudio" playsinline autoplay style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px"></audio>
         <div class="fifa-player__top">
           <span class="fifa-player__badge"><span class="fifa-player__dot"></span>JONLI</span>
           <button type="button" id="fifaHlsClose" class="fifa-player__icon-btn" aria-label="Yopish">
