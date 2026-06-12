@@ -7717,28 +7717,44 @@ if ("requestIdleCallback" in window) {
   }
 
   function toggleFullscreen(modal) {
-    // Telegram WebApp fullscreen API ataylab ISHLATILMAYDI — u Telegram'ning
-    // majburiy "Назад" / menu floating tugmalarini paydo qiladi va ularni
-    // yashirib bo'lmaydi. Modal'ning o'zi position:fixed inset:0 — webview
-    // ichidagi butun maydonni qoplaydi.
-    // Standart Fullscreen API — modal'ni element-level fullscreen qiladi
-    // (webview tashqariga chiqib monitor/qurilma ekranini qoplaydi). iOS
-    // Safari 16.4+ va ko'pchilik Android brauzerlari qo'llab-quvvatlaydi.
     const doc = document;
-    const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
-    if (isFs) {
-      (doc.exitFullscreen || doc.webkitExitFullscreen)?.call(doc);
+    const tg = window.Telegram?.WebApp;
+    const inStdFs = doc.fullscreenElement || doc.webkitFullscreenElement;
+    const inTgFs = !!tg?.isFullscreen;
+
+    // CHIQISH
+    if (inStdFs) {
+      try { (doc.exitFullscreen || doc.webkitExitFullscreen)?.call(doc); } catch (_) {}
       return;
     }
+    if (inTgFs && typeof tg?.exitFullscreen === "function") {
+      try { tg.exitFullscreen(); } catch (_) {}
+      return;
+    }
+
+    // KIRISH — avval standart Fullscreen API (Telegram chrome'siz toza ekran).
+    // Telegram WebView'da ko'pincha bloklangan; promise reject bo'lsa Telegram
+    // fullscreen API'ga tushamiz (floating tugmalar bo'lsa ham fullscreen ishlasin).
+    const fallbackToTg = (why) => {
+      console.warn("[fs] standard fs failed, falling back to TG:", why);
+      if (tg && typeof tg.requestFullscreen === "function") {
+        try { tg.requestFullscreen(); } catch (err) { console.warn("[fs] tg fs error", err?.message); }
+      }
+    };
     const req = modal.requestFullscreen || modal.webkitRequestFullscreen;
     if (req) {
       try {
         const p = req.call(modal);
-        p?.catch?.((err) => console.warn("[fs]", err.message));
+        if (p && typeof p.then === "function") {
+          p.catch((err) => fallbackToTg(err?.message || "rejected"));
+        }
+        return;
       } catch (err) {
-        console.warn("[fs]", err.message);
+        fallbackToTg(err?.message || "threw");
+        return;
       }
     }
+    fallbackToTg("no requestFullscreen on element");
   }
 
   // iOS native fullscreen'dan chiqqach video element ba'zan toza qora qotib
@@ -8178,6 +8194,10 @@ if ("requestIdleCallback" in window) {
     try {
       const inFs = document.fullscreenElement || document.webkitFullscreenElement;
       if (inFs) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+    } catch (_) {}
+    try {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.isFullscreen && typeof tg.exitFullscreen === "function") tg.exitFullscreen();
     } catch (_) {}
 
     const modal = document.getElementById("fifaHlsModal");
