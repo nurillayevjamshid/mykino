@@ -7673,21 +7673,38 @@ if ("requestIdleCallback" in window) {
   }
 
   function toggleFullscreen(modal) {
-    const video = modal.querySelector("#fifaHlsVideo");
+    // 1) Telegram Mini App fullscreen (Bot API 8.0+) — webview'ning o'zini
+    //    kengaytiradi, <video> elementga tegmaydi, shuning uchun WebRTC
+    //    oqim uzilmaydi (webkitEnterFullscreen MediaStream'ni buzardi)
+    const tg = window.Telegram?.WebApp;
+    if (tg && typeof tg.requestFullscreen === "function") {
+      try {
+        if (tg.isFullscreen) tg.exitFullscreen();
+        else tg.requestFullscreen();
+        return;
+      } catch (err) {
+        console.warn("[fs] tg fullscreen failed", err?.message);
+      }
+    }
+    // 2) Standart Fullscreen API — modal'ni (video emas) fullscreen qilamiz
     const doc = document;
     const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
     if (isFs) {
       (doc.exitFullscreen || doc.webkitExitFullscreen)?.call(doc);
       return;
     }
-    // iOS Safari: only <video> elements can enter fullscreen
-    if (video.webkitEnterFullscreen) {
-      try { video.webkitEnterFullscreen(); return; } catch (_) {}
-    }
     const req = modal.requestFullscreen || modal.webkitRequestFullscreen;
     if (req) {
-      req.call(modal).catch((err) => console.warn("[fs]", err.message));
+      try {
+        const p = req.call(modal);
+        p?.catch?.((err) => console.warn("[fs]", err.message));
+      } catch (err) {
+        console.warn("[fs]", err.message);
+      }
     }
+    // 3) iOS'da hech biri ishlamasa — modal allaqachon butun webview'ni
+    //    qoplagan, qo'shimcha hech narsa qilmaymiz (native video fullscreen
+    //    MediaStream'ni muzlatib qo'ygani uchun ataylab ishlatilmaydi)
   }
 
   // iOS native fullscreen'dan chiqqach video element ba'zan toza qora qotib
@@ -7733,12 +7750,33 @@ if ("requestIdleCallback" in window) {
     btn.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>Ovozni yoqish`;
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      video.muted = false;
-      video.play().catch(() => {});
-      updateMuteIcon(modal, false);
+      enableLiveAudio(modal, video);
       removePlayerOverlay();
     }, { once: true });
     modal.appendChild(btn);
+  }
+
+  // Ovozni gesture ichida yoqish — alohida <audio> element orqali (iOS uchun),
+  // usiz oddiy video.muted=false yo'li bilan
+  function enableLiveAudio(modal, video) {
+    const a = modal?.querySelector("#fifaHlsAudio");
+    if (a && a.srcObject) {
+      a.muted = false;
+      a.volume = 1.0;
+      a.play().then(() => {
+        console.log("[audio] separate element playing");
+      }).catch((err) => {
+        console.warn("[audio] separate element failed, falling back", err.message);
+        video.muted = false;
+        video.volume = 1.0;
+        video.play().catch(() => {});
+      });
+    } else {
+      video.muted = false;
+      video.volume = 1.0;
+      video.play().catch(() => {});
+    }
+    updateMuteIcon(modal, false);
   }
   function showTapToPlayHint(video) {
     removePlayerOverlay();
@@ -7751,10 +7789,8 @@ if ("requestIdleCallback" in window) {
     btn.innerHTML = `<span style="width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="36" height="36" fill="#111"><path d="m8 5 12 7-12 7z"/></svg></span>`;
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      video.muted = false;
-      video.volume = 1.0;
       video.play().catch(() => {});
-      updateMuteIcon(modal, false);
+      enableLiveAudio(modal, video);
       removePlayerOverlay();
     }, { once: true });
     modal.appendChild(btn);
@@ -7778,11 +7814,19 @@ if ("requestIdleCallback" in window) {
       const startPlayback = async (stream) => {
         if (playStarted) return;
         playStarted = true;
+        const modal = document.getElementById("fifaHlsModal");
         try {
-          stream.getAudioTracks?.().forEach((t) => { try { t.enabled = true; } catch (_) {} });
+          const audioTracks = stream.getAudioTracks?.() || [];
+          audioTracks.forEach((t) => { try { t.enabled = true; } catch (_) {} });
           activeStream = stream;
+          // iOS WebKit bag: muted boshlangan <video>'ni keyin unmute qilsang ham
+          // WebRTC audio jonlanmaydi. Shuning uchun audio'ni alohida <audio>
+          // elementga ajratamiz — "Ovozni yoqish" gesture'ida play() qilinadi.
+          const audioEl = modal?.querySelector("#fifaHlsAudio");
+          if (audioEl && audioTracks.length) {
+            try { audioEl.srcObject = new MediaStream(audioTracks); } catch (_) {}
+          }
           video.srcObject = stream;
-          video.volume = 1.0;
         } catch (err) {
           console.warn("[whep] srcObject assign failed", err.message);
           setStatus(`Video xatosi: ${err.message}`);
@@ -7790,9 +7834,7 @@ if ("requestIdleCallback" in window) {
           return;
         }
         // Mobil/embed WebView'larda autoplay faqat MUTED bo'lganda kafolatlanadi.
-        // Shuning uchun har doim muted bilan boshlaymiz va markazda yorqin
-        // "Ovozni yoqish" tugmasini ko'rsatamiz — bir tap bilan ovoz qo'shiladi.
-        const modal = document.getElementById("fifaHlsModal");
+        // Video doim muted qoladi (audio alohida elementdan keladi).
         video.muted = true;
         if (modal) updateMuteIcon(modal, true);
         try {
@@ -7872,6 +7914,7 @@ if ("requestIdleCallback" in window) {
       modal.setAttribute("aria-modal", "true");
       modal.innerHTML = `
         <video id="fifaHlsVideo" playsinline autoplay webkit-playsinline x5-playsinline></video>
+        <audio id="fifaHlsAudio" style="display:none"></audio>
         <div class="fifa-player__top">
           <span class="fifa-player__badge"><span class="fifa-player__dot"></span>JONLI</span>
           <button type="button" id="fifaHlsClose" class="fifa-player__icon-btn" aria-label="Yopish">
@@ -7905,10 +7948,24 @@ if ("requestIdleCallback" in window) {
         if (muteBtn) {
           e.preventDefault();
           e.stopPropagation();
-          const v = modal.querySelector("#fifaHlsVideo");
-          v.muted = !v.muted;
-          if (!v.muted) { v.volume = 1.0; v.play?.().catch(() => {}); }
-          updateMuteIcon(modal, v.muted);
+          const a = modal.querySelector("#fifaHlsAudio");
+          if (a && a.srcObject) {
+            // Audio alohida elementda — uni boshqaramiz
+            if (a.muted || a.paused) {
+              a.muted = false;
+              a.volume = 1.0;
+              a.play().catch((err) => console.warn("[audio] play", err.message));
+              updateMuteIcon(modal, false);
+            } else {
+              a.muted = true;
+              updateMuteIcon(modal, true);
+            }
+          } else {
+            const v = modal.querySelector("#fifaHlsVideo");
+            v.muted = !v.muted;
+            if (!v.muted) { v.volume = 1.0; v.play?.().catch(() => {}); }
+            updateMuteIcon(modal, v.muted);
+          }
           removePlayerOverlay();
           return;
         }
@@ -8019,6 +8076,10 @@ if ("requestIdleCallback" in window) {
   function closeHlsPlayerModal() {
     // Avval — agar foydalanuvchi to'liq ekran rejimida bo'lsa, undan chiqamiz
     try {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.isFullscreen && typeof tg.exitFullscreen === "function") tg.exitFullscreen();
+    } catch (_) {}
+    try {
       const inFs = document.fullscreenElement || document.webkitFullscreenElement;
       if (inFs) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
     } catch (_) {}
@@ -8033,6 +8094,11 @@ if ("requestIdleCallback" in window) {
       try { video.srcObject = null; } catch (_) {}
       video.removeAttribute("src");
       video.load?.();
+    }
+    const audioEl = modal.querySelector("#fifaHlsAudio");
+    if (audioEl) {
+      try { audioEl.pause?.(); } catch (_) {}
+      try { audioEl.srcObject = null; } catch (_) {}
     }
     try { activeHlsInstance?.destroy?.(); } catch (_) {}
     activeHlsInstance = null;
