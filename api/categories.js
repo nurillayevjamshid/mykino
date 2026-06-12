@@ -3,6 +3,7 @@ const { uploadImageToR2, uploadFileToR2 } = require("./_lib/r2-store");
 
 const REDIS_KEY = "categories:v1";
 const POD_LANGS_KEY = "podcast-langs:v1";
+const FIFA_LIVE_KEY = "fifa-live:v1";
 const POD_LANG_DEFAULTS = {
   uz: { name: "O'zbekcha", image: "" },
   ru: { name: "Ruscha", image: "" },
@@ -258,6 +259,123 @@ async function buildFifaPayload() {
   };
 }
 
+// =========================================================================
+// FIFA Live Match (admin tomonidan boshqariladi) — bitta o'yin uchun MVP.
+// Telegram kanal/post linki + ablojka rasm. Mini app FIFA bo'limidagi promo
+// card'da ko'rsatiladi va bosilganda tg.openTelegramLink orqali ochiladi.
+// =========================================================================
+function normalizeFifaLiveTelegramUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (!/^https?:\/\//i.test(raw)) {
+    const err = new Error("Stream havola https:// bilan boshlanishi kerak.");
+    err.statusCode = 400;
+    throw err;
+  }
+  let parsed;
+  try { parsed = new URL(raw); } catch (_) {
+    const err = new Error("Stream havola noto'g'ri URL.");
+    err.statusCode = 400;
+    throw err;
+  }
+  if (!/\.m3u8$/i.test(parsed.pathname)) {
+    const err = new Error("OBS stream HLS playlist bo'lishi kerak. Misol: https://stream.example.com/live/match.m3u8");
+    err.statusCode = 400;
+    throw err;
+  }
+  return raw;
+}
+
+function normalizeFifaLiveMatch(body) {
+  const title = String(body?.title || "").trim().slice(0, 120);
+  if (!title) {
+    const err = new Error("Match nomi (title) kerak.");
+    err.statusCode = 400;
+    throw err;
+  }
+  const coverUrl = String(body?.coverUrl || "").trim();
+  const telegramUrl = normalizeFifaLiveTelegramUrl(body?.telegramUrl);
+  if (!telegramUrl) {
+    const err = new Error("OBS stream havolasi kerak (https://.../playlist.m3u8).");
+    err.statusCode = 400;
+    throw err;
+  }
+  const startsAtRaw = String(body?.startsAt || "").trim();
+  let startsAt = "";
+  if (startsAtRaw) {
+    const d = new Date(startsAtRaw);
+    if (!Number.isNaN(d.getTime())) startsAt = d.toISOString();
+  }
+  const isLive = Boolean(body?.isLive);
+  return { title, coverUrl, telegramUrl, startsAt, isLive, updatedAt: new Date().toISOString() };
+}
+
+async function readFifaLiveMatch() {
+  const client = await getRedis();
+  if (!client) return null;
+  try {
+    const raw = await client.get(FIFA_LIVE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== "object" || !data.title || !data.telegramUrl) return null;
+    return data;
+  } catch (err) {
+    console.warn("redis get fifa-live xato:", err.message);
+    return null;
+  }
+}
+
+async function writeFifaLiveMatch(match) {
+  const client = await getRedis();
+  if (!client) return false;
+  try {
+    if (match) await client.set(FIFA_LIVE_KEY, JSON.stringify(match));
+    else await client.del(FIFA_LIVE_KEY);
+    return true;
+  } catch (err) {
+    console.warn("redis set fifa-live xato:", err.message);
+    return false;
+  }
+}
+
+async function handleFifaLive(request, response) {
+  if (request.method === "GET") {
+    try {
+      const match = await readFifaLiveMatch();
+      response.setHeader("Cache-Control", "public, max-age=15, s-maxage=30, stale-while-revalidate=120");
+      response.status(200).json({ ok: true, match });
+    } catch (err) {
+      response.status(500).json({ ok: false, error: err.message || "Yuklab bo'lmadi." });
+    }
+    return;
+  }
+  // Yozish — auth talab
+  if (!(await authorizeRequest(request, response))) return;
+  try {
+    const body = await readBody(request);
+    if (body.action === "upload") {
+      const url = await handleUpload({ ...body, name: body.name || "fifa-live" });
+      response.status(200).json({ ok: true, url });
+      return;
+    }
+    if (!isRedisEnabled()) {
+      response.status(503).json({ ok: false, error: "Vercel Redis sozlanmagan." });
+      return;
+    }
+    if (request.method === "DELETE" || body.action === "delete") {
+      await writeFifaLiveMatch(null);
+      response.status(200).json({ ok: true, match: null });
+      return;
+    }
+    const match = normalizeFifaLiveMatch(body);
+    const ok = await writeFifaLiveMatch(match);
+    if (!ok) { response.status(500).json({ ok: false, error: "Saqlash muvaffaqiyatsiz." }); return; }
+    response.status(200).json({ ok: true, match });
+  } catch (err) {
+    response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
+  }
+}
+
 async function handleFifa(request, response) {
   const now = Date.now();
   if (FIFA_CACHE.data && now - FIFA_CACHE.at < FIFA_TTL_MS) {
@@ -284,10 +402,15 @@ async function handleFifa(request, response) {
 module.exports = async function handler(request, response) {
   // FIFA route — auth talab qilmaydi (umumiy public data)
   const earlyUrl = new URL(request.url || "/", "http://localhost");
-  if (String(earlyUrl.searchParams.get("type") || "").toLowerCase() === "fifa") {
+  const earlyType = String(earlyUrl.searchParams.get("type") || "").toLowerCase();
+  if (earlyType === "fifa") {
     response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
     response.setHeader("Vary", "Accept-Encoding");
     await handleFifa(request, response);
+    return;
+  }
+  if (earlyType === "fifa-live") {
+    await handleFifaLive(request, response);
     return;
   }
 
