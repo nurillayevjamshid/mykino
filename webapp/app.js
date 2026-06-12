@@ -7638,6 +7638,42 @@ if ("requestIdleCallback" in window) {
   let activeHlsInstance = null;
   let activeWhepPc = null;
 
+  function removePlayerOverlay() {
+    document.getElementById("fifaPlayerOverlay")?.remove();
+  }
+  function showUnmuteHint(video) {
+    removePlayerOverlay();
+    const modal = document.getElementById("fifaHlsModal");
+    if (!modal) return;
+    const btn = document.createElement("button");
+    btn.id = "fifaPlayerOverlay";
+    btn.type = "button";
+    btn.style.cssText = "position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10;padding:10px 16px;border-radius:24px;border:0;background:rgba(255,255,255,.95);color:#111;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;";
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>Bosib ovozni yoqing`;
+    btn.addEventListener("click", () => {
+      video.muted = false;
+      video.play().catch(() => {});
+      removePlayerOverlay();
+    }, { once: true });
+    modal.appendChild(btn);
+  }
+  function showTapToPlayHint(video) {
+    removePlayerOverlay();
+    const modal = document.getElementById("fifaHlsModal");
+    if (!modal) return;
+    const btn = document.createElement("button");
+    btn.id = "fifaPlayerOverlay";
+    btn.type = "button";
+    btn.style.cssText = "position:absolute;inset:0;z-index:10;background:rgba(0,0,0,.4);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;";
+    btn.innerHTML = `<span style="width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="36" height="36" fill="#111"><path d="m8 5 12 7-12 7z"/></svg></span>`;
+    btn.addEventListener("click", () => {
+      video.muted = false;
+      video.play().catch(() => {});
+      removePlayerOverlay();
+    }, { once: true });
+    modal.appendChild(btn);
+  }
+
   async function playWhep(url, video, setStatus) {
     let stage = "init";
     try {
@@ -7652,19 +7688,43 @@ if ("requestIdleCallback" in window) {
       pc.addTransceiver("video", { direction: "recvonly" });
       pc.addTransceiver("audio", { direction: "recvonly" });
 
-      pc.ontrack = (e) => {
-        console.log("[whep] ontrack", e.track.kind, e.streams?.length);
-        const stream = e.streams && e.streams[0];
-        if (stream && video.srcObject !== stream) {
+      let playStarted = false;
+      const startPlayback = async (stream) => {
+        if (playStarted) return;
+        playStarted = true;
+        try {
+          video.srcObject = stream;
+        } catch (err) {
+          console.warn("[whep] srcObject assign failed", err.message);
+          setStatus(`Video xatosi: ${err.message}`);
+          playStarted = false;
+          return;
+        }
+        // Avval ovozli avtoplay sinab ko'ramiz (foydalanuvchi "Tomosha qilish"
+        // tugmasini bosgan — gesture bor). Brauzer to'sib qo'ysa — muted'da
+        // qaytadan urinamiz va ovoz uchun overlay ko'rsatamiz.
+        video.muted = false;
+        try {
+          await video.play();
+          setStatus("");
+        } catch (err) {
+          console.warn("[whep] unmuted play blocked, retrying muted", err.message);
+          video.muted = true;
           try {
-            video.srcObject = stream;
+            await video.play();
             setStatus("");
-            video.play().catch((err) => console.warn("[whep] play()", err.message));
-          } catch (err) {
-            console.warn("[whep] srcObject assign failed", err.message);
-            setStatus(`Video xatosi: ${err.message}`);
+            showUnmuteHint(video);
+          } catch (err2) {
+            console.warn("[whep] muted play also blocked", err2.message);
+            setStatus("Avtoplay bloklandi — ekranni bosing");
+            showTapToPlayHint(video);
           }
         }
+      };
+      pc.ontrack = (e) => {
+        console.log("[whep] ontrack", e.track.kind, e.streams?.length, "dim=", e.track.getSettings?.());
+        const stream = e.streams && e.streams[0];
+        if (stream) startPlayback(stream);
       };
       pc.oniceconnectionstatechange = () => {
         console.log("[whep] iceConnectionState=", pc.iceConnectionState);
@@ -7836,6 +7896,7 @@ if ("requestIdleCallback" in window) {
     activeHlsInstance = null;
     try { activeWhepPc?.close?.(); } catch (_) {}
     activeWhepPc = null;
+    removePlayerOverlay();
   }
 
   window.renderFifaLivePromo = renderFifaLivePromo;
