@@ -7673,20 +7673,13 @@ if ("requestIdleCallback" in window) {
   }
 
   function toggleFullscreen(modal) {
-    // 1) Telegram Mini App fullscreen (Bot API 8.0+) — webview'ning o'zini
-    //    kengaytiradi, <video> elementga tegmaydi, shuning uchun WebRTC
-    //    oqim uzilmaydi (webkitEnterFullscreen MediaStream'ni buzardi)
-    const tg = window.Telegram?.WebApp;
-    if (tg && typeof tg.requestFullscreen === "function") {
-      try {
-        if (tg.isFullscreen) tg.exitFullscreen();
-        else tg.requestFullscreen();
-        return;
-      } catch (err) {
-        console.warn("[fs] tg fullscreen failed", err?.message);
-      }
-    }
-    // 2) Standart Fullscreen API — modal'ni (video emas) fullscreen qilamiz
+    // Telegram WebApp fullscreen API ataylab ISHLATILMAYDI — u Telegram'ning
+    // majburiy "Назад" / menu floating tugmalarini paydo qiladi va ularni
+    // yashirib bo'lmaydi. Modal'ning o'zi position:fixed inset:0 — webview
+    // ichidagi butun maydonni qoplaydi.
+    // Standart Fullscreen API — modal'ni element-level fullscreen qiladi
+    // (webview tashqariga chiqib monitor/qurilma ekranini qoplaydi). iOS
+    // Safari 16.4+ va ko'pchilik Android brauzerlari qo'llab-quvvatlaydi.
     const doc = document;
     const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
     if (isFs) {
@@ -7702,9 +7695,6 @@ if ("requestIdleCallback" in window) {
         console.warn("[fs]", err.message);
       }
     }
-    // 3) iOS'da hech biri ishlamasa — modal allaqachon butun webview'ni
-    //    qoplagan, qo'shimcha hech narsa qilmaymiz (native video fullscreen
-    //    MediaStream'ni muzlatib qo'ygani uchun ataylab ishlatilmaydi)
   }
 
   // iOS native fullscreen'dan chiqqach video element ba'zan toza qora qotib
@@ -7856,6 +7846,19 @@ if ("requestIdleCallback" in window) {
           // Bu yerda faqat video pipeline'ini ishga tushiramiz.
           activeStream = stream;
           video.srcObject = stream;
+          // Audio elementni darhol play() qilishga urinish — ko'p hollarda
+          // user gesture konteksti hali tirik bo'ladi va ovoz darhol kelaveradi
+          const audioEl = modal?.querySelector("#fifaHlsAudio");
+          if (audioEl && audioEl.srcObject) {
+            audioEl.muted = false;
+            audioEl.volume = 1.0;
+            audioEl.play().then(() => {
+              console.log("[audio] auto-play succeeded — no unmute prompt needed");
+              if (modal) updateMuteIcon(modal, false);
+            }).catch((err) => {
+              console.log("[audio] auto-play blocked, showing unmute prompt:", err.message);
+            });
+          }
         } catch (err) {
           console.warn("[whep] srcObject assign failed", err.message);
           setStatus(`Video xatosi: ${err.message}`);
@@ -7869,7 +7872,17 @@ if ("requestIdleCallback" in window) {
         try {
           await video.play();
           setStatus("");
-          showUnmuteHint(video);
+          // Audio elementni tekshiramiz — agar muvaffaqiyatli o'ynayotgan bo'lsa,
+          // "Ovozni yoqish" tugmasini ko'rsatmaymiz (iOS bu yo'lga tushadi). Aks
+          // holda (Android/PC ko'pincha) — tugmani ko'rsatamiz.
+          const audioEl = modal?.querySelector("#fifaHlsAudio");
+          await new Promise((r) => setTimeout(r, 200));
+          if (audioEl && !audioEl.paused && !audioEl.muted) {
+            console.log("[audio] already playing — skipping unmute prompt");
+            if (modal) updateMuteIcon(modal, false);
+          } else {
+            showUnmuteHint(video);
+          }
         } catch (err) {
           console.warn("[whep] muted play blocked", err.message);
           setStatus("Avtoplay bloklandi — ekranni bosing");
@@ -8118,10 +8131,6 @@ if ("requestIdleCallback" in window) {
 
   function closeHlsPlayerModal() {
     // Avval — agar foydalanuvchi to'liq ekran rejimida bo'lsa, undan chiqamiz
-    try {
-      const tg = window.Telegram?.WebApp;
-      if (tg?.isFullscreen && typeof tg.exitFullscreen === "function") tg.exitFullscreen();
-    } catch (_) {}
     try {
       const inFs = document.fullscreenElement || document.webkitFullscreenElement;
       if (inFs) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
