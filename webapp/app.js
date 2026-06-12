@@ -7719,10 +7719,16 @@ if ("requestIdleCallback" in window) {
   function toggleFullscreen(modal) {
     const doc = document;
     const tg = window.Telegram?.WebApp;
+    const video = modal.querySelector("#fifaHlsVideo");
     const inStdFs = doc.fullscreenElement || doc.webkitFullscreenElement;
     const inTgFs = !!tg?.isFullscreen;
+    const inIosFs = !!video?.webkitDisplayingFullscreen;
 
     // CHIQISH
+    if (inIosFs && typeof video.webkitExitFullscreen === "function") {
+      try { video.webkitExitFullscreen(); } catch (_) {}
+      return;
+    }
     if (inStdFs) {
       try { (doc.exitFullscreen || doc.webkitExitFullscreen)?.call(doc); } catch (_) {}
       return;
@@ -7732,9 +7738,17 @@ if ("requestIdleCallback" in window) {
       return;
     }
 
-    // KIRISH — avval standart Fullscreen API (Telegram chrome'siz toza ekran).
-    // Telegram WebView'da ko'pincha bloklangan; promise reject bo'lsa Telegram
-    // fullscreen API'ga tushamiz (floating tugmalar bo'lsa ham fullscreen ishlasin).
+    // KIRISH — qurilmaga qarab eng tabiiy fullscreen yo'lini tanlaymiz.
+    // 1) iOS Safari / iOS Telegram WebView: video.webkitEnterFullscreen() —
+    //    Telegram chat'dagi videodek toza native player, hech qanday TG chrome
+    //    yo'q. Chiqishda attachFullscreenRecovery srcObject'ni qayta biriktiradi.
+    if (video && typeof video.webkitEnterFullscreen === "function") {
+      try { video.webkitEnterFullscreen(); return; } catch (err) {
+        console.warn("[fs] webkitEnterFullscreen threw", err?.message);
+      }
+    }
+    // 2) Desktop / Android Chrome: standart Element.requestFullscreen — toza
+    //    ekran, hech qanday chrome.
     const fallbackToTg = (why) => {
       console.warn("[fs] standard fs failed, falling back to TG:", why);
       if (tg && typeof tg.requestFullscreen === "function") {
@@ -7754,6 +7768,7 @@ if ("requestIdleCallback" in window) {
         return;
       }
     }
+    // 3) Oxirgi chora — Telegram fullscreen (floating tugmalar bilan)
     fallbackToTg("no requestFullscreen on element");
   }
 
