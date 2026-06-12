@@ -6206,10 +6206,31 @@ async function loadAppSettings() {
       } else {
         activePreRollAd = null;
       }
-      // FIFA "Jonli efir" translatsiya promo kartasi (Telegram jonli efir havolasi)
-      if (data && data.fifaLive && data.fifaLive.enabled && data.fifaLive.channelUrl) {
-        fifaLiveConfig = data.fifaLive;
-      } else {
+      // FIFA "Jonli efir" promo kartasi — admin /api/categories?type=fifa-live dan o'qiladi
+      try {
+        const liveRes = await fetch(buildApiUrl("/api/categories?type=fifa-live"), {
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        });
+        if (liveRes.ok) {
+          const liveJson = await liveRes.json();
+          const m = liveJson && liveJson.match;
+          if (m && m.isLive && m.telegramUrl) {
+            fifaLiveConfig = {
+              enabled: true,
+              channelUrl: m.telegramUrl,
+              imageUrl: m.coverUrl || "",
+              title: m.title || "Jonli efir",
+              subtitle: "",
+              buttonText: "Tomosha qilish",
+            };
+          } else {
+            fifaLiveConfig = null;
+          }
+        } else {
+          fifaLiveConfig = null;
+        }
+      } catch (_) {
         fifaLiveConfig = null;
       }
       try { window.renderFifaLivePromo?.(); } catch (_) {}
@@ -7575,16 +7596,106 @@ if ("requestIdleCallback" in window) {
   function openFifaLiveChannel(url) {
     const target = String(url || "").trim();
     if (!target) return;
+    // HLS oqim (.m3u8) — app ichida pleyer modali bilan o'ynaymiz
+    if (/\.m3u8(\?|$)/i.test(target)) {
+      openHlsPlayerModal(target);
+      return;
+    }
     try {
       const tg = window.Telegram?.WebApp;
-      // Telegram jonli efir — Telegram ichida to'g'ridan-to'g'ri ochiladi
-      // (t.me/kanal?livestream=... — bu turdagi efirni app ichida embed qilib bo'lmaydi)
-      if (tg?.openTelegramLink) { tg.openTelegramLink(target); return; }
+      if (/^(https?:\/\/(t|telegram)\.me\/|tg:\/\/)/i.test(target) && tg?.openTelegramLink) {
+        tg.openTelegramLink(target);
+        return;
+      }
       if (tg?.openLink) { tg.openLink(target); return; }
       window.open(target, "_blank", "noopener");
     } catch (_) {
       window.open(target, "_blank", "noopener");
     }
+  }
+
+  // --- HLS pleyer modali (jonli efirni app ichida ko'rsatish) ---
+  let hlsLibLoading = null;
+  function loadHlsLib() {
+    if (window.Hls) return Promise.resolve(window.Hls);
+    if (hlsLibLoading) return hlsLibLoading;
+    hlsLibLoading = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";
+      s.async = true;
+      s.onload = () => resolve(window.Hls);
+      s.onerror = () => reject(new Error("hls.js yuklanmadi"));
+      document.head.appendChild(s);
+    });
+    return hlsLibLoading;
+  }
+
+  let activeHlsInstance = null;
+  function openHlsPlayerModal(src) {
+    let modal = document.getElementById("fifaHlsModal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "fifaHlsModal";
+      modal.setAttribute("role", "dialog");
+      modal.setAttribute("aria-modal", "true");
+      modal.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px;";
+      modal.innerHTML = `
+        <button type="button" id="fifaHlsClose" aria-label="Yopish" style="position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+        <video id="fifaHlsVideo" controls playsinline autoplay style="max-width:100%;max-height:100%;width:100%;background:#000;border-radius:8px;"></video>
+        <div id="fifaHlsStatus" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;background:rgba(0,0,0,.6);padding:8px 14px;border-radius:20px;display:none;"></div>
+      `;
+      document.body.appendChild(modal);
+      modal.querySelector("#fifaHlsClose").addEventListener("click", closeHlsPlayerModal);
+      modal.addEventListener("click", (e) => { if (e.target === modal) closeHlsPlayerModal(); });
+    }
+    modal.hidden = false;
+    document.body.classList.add("fifa-hls-open");
+    const video = modal.querySelector("#fifaHlsVideo");
+    const status = modal.querySelector("#fifaHlsStatus");
+    const setStatus = (msg) => {
+      if (!status) return;
+      status.textContent = msg || "";
+      status.style.display = msg ? "block" : "none";
+    };
+    setStatus("Yuklanmoqda…");
+
+    const canNative = video.canPlayType("application/vnd.apple.mpegurl");
+    if (canNative) {
+      video.src = src;
+      video.addEventListener("loadedmetadata", () => setStatus(""), { once: true });
+      video.addEventListener("error", () => setStatus("Oqimni yuklab bo'lmadi"), { once: true });
+      video.play().catch(() => {});
+      return;
+    }
+    loadHlsLib().then((Hls) => {
+      if (!Hls || !Hls.isSupported()) {
+        setStatus("Brauzer HLS oqimini qo'llab-quvvatlamaydi");
+        return;
+      }
+      try { activeHlsInstance?.destroy?.(); } catch (_) {}
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+      activeHlsInstance = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { setStatus(""); video.play().catch(() => {}); });
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (data && data.fatal) setStatus("Oqim xatosi — qaytadan ulanmoqda");
+      });
+    }).catch((err) => {
+      setStatus(err.message || "Pleyer yuklanmadi");
+    });
+  }
+
+  function closeHlsPlayerModal() {
+    const modal = document.getElementById("fifaHlsModal");
+    if (!modal) return;
+    modal.hidden = true;
+    document.body.classList.remove("fifa-hls-open");
+    const video = modal.querySelector("#fifaHlsVideo");
+    try { video?.pause?.(); } catch (_) {}
+    if (video) { video.removeAttribute("src"); video.load?.(); }
+    try { activeHlsInstance?.destroy?.(); } catch (_) {}
+    activeHlsInstance = null;
   }
 
   window.renderFifaLivePromo = renderFifaLivePromo;
