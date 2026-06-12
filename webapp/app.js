@@ -7817,6 +7817,7 @@ if ("requestIdleCallback" in window) {
     }
     if (inTgFs && typeof tg?.exitFullscreen === "function") {
       try { tg.exitFullscreen(); } catch (_) {}
+      try { tg.BackButton?.show?.(); } catch (_) {}
       return;
     }
 
@@ -7829,29 +7830,33 @@ if ("requestIdleCallback" in window) {
         console.warn("[fs] webkitEnterFullscreen threw", err?.message);
       }
     }
-    // 2) Desktop / Android Chrome: standart Element.requestFullscreen — toza
-    //    ekran, hech qanday chrome.
-    const fallbackToTg = (why) => {
-      console.warn("[fs] standard fs failed, falling back to TG:", why);
-      if (tg && typeof tg.requestFullscreen === "function") {
-        try { tg.requestFullscreen(); } catch (err) { console.warn("[fs] tg fs error", err?.message); }
+    // 2) Telegram WebView (Android va boshqalar) — Bot API 8.0+ requestFullscreen.
+    //    Kino pleyer bilan bir xil pattern: standart Element.requestFullscreen'ni
+    //    URINMAYMIZ chunki u Telegram WebView'da silently reject bo'lib, ayni
+    //    paytda user gesture'ni iste'mol qilib qo'yadi — keyin tg.requestFullscreen
+    //    ham ishlamay qoladi. Va BackButton'ni yashiramiz, aks holda Telegram
+    //    yuqorida sahifa header'ini saqlaydi.
+    if (tg && typeof tg.requestFullscreen === "function") {
+      try {
+        tg.requestFullscreen();
+        try { tg.BackButton?.hide?.(); } catch (_) {}
+        return;
+      } catch (err) {
+        console.warn("[fs] tg.requestFullscreen threw", err?.message);
       }
-    };
+    }
+    // 3) Standalone brauzer (Telegram tashqarisida) — standart Fullscreen API
     const req = modal.requestFullscreen || modal.webkitRequestFullscreen;
     if (req) {
       try {
         const p = req.call(modal);
         if (p && typeof p.then === "function") {
-          p.catch((err) => fallbackToTg(err?.message || "rejected"));
+          p.catch((err) => console.warn("[fs] std reject", err?.message));
         }
-        return;
       } catch (err) {
-        fallbackToTg(err?.message || "threw");
-        return;
+        console.warn("[fs] std threw", err?.message);
       }
     }
-    // 3) Oxirgi chora — Telegram fullscreen (floating tugmalar bilan)
-    fallbackToTg("no requestFullscreen on element");
   }
 
   // iOS native fullscreen'dan chiqqach video element ba'zan toza qora qotib
@@ -8035,21 +8040,26 @@ if ("requestIdleCallback" in window) {
         try {
           await video.play();
           setStatus("");
-          // Audio elementni tekshiramiz — agar muvaffaqiyatli o'ynayotgan bo'lsa,
-          // "Ovozni yoqish" tugmasini ko'rsatmaymiz (iOS bu yo'lga tushadi). Aks
-          // holda (Android/PC ko'pincha) — tugmani ko'rsatamiz.
+          // Audio holatini tekshirib qaror qilamiz:
+          // - Audio ham o'ynayotgan bo'lsa (iOS): hech narsa ko'rsatmaymiz
+          // - Audio o'ynamayotgan bo'lsa (Android/PC): video'ni ham pauza
+          //   qilamiz va markazda katta play tugmasi chiqaramiz — foydalanuvchi
+          //   bir tap bilan ikkalasini birga ishga tushiradi.
           const audioEl = modal?.querySelector("#fifaHlsAudio");
           await new Promise((r) => setTimeout(r, 200));
           if (audioEl && !audioEl.paused && !audioEl.muted) {
-            console.log("[audio] already playing — skipping unmute prompt");
+            console.log("[audio] already playing — fully started");
             if (modal) updateMuteIcon(modal, false);
+            if (modal) setCenterPlayState(modal, true);
           } else {
-            showUnmuteHint(video);
+            console.log("[audio] not playing — pausing video, awaiting tap");
+            try { video.pause(); } catch (_) {}
+            if (modal) setCenterPlayState(modal, false);
           }
         } catch (err) {
           console.warn("[whep] muted play blocked", err.message);
-          setStatus("Avtoplay bloklandi — ekranni bosing");
-          showTapToPlayHint(video);
+          setStatus("");
+          if (modal) setCenterPlayState(modal, false);
         }
       };
       pc.ontrack = (e) => {
@@ -8312,6 +8322,8 @@ if ("requestIdleCallback" in window) {
     try {
       const tg = window.Telegram?.WebApp;
       if (tg?.isFullscreen && typeof tg.exitFullscreen === "function") tg.exitFullscreen();
+      // BackButton fullscreen vaqtida yashirilgan edi — qaytaramiz
+      try { tg?.BackButton?.show?.(); } catch (_) {}
     } catch (_) {}
 
     const modal = document.getElementById("fifaHlsModal");
