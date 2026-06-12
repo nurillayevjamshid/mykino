@@ -278,8 +278,11 @@ function normalizeFifaLiveTelegramUrl(value) {
     err.statusCode = 400;
     throw err;
   }
-  if (!/\.m3u8$/i.test(parsed.pathname)) {
-    const err = new Error("OBS stream HLS playlist bo'lishi kerak. Misol: https://stream.example.com/live/match.m3u8");
+  const path = parsed.pathname;
+  const isHls = /\.m3u8$/i.test(path);
+  const isWhep = /\/webRTC\/play(\?|$)/i.test(path);
+  if (!isHls && !isWhep) {
+    const err = new Error("Stream havola HLS playlist (.m3u8) yoki Cloudflare WHEP playback URL (.../webRTC/play) bo'lishi kerak.");
     err.statusCode = 400;
     throw err;
   }

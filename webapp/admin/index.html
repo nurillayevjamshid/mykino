@@ -819,9 +819,12 @@
             </div>
 
             <div class="form-group">
-              <label>OBS stream havolasi (HLS .m3u8)</label>
-              <input type="url" id="fifaLiveTelegramUrl" class="form-input" placeholder="https://stream.example.com/live/match.m3u8">
-              <small class="form-hint">OBS Studio &rarr; Settings &rarr; Stream &rarr; <b>Custom</b> serverdan olingan HLS playlist URL'ini yopishtiring. Format: <code>https://...m3u8</code> (so'rov parametrlari ruxsat etiladi, masalan <code>?token=...</code>).</small>
+              <label>OBS stream havolasi (HLS yoki WHEP)</label>
+              <input type="url" id="fifaLiveTelegramUrl" class="form-input" placeholder="https://customer-XXX.cloudflarestream.com/.../manifest/video.m3u8">
+              <small class="form-hint">Cloudflare Live Input sahifasidan ikkitadan birini yopishtiring:<br>
+                &bull; <b>HLS Manifest URL</b> &mdash; <code>.../manifest/video.m3u8</code> (RTMPS ingest uchun, 15-30 sek kechikish)<br>
+                &bull; <b>WebRTC (WHEP) Playback URL</b> &mdash; <code>.../webRTC/play</code> (WHIP ingest uchun, 1-2 sek past kechikish)
+              </small>
             </div>
 
             <div class="form-group">
