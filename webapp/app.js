@@ -7659,30 +7659,57 @@ if ("requestIdleCallback" in window) {
     };
     setStatus("Yuklanmoqda…");
 
-    const canNative = video.canPlayType("application/vnd.apple.mpegurl");
-    if (canNative) {
-      video.src = src;
-      video.addEventListener("loadedmetadata", () => setStatus(""), { once: true });
-      video.addEventListener("error", () => setStatus("Oqimni yuklab bo'lmadi"), { once: true });
-      video.play().catch(() => {});
-      return;
-    }
-    loadHlsLib().then((Hls) => {
-      if (!Hls || !Hls.isSupported()) {
+    // Avval hls.js bilan urinamiz (Chromium/Firefox/Telegram WebView), faqat
+    // hls.js qo'llamaydigan joyda (asosan iOS Safari) native HLS'ga tushamiz.
+    const tryNative = () => {
+      const canNative = video.canPlayType("application/vnd.apple.mpegurl");
+      if (!canNative) {
         setStatus("Brauzer HLS oqimini qo'llab-quvvatlamaydi");
         return;
       }
+      video.src = src;
+      const onErr = () => setStatus("Oqimni yuklab bo'lmadi");
+      video.addEventListener("loadedmetadata", () => setStatus(""), { once: true });
+      video.addEventListener("error", onErr, { once: true });
+      video.play().catch(() => {});
+    };
+
+    loadHlsLib().then((Hls) => {
+      if (!Hls || !Hls.isSupported()) {
+        tryNative();
+        return;
+      }
       try { activeHlsInstance?.destroy?.(); } catch (_) {}
-      const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        manifestLoadingMaxRetry: 6,
+        manifestLoadingRetryDelay: 1500,
+        levelLoadingMaxRetry: 6,
+      });
       activeHlsInstance = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => { setStatus(""); video.play().catch(() => {}); });
       hls.on(Hls.Events.ERROR, (_e, data) => {
-        if (data && data.fatal) setStatus("Oqim xatosi — qaytadan ulanmoqda");
+        if (!data || !data.fatal) return;
+        console.warn("[hls.js fatal]", data.type, data.details, data.response?.code);
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          if (data.details === "manifestLoadError" || data.response?.code === 404) {
+            setStatus("Oqim hali tayyor emas. 20 sekunddan keyin qayta urinib ko'ring.");
+          } else {
+            setStatus(`Tarmoq xatosi: ${data.details}`);
+          }
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          setStatus(`Media xatosi: ${data.details}`);
+          try { hls.recoverMediaError(); } catch (_) {}
+        } else {
+          setStatus(`Pleyer xatosi: ${data.details}`);
+        }
       });
     }).catch((err) => {
-      setStatus(err.message || "Pleyer yuklanmadi");
+      console.warn("[hls.js load failed]", err);
+      tryNative();
     });
   }
 
