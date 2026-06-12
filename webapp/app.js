@@ -7638,6 +7638,56 @@ if ("requestIdleCallback" in window) {
   let activeHlsInstance = null;
   let activeWhepPc = null;
 
+  function injectPlayerStylesOnce() {
+    if (document.getElementById("fifaPlayerStyles")) return;
+    const css = `
+      #fifaHlsModal { position:fixed; inset:0; z-index:9999; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+      #fifaHlsModal #fifaHlsVideo { width:100%; height:100%; object-fit:contain; background:#000; display:block; }
+      #fifaHlsModal .fifa-player__top { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:14px 16px calc(14px + env(safe-area-inset-top, 0px)); padding-top:calc(14px + env(safe-area-inset-top, 0px)); background:linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,0)); transition:opacity .2s; }
+      #fifaHlsModal .fifa-player__bottom { position:absolute; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background:linear-gradient(0deg, rgba(0,0,0,.6), rgba(0,0,0,0)); transition:opacity .2s; }
+      #fifaHlsModal.controls-hidden .fifa-player__top,
+      #fifaHlsModal.controls-hidden .fifa-player__bottom { opacity:0; pointer-events:none; }
+      #fifaHlsModal .fifa-player__icon-btn { width:42px; height:42px; border-radius:50%; border:0; background:rgba(20,20,22,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; touch-action:manipulation; }
+      #fifaHlsModal .fifa-player__icon-btn:active { transform:scale(.94); }
+      #fifaHlsModal .fifa-player__badge { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:14px; background:#e53935; color:#fff; font-size:12px; font-weight:700; letter-spacing:.5px; }
+      #fifaHlsModal .fifa-player__dot { width:8px; height:8px; border-radius:50%; background:#fff; animation:fifaPlayerPulse 1.4s infinite; }
+      @keyframes fifaPlayerPulse { 0%,100% { opacity:1 } 50% { opacity:.4 } }
+      #fifaHlsModal .fifa-player__status { position:absolute; bottom:calc(72px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); color:#fff; font-size:14px; background:rgba(0,0,0,.65); padding:8px 14px; border-radius:18px; display:none; max-width:90%; text-align:center; }
+      #fifaPlayerOverlay { font-family:inherit; }
+      body.fifa-hls-open { overflow:hidden; }
+    `;
+    const style = document.createElement("style");
+    style.id = "fifaPlayerStyles";
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  function updateMuteIcon(modal, muted) {
+    const btn = modal.querySelector("#fifaHlsMute");
+    if (!btn) return;
+    btn.innerHTML = muted
+      ? `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.42.05-.63zM19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.17v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></svg>`
+      : `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>`;
+  }
+
+  function toggleFullscreen(modal) {
+    const video = modal.querySelector("#fifaHlsVideo");
+    const doc = document;
+    const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
+    if (isFs) {
+      (doc.exitFullscreen || doc.webkitExitFullscreen)?.call(doc);
+      return;
+    }
+    // iOS Safari: only <video> elements can enter fullscreen
+    if (video.webkitEnterFullscreen) {
+      try { video.webkitEnterFullscreen(); return; } catch (_) {}
+    }
+    const req = modal.requestFullscreen || modal.webkitRequestFullscreen;
+    if (req) {
+      req.call(modal).catch((err) => console.warn("[fs]", err.message));
+    }
+  }
+
   function removePlayerOverlay() {
     document.getElementById("fifaPlayerOverlay")?.remove();
   }
@@ -7653,6 +7703,7 @@ if ("requestIdleCallback" in window) {
     btn.addEventListener("click", () => {
       video.muted = false;
       video.play().catch(() => {});
+      updateMuteIcon(modal, false);
       removePlayerOverlay();
     }, { once: true });
     modal.appendChild(btn);
@@ -7703,13 +7754,16 @@ if ("requestIdleCallback" in window) {
         // Avval ovozli avtoplay sinab ko'ramiz (foydalanuvchi "Tomosha qilish"
         // tugmasini bosgan — gesture bor). Brauzer to'sib qo'ysa — muted'da
         // qaytadan urinamiz va ovoz uchun overlay ko'rsatamiz.
+        const modal = document.getElementById("fifaHlsModal");
         video.muted = false;
         try {
           await video.play();
           setStatus("");
+          if (modal) updateMuteIcon(modal, false);
         } catch (err) {
           console.warn("[whep] unmuted play blocked, retrying muted", err.message);
           video.muted = true;
+          if (modal) updateMuteIcon(modal, true);
           try {
             await video.play();
             setStatus("");
@@ -7786,17 +7840,50 @@ if ("requestIdleCallback" in window) {
       modal.id = "fifaHlsModal";
       modal.setAttribute("role", "dialog");
       modal.setAttribute("aria-modal", "true");
-      modal.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px;";
       modal.innerHTML = `
-        <button type="button" id="fifaHlsClose" aria-label="Yopish" style="position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
-        <video id="fifaHlsVideo" controls playsinline autoplay style="max-width:100%;max-height:100%;width:100%;background:#000;border-radius:8px;"></video>
-        <div id="fifaHlsStatus" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;background:rgba(0,0,0,.6);padding:8px 14px;border-radius:20px;display:none;"></div>
+        <video id="fifaHlsVideo" playsinline autoplay webkit-playsinline x5-playsinline></video>
+        <div class="fifa-player__top">
+          <span class="fifa-player__badge"><span class="fifa-player__dot"></span>JONLI</span>
+          <button type="button" id="fifaHlsClose" class="fifa-player__icon-btn" aria-label="Yopish">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <div class="fifa-player__bottom">
+          <button type="button" id="fifaHlsMute" class="fifa-player__icon-btn" aria-label="Ovoz">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
+          </button>
+          <button type="button" id="fifaHlsFs" class="fifa-player__icon-btn" aria-label="To'liq ekran">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+        <div id="fifaHlsStatus" class="fifa-player__status"></div>
       `;
       document.body.appendChild(modal);
-      modal.querySelector("#fifaHlsClose").addEventListener("click", closeHlsPlayerModal);
-      modal.addEventListener("click", (e) => { if (e.target === modal) closeHlsPlayerModal(); });
+      injectPlayerStylesOnce();
+      modal.querySelector("#fifaHlsClose").addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeHlsPlayerModal();
+      });
+      modal.querySelector("#fifaHlsMute").addEventListener("click", (e) => {
+        e.stopPropagation();
+        const v = modal.querySelector("#fifaHlsVideo");
+        v.muted = !v.muted;
+        updateMuteIcon(modal, v.muted);
+      });
+      modal.querySelector("#fifaHlsFs").addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleFullscreen(modal);
+      });
+      // Video ustiga bosish — live oqim uchun pauza qilmaymiz, faqat
+      // boshqaruv panellarini ko'rsatish/yashirish (autohide).
+      const video = modal.querySelector("#fifaHlsVideo");
+      video.addEventListener("click", (e) => {
+        e.preventDefault();
+        modal.classList.toggle("controls-hidden");
+      });
     }
     modal.hidden = false;
+    modal.classList.remove("controls-hidden");
     document.body.classList.add("fifa-hls-open");
     const video = modal.querySelector("#fifaHlsVideo");
     const status = modal.querySelector("#fifaHlsStatus");
@@ -7805,6 +7892,7 @@ if ("requestIdleCallback" in window) {
       status.textContent = msg || "";
       status.style.display = msg ? "block" : "none";
     };
+    updateMuteIcon(modal, video.muted);
     // Avvalgi sessiya qoldiqlarini tozalaymiz
     try { video.srcObject = null; } catch (_) {}
     try { video.removeAttribute("src"); video.load?.(); } catch (_) {}
