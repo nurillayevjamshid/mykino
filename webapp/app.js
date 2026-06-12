@@ -7375,11 +7375,24 @@ if ("requestIdleCallback" in window) {
         if (name && !gt.has(name)) gt.set(name, { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 });
       }
       const live = liveMap[`${m.team1}|${m.team2}`.toLowerCase()];
-      const isFinished = live && (live.status === "finished" || live.status === "ft" || live.status === "ended");
-      if (isFinished && live.score_home != null && live.score_away != null) {
-        const h = Number(live.score_home), a = Number(live.score_away);
+      const liveFinished = live && (live.status === "finished" || live.status === "ft" || live.status === "ended");
+      // Live manba'dan tugagan natija; aks holda openfootball jadvalining
+      // o'zidagi yakuniy hisob (score.ft / score1+score2) — manba tushib
+      // qolsa ham jadval to'g'ri qoladi.
+      const schedFt = Array.isArray(m?.score?.ft) ? m.score.ft : null;
+      const schedH = m?.score1 ?? m?.home_score ?? null;
+      const schedA = m?.score2 ?? m?.away_score ?? null;
+      let h = null, a = null;
+      if (liveFinished && live.score_home != null && live.score_away != null) {
+        h = Number(live.score_home); a = Number(live.score_away);
+      } else if (schedFt && schedFt[0] != null && schedFt[1] != null) {
+        h = Number(schedFt[0]); a = Number(schedFt[1]);
+      } else if (schedH != null && schedA != null) {
+        h = Number(schedH); a = Number(schedA);
+      }
+      if (h != null && a != null && Number.isFinite(h) && Number.isFinite(a)) {
         const t1 = gt.get(m.team1), t2 = gt.get(m.team2);
-        if (t1 && t2 && Number.isFinite(h) && Number.isFinite(a)) {
+        if (t1 && t2) {
           t1.p++; t2.p++;
           t1.gf += h; t1.ga += a; t2.gf += a; t2.ga += h;
           if (h > a) { t1.w++; t2.l++; t1.pts += 3; }
