@@ -7688,6 +7688,31 @@ if ("requestIdleCallback" in window) {
     }
   }
 
+  // iOS native fullscreen'dan chiqqach video element ba'zan toza qora qotib
+  // qoladi — MediaStream uziladi yoki rendering pipeline buziladi. Qaytadan
+  // play() chaqirib va srcObject'ni yangidan biriktirib kadrlarni tiklaymiz.
+  function attachFullscreenRecovery(modal) {
+    const video = modal.querySelector("#fifaHlsVideo");
+    if (!video || video.dataset.fsRecoveryBound === "1") return;
+    video.dataset.fsRecoveryBound = "1";
+    const recover = () => {
+      const inFs = document.fullscreenElement || document.webkitFullscreenElement || video.webkitDisplayingFullscreen;
+      if (inFs) return;
+      // Fullscreen yopildi — kadrlarni qaytaramiz
+      const stream = video.srcObject;
+      if (stream) {
+        try {
+          video.srcObject = null;
+          video.srcObject = stream;
+        } catch (_) {}
+      }
+      video.play().catch(() => {});
+    };
+    document.addEventListener("fullscreenchange", recover);
+    document.addEventListener("webkitfullscreenchange", recover);
+    video.addEventListener("webkitendfullscreen", recover);
+  }
+
   function removePlayerOverlay() {
     document.getElementById("fifaPlayerOverlay")?.remove();
   }
@@ -7698,9 +7723,10 @@ if ("requestIdleCallback" in window) {
     const btn = document.createElement("button");
     btn.id = "fifaPlayerOverlay";
     btn.type = "button";
-    btn.style.cssText = "position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10;padding:10px 16px;border-radius:24px;border:0;background:rgba(255,255,255,.95);color:#111;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;";
-    btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>Bosib ovozni yoqing`;
-    btn.addEventListener("click", () => {
+    btn.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:20;padding:14px 22px;border-radius:32px;border:0;background:rgba(229,57,53,.96);color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.5);animation:fifaPlayerPulse 1.6s infinite;";
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>Ovozni yoqish`;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
       video.muted = false;
       video.play().catch(() => {});
       updateMuteIcon(modal, false);
@@ -7744,7 +7770,11 @@ if ("requestIdleCallback" in window) {
         if (playStarted) return;
         playStarted = true;
         try {
+          // Audio track'lar yoqilgan bo'lishi shart (default true, lekin
+          // ba'zi WHEP serverlar disabled holatda yuborishi mumkin)
+          stream.getAudioTracks?.().forEach((t) => { try { t.enabled = true; } catch (_) {} });
           video.srcObject = stream;
+          video.volume = 1.0;
         } catch (err) {
           console.warn("[whep] srcObject assign failed", err.message);
           setStatus(`Video xatosi: ${err.message}`);
@@ -7881,6 +7911,7 @@ if ("requestIdleCallback" in window) {
         e.preventDefault();
         modal.classList.toggle("controls-hidden");
       });
+      attachFullscreenRecovery(modal);
     }
     modal.hidden = false;
     modal.classList.remove("controls-hidden");
@@ -7969,6 +8000,12 @@ if ("requestIdleCallback" in window) {
   }
 
   function closeHlsPlayerModal() {
+    // Avval — agar foydalanuvchi to'liq ekran rejimida bo'lsa, undan chiqamiz
+    try {
+      const inFs = document.fullscreenElement || document.webkitFullscreenElement;
+      if (inFs) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+    } catch (_) {}
+
     const modal = document.getElementById("fifaHlsModal");
     if (!modal) return;
     modal.hidden = true;
@@ -7985,6 +8022,17 @@ if ("requestIdleCallback" in window) {
     try { activeWhepPc?.close?.(); } catch (_) {}
     activeWhepPc = null;
     removePlayerOverlay();
+
+    // FIFA ko'rinishi to'liq ekran/iOS o'zgarishlari sabab yashirilib qolgan
+    // bo'lishi mumkin — qaytadan ko'rsatamiz, tab holatini saqlaymiz.
+    try {
+      const fifaView = document.getElementById("fifaView");
+      if (fifaView) {
+        fifaView.hidden = false;
+        fifaView.style.display = "";
+      }
+      document.body.classList.add("is-fifa");
+    } catch (_) {}
   }
 
   window.renderFifaLivePromo = renderFifaLivePromo;
