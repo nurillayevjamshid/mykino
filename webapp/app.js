@@ -7316,11 +7316,29 @@ if ("requestIdleCallback" in window) {
         : kickoff;
       const dayKey = fmtTashkentDayKey(displayKickoff);
       const live = liveMap[`${m.team1}|${m.team2}`.toLowerCase()] || null;
-      const status = (live?.status === "live" || live?.status === "inprogress" || live?.status === "playing") ? "live"
-                   : (live?.status === "finished" || live?.status === "ft" || live?.status === "ended") ? "finished"
-                   : "upcoming";
-      const score = live && live.score_home != null && live.score_away != null
-                    ? `${live.score_home} : ${live.score_away}` : null;
+      // Openfootball jadvali tugagan o'yinlar uchun score1/score2 ni saqlaydi —
+      // bu live API tushib qolsa ham tarixiy hisobni ushlab turishga yordam beradi.
+      const schedHome = m?.score?.ht?.[0] ?? m?.score1 ?? m?.home_score ?? null;
+      const schedAway = m?.score?.ht?.[1] ?? m?.score2 ?? m?.away_score ?? null;
+      const schedFt = m?.score?.ft || null;
+      const hasSchedScore = Array.isArray(schedFt)
+        ? (schedFt[0] != null && schedFt[1] != null)
+        : (schedHome != null && schedAway != null);
+      const liveStatus = String(live?.status || "").toLowerCase();
+      let status;
+      if (liveStatus === "live" || liveStatus === "inprogress" || liveStatus === "playing") status = "live";
+      else if (liveStatus === "finished" || liveStatus === "ft" || liveStatus === "ended") status = "finished";
+      else if (hasSchedScore) status = "finished";
+      else status = "upcoming";
+
+      let score = null;
+      if (live && live.score_home != null && live.score_away != null) {
+        score = `${live.score_home} : ${live.score_away}`;
+      } else if (Array.isArray(schedFt) && schedFt[0] != null && schedFt[1] != null) {
+        score = `${schedFt[0]} : ${schedFt[1]}`;
+      } else if (schedHome != null && schedAway != null) {
+        score = `${schedHome} : ${schedAway}`;
+      }
       const item = {
         home: teamUz(m.team1),
         away: teamUz(m.team2),
@@ -7384,18 +7402,24 @@ if ("requestIdleCallback" in window) {
     return { matches, groups };
   }
 
-  async function loadFifaData() {
-    if (loadState === "loading" || loadState === "ready") return;
+  async function loadFifaData(force = false) {
+    // force=true bo'lsa, ready holatda ham qayta yuklaymiz (live skorni
+    // yangilash uchun). Lekin "loading" oqimini bir vaqtning o'zida
+    // ikki marta boshlamaymiz.
+    if (loadState === "loading") return;
+    if (!force && loadState === "ready") return;
+    const wasReady = loadState === "ready";
     loadState = "loading";
     try {
-      const res = await fetch("/api/categories?type=fifa", { headers: { Accept: "application/json" } });
+      const url = force ? `/api/categories?type=fifa&_=${Date.now()}` : "/api/categories?type=fifa";
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const payload = await res.json();
       FIFA_DATA = normalizeFromPayload(payload);
       loadState = "ready";
     } catch (err) {
       console.warn("FIFA fetch xato:", err.message);
-      loadState = "error";
+      loadState = wasReady ? "ready" : "error";
     }
   }
 
@@ -7428,13 +7452,20 @@ if ("requestIdleCallback" in window) {
       <div class="fifa-day">${esc(day.day)}</div>
       ${day.items.map((m) => {
         const isLive = m.status === "live";
-        const center = isLive
-          ? `<div class="fifa-match__score">${esc(m.score || "-")}</div>
-             <div class="fifa-match__status"><span class="fifa-match__status-dot"></span>${esc(m.minute || "LIVE")}</div>`
-          : `<div class="fifa-match__score">vs</div>
+        const isFinished = m.status === "finished" && m.score;
+        let center;
+        if (isLive) {
+          center = `<div class="fifa-match__score">${esc(m.score || "-")}</div>
+             <div class="fifa-match__status"><span class="fifa-match__status-dot"></span>${esc(m.minute || "LIVE")}</div>`;
+        } else if (isFinished) {
+          center = `<div class="fifa-match__score">${esc(m.score)}</div>
+             <div class="fifa-match__time">Tugadi</div>`;
+        } else {
+          center = `<div class="fifa-match__score">vs</div>
              <div class="fifa-match__time">${esc(m.time)}</div>`;
+        }
         return `
-          <div class="fifa-match${isLive ? " fifa-match--live" : ""}">
+          <div class="fifa-match${isLive ? " fifa-match--live" : isFinished ? " fifa-match--finished" : ""}">
             <div class="fifa-match__team fifa-match__team--home">
               <span class="fifa-match__name">${esc(m.home)}</span>
               <span class="fifa-match__flag">${m.homeFlag}</span>
@@ -7455,7 +7486,7 @@ if ("requestIdleCallback" in window) {
     const panel = document.getElementById("fifaPanelLive");
     if (!panel) return;
     const live = FIFA_DATA.matches.flatMap((d) => d.items).filter((m) => m.status === "live");
-    const upcoming = FIFA_DATA.matches.flatMap((d) => d.items).filter((m) => m.status !== "live").slice(0, 3);
+    const upcoming = FIFA_DATA.matches.flatMap((d) => d.items).filter((m) => m.status === "upcoming").slice(0, 3);
     const liveHtml = live.length
       ? live.map((m) => `
           <div class="fifa-live-card">
@@ -8174,6 +8205,27 @@ if ("requestIdleCallback" in window) {
   window.renderFifaLivePromo = renderFifaLivePromo;
 
   // --- Open / close ---
+  let fifaPollTimer = null;
+  const FIFA_POLL_MS = 30 * 1000;
+
+  async function refreshFifa() {
+    await loadFifaData(true);
+    renderMatches();
+    renderGroups();
+    renderLive();
+  }
+  function startFifaPolling() {
+    if (fifaPollTimer) return;
+    fifaPollTimer = setInterval(() => {
+      if (document.hidden) return;
+      if (fifaView?.hidden) return;
+      refreshFifa();
+    }, FIFA_POLL_MS);
+  }
+  function stopFifaPolling() {
+    if (fifaPollTimer) { clearInterval(fifaPollTimer); fifaPollTimer = null; }
+  }
+
   async function openFifaView() {
     fifaView.hidden = false;
     document.body.classList.add("is-fifa");
@@ -8187,10 +8239,13 @@ if ("requestIdleCallback" in window) {
     await loadFifaData();
     renderMatches();
     renderGroups();
+    // Live skor real vaqt rejimida yangilanib tursin
+    startFifaPolling();
   }
   function closeFifaView() {
     fifaView.hidden = true;
     document.body.classList.remove("is-fifa");
+    stopFifaPolling();
     try { tgBackUnregister?.("fifa"); } catch (_) {}
   }
   window.openFifaView = openFifaView;

@@ -12375,6 +12375,8 @@ html[data-theme="light"] .fifa-view__promo {
 }
 .fifa-match--live { border-color: rgba(255,45,85,.45); }
 .fifa-match--live .fifa-match__score { color: #ff5577; }
+.fifa-match--finished .fifa-match__score { color: #2f7cf6; }
+.fifa-match--finished .fifa-match__time { color: rgba(120,120,120,.85); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
 .fifa-match__status {
   display: inline-flex;
   align-items: center;
