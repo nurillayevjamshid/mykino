@@ -405,6 +405,105 @@ async function handleFifa(request, response) {
   }
 }
 
+// =========================================================================
+// FIFA Lineup (TheSportsDB public API) — bitta o'yin tarkibi.
+// home, away (English) → event id → lineup (pozitsiya, raqam, ism, rasm).
+// In-memory cache (5 daqiqa).
+// =========================================================================
+const FIFA_LINEUP_CACHE = new Map();
+const FIFA_LINEUP_TTL_MS = 5 * 60 * 1000;
+const SPORTSDB_BASE = "https://www.thesportsdb.com/api/v1/json/3";
+
+function normalizePosition(strPosition) {
+  const p = String(strPosition || "").toLowerCase();
+  if (!p) return "M";
+  if (p.includes("goal")) return "GK";
+  if (p.includes("back") || p.includes("centre-back") || p.includes("center-back") || p.includes("defender") || p === "d") return "D";
+  if (p.includes("forward") || p.includes("striker") || p.includes("wing") || p === "f") return "F";
+  return "M";
+}
+
+async function buildFifaLineupPayload(home, away) {
+  const norm = (s) => String(s || "").trim().replace(/\s+/g, "_");
+  const url = `${SPORTSDB_BASE}/searchevents.php?e=${encodeURIComponent(`${norm(home)}_vs_${norm(away)}`)}`;
+  const evJson = await fetchJson(url, 7000).catch(() => null);
+  const events = (evJson && Array.isArray(evJson.event)) ? evJson.event : [];
+  // Eng yangi (2026) ni ol
+  const ev = events.sort((a, b) => String(b.dateEvent || "").localeCompare(String(a.dateEvent || ""))).find((e) =>
+    String(e.strLeague || "").toLowerCase().includes("world cup")
+  ) || events[0];
+  if (!ev || !ev.idEvent) {
+    return { ok: true, found: false, home: { starting: [], subs: [] }, away: { starting: [], subs: [] } };
+  }
+  const lineupUrl = `${SPORTSDB_BASE}/lookuplineup.php?id=${encodeURIComponent(ev.idEvent)}`;
+  const lineupJson = await fetchJson(lineupUrl, 7000).catch(() => null);
+  const rows = (lineupJson && Array.isArray(lineupJson.lineup)) ? lineupJson.lineup : [];
+  const homeData = { starting: [], subs: [] };
+  const awayData = { starting: [], subs: [] };
+  for (const r of rows) {
+    const player = {
+      number: r.intSquadNumber ? Number(r.intSquadNumber) : null,
+      name: String(r.strPlayer || "").trim(),
+      position: String(r.strPosition || "").trim(),
+      role: normalizePosition(r.strPosition),
+      club: String(r.strTeam || "").trim(),
+      photo: r.strCutout || r.strThumb || r.strRender || "",
+    };
+    const isSub = String(r.strSubstitute || "").toLowerCase() === "yes";
+    const isHome = String(r.strHome || "").toLowerCase() === "yes";
+    const side = isHome ? homeData : awayData;
+    if (isSub) side.subs.push(player);
+    else side.starting.push(player);
+  }
+  return {
+    ok: true,
+    found: homeData.starting.length + awayData.starting.length > 0,
+    event: {
+      id: ev.idEvent,
+      home: ev.strHomeTeam,
+      away: ev.strAwayTeam,
+      homeScore: ev.intHomeScore,
+      awayScore: ev.intAwayScore,
+      date: ev.dateEvent,
+    },
+    home: homeData,
+    away: awayData,
+  };
+}
+
+async function handleFifaLineup(request, response) {
+  const url = new URL(request.url || "/", "http://localhost");
+  const home = String(url.searchParams.get("home") || "").trim();
+  const away = String(url.searchParams.get("away") || "").trim();
+  if (!home || !away) {
+    response.status(400).json({ ok: false, error: "home va away kerak" });
+    return;
+  }
+  const key = `${home.toLowerCase()}|${away.toLowerCase()}`;
+  const now = Date.now();
+  const cached = FIFA_LINEUP_CACHE.get(key);
+  if (cached && now - cached.at < FIFA_LINEUP_TTL_MS) {
+    response.setHeader("X-Fifa-Lineup-Cache", "HIT");
+    response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    response.status(200).json(cached.data);
+    return;
+  }
+  try {
+    const data = await buildFifaLineupPayload(home, away);
+    FIFA_LINEUP_CACHE.set(key, { data, at: now });
+    response.setHeader("X-Fifa-Lineup-Cache", "MISS");
+    response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    response.status(200).json(data);
+  } catch (err) {
+    if (cached) {
+      response.setHeader("X-Fifa-Lineup-Cache", "STALE");
+      response.status(200).json(cached.data);
+      return;
+    }
+    response.status(502).json({ ok: false, error: err.message || "Lineup manbasi javob bermadi." });
+  }
+}
+
 module.exports = async function handler(request, response) {
   // FIFA route — auth talab qilmaydi (umumiy public data)
   const earlyUrl = new URL(request.url || "/", "http://localhost");
@@ -417,6 +516,10 @@ module.exports = async function handler(request, response) {
   }
   if (earlyType === "fifa-live") {
     await handleFifaLive(request, response);
+    return;
+  }
+  if (earlyType === "fifa-lineup") {
+    await handleFifaLineup(request, response);
     return;
   }
 
