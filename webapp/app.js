@@ -7596,9 +7596,14 @@ if ("requestIdleCallback" in window) {
   function openFifaLiveChannel(url) {
     const target = String(url || "").trim();
     if (!target) return;
-    // HLS oqim (.m3u8) — app ichida pleyer modali bilan o'ynaymiz
+    // Cloudflare WHEP (WebRTC) playback URL — past kechikishli WebRTC pleyer
+    if (/\/webRTC\/play(\?|$)/i.test(target)) {
+      openLivePlayerModal(target, "whep");
+      return;
+    }
+    // HLS oqim (.m3u8) — hls.js / native HLS pleyer
     if (/\.m3u8(\?|$)/i.test(target)) {
-      openHlsPlayerModal(target);
+      openLivePlayerModal(target, "hls");
       return;
     }
     try {
@@ -7631,7 +7636,61 @@ if ("requestIdleCallback" in window) {
   }
 
   let activeHlsInstance = null;
-  function openHlsPlayerModal(src) {
+  let activeWhepPc = null;
+
+  async function playWhep(url, video, setStatus) {
+    // Cloudflare WHEP: POST SDP offer → SDP answer
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
+    });
+    activeWhepPc = pc;
+    pc.addTransceiver("video", { direction: "recvonly" });
+    pc.addTransceiver("audio", { direction: "recvonly" });
+    pc.ontrack = (e) => {
+      if (e.streams && e.streams[0] && video.srcObject !== e.streams[0]) {
+        video.srcObject = e.streams[0];
+        video.play().catch(() => {});
+        setStatus("");
+      }
+    };
+    pc.oniceconnectionstatechange = () => {
+      const st = pc.iceConnectionState;
+      if (st === "failed" || st === "disconnected") {
+        setStatus("Ulanish uzildi");
+      }
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // ICE gathering tugashini kutamiz (Cloudflare non-trickle SDP'ni xohlaydi)
+    await new Promise((resolve) => {
+      if (pc.iceGatheringState === "complete") return resolve();
+      const onChange = () => {
+        if (pc.iceGatheringState === "complete") {
+          pc.removeEventListener("icegatheringstatechange", onChange);
+          resolve();
+        }
+      };
+      pc.addEventListener("icegatheringstatechange", onChange);
+      // 3 sek havf — agar gathering bo'lmasa, qo'lda chiqamiz
+      setTimeout(resolve, 3000);
+    });
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/sdp" },
+      body: pc.localDescription.sdp,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`WHEP ${res.status}${text ? `: ${text.slice(0, 120)}` : ""}`);
+    }
+    const answerSdp = await res.text();
+    await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+  }
+
+  function openLivePlayerModal(src, mode) {
     let modal = document.getElementById("fifaHlsModal");
     if (!modal) {
       modal = document.createElement("div");
@@ -7657,7 +7716,26 @@ if ("requestIdleCallback" in window) {
       status.textContent = msg || "";
       status.style.display = msg ? "block" : "none";
     };
+    // Avvalgi sessiya qoldiqlarini tozalaymiz
+    try { video.srcObject = null; } catch (_) {}
+    try { video.removeAttribute("src"); video.load?.(); } catch (_) {}
+    try { activeHlsInstance?.destroy?.(); } catch (_) {}
+    activeHlsInstance = null;
+    try { activeWhepPc?.close?.(); } catch (_) {}
+    activeWhepPc = null;
     setStatus("Yuklanmoqda…");
+
+    if (mode === "whep") {
+      if (typeof RTCPeerConnection === "undefined") {
+        setStatus("Brauzer WebRTC qo'llab-quvvatlamaydi");
+        return;
+      }
+      playWhep(src, video, setStatus).catch((err) => {
+        console.warn("[whep error]", err);
+        setStatus(err.message || "WebRTC ulanishda xato");
+      });
+      return;
+    }
 
     // Avval hls.js bilan urinamiz (Chromium/Firefox/Telegram WebView), faqat
     // hls.js qo'llamaydigan joyda (asosan iOS Safari) native HLS'ga tushamiz.
@@ -7720,9 +7798,15 @@ if ("requestIdleCallback" in window) {
     document.body.classList.remove("fifa-hls-open");
     const video = modal.querySelector("#fifaHlsVideo");
     try { video?.pause?.(); } catch (_) {}
-    if (video) { video.removeAttribute("src"); video.load?.(); }
+    if (video) {
+      try { video.srcObject = null; } catch (_) {}
+      video.removeAttribute("src");
+      video.load?.();
+    }
     try { activeHlsInstance?.destroy?.(); } catch (_) {}
     activeHlsInstance = null;
+    try { activeWhepPc?.close?.(); } catch (_) {}
+    activeWhepPc = null;
   }
 
   window.renderFifaLivePromo = renderFifaLivePromo;
