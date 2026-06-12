@@ -175,7 +175,10 @@ async function writePodLangs(map) {
 // 5 daqiqali in-memory kesh — funktsiya isitilgan paytda tashqi so'rovni kamaytiradi.
 // =========================================================================
 const FIFA_CACHE = { data: null, at: 0 };
-const FIFA_TTL_MS = 5 * 60 * 1000;
+// Live skor va daqiqa real vaqt rejimida yangilanishi uchun keshni qisqa
+// ushlaymiz. Manba endpoint'lari yengil (4 ta fetch, allSettled), shu sababli
+// 30 soniyalik TTL xavfsiz.
+const FIFA_TTL_MS = 30 * 1000;
 const FIFA_SCHEDULE_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
 const FIFA_LIVE_GAMES_URL = "https://worldcup26.ir/get/games";
 const FIFA_LIVE_GROUPS_URL = "https://worldcup26.ir/get/groups";
