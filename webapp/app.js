@@ -7371,6 +7371,8 @@ if ("requestIdleCallback" in window) {
       const item = {
         home: teamUz(m.team1),
         away: teamUz(m.team2),
+        homeEn: m.team1,
+        awayEn: m.team2,
         homeFlag: teamFlagHtml(m.team1),
         awayFlag: teamFlagHtml(m.team2),
         time: fmtTashkentTime(displayKickoff),
@@ -7506,8 +7508,12 @@ if ("requestIdleCallback" in window) {
           center = `<div class="fifa-match__score">vs</div>
              <div class="fifa-match__time">${esc(m.time)}</div>`;
         }
+        const clickable = isFinished;
+        const dataAttr = clickable
+          ? ` data-fifa-open-lineup="1" data-home-en="${esc(m.homeEn)}" data-away-en="${esc(m.awayEn)}" data-home-uz="${esc(m.home)}" data-away-uz="${esc(m.away)}" data-score="${esc(m.score || "")}" role="button" tabindex="0"`
+          : "";
         return `
-          <div class="fifa-match${isLive ? " fifa-match--live" : isFinished ? " fifa-match--finished" : ""}">
+          <div class="fifa-match${isLive ? " fifa-match--live" : isFinished ? " fifa-match--finished" : ""}${clickable ? " fifa-match--clickable" : ""}"${dataAttr}>
             <div class="fifa-match__team fifa-match__team--home">
               <span class="fifa-match__name">${esc(m.home)}</span>
               <span class="fifa-match__flag">${m.homeFlag}</span>
@@ -8415,6 +8421,205 @@ if ("requestIdleCallback" in window) {
     try { closeMusicView?.(); } catch (_) {}
     try { closePodcastsView?.(); } catch (_) {}
     openFifaView();
+  });
+
+  // =========================================================================
+  // Lineup modal — tugagan o'yin ustiga bosilganda pastdan ochiladi.
+  // Sxema stadion ustida, pastida tarkib + zaxiradan tushganlar + zaxiradagilar.
+  // =========================================================================
+  const lineupCache = new Map();
+
+  function buildPlayerHtml(p, opts = {}) {
+    const num = p.number != null ? String(p.number) : "";
+    const initials = (p.name || "?").split(/\s+/).map((s) => s[0] || "").join("").slice(0, 2).toUpperCase();
+    const photo = p.photo
+      ? `<img src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="this.style.display='none'">`
+      : `<span class="fifa-pitch-player__initials">${esc(initials)}</span>`;
+    return `
+      <div class="fifa-pitch-player${opts.away ? " fifa-pitch-player--away" : ""}">
+        <div class="fifa-pitch-player__avatar">${photo}${num ? `<span class="fifa-pitch-player__num">${esc(num)}</span>` : ""}</div>
+        <div class="fifa-pitch-player__name">${esc(p.name || "—")}</div>
+      </div>
+    `;
+  }
+
+  function groupByRole(starting) {
+    const buckets = { GK: [], D: [], M: [], F: [] };
+    for (const p of starting) {
+      const r = p.role || "M";
+      if (buckets[r]) buckets[r].push(p); else buckets.M.push(p);
+    }
+    return buckets;
+  }
+
+  function renderHalfPitch(starting, isAway) {
+    const b = groupByRole(starting);
+    // Home (yuqori yarim) — GK eng tepada, F eng pastda (markazga yaqin)
+    // Away (pastki yarim) — aks ko'rinish: GK eng pastda
+    const rows = isAway
+      ? [b.F, b.M, b.D, b.GK]
+      : [b.GK, b.D, b.M, b.F];
+    return rows.map((row) => `
+      <div class="fifa-pitch-row">
+        ${row.map((p) => buildPlayerHtml(p, { away: isAway })).join("")}
+      </div>
+    `).join("");
+  }
+
+  function renderBenchList(players, label) {
+    if (!players || !players.length) return "";
+    return `
+      <div class="fifa-bench__group">
+        <div class="fifa-bench__title">${esc(label)}</div>
+        <div class="fifa-bench__list">
+          ${players.map((p) => `
+            <div class="fifa-bench__item">
+              <div class="fifa-bench__avatar">
+                ${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : ""}
+                ${p.number != null ? `<span class="fifa-bench__num">${esc(String(p.number))}</span>` : ""}
+              </div>
+              <div class="fifa-bench__meta">
+                <div class="fifa-bench__name">${esc(p.name || "—")}</div>
+                <div class="fifa-bench__pos">${esc(p.position || "")}</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  async function fetchLineup(homeEn, awayEn) {
+    const key = `${homeEn}|${awayEn}`.toLowerCase();
+    if (lineupCache.has(key)) return lineupCache.get(key);
+    const url = `/api/categories?type=fifa-lineup&home=${encodeURIComponent(homeEn)}&away=${encodeURIComponent(awayEn)}`;
+    const res = await fetch(buildApiUrl(url));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    lineupCache.set(key, data);
+    return data;
+  }
+
+  function ensureLineupModal() {
+    let modal = document.getElementById("fifaLineupModal");
+    if (modal) return modal;
+    modal = document.createElement("div");
+    modal.id = "fifaLineupModal";
+    modal.className = "fifa-lineup-modal";
+    modal.hidden = true;
+    modal.innerHTML = `
+      <div class="fifa-lineup-modal__backdrop" data-close></div>
+      <div class="fifa-lineup-modal__sheet" role="dialog" aria-modal="true" aria-label="O'yin tarkiblari">
+        <div class="fifa-lineup-modal__grabber"></div>
+        <div class="fifa-lineup-modal__head">
+          <div class="fifa-lineup-modal__teams" id="fifaLineupHead"></div>
+          <button type="button" class="fifa-lineup-modal__close" data-close aria-label="Yopish">×</button>
+        </div>
+        <div class="fifa-lineup-modal__body" id="fifaLineupBody"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", (e) => {
+      if (e.target.closest("[data-close]")) closeLineupModal();
+    });
+    return modal;
+  }
+
+  function lineupLoadingHtml() {
+    return `<div class="fifa-lineup-loading"><div class="fifa-spinner"></div><div>Tarkiblar yuklanmoqda…</div></div>`;
+  }
+  function lineupEmptyHtml(msg) {
+    return `<div class="fifa-lineup-empty"><div class="fifa-live-empty__icon">⚽</div><div>${esc(msg)}</div></div>`;
+  }
+
+  function renderLineupHead(home, away, homeFlag, awayFlag, score) {
+    return `
+      <div class="fifa-lineup-team fifa-lineup-team--home">
+        <span class="fifa-lineup-team__flag">${homeFlag || ""}</span>
+        <span class="fifa-lineup-team__name">${esc(home)}</span>
+      </div>
+      <div class="fifa-lineup-score">${esc(score || "—")}</div>
+      <div class="fifa-lineup-team fifa-lineup-team--away">
+        <span class="fifa-lineup-team__name">${esc(away)}</span>
+        <span class="fifa-lineup-team__flag">${awayFlag || ""}</span>
+      </div>
+    `;
+  }
+
+  function renderLineupBody(data, homeUz, awayUz) {
+    if (!data || !data.found) return lineupEmptyHtml("Bu o'yin uchun tarkib hali mavjud emas.");
+    const home = data.home || { starting: [], subs: [] };
+    const away = data.away || { starting: [], subs: [] };
+    return `
+      <div class="fifa-pitch">
+        <div class="fifa-pitch__bg" aria-hidden="true">
+          <span class="fifa-pitch__circle"></span>
+          <span class="fifa-pitch__halfline"></span>
+          <span class="fifa-pitch__box fifa-pitch__box--top"></span>
+          <span class="fifa-pitch__box fifa-pitch__box--bottom"></span>
+        </div>
+        <div class="fifa-pitch__half fifa-pitch__half--home">
+          <div class="fifa-pitch__team-label">${esc(homeUz)}</div>
+          ${renderHalfPitch(home.starting, false)}
+        </div>
+        <div class="fifa-pitch__half fifa-pitch__half--away">
+          ${renderHalfPitch(away.starting, true)}
+          <div class="fifa-pitch__team-label fifa-pitch__team-label--away">${esc(awayUz)}</div>
+        </div>
+      </div>
+      <div class="fifa-bench">
+        <div class="fifa-bench__col">
+          <div class="fifa-bench__team">${esc(homeUz)}</div>
+          ${renderBenchList(home.subs, "Zaxiradagilar")}
+        </div>
+        <div class="fifa-bench__col">
+          <div class="fifa-bench__team">${esc(awayUz)}</div>
+          ${renderBenchList(away.subs, "Zaxiradagilar")}
+        </div>
+      </div>
+    `;
+  }
+
+  async function openLineupModal({ homeEn, awayEn, homeUz, awayUz, homeFlag, awayFlag, score }) {
+    const modal = ensureLineupModal();
+    modal.hidden = false;
+    document.body.classList.add("fifa-lineup-open");
+    const head = modal.querySelector("#fifaLineupHead");
+    const body = modal.querySelector("#fifaLineupBody");
+    head.innerHTML = renderLineupHead(homeUz, awayUz, homeFlag, awayFlag, score);
+    body.innerHTML = lineupLoadingHtml();
+    requestAnimationFrame(() => modal.classList.add("is-open"));
+    try { tgBackRegister?.("fifa-lineup", () => closeLineupModal()); } catch (_) {}
+    try {
+      const data = await fetchLineup(homeEn, awayEn);
+      body.innerHTML = renderLineupBody(data, homeUz, awayUz);
+    } catch (err) {
+      body.innerHTML = lineupEmptyHtml("Tarkibni yuklab bo'lmadi.");
+    }
+  }
+
+  function closeLineupModal() {
+    const modal = document.getElementById("fifaLineupModal");
+    if (!modal) return;
+    modal.classList.remove("is-open");
+    document.body.classList.remove("fifa-lineup-open");
+    try { tgBackUnregister?.("fifa-lineup"); } catch (_) {}
+    setTimeout(() => { modal.hidden = true; }, 260);
+  }
+
+  // Delegate click on matches panel
+  fifaView.addEventListener("click", (e) => {
+    const row = e.target.closest?.("[data-fifa-open-lineup]");
+    if (!row) return;
+    openLineupModal({
+      homeEn: row.dataset.homeEn,
+      awayEn: row.dataset.awayEn,
+      homeUz: row.dataset.homeUz,
+      awayUz: row.dataset.awayUz,
+      homeFlag: row.querySelector(".fifa-match__team--home .fifa-match__flag")?.innerHTML || "",
+      awayFlag: row.querySelector(".fifa-match__team--away .fifa-match__flag")?.innerHTML || "",
+      score: row.dataset.score,
+    });
   });
 })();
 
