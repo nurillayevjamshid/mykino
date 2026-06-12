@@ -7639,55 +7639,84 @@ if ("requestIdleCallback" in window) {
   let activeWhepPc = null;
 
   async function playWhep(url, video, setStatus) {
-    // Cloudflare WHEP: POST SDP offer → SDP answer
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
-    });
-    activeWhepPc = pc;
-    pc.addTransceiver("video", { direction: "recvonly" });
-    pc.addTransceiver("audio", { direction: "recvonly" });
-    pc.ontrack = (e) => {
-      if (e.streams && e.streams[0] && video.srcObject !== e.streams[0]) {
-        video.srcObject = e.streams[0];
-        video.play().catch(() => {});
-        setStatus("");
-      }
-    };
-    pc.oniceconnectionstatechange = () => {
-      const st = pc.iceConnectionState;
-      if (st === "failed" || st === "disconnected") {
-        setStatus("Ulanish uzildi");
-      }
-    };
+    let stage = "init";
+    try {
+      console.log("[whep] starting", url);
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
+        bundlePolicy: "max-bundle",
+      });
+      activeWhepPc = pc;
 
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
+      stage = "addTransceiver";
+      pc.addTransceiver("video", { direction: "recvonly" });
+      pc.addTransceiver("audio", { direction: "recvonly" });
 
-    // ICE gathering tugashini kutamiz (Cloudflare non-trickle SDP'ni xohlaydi)
-    await new Promise((resolve) => {
-      if (pc.iceGatheringState === "complete") return resolve();
-      const onChange = () => {
-        if (pc.iceGatheringState === "complete") {
-          pc.removeEventListener("icegatheringstatechange", onChange);
-          resolve();
+      pc.ontrack = (e) => {
+        console.log("[whep] ontrack", e.track.kind, e.streams?.length);
+        const stream = e.streams && e.streams[0];
+        if (stream && video.srcObject !== stream) {
+          try {
+            video.srcObject = stream;
+            setStatus("");
+            video.play().catch((err) => console.warn("[whep] play()", err.message));
+          } catch (err) {
+            console.warn("[whep] srcObject assign failed", err.message);
+            setStatus(`Video xatosi: ${err.message}`);
+          }
         }
       };
-      pc.addEventListener("icegatheringstatechange", onChange);
-      // 3 sek havf — agar gathering bo'lmasa, qo'lda chiqamiz
-      setTimeout(resolve, 3000);
-    });
+      pc.oniceconnectionstatechange = () => {
+        console.log("[whep] iceConnectionState=", pc.iceConnectionState);
+        if (pc.iceConnectionState === "failed") setStatus("Ulanish uzildi");
+      };
+      pc.onconnectionstatechange = () => {
+        console.log("[whep] connectionState=", pc.connectionState);
+      };
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/sdp" },
-      body: pc.localDescription.sdp,
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`WHEP ${res.status}${text ? `: ${text.slice(0, 120)}` : ""}`);
+      stage = "createOffer";
+      const offer = await pc.createOffer();
+      stage = "setLocalDescription";
+      await pc.setLocalDescription(offer);
+
+      stage = "iceGathering";
+      await new Promise((resolve) => {
+        if (pc.iceGatheringState === "complete") return resolve();
+        const onChange = () => {
+          if (pc.iceGatheringState === "complete") {
+            pc.removeEventListener("icegatheringstatechange", onChange);
+            resolve();
+          }
+        };
+        pc.addEventListener("icegatheringstatechange", onChange);
+        setTimeout(resolve, 3000);
+      });
+
+      stage = "fetch";
+      console.log("[whep] POSTing SDP, length=", pc.localDescription?.sdp?.length);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: pc.localDescription.sdp,
+      });
+      console.log("[whep] response", res.status, res.headers.get("content-type"));
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status}${text ? `: ${text.slice(0, 120)}` : ""}`);
+      }
+      const answerSdp = await res.text();
+      console.log("[whep] answer SDP length=", answerSdp.length);
+
+      stage = "setRemoteDescription";
+      if (pc.signalingState === "closed") {
+        throw new Error("PeerConnection yopilgan");
+      }
+      await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      console.log("[whep] setRemoteDescription OK, signalingState=", pc.signalingState);
+    } catch (err) {
+      console.warn(`[whep error @ ${stage}]`, err);
+      throw new Error(`${stage}: ${err.message || err.name || "noma'lum xato"}`);
     }
-    const answerSdp = await res.text();
-    await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
   }
 
   function openLivePlayerModal(src, mode) {
