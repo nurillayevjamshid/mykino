@@ -8469,8 +8469,9 @@ if ("requestIdleCallback" in window) {
     const rating = (p.rating != null || p.motm)
       ? `<span class="fifa-pitch-player__rating ${ratingColor(p.rating, p.motm)}">${ratingVal}</span>`
       : "";
-    const subBubble = p.subOut != null
-      ? `<span class="fifa-pitch-player__sub fifa-pitch-player__sub--out" title="Almashtirildi ${p.subOut}'">${p.subOut}'<span class="fifa-pitch-player__sub-icon">↓</span></span>`
+    const subOutLabel = typeof p.subOut === "number" ? `${p.subOut}'` : "";
+    const subBubble = p.subOut
+      ? `<span class="fifa-pitch-player__sub fifa-pitch-player__sub--out" title="Almashtirildi${subOutLabel ? ` ${subOutLabel}` : ""}">${subOutLabel}<span class="fifa-pitch-player__sub-icon">↓</span></span>`
       : "";
     const nameLine = num ? `${esc(num)} ${esc(shortName(p))}` : esc(shortName(p));
     return `
@@ -8586,11 +8587,12 @@ if ("requestIdleCallback" in window) {
       `;
     };
 
-    // Zaxiradan tushgan (subIn) — alohida bo'lim
-    const homeSubbedIn = (home.subs || []).filter((p) => p.subIn != null);
-    const homeBench   = (home.subs || []).filter((p) => p.subIn == null);
-    const awaySubbedIn = (away.subs || []).filter((p) => p.subIn != null);
-    const awayBench   = (away.subs || []).filter((p) => p.subIn == null);
+    // Zaxiradan tushgan (subIn truthy) — alohida bo'lim
+    const isSubbedIn = (p) => p.subIn === true || typeof p.subIn === "number";
+    const homeSubbedIn = (home.subs || []).filter(isSubbedIn);
+    const homeBench   = (home.subs || []).filter((p) => !isSubbedIn(p));
+    const awaySubbedIn = (away.subs || []).filter(isSubbedIn);
+    const awayBench   = (away.subs || []).filter((p) => !isSubbedIn(p));
 
     const benchCol = (teamLabel, subbedIn, bench, coach) => `
       <div class="fifa-bench__col">
@@ -8599,7 +8601,7 @@ if ("requestIdleCallback" in window) {
           <div class="fifa-bench__group">
             <div class="fifa-bench__title">Zaxiradan tushganlar</div>
             <div class="fifa-bench__list">
-              ${subbedIn.map((p) => buildBenchPlayerHtml(p, { swapLine: p.subIn != null ? `${p.subIn}' kirdi` : p.position })).join("")}
+              ${subbedIn.map((p) => buildBenchPlayerHtml(p, { swapLine: typeof p.subIn === "number" ? `${p.subIn}' kirdi` : (p.subIn ? "Kirdi" : p.position) })).join("")}
             </div>
           </div>
         ` : ""}
