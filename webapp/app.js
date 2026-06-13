@@ -4784,16 +4784,31 @@ function renderPodcastProfileModal() {
 // Musiqa kodi alohida webapp/music/music.js fayliga ko'chirildi va faqat kerak bo'lganda yuklanadi.
 // Bu birinchi yuklashda parse vaqtini ~50–100 ms tezlashtiradi.
 let __musicModulePromise = null;
+let __musicCssPromise = null;
+function ensureMusicCss() {
+  if (__musicCssPromise) return __musicCssPromise;
+  __musicCssPromise = new Promise((resolve) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/static/music/music.css?v=20260613-folder-split";
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+  return __musicCssPromise;
+}
 function ensureMusicModule() {
   if (window.__music) return Promise.resolve(window.__music);
   if (__musicModulePromise) return __musicModulePromise;
-  __musicModulePromise = new Promise((resolve, reject) => {
+  const cssPromise = ensureMusicCss();
+  const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = "/static/music/music.js?v=20260613-folder-split";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
   });
+  __musicModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__music);
   return __musicModulePromise;
 }
 
