@@ -1048,6 +1048,32 @@ function proxyPosterUrl(value) {
   return rewriteR2Host(String(value || "").trim());
 }
 
+// Cloudflare Image Resizing — `/cdn-cgi/image/...` prefiks orqali poster'larni
+// kerakli o'lchamga kichraytirib, AVIF/WebP formatga aylantiradi. Bitta 1080p
+// JPG (~250KB) o'rniga, kartochka uchun 400px AVIF (~25KB) — 8-10x tezroq.
+//
+// MUHIM: r2.myplaylist.uz zone'ida "Image Resizing" yoqilgan bo'lishi kerak
+// (Cloudflare dashboard → Speed → Optimization). Yoqilmagan bo'lsa rasmlar
+// 404 qaytaradi — quyidagi flag'ni `false` qiling va saqlang:
+const CF_IMAGE_RESIZE = true;
+const CF_RESIZE_HOSTS = new Set(["r2.myplaylist.uz"]);
+
+function cfImage(url, width) {
+  if (!CF_IMAGE_RESIZE) return url;
+  const raw = String(url || "").trim();
+  if (!raw || raw.startsWith("data:") || raw.startsWith("blob:")) return raw;
+  if (raw.includes("/cdn-cgi/image/")) return raw; // allaqachon transform qilingan
+  let parsed;
+  try { parsed = new URL(raw); } catch { return raw; }
+  if (!CF_RESIZE_HOSTS.has(parsed.host)) return raw;
+  const w = Math.max(64, Math.min(2048, Math.round(Number(width) || 600)));
+  // quality=72 — kartochkalar uchun ko'z ilg'amaydi, lekin ~30% kichikroq
+  // format=auto — brauzer qo'llaganga ko'ra AVIF / WebP / JPG
+  // fit=cover — aspect saqlanadi, kerakli kenglikka kesiladi
+  const transform = `width=${w},quality=72,format=auto,fit=cover`;
+  return `${parsed.origin}/cdn-cgi/image/${transform}${parsed.pathname}${parsed.search}${parsed.hash}`;
+}
+
 function firstUsableImage(...candidates) {
   for (const candidate of candidates) {
     const value = String(candidate || "").trim();
@@ -1373,7 +1399,7 @@ function normalizeMovie(movie, index = 0) {
     year: movie?.year || "",
     hd: toBooleanFlag(movie?.hd ?? movie?.quality === "HD"),
     code: String(movie?.code || "").trim(),
-    posterImage: proxyPosterUrl(resolveAppUrl(rawPoster)),
+    posterImage: cfImage(proxyPosterUrl(resolveAppUrl(rawPoster)), 600),
     isPremium: Boolean(movie?.isPremium),
     isTop: Boolean(movie?.isTop),
     sourceType,
@@ -1388,7 +1414,7 @@ function normalizeMovie(movie, index = 0) {
     sourceUrl,
     webViewLink: resolveAppUrl(String(movie?.webViewLink || "").trim()),
     mimeType: String(movie?.mimeType || "").trim(),
-    headerImage: proxyPosterUrl(resolveAppUrl(firstUsableImage(movie?.headerImage, movie?.heroPoster))),
+    headerImage: cfImage(proxyPosterUrl(resolveAppUrl(firstUsableImage(movie?.headerImage, movie?.heroPoster))), 1280),
     showInHeader: toBooleanFlag(movie?.showInHeader ?? movie?.heroFeatured),
   };
 
@@ -4999,7 +5025,7 @@ function normalizeSeriesEntry(raw) {
     id: String(raw?.id || raw?.folderId || ""),
     title: String(raw?.title || raw?.folderName || "Serial").trim(),
     description: String(raw?.description || "").trim(),
-    posterImage: proxyPosterUrl(resolveAppUrl(firstUsableImage(raw?.posterImage, raw?.poster))),
+    posterImage: cfImage(proxyPosterUrl(resolveAppUrl(firstUsableImage(raw?.posterImage, raw?.poster))), 600),
     episodeCount: Number(raw?.episodeCount || orderedEpisodes.length || 0),
     episodes: orderedEpisodes,
   };
