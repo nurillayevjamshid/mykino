@@ -406,68 +406,142 @@ async function handleFifa(request, response) {
 }
 
 // =========================================================================
-// FIFA Lineup (TheSportsDB public API) — bitta o'yin tarkibi.
-// home, away (English) → event id → lineup (pozitsiya, raqam, ism, rasm).
-// In-memory cache (5 daqiqa).
+// FIFA Lineup (FotMob public API) — to'liq tarkib + pozitsiya, reyting, hodisalar.
+// /api/data/matches?date=YYYYMMDD → home/away name match → matchId
+// /api/data/matchDetails?matchId=X → lineup (starters + subs, formation, coords)
+// In-memory cache (10 daqiqa).
 // =========================================================================
 const FIFA_LINEUP_CACHE = new Map();
-const FIFA_LINEUP_TTL_MS = 5 * 60 * 1000;
-const SPORTSDB_BASE = "https://www.thesportsdb.com/api/v1/json/3";
+const FIFA_LINEUP_TTL_MS = 10 * 60 * 1000;
+const FOTMOB_BASE = "https://www.fotmob.com/api/data";
+const FOTMOB_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+  "Accept": "application/json",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Referer": "https://www.fotmob.com/",
+};
 
-function normalizePosition(strPosition) {
-  const p = String(strPosition || "").toLowerCase();
-  if (!p) return "M";
-  if (p.includes("goal")) return "GK";
-  if (p.includes("back") || p.includes("centre-back") || p.includes("center-back") || p.includes("defender") || p === "d") return "D";
-  if (p.includes("forward") || p.includes("striker") || p.includes("wing") || p === "f") return "F";
-  return "M";
+async function fetchFotmob(url, timeoutMs = 8000) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, headers: FOTMOB_HEADERS });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-async function buildFifaLineupPayload(home, away) {
-  const norm = (s) => String(s || "").trim().replace(/\s+/g, "_");
-  const url = `${SPORTSDB_BASE}/searchevents.php?e=${encodeURIComponent(`${norm(home)}_vs_${norm(away)}`)}`;
-  const evJson = await fetchJson(url, 7000).catch(() => null);
-  const events = (evJson && Array.isArray(evJson.event)) ? evJson.event : [];
-  // Eng yangi (2026) ni ol
-  const ev = events.sort((a, b) => String(b.dateEvent || "").localeCompare(String(a.dateEvent || ""))).find((e) =>
-    String(e.strLeague || "").toLowerCase().includes("world cup")
-  ) || events[0];
-  if (!ev || !ev.idEvent) {
+function normalizeName(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+const TEAM_ALIASES = {
+  "usa": "united states",
+  "us": "united states",
+  "south korea": "korea republic",
+  "ivory coast": "cote d ivoire",
+  "bosnia herzegovina": "bosnia and herzegovina",
+  "czech republic": "czechia",
+};
+function canonTeam(name) {
+  const n = normalizeName(name);
+  return TEAM_ALIASES[n] || n;
+}
+
+async function findFotmobMatchId(home, away, dateUtc) {
+  // dateUtc: "YYYY-MM-DD" — search ±1 day
+  const base = dateUtc ? new Date(`${dateUtc}T12:00:00Z`) : new Date();
+  const days = [-1, 0, 1].map((off) => {
+    const d = new Date(base.getTime() + off * 86400000);
+    return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
+  });
+  const hC = canonTeam(home);
+  const aC = canonTeam(away);
+  for (const d of days) {
+    const json = await fetchFotmob(`${FOTMOB_BASE}/matches?date=${d}`).catch(() => null);
+    if (!json) continue;
+    const leagues = Array.isArray(json.leagues) ? json.leagues : [];
+    for (const lg of leagues) {
+      const matches = Array.isArray(lg.matches) ? lg.matches : [];
+      for (const m of matches) {
+        const hN = canonTeam(m?.home?.longName || m?.home?.name);
+        const aN = canonTeam(m?.away?.longName || m?.away?.name);
+        if (hN === hC && aN === aC) return m.id;
+        if (hN === aC && aN === hC) return m.id; // reverse fixture (rare)
+      }
+    }
+  }
+  return null;
+}
+
+function fotmobPlayerPhoto(id) {
+  return id ? `https://images.fotmob.com/image_resources/playerimages/${id}.png` : "";
+}
+
+function fotmobMapPlayer(p) {
+  const perf = p?.performance || {};
+  const events = Array.isArray(perf.events) ? perf.events : [];
+  const subs = Array.isArray(perf.substitutionEvents) ? perf.substitutionEvents : [];
+  return {
+    id: p.id,
+    number: p.shirtNumber != null ? Number(p.shirtNumber) : null,
+    name: String(p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()),
+    shortName: String(p.lastName || p.name || ""),
+    position: String(p.positionStringShort || ""),
+    isCaptain: Boolean(p.isCaptain),
+    rating: perf.rating != null ? Number(perf.rating) : null,
+    photo: fotmobPlayerPhoto(p.id),
+    x: p?.horizontalLayout?.x ?? null,
+    y: p?.horizontalLayout?.y ?? null,
+    goals: events.filter((e) => e.type === "goal").length,
+    ownGoals: events.filter((e) => e.type === "ownGoal" || e.type === "own_goal").length,
+    yellowCard: events.some((e) => e.type === "yellowCard" || e.type === "yellow_card"),
+    redCard: events.some((e) => e.type === "redCard" || e.type === "red_card" || e.type === "secondYellow"),
+    subIn: (subs.find((e) => e.type === "subIn") || {}).time ?? null,
+    subOut: (subs.find((e) => e.type === "subOut") || {}).time ?? null,
+    motm: Boolean(perf.playerOfTheMatch),
+  };
+}
+
+function fotmobMapTeam(t) {
+  if (!t) return { formation: "", starting: [], subs: [], coach: null };
+  return {
+    formation: String(t.formation || ""),
+    rating: t.rating != null ? Number(t.rating) : null,
+    starting: (t.starters || []).map(fotmobMapPlayer),
+    subs: (t.subs || []).map(fotmobMapPlayer),
+    coach: t.coach ? { name: t.coach.name, photo: fotmobPlayerPhoto(t.coach.id) } : null,
+  };
+}
+
+async function buildFifaLineupPayload(home, away, dateUtc) {
+  const matchId = await findFotmobMatchId(home, away, dateUtc).catch(() => null);
+  if (!matchId) {
     return { ok: true, found: false, home: { starting: [], subs: [] }, away: { starting: [], subs: [] } };
   }
-  const lineupUrl = `${SPORTSDB_BASE}/lookuplineup.php?id=${encodeURIComponent(ev.idEvent)}`;
-  const lineupJson = await fetchJson(lineupUrl, 7000).catch(() => null);
-  const rows = (lineupJson && Array.isArray(lineupJson.lineup)) ? lineupJson.lineup : [];
-  const homeData = { starting: [], subs: [] };
-  const awayData = { starting: [], subs: [] };
-  for (const r of rows) {
-    const player = {
-      number: r.intSquadNumber ? Number(r.intSquadNumber) : null,
-      name: String(r.strPlayer || "").trim(),
-      position: String(r.strPosition || "").trim(),
-      role: normalizePosition(r.strPosition),
-      club: String(r.strTeam || "").trim(),
-      photo: r.strCutout || r.strThumb || r.strRender || "",
-    };
-    const isSub = String(r.strSubstitute || "").toLowerCase() === "yes";
-    const isHome = String(r.strHome || "").toLowerCase() === "yes";
-    const side = isHome ? homeData : awayData;
-    if (isSub) side.subs.push(player);
-    else side.starting.push(player);
+  const detail = await fetchFotmob(`${FOTMOB_BASE}/matchDetails?matchId=${matchId}`).catch(() => null);
+  const lu = detail?.content?.lineup;
+  if (!lu) {
+    return { ok: true, found: false, matchId, home: { starting: [], subs: [] }, away: { starting: [], subs: [] } };
   }
   return {
     ok: true,
-    found: homeData.starting.length + awayData.starting.length > 0,
-    event: {
-      id: ev.idEvent,
-      home: ev.strHomeTeam,
-      away: ev.strAwayTeam,
-      homeScore: ev.intHomeScore,
-      awayScore: ev.intAwayScore,
-      date: ev.dateEvent,
-    },
-    home: homeData,
-    away: awayData,
+    found: true,
+    matchId,
+    event: detail?.general ? {
+      id: matchId,
+      home: detail.general.homeTeam?.name,
+      away: detail.general.awayTeam?.name,
+    } : null,
+    home: fotmobMapTeam(lu.homeTeam),
+    away: fotmobMapTeam(lu.awayTeam),
   };
 }
 
@@ -475,11 +549,12 @@ async function handleFifaLineup(request, response) {
   const url = new URL(request.url || "/", "http://localhost");
   const home = String(url.searchParams.get("home") || "").trim();
   const away = String(url.searchParams.get("away") || "").trim();
+  const date = String(url.searchParams.get("date") || "").trim();
   if (!home || !away) {
     response.status(400).json({ ok: false, error: "home va away kerak" });
     return;
   }
-  const key = `${home.toLowerCase()}|${away.toLowerCase()}`;
+  const key = `${home.toLowerCase()}|${away.toLowerCase()}|${date}`;
   const now = Date.now();
   const cached = FIFA_LINEUP_CACHE.get(key);
   if (cached && now - cached.at < FIFA_LINEUP_TTL_MS) {
@@ -489,7 +564,7 @@ async function handleFifaLineup(request, response) {
     return;
   }
   try {
-    const data = await buildFifaLineupPayload(home, away);
+    const data = await buildFifaLineupPayload(home, away, date);
     FIFA_LINEUP_CACHE.set(key, { data, at: now });
     response.setHeader("X-Fifa-Lineup-Cache", "MISS");
     response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
