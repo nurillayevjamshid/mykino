@@ -7718,6 +7718,18 @@ if ("requestIdleCallback" in window) {
   let activeHlsInstance = null;
   let activeWhepPc = null;
   let activeStream = null;
+  let controlsAutoHideTimer = null;
+
+  function scheduleControlsAutoHide(modal, delay = 2800) {
+    if (controlsAutoHideTimer) { clearTimeout(controlsAutoHideTimer); controlsAutoHideTimer = null; }
+    const video = modal?.querySelector("#fifaHlsVideo");
+    if (!video || video.paused) return; // pauzada tugmalarni doim ko'rsatamiz
+    controlsAutoHideTimer = setTimeout(() => {
+      controlsAutoHideTimer = null;
+      const v = modal.querySelector("#fifaHlsVideo");
+      if (v && !v.paused) modal.classList.add("controls-hidden");
+    }, delay);
+  }
 
   function injectPlayerStylesOnce() {
     if (document.getElementById("fifaPlayerStyles")) return;
@@ -8222,15 +8234,25 @@ if ("requestIdleCallback" in window) {
           togglePlayPause(modal);
           return;
         }
-        // Video ustiga bosish — pauza qilmaymiz, faqat UI'ni yashiramiz/ko'rsatamiz
-        if (e.target.id === "fifaHlsVideo") {
+        // Video yoki modal foni ustiga bosish — pauza qilmaymiz, faqat UI toggle.
+        // PC'da kursor video chetiga tushishi mumkin, shuning uchun modal'ning
+        // o'ziga tushgan bosishni ham qabul qilamiz.
+        const t = e.target;
+        if (t === modal || t.id === "fifaHlsVideo" || t.id === "fifaHlsAudio") {
           e.preventDefault();
           modal.classList.toggle("controls-hidden");
+          if (!modal.classList.contains("controls-hidden")) scheduleControlsAutoHide(modal);
         }
       };
       // Faqat click — touchend ham qo'shilsa, iOS'da ikkalasi ketma-ket otilib
       // mute toggle ikki marta ishlaydi (ovoz yoqilib darhol qaytib o'chadi)
       modal.addEventListener("click", handleTap);
+      // Desktop UX — sichqoncha harakatlansa panellarni ko'rsatib, inaktivlikda yashiramiz
+      modal.addEventListener("mousemove", () => {
+        modal.classList.remove("controls-hidden");
+        scheduleControlsAutoHide(modal);
+      });
+      modal.addEventListener("mouseleave", () => scheduleControlsAutoHide(modal, 800));
       attachFullscreenRecovery(modal);
       attachPlayPauseSync(modal);
     }
