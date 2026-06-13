@@ -5018,6 +5018,7 @@ async function loadSeriesCatalog() {
   }
   seriesCatalogLoaded = true;
   seriesCatalogLoading = false;
+  preloadPosters(seriesCatalog);
   renderSeriesListGrid();
   // Asosiy sahifa ochiq bo'lsa, "Seriallar" qatori ko'rinishi uchun qayta render
   try {
@@ -5806,15 +5807,32 @@ function writeMovieCache(rawPayload) {
   } catch { /* quota exceeded — jim o'tkazamiz */ }
 }
 
-// Poster preload: birinchi N ta rasmni oldindan yuklash
-function preloadPosters(movieList, count = 8) {
-  const slice = movieList.slice(0, count);
-  for (const m of slice) {
-    const url = m?.posterImage;
-    if (!url || url.startsWith("data:")) continue;
-    const img = new Image();
-    img.decoding = "async";
-    img.src = url;
+// Poster preload: BARCHA rasmlarni darrov fonda yuklab qo'yamiz.
+// Birinchi 12 ta — yuqori prioritet (ekranda darrov ko'rinadi),
+// qolganlari — past prioritet, lekin parallel ravishda.
+// Brauzer rasm cache + service worker RUNTIME_CACHE'iga tushadi,
+// shu sababli kartochka render bo'lganda rasm darrov chiqadi.
+const _preloadedPosters = new Set();
+function preloadPosters(movieList) {
+  if (!Array.isArray(movieList) || !movieList.length) return;
+  const HIGH_PRIO = 12;
+  let i = 0;
+  for (const m of movieList) {
+    const urls = [m?.posterImage, m?.headerImage];
+    for (const url of urls) {
+      if (!url || typeof url !== "string") continue;
+      if (url.startsWith("data:") || url.startsWith("blob:")) continue;
+      if (_preloadedPosters.has(url)) continue;
+      _preloadedPosters.add(url);
+      const img = new Image();
+      img.decoding = "async";
+      try {
+        img.fetchPriority = i < HIGH_PRIO ? "high" : "low";
+      } catch { /* eski brauzer — e'tibor bermaymiz */ }
+      img.loading = "eager";
+      img.src = url;
+    }
+    i++;
   }
 }
 
