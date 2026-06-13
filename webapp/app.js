@@ -2129,6 +2129,12 @@ function attachHeroBindings() {
   }
 }
 
+// Birinchi N ta kino-kartochkasi — "above the fold". Eager + high priority.
+// Qolgani native lazy: faqat viewport'ga yaqinlashganda yuklanadi.
+// Counter har `renderMovies()` boshida qayta tiklanadi.
+const POSTER_EAGER_LIMIT = 10;
+let __posterEagerBudget = 0;
+
 function createMovieCard(movie) {
   const card = document.createElement("article");
   card.className = "movie-card";
@@ -2144,8 +2150,16 @@ function createMovieCard(movie) {
   else if (yearText) metaParts.push(`<span class="card-meta__sep">·</span><span class="card-meta__genre">${escapeHtml(yearText)}</span>`);
 
   const inWishlist = isInWishlist(movie.id);
+  const posterSrc = getPosterImage(movie) || buildGeneratedPosterDataUrl(movie);
+  const isEager = __posterEagerBudget > 0;
+  if (isEager) __posterEagerBudget -= 1;
+  const imgLoadingAttrs = isEager
+    ? `loading="eager" fetchpriority="high"`
+    : `loading="lazy" fetchpriority="low"`;
+  const safePoster = String(posterSrc).replaceAll('"', "&quot;");
   card.innerHTML = `
-    <span class="poster" ${posterStyle(movie)}>
+    <span class="poster poster--img">
+      <img class="poster__img" alt="" src="${safePoster}" ${imgLoadingAttrs} decoding="async" onload="this.classList.add('is-loaded');this.parentElement&&this.parentElement.classList.add('poster--loaded')" onerror="this.parentElement&&this.parentElement.classList.add('poster--loaded');this.remove()">
       <span class="card-badges">
         <span class="badge">${escapeHtml(movie.quality || "HD")}</span>
         <span class="rating"><span>&#9733;</span> ${escapeHtml(ratingText)}</span>
@@ -2383,6 +2397,8 @@ function renderMovies() {
   const isHomeView = activeFilter === "all" && activeCategory === "all" && !query;
   const isCategoryPage = activeFilter === "all" && activeCategory !== "all" && !query;
   const isFavoritesPage = activeFilter === "favorites" && !query;
+  // Har render boshida above-the-fold eager-budget qayta tiklanadi.
+  __posterEagerBudget = POSTER_EAGER_LIMIT;
   grid.innerHTML = "";
   grid.classList.toggle("is-category-page", isCategoryPage || isFavoritesPage);
   grid.classList.toggle("is-loading", movieLoadState === "loading");
@@ -4823,18 +4839,33 @@ function closeArtistDetail() { window.__music?.closeArtistDetail?.(); }
 function playMusicTrack(track) { ensureMusicModule().then((m) => m?.playMusicTrack?.(track)).catch(() => {}); }
 function scrollMusicTop() { window.__music?.scrollMusicTop?.(); }
 
-// Potkastlar moduli — alohida webapp/potcasts.js fayl, lazy-load.
+// Potkastlar moduli — alohida webapp/potcasts/potcasts.{js,css}, lazy-load.
 let __potcastsModulePromise = null;
+let __potcastsCssPromise = null;
+function ensurePotcastsCss() {
+  if (__potcastsCssPromise) return __potcastsCssPromise;
+  __potcastsCssPromise = new Promise((resolve) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/static/potcasts/potcasts.css?v=20260613-folder-split";
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+  return __potcastsCssPromise;
+}
 function ensurePotcastsModule() {
   if (window.__potcasts) return Promise.resolve(window.__potcasts);
   if (__potcastsModulePromise) return __potcastsModulePromise;
-  __potcastsModulePromise = new Promise((resolve, reject) => {
+  const cssPromise = ensurePotcastsCss();
+  const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts.js?v=20260608-hero-swipe-name";
+    script.src = "/static/potcasts/potcasts.js?v=20260613-folder-split";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
   });
+  __potcastsModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__potcasts);
   return __potcastsModulePromise;
 }
 function openPodcastsView() { ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
@@ -5848,18 +5879,19 @@ function writeMovieCache(rawPayload) {
   } catch { /* quota exceeded — jim o'tkazamiz */ }
 }
 
-// Poster preload: BARCHA rasmlarni darrov fonda yuklab qo'yamiz.
-// Birinchi 12 ta — yuqori prioritet (ekranda darrov ko'rinadi),
-// qolganlari — past prioritet, lekin parallel ravishda.
-// Brauzer rasm cache + service worker RUNTIME_CACHE'iga tushadi,
-// shu sababli kartochka render bo'lganda rasm darrov chiqadi.
+// Poster preload: faqat birinchi N ta — "above the fold" rasmlari.
+// Qolgan posterlar `<img loading="lazy">` orqali viewport'ga yaqinlashganda
+// yuklanadi. Avval BARCHA posterlar darrov fonda yuklanardi — bu tarmoqni
+// bo'g'ib, posterlar ketma-ket paydo bo'lish effektini chaqirardi.
 const _preloadedPosters = new Set();
+const PRELOAD_LIMIT = 10;
 function preloadPosters(movieList) {
   if (!Array.isArray(movieList) || !movieList.length) return;
-  const HIGH_PRIO = 12;
-  let i = 0;
+  let count = 0;
   for (const m of movieList) {
+    if (count >= PRELOAD_LIMIT) break;
     const urls = [m?.posterImage, m?.headerImage];
+    let preloadedAny = false;
     for (const url of urls) {
       if (!url || typeof url !== "string") continue;
       if (url.startsWith("data:") || url.startsWith("blob:")) continue;
@@ -5867,13 +5899,12 @@ function preloadPosters(movieList) {
       _preloadedPosters.add(url);
       const img = new Image();
       img.decoding = "async";
-      try {
-        img.fetchPriority = i < HIGH_PRIO ? "high" : "low";
-      } catch { /* eski brauzer — e'tibor bermaymiz */ }
+      try { img.fetchPriority = "high"; } catch {}
       img.loading = "eager";
       img.src = url;
+      preloadedAny = true;
     }
-    i++;
+    if (preloadedAny) count += 1;
   }
 }
 
