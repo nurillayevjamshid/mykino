@@ -406,32 +406,14 @@ async function handleFifa(request, response) {
 }
 
 // =========================================================================
-// FIFA Lineup (FotMob public API) — to'liq tarkib + pozitsiya, reyting, hodisalar.
-// /api/data/matches?date=YYYYMMDD → home/away name match → matchId
-// /api/data/matchDetails?matchId=X → lineup (starters + subs, formation, coords)
+// FIFA Lineup (ESPN public API) — Vercel'dan ochiq, to'liq 11+15 tarkib.
+// /scoreboard?dates=YYYYMMDD → topic eventId by team names
+// /summary?event=X → rosters (formation, starters, subs, jersey, photo, stats)
 // In-memory cache (10 daqiqa).
 // =========================================================================
 const FIFA_LINEUP_CACHE = new Map();
 const FIFA_LINEUP_TTL_MS = 10 * 60 * 1000;
-const FOTMOB_BASE = "https://www.fotmob.com/api/data";
-const FOTMOB_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-  "Accept": "application/json",
-  "Accept-Language": "en-US,en;q=0.9",
-  "Referer": "https://www.fotmob.com/",
-};
-
-async function fetchFotmob(url, timeoutMs = 8000) {
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { signal: ctl.signal, headers: FOTMOB_HEADERS });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } finally {
-    clearTimeout(timer);
-  }
-}
+const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world";
 
 function normalizeName(s) {
   return String(s || "")
@@ -447,7 +429,8 @@ const TEAM_ALIASES = {
   "us": "united states",
   "south korea": "korea republic",
   "ivory coast": "cote d ivoire",
-  "bosnia herzegovina": "bosnia and herzegovina",
+  "bosnia herzegovina": "bosnia",
+  "bosnia and herzegovina": "bosnia",
   "czech republic": "czechia",
 };
 function canonTeam(name) {
@@ -455,8 +438,7 @@ function canonTeam(name) {
   return TEAM_ALIASES[n] || n;
 }
 
-async function findFotmobMatchId(home, away, dateUtc) {
-  // dateUtc: "YYYY-MM-DD" — search ±1 day
+async function findEspnEventId(home, away, dateUtc) {
   const base = dateUtc ? new Date(`${dateUtc}T12:00:00Z`) : new Date();
   const days = [-1, 0, 1].map((off) => {
     const d = new Date(base.getTime() + off * 86400000);
@@ -465,83 +447,139 @@ async function findFotmobMatchId(home, away, dateUtc) {
   const hC = canonTeam(home);
   const aC = canonTeam(away);
   for (const d of days) {
-    const json = await fetchFotmob(`${FOTMOB_BASE}/matches?date=${d}`).catch(() => null);
+    const json = await fetchJson(`${ESPN_BASE}/scoreboard?dates=${d}`, 8000).catch(() => null);
     if (!json) continue;
-    const leagues = Array.isArray(json.leagues) ? json.leagues : [];
-    for (const lg of leagues) {
-      const matches = Array.isArray(lg.matches) ? lg.matches : [];
-      for (const m of matches) {
-        const hN = canonTeam(m?.home?.longName || m?.home?.name);
-        const aN = canonTeam(m?.away?.longName || m?.away?.name);
-        if (hN === hC && aN === aC) return m.id;
-        if (hN === aC && aN === hC) return m.id; // reverse fixture (rare)
-      }
+    const events = Array.isArray(json.events) ? json.events : [];
+    for (const ev of events) {
+      const comp = (ev.competitions && ev.competitions[0]) || {};
+      const competitors = comp.competitors || [];
+      const h = competitors.find((c) => c.homeAway === "home") || competitors[0];
+      const a = competitors.find((c) => c.homeAway === "away") || competitors[1];
+      const hN = canonTeam(h?.team?.displayName || h?.team?.name);
+      const aN = canonTeam(a?.team?.displayName || a?.team?.name);
+      if (hN === hC && aN === aC) return ev.id;
+      if (hN === aC && aN === hC) return ev.id;
     }
   }
   return null;
 }
 
-function fotmobPlayerPhoto(id) {
-  return id ? `https://images.fotmob.com/image_resources/playerimages/${id}.png` : "";
+function espnDepthScore(abbrRaw) {
+  const a = String(abbrRaw || "").toUpperCase();
+  if (!a || a === "G" || a === "GK") return 0;
+  if (/^CB$|^CD(-[LR])?$/.test(a)) return 1.0;
+  if (/^[LR]B$|^[LR]WB$/.test(a)) return 1.3;
+  if (/^DM|^CDM/.test(a)) return 2.0;
+  if (/^[LR]M$/.test(a)) return 2.5;
+  if (/^CM(-[LR])?$|^M$/.test(a)) return 3.0;
+  if (/^AM|^CAM|AML|AMR/.test(a)) return 3.5;
+  if (/^[LR]W$/.test(a)) return 3.7;
+  if (/^CF(-[LR])?$|^ST$|^F$|^LF$|^RF$/.test(a)) return 5.0;
+  return 3.0;
 }
 
-function fotmobMapPlayer(p) {
-  const perf = p?.performance || {};
-  const events = Array.isArray(perf.events) ? perf.events : [];
-  const subs = Array.isArray(perf.substitutionEvents) ? perf.substitutionEvents : [];
+function espnSideOrder(abbrRaw) {
+  const a = String(abbrRaw || "").toUpperCase();
+  if (/^L[BMWF]/.test(a) || /^LWB/.test(a)) return -2;
+  if (a.endsWith("-L")) return -1;
+  if (/^R[BMWF]/.test(a) || /^RWB/.test(a)) return 2;
+  if (a.endsWith("-R")) return 1;
+  return 0;
+}
+
+function espnMapPlayer(p) {
+  const statsArr = Array.isArray(p.stats) ? p.stats : [];
+  const stats = {};
+  for (const s of statsArr) stats[s.name] = Number(s.displayValue || s.value || 0) || 0;
   return {
-    id: p.id,
-    number: p.shirtNumber != null ? Number(p.shirtNumber) : null,
-    name: String(p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()),
-    shortName: String(p.lastName || p.name || ""),
-    position: String(p.positionStringShort || ""),
-    isCaptain: Boolean(p.isCaptain),
-    rating: perf.rating != null ? Number(perf.rating) : null,
-    photo: fotmobPlayerPhoto(p.id),
-    x: p?.horizontalLayout?.x ?? null,
-    y: p?.horizontalLayout?.y ?? null,
-    goals: events.filter((e) => e.type === "goal").length,
-    ownGoals: events.filter((e) => e.type === "ownGoal" || e.type === "own_goal").length,
-    yellowCard: events.some((e) => e.type === "yellowCard" || e.type === "yellow_card"),
-    redCard: events.some((e) => e.type === "redCard" || e.type === "red_card" || e.type === "secondYellow"),
-    subIn: (subs.find((e) => e.type === "subIn") || {}).time ?? null,
-    subOut: (subs.find((e) => e.type === "subOut") || {}).time ?? null,
-    motm: Boolean(perf.playerOfTheMatch),
+    id: p?.athlete?.id || null,
+    number: p.jersey != null ? Number(p.jersey) : null,
+    name: String(p?.athlete?.displayName || p?.athlete?.fullName || "").trim(),
+    shortName: String(p?.athlete?.shortName || p?.athlete?.displayName || "").trim(),
+    position: String(p?.position?.abbreviation || ""),
+    starter: p.starter === true,
+    photo: p?.athlete?.headshot?.href || "",
+    isCaptain: false,
+    rating: null,
+    motm: false,
+    goals: stats.totalGoals || 0,
+    ownGoals: stats.ownGoals || 0,
+    yellowCard: (stats.yellowCards || 0) > 0,
+    redCard: (stats.redCards || 0) > 0,
+    subOut: p.subbedOut === true,
+    subIn: p.subbedIn === true,
+    x: null,
+    y: null,
   };
 }
 
-function fotmobMapTeam(t) {
-  if (!t) return { formation: "", starting: [], subs: [], coach: null };
-  return {
-    formation: String(t.formation || ""),
-    rating: t.rating != null ? Number(t.rating) : null,
-    starting: (t.starters || []).map(fotmobMapPlayer),
-    subs: (t.subs || []).map(fotmobMapPlayer),
-    coach: t.coach ? { name: t.coach.name, photo: fotmobPlayerPhoto(t.coach.id) } : null,
-  };
+function espnAssignFormationCoords(starters, formation) {
+  const segsRaw = String(formation || "").split("-").map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+  const segs = segsRaw.length ? segsRaw : [4, 4, 2];
+  const gk = starters.filter((p) => espnDepthScore(p.position) === 0);
+  const outfield = starters.filter((p) => espnDepthScore(p.position) > 0);
+  outfield.sort((a, b) => espnDepthScore(a.position) - espnDepthScore(b.position));
+
+  const rows = [gk];
+  let cursor = 0;
+  for (const size of segs) {
+    rows.push(outfield.slice(cursor, cursor + size));
+    cursor += size;
+  }
+  // Qoldiqlar bo'lsa, oxirgi qatorga qo'shamiz
+  if (cursor < outfield.length) {
+    rows[rows.length - 1].push(...outfield.slice(cursor));
+  }
+
+  const rowCount = rows.length;
+  const startX = 0.08;
+  const endX = 0.46;
+  rows.forEach((row, rIdx) => {
+    const x = rowCount === 1 ? 0.5 : startX + ((endX - startX) * rIdx) / (rowCount - 1);
+    row.sort((a, b) => espnSideOrder(a.position) - espnSideOrder(b.position));
+    const N = row.length;
+    row.forEach((p, i) => {
+      p.x = x;
+      p.y = N === 1 ? 0.5 : 0.15 + (0.85 - 0.15) * (i / (N - 1));
+    });
+  });
+}
+
+function espnMapRoster(roster) {
+  if (!roster) return { formation: "", starting: [], subs: [], coach: null, rating: null };
+  const formation = String(roster.formation || "").trim();
+  const all = (roster.roster || []).map(espnMapPlayer);
+  const starting = all.filter((p) => p.starter);
+  const subs = all.filter((p) => !p.starter);
+  espnAssignFormationCoords(starting, formation);
+  return { formation, starting, subs, coach: null, rating: null };
 }
 
 async function buildFifaLineupPayload(home, away, dateUtc) {
-  const matchId = await findFotmobMatchId(home, away, dateUtc).catch(() => null);
-  if (!matchId) {
+  const eventId = await findEspnEventId(home, away, dateUtc).catch(() => null);
+  if (!eventId) {
     return { ok: true, found: false, home: { starting: [], subs: [] }, away: { starting: [], subs: [] } };
   }
-  const detail = await fetchFotmob(`${FOTMOB_BASE}/matchDetails?matchId=${matchId}`).catch(() => null);
-  const lu = detail?.content?.lineup;
-  if (!lu) {
-    return { ok: true, found: false, matchId, home: { starting: [], subs: [] }, away: { starting: [], subs: [] } };
+  const summary = await fetchJson(`${ESPN_BASE}/summary?event=${eventId}`, 9000).catch(() => null);
+  const rosters = Array.isArray(summary?.rosters) ? summary.rosters : [];
+  if (!rosters.length) {
+    return { ok: true, found: false, matchId: eventId, home: { starting: [], subs: [] }, away: { starting: [], subs: [] } };
   }
+  // ESPN bizga homeAway pamyali bermasligi mumkin — header'dan olamiz
+  let homeId = null, awayId = null;
+  try {
+    const comps = summary?.header?.competitions?.[0]?.competitors || [];
+    homeId = comps.find((c) => c.homeAway === "home")?.id;
+    awayId = comps.find((c) => c.homeAway === "away")?.id;
+  } catch (_) {}
+  const homeRoster = rosters.find((r) => String(r?.team?.id) === String(homeId)) || rosters[0];
+  const awayRoster = rosters.find((r) => String(r?.team?.id) === String(awayId)) || rosters[1];
   return {
     ok: true,
     found: true,
-    matchId,
-    event: detail?.general ? {
-      id: matchId,
-      home: detail.general.homeTeam?.name,
-      away: detail.general.awayTeam?.name,
-    } : null,
-    home: fotmobMapTeam(lu.homeTeam),
-    away: fotmobMapTeam(lu.awayTeam),
+    matchId: eventId,
+    home: espnMapRoster(homeRoster),
+    away: espnMapRoster(awayRoster),
   };
 }
 
