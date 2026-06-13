@@ -52,14 +52,16 @@ const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 const POSTER_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const POSTER_PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70"><rect width="50" height="70" fill="#1a1f2e"/><text x="25" y="38" text-anchor="middle" font-family="Arial" font-size="9" fill="#ffc73a">No Image</text></svg>');
 
-// r2.dev bepul domeni ko'p so'rovda 403 (throttle) qaytaradi. Rasmni o'z
-// domenimiz (Vercel) orqali proxy qilamiz -> Vercel edge keshlaydi, r2.dev'ga
-// burst urilmaydi. Faqat r2.dev URL'lari proxy qilinadi.
+// Eski r2.dev bepul domeni ko'p so'rovda 403 (throttle) qaytaradi va Vercel
+// proxy ham r2.dev'ni o'qiydi -> admin'da ko'p rasm ko'rinmay qolardi.
+// Endi custom Cloudflare domen (r2.myplaylist.uz) ulangan — DNS faqat o'zgaradi,
+// rasm o'sha R2 ob'ekti, lekin Cloudflare edge keshlaydi va throttle yo'q.
+const R2_OLD_HOST = 'pub-42c7619e0f49402bb099364c0b589eca.r2.dev';
+const R2_NEW_HOST = 'r2.myplaylist.uz';
 function proxiedPoster(url) {
-  const u = String(url || '');
-  if (/\.r2\.dev\//i.test(u)) {
-    return '/api/drive-thumbnail?u=' + encodeURIComponent(u);
-  }
+  const u = String(url || '').trim();
+  if (!u) return u;
+  if (u.includes(R2_OLD_HOST)) return u.split(R2_OLD_HOST).join(R2_NEW_HOST);
   return u;
 }
 
@@ -1171,8 +1173,11 @@ function readPosterFile(file) {
           return;
         }
 
-        const TARGET_WIDTH = 600;
-        const TARGET_HEIGHT = 900;
+        // R2 ga yuklanadi — JSON'ga embed bo'lmaydi, shuning uchun sifatni yuqori
+        // saqlaymiz: 800x1200, JPEG q=0.85. Mini app'da poster yetarlicha o'tkir
+        // ko'rinadi, fayl hajmi ~150-250KB atrofida — R2 uchun mayda.
+        const TARGET_WIDTH = 800;
+        const TARGET_HEIGHT = 1200;
 
         let width = image.width;
         let height = image.height;
@@ -1187,12 +1192,7 @@ function readPosterFile(file) {
         canvas.height = height;
         ctx.drawImage(image, 0, 0, width, height);
 
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        if (compressedDataUrl.length > 25000) {
-          resolve(canvas.toDataURL('image/jpeg', 0.5));
-        } else {
-          resolve(compressedDataUrl);
-        }
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
       image.src = dataUrl;
     };

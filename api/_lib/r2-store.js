@@ -51,12 +51,17 @@ async function uploadImageToR2(base64Data, fileNamePrefix) {
   const dateStamp = amzDate.slice(0, 8);
   const payloadHash = sha256Hex(body);
 
+  // Faylga uniq hash bor (Date.now + randomBytes), shuning uchun immutable.
+  // Cloudflare edge va brauzer rasmni 1 yilga keshlaydi -> har safar R2 origin'ga
+  // urinmaydi va admin/mini app'da rasm bir marta yuklangach darrov chiqaveradi.
+  const cacheControl = "public, max-age=31536000, immutable";
   const canonicalHeaders =
-    `content-type:${contentType}\n`
+    `cache-control:${cacheControl}\n`
+    + `content-type:${contentType}\n`
     + `host:${host}\n`
     + `x-amz-content-sha256:${payloadHash}\n`
     + `x-amz-date:${amzDate}\n`;
-  const signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
+  const signedHeaders = "cache-control;content-type;host;x-amz-content-sha256;x-amz-date";
   const canonicalUri = url.pathname.split("/").map(encodeURIComponent).join("/");
   const canonicalRequest = [
     "PUT",
@@ -86,6 +91,7 @@ async function uploadImageToR2(base64Data, fileNamePrefix) {
   const response = await fetch(url, {
     method: "PUT",
     headers: {
+      "Cache-Control": cacheControl,
       "Content-Type": contentType,
       Host: host,
       "x-amz-content-sha256": payloadHash,

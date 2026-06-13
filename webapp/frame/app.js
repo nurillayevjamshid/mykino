@@ -925,14 +925,14 @@ function resolveAppUrl(value) {
   return raw;
 }
 
-// r2.dev bepul domeni ko'p so'rovda 403 (throttle) qaytaradi. Poster rasmlarini
-// o'z domenimiz (Vercel) orqali proxy qilamiz -> Vercel edge keshlaydi, r2.dev'ga
-// burst urilmaydi. Faqat r2.dev rasm URL'lari proxy qilinadi (video/cdn emas).
+// Eski r2.dev domeni throttled — custom Cloudflare domeni (r2.myplaylist.uz)
+// orqali to'g'ridan-to'g'ri o'qiymiz, edge keshlaydi, throttle yo'q.
+const R2_OLD_HOST = "pub-42c7619e0f49402bb099364c0b589eca.r2.dev";
+const R2_NEW_HOST = "r2.myplaylist.uz";
 function proxyPosterUrl(value) {
   const url = String(value || "").trim();
-  if (/\.r2\.dev\//i.test(url)) {
-    return buildApiUrl(`/api/drive-thumbnail?u=${encodeURIComponent(url)}`);
-  }
+  if (!url) return url;
+  if (url.includes(R2_OLD_HOST)) return url.split(R2_OLD_HOST).join(R2_NEW_HOST);
   return url;
 }
 
