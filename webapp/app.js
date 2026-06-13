@@ -2158,7 +2158,7 @@ function createMovieCard(movie) {
     : `loading="lazy" fetchpriority="low"`;
   card.innerHTML = `
     <span class="poster poster--img">
-      <img class="poster__img" alt="" src="${escapeHtml(posterSrc)}" ${imgLoadingAttrs} decoding="async" onload="this.classList.add('is-loaded');this.parentElement&&this.parentElement.classList.add('poster--loaded')" onerror="this.parentElement&&this.parentElement.classList.add('poster--loaded');this.remove()">
+      <img class="poster__img" alt="" src="${escapeHtml(posterSrc)}" ${imgLoadingAttrs} decoding="async">
       <span class="card-badges">
         <span class="badge">${escapeHtml(movie.quality || "HD")}</span>
         <span class="rating"><span>&#9733;</span> ${escapeHtml(ratingText)}</span>
@@ -2174,6 +2174,31 @@ function createMovieCard(movie) {
       <p class="card-meta">${metaParts.join("")}</p>
     </span>
   `;
+  // MUHIM: inline `onload`/`onerror` ishlatmaymiz. innerHTML orqali yaratilgan
+  // <img> uchun rasm brauzer cache'ida bo'lsa, `load` event handler attribute
+  // biriktirilishidan oldin yonib ketishi mumkin (Telegram WebView'da kuzatildi:
+  // birinchi kirishda preloadPosters() rasmlarni keshga tushiradi, keyin <img>
+  // render bo'lganda load eventi o'tib ketardi, opacity 0'da qotib qolardi —
+  // foydalanuvchi qora kartochka ko'rib reload qilishga majbur edi).
+  // Endi: complete bo'lsa sync ravishda is-loaded, aks holda listener.
+  const posterImg = card.querySelector(".poster__img");
+  if (posterImg) {
+    const markLoaded = () => {
+      posterImg.classList.add("is-loaded");
+      posterImg.parentElement && posterImg.parentElement.classList.add("poster--loaded");
+    };
+    const markFailed = () => {
+      posterImg.parentElement && posterImg.parentElement.classList.add("poster--loaded");
+      posterImg.remove();
+    };
+    if (posterImg.complete) {
+      if (posterImg.naturalWidth > 0) markLoaded();
+      else markFailed();
+    } else {
+      posterImg.addEventListener("load", markLoaded, { once: true });
+      posterImg.addEventListener("error", markFailed, { once: true });
+    }
+  }
   const wishlistBtn = card.querySelector(".wishlist-toggle");
   wishlistBtn?.addEventListener("click", (event) => {
     event.stopPropagation();
