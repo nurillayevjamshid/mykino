@@ -12650,9 +12650,13 @@ body.fifa-lineup-open { overflow: hidden; }
   justify-content: center;
   gap: 14px;
   padding: 60px 16px;
-  color: var(--text-muted, rgba(255,255,255,.55));
+  color: #6b7088;
   font-size: 14px;
+  text-align: center;
 }
+html[data-theme="dark"] .fifa-lineup-loading,
+html[data-theme="dark"] .fifa-lineup-empty { color: rgba(255,255,255,.65); }
+.fifa-lineup-empty .fifa-live-empty__icon { font-size: 36px; }
 
 /* --- Pitch (stadion) — absolyut pozitsiyalangan o'yinchilar --- */
 .fifa-pitch {
