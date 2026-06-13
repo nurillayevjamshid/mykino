@@ -8437,21 +8437,20 @@ if ("requestIdleCallback" in window) {
     return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
   }
 
-  function ratingColor(r) {
+  function ratingColor(r, motm) {
+    if (motm) return "fifa-rating--blue";
     if (r == null) return "";
-    if (r >= 8) return "fifa-rating--blue";
     if (r >= 7) return "fifa-rating--green";
     if (r >= 6) return "fifa-rating--orange";
     return "fifa-rating--red";
   }
 
-  function playerBadgesHtml(p) {
+  function playerInlineBadgesHtml(p) {
     const out = [];
     if (p.goals > 0) out.push(`<span class="fifa-badge fifa-badge--goal" title="Gol">⚽${p.goals > 1 ? `<sup>${p.goals}</sup>` : ""}</span>`);
     if (p.redCard) out.push(`<span class="fifa-badge fifa-badge--red" title="Qizil karta"></span>`);
     else if (p.yellowCard) out.push(`<span class="fifa-badge fifa-badge--yellow" title="Sariq karta"></span>`);
-    if (p.subOut != null) out.push(`<span class="fifa-badge fifa-badge--subout" title="Almashtirildi ${p.subOut}'">↓</span>`);
-    if (p.subIn != null) out.push(`<span class="fifa-badge fifa-badge--subin" title="Maydonga kirdi ${p.subIn}'">↑</span>`);
+    if (p.isCaptain) out.push(`<span class="fifa-badge fifa-badge--cap" title="Kapitan">C</span>`);
     return out.join("");
   }
 
@@ -8459,8 +8458,6 @@ if ("requestIdleCallback" in window) {
     // side: 'home' | 'away'. Coords: x (0..1 own goal→opp goal), y (0..1 left→right)
     const x = typeof p.x === "number" ? p.x : 0.5;
     const y = typeof p.y === "number" ? p.y : 0.5;
-    // Home occupies top 50%, own goal at top → top% = x * 50
-    // Away occupies bottom 50%, own goal at bottom → top% = 100 - x*50
     const topPct = side === "home" ? x * 50 : 100 - x * 50;
     const leftPct = side === "home" ? y * 100 : (1 - y) * 100;
     const num = p.number != null ? String(p.number) : "";
@@ -8468,21 +8465,23 @@ if ("requestIdleCallback" in window) {
     const photo = p.photo
       ? `<img src="${esc(p.photo)}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.querySelector('.fifa-pitch-player__initials')?.removeAttribute('hidden'); this.remove()">`
       : "";
-    const rating = p.rating != null
-      ? `<span class="fifa-pitch-player__rating ${ratingColor(p.rating)}">${p.rating.toFixed(1)}</span>`
+    const ratingVal = p.motm ? `${p.rating != null ? p.rating.toFixed(1) : ""}<span class="fifa-rating__star">★</span>` : (p.rating != null ? p.rating.toFixed(1) : "");
+    const rating = (p.rating != null || p.motm)
+      ? `<span class="fifa-pitch-player__rating ${ratingColor(p.rating, p.motm)}">${ratingVal}</span>`
       : "";
-    const cap = p.isCaptain ? `<span class="fifa-pitch-player__cap" title="Kapitan">C</span>` : "";
+    const subBubble = p.subOut != null
+      ? `<span class="fifa-pitch-player__sub fifa-pitch-player__sub--out" title="Almashtirildi ${p.subOut}'">${p.subOut}'<span class="fifa-pitch-player__sub-icon">↓</span></span>`
+      : "";
+    const nameLine = num ? `${esc(num)} ${esc(shortName(p))}` : esc(shortName(p));
     return `
       <div class="fifa-pitch-player" style="top:${topPct.toFixed(2)}%;left:${leftPct.toFixed(2)}%;">
+        ${subBubble}
         <div class="fifa-pitch-player__avatar">
           ${photo}
           <span class="fifa-pitch-player__initials" ${p.photo ? "hidden" : ""}>${esc(initials)}</span>
-          ${num ? `<span class="fifa-pitch-player__num">${esc(num)}</span>` : ""}
           ${rating}
-          ${cap}
         </div>
-        <div class="fifa-pitch-player__badges">${playerBadgesHtml(p)}</div>
-        <div class="fifa-pitch-player__name">${esc(shortName(p))}</div>
+        <div class="fifa-pitch-player__line">${playerInlineBadgesHtml(p)}<span class="fifa-pitch-player__name">${nameLine}</span></div>
       </div>
     `;
   }
@@ -8568,12 +8567,24 @@ if ("requestIdleCallback" in window) {
     `;
   }
 
-  function renderLineupBody(data, homeUz, awayUz) {
+  function renderLineupBody(data, homeUz, awayUz, homeFlag, awayFlag) {
     if (!data || !data.found) return lineupEmptyHtml("Bu o'yin uchun tarkib hali mavjud emas.");
     const home = data.home || { starting: [], subs: [] };
     const away = data.away || { starting: [], subs: [] };
-    const homeFm = home.formation ? `<span class="fifa-pitch__formation">${esc(home.formation)}</span>` : "";
-    const awayFm = away.formation ? `<span class="fifa-pitch__formation">${esc(away.formation)}</span>` : "";
+    const teamHeader = (team, name, flag) => {
+      const rating = team.rating != null
+        ? `<span class="fifa-team-strip__rating ${ratingColor(team.rating, false)}">${team.rating.toFixed(1)}</span>`
+        : `<span class="fifa-team-strip__rating fifa-rating--muted">—</span>`;
+      const formation = team.formation ? `<span class="fifa-team-strip__formation">${esc(team.formation)}</span>` : "";
+      return `
+        <div class="fifa-team-strip">
+          ${rating}
+          <span class="fifa-team-strip__flag">${flag || ""}</span>
+          <span class="fifa-team-strip__name">${esc(name)}</span>
+          ${formation}
+        </div>
+      `;
+    };
 
     // Zaxiradan tushgan (subIn) — alohida bo'lim
     const homeSubbedIn = (home.subs || []).filter((p) => p.subIn != null);
@@ -8617,25 +8628,23 @@ if ("requestIdleCallback" in window) {
     `;
 
     return `
-      <div class="fifa-pitch">
-        <div class="fifa-pitch__bg" aria-hidden="true">
-          <span class="fifa-pitch__circle"></span>
-          <span class="fifa-pitch__halfline"></span>
-          <span class="fifa-pitch__box fifa-pitch__box--top"></span>
-          <span class="fifa-pitch__box fifa-pitch__box--bottom"></span>
-          <span class="fifa-pitch__spot fifa-pitch__spot--top"></span>
-          <span class="fifa-pitch__spot fifa-pitch__spot--bottom"></span>
+      <div class="fifa-pitch-wrap">
+        ${teamHeader(home, homeUz, homeFlag)}
+        <div class="fifa-pitch">
+          <div class="fifa-pitch__bg" aria-hidden="true">
+            <span class="fifa-pitch__circle"></span>
+            <span class="fifa-pitch__halfline"></span>
+            <span class="fifa-pitch__box fifa-pitch__box--top"></span>
+            <span class="fifa-pitch__box fifa-pitch__box--bottom"></span>
+            <span class="fifa-pitch__spot fifa-pitch__spot--top"></span>
+            <span class="fifa-pitch__spot fifa-pitch__spot--bottom"></span>
+          </div>
+          <div class="fifa-pitch__players">
+            ${(home.starting || []).map((p) => buildPitchPlayerHtml(p, "home")).join("")}
+            ${(away.starting || []).map((p) => buildPitchPlayerHtml(p, "away")).join("")}
+          </div>
         </div>
-        <div class="fifa-pitch__label fifa-pitch__label--top">
-          <span>${esc(homeUz)}</span>${homeFm}
-        </div>
-        <div class="fifa-pitch__label fifa-pitch__label--bottom">
-          <span>${esc(awayUz)}</span>${awayFm}
-        </div>
-        <div class="fifa-pitch__players">
-          ${(home.starting || []).map((p) => buildPitchPlayerHtml(p, "home")).join("")}
-          ${(away.starting || []).map((p) => buildPitchPlayerHtml(p, "away")).join("")}
-        </div>
+        ${teamHeader(away, awayUz, awayFlag)}
       </div>
       <div class="fifa-bench">
         ${benchCol(homeUz, homeSubbedIn, homeBench, home.coach)}
@@ -8656,7 +8665,7 @@ if ("requestIdleCallback" in window) {
     try { tgBackRegister?.("fifa-lineup", () => closeLineupModal()); } catch (_) {}
     try {
       const data = await fetchLineup(homeEn, awayEn, date);
-      body.innerHTML = renderLineupBody(data, homeUz, awayUz);
+      body.innerHTML = renderLineupBody(data, homeUz, awayUz, homeFlag, awayFlag);
     } catch (err) {
       body.innerHTML = lineupEmptyHtml("Tarkibni yuklab bo'lmadi.");
     }
