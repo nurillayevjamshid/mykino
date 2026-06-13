@@ -5836,6 +5836,44 @@ function preloadPosters(movieList) {
   }
 }
 
+// Splash yopilishidan oldin chaqiriladi — birinchi ekrandagi rasm'lar
+// (hero header + birinchi N ta poster) tayyor bo'lishini kutamiz, shunda
+// foydalanuvchi bo'sh kartochkalar/oq hero ko'rmaydi. timeoutMs cap bilan
+// — agar tarmoq sekin bo'lsa, splash baribir kafolatlangan vaqtda ochiladi.
+function awaitFirstPostersReady(movieList, { firstCount = 6, timeoutMs = 1200 } = {}) {
+  const urls = [];
+  if (Array.isArray(movieList)) {
+    const heroMovie = movieList.find((m) => m && m.showInHeader && (m.headerImage || m.posterImage));
+    if (heroMovie) {
+      const heroUrl = String(heroMovie.headerImage || heroMovie.posterImage || "").trim();
+      if (heroUrl && !heroUrl.startsWith("data:") && !heroUrl.startsWith("blob:")) urls.push(heroUrl);
+    }
+    for (const m of movieList.slice(0, firstCount)) {
+      const url = String(m?.posterImage || "").trim();
+      if (!url || url.startsWith("data:") || url.startsWith("blob:")) continue;
+      if (!urls.includes(url)) urls.push(url);
+    }
+  }
+  if (!urls.length) return Promise.resolve();
+  const loadOne = (url) => new Promise((resolve) => {
+    const img = new Image();
+    img.decoding = "async";
+    try { img.fetchPriority = "high"; } catch {}
+    const done = () => resolve();
+    if (typeof img.decode === "function") {
+      img.src = url;
+      img.decode().then(done).catch(done);
+    } else {
+      img.onload = done;
+      img.onerror = done;
+      img.src = url;
+    }
+  });
+  const all = Promise.all(urls.map(loadOne));
+  const cap = new Promise((resolve) => setTimeout(resolve, timeoutMs));
+  return Promise.race([all, cap]);
+}
+
 function showAccessDeniedScreen() {
   if (document.getElementById("accessDeniedScreen")) return;
 
@@ -6580,7 +6618,10 @@ async function initApp() {
   await loadAppSettings();
   const splash = initSplashScreen();
   // Movies tayyor bo'lishi bilanoq splash yopiladi (min 800ms cheklov bilan).
-  loadMovies().finally(() => {
+  // Birinchi ekrandagi poster'lar decode bo'lguncha kutamiz (cap: 1200ms) —
+  // shunda splash yopilganda bo'sh kartochkalar yoki oq hero ko'rinmaydi.
+  loadMovies().finally(async () => {
+    try { await awaitFirstPostersReady(movies); } catch (_) {}
     try { splash?.tryHide?.(); } catch (_) {}
     try { tryHandleDeepLink(); } catch (_) {}
   });
