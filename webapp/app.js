@@ -2156,10 +2156,9 @@ function createMovieCard(movie) {
   const imgLoadingAttrs = isEager
     ? `loading="eager" fetchpriority="high"`
     : `loading="lazy" fetchpriority="low"`;
-  const safePoster = String(posterSrc).replaceAll('"', "&quot;");
   card.innerHTML = `
     <span class="poster poster--img">
-      <img class="poster__img" alt="" src="${safePoster}" ${imgLoadingAttrs} decoding="async" onload="this.classList.add('is-loaded');this.parentElement&&this.parentElement.classList.add('poster--loaded')" onerror="this.parentElement&&this.parentElement.classList.add('poster--loaded');this.remove()">
+      <img class="poster__img" alt="" src="${escapeHtml(posterSrc)}" ${imgLoadingAttrs} decoding="async" onload="this.classList.add('is-loaded');this.parentElement&&this.parentElement.classList.add('poster--loaded')" onerror="this.parentElement&&this.parentElement.classList.add('poster--loaded');this.remove()">
       <span class="card-badges">
         <span class="badge">${escapeHtml(movie.quality || "HD")}</span>
         <span class="rating"><span>&#9733;</span> ${escapeHtml(ratingText)}</span>
