@@ -4781,7 +4781,7 @@ function renderPodcastProfileModal() {
 }
 
 // ===== Music modul: lazy-loader + stubs =====
-// Musiqa kodi alohida webapp/music.js fayliga ko'chirildi va faqat kerak bo'lganda yuklanadi.
+// Musiqa kodi alohida webapp/music/music.js fayliga ko'chirildi va faqat kerak bo'lganda yuklanadi.
 // Bu birinchi yuklashda parse vaqtini ~50–100 ms tezlashtiradi.
 let __musicModulePromise = null;
 function ensureMusicModule() {
@@ -4789,7 +4789,7 @@ function ensureMusicModule() {
   if (__musicModulePromise) return __musicModulePromise;
   __musicModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music.js?v=20260603-icons2px02";
+    script.src = "/static/music/music.js?v=20260613-folder-split";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
