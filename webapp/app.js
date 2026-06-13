@@ -7720,7 +7720,7 @@ if ("requestIdleCallback" in window) {
   let activeStream = null;
   let controlsAutoHideTimer = null;
 
-  function scheduleControlsAutoHide(modal, delay = 2800) {
+  function scheduleControlsAutoHide(modal, delay = 4500) {
     if (controlsAutoHideTimer) { clearTimeout(controlsAutoHideTimer); controlsAutoHideTimer = null; }
     const video = modal?.querySelector("#fifaHlsVideo");
     if (!video || video.paused) return; // pauzada tugmalarni doim ko'rsatamiz
@@ -7729,6 +7729,9 @@ if ("requestIdleCallback" in window) {
       const v = modal.querySelector("#fifaHlsVideo");
       if (v && !v.paused) modal.classList.add("controls-hidden");
     }, delay);
+  }
+  function cancelControlsAutoHide() {
+    if (controlsAutoHideTimer) { clearTimeout(controlsAutoHideTimer); controlsAutoHideTimer = null; }
   }
 
   function injectPlayerStylesOnce() {
@@ -7798,15 +7801,17 @@ if ("requestIdleCallback" in window) {
     const video = modal.querySelector("#fifaHlsVideo");
     if (!video || video.dataset.ppSyncBound === "1") return;
     video.dataset.ppSyncBound = "1";
-    video.addEventListener("play", () => setCenterPlayState(modal, true));
-    video.addEventListener("playing", () => setCenterPlayState(modal, true));
+    video.addEventListener("play", () => { setCenterPlayState(modal, true); scheduleControlsAutoHide(modal); });
+    video.addEventListener("playing", () => { setCenterPlayState(modal, true); scheduleControlsAutoHide(modal); });
     video.addEventListener("pause", () => {
       // Audio'ni ham pauza qilamiz, agar video pauza bo'lgan bo'lsa
       const audio = modal.querySelector("#fifaHlsAudio");
       if (audio && !audio.paused) { try { audio.pause(); } catch (_) {} }
       setCenterPlayState(modal, false);
+      cancelControlsAutoHide();
+      modal.classList.remove("controls-hidden");
     });
-    video.addEventListener("ended", () => setCenterPlayState(modal, false));
+    video.addEventListener("ended", () => { setCenterPlayState(modal, false); cancelControlsAutoHide(); modal.classList.remove("controls-hidden"); });
   }
 
   function updateMuteIcon(modal, muted) {
@@ -8234,11 +8239,10 @@ if ("requestIdleCallback" in window) {
           togglePlayPause(modal);
           return;
         }
-        // Video yoki modal foni ustiga bosish — pauza qilmaymiz, faqat UI toggle.
-        // PC'da kursor video chetiga tushishi mumkin, shuning uchun modal'ning
-        // o'ziga tushgan bosishni ham qabul qilamiz.
-        const t = e.target;
-        if (t === modal || t.id === "fifaHlsVideo" || t.id === "fifaHlsAudio") {
+        // Tugma bosilmagan har qanday joy — UI ni ko'rsatish/yashirish.
+        // (Tugmalar yuqorida `return` bilan ushlanadi, bu yerga kelmaydi)
+        const onButton = e.target.closest && e.target.closest(".fifa-player__icon-btn, .fifa-player__center-btn, #fifaPlayerOverlay");
+        if (!onButton) {
           e.preventDefault();
           modal.classList.toggle("controls-hidden");
           if (!modal.classList.contains("controls-hidden")) scheduleControlsAutoHide(modal);
@@ -8248,11 +8252,15 @@ if ("requestIdleCallback" in window) {
       // mute toggle ikki marta ishlaydi (ovoz yoqilib darhol qaytib o'chadi)
       modal.addEventListener("click", handleTap);
       // Desktop UX — sichqoncha harakatlansa panellarni ko'rsatib, inaktivlikda yashiramiz
+      let lastMoveAt = 0;
       modal.addEventListener("mousemove", () => {
-        modal.classList.remove("controls-hidden");
+        const now = Date.now();
+        if (now - lastMoveAt < 120) return; // throttle
+        lastMoveAt = now;
+        if (modal.classList.contains("controls-hidden")) modal.classList.remove("controls-hidden");
         scheduleControlsAutoHide(modal);
       });
-      modal.addEventListener("mouseleave", () => scheduleControlsAutoHide(modal, 800));
+      modal.addEventListener("mouseleave", () => scheduleControlsAutoHide(modal, 1200));
       attachFullscreenRecovery(modal);
       attachPlayPauseSync(modal);
     }
