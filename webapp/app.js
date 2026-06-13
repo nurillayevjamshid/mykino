@@ -7910,7 +7910,12 @@ if ("requestIdleCallback" in window) {
         const audio = document.getElementById("fifaHlsAudio");
         if (audio) { try { audio.pause(); } catch (_) {} }
         const modal = document.getElementById("fifaHlsModal");
-        if (modal) setCenterPlayState(modal, false);
+        if (modal) {
+          setCenterPlayState(modal, false);
+          // Fullscreen'dan qaytganda panellar yashirilib qolmasligi uchun
+          cancelControlsAutoHide();
+          modal.classList.remove("controls-hidden");
+        }
       }, 150);
     };
     document.addEventListener("fullscreenchange", recover);
