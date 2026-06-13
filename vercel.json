@@ -42,18 +42,6 @@
       "headers": [
         { "key": "Cache-Control", "value": "no-store, max-age=0" }
       ]
-    },
-    {
-      "source": "/frame",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, max-age=0" }
-      ]
-    },
-    {
-      "source": "/frame/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, max-age=0" }
-      ]
     }
   ],
   "builds": [
@@ -99,9 +87,6 @@
     { "src": "/beta", "dest": "/webapp/beta/index.html" },
     { "src": "/beta/", "dest": "/webapp/beta/index.html" },
     { "src": "/beta/(.*)", "dest": "/webapp/beta/$1" },
-    { "src": "/frame", "dest": "/webapp/frame/index.html" },
-    { "src": "/frame/", "dest": "/webapp/frame/index.html" },
-    { "src": "/frame/(.*)", "dest": "/webapp/frame/$1" },
     { "src": "/static/(.*)", "dest": "/webapp/$1" },
     { "src": "/", "dest": "/webapp/index.html" }
   ]
