@@ -247,6 +247,12 @@ textarea,
   }
 }
 
+@keyframes musicSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .splash-screen__name b {
   font-size: 25px;
   font-weight: 400;
