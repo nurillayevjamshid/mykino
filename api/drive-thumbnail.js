@@ -1,5 +1,5 @@
 const { LOGO_POSTER_URL, getAccessToken, getDriveFileMetadata } = require("./_lib/google-drive");
-const { verifySignedToken, isOriginAllowed, setCorsHeaders } = require("./_lib/auth");
+const { verifySignedToken, isOriginAllowed, setCorsHeaders, isValidDriveFileId } = require("./_lib/auth");
 
 function getFileId(request) {
   return String(request.query?.fileId || request.query?.id || "").trim();
@@ -91,7 +91,7 @@ module.exports = async function handler(request, response) {
 
   try {
     const fileId = getFileId(request);
-    if (!fileId) {
+    if (!fileId || !isValidDriveFileId(fileId)) {
       response.writeHead(307, { Location: LOGO_POSTER_URL });
       response.end();
       return;
