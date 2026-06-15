@@ -1,4 +1,4 @@
-const { authorizeRequest } = require("./_lib/auth");
+const { authorizeRequest, isValidDriveFileId, isAllowedDriveRedirect } = require("./_lib/auth");
 const { getAccessToken } = require("./_lib/google-drive");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
@@ -26,7 +26,9 @@ async function resolveDirectUrl(fileId) {
 
   if (upstream.status >= 300 && upstream.status < 400) {
     const location = upstream.headers.get("location");
-    if (location) return location;
+    // Open-redirect oldini olish: Google CDN/host'lariga emas redirect bo'lsa,
+    // fishing surface bo'lib qoladi. Begona host'ni qaytarmaymiz.
+    if (location && isAllowedDriveRedirect(location)) return location;
   }
   return null;
 }
@@ -44,6 +46,10 @@ module.exports = async function handler(request, response) {
     const fileId = getFileId(request);
     if (!fileId) {
       response.status(400).json({ ok: false, code: "FILE_ID_MISSING", error: "fileId kerak." });
+      return;
+    }
+    if (!isValidDriveFileId(fileId)) {
+      response.status(400).json({ ok: false, code: "FILE_ID_INVALID", error: "fileId formati noto'g'ri." });
       return;
     }
 

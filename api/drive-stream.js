@@ -1,5 +1,5 @@
 const { Readable } = require("stream");
-const { verifySignedToken, setCorsHeaders } = require("./_lib/auth");
+const { verifySignedToken, setCorsHeaders, isValidDriveFileId } = require("./_lib/auth");
 const { getDriveMediaResponse, getAccessToken } = require("./_lib/google-drive");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
@@ -48,6 +48,10 @@ module.exports = async function handler(request, response) {
     const fileId = getFileId(request);
     if (!fileId) {
       response.status(400).json({ ok: false, code: "FILE_ID_MISSING", error: "fileId ko'rsatilmagan." });
+      return;
+    }
+    if (!isValidDriveFileId(fileId)) {
+      response.status(400).json({ ok: false, code: "FILE_ID_INVALID", error: "fileId formati noto'g'ri." });
       return;
     }
 

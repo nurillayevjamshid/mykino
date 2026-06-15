@@ -136,6 +136,33 @@ function checkRateLimit(ip) {
   return clientData.count <= MAX_REQUESTS_PER_MIN;
 }
 
+// ---------- Drive fileId & redirect validators ----------
+
+// Google Drive file ID format: base64url alfaviti, odatda 28-44 belgi.
+// Diapazon kengroq olindi (20..80) — kelajakdagi format o'zgarishlariga toqat.
+// Bu validatsiya log injection, URL injection (`?alt=media&...` ulash), Drive
+// quota DoS va katalog tashqarisidagi faylga noruxsat kirishni oldini oladi.
+const DRIVE_FILE_ID_RE = /^[A-Za-z0-9_-]{20,80}$/;
+function isValidDriveFileId(id) {
+  return typeof id === "string" && DRIVE_FILE_ID_RE.test(id);
+}
+
+// drive-resolve qaytaradigan Location header faqat Google CDN/host'lariga
+// yo'naltirilishi mumkin. Aks holda endpoint open-redirect bo'lib qoladi va
+// fishing havola sifatida ishlatilishi mumkin (mykino.app/api/drive-resolve...).
+const ALLOWED_DRIVE_REDIRECT_HOSTS = [
+  /\.googleusercontent\.com$/i,
+  /\.googleapis\.com$/i,
+  /^drive\.google\.com$/i,
+  /^lh\d+\.googleusercontent\.com$/i,
+];
+function isAllowedDriveRedirect(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return false;
+  let host;
+  try { host = new URL(rawUrl).host.toLowerCase(); } catch { return false; }
+  return ALLOWED_DRIVE_REDIRECT_HOSTS.some((re) => re.test(host));
+}
+
 // ---------- Admin auth helpers ----------
 
 const ADMIN_COOKIE = "__admin_session";
@@ -410,5 +437,8 @@ module.exports = {
   adminIsLocked,
   adminRegisterFail,
   adminResetFails,
-  ADMIN_COOKIE
+  ADMIN_COOKIE,
+  // drive validators
+  isValidDriveFileId,
+  isAllowedDriveRedirect,
 };
