@@ -4827,7 +4827,7 @@ async function submitFeedback() {
       body: JSON.stringify({ text }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data?.ok) throw new Error(data?.error || "send_failed");
+    if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
     feedbackInput.value = "";
     updateFeedbackCounter();
     closeFeedbackModal();
@@ -4837,7 +4837,8 @@ async function submitFeedback() {
     else alert(msg);
   } catch (err) {
     if (feedbackError) {
-      feedbackError.textContent = plainLabel(t("feedbackError"));
+      const detail = err?.message ? ` (${err.message})` : "";
+      feedbackError.textContent = plainLabel(t("feedbackError")) + detail;
       feedbackError.hidden = false;
     }
   } finally {
