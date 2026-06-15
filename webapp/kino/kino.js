@@ -7076,10 +7076,10 @@ initApp();
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
   // === Tweak qilinadigan sozlamalar ===
-  const MULTIPLIER = 1.55;     // barmoq harakatini necha barobar kuchaytirish (1 = native)
+  const MULTIPLIER = 3.1;      // barmoq harakatini necha barobar kuchaytirish (1 = native)
   const FRICTION = 0.94;       // inertia decay (har frame'da velocity * FRICTION). Katta = uzoqroq sirpanadi
   const MIN_VELOCITY = 0.04;   // px/ms — bundan past tezlikda inertia to'xtaydi
-  const MAX_VELOCITY = 4.5;    // px/ms — cheksiz tezlanmasin
+  const MAX_VELOCITY = 9;      // px/ms — cheksiz tezlanmasin
   const INNER_SCROLLERS =
     ".category-row__list, .music-card-row, .music-filter-row, .music-carousel," +
     " .music-artists, .modal-content, .modal-poster, .video-player, .ad-modal," +
