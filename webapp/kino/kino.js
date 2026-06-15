@@ -230,7 +230,14 @@ const copy = {
     supportTitle: "🤝 Qo'llab-quvvatlash",
     supportFeedback: "Talab va takliflar uchun",
     supportAbout: "Ilova haqida",
-    supportFeedbackPrefill: "Salom! Talab/taklif bor: ",
+    feedbackTitle: "Talab va takliflar",
+    feedbackHint: "Xabaringizni yozing — administratorga yetkaziladi.",
+    feedbackPlaceholder: "Xabar matni...",
+    feedbackSend: "Yuborish",
+    feedbackSending: "Yuborilmoqda...",
+    feedbackSent: "Xabar yuborildi. Rahmat!",
+    feedbackEmpty: "Xabar bo'sh bo'lmasligi kerak.",
+    feedbackError: "Xabarni yuborib bo'lmadi. Qaytadan urinib ko'ring.",
     aboutTitle: "Kino Play",
     aboutBody: "Kino Play — Telegram mini-ilova. Versiya 1.0\n© 2026 Kino Play",
   },
@@ -299,7 +306,14 @@ const copy = {
     supportTitle: "🤝 Поддержка",
     supportFeedback: "Запросы и предложения",
     supportAbout: "О приложении",
-    supportFeedbackPrefill: "Здравствуйте! У меня запрос/предложение: ",
+    feedbackTitle: "Запросы и предложения",
+    feedbackHint: "Напишите сообщение — оно будет отправлено администратору.",
+    feedbackPlaceholder: "Текст сообщения...",
+    feedbackSend: "Отправить",
+    feedbackSending: "Отправка...",
+    feedbackSent: "Сообщение отправлено. Спасибо!",
+    feedbackEmpty: "Сообщение не должно быть пустым.",
+    feedbackError: "Не удалось отправить. Попробуйте снова.",
     aboutTitle: "Kino Play",
     aboutBody: "Kino Play — Telegram мини-приложение. Версия 1.0\n© 2026 Kino Play",
   },
@@ -368,7 +382,14 @@ const copy = {
     supportTitle: "🤝 Support",
     supportFeedback: "Requests & suggestions",
     supportAbout: "About the app",
-    supportFeedbackPrefill: "Hi! I have a request/suggestion: ",
+    feedbackTitle: "Requests & suggestions",
+    feedbackHint: "Write your message — it will be sent to the administrator.",
+    feedbackPlaceholder: "Message text...",
+    feedbackSend: "Send",
+    feedbackSending: "Sending...",
+    feedbackSent: "Message sent. Thank you!",
+    feedbackEmpty: "Message cannot be empty.",
+    feedbackError: "Failed to send. Try again.",
     aboutTitle: "Kino Play",
     aboutBody: "Kino Play — Telegram mini app. Version 1.0\n© 2026 Kino Play",
   },
@@ -4742,21 +4763,116 @@ function applySupportCopy() {
   set("supportAboutLabel", "supportAbout");
 }
 
-const SUPPORT_TG_USERNAME = "mykinoplay_bot";
+const feedbackModal = document.querySelector("#feedbackModal");
+const feedbackForm = document.querySelector("#feedbackForm");
+const feedbackInput = document.querySelector("#feedbackInput");
+const feedbackSendBtn = document.querySelector("#feedbackSend");
+const feedbackSendLabel = document.querySelector("#feedbackSendLabel");
+const feedbackCounter = document.querySelector("#feedbackCounter");
+const feedbackError = document.querySelector("#feedbackError");
+const feedbackTitle = document.querySelector("#feedbackTitle");
+const feedbackHint = document.querySelector("#feedbackHint");
 
-function openSupportLink(prefillKey) {
-  const text = plainLabel(t(prefillKey) || "");
-  const url = text
-    ? `https://t.me/${SUPPORT_TG_USERNAME}?text=${encodeURIComponent(text)}`
-    : `https://t.me/${SUPPORT_TG_USERNAME}`;
-  try {
-    if (window.Telegram?.WebApp?.openTelegramLink) {
-      window.Telegram.WebApp.openTelegramLink(url);
-      return;
-    }
-  } catch (_) {}
-  try { window.open(url, "_blank"); } catch (_) {}
+function applyFeedbackCopy() {
+  if (feedbackTitle) feedbackTitle.textContent = plainLabel(t("feedbackTitle"));
+  if (feedbackHint) feedbackHint.textContent = plainLabel(t("feedbackHint"));
+  if (feedbackInput) feedbackInput.placeholder = plainLabel(t("feedbackPlaceholder"));
+  if (feedbackSendLabel) feedbackSendLabel.textContent = plainLabel(t("feedbackSend"));
+  updateFeedbackCounter();
 }
+
+function updateFeedbackCounter() {
+  if (!feedbackCounter || !feedbackInput) return;
+  feedbackCounter.textContent = `${feedbackInput.value.length} / 2000`;
+}
+
+function openFeedbackModal() {
+  if (!feedbackModal) return;
+  applyFeedbackCopy();
+  if (feedbackError) { feedbackError.hidden = true; feedbackError.textContent = ""; }
+  try {
+    if (typeof feedbackModal.showModal === "function") feedbackModal.showModal();
+    else feedbackModal.setAttribute("open", "");
+  } catch (_) {}
+  setTimeout(() => { try { feedbackInput?.focus(); } catch {} }, 60);
+}
+
+function closeFeedbackModal() {
+  if (!feedbackModal) return;
+  try {
+    if (typeof feedbackModal.close === "function") feedbackModal.close();
+    else feedbackModal.removeAttribute("open");
+  } catch (_) {}
+}
+
+async function submitFeedback() {
+  if (!feedbackInput || !feedbackSendBtn) return;
+  const text = String(feedbackInput.value || "").trim();
+  if (!text) {
+    if (feedbackError) {
+      feedbackError.textContent = plainLabel(t("feedbackEmpty"));
+      feedbackError.hidden = false;
+    }
+    return;
+  }
+  feedbackSendBtn.disabled = true;
+  if (feedbackSendLabel) feedbackSendLabel.textContent = plainLabel(t("feedbackSending"));
+  if (feedbackError) { feedbackError.hidden = true; feedbackError.textContent = ""; }
+
+  const initData = String(window.Telegram?.WebApp?.initData || "");
+  try {
+    const res = await fetch("/api/telegram-webhook?action=feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-TG-Init-Data": initData },
+      body: JSON.stringify({ text }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.ok) throw new Error(data?.error || "send_failed");
+    feedbackInput.value = "";
+    updateFeedbackCounter();
+    closeFeedbackModal();
+    const tgApp = window.Telegram?.WebApp;
+    const msg = plainLabel(t("feedbackSent"));
+    if (tgApp?.showAlert) tgApp.showAlert(msg);
+    else alert(msg);
+  } catch (err) {
+    if (feedbackError) {
+      feedbackError.textContent = plainLabel(t("feedbackError"));
+      feedbackError.hidden = false;
+    }
+  } finally {
+    feedbackSendBtn.disabled = false;
+    if (feedbackSendLabel) feedbackSendLabel.textContent = plainLabel(t("feedbackSend"));
+  }
+}
+
+if (feedbackInput) feedbackInput.addEventListener("input", updateFeedbackCounter);
+if (feedbackForm) {
+  feedbackForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitFeedback();
+  });
+}
+document.querySelectorAll("[data-feedback-close]").forEach((btn) => {
+  btn.addEventListener("click", (event) => { event.preventDefault(); closeFeedbackModal(); });
+});
+if (feedbackModal) {
+  feedbackModal.addEventListener("close", () => { try { tgBackUnregister?.("feedback-modal"); } catch {} });
+  const origShow = feedbackModal.showModal?.bind(feedbackModal);
+  if (origShow) {
+    feedbackModal.showModal = function patchedShow(...args) {
+      const r = origShow(...args);
+      try { tgBackRegister?.("feedback-modal", () => { try { feedbackModal.close(); } catch {} }); } catch {}
+      return r;
+    };
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  if (window.location.hash === "#feedback") {
+    setTimeout(() => openFeedbackModal(), 250);
+  }
+});
 
 function openAboutPopup() {
   const title = plainLabel(t("aboutTitle"));
@@ -4779,7 +4895,7 @@ document.querySelectorAll("[data-support]").forEach((btn) => {
   btn.addEventListener("click", (event) => {
     event.preventDefault();
     const action = btn.dataset.support;
-    if (action === "feedback") openSupportLink("supportFeedbackPrefill");
+    if (action === "feedback") openFeedbackModal();
     else if (action === "about") openAboutPopup();
   });
 });

@@ -1,5 +1,6 @@
 const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
 const { getJsonFromR2Signed, putJsonToR2 } = require("./_lib/r2-store");
+const { verifyTelegramWebappInitData, setCorsHeaders } = require("./_lib/auth");
 
 const TG_API = "https://api.telegram.org";
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
@@ -15,6 +16,75 @@ function getWebappUrl() {
 
 function getContactUsername() {
   return String(process.env.CONTACT_USERNAME || "").trim().replace(/^@/, "");
+}
+
+function getFeedbackGroupId() {
+  return String(process.env.FEEDBACK_GROUP_ID || "").trim();
+}
+
+function parseInitDataUser(initData) {
+  try {
+    const params = new URLSearchParams(initData);
+    const raw = params.get("user");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (_) { return null; }
+}
+
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+
+async function handleWebappFeedback(request, response) {
+  setCorsHeaders(request, response);
+  if (request.method === "OPTIONS") { response.status(204).end(); return; }
+  if (request.method !== "POST") { response.status(405).json({ ok: false, error: "POST kerak" }); return; }
+
+  const botToken = getBotToken();
+  const groupId = getFeedbackGroupId();
+  if (!botToken || !groupId) {
+    response.status(500).json({ ok: false, error: "Feedback sozlanmagan." });
+    return;
+  }
+
+  const initData = String(request.headers["x-tg-init-data"] || "").trim();
+  if (!initData || !verifyTelegramWebappInitData(initData, botToken)) {
+    response.status(401).json({ ok: false, error: "Telegram initData yaroqsiz." });
+    return;
+  }
+
+  let body = {};
+  try {
+    if (request.body && typeof request.body === "object") body = request.body;
+    else {
+      let raw = "";
+      for await (const chunk of request) raw += chunk;
+      body = raw ? JSON.parse(raw) : {};
+    }
+  } catch { body = {}; }
+
+  const text = String(body.text || "").trim();
+  if (!text) { response.status(400).json({ ok: false, error: "Xabar bo'sh." }); return; }
+  if (text.length > 2000) { response.status(400).json({ ok: false, error: "Xabar juda uzun (max 2000)." }); return; }
+
+  const user = parseInitDataUser(initData) || {};
+  const userId = user.id ? String(user.id) : "—";
+  const name = [user.first_name, user.last_name].filter(Boolean).join(" ") || "—";
+  const username = user.username ? `@${user.username}` : "—";
+
+  const formatted =
+    `📨 <b>Yangi murojaat</b>\n` +
+    `<b>Kim:</b> ${escapeHtml(name)} (${escapeHtml(username)})\n` +
+    `<b>ID:</b> <code>${escapeHtml(userId)}</code>\n` +
+    `\n${escapeHtml(text)}`;
+
+  try {
+    await sendMessage(groupId, formatted);
+    response.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Feedback send error:", err.message);
+    response.status(500).json({ ok: false, error: "Yuborib bo'lmadi." });
+  }
 }
 
 function bust(url, anchor = "") {
@@ -172,18 +242,16 @@ async function handleMessage(message) {
   }
 
   if (text === "Murojaat qoldirish" || text === "Murojaat qoldiring") {
-    const contact = getContactUsername();
-    if (contact) {
-      await sendMessage(
-        chatId,
-        `Talab va takliflaringizni @${contact} ga yozib qoldiring. Qisqa fursatda javob beramiz.`,
-      );
-    } else {
-      await sendMessage(
-        chatId,
-        "Talab va takliflaringizni yozib qoldiring. Qisqa fursatda javob beramiz.",
-      );
-    }
+    const feedbackUrl = bust(getWebappUrl(), "#feedback");
+    await sendMessage(
+      chatId,
+      "Talab va takliflaringizni quyidagi tugma orqali yuboring. Xabar bevosita administratorga yetkaziladi.",
+      {
+        reply_markup: {
+          inline_keyboard: [[{ text: "📨 Murojaat yozish", web_app: { url: feedbackUrl } }]],
+        },
+      },
+    );
     return;
   }
 
@@ -199,13 +267,16 @@ async function handleCallback(callback) {
 
   if (data === "feedback:start") {
     await answerCallback(callback.id);
-    const contact = getContactUsername();
     if (chatId) {
+      const feedbackUrl = bust(getWebappUrl(), "#feedback");
       await sendMessage(
         chatId,
-        contact
-          ? `Talab va takliflaringizni @${contact} ga yozib qoldiring.`
-          : "Talab va takliflaringizni yozib qoldiring.",
+        "Talab va takliflaringizni quyidagi tugma orqali yuboring.",
+        {
+          reply_markup: {
+            inline_keyboard: [[{ text: "📨 Murojaat yozish", web_app: { url: feedbackUrl } }]],
+          },
+        },
       );
     }
     return;
@@ -215,6 +286,10 @@ async function handleCallback(callback) {
 }
 
 module.exports = async function handler(request, response) {
+  const reqUrl = request.url || "";
+  if (/[?&]action=feedback(?:&|$)/.test(reqUrl)) {
+    return handleWebappFeedback(request, response);
+  }
   if (request.method === "GET") {
     response.status(200).json({ ok: true, message: "Telegram webhook endpoint" });
     return;
