@@ -4758,7 +4758,6 @@ function applySupportCopy() {
     const el = document.getElementById(id);
     if (el) el.textContent = plainLabel(t(key));
   };
-  set("profileSupportTitle", "supportTitle");
   set("supportFeedbackLabel", "supportFeedback");
   set("supportAboutLabel", "supportAbout");
 }
