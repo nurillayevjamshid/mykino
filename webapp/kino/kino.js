@@ -2764,11 +2764,15 @@ function isCommentAdmin() {
 }
 
 function commentAvatarHtml(comment) {
-  const photo = String(comment.userPhotoUrl || "").trim();
-  if (photo) {
-    return `<span class="comment__avatar"><img src="${escapeHtml(photo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${escapeHtml((comment.userName || 'F').charAt(0).toUpperCase())}'}));this.parentElement && (this.parentElement.classList.add('comment__avatar'));" /></span>`;
-  }
+  // XSS himoyasi: faqat https photo URL'lari ko'rsatiladi. Inline onerror
+  // ishlatilmaydi (eskirgan vazifa edi, qirralarda XSS xavfi tug'dirardi).
+  // Rasm yuklanmasa, listener orqali fallback initial paydo bo'ladi.
   const initial = (String(comment.userName || "F").trim().charAt(0) || "F").toUpperCase();
+  const photo = String(comment.userPhotoUrl || "").trim();
+  const safePhoto = /^https:\/\//i.test(photo) ? photo : "";
+  if (safePhoto) {
+    return `<span class="comment__avatar" data-initial="${escapeHtml(initial)}"><img src="${escapeHtml(safePhoto)}" alt="" loading="lazy" data-comment-avatar="1" /></span>`;
+  }
   return `<span class="comment__avatar">${escapeHtml(initial)}</span>`;
 }
 
@@ -2794,10 +2798,28 @@ function renderCommentItem(comment) {
   `;
 }
 
+// Avatar img yuklanmasa - initial harfga aylantirish. Inline onerror o'rniga
+// delegated listener (capture true) — bir marta o'rnatamiz va keyin innerHTML
+// almashinishi davomida ham ishlayveradi.
+let commentsAvatarErrorBound = false;
+function ensureCommentAvatarErrorHandler() {
+  if (commentsAvatarErrorBound || !commentsList) return;
+  commentsList.addEventListener("error", (ev) => {
+    const t = ev.target;
+    if (!t || t.tagName !== "IMG" || t.dataset.commentAvatar !== "1") return;
+    const wrap = t.parentElement;
+    if (!wrap) return;
+    const initial = wrap.dataset.initial || "F";
+    wrap.textContent = initial;
+  }, true);
+  commentsAvatarErrorBound = true;
+}
+
 function renderComments(comments) {
   if (!commentsList) return;
   const arr = Array.isArray(comments) ? comments : [];
   commentsList.innerHTML = arr.map(renderCommentItem).join("");
+  ensureCommentAvatarErrorHandler();
   const countStr = String(arr.length);
   if (commentsCountEl) commentsCountEl.textContent = countStr;
   if (commentsTriggerCountEl) commentsTriggerCountEl.textContent = countStr;
@@ -3184,14 +3206,58 @@ function setVideoLoading(isLoading) {
   if (videoLoading) videoLoading.hidden = !isLoading;
 }
 
-function setFallbackMessage() {
-  videoFallback.hidden = true;
-  if (videoFallbackText) {
-    videoFallbackText.textContent = "";
-    videoFallbackText.hidden = true;
+// Video xato/fallback ekrani — xabar va tashqi havola argumentlari endi
+// haqiqatda ishlatiladi. Avval funksiya signature args qabul qilmasdi, shu
+// sababli xato xabari hech qachon ko'rinmasdi (pre-existing bug).
+function setFallbackMessage(message = "", externalUrl = "") {
+  const hasMessage = Boolean(message && String(message).trim());
+  const hasUrl = Boolean(externalUrl && String(externalUrl).trim());
+  if (!hasMessage && !hasUrl) {
+    videoFallback.hidden = true;
+    if (videoFallbackText) {
+      videoFallbackText.textContent = "";
+      videoFallbackText.hidden = true;
+    }
+    videoExternalLink.hidden = true;
+    videoExternalLink.removeAttribute("href");
+    return;
   }
-  videoExternalLink.hidden = true;
-  videoExternalLink.removeAttribute("href");
+  videoFallback.hidden = false;
+  if (videoFallbackText) {
+    if (hasMessage) {
+      videoFallbackText.textContent = String(message);
+      videoFallbackText.hidden = false;
+    } else {
+      videoFallbackText.textContent = "";
+      videoFallbackText.hidden = true;
+    }
+  }
+  if (hasUrl) {
+    videoExternalLink.href = externalUrl;
+    videoExternalLink.hidden = false;
+  } else {
+    videoExternalLink.hidden = true;
+    videoExternalLink.removeAttribute("href");
+  }
+}
+
+// HTML5 video element xato kodlarini foydalanuvchiga tushunarli matnga
+// aylantirish. Hozirgi xatolikni kuzata olmasak — generik xabar.
+function describeVideoError(videoEl) {
+  const err = videoEl?.error;
+  if (!err) return "";
+  switch (err.code) {
+    case 1: // MEDIA_ERR_ABORTED
+      return "Tomosha bekor qilindi.";
+    case 2: // MEDIA_ERR_NETWORK
+      return "Tarmoq xatosi — internet aloqasini tekshirib qayta urinib ko'ring.";
+    case 3: // MEDIA_ERR_DECODE
+      return "Video formatini bu qurilma o'qiy olmadi (iPhone'da H.264 talab etiladi).";
+    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+      return "Video manbasini ochib bo'lmadi yoki format qo'llab-quvvatlanmaydi.";
+    default:
+      return "Videoni yuklashda xato.";
+  }
 }
 
 function clearVideoLoadTimer() {
@@ -4099,7 +4165,18 @@ function createVideoElement(src, movie, options = {}) {
   video.setAttribute("webkit-playsinline", "");
   video.addEventListener("timeupdate", updateHtml5VideoControls);
   video.addEventListener("play", () => { setStateLabel(videoToggleButton, "pause", plainLabel(t("pause"))); scheduleControlsHide(); requestWakeLock(); });
-  video.addEventListener("pause", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); releaseWakeLock(); });
+  video.addEventListener("pause", () => {
+    setStateLabel(videoToggleButton, "play", plainLabel(t("play")));
+    setControlsVisible(true);
+    releaseWakeLock();
+    // Pauza paytida joriy pozitsiyani darhol saqlash — foydalanuvchi pauza qilib
+    // yopib qo'ysa 25s server-debounce ichida pozitsiya yo'qolmasin. Bu sahnada
+    // boshqa qurilmadan kino davom etish ishonchli ishlaydi.
+    if (activeMovie && video.duration && video.currentTime > 0) {
+      try { persistActiveWatchProgress(video.currentTime, video.duration); } catch {}
+      try { flushProgressSync().catch(() => {}); } catch {}
+    }
+  });
   video.addEventListener("ended", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); releaseWakeLock(); });
   video.addEventListener("loadedmetadata", () => {
     video.playbackRate = currentSpeed;
@@ -4166,7 +4243,10 @@ function createVideoElement(src, movie, options = {}) {
       window.clearTimeout(startupTimer);
       if (mountEmbedFallback()) return;
       setVideoLoading(false);
-      setFallbackMessage(fallbackMessage, isFallback ? "" : fallbackUrl || movie.sourceUrl || src);
+      // Xato kodiga qarab aniq xabar — foydalanuvchi muammoni tushunsin
+      // (tarmoq, format, decode) — generik "tayyor emas" ekranidan farqli.
+      const specificMessage = describeVideoError(video) || fallbackMessage;
+      setFallbackMessage(specificMessage, isFallback ? "" : fallbackUrl || movie.sourceUrl || src);
     },
     { once: true },
   );
@@ -4420,6 +4500,16 @@ async function openVideoPlayer(movie, options = {}) {
 }
 
 function closeVideoPlayer() {
+  // Pleyer yopilishidan oldin pending progressni darhol server'ga jo'natamiz —
+  // foydalanuvchi keyingi kinoga o'tsa yoki appni minimallashtirsa pozitsiya
+  // yo'qolmasin. Beacon flush pagehide/visibilitychange'da ham ishlaydi.
+  try {
+    const v = videoMount?.querySelector?.("video");
+    if (activeMovie && v && v.duration && v.currentTime > 0) {
+      try { persistActiveWatchProgress(v.currentTime, v.duration); } catch {}
+    }
+    flushProgressSync().catch(() => {});
+  } catch {}
   activeVideoRequest += 1;
   stopPreRollAd();
   clearVideoLoadTimer();
