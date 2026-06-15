@@ -213,6 +213,28 @@ async function authorizeRequest(request, response, options = {}) {
     return false;
   }
 
+  // Same-origin GET fallback: Telegram ba'zan reply-keyboard webapp tugmasi
+  // bosilganda initData'ni bo'sh yoki eskirgan holda yetkazadi (ayniqsa Desktop
+  // klientida). Bunday paytda foydalanuvchini "Kirish taqiqlangan" ekraniga
+  // uloqtirish o'rniga, agar so'rov bizning ruxsat etilgan domendan kelayotgan
+  // GET bo'lsa, katalogni o'qishga ruxsat beramiz. Yozish/o'zgartirish (POST/PUT/DELETE)
+  // baribir initData yoki admin parolisiz o'tmaydi.
+  if (request.method === "GET" && origin && isOriginAllowed(origin)) {
+    return true;
+  }
+  // Origin yo'q bo'lsa (mobil Telegram WebView ba'zan yubormaydi), Referer'ga qaraymiz
+  if (request.method === "GET") {
+    const referer = request.headers.referer || request.headers.referrer;
+    if (referer) {
+      try {
+        const refOrigin = new URL(referer).origin;
+        if (isOriginAllowed(refOrigin)) {
+          return true;
+        }
+      } catch (_) {}
+    }
+  }
+
   // If we reach here, request is unauthorized
   response.status(401).json({
     ok: false,
