@@ -935,7 +935,30 @@ async function getMovieReaction(fileId, userId = "") {
 // Drive catalog.json'ga emas R2'ga yoziladi — Service Account quota muammosi
 // chetlab o'tildi. Har kino uchun: comments/{movieId}.json
 function sanitizeCommentText(text, max = 500) {
-  return trimString(text).slice(0, max);
+  // Defense-in-depth: matnda yashirin nazorat belgilari, NULL, HTML-ko'rinishli
+  // teglar va event-handler stringlarini yo'qatamiz. Frontend escapeHtml allaqachon
+  // qoplaydi, lekin matn boshqa joyga (admin paneli, bot reply, push xabari)
+  // yetib borsa eskirishi mumkin — shuning uchun matnning o'zini xavfsiz holatga
+  // keltiramiz. Newline'larni saqlaymiz (\n).
+  let cleaned = trimString(text);
+  // 1. Yashirin nazorat va zero-width belgilarni olib tashlash
+  cleaned = cleaned
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+    .replace(/[\u200B-\u200F\u2028-\u202F\u205F-\u2064\u206A-\u206F\uFEFF]/g, "");
+  // 2. HTML-tag chiqarish (open va close)
+  cleaned = cleaned.replace(/<\/?[a-zA-Z][^>]*>/g, "");
+  // 3. < va > qoldiqlari (matnda qolgan) — entity ga emas, oddiy belgiga
+  //    Bunda foydalanuvchining "5 < 10" yozuvi saqlanadi, lekin yolg'on tag emas.
+  return cleaned.slice(0, max);
+}
+
+function sanitizeCommentPhotoUrl(rawUrl) {
+  const url = trimString(rawUrl).slice(0, 500);
+  if (!url) return "";
+  // Faqat https URL ga ruxsat — javascript:, data:, http: bloklanadi.
+  // Brauzer <img src> javascript:'ni o'qimaydi ham, lekin defense-in-depth.
+  if (!/^https:\/\//i.test(url)) return "";
+  return url;
 }
 
 function commentsR2Key(fileId) {
@@ -957,8 +980,8 @@ async function readMovieCommentsFromR2(fileId) {
 
 async function addMovieComment(fileId, { userId, userName, userPhotoUrl, text }) {
   const userIdStr = trimString(userId);
-  const userNameStr = trimString(userName).slice(0, 64) || "Foydalanuvchi";
-  const userPhotoStr = trimString(userPhotoUrl).slice(0, 500);
+  const userNameStr = sanitizeCommentText(userName, 64) || "Foydalanuvchi";
+  const userPhotoStr = sanitizeCommentPhotoUrl(userPhotoUrl);
   const cleanText = sanitizeCommentText(text, 500);
   if (!userIdStr) {
     const error = new Error("Foydalanuvchi ID si kerak.");
