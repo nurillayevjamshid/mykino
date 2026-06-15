@@ -3990,13 +3990,17 @@ html[data-theme="light"] .profile-userid {
   margin-top: 12px;
 }
 
-.page-support {
-  max-width: 520px;
-  margin: 0 auto 120px;
-  padding: 4px 18px 0;
+.profile-support {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: grid;
   gap: 10px;
   justify-items: center;
+}
+
+html[data-theme="light"] .profile-support {
+  border-top-color: rgba(94, 85, 126, 0.14);
 }
 
 .page-support__btn {
@@ -7655,13 +7659,6 @@ body.is-series-detail .app-footer,
 body.is-series-detail .categories-view,
 body.is-series-detail .search-panel { display: none !important; }
 
-body.is-categories .page-support,
-body.is-category-detail .page-support,
-body.is-series-list .page-support,
-body.is-series-detail .page-support,
-body.is-music .page-support,
-body.is-podcasts .page-support,
-body.is-fifa .page-support { display: none !important; }
 
 .category-card--series {
   background: linear-gradient(135deg, #7c3aed, #4c1d95);
