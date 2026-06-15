@@ -136,6 +136,147 @@ function checkRateLimit(ip) {
   return clientData.count <= MAX_REQUESTS_PER_MIN;
 }
 
+// ---------- Admin auth helpers ----------
+
+const ADMIN_COOKIE = "__admin_session";
+const ADMIN_SESSION_TTL_SEC = 7 * 24 * 3600; // 7 days
+const ADMIN_LOCK_MAX_FAILS = 5;
+const ADMIN_LOCK_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+
+// Per-IP failed-admin-login tracker
+const adminFailCache = new Map();
+
+function getClientIp(request) {
+  const xf = request.headers["x-forwarded-for"];
+  if (xf) return String(xf).split(",")[0].trim();
+  return request.socket?.remoteAddress || "unknown";
+}
+
+function adminIsLocked(ip) {
+  if (!ip) return false;
+  const entry = adminFailCache.get(ip);
+  if (!entry) return false;
+  if (Date.now() > entry.resetAt) {
+    adminFailCache.delete(ip);
+    return false;
+  }
+  return entry.count >= ADMIN_LOCK_MAX_FAILS;
+}
+
+function adminRegisterFail(ip) {
+  if (!ip) return;
+  const now = Date.now();
+  const entry = adminFailCache.get(ip);
+  if (!entry || now > entry.resetAt) {
+    adminFailCache.set(ip, { count: 1, resetAt: now + ADMIN_LOCK_WINDOW_MS });
+  } else {
+    entry.count += 1;
+  }
+}
+
+function adminResetFails(ip) {
+  if (!ip) return;
+  adminFailCache.delete(ip);
+}
+
+function safeCompareStrings(a, b) {
+  const sa = String(a == null ? "" : a);
+  const sb = String(b == null ? "" : b);
+  const bufA = Buffer.from(sa, "utf8");
+  const bufB = Buffer.from(sb, "utf8");
+  // timingSafeEqual requires equal-length buffers; pad to the longer length so
+  // comparison time does not leak which input was shorter.
+  const len = Math.max(bufA.length, bufB.length, 1);
+  const padA = Buffer.alloc(len);
+  const padB = Buffer.alloc(len);
+  bufA.copy(padA);
+  bufB.copy(padB);
+  const eq = crypto.timingSafeEqual(padA, padB);
+  return eq && bufA.length === bufB.length;
+}
+
+function getAdminSecret() {
+  // Prefer a dedicated secret; fall back to BOT_TOKEN; final fallback so dev never crashes.
+  return process.env.ADMIN_SESSION_SECRET
+    || process.env.BOT_TOKEN
+    || process.env.ADMIN_PASSWORD
+    || "kino-admin-fallback";
+}
+
+function signAdminSession(ttlSec = ADMIN_SESSION_TTL_SEC) {
+  const exp = Math.floor(Date.now() / 1000) + ttlSec;
+  const payload = `v1.${exp}`;
+  const sig = crypto.createHmac("sha256", getAdminSecret()).update(payload).digest("hex").slice(0, 32);
+  return { token: `${payload}.${sig}`, exp };
+}
+
+function verifyAdminSession(token) {
+  if (!token || typeof token !== "string") return false;
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  const [ver, expStr, sig] = parts;
+  if (ver !== "v1") return false;
+  const exp = Number(expStr);
+  if (!Number.isFinite(exp)) return false;
+  if (Math.floor(Date.now() / 1000) > exp) return false;
+  const expectedSig = crypto.createHmac("sha256", getAdminSecret()).update(`${ver}.${expStr}`).digest("hex").slice(0, 32);
+  return safeCompareStrings(sig, expectedSig);
+}
+
+function parseCookies(request) {
+  const header = request.headers?.cookie;
+  if (!header || typeof header !== "string") return {};
+  const out = {};
+  for (const part of header.split(";")) {
+    const idx = part.indexOf("=");
+    if (idx <= 0) continue;
+    const k = part.slice(0, idx).trim();
+    const v = part.slice(idx + 1).trim();
+    if (!k) continue;
+    try { out[k] = decodeURIComponent(v); } catch { out[k] = v; }
+  }
+  return out;
+}
+
+function buildAdminCookie(token, maxAgeSec = ADMIN_SESSION_TTL_SEC) {
+  // SameSite=None; Secure is required for cross-origin Telegram WebApp cookies.
+  return `${ADMIN_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${maxAgeSec}`;
+}
+
+function buildAdminClearCookie() {
+  return `${ADMIN_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
+}
+
+function setAdminSessionCookie(response, token, maxAgeSec = ADMIN_SESSION_TTL_SEC) {
+  appendSetCookie(response, buildAdminCookie(token, maxAgeSec));
+}
+
+function clearAdminSessionCookie(response) {
+  appendSetCookie(response, buildAdminClearCookie());
+}
+
+function appendSetCookie(response, value) {
+  const prev = response.getHeader("Set-Cookie");
+  if (!prev) {
+    response.setHeader("Set-Cookie", value);
+  } else if (Array.isArray(prev)) {
+    response.setHeader("Set-Cookie", prev.concat(value));
+  } else {
+    response.setHeader("Set-Cookie", [prev, value]);
+  }
+}
+
+function isAdminAuthorized(request) {
+  // 1) Cookie (preferred)
+  const cookies = parseCookies(request);
+  if (cookies[ADMIN_COOKIE] && verifyAdminSession(cookies[ADMIN_COOKIE])) return true;
+  // 2) Header (legacy, still accepted)
+  const headerPass = request.headers["x-admin-password"];
+  const expected = process.env.ADMIN_PASSWORD || "admin123";
+  if (headerPass && safeCompareStrings(headerPass, expected)) return true;
+  return false;
+}
+
 /**
  * Validates request authorization and sets CORS headers.
  * Returns true if authorized, false otherwise (and automatically sends response error).
@@ -150,7 +291,7 @@ async function authorizeRequest(request, response, options = {}) {
   }
 
   // 2. Simple Rate Limiting (IP-based)
-  const clientIp = request.headers["x-forwarded-for"] || request.socket?.remoteAddress || "unknown";
+  const clientIp = getClientIp(request);
   if (!checkRateLimit(clientIp)) {
     response.status(429).json({ ok: false, code: "TOO_MANY_REQUESTS", error: "Siz juda ko'p so'rov yubordingiz. Iltimos biroz kuting." });
     return false;
@@ -177,24 +318,31 @@ async function authorizeRequest(request, response, options = {}) {
   const botToken = process.env.BOT_TOKEN;
   const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
 
-  // Check 1: API Key / Bot Token (for Telegram bot or backend requests)
-  if (apiKey && botToken && (apiKey === botToken || apiKey === `Bot ${botToken}`)) {
+  // Check 1: API Key / Bot Token (for Telegram bot or backend requests) — constant-time
+  if (apiKey && botToken && (safeCompareStrings(apiKey, botToken) || safeCompareStrings(apiKey, `Bot ${botToken}`))) {
     return true;
   }
-  if (authHeader.startsWith("Bot ") && botToken && authHeader.substring(4).trim() === botToken) {
+  if (authHeader.startsWith("Bot ") && botToken && safeCompareStrings(authHeader.substring(4).trim(), botToken)) {
     return true;
   }
 
-  // Check 2: Admin Password (for admin dashboard requests)
-  if (adminPasswordHeader && adminPasswordHeader === adminPassword) {
+  // Check 2a: Admin session cookie (preferred path — set by /api/users?action=admin-login)
+  const cookies = parseCookies(request);
+  if (cookies[ADMIN_COOKIE] && verifyAdminSession(cookies[ADMIN_COOKIE])) {
     return true;
   }
-  // Check in body/query for backwards compatibility with some admin actions
-  if (request.body && request.body.password === adminPassword) {
-    return true;
-  }
-  if (request.query && request.query.password === adminPassword) {
-    return true;
+
+  // Check 2b: Admin Password header (legacy fallback) — constant-time + per-IP lockout
+  if (adminPasswordHeader) {
+    if (adminIsLocked(clientIp)) {
+      response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
+      return false;
+    }
+    if (safeCompareStrings(adminPasswordHeader, adminPassword)) {
+      adminResetFails(clientIp);
+      return true;
+    }
+    adminRegisterFail(clientIp);
   }
 
   // Check 3: Telegram WebApp InitData (for normal users)
@@ -249,5 +397,18 @@ module.exports = {
   setCorsHeaders,
   isOriginAllowed,
   generateSignedToken,
-  verifySignedToken
+  verifySignedToken,
+  // admin auth helpers
+  safeCompareStrings,
+  signAdminSession,
+  verifyAdminSession,
+  parseCookies,
+  setAdminSessionCookie,
+  clearAdminSessionCookie,
+  isAdminAuthorized,
+  getClientIp,
+  adminIsLocked,
+  adminRegisterFail,
+  adminResetFails,
+  ADMIN_COOKIE
 };

@@ -1,6 +1,9 @@
 // Admin Panel JavaScript - Movies, Subscribers
 
-// Global fetch monkey-patching to automatically inject Telegram WebApp authorization headers
+// Global fetch monkey-patching: inject Telegram initData + always send the
+// HttpOnly admin session cookie (credentials: include). Legacy plaintext
+// password header is only sent if an older client left one behind, until the
+// next successful adminLogin() clears it.
 (function() {
   const originalFetch = window.fetch;
   window.fetch = function(url, options) {
@@ -12,14 +15,53 @@
       if (window.Telegram?.WebApp?.initData) {
         options.headers['X-TG-Init-Data'] = window.Telegram.WebApp.initData;
       }
-      const adminPass = localStorage.getItem('adminPassword');
-      if (adminPass) {
-        options.headers['X-Admin-Password'] = adminPass;
-      }
+      if (!options.credentials) options.credentials = 'include';
+      try {
+        const legacyPass = localStorage.getItem('adminPassword');
+        if (legacyPass && !options.headers['X-Admin-Password']) {
+          options.headers['X-Admin-Password'] = legacyPass;
+        }
+      } catch {}
     }
     return originalFetch(url, options);
   };
 })();
+
+// Admin session helpers (mirror webapp/kino/kino.js)
+window.adminLogin = async function adminLogin(password) {
+  if (!password) return { ok: false, error: "Parol kerak" };
+  try {
+    const resp = await fetch(`/api/users?action=admin-login`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok && data.ok) {
+      try { localStorage.removeItem("adminPassword"); } catch {}
+      try { localStorage.setItem("adminLoggedIn", "1"); } catch {}
+      return { ok: true };
+    }
+    if (resp.status === 429) return { ok: false, locked: true, error: data.error || "Juda ko'p urinish." };
+    return { ok: false, error: data.error || "Parol noto'g'ri." };
+  } catch (e) {
+    return { ok: false, error: e?.message || "Tarmoq xatosi" };
+  }
+};
+window.adminLogout = async function adminLogout() {
+  try { await fetch(`/api/users?action=admin-logout`, { method: "POST", credentials: "include" }); } catch {}
+  try { localStorage.removeItem("adminLoggedIn"); } catch {}
+  try { localStorage.removeItem("adminPassword"); } catch {}
+};
+window.ensureAdminSession = async function ensureAdminSession(promptMsg) {
+  if (localStorage.getItem("adminLoggedIn") === "1") return true;
+  const password = (window.prompt(promptMsg || "Admin parolini kiriting:") || "").trim();
+  if (!password) return false;
+  const r = await window.adminLogin(password);
+  if (!r.ok) { alert(r.error || "Kirish muvaffaqiyatsiz"); return false; }
+  return true;
+};
 
 // Data storage
 let movies = [];
@@ -1436,15 +1478,14 @@ function readFileAsDataUrl(file) {
 }
 
 async function sendMoviePush(movieId, movieData, posterValue, savedMovie) {
-  const password = localStorage.getItem('adminPassword') || prompt('Admin parolini kiriting (push uchun):');
-  if (!password) throw new Error("Parol kerak");
-  localStorage.setItem('adminPassword', password);
+  const ok = await window.ensureAdminSession('Admin parolini kiriting (push uchun):');
+  if (!ok) throw new Error("Parol kerak");
 
   const text = (document.getElementById('moviePushText')?.value || '').trim();
   const mediaKind = document.querySelector('input[name="moviePushMedia"]:checked')?.value || 'poster';
   const addButton = document.getElementById('moviePushAddButton')?.checked;
 
-  const payload = { password, text };
+  const payload = { text };
   if (addButton) {
     payload.buttonText = "🎬 Ko'rish";
     payload.buttonUrl = `${window.location.origin}/?movie=${encodeURIComponent(movieId)}`;
@@ -1471,11 +1512,12 @@ async function sendMoviePush(movieId, movieData, posterValue, savedMovie) {
 
   const resp = await fetch('/api/broadcast', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
   const data = await resp.json().catch(() => ({}));
-  if (resp.status === 401) localStorage.removeItem('adminPassword');
+  if (resp.status === 401) { localStorage.removeItem('adminPassword'); localStorage.removeItem('adminLoggedIn'); }
   if (!data.ok) throw new Error(data.error || `HTTP ${resp.status}`);
   return data;
 }
@@ -1845,17 +1887,15 @@ function showNotification(message, type = 'success') {
   }, 3000);
 }
 
-// Check Auth
-function checkAuth() {
-  const auth = localStorage.getItem('adminAuth');
-  if (!auth) {
-    const password = prompt('Admin panel parolini kiriting:');
-    if (password === 'admin123') {
-      localStorage.setItem('adminAuth', 'true');
-    } else {
-      alert('Noto\'g\'ri parol!');
-      window.location.href = '/';
-    }
+// Check Auth — backend bilan tekshiramiz (hardcoded "admin123" tekshiruvi olib tashlandi)
+async function checkAuth() {
+  if (localStorage.getItem('adminLoggedIn') === '1') return;
+  const password = (prompt('Admin panel parolini kiriting:') || '').trim();
+  if (!password) { window.location.href = '/'; return; }
+  const r = await window.adminLogin(password);
+  if (!r.ok) {
+    alert(r.error || "Noto'g'ri parol!");
+    window.location.href = '/';
   }
 }
 
@@ -1948,9 +1988,8 @@ async function submitBroadcast(event) {
   }
   if (!confirm('Barcha obunachilarga yuborilsinmi? Bekor qilib bo\'lmaydi.')) return;
 
-  const password = localStorage.getItem('adminPassword') || prompt('Admin parolini kiriting (xavfsizlik uchun):');
-  if (!password) return;
-  localStorage.setItem('adminPassword', password);
+  const okSess = await window.ensureAdminSession('Admin parolini kiriting (xavfsizlik uchun):');
+  if (!okSess) return;
 
   sendBtn.disabled = true;
   sendBtn.textContent = 'Yuborilmoqda...';
@@ -1959,12 +1998,13 @@ async function submitBroadcast(event) {
   try {
     const resp = await fetch('/api/broadcast', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password, text, photoUrl, buttonText, buttonUrl, parseMode, silent, disablePreview }),
+      body: JSON.stringify({ text, photoUrl, buttonText, buttonUrl, parseMode, silent, disablePreview }),
     });
     const data = await resp.json();
     if (!resp.ok || !data.ok) {
-      if (resp.status === 401) localStorage.removeItem('adminPassword');
+      if (resp.status === 401) { localStorage.removeItem('adminPassword'); localStorage.removeItem('adminLoggedIn'); }
       resultEl.innerHTML = `<div style="color:#d33;padding:10px;background:#fee;border-radius:8px;">Xato: ${escapeBroadcastHtml(data.error || 'Noma\'lum')}</div>`;
     } else {
       const errorList = Array.isArray(data.errors) && data.errors.length

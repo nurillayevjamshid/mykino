@@ -1,6 +1,7 @@
 const tg = window.Telegram?.WebApp;
 
 // Global fetch monkey-patching to automatically inject Telegram WebApp authorization headers
+// and the HTTP-only admin session cookie (via credentials: "include").
 (function() {
   const originalFetch = window.fetch;
   window.fetch = function(url, options) {
@@ -12,14 +13,66 @@ const tg = window.Telegram?.WebApp;
       if (window.Telegram?.WebApp?.initData) {
         options.headers['X-TG-Init-Data'] = window.Telegram.WebApp.initData;
       }
-      const adminPass = localStorage.getItem('adminPassword');
-      if (adminPass) {
-        options.headers['X-Admin-Password'] = adminPass;
-      }
+      // Always send the HttpOnly admin cookie (when present). Same-origin uses
+      // "include" too so absolute URLs from runtimeApiBase also carry it.
+      if (!options.credentials) options.credentials = 'include';
+      // Legacy fallback during transition: if a plaintext password is still
+      // sitting in localStorage from an older client, keep sending it so the
+      // user is not locked out before they log in once via the new flow.
+      // After a successful adminLogin() call the storage key is cleared.
+      try {
+        const legacyPass = localStorage.getItem('adminPassword');
+        if (legacyPass && !options.headers['X-Admin-Password']) {
+          options.headers['X-Admin-Password'] = legacyPass;
+        }
+      } catch {}
     }
     return originalFetch(url, options);
   };
 })();
+
+// Admin session helpers — exchange password for HttpOnly cookie, then forget password.
+window.adminLogin = async function adminLogin(password) {
+  if (!password) return { ok: false, error: "Parol kerak" };
+  const base = (typeof runtimeApiBase !== "undefined" && runtimeApiBase) || "";
+  try {
+    const resp = await fetch(`${base}/api/users?action=admin-login`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok && data.ok) {
+      // Migration: drop any plaintext password from localStorage.
+      try { localStorage.removeItem("adminPassword"); } catch {}
+      try { localStorage.setItem("adminLoggedIn", "1"); } catch {}
+      return { ok: true };
+    }
+    if (resp.status === 429) return { ok: false, locked: true, error: data.error || "Juda ko'p urinish." };
+    return { ok: false, error: data.error || "Parol noto'g'ri." };
+  } catch (e) {
+    return { ok: false, error: e?.message || "Tarmoq xatosi" };
+  }
+};
+
+window.adminLogout = async function adminLogout() {
+  const base = (typeof runtimeApiBase !== "undefined" && runtimeApiBase) || "";
+  try { await fetch(`${base}/api/users?action=admin-logout`, { method: "POST", credentials: "include" }); } catch {}
+  try { localStorage.removeItem("adminLoggedIn"); } catch {}
+  try { localStorage.removeItem("adminPassword"); } catch {}
+};
+
+// Replacement for `localStorage.getItem('adminPassword') || prompt(...)` flow:
+// asks the user, calls login, returns true on success.
+window.ensureAdminSession = async function ensureAdminSession(promptMsg) {
+  if (localStorage.getItem("adminLoggedIn") === "1") return true;
+  const password = (window.prompt(promptMsg || "Admin parolini kiriting:") || "").trim();
+  if (!password) return false;
+  const r = await window.adminLogin(password);
+  if (!r.ok) { alert(r.error || "Kirish muvaffaqiyatsiz"); return false; }
+  return true;
+};
 
 const HERO_ROTATE_INTERVAL_MS = 6500;
 const PROD_API_BASE = window.location.protocol === "file:" ? "https://kino-telegram-mini-app.vercel.app" : "";
@@ -2690,7 +2743,10 @@ function formatRelativeTime(iso) {
 }
 
 function isCommentAdmin() {
-  try { return Boolean(localStorage.getItem("adminPassword")); } catch { return false; }
+  try {
+    return localStorage.getItem("adminLoggedIn") === "1"
+      || Boolean(localStorage.getItem("adminPassword"));
+  } catch { return false; }
 }
 
 function commentAvatarHtml(comment) {
@@ -2835,24 +2891,20 @@ async function submitComment(movie, text) {
 }
 
 async function adminDeleteComment(movie, commentId) {
-  let password = "";
-  try { password = localStorage.getItem("adminPassword") || ""; } catch {}
-  if (!password) {
-    password = window.prompt("Admin parolini kiriting:") || "";
-    if (!password) return;
-    try { localStorage.setItem("adminPassword", password); } catch {}
-  }
+  const ok = await window.ensureAdminSession("Admin parolini kiriting:");
+  if (!ok) return;
   if (!window.confirm("Izohni o'chirishni tasdiqlaysizmi?")) return;
   try {
     const res = await fetch("/api/movie-update?action=deletecomment", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ movieId: movie.id, commentId, password }),
+      body: JSON.stringify({ movieId: movie.id, commentId }),
     });
     const data = await res.json().catch(() => null);
     if (res.status === 401) {
-      try { localStorage.removeItem("adminPassword"); } catch {}
-      alert("Parol noto'g'ri.");
+      try { localStorage.removeItem("adminLoggedIn"); } catch {}
+      alert("Sessiya tugagan. Qayta kiring.");
       return;
     }
     if (!data || data.ok === false) {
