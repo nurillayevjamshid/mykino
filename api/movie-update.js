@@ -1,4 +1,4 @@
-const { authorizeRequest } = require("./_lib/auth");
+const { authorizeRequest, isAdminAuthorized, safeCompareStrings } = require("./_lib/auth");
 const {
   getDriveFileMetadata,
   setCors,
@@ -60,9 +60,11 @@ module.exports = async function handler(request, response) {
     const action = trimString(request.query?.action || body.action).toLowerCase();
 
     if (action === "deletecomment") {
-      const password = trimString(body.password);
       const expected = trimString(process.env.ADMIN_PASSWORD) || "admin123";
-      if (password !== expected) {
+      const password = trimString(body.password);
+      const okByCookieOrHeader = isAdminAuthorized(request);
+      const okByBody = password && safeCompareStrings(password, expected);
+      if (!okByCookieOrHeader && !okByBody) {
         response.status(401).json({ ok: false, code: "UNAUTHORIZED", error: "Parol noto'g'ri." });
         return;
       }

@@ -1,4 +1,15 @@
-const { authorizeRequest } = require("./_lib/auth");
+const {
+  authorizeRequest,
+  setCorsHeaders,
+  safeCompareStrings,
+  signAdminSession,
+  setAdminSessionCookie,
+  clearAdminSessionCookie,
+  getClientIp,
+  adminIsLocked,
+  adminRegisterFail,
+  adminResetFails,
+} = require("./_lib/auth");
 const {
   readCatalogMetadata,
 } = require("./_lib/google-drive");
@@ -157,7 +168,51 @@ async function handleUserPhoto(request, response) {
   }
 }
 
+async function handleAdminLogin(request, response) {
+  setCorsHeaders(request, response);
+  if (request.method === "OPTIONS") { response.status(204).end(); return; }
+  if (request.method !== "POST") { response.status(405).json({ ok: false, error: "POST kerak" }); return; }
+  const ip = getClientIp(request);
+  if (adminIsLocked(ip)) {
+    response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
+    return;
+  }
+  let body = {};
+  try { body = await readRequestBody(request); } catch { body = {}; }
+  const password = trimStr(body.password);
+  const expected = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
+  if (!password || !safeCompareStrings(password, expected)) {
+    adminRegisterFail(ip);
+    response.status(401).json({ ok: false, code: "BAD_PASSWORD", error: "Parol noto'g'ri." });
+    return;
+  }
+  adminResetFails(ip);
+  const { token, exp } = signAdminSession();
+  setAdminSessionCookie(response, token);
+  response.status(200).json({ ok: true, exp });
+}
+
+async function handleAdminLogout(request, response) {
+  setCorsHeaders(request, response);
+  if (request.method === "OPTIONS") { response.status(204).end(); return; }
+  clearAdminSessionCookie(response);
+  response.status(200).json({ ok: true });
+}
+
+function isAdminLoginRoute(reqUrl) {
+  return /[?&]action=admin-login(?:&|$)/.test(reqUrl);
+}
+function isAdminLogoutRoute(reqUrl) {
+  return /[?&]action=admin-logout(?:&|$)/.test(reqUrl);
+}
+
 module.exports = async function handler(request, response) {
+  const reqUrl0 = request.url || "";
+  // Admin login/logout MUST run before authorizeRequest, since they are how a
+  // user obtains the session cookie in the first place.
+  if (isAdminLoginRoute(reqUrl0)) return handleAdminLogin(request, response);
+  if (isAdminLogoutRoute(reqUrl0)) return handleAdminLogout(request, response);
+
   if (!(await authorizeRequest(request, response))) {
     return;
   }
@@ -179,7 +234,7 @@ module.exports = async function handler(request, response) {
     if (request.method === "GET") {
       const debugMatch = /[?&]_debug=([^&]+)/.exec(reqUrl);
       const expectedAdmin = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
-      const isDebug = debugMatch && decodeURIComponent(debugMatch[1]) === expectedAdmin;
+      const isDebug = debugMatch && safeCompareStrings(decodeURIComponent(debugMatch[1]), expectedAdmin);
       const [r2Outcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
         (async () => {
           try { return { ok: true, users: await readUsersFromR2() }; }
@@ -223,9 +278,12 @@ module.exports = async function handler(request, response) {
 
     if (request.method === "DELETE") {
       const body = await readRequestBody(request);
-      const password = trimStr(body.password);
       const expected = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
-      if (password !== expected) {
+      const password = trimStr(body.password);
+      const { isAdminAuthorized } = require("./_lib/auth");
+      const okByCookieOrHeader = isAdminAuthorized(request);
+      const okByBody = password && safeCompareStrings(password, expected);
+      if (!okByCookieOrHeader && !okByBody) {
         response.status(401).json({ ok: false, error: "Parol noto'g'ri." });
         return;
       }
