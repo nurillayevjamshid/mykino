@@ -1,11 +1,11 @@
-const VERSION = "v20260613-fifa-folder-split";
+const VERSION = "v20260613-kino-folder-rename";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
 
 const STATIC_ASSETS = [
-  "/static/styles.css",
-  "/static/app.js",
+  "/static/kino/kino.css",
+  "/static/kino/kino.js",
   "/static/assets/splash.jpg",
   "/static/assets/kino-play-logo.png",
   "/static/assets/my-kino-logo.png",
