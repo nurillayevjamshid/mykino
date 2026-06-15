@@ -1049,13 +1049,13 @@ function proxyPosterUrl(value) {
 }
 
 // Cloudflare Image Resizing — `/cdn-cgi/image/...` prefiks orqali poster'larni
-// kerakli o'lchamga kichraytirib, AVIF/WebP formatga aylantiradi. Bitta 1080p
-// JPG (~250KB) o'rniga, kartochka uchun 400px AVIF (~25KB) — 8-10x tezroq.
+// kerakli o'lchamga kichraytirib, AVIF/WebP formatga aylantiradi.
 //
-// MUHIM: r2.myplaylist.uz zone'ida "Image Resizing" yoqilgan bo'lishi kerak
-// (Cloudflare dashboard → Speed → Optimization). Yoqilmagan bo'lsa rasmlar
-// 404 qaytaradi — quyidagi flag'ni `false` qiling va saqlang:
-const CF_IMAGE_RESIZE = true;
+// MUHIM: r2.myplaylist.uz zone'ida "Image Resizing" YOQILMAGAN (Pro plan
+// kerak). Yoqilmagan paytda `/cdn-cgi/image/...` URL'lar 404 qaytaryapti —
+// natijada barcha poster'lar ko'rinmas edi. Cloudflare dashboard → Speed →
+// Optimization → "Image Resizing" yoqilganida quyidagini `true` qiling.
+const CF_IMAGE_RESIZE = false;
 const CF_RESIZE_HOSTS = new Set(["r2.myplaylist.uz"]);
 
 function cfImage(url, width) {
@@ -5936,7 +5936,7 @@ function preloadPosters(movieList) {
 // (hero header + birinchi N ta poster) tayyor bo'lishini kutamiz, shunda
 // foydalanuvchi bo'sh kartochkalar/oq hero ko'rmaydi. timeoutMs cap bilan
 // — agar tarmoq sekin bo'lsa, splash baribir kafolatlangan vaqtda ochiladi.
-function awaitFirstPostersReady(movieList, { firstCount = 6, timeoutMs = 1200 } = {}) {
+function awaitFirstPostersReady(movieList, { firstCount = 3, timeoutMs = 500 } = {}) {
   const urls = [];
   if (Array.isArray(movieList)) {
     const heroMovie = movieList.find((m) => m && m.showInHeader && (m.headerImage || m.posterImage));
@@ -6653,11 +6653,11 @@ function hideSplashNow() {
   }, 500);
 }
 
-// Splash: minimum 800ms (brend ko'rinishi uchun), maksimum 1500ms.
+// Splash: minimum 400ms (brend ko'rinishi uchun), maksimum 1100ms.
 // Movies tayyor bo'lsa min vaqtdan keyin darrov yopiladi.
 function initSplashScreen() {
-  const MIN_MS = 800;
-  const MAX_MS = 1500;
+  const MIN_MS = 400;
+  const MAX_MS = 1100;
   const startedAt = Date.now();
 
   const tryHide = () => {
