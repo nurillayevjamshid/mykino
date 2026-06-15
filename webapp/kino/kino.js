@@ -227,6 +227,16 @@ const copy = {
     showMore: "Batafsil",
     showLess: "Yopish",
     seeMore: "Yanada ko'proq",
+    supportTitle: "🤝 Qo'llab-quvvatlash",
+    supportSuggest: "Taklif yuborish",
+    supportBug: "Xato haqida xabar berish",
+    supportTelegram: "Telegram support",
+    supportAbout: "Ilova haqida",
+    supportSuggestPrefill: "Salom! Menda taklif bor: ",
+    supportBugPrefill: "Salom! Ilovada xato uchratdim: ",
+    supportTelegramPrefill: "Salom! Murojaat qilmoqchi edim: ",
+    aboutTitle: "Kino Play",
+    aboutBody: "Kino Play — Telegram mini-ilova. Versiya 1.0\n© 2026 Kino Play",
   },
   ru: {
     all: "Все",
@@ -290,6 +300,16 @@ const copy = {
     showMore: "Подробнее",
     showLess: "Свернуть",
     seeMore: "Ещё больше",
+    supportTitle: "🤝 Поддержка",
+    supportSuggest: "Отправить предложение",
+    supportBug: "Сообщить об ошибке",
+    supportTelegram: "Telegram поддержка",
+    supportAbout: "О приложении",
+    supportSuggestPrefill: "Здравствуйте! У меня есть предложение: ",
+    supportBugPrefill: "Здравствуйте! Я заметил ошибку: ",
+    supportTelegramPrefill: "Здравствуйте! Хочу обратиться: ",
+    aboutTitle: "Kino Play",
+    aboutBody: "Kino Play — Telegram мини-приложение. Версия 1.0\n© 2026 Kino Play",
   },
   en: {
     all: "All",
@@ -353,6 +373,16 @@ const copy = {
     showMore: "Show More",
     showLess: "Show Less",
     seeMore: "See more",
+    supportTitle: "🤝 Support",
+    supportSuggest: "Send a suggestion",
+    supportBug: "Report a bug",
+    supportTelegram: "Telegram support",
+    supportAbout: "About the app",
+    supportSuggestPrefill: "Hi! I have a suggestion: ",
+    supportBugPrefill: "Hi! I found a bug: ",
+    supportTelegramPrefill: "Hi! I'd like to get in touch: ",
+    aboutTitle: "Kino Play",
+    aboutBody: "Kino Play — Telegram mini app. Version 1.0\n© 2026 Kino Play",
   },
 };
 
@@ -4710,8 +4740,65 @@ function applyCopy() {
 
   applyTelegramUser();
   renderProfileModal();
+  applySupportCopy();
   renderMovies();
 }
+
+function applySupportCopy() {
+  const set = (id, key) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = plainLabel(t(key));
+  };
+  set("profileSupportTitle", "supportTitle");
+  set("supportSuggestLabel", "supportSuggest");
+  set("supportBugLabel", "supportBug");
+  set("supportTelegramLabel", "supportTelegram");
+  set("supportAboutLabel", "supportAbout");
+}
+
+const SUPPORT_TG_USERNAME = "mykinoplay_bot";
+
+function openSupportLink(prefillKey) {
+  const text = plainLabel(t(prefillKey) || "");
+  const url = text
+    ? `https://t.me/${SUPPORT_TG_USERNAME}?text=${encodeURIComponent(text)}`
+    : `https://t.me/${SUPPORT_TG_USERNAME}`;
+  try {
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(url);
+      return;
+    }
+  } catch (_) {}
+  try { window.open(url, "_blank"); } catch (_) {}
+}
+
+function openAboutPopup() {
+  const title = plainLabel(t("aboutTitle"));
+  const message = plainLabel(t("aboutBody"));
+  try {
+    const tgApp = window.Telegram?.WebApp;
+    if (tgApp?.showPopup) {
+      tgApp.showPopup({ title, message, buttons: [{ type: "ok" }] });
+      return;
+    }
+    if (tgApp?.showAlert) {
+      tgApp.showAlert(`${title}\n\n${message}`);
+      return;
+    }
+  } catch (_) {}
+  try { alert(`${title}\n\n${message}`); } catch (_) {}
+}
+
+document.querySelectorAll("[data-support]").forEach((btn) => {
+  btn.addEventListener("click", (event) => {
+    event.preventDefault();
+    const action = btn.dataset.support;
+    if (action === "suggest") openSupportLink("supportSuggestPrefill");
+    else if (action === "bug") openSupportLink("supportBugPrefill");
+    else if (action === "telegram") openSupportLink("supportTelegramPrefill");
+    else if (action === "about") openAboutPopup();
+  });
+});
 
 // Telegram WebApp ba'zi qurilmalarda (iOS/Desktop) initDataUnsafe.user'ni
 // birinchi paint'dan keyin to'ldiradi. Live foydalanuvchi hali yo'q bo'lsa,
