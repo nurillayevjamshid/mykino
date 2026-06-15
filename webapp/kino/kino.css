@@ -9689,13 +9689,14 @@ html[data-theme="light"] .fifa-bench__num { border-color: #fff; }
   object-fit: cover;
   object-position: center top;
   border-radius: inherit;
-  opacity: 0;
-  transition: opacity 280ms ease;
+  /* MUHIM: opacity:0 default ishlatmaymiz — PC Chromium-da detached <img>
+     uchun JS `load` event listener ba'zan ishlamaydi (img DOM'ga qo'shilgunga
+     qadar load bo'lib ulguradi, keyin event qayta otilmaydi). Natijada
+     `is-loaded` klass qo'shilmas, rasm opacity:0 da qotib qolardi. Endi
+     rasm darrov ko'rinadi — yuklanishida brauzer transparent, yuklangach
+     o'zi paydo bo'ladi va ostidagi shimmer'ni qoplaydi. */
   z-index: 1;
   display: block;
-}
-.movie-card .poster__img.is-loaded {
-  opacity: 1;
 }
 .movie-card .poster.poster--img .card-badges,
 .movie-card .poster.poster--img .wishlist-toggle,
