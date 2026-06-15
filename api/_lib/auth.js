@@ -423,6 +423,7 @@ module.exports = {
   authorizeRequest,
   setCorsHeaders,
   isOriginAllowed,
+  verifyTelegramWebappInitData,
   generateSignedToken,
   verifySignedToken,
   // admin auth helpers
