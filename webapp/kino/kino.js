@@ -5936,7 +5936,7 @@ function preloadPosters(movieList) {
 // (hero header + birinchi N ta poster) tayyor bo'lishini kutamiz, shunda
 // foydalanuvchi bo'sh kartochkalar/oq hero ko'rmaydi. timeoutMs cap bilan
 // — agar tarmoq sekin bo'lsa, splash baribir kafolatlangan vaqtda ochiladi.
-function awaitFirstPostersReady(movieList, { firstCount = 3, timeoutMs = 500 } = {}) {
+function awaitFirstPostersReady(movieList, { firstCount = 3, timeoutMs = 250 } = {}) {
   const urls = [];
   if (Array.isArray(movieList)) {
     const heroMovie = movieList.find((m) => m && m.showInHeader && (m.headerImage || m.posterImage));
@@ -6653,11 +6653,12 @@ function hideSplashNow() {
   }, 500);
 }
 
-// Splash: minimum 400ms (brend ko'rinishi uchun), maksimum 1100ms.
-// Movies tayyor bo'lsa min vaqtdan keyin darrov yopiladi.
+// Splash: minimum 0ms — kontent tayyor bo'lishi bilan darrov yopiladi.
+// Brending FIFA banner + topbar'da allaqachon ko'rinadi, qo'shimcha hold
+// kerak emas. Faqat MAX_MS keshda hech nima bo'lmasa fallback uchun.
 function initSplashScreen() {
-  const MIN_MS = 400;
-  const MAX_MS = 1100;
+  const MIN_MS = 0;
+  const MAX_MS = 900;
   const startedAt = Date.now();
 
   const tryHide = () => {
