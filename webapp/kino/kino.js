@@ -228,13 +228,9 @@ const copy = {
     showLess: "Yopish",
     seeMore: "Yanada ko'proq",
     supportTitle: "🤝 Qo'llab-quvvatlash",
-    supportSuggest: "Taklif yuborish",
-    supportBug: "Xato haqida xabar berish",
-    supportTelegram: "Telegram support",
+    supportFeedback: "Talab va takliflar uchun",
     supportAbout: "Ilova haqida",
-    supportSuggestPrefill: "Salom! Menda taklif bor: ",
-    supportBugPrefill: "Salom! Ilovada xato uchratdim: ",
-    supportTelegramPrefill: "Salom! Murojaat qilmoqchi edim: ",
+    supportFeedbackPrefill: "Salom! Talab/taklif bor: ",
     aboutTitle: "Kino Play",
     aboutBody: "Kino Play — Telegram mini-ilova. Versiya 1.0\n© 2026 Kino Play",
   },
@@ -301,13 +297,9 @@ const copy = {
     showLess: "Свернуть",
     seeMore: "Ещё больше",
     supportTitle: "🤝 Поддержка",
-    supportSuggest: "Отправить предложение",
-    supportBug: "Сообщить об ошибке",
-    supportTelegram: "Telegram поддержка",
+    supportFeedback: "Запросы и предложения",
     supportAbout: "О приложении",
-    supportSuggestPrefill: "Здравствуйте! У меня есть предложение: ",
-    supportBugPrefill: "Здравствуйте! Я заметил ошибку: ",
-    supportTelegramPrefill: "Здравствуйте! Хочу обратиться: ",
+    supportFeedbackPrefill: "Здравствуйте! У меня запрос/предложение: ",
     aboutTitle: "Kino Play",
     aboutBody: "Kino Play — Telegram мини-приложение. Версия 1.0\n© 2026 Kino Play",
   },
@@ -374,13 +366,9 @@ const copy = {
     showLess: "Show Less",
     seeMore: "See more",
     supportTitle: "🤝 Support",
-    supportSuggest: "Send a suggestion",
-    supportBug: "Report a bug",
-    supportTelegram: "Telegram support",
+    supportFeedback: "Requests & suggestions",
     supportAbout: "About the app",
-    supportSuggestPrefill: "Hi! I have a suggestion: ",
-    supportBugPrefill: "Hi! I found a bug: ",
-    supportTelegramPrefill: "Hi! I'd like to get in touch: ",
+    supportFeedbackPrefill: "Hi! I have a request/suggestion: ",
     aboutTitle: "Kino Play",
     aboutBody: "Kino Play — Telegram mini app. Version 1.0\n© 2026 Kino Play",
   },
@@ -4750,9 +4738,7 @@ function applySupportCopy() {
     if (el) el.textContent = plainLabel(t(key));
   };
   set("profileSupportTitle", "supportTitle");
-  set("supportSuggestLabel", "supportSuggest");
-  set("supportBugLabel", "supportBug");
-  set("supportTelegramLabel", "supportTelegram");
+  set("supportFeedbackLabel", "supportFeedback");
   set("supportAboutLabel", "supportAbout");
 }
 
@@ -4793,9 +4779,7 @@ document.querySelectorAll("[data-support]").forEach((btn) => {
   btn.addEventListener("click", (event) => {
     event.preventDefault();
     const action = btn.dataset.support;
-    if (action === "suggest") openSupportLink("supportSuggestPrefill");
-    else if (action === "bug") openSupportLink("supportBugPrefill");
-    else if (action === "telegram") openSupportLink("supportTelegramPrefill");
+    if (action === "feedback") openSupportLink("supportFeedbackPrefill");
     else if (action === "about") openAboutPopup();
   });
 });
