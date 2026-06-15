@@ -4060,6 +4060,30 @@ html[data-theme="light"] .profile-userid {
   color: var(--muted);
 }
 
+.profile-support__about {
+  display: block;
+  margin: 14px auto 0;
+  padding: 6px 4px;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.profile-support__about:hover {
+  color: var(--text);
+}
+
+.profile-support__about:focus-visible {
+  outline: 2px solid rgba(255, 199, 58, 0.58);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 html[data-theme="light"] .profile-support {
   border-top-color: rgba(94, 85, 126, 0.14);
 }
