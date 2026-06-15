@@ -1283,6 +1283,31 @@ function buildDriveStreamUrl(fileId) {
   return buildApiUrl(`/api/drive-stream/${encodeURIComponent(fileId)}`);
 }
 
+// Kino oqimini olish: cdnUrl (R2) -> server bergan token-li videoUrl ->
+// (oxirgi chora) token-siz drive-stream. Avval token-li videoUrl olinmasa,
+// drive-stream endpoint'i 403 LINK_EXPIRED qaytaradi va kino umuman ochilmaydi.
+function getMoviePlaybackUrl(movie) {
+  if (!movie) return "";
+  const cdnUrl = String(movie.cdnUrl || "").trim();
+  if (cdnUrl) return cdnUrl;
+  const serverVideoUrl = String(movie.videoUrl || movie.streamUrl || "").trim();
+  if (serverVideoUrl && /token=/.test(serverVideoUrl)) return serverVideoUrl;
+  const driveFileId = String(movie.driveFileId || movie.fileId || "").trim();
+  if (serverVideoUrl) return serverVideoUrl;
+  if (driveFileId) return buildDriveStreamUrl(driveFileId);
+  return "";
+}
+
+// Tarmoq tezligini baholash — preload va startup timeout uchun kerak.
+function getNetworkProfile() {
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const eff = String(conn?.effectiveType || "").toLowerCase();
+  const saveData = Boolean(conn?.saveData);
+  const isSlow = saveData || eff === "slow-2g" || eff === "2g" || eff === "3g";
+  const isCellular = conn?.type === "cellular";
+  return { eff, saveData, isSlow, isCellular };
+}
+
 function buildDriveResolveUrl(fileId) {
   return buildApiUrl(`/api/drive-resolve/${encodeURIComponent(fileId)}`);
 }
@@ -1993,23 +2018,12 @@ function renderHeroSlide(movie) {
   if (heroBackdrop) {
     if (imageUrl) {
       const safeUrlValue = imageUrl.replaceAll("'", "%27");
-      heroBackdrop.classList.remove("is-loaded");
-      const probe = new Image();
-      probe.decoding = "async";
-      // decode() bilan bitmap tayyor bo'lgach yangilaymiz — Android'da scroll
-      // paytida hero almashinishi main thread'ni bloklamasin.
-      const apply = () => {
-        heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
-        heroBackdrop.classList.add("is-loaded");
-      };
-      if (typeof probe.decode === "function") {
-        probe.src = imageUrl;
-        probe.decode().then(apply).catch(apply);
-      } else {
-        probe.onload = apply;
-        probe.onerror = apply;
-        probe.src = imageUrl;
-      }
+      // MUHIM: probe.decode() ga tayanmaymiz — PC Chromium-da birinchi
+      // kirishda promise resolve bo'lmay, hero opacity:0 da qotib qolardi.
+      // Endi background-image darrov tayinlanadi va is-loaded sinxron
+      // qo'shiladi; rasm yuklanishi bilan brauzer o'zi ko'rsatadi.
+      heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
+      heroBackdrop.classList.add("is-loaded");
     } else {
       heroBackdrop.style.backgroundImage = "linear-gradient(135deg, #1f1f1f, #050505)";
       heroBackdrop.classList.add("is-loaded");
@@ -2973,15 +2987,25 @@ function startMoviePreload(movie) {
 
   const cdnUrl = String(movie?.cdnUrl || "").trim();
   const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
-  if (!cdnUrl && !driveFileId) return;
+  const serverVideoUrl = String(movie?.videoUrl || movie?.streamUrl || "").trim();
+  if (!cdnUrl && !driveFileId && !serverVideoUrl) return;
+  // Mobil internetda yashirin preload megabaytlab traffik yeydi va foydalanuvchi
+  // hatto Play tugmasini bosmay yopib qo'ysa ham yuklab oladi. Saqlovchi rejim
+  // yoki sekin tarmoqda preload qilmaymiz; aks holda metadata oraliq qilamiz.
+  const net = getNetworkProfile();
+  if (net.saveData || net.isSlow) return;
+  const preloadMode = net.isCellular ? "metadata" : "auto";
   const urlPromise = cdnUrl
     ? Promise.resolve(cdnUrl)
-    : resolveDriveDirectVideoUrl(driveFileId).then((u) => u || buildDriveStreamUrl(driveFileId));
+    : (serverVideoUrl && /token=/.test(serverVideoUrl)
+        ? Promise.resolve(serverVideoUrl)
+        : resolveDriveDirectVideoUrl(driveFileId).then((u) => u || serverVideoUrl || buildDriveStreamUrl(driveFileId)));
   urlPromise.then((url) => {
+    if (!url) return;
     if (preloadVideoEl && preloadVideoUrl === url) return;
     stopMoviePreload();
     const el = document.createElement("video");
-    el.preload = "auto";
+    el.preload = preloadMode;
     el.muted = true;
     el.playsInline = true;
     el.setAttribute("aria-hidden", "true");
@@ -4039,7 +4063,15 @@ function createVideoElement(src, movie, options = {}) {
     fallbackMessage = "Tomosha uchun manba tayyorlanmoqda.",
     fallbackEmbedUrl = "",
     sourceLabel = t("customPlayer"),
-    startupTimeout = 9000,
+    // Sekin 3G/cold-start serverless da 9s yetmaydi va kino tayyor bo'lguncha
+    // foydalanuvchi "Video tayyor emas" ekranini ko'rib yopib ketadi.
+    // Tarmoq profiliga qarab adaptiv: tez — 14s, sekin/cellular — 22s.
+    startupTimeout = (() => {
+      const net = getNetworkProfile();
+      if (net.saveData || net.isSlow) return 22000;
+      if (net.isCellular) return 18000;
+      return 14000;
+    })(),
     preload = "auto",
   } = normalizedOptions;
   let video;
@@ -4342,19 +4374,26 @@ async function openVideoPlayer(movie, options = {}) {
 
   const cdnUrl = String(movie?.cdnUrl || "").trim();
   const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
-  if (cdnUrl || driveFileId) {
+  const serverVideoUrl = String(movie?.videoUrl || movie?.streamUrl || "").trim();
+  if (cdnUrl || driveFileId || (serverVideoUrl && /token=/.test(serverVideoUrl))) {
     let playbackUrl = cdnUrl;
     if (!playbackUrl && driveFileId) {
       // Gesture'ni saqlash uchun resolve so'rovini KUTMAYMIZ. Cache tayyor bo'lsa,
-      // direct URL'ni ishlatamiz; aks holda darhol proxy stream'dan boshlaymiz
-      // va resolve'ni fonda qilamiz (keyingi marta cache'dan tushadi).
+      // direct URL'ni ishlatamiz; aks holda — server bergan token-li videoUrl
+      // (drive-stream proxy uchun majburiy) yoki uning yetishmasligida fallback.
       const cached = driveDirectUrlCache.get(driveFileId);
       if (cached && cached.expiresAt > Date.now()) {
         playbackUrl = cached.url;
+      } else if (serverVideoUrl && /token=/.test(serverVideoUrl)) {
+        playbackUrl = serverVideoUrl;
+        resolveDriveDirectVideoUrl(driveFileId).catch(() => {});
       } else {
+        // Eski yo'l — token siz, drive-stream 403 qaytarishi mumkin
         playbackUrl = buildDriveStreamUrl(driveFileId);
         resolveDriveDirectVideoUrl(driveFileId).catch(() => {});
       }
+    } else if (!playbackUrl && serverVideoUrl) {
+      playbackUrl = serverVideoUrl;
     }
     if (requestId !== activeVideoRequest) return;
     renderVideoSource(playbackUrl, movie, {
