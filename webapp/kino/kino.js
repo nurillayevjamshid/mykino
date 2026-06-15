@@ -6262,14 +6262,9 @@ async function refreshMoviesSilently(wishlistSyncPromise) {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
-      if (response.status === 401) {
-        localStorage.removeItem(MOVIE_CACHE_KEY);
-        movies = [];
-        movieLoadState = "error";
-        movieLoadError = payload?.error || "Ruxsat berilmadi.";
-        renderMovies();
-        showAccessDeniedScreen();
-      }
+      // Fon yangilashda 401 chiqsa, foydalanuvchini "Kirish taqiqlangan" ekraniga
+      // uloqtirmaymiz — Telegram initData ba'zan vaqtincha bo'sh/eskirgan bo'lib
+      // qoladi va keyingi urinish o'tib ketadi. Hozirgi cache'dagi kontent ko'rinib turaveradi.
       return;
     }
     writeMovieCache(payload);
@@ -6301,14 +6296,7 @@ async function silentReloadMovies() {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
-      if (response.status === 401) {
-        localStorage.removeItem(MOVIE_CACHE_KEY);
-        movies = [];
-        movieLoadState = "error";
-        movieLoadError = payload?.error || "Ruxsat berilmadi.";
-        renderMovies();
-        showAccessDeniedScreen();
-      }
+      // Silent polling refresh — 401 bo'lsa ham foydalanuvchini bezovta qilmaymiz.
       throw new Error(payload?.error || "Katalog yuklanmadi.");
     }
 
