@@ -6786,6 +6786,12 @@ html[data-theme="dark"] .profile-modal::backdrop {
   margin: 0 auto;
   padding: calc(env(safe-area-inset-top, 0px) + 24px) 20px calc(env(safe-area-inset-bottom, 0px) + 140px);
   -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-modal .profile-support {
+  margin-top: auto;
 }
 
 .profile-modal .modal-close {
