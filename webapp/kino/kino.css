@@ -4850,12 +4850,10 @@ body::before {
   inset: 0;
   background-size: cover;
   background-position: center;
-  opacity: 0;
-  transition: opacity 700ms ease;
-}
-
-.hero__bg.is-loaded {
-  opacity: 1;
+  /* MUHIM: opacity:0 default ishlatmaymiz — PC Chromium-da JS keshlangan
+     bo'lsa ham, ba'zi holatda is-loaded klassi qo'shilmas yoki kechikadi va
+     hero opacity:0 da bo'sh-kulrang qotib qolardi. Endi background-image
+     darrov ko'rinadi, JS hech narsaga ta'sir qilmaydi. */
 }
 
 .hero__shimmer {
