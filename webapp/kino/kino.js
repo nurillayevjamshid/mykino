@@ -4951,18 +4951,9 @@ document.querySelectorAll("[data-action='artists']").forEach((button) => {
 document.querySelectorAll(".bottom-bar [data-action='playlist']").forEach((button) => {
   button.addEventListener("click", (event) => {
     event.preventDefault();
-    try {
-      const tg = window.Telegram?.WebApp;
-      if (tg?.showPopup) {
-        tg.showPopup({ title: "Playlistlar", message: "Tez orada", buttons: [{ type: "ok" }] });
-      } else if (tg?.showAlert) {
-        tg.showAlert("Tez orada");
-      } else {
-        alert("Tez orada");
-      }
-    } catch (_) {
-      try { alert("Tez orada"); } catch (__) {}
-    }
+    ensureMusicModule().then((m) => {
+      m?.openPlaylistsView?.();
+    }).catch(() => {});
   });
 });
 

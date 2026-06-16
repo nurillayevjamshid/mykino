@@ -304,6 +304,8 @@ function defaultMetadataPayload() {
     movies: {},
     series: {},
     users: [],
+    watchProgress: {},
+    musicPlaylists: {},
   };
 }
 
@@ -320,6 +322,8 @@ function normalizeCatalogMetadata(payload) {
     movies: payload.movies && typeof payload.movies === "object" ? payload.movies : {},
     series: payload.series && typeof payload.series === "object" ? payload.series : {},
     users,
+    watchProgress: payload.watchProgress && typeof payload.watchProgress === "object" ? payload.watchProgress : {},
+    musicPlaylists: payload.musicPlaylists && typeof payload.musicPlaylists === "object" ? payload.musicPlaylists : {},
   };
 }
 

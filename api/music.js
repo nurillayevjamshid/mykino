@@ -7,6 +7,7 @@ const {
   loadAllChannelTracks,
   loadChannelArtists,
 } = require("./_lib/music-channels");
+const { handleMusicPlaylists } = require("./_lib/music-playlists");
 
 const SEED_FILE = path.join(process.cwd(), "data", "music.json");
 const REDIS_KEY = "music:tracks:v1";
@@ -355,6 +356,10 @@ module.exports = async function handler(request, response) {
   }
   if (resource === "music-channels" || resource === "channels") {
     await handleMusicChannelsRequest(request, response);
+    return;
+  }
+  if (resource === "playlists" || request.query?._playlists) {
+    await handleMusicPlaylists(request, response);
     return;
   }
 
