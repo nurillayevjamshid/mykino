@@ -89,7 +89,24 @@ const DEFAULT_DEBUG_USER = {
 };
 let runtimeApiBase = window.location.protocol === "file:" ? PROD_API_BASE : "";
 let apiBaseResolutionPromise = null;
-const savedLang = localStorage.getItem("kino_lang") || "uz";
+// Til boshlang'ich qiymati:
+// 1) Foydalanuvchi avval tanlagan til (localStorage)
+// 2) Telegram WebApp foydalanuvchisining language_code (uz/ru/en ga moslab)
+// 3) Default — uz
+function detectInitialLang() {
+  const stored = localStorage.getItem("kino_lang");
+  if (stored === "uz" || stored === "ru" || stored === "en") return stored;
+  try {
+    const code = String(
+      window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code || ""
+    ).toLowerCase();
+    if (code.startsWith("ru")) return "ru";
+    if (code.startsWith("en")) return "en";
+    if (code.startsWith("uz")) return "uz";
+  } catch (_) {}
+  return "uz";
+}
+const savedLang = detectInitialLang();
 let lang = savedLang;
 const pageParams = new URLSearchParams(window.location.search);
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
