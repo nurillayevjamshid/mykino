@@ -239,7 +239,7 @@ const copy = {
     feedbackEmpty: "Xabar bo'sh bo'lmasligi kerak.",
     feedbackError: "Xabarni yuborib bo'lmadi. Qaytadan urinib ko'ring.",
     aboutTitle: "Kino Play",
-    aboutBody: "Kino Play — Telegram mini-ilova. Versiya 1.0\n© 2026 Kino Play",
+    aboutBody: "Kino Play — Telegram mini-ilova. Versiya 2.0.1\n© 2026 Kino Play",
   },
   ru: {
     all: "Все",
@@ -315,7 +315,7 @@ const copy = {
     feedbackEmpty: "Сообщение не должно быть пустым.",
     feedbackError: "Не удалось отправить. Попробуйте снова.",
     aboutTitle: "Kino Play",
-    aboutBody: "Kino Play — Telegram мини-приложение. Версия 1.0\n© 2026 Kino Play",
+    aboutBody: "Kino Play — Telegram мини-приложение. Версия 2.0.1\n© 2026 Kino Play",
   },
   en: {
     all: "All",
@@ -391,7 +391,7 @@ const copy = {
     feedbackEmpty: "Message cannot be empty.",
     feedbackError: "Failed to send. Try again.",
     aboutTitle: "Kino Play",
-    aboutBody: "Kino Play — Telegram mini app. Version 1.0\n© 2026 Kino Play",
+    aboutBody: "Kino Play — Telegram mini app. Version 2.0.1\n© 2026 Kino Play",
   },
 };
 
