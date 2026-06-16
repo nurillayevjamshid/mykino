@@ -286,7 +286,12 @@
           </button>
           <div class="music-row__actions">
             <button class="music-row__btn music-row__btn--add ${inPl ? "is-added" : ""}" type="button" data-music-add="${id}" aria-label="Playlistga qo'shish">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="14" y2="6"></line>
+                <line x1="3" y1="12" x2="14" y2="12"></line>
+                <line x1="3" y1="18" x2="10" y2="18"></line>
+                <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
+              </svg>
             </button>
             <button class="music-row__btn music-row__btn--play" type="button" data-music-row="${id}" aria-label="Play">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
@@ -728,7 +733,12 @@
           </button>
           <div class="music-row__actions">
             <button class="music-row__btn music-row__btn--add ${inPl ? "is-added" : ""}" type="button" data-music-add="${id}" aria-label="Playlistga qo'shish">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="14" y2="6"></line>
+                <line x1="3" y1="12" x2="14" y2="12"></line>
+                <line x1="3" y1="18" x2="10" y2="18"></line>
+                <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
+              </svg>
             </button>
             <button class="music-row__btn music-row__btn--play" type="button" data-music-row="${id}" aria-label="Play">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
