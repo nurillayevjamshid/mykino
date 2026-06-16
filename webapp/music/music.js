@@ -853,10 +853,12 @@
   }
   async function onSaveSheetCreate(event) {
     event.preventDefault();
-    const input = event.currentTarget.querySelector("input");
+    // event.currentTarget await dan keyin null bo'lib qoladi — referenslarni oldindan ushlaymiz.
+    const form = event.currentTarget;
+    const input = form?.querySelector("input");
     const name = String(input?.value || "").trim();
     if (!name) { input?.focus(); return; }
-    const submitBtn = event.currentTarget.querySelector("button[type='submit']");
+    const submitBtn = form?.querySelector("button[type='submit']");
     if (submitBtn) submitBtn.disabled = true;
     try {
       const data = await apiPlaylist({ action: "create", name, trackId: saveSheetTrackId });
@@ -865,9 +867,11 @@
         setPlaylists(playlists);
         refreshPlaylistAffectedViews();
         renderSaveSheet();
-        const form = event.currentTarget;
-        form.hidden = true;
-        form.reset();
+        const formNow = form || document.querySelector("#musicSaveSheet [data-savesheet-form]");
+        if (formNow) {
+          formNow.hidden = true;
+          try { formNow.reset(); } catch (_) {}
+        }
         const newBtn = document.querySelector("#musicSaveSheet [data-savesheet-new]");
         if (newBtn) newBtn.hidden = false;
       }
