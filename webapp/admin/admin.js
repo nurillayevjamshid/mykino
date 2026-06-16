@@ -407,67 +407,11 @@ async function init() {
 
   await fetchMovies();
   bindEvents();
-  bindBottomNav();
-  bindMoreSheet();
   bindBottomSheetDrag();
   createSidebarOverlay();
 
   const savedSection = localStorage.getItem('admin-section');
   if (savedSection && savedSection !== 'movies') switchSection(savedSection);
-}
-
-// ===== Bottom nav + "More" sheet wiring =====
-function bindBottomNav() {
-  document.querySelectorAll('.bottom-nav-item[data-section]').forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const name = item.dataset.section;
-      if (!name) return;
-      if (name === 'more') {
-        openMoreSheet();
-        return;
-      }
-      tgHaptic('selection');
-      switchSection(name);
-    });
-  });
-}
-
-function bindMoreSheet() {
-  const sheet = document.getElementById('moreSheet');
-  if (!sheet) return;
-  sheet.addEventListener('click', (e) => { if (e.target === sheet) closeMoreSheet(); });
-  sheet.querySelectorAll('.more-sheet-item button[data-section]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const name = btn.dataset.section;
-      tgHaptic('selection');
-      closeMoreSheet();
-      if (name) switchSection(name);
-    });
-  });
-}
-function openMoreSheet() {
-  const sheet = document.getElementById('moreSheet');
-  if (!sheet) return;
-  sheet.classList.add('active');
-  tgPushBack(closeMoreSheet);
-}
-function closeMoreSheet() {
-  const sheet = document.getElementById('moreSheet');
-  if (sheet && sheet.classList.contains('active')) {
-    sheet.classList.remove('active');
-    tgPopBack();
-  }
-}
-
-function syncBottomNavActive(name) {
-  // Faqat bottom-nav'da haqiqatan bo'lgan tab'lar — qolganlari "Boshqa" tugmasini active qiladi.
-  const mainItems = ['movies', 'music'];
-  document.querySelectorAll('.bottom-nav-item[data-section]').forEach(li => {
-    const key = li.dataset.section;
-    const isActive = key === name || (key === 'more' && !mainItems.includes(name));
-    li.classList.toggle('active', isActive);
-  });
 }
 
 // ===== Bottom-sheet swipe-down to close (modals) =====
@@ -536,7 +480,6 @@ function switchSection(name) {
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.toggle('active', item.dataset.section === name);
   });
-  syncBottomNavActive(name);
   document.querySelectorAll('.content-section').forEach(section => {
     section.classList.toggle('active', section.id === targetId);
   });
