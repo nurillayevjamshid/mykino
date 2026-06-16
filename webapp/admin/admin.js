@@ -2486,6 +2486,14 @@ async function openArtistEditor(name) {
   document.getElementById('artistImageUrl').value = rec?.image || '';
   document.getElementById('artistEditorTitle').textContent = name;
   document.getElementById('artistDeleteBtn').hidden = !rec;
+  const purgeBtn = document.getElementById('artistPurgeBtn');
+  if (purgeBtn) {
+    const target = name.toLowerCase();
+    const trackCount = isAll ? 0 : musicTracks.filter((t) => splitArtistsAdmin(t.artist).some((a) => a.toLowerCase() === target)).length;
+    purgeBtn.hidden = isAll || (!rec && trackCount === 0);
+    purgeBtn.dataset.purgeName = name;
+    purgeBtn.dataset.purgeCount = String(trackCount);
+  }
   artistUploadedUrl = rec?.image || '';
   setArtistPreview(rec?.image || '');
   const tracksSection = document.getElementById('artistTracksSection');
@@ -2541,6 +2549,50 @@ async function deleteArtist() {
   }
 }
 
+async function purgeArtistWithTracks() {
+  const btn = document.getElementById('artistPurgeBtn');
+  const name = btn?.dataset.purgeName || document.getElementById('artistEditOrigName').value.trim();
+  const id = document.getElementById('artistEditId').value.trim();
+  if (!name) return;
+  const target = name.toLowerCase();
+  const tracks = musicTracks.filter((t) => splitArtistsAdmin(t.artist).some((a) => a.toLowerCase() === target));
+  const msg = `"${name}" qo'shiqchi va uning ${tracks.length} ta qo'shig'i butunlay o'chirilsinmi?\n\nBu amal qaytarib bo'lmaydi.`;
+  if (!confirm(msg)) return;
+  btn.disabled = true;
+  const prevText = btn.textContent;
+  btn.textContent = "O'chirilmoqda...";
+  try {
+    const deletions = tracks.map((t) => {
+      const key = `${String(t.title).toLowerCase()}|${String(t.artist).toLowerCase()}|${t.youtubeId}`;
+      return fetch('/api/music', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', key }),
+      }).then((r) => r.json().catch(() => ({}))).then((j) => { if (!j || j.ok === false) throw new Error(j?.error || 'qo\'shiq o\'chmadi'); });
+    });
+    await Promise.all(deletions);
+    if (id) {
+      const res = await fetch('/api/music?resource=artists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      musicArtists = Array.isArray(json.artists) ? json.artists : musicArtists.filter((a) => a.id !== id);
+    }
+    await fetchMusic();
+    showNotification(`"${name}" va ${tracks.length} ta qo'shiq o'chirildi.`);
+    showArtistsListView();
+    renderArtistsCardGrid();
+  } catch (err) {
+    showNotification(`O'chirishda xato: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prevText;
+  }
+}
+
 async function uploadArtistImageFile(file) {
   try {
     const raw = await readFileAsDataUrl(file);
@@ -2591,6 +2643,7 @@ document.addEventListener('click', (e) => {
 document.getElementById('artistForm')?.addEventListener('submit', saveArtist);
 document.getElementById('artistEditorBack')?.addEventListener('click', () => { showArtistsListView(); renderArtistsCardGrid(); });
 document.getElementById('artistDeleteBtn')?.addEventListener('click', deleteArtist);
+document.getElementById('artistPurgeBtn')?.addEventListener('click', purgeArtistWithTracks);
 document.getElementById('artistImageFile')?.addEventListener('change', (e) => {
   const f = e.target.files?.[0]; if (f) uploadArtistImageFile(f);
 });
