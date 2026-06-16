@@ -4937,8 +4937,14 @@ document.querySelectorAll("[data-action='catalog']").forEach((button) => {
 document.querySelectorAll("[data-action='artists']").forEach((button) => {
   button.addEventListener("click", (event) => {
     event.preventDefault();
-    openMusicView();
-    openAllArtists();
+    closeArtistDetail();
+    closeAllSongs();
+    closeAllArtists();
+    ensureMusicModule().then((m) => {
+      m?.openMusicView?.();
+      m?.openAllArtists?.();
+      m?.setMusicNavActive?.("artists");
+    }).catch(() => {});
   });
 });
 
@@ -4967,8 +4973,11 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
       closeArtistDetail();
       closeAllSongs();
       closeAllArtists();
-      openMusicView();
-      scrollMusicTop();
+      ensureMusicModule().then((m) => {
+        m?.openMusicView?.();
+        m?.scrollMusicTop?.();
+        m?.setMusicNavActive?.("categories");
+      }).catch(() => {});
       return;
     }
     toggleCategoryPanel();
