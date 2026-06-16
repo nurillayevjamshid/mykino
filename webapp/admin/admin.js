@@ -2690,13 +2690,18 @@ function renderYtChannels() {
     const name = c.customName || c.snapshot?.title || c.channelId;
     const image = c.customImage || c.snapshot?.avatar || '';
     const videoCount = (c.videos || []).length;
+    const initial = (name && name[0] ? name[0] : '?').toUpperCase();
+    const needsFix = !c.snapshot?.title || !c.snapshot?.avatar;
+    const avatarHtml = image
+      ? `<img src="${escapeHtml(image)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'yt-ch-fallback',textContent:${JSON.stringify(initial)}}));Object.assign(this.parentNode.querySelector('.yt-ch-fallback')?.style||{},{width:'64px',height:'64px',borderRadius:'50%',background:'#dbe1ea',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'700',fontSize:'24px',color:'#555',flexShrink:'0'});" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:#f1f3f7;flex-shrink:0;">`
+      : `<div style="width:64px;height:64px;border-radius:50%;background:#dbe1ea;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:#555;flex-shrink:0;">${escapeHtml(initial)}</div>`;
     return `
       <div class="yt-channel-card" style="border:1px solid var(--border,#e3e6ec);border-radius:14px;overflow:hidden;background:var(--card,#fff);padding:14px;">
         <div style="display:flex;gap:12px;align-items:center;">
-          <div style="width:64px;height:64px;border-radius:50%;background:#f1f3f7 center/cover no-repeat;${image ? `background-image:url('${String(image).replaceAll("'", '%27')}');` : ''}flex-shrink:0;"></div>
+          ${avatarHtml}
           <div style="flex:1;min-width:0;">
             <div style="font-weight:700;font-size:15px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(name)}</div>
-            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:2px;">${videoCount} ta video · ${escapeHtml(c.snapshot?.title || '')}</div>
+            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:2px;">${videoCount} ta video${c.snapshot?.title && c.snapshot.title !== name ? ' · ' + escapeHtml(c.snapshot.title) : ''}${needsFix ? ' · <span style="color:#d97706;">⚠ YT ma\'lumoti yo\'q</span>' : ''}</div>
           </div>
         </div>
         <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
@@ -2830,6 +2835,40 @@ document.getElementById('ytChannelForm')?.addEventListener('submit', (e) => {
   addYtChannel(input, customName, customImage);
 });
 document.getElementById('ytChannelReloadBtn')?.addEventListener('click', () => fetchYtChannels());
+document.getElementById('ytChannelRefreshAllBtn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('ytChannelRefreshAllBtn');
+  if (!btn || btn.disabled) return;
+  if (!ytChannels.length) { showNotification('Kanallar yo\'q.'); return; }
+  if (!confirm(`${ytChannels.length} ta kanalning rasm, nom va video ro'yxati YouTube'dan qaytadan tortib olinsin?`)) return;
+  btn.disabled = true;
+  const orig = btn.textContent;
+  let ok = 0, fail = 0;
+  for (let i = 0; i < ytChannels.length; i++) {
+    const c = ytChannels[i];
+    btn.textContent = `Yangilanmoqda ${i + 1}/${ytChannels.length}...`;
+    try {
+      const r = await fetch('/api/music?resource=music-channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'refresh', channelId: c.channelId }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      if (data.channel) {
+        const idx = ytChannels.findIndex((x) => x.channelId === c.channelId);
+        if (idx >= 0) ytChannels[idx] = data.channel;
+      }
+      ok++;
+    } catch (err) {
+      console.warn('refresh fail', c.channelId, err.message);
+      fail++;
+    }
+    renderYtChannels();
+  }
+  btn.disabled = false;
+  btn.textContent = orig;
+  showNotification(`Yangilandi: ${ok}${fail ? ` · xato: ${fail}` : ''}`);
+});
 document.getElementById('ytChannelImageFile')?.addEventListener('change', (e) => {
   const f = e.target.files?.[0]; if (f) uploadYtChannelImage(f);
 });
