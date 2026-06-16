@@ -968,15 +968,21 @@
       return `
       <li class="music-playlist-card" data-playlist-open="${escapeMusicHtml(pl.id)}">
         <span class="music-playlist-card__cover">
-          ${playlistCoverHtml(pl)}
+          <span class="music-playlist-card__art">
+            ${playlistCoverHtml(pl, 30)}
+          </span>
+          <span class="music-playlist-card__badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="14" y2="6"></line><line x1="3" y1="12" x2="14" y2="12"></line><line x1="3" y1="18" x2="10" y2="18"></line><polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon></svg>
+            ${count}
+          </span>
         </span>
-        <button class="music-playlist-card__menu" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="Boshqarish">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
-        </button>
         <span class="music-playlist-card__meta">
           <span class="music-playlist-card__name">${escapeMusicHtml(pl.name)}</span>
-          <span class="music-playlist-card__count">${count} qo'shiq</span>
+          <span class="music-playlist-card__sub">Playlist</span>
         </span>
+        <button class="music-playlist-card__menu" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="Boshqarish">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
+        </button>
       </li>`;
     }).join("");
   }
@@ -1002,18 +1008,23 @@
         : "none";
       hero.style.setProperty("--pl-hero-bg", heroBg);
       hero.innerHTML = `
-        <div class="music-playlist-hero__cover">
-          ${playlistCoverHtml(pl, 54)}
+        <div class="music-playlist-hero__top">
+          <div class="music-playlist-hero__cover">
+            ${playlistCoverHtml(pl, 64)}
+          </div>
         </div>
         <h2 class="music-playlist-hero__name">${escapeMusicHtml(pl.name)}</h2>
-        <div class="music-playlist-hero__count">${tracks.length} qo'shiq</div>
+        <div class="music-playlist-hero__meta">
+          <span>Playlist</span>
+          <span>${tracks.length} qo'shiq</span>
+        </div>
         <div class="music-playlist-hero__actions">
           <button class="music-playlist-hero__play" type="button" data-playlist-playall="${escapeMusicHtml(pl.id)}" ${tracks.length ? "" : "disabled"}>
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
-            <span>Hammasini ijro etish</span>
+            <span>Play all</span>
           </button>
-          <button class="music-playlist-hero__menu" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="Boshqarish">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
+          <button class="music-playlist-hero__icon-btn" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="Boshqarish">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
           </button>
         </div>`;
     }
