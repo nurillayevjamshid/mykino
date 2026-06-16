@@ -1310,8 +1310,9 @@
   function openMusicView() {
     if (!musicView) return;
     if (!navLock("music-view")) return;
+    const wasHidden = musicView.hidden;
     closeOtherMusicSubPanels(null);
-    reshuffleMusic();
+    if (wasHidden) reshuffleMusic();
     if (!musicAllTracks.length) {
       loadMusicCatalog();
     } else {
