@@ -793,9 +793,15 @@
     musicView.hidden = false;
     document.body.classList.add("is-music");
     window.scrollTo({ top: 0, behavior: "smooth" });
-    document.querySelectorAll(".bottom-bar [data-action='categories']").forEach((b) => b.classList.add("is-active"));
     document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.classList.remove("is-active"));
+    setMusicNavActive("categories");
     tgBackRegister("music-view", () => { try { closeMusicView(); setFilter("all"); } catch (_) {} });
+  }
+
+  function setMusicNavActive(action) {
+    document.querySelectorAll(".bottom-bar--music .bottom-bar__button").forEach((b) => {
+      b.classList.toggle("is-active", b.dataset.action === action);
+    });
   }
 
   function closeMusicView() {
@@ -1212,6 +1218,7 @@
     playMusicTrack,
     renderMusicList,
     scrollMusicTop,
+    setMusicNavActive,
     setQuery(q) { musicQuery = String(q || ""); renderMusicList(); },
     findTrackById(id) { return musicAllTracks.find((t) => t.youtubeId === id) || null; },
     hideMiniPlayer,
