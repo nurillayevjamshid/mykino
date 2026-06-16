@@ -9030,8 +9030,8 @@ body.is-favorites .fifa-banner { display: none !important; }
   padding: 26px 22px;
   margin-top: 10px;
   min-height: 168px;
-  background: #0a1a3d url("assets/fifa-wc2026.jpg") center/cover no-repeat;
-  background-image: image-set(url("assets/fifa-wc2026.webp") type("image/webp"), url("assets/fifa-wc2026.jpg") type("image/jpeg"));
+  background: #0a1a3d url("/static/assets/fifa-wc2026.jpg") center/cover no-repeat;
+  background-image: image-set(url("/static/assets/fifa-wc2026.webp") type("image/webp"), url("/static/assets/fifa-wc2026.jpg") type("image/jpeg"));
   background-color: #0a1a3d;
   background-size: cover;
   background-position: center;
