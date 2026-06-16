@@ -2688,7 +2688,29 @@ body.is-savesheet-open { overflow: hidden; }
 .music-playlist-card__menu:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .music-playlist-card__menu svg { width: 18px; height: 18px; }
 .music-playlists-empty {
-  list-style: none; padding: 22px 18px; color: rgba(255,255,255,0.6); font-size: 14px; text-align: center;
+  list-style: none;
+  padding: 40px 22px 20px;
+  color: rgba(255,255,255,0.72);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.music-playlists-empty__icon {
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  background: rgba(192, 132, 255, 0.14);
+  color: #c084ff;
+  display: grid; place-items: center;
+  margin-bottom: 4px;
+}
+.music-playlists-empty__icon svg { width: 32px; height: 32px; }
+.music-playlists-empty__title {
+  margin: 0; font-size: 17px; font-weight: 600; color: #fff;
+}
+.music-playlists-empty__text {
+  margin: 0; font-size: 14px; line-height: 1.5; max-width: 280px; color: rgba(255,255,255,0.6);
 }
 .music-playlists-empty strong { color: #c084ff; font-weight: 500; }
 body.is-music-playlists .music-playlists-view { display: block; }
