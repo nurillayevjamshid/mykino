@@ -1120,9 +1120,29 @@ body {
     min-height: 100vh;
   }
 
-  /* Sidebar fully hidden — bottom nav takes over */
-  .sidebar { display: none !important; }
-  .sidebar-overlay { display: none !important; }
+  /* Sidebar — gamburger orqali ochiladigan overlay panel */
+  .sidebar {
+    display: flex !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 82%;
+    max-width: 320px;
+    height: 100vh;
+    border-radius: 0;
+    border: 0;
+    border-right: 1px solid var(--border);
+    transform: translateX(-105%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 200;
+    padding-top: env(safe-area-inset-top);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay {
+    z-index: 150;
+  }
+  .sidebar-overlay.active { display: block; }
 
   .main-content {
     margin-left: 0;
@@ -1143,7 +1163,7 @@ body {
   }
   .header-title h1 { font-size: 17px; font-weight: 700; }
   .header-title::after { display: none; }
-  .menu-toggle { display: none; }      /* using bottom nav instead */
+  .menu-toggle { display: flex; }
   .admin-badge { display: none; }       /* save space */
   .theme-toggle { display: none; }      /* Telegram drives theme */
 
