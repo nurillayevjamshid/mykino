@@ -352,8 +352,7 @@
       }
       const addBtn = event.target.closest("[data-music-add]");
       if (addBtn) {
-        toggleMusicPlaylist(addBtn.dataset.musicAdd);
-        renderAllSongs();
+        handleSaveButtonClick(addBtn.dataset.musicAdd);
         return;
       }
       const pageBtn = event.target.closest("[data-allsongs-page]");
@@ -558,20 +557,466 @@
     }
   });
 
-  const MUSIC_PLAYLIST_KEY = "kino_music_playlist_v1";
+  // ===== Playlists (multi, YouTube-uslubida) =====
+  const MUSIC_PLAYLISTS_KEY = "kino_music_playlists_v2";
+  const MUSIC_PLAYLIST_LEGACY_KEY = "kino_music_playlist_v1";
+  const PLAYLIST_ENDPOINT = "/api/music-playlists";
+  let musicPlaylistsCache = null;
+  let musicPlaylistsLoaded = false;
+
+  function getMusicUserId() {
+    try {
+      const id = getTelegramUser?.()?.id;
+      return id ? String(id) : "";
+    } catch { return ""; }
+  }
+  function readPlaylistsLocal() {
+    try {
+      const raw = localStorage.getItem(MUSIC_PLAYLISTS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+      // legacy: bitta flat ro'yxat bo'lsa "Sevimlilar" ga ko'chirib qo'yamiz
+      const legacy = localStorage.getItem(MUSIC_PLAYLIST_LEGACY_KEY);
+      if (legacy) {
+        const ids = JSON.parse(legacy);
+        if (Array.isArray(ids) && ids.length) {
+          const now = Date.now();
+          return [{ id: `pl_local_${now.toString(36)}`, name: "Sevimlilar", createdAt: now, updatedAt: now, tracks: ids }];
+        }
+      }
+    } catch {}
+    return [];
+  }
+  function writePlaylistsLocal(list) {
+    try { localStorage.setItem(MUSIC_PLAYLISTS_KEY, JSON.stringify(list)); } catch {}
+  }
+  function getPlaylists() {
+    if (!musicPlaylistsCache) musicPlaylistsCache = readPlaylistsLocal();
+    return musicPlaylistsCache;
+  }
+  function setPlaylists(list) {
+    musicPlaylistsCache = Array.isArray(list) ? list : [];
+    writePlaylistsLocal(musicPlaylistsCache);
+  }
+  function trackInAnyPlaylist(trackId) {
+    return getPlaylists().some((pl) => Array.isArray(pl.tracks) && pl.tracks.includes(trackId));
+  }
+  // Eski API'larni saqlaymiz — boshqa joylarda chaqirilgan: row "is-added" indikatori.
   function readMusicPlaylist() {
-    try { return JSON.parse(localStorage.getItem(MUSIC_PLAYLIST_KEY) || "[]"); } catch { return []; }
+    const set = new Set();
+    for (const pl of getPlaylists()) {
+      if (Array.isArray(pl.tracks)) for (const id of pl.tracks) set.add(id);
+    }
+    return Array.from(set);
   }
-  function writeMusicPlaylist(ids) {
-    try { localStorage.setItem(MUSIC_PLAYLIST_KEY, JSON.stringify(ids)); } catch {}
+
+  async function loadPlaylistsFromServer() {
+    if (musicPlaylistsLoaded) return;
+    const userId = getMusicUserId();
+    if (!userId) { musicPlaylistsLoaded = true; return; }
+    try {
+      const resp = await fetch(`${PLAYLIST_ENDPOINT}?userId=${encodeURIComponent(userId)}`, { headers: { Accept: "application/json" } });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      if (data?.ok && Array.isArray(data.playlists)) {
+        setPlaylists(data.playlists);
+        musicPlaylistsLoaded = true;
+        refreshPlaylistAffectedViews();
+      }
+    } catch (_) {
+      // serverga ulanib bo'lmasa — local cache bilan ishlaymiz
+    }
   }
-  function toggleMusicPlaylist(id) {
-    const list = readMusicPlaylist();
-    const idx = list.indexOf(id);
-    const wasInList = idx >= 0;
-    if (wasInList) list.splice(idx, 1); else list.push(id);
-    writeMusicPlaylist(list);
-    return !wasInList;
+  async function apiPlaylist(payload) {
+    const userId = getMusicUserId();
+    if (!userId) {
+      const err = new Error("Telegram orqali kiring."); err.code = "NO_USER"; throw err;
+    }
+    const resp = await fetch(PLAYLIST_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, ...payload }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data?.ok) {
+      const err = new Error(data?.error || `HTTP ${resp.status}`); throw err;
+    }
+    return data;
+  }
+
+  function refreshPlaylistAffectedViews() {
+    try { renderMusicList(); } catch (_) {}
+    try { rerenderOpenAllSongs(); } catch (_) {}
+    try { rerenderOpenArtistDetail(); } catch (_) {}
+    try { renderPlaylistsView(); } catch (_) {}
+    try { syncFullPlayerLike(); } catch (_) {}
+  }
+  function rerenderOpenAllSongs() {
+    const panel = document.getElementById("musicAllSongs");
+    if (panel && !panel.hidden) renderAllSongs();
+  }
+  function rerenderOpenArtistDetail() {
+    const panel = document.getElementById("musicArtistDetail");
+    if (panel && !panel.hidden) {
+      const name = document.getElementById("musicArtistDetailName")?.textContent || "";
+      if (name) renderArtistDetailTracks(name);
+    }
+  }
+  function syncFullPlayerLike() {
+    if (!musicFullPlayerLike) return;
+    const id = musicFullPlayerLike.dataset.id;
+    if (!id) return;
+    musicFullPlayerLike.setAttribute("aria-pressed", trackInAnyPlaylist(id) ? "true" : "false");
+  }
+
+  // ===== Save-to-playlist bottom sheet =====
+  let saveSheetTrackId = null;
+  function ensureSaveSheet() {
+    let el = document.getElementById("musicSaveSheet");
+    if (el) return el;
+    el = document.createElement("div");
+    el.id = "musicSaveSheet";
+    el.className = "music-savesheet";
+    el.hidden = true;
+    el.innerHTML = `
+      <div class="music-savesheet__backdrop" data-savesheet-close></div>
+      <div class="music-savesheet__panel" role="dialog" aria-modal="true" aria-label="Playlistga saqlash">
+        <header class="music-savesheet__head">
+          <h3>Saqlash</h3>
+          <button class="music-savesheet__close" type="button" data-savesheet-close aria-label="Yopish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6l-12 12"></path></svg>
+          </button>
+        </header>
+        <ul class="music-savesheet__list" id="musicSaveSheetList"></ul>
+        <div class="music-savesheet__new" id="musicSaveSheetNew">
+          <button class="music-savesheet__new-btn" type="button" data-savesheet-new>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            <span>Yangi playlist</span>
+          </button>
+          <form class="music-savesheet__form" data-savesheet-form hidden>
+            <input type="text" maxlength="80" placeholder="Playlist nomi" data-savesheet-input />
+            <div class="music-savesheet__form-actions">
+              <button type="button" class="music-savesheet__form-cancel" data-savesheet-cancel>Bekor</button>
+              <button type="submit" class="music-savesheet__form-save">Yaratish</button>
+            </div>
+          </form>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    el.addEventListener("click", onSaveSheetClick);
+    el.addEventListener("change", onSaveSheetChange);
+    el.querySelector("[data-savesheet-form]")?.addEventListener("submit", onSaveSheetCreate);
+    return el;
+  }
+  function openSaveSheet(trackId) {
+    saveSheetTrackId = trackId;
+    const el = ensureSaveSheet();
+    renderSaveSheet();
+    el.hidden = false;
+    requestAnimationFrame(() => el.classList.add("is-open"));
+    document.body.classList.add("is-savesheet-open");
+    tgBackRegister?.("music-savesheet", () => closeSaveSheet());
+  }
+  function closeSaveSheet() {
+    const el = document.getElementById("musicSaveSheet");
+    if (!el) return;
+    el.classList.remove("is-open");
+    document.body.classList.remove("is-savesheet-open");
+    setTimeout(() => { el.hidden = true; }, 180);
+    saveSheetTrackId = null;
+    const form = el.querySelector("[data-savesheet-form]");
+    if (form) form.hidden = true;
+    const newBtn = el.querySelector("[data-savesheet-new]");
+    if (newBtn) newBtn.hidden = false;
+    tgBackUnregister?.("music-savesheet");
+  }
+  function renderSaveSheet() {
+    const list = document.getElementById("musicSaveSheetList");
+    if (!list) return;
+    const playlists = getPlaylists();
+    if (!playlists.length) {
+      list.innerHTML = `<li class="music-savesheet__empty">Hali playlist yo'q. Quyida yangisini yarating.</li>`;
+      return;
+    }
+    list.innerHTML = playlists.map((pl) => {
+      const inPl = Array.isArray(pl.tracks) && saveSheetTrackId && pl.tracks.includes(saveSheetTrackId);
+      const count = Array.isArray(pl.tracks) ? pl.tracks.length : 0;
+      return `
+      <li class="music-savesheet__item">
+        <label class="music-savesheet__row">
+          <input type="checkbox" data-savesheet-toggle="${escapeMusicHtml(pl.id)}" ${inPl ? "checked" : ""} />
+          <span class="music-savesheet__check" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11"></path></svg>
+          </span>
+          <span class="music-savesheet__meta">
+            <span class="music-savesheet__name">${escapeMusicHtml(pl.name)}</span>
+            <span class="music-savesheet__count">${count} qo'shiq</span>
+          </span>
+        </label>
+      </li>`;
+    }).join("");
+  }
+  function onSaveSheetClick(event) {
+    if (event.target.closest("[data-savesheet-close]")) { closeSaveSheet(); return; }
+    if (event.target.closest("[data-savesheet-new]")) {
+      const form = document.querySelector("#musicSaveSheet [data-savesheet-form]");
+      const btn = document.querySelector("#musicSaveSheet [data-savesheet-new]");
+      if (form) form.hidden = false;
+      if (btn) btn.hidden = true;
+      form?.querySelector("input")?.focus();
+      return;
+    }
+    if (event.target.closest("[data-savesheet-cancel]")) {
+      const form = document.querySelector("#musicSaveSheet [data-savesheet-form]");
+      const btn = document.querySelector("#musicSaveSheet [data-savesheet-new]");
+      if (form) { form.hidden = true; form.reset(); }
+      if (btn) btn.hidden = false;
+      return;
+    }
+  }
+  async function onSaveSheetChange(event) {
+    const cb = event.target.closest("input[type='checkbox'][data-savesheet-toggle]");
+    if (!cb) return;
+    const plId = cb.dataset.savesheetToggle;
+    const trackId = saveSheetTrackId;
+    if (!plId || !trackId) return;
+    cb.disabled = true;
+    // optimistic update
+    const playlists = getPlaylists().map((pl) => {
+      if (pl.id !== plId) return pl;
+      const tracks = Array.isArray(pl.tracks) ? [...pl.tracks] : [];
+      const idx = tracks.indexOf(trackId);
+      if (idx >= 0) tracks.splice(idx, 1); else tracks.push(trackId);
+      return { ...pl, tracks, updatedAt: Date.now() };
+    });
+    setPlaylists(playlists);
+    refreshPlaylistAffectedViews();
+    try {
+      await apiPlaylist({ action: "toggleTrack", id: plId, trackId });
+    } catch (err) {
+      // revert
+      const reverted = getPlaylists().map((pl) => {
+        if (pl.id !== plId) return pl;
+        const tracks = Array.isArray(pl.tracks) ? [...pl.tracks] : [];
+        const idx = tracks.indexOf(trackId);
+        if (idx >= 0) tracks.splice(idx, 1); else tracks.push(trackId);
+        return { ...pl, tracks };
+      });
+      setPlaylists(reverted);
+      cb.checked = !cb.checked;
+      refreshPlaylistAffectedViews();
+      try { (window.Telegram?.WebApp?.showAlert || alert)(err.message || "Saqlanmadi."); } catch (_) {}
+    } finally {
+      cb.disabled = false;
+    }
+  }
+  async function onSaveSheetCreate(event) {
+    event.preventDefault();
+    const input = event.currentTarget.querySelector("input");
+    const name = String(input?.value || "").trim();
+    if (!name) { input?.focus(); return; }
+    const submitBtn = event.currentTarget.querySelector("button[type='submit']");
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const data = await apiPlaylist({ action: "create", name, trackId: saveSheetTrackId });
+      if (data?.playlist) {
+        const playlists = [data.playlist, ...getPlaylists().filter((p) => p.id !== data.playlist.id)];
+        setPlaylists(playlists);
+        refreshPlaylistAffectedViews();
+        renderSaveSheet();
+        const form = event.currentTarget;
+        form.hidden = true;
+        form.reset();
+        const newBtn = document.querySelector("#musicSaveSheet [data-savesheet-new]");
+        if (newBtn) newBtn.hidden = false;
+      }
+    } catch (err) {
+      try { (window.Telegram?.WebApp?.showAlert || alert)(err.message || "Yaratib bo'lmadi."); } catch (_) {}
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+  function handleSaveButtonClick(trackId) {
+    if (!trackId) return;
+    if (!getMusicUserId()) {
+      try { (window.Telegram?.WebApp?.showAlert || alert)("Playlist saqlash uchun Telegram orqali kiring."); } catch (_) {}
+      return;
+    }
+    loadPlaylistsFromServer();
+    openSaveSheet(trackId);
+  }
+
+  // ===== Playlists view (pastki navbar "Playlist" tab) =====
+  let playlistsViewOpenedId = null;
+  function ensurePlaylistsViewDom() {
+    if (!musicView) return null;
+    let panel = document.getElementById("musicPlaylistsView");
+    if (panel) return panel;
+    panel = document.createElement("section");
+    panel.id = "musicPlaylistsView";
+    panel.className = "music-playlists-view";
+    panel.hidden = true;
+    panel.innerHTML = `
+      <header class="music-artist-detail__head">
+        <button class="music-artist-detail__back" type="button" data-playlists-back aria-label="Orqaga">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
+        </button>
+        <h1 class="music-artist-detail__name" data-playlists-title>Mening playlistlarim</h1>
+      </header>
+      <ol class="music-playlists-list" id="musicPlaylistsList"></ol>
+      <ol class="music-list" id="musicPlaylistDetailList" hidden></ol>
+      <div class="music-view__spacer"></div>`;
+    musicView.appendChild(panel);
+    panel.addEventListener("click", onPlaylistsViewClick);
+    return panel;
+  }
+  function renderPlaylistsView() {
+    const panel = document.getElementById("musicPlaylistsView");
+    if (!panel || panel.hidden) return;
+    if (playlistsViewOpenedId) { renderPlaylistDetail(playlistsViewOpenedId); return; }
+    const list = document.getElementById("musicPlaylistsList");
+    const detail = document.getElementById("musicPlaylistDetailList");
+    if (detail) detail.hidden = true;
+    if (list) list.hidden = false;
+    const title = panel.querySelector("[data-playlists-title]");
+    if (title) title.textContent = "Mening playlistlarim";
+    if (!list) return;
+    const playlists = getPlaylists();
+    if (!playlists.length) {
+      list.innerHTML = `<li class="music-playlists-empty">Hozircha playlist yo'q. Qo'shiq yonidagi <strong>navbat</strong> ikonkasini bosib saqlang.</li>`;
+      return;
+    }
+    list.innerHTML = playlists.map((pl) => {
+      const count = Array.isArray(pl.tracks) ? pl.tracks.length : 0;
+      const firstTrack = (pl.tracks || []).find((id) => musicAllTracks.some((t) => t.youtubeId === id));
+      const cover = firstTrack ? `url('https://i.ytimg.com/vi/${escapeMusicHtml(firstTrack)}/mqdefault.jpg')` : "";
+      return `
+      <li class="music-playlist-card" data-playlist-open="${escapeMusicHtml(pl.id)}">
+        <span class="music-playlist-card__cover" style="${cover ? `background-image:${cover}` : ""}">
+          ${cover ? "" : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="14" y2="6"></line><line x1="3" y1="12" x2="14" y2="12"></line><line x1="3" y1="18" x2="10" y2="18"></line><polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon></svg>`}
+        </span>
+        <span class="music-playlist-card__meta">
+          <span class="music-playlist-card__name">${escapeMusicHtml(pl.name)}</span>
+          <span class="music-playlist-card__count">${count} qo'shiq</span>
+        </span>
+        <button class="music-playlist-card__menu" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="Boshqarish">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
+        </button>
+      </li>`;
+    }).join("");
+  }
+  function renderPlaylistDetail(playlistId) {
+    const panel = document.getElementById("musicPlaylistsView");
+    if (!panel) return;
+    const pl = getPlaylists().find((p) => p.id === playlistId);
+    if (!pl) { playlistsViewOpenedId = null; renderPlaylistsView(); return; }
+    const list = document.getElementById("musicPlaylistsList");
+    const detail = document.getElementById("musicPlaylistDetailList");
+    const title = panel.querySelector("[data-playlists-title]");
+    if (list) list.hidden = true;
+    if (detail) detail.hidden = false;
+    if (title) title.textContent = pl.name;
+    if (!detail) return;
+    const tracks = (pl.tracks || []).map((id) => musicAllTracks.find((t) => t.youtubeId === id)).filter(Boolean);
+    if (!tracks.length) {
+      detail.innerHTML = `<li class="music-playlists-empty">Bu playlist bo'sh.</li>`;
+      return;
+    }
+    const playlistIds = readMusicPlaylist();
+    detail.innerHTML = tracks.map((t) => musicRowHtml(t, playlistIds)).join("");
+  }
+  function onPlaylistsViewClick(event) {
+    if (event.target.closest("[data-playlists-back]")) {
+      if (playlistsViewOpenedId) { playlistsViewOpenedId = null; renderPlaylistsView(); }
+      else closePlaylistsView();
+      return;
+    }
+    const menuBtn = event.target.closest("[data-playlist-menu]");
+    if (menuBtn) { event.stopPropagation(); openPlaylistMenu(menuBtn.dataset.playlistMenu); return; }
+    const openBtn = event.target.closest("[data-playlist-open]");
+    if (openBtn) { playlistsViewOpenedId = openBtn.dataset.playlistOpen; renderPlaylistDetail(playlistsViewOpenedId); return; }
+    const addBtn = event.target.closest("[data-music-add]");
+    if (addBtn) { event.stopPropagation(); handleSaveButtonClick(addBtn.dataset.musicAdd); return; }
+    const row = event.target.closest("[data-music-row]");
+    if (row) {
+      const track = musicAllTracks.find((t) => t.youtubeId === row.dataset.musicRow);
+      if (track) playMusicTrack(track);
+    }
+  }
+  function openPlaylistMenu(playlistId) {
+    const pl = getPlaylists().find((p) => p.id === playlistId);
+    if (!pl) return;
+    const tg = window.Telegram?.WebApp;
+    const choose = (action) => {
+      if (action === "rename") {
+        const next = (window.prompt || (() => null))("Yangi nom:", pl.name);
+        if (next == null) return;
+        const name = String(next).trim();
+        if (!name || name === pl.name) return;
+        const old = getPlaylists();
+        setPlaylists(old.map((p) => p.id === pl.id ? { ...p, name, updatedAt: Date.now() } : p));
+        refreshPlaylistAffectedViews();
+        apiPlaylist({ action: "rename", id: pl.id, name }).catch(() => {
+          setPlaylists(old);
+          refreshPlaylistAffectedViews();
+          try { (tg?.showAlert || alert)("Nomni o'zgartirib bo'lmadi."); } catch (_) {}
+        });
+      } else if (action === "delete") {
+        const ok = (window.confirm || (() => false))(`"${pl.name}" o'chirilsinmi?`);
+        if (!ok) return;
+        const old = getPlaylists();
+        setPlaylists(old.filter((p) => p.id !== pl.id));
+        if (playlistsViewOpenedId === pl.id) playlistsViewOpenedId = null;
+        refreshPlaylistAffectedViews();
+        apiPlaylist({ action: "delete", id: pl.id }).catch(() => {
+          setPlaylists(old);
+          refreshPlaylistAffectedViews();
+          try { (tg?.showAlert || alert)("O'chirib bo'lmadi."); } catch (_) {}
+        });
+      }
+    };
+    if (tg?.showPopup) {
+      tg.showPopup({
+        title: pl.name,
+        message: "Tanlang",
+        buttons: [
+          { id: "rename", type: "default", text: "Nomini o'zgartirish" },
+          { id: "delete", type: "destructive", text: "O'chirish" },
+          { id: "cancel", type: "cancel" },
+        ],
+      }, (id) => choose(id));
+    } else {
+      const ans = (window.prompt || (() => ""))(`"${pl.name}" — qaysi amal? (rename / delete)`, "rename");
+      if (ans === "rename" || ans === "delete") choose(ans);
+    }
+  }
+  function openPlaylistsView() {
+    if (!musicView) return;
+    if (!musicView.hidden) { /* music view ochiq */ }
+    else { try { openMusicView(); } catch (_) {} }
+    ensurePlaylistsViewDom();
+    loadPlaylistsFromServer();
+    const panel = document.getElementById("musicPlaylistsView");
+    if (!panel) return;
+    playlistsViewOpenedId = null;
+    panel.hidden = false;
+    document.body.classList.add("is-music-playlists");
+    renderPlaylistsView();
+    scrollMusicTop();
+    setMusicNavActive("playlist");
+    tgBackRegister?.("music-playlists", () => {
+      if (playlistsViewOpenedId) { playlistsViewOpenedId = null; renderPlaylistsView(); }
+      else closePlaylistsView();
+    });
+  }
+  function closePlaylistsView() {
+    const panel = document.getElementById("musicPlaylistsView");
+    if (panel) panel.hidden = true;
+    playlistsViewOpenedId = null;
+    document.body.classList.remove("is-music-playlists");
+    tgBackUnregister?.("music-playlists");
   }
 
   const musicCarouselTrack = document.getElementById("musicCarouselTrack");
@@ -799,6 +1244,7 @@
       renderMusicList();
     }
     fetchMusicArtists().then(() => { renderMusicFilters(); renderMusicCarousel(); });
+    try { loadPlaylistsFromServer(); } catch (_) {}
     try { ensureYouTubeApi?.(); } catch (_) {}
     musicView.hidden = false;
     document.body.classList.add("is-music");
@@ -821,6 +1267,7 @@
     closeArtistDetail();
     closeAllSongs();
     closeAllArtists();
+    try { closePlaylistsView(); } catch (_) {}
     stopMusicCarouselTimer();
     closeMusicFullPlayer();
     tgBackUnregister("music-view");
@@ -1109,12 +1556,7 @@
     }
     if (e.target.closest("#musicFullPlayerLike")) {
       const id = musicFullPlayerLike?.dataset.id;
-      if (id) {
-        toggleMusicPlaylist(id);
-        const inPl = readMusicPlaylist().includes(id);
-        musicFullPlayerLike.setAttribute("aria-pressed", inPl ? "true" : "false");
-        renderMusicList();
-      }
+      if (id) handleSaveButtonClick(id);
       return;
     }
   });
@@ -1191,8 +1633,7 @@
     const addBtn = e.target.closest("[data-music-add]");
     if (addBtn) {
       e.stopPropagation();
-      toggleMusicPlaylist(addBtn.dataset.musicAdd);
-      renderMusicList();
+      handleSaveButtonClick(addBtn.dataset.musicAdd);
     }
   });
 
@@ -1225,6 +1666,8 @@
     closeAllSongs,
     openArtistDetail,
     closeArtistDetail,
+    openPlaylistsView,
+    closePlaylistsView,
     playMusicTrack,
     renderMusicList,
     scrollMusicTop,
