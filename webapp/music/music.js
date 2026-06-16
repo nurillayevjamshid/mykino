@@ -210,7 +210,8 @@
   }
   function musicArtistCardHtml(name, value = name, label = name) {
     const active = musicArtist === value;
-    const img = findArtistImage(name);
+    // 1) saqlangan/kanal artist rasmi, 2) trek thumbnail, 3) chip fallback
+    const img = value === "all" ? "" : (findArtistImage(name) || pickArtistFallbackImage(name));
     if (img) {
       return `<button class="music-artist-card ${active ? "is-active" : ""}" type="button" data-music-artist="${escapeMusicHtml(value)}" style="background-image:url('${img.replaceAll("'", "%27")}')">
         <span class="music-artist-card__shade"></span>
@@ -585,13 +586,19 @@
     });
     const result = [];
     const seen = new Set();
-    // 1) Saqlangan qo'shiqchilar (shu jumladan YouTube kanal-artistlar) — har doim ko'rinadi
+    // 1) Saqlangan qo'shiqchilar (shu jumladan YouTube kanal-artistlar) — har doim ko'rinadi.
+    //    Ism " x ", " & " va h.k. separator bilan bo'lsa, parchalarini ham `seen` ga
+    //    qo'shamiz — aks holda 4+ qoidasi bilan ular yana qaytadan ro'yxatga tushadi.
     for (const a of musicArtistsData) {
       const name = String(a?.name || "").trim();
       if (!name) continue;
       const key = name.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
+      for (const part of splitArtists(name)) {
+        const pk = part.trim().toLowerCase();
+        if (pk) seen.add(pk);
+      }
       result.push(name);
     }
     // 2) 4+ qo'shig'i bo'lganlar
@@ -606,8 +613,16 @@
   }
 
   function pickArtistFallbackImage(name) {
-    const target = name.toLowerCase();
-    const track = musicAllTracks.find((t) => splitArtists(t.artist).some((a) => a.toLowerCase() === target));
+    const target = String(name || "").toLowerCase().trim();
+    if (!target) return "";
+    // YT kanal-artistda cover bo'lsa, uni ishlatamiz (kanal banner emas, lekin musiqaviy nuance)
+    const channelTrack = musicAllTracks.find((t) => String(t.artist || "").toLowerCase().trim() === target && t.cover);
+    if (channelTrack?.cover) return channelTrack.cover;
+    // Aks holda — birinchi tegishli trekning YT thumbnail'i
+    const track = musicAllTracks.find((t) => {
+      if (String(t.artist || "").toLowerCase().trim() === target) return true;
+      return splitArtists(t.artist).some((a) => a.toLowerCase() === target);
+    });
     return track ? `https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg` : "";
   }
 
