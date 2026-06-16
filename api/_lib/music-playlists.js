@@ -1,4 +1,8 @@
-const { readCatalogMetadata, writeCatalogMetadata } = require("./google-drive");
+const { getJsonFromR2Signed, putJsonToR2 } = require("./r2-store");
+const { readBlobJson, writeBlobJson } = require("./blob-store");
+
+const R2_KEY = "settings/music-playlists.json";
+const BLOB_PATHNAME = "settings/music-playlists.json";
 
 const MAX_PLAYLISTS_PER_USER = 50;
 const MAX_TRACKS_PER_PLAYLIST = 1000;
@@ -41,17 +45,48 @@ function sanitizePlaylist(raw) {
   };
 }
 
-function readUserPlaylists(metadata, userId) {
-  const all = metadata?.musicPlaylists;
-  if (!all || typeof all !== "object") return {};
-  const entry = all[String(userId)];
-  if (!entry || typeof entry !== "object") return {};
+function normalizeRoot(payload) {
+  const root = payload && typeof payload === "object" ? payload : {};
+  const users = root.users && typeof root.users === "object" ? root.users : {};
   const cleaned = {};
-  for (const [id, pl] of Object.entries(entry)) {
-    const sanitized = sanitizePlaylist(pl);
-    if (sanitized) cleaned[id] = sanitized;
+  for (const [uid, map] of Object.entries(users)) {
+    if (!uid || !map || typeof map !== "object") continue;
+    const out = {};
+    for (const [pid, pl] of Object.entries(map)) {
+      const sanitized = sanitizePlaylist(pl);
+      if (sanitized) out[pid] = sanitized;
+    }
+    if (Object.keys(out).length) cleaned[uid] = out;
   }
-  return cleaned;
+  return { users: cleaned };
+}
+
+async function readStore() {
+  let payload = null;
+  try { payload = await getJsonFromR2Signed(R2_KEY, null); } catch (_) { payload = null; }
+  if (!payload) {
+    try { payload = await readBlobJson(BLOB_PATHNAME, null); } catch (_) { payload = null; }
+  }
+  return normalizeRoot(payload);
+}
+
+async function writeStore(root) {
+  const next = { ...root, updatedAt: new Date().toISOString() };
+  let r2Ok = false;
+  let blobOk = false;
+  let lastErr = null;
+  try { await putJsonToR2(R2_KEY, next); r2Ok = true; } catch (err) { lastErr = err; }
+  try { await writeBlobJson(BLOB_PATHNAME, next); blobOk = true; } catch (err) { if (!r2Ok) lastErr = err; }
+  if (!r2Ok && !blobOk) {
+    const err = new Error(lastErr?.message || "Playlist saqlanmadi.");
+    err.statusCode = 502;
+    throw err;
+  }
+}
+
+function readUserPlaylists(root, userId) {
+  const map = root?.users?.[String(userId)];
+  return map && typeof map === "object" ? map : {};
 }
 
 function toList(map) {
@@ -72,16 +107,14 @@ async function readBody(request) {
 }
 
 async function withUserPlaylists(userId, mutate) {
-  const metadataState = await readCatalogMetadata();
-  const root = metadataState.data && typeof metadataState.data === "object" ? metadataState.data : {};
-  const all = root.musicPlaylists && typeof root.musicPlaylists === "object" ? { ...root.musicPlaylists } : {};
-  const current = all[userId] && typeof all[userId] === "object" ? { ...all[userId] } : {};
+  const root = await readStore();
+  const allUsers = { ...(root.users || {}) };
+  const current = allUsers[userId] && typeof allUsers[userId] === "object" ? { ...allUsers[userId] } : {};
   const next = mutate(current);
-  if (next === null) return null;
-  if (Object.keys(next).length === 0) delete all[userId];
-  else all[userId] = next;
-  const nextRoot = { ...root, musicPlaylists: all };
-  await writeCatalogMetadata(nextRoot, metadataState.file);
+  if (next == null) return null;
+  if (Object.keys(next).length === 0) delete allUsers[userId];
+  else allUsers[userId] = next;
+  await writeStore({ users: allUsers });
   return next;
 }
 
@@ -93,8 +126,8 @@ async function handleMusicPlaylists(request, response) {
       const url = new URL(request.url || "/", "http://localhost");
       const userId = trim(url.searchParams.get("userId") || request.query?.userId);
       if (!userId) { response.status(400).json({ ok: false, error: "userId kerak." }); return; }
-      const metadataState = await readCatalogMetadata();
-      const map = readUserPlaylists(metadataState.data, userId);
+      const root = await readStore();
+      const map = readUserPlaylists(root, userId);
       response.status(200).json({ ok: true, userId, playlists: toList(map) });
       return;
     }
