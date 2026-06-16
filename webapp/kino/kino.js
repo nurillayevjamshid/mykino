@@ -4934,16 +4934,24 @@ document.querySelectorAll("[data-action='catalog']").forEach((button) => {
   });
 });
 
+// Pastki navbar — musiqa bo'limidagi tablar uchun debounce/lock.
+// Bir tugmani ketma-ket bosish bir nechta navigation push'ini ishga tushurmasin.
+const __musicTabLock = { key: "", at: 0 };
+function musicTabLock(key, gapMs = 320) {
+  const now = Date.now();
+  if (__musicTabLock.key === key && (now - __musicTabLock.at) < gapMs) return false;
+  __musicTabLock.key = key;
+  __musicTabLock.at = now;
+  return true;
+}
+
 document.querySelectorAll("[data-action='artists']").forEach((button) => {
   button.addEventListener("click", (event) => {
     event.preventDefault();
-    closeArtistDetail();
-    closeAllSongs();
-    closeAllArtists();
+    if (!musicTabLock("artists")) return;
     ensureMusicModule().then((m) => {
-      m?.openMusicView?.();
+      // openAllArtists o'zi peer panellarni yopadi va nav active'ni o'rnatadi.
       m?.openAllArtists?.();
-      m?.setMusicNavActive?.("artists");
     }).catch(() => {});
   });
 });
@@ -4951,6 +4959,7 @@ document.querySelectorAll("[data-action='artists']").forEach((button) => {
 document.querySelectorAll(".bottom-bar [data-action='playlist']").forEach((button) => {
   button.addEventListener("click", (event) => {
     event.preventDefault();
+    if (!musicTabLock("playlist")) return;
     ensureMusicModule().then((m) => {
       m?.openPlaylistsView?.();
     }).catch(() => {});
@@ -4961,13 +4970,11 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
   button.addEventListener("click", (event) => {
     if (button.closest(".bottom-bar")) {
       event.preventDefault();
-      closeArtistDetail();
-      closeAllSongs();
-      closeAllArtists();
+      if (!musicTabLock("categories")) return;
       ensureMusicModule().then((m) => {
+        // openMusicView o'zi peer panellarni yopadi va nav active'ni "categories" qiladi.
         m?.openMusicView?.();
         m?.scrollMusicTop?.();
-        m?.setMusicNavActive?.("categories");
       }).catch(() => {});
       return;
     }

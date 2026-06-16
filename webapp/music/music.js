@@ -352,6 +352,7 @@
       }
       const addBtn = event.target.closest("[data-music-add]");
       if (addBtn) {
+        event.stopPropagation();
         handleSaveButtonClick(addBtn.dataset.musicAdd);
         return;
       }
@@ -376,6 +377,39 @@
   }
 
   let allSongsPage = 1;
+
+  // Navigation guards — rapid taps / duplicate routes oldini olish.
+  // Har bir "tab" yoki sub-panel uchun oxirgi marta ochilgan vaqtni saqlaymiz;
+  // 280ms ichida takror chaqirilsa, no-op qilamiz.
+  const __navLast = { tap: 0, key: "" };
+  function navLock(key, gapMs = 280) {
+    const now = Date.now();
+    if (__navLast.key === key && (now - __navLast.tap) < gapMs) return false;
+    __navLast.key = key;
+    __navLast.tap = now;
+    return true;
+  }
+
+  // Boshqa music sub-panellarini yopadi (faqat `except` qoldiriladi).
+  // Tab almashtirganda ekrandagi eski paneldan tozalanish uchun.
+  function closeOtherMusicSubPanels(except) {
+    if (except !== "artist-detail") {
+      const p = document.getElementById("musicArtistDetail");
+      if (p && !p.hidden) { artistDetailOrigin = null; closeArtistDetail(); }
+    }
+    if (except !== "all-songs") {
+      const p = document.getElementById("musicAllSongs");
+      if (p && !p.hidden) closeAllSongs();
+    }
+    if (except !== "all-artists") {
+      const p = document.getElementById("musicAllArtists");
+      if (p && !p.hidden) closeAllArtists();
+    }
+    if (except !== "playlists") {
+      const p = document.getElementById("musicPlaylistsView");
+      if (p && !p.hidden) closePlaylistsView();
+    }
+  }
 
   function scrollAllSongsTop() {
     try { document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" }); } catch (_) {}
@@ -444,8 +478,10 @@
   }
 
   function openAllSongs() {
+    if (!navLock("all-songs")) return;
     const panel = ensureAllSongsDom();
     if (!panel) return;
+    closeOtherMusicSubPanels("all-songs");
     allSongsPage = 1;
     renderAllSongs();
     document.body.classList.add("is-music-all-songs");
@@ -503,12 +539,22 @@
   }
 
   function openAllArtists() {
+    if (!navLock("all-artists")) return;
+    if (musicView && musicView.hidden) {
+      musicView.hidden = false;
+      document.body.classList.add("is-music");
+      try { ensureYouTubeApi?.(); } catch (_) {}
+      if (!musicAllTracks.length) { try { loadMusicCatalog(); } catch (_) {} }
+      tgBackRegister("music-view", () => { try { closeMusicView(); setFilter("all"); } catch (_) {} });
+    }
     const panel = ensureAllArtistsDom();
     if (!panel) return;
+    closeOtherMusicSubPanels("all-artists");
     renderAllArtists();
     document.body.classList.add("is-music-all-artists");
     panel.hidden = false;
     scrollMusicTop();
+    setMusicNavActive("artists");
     tgBackRegister("music-all-artists", () => { try { closeAllArtists(); } catch (_) {} });
   }
 
@@ -994,9 +1040,15 @@
   }
   function openPlaylistsView() {
     if (!musicView) return;
-    if (!musicView.hidden) { /* music view ochiq */ }
-    else { try { openMusicView(); } catch (_) {} }
+    if (!navLock("playlists")) return;
+    if (musicView.hidden) {
+      // music view yopiq — avval ochamiz, lekin uning auto sub-panellarini bloklamasdan
+      musicView.hidden = false;
+      document.body.classList.add("is-music");
+      tgBackRegister("music-view", () => { try { closeMusicView(); setFilter("all"); } catch (_) {} });
+    }
     ensurePlaylistsViewDom();
+    closeOtherMusicSubPanels("playlists");
     loadPlaylistsFromServer();
     const panel = document.getElementById("musicPlaylistsView");
     if (!panel) return;
@@ -1194,8 +1246,19 @@
     }).join("");
   }
 
+  // Origin info — qaytishda qaerga borishni va qaysi scroll pozitsiyaga
+  // o'tishni biladigan obyekt: { view: "all-artists"|"all-songs"|null, scrollTop: 0 }
   let artistDetailOrigin = null;
+  function currentAppScrollTop() {
+    try { return document.getElementById("appShell")?.scrollTop || window.scrollY || 0; }
+    catch (_) { return 0; }
+  }
+  function restoreAppScrollTop(top) {
+    try { document.getElementById("appShell")?.scrollTo({ top, behavior: "auto" }); } catch (_) {}
+    try { window.scrollTo({ top, behavior: "auto" }); } catch (_) {}
+  }
   function openArtistDetail(name) {
+    if (!navLock("artist-detail:" + name)) return;
     const panel = ensureArtistDetailDom();
     if (!panel) return;
     document.getElementById("musicArtistDetailName").textContent = name;
@@ -1206,11 +1269,14 @@
     renderArtistDetailTracks(name);
     const allArtists = document.getElementById("musicAllArtists");
     const allSongs = document.getElementById("musicAllSongs");
-    if (allArtists && !allArtists.hidden) artistDetailOrigin = "all-artists";
-    else if (allSongs && !allSongs.hidden) artistDetailOrigin = "all-songs";
-    else artistDetailOrigin = null;
+    const playlists = document.getElementById("musicPlaylistsView");
+    let view = null;
+    if (allArtists && !allArtists.hidden) view = "all-artists";
+    else if (allSongs && !allSongs.hidden) view = "all-songs";
+    artistDetailOrigin = { view, scrollTop: currentAppScrollTop() };
     if (allArtists) allArtists.hidden = true;
     if (allSongs) allSongs.hidden = true;
+    if (playlists && !playlists.hidden) closePlaylistsView();
     document.body.classList.remove("is-music-all-artists", "is-music-all-songs");
     document.body.classList.add("is-music-artist-detail");
     panel.hidden = false;
@@ -1222,19 +1288,24 @@
     const panel = document.getElementById("musicArtistDetail");
     if (panel) panel.hidden = true;
     document.body.classList.remove("is-music-artist-detail");
-    if (artistDetailOrigin === "all-artists") {
+    const origin = artistDetailOrigin;
+    artistDetailOrigin = null;
+    if (origin?.view === "all-artists") {
       const allArtists = document.getElementById("musicAllArtists");
       if (allArtists) { allArtists.hidden = false; document.body.classList.add("is-music-all-artists"); }
-    } else if (artistDetailOrigin === "all-songs") {
+      if (origin.scrollTop) restoreAppScrollTop(origin.scrollTop);
+    } else if (origin?.view === "all-songs") {
       const allSongs = document.getElementById("musicAllSongs");
       if (allSongs) { allSongs.hidden = false; document.body.classList.add("is-music-all-songs"); }
+      if (origin.scrollTop) restoreAppScrollTop(origin.scrollTop);
     }
-    artistDetailOrigin = null;
     tgBackUnregister("music-artist-detail");
   }
 
   function openMusicView() {
     if (!musicView) return;
+    if (!navLock("music-view")) return;
+    closeOtherMusicSubPanels(null);
     reshuffleMusic();
     if (!musicAllTracks.length) {
       loadMusicCatalog();
@@ -1264,6 +1335,9 @@
     if (!musicView) return;
     musicView.hidden = true;
     document.body.classList.remove("is-music");
+    // Origin'ni null qilamiz — aks holda closeArtistDetail all-songs/all-artists
+    // panelini qaytarib ko'rsatib, keyingi closeAll* ga to'qnashadi (flicker).
+    artistDetailOrigin = null;
     closeArtistDetail();
     closeAllSongs();
     closeAllArtists();
