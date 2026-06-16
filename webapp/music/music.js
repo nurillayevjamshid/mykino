@@ -163,7 +163,7 @@
   function splitArtists(name) {
     if (!name) return [];
     return String(name)
-      .split(/\s*(?:&|,|\bfeat\.?\b|\bft\.?\b|\band\b|x|×)\s*/i)
+      .split(/\s*(?:&|,)\s*|\s+(?:feat\.?|ft\.?|and|x|×)\s+/i)
       .map((s) => s.trim())
       .filter(Boolean);
   }
