@@ -946,7 +946,6 @@
     if (!list) return;
     const playlists = getPlaylists();
     if (!playlists.length) {
-      list.style.display = "block";
       list.innerHTML = `
         <li class="music-playlists-empty">
           <span class="music-playlists-empty__icon" aria-hidden="true">
@@ -962,7 +961,6 @@
         </li>`;
       return;
     }
-    list.style.display = "";
     list.innerHTML = playlists.map((pl) => {
       return `
       <li class="music-playlist-card" data-playlist-open="${escapeMusicHtml(pl.id)}">

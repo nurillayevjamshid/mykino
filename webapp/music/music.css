@@ -2667,6 +2667,8 @@ body.is-savesheet-open { overflow: hidden; }
   flex-direction: column;
   gap: 18px;
 }
+.music-playlists-list[hidden] { display: none; }
+.music-playlist-detail[hidden] { display: none; }
 .music-playlist-card {
   position: relative;
   display: grid;
