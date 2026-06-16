@@ -528,9 +528,26 @@
         counts.set(k, (counts.get(k) || 0) + 1);
       });
     });
-    return Array.from(counts.entries())
-      .filter(([, n]) => n >= 4)
-      .map(([a]) => a);
+    const result = [];
+    const seen = new Set();
+    // 1) Saqlangan qo'shiqchilar (shu jumladan YouTube kanal-artistlar) — har doim ko'rinadi
+    for (const a of musicArtistsData) {
+      const name = String(a?.name || "").trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(name);
+    }
+    // 2) 4+ qo'shig'i bo'lganlar
+    for (const [name, n] of counts.entries()) {
+      if (n < 4) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(name);
+    }
+    return result;
   }
 
   function pickArtistFallbackImage(name) {

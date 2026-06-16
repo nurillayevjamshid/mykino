@@ -2378,10 +2378,26 @@ function eligibleArtistNames() {
       counts.set(k, (counts.get(k) || 0) + 1);
     });
   });
-  return Array.from(counts.entries())
-    .filter(([, n]) => n >= 4)
-    .map(([a, n]) => ({ name: a, count: n }))
-    .sort((x, y) => y.count - x.count || x.name.localeCompare(y.name, 'uz'));
+  const result = [];
+  const seen = new Set();
+  // 1) Saqlangan qo'shiqchilar (manuallarsiz YT kanal-artistlar ham) — har doim ko'rinadi
+  for (const a of musicArtists) {
+    const name = String(a?.name || '').trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ name, count: counts.get(name) || 0 });
+  }
+  // 2) 4+ qo'shig'i bo'lganlar
+  for (const [name, n] of counts.entries()) {
+    if (n < 4) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ name, count: n });
+  }
+  return result.sort((x, y) => y.count - x.count || x.name.localeCompare(y.name, 'uz'));
 }
 
 async function fetchArtists() {
@@ -2415,7 +2431,7 @@ function artistCardHtml(name, subtitle, rec) {
 async function renderArtistsCardGrid() {
   const grid = document.getElementById('artistsCardGrid');
   if (!grid) return;
-  if (!musicTracks.length) { try { await fetchMusic(); } catch (_) {} }
+  try { await fetchMusic(); } catch (_) {}
   await fetchArtists();
   const eligible = eligibleArtistNames();
   const allRec = findArtistRecord('Hammasi');
