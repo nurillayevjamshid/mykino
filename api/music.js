@@ -2,6 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const { authorizeRequest } = require("./_lib/auth");
 const { handlePodcastsRequest } = require("./_lib/podcasts");
+const {
+  handleMusicChannelsRequest,
+  loadAllChannelTracks,
+  loadChannelArtists,
+} = require("./_lib/music-channels");
 
 const SEED_FILE = path.join(process.cwd(), "data", "music.json");
 const REDIS_KEY = "music:tracks:v1";
@@ -140,8 +145,15 @@ async function writeRedisTracks(list) {
 async function loadAll() {
   const seed = readSeed().map(normalize).filter(Boolean);
   const stored = await readRedisTracks();
-  if (stored) return dedupe([...seed, ...stored]);
-  return dedupe(seed);
+  let channelTracks = [];
+  try {
+    const raw = await loadAllChannelTracks();
+    channelTracks = raw.map(normalize).filter(Boolean);
+  } catch (err) {
+    console.warn("music channel tracks load xato:", err.message);
+  }
+  const base = stored ? [...seed, ...stored] : seed;
+  return dedupe([...base, ...channelTracks]);
 }
 
 async function readBody(request) {
@@ -259,6 +271,15 @@ async function handleArtistsRequest(request, response) {
   if (request.method === "GET") {
     try {
       const artists = await readArtists();
+      let channelArtists = [];
+      try { channelArtists = await loadChannelArtists(); } catch (_) {}
+      const seen = new Set(artists.map((a) => String(a.name || "").toLowerCase()));
+      for (const ca of channelArtists) {
+        const key = String(ca.name || "").toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        artists.push(ca);
+      }
       artists.sort((a, b) => (a.order - b.order) || a.name.localeCompare(b.name, "uz"));
       response.status(200).json({ ok: true, artists, storage: isRedisEnabled() ? "redis" : "none" });
     } catch (err) {
@@ -330,6 +351,10 @@ module.exports = async function handler(request, response) {
   }
   if (resource === "podcasts" || request.query?._podcasts) {
     await handlePodcastsRequest(request, response);
+    return;
+  }
+  if (resource === "music-channels" || resource === "channels") {
+    await handleMusicChannelsRequest(request, response);
     return;
   }
 

@@ -2618,6 +2618,9 @@ document.addEventListener('click', (e) => {
       showArtistsListView();
       renderArtistsCardGrid();
     }
+    if (tab.dataset.musicTab === 'ytchannels') {
+      fetchYtChannels();
+    }
     return;
   }
   const card = e.target.closest('[data-artist-edit]');
@@ -2635,6 +2638,204 @@ document.getElementById('artistImageFile')?.addEventListener('change', (e) => {
 document.getElementById('artistImageUrl')?.addEventListener('input', (e) => {
   artistUploadedUrl = '';
   setArtistPreview(e.target.value.trim());
+});
+
+// ===== YouTube qo'shiqchilar (music channels) =====
+let ytChannels = [];
+let ytChannelUploadedUrl = '';
+
+function setYtChannelPreview(url) {
+  const el = document.getElementById('ytChannelImagePreview');
+  if (!el) return;
+  el.style.backgroundImage = url ? `url('${String(url).replaceAll("'", '%27')}')` : 'none';
+}
+
+async function fetchYtChannels() {
+  const grid = document.getElementById('ytChannelsListGrid');
+  const summary = document.getElementById('ytChannelsSummary');
+  if (grid) grid.innerHTML = '<div class="empty-state"><p>Yuklanmoqda...</p></div>';
+  try {
+    const r = await fetch(`/api/music?resource=music-channels&t=${Date.now()}`);
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    ytChannels = Array.isArray(data.channels) ? data.channels : [];
+    renderYtChannels();
+    if (summary) summary.textContent = `${ytChannels.length} ta qo'shiqchi qo'shilgan.`;
+  } catch (err) {
+    console.error('yt-channels fetch:', err);
+    if (grid) grid.innerHTML = `<div class="empty-state"><p>Xato: ${escapeHtml(err.message)}</p></div>`;
+  }
+}
+
+function renderYtChannels() {
+  const grid = document.getElementById('ytChannelsListGrid');
+  if (!grid) return;
+  if (!ytChannels.length) {
+    grid.innerHTML = `<div class="empty-state"><p>Hali qo'shiqchi qo'shilmagan.</p></div>`;
+    return;
+  }
+  grid.innerHTML = ytChannels.map((c) => {
+    const name = c.customName || c.snapshot?.title || c.channelId;
+    const image = c.customImage || c.snapshot?.avatar || '';
+    const videoCount = (c.videos || []).length;
+    return `
+      <div class="yt-channel-card" style="border:1px solid var(--border,#e3e6ec);border-radius:14px;overflow:hidden;background:var(--card,#fff);padding:14px;">
+        <div style="display:flex;gap:12px;align-items:center;">
+          <div style="width:64px;height:64px;border-radius:50%;background:#f1f3f7 center/cover no-repeat;${image ? `background-image:url('${String(image).replaceAll("'", '%27')}');` : ''}flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:15px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(name)}</div>
+            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:2px;">${videoCount} ta video · ${escapeHtml(c.snapshot?.title || '')}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" data-ytch-edit="${escapeHtml(c.channelId)}" style="flex:1;min-width:90px;">Tahrirlash</button>
+          <button class="btn btn-secondary" data-ytch-refresh="${escapeHtml(c.channelId)}" style="flex:1;min-width:90px;">Yangilash</button>
+          <button class="btn btn-danger" data-ytch-delete="${escapeHtml(c.channelId)}|${escapeHtml(name)}" style="flex:1;min-width:90px;">O'chirish</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function addYtChannel(input, customName, customImage) {
+  const btn = document.getElementById('ytChannelSubmitBtn');
+  const hint = document.getElementById('ytChannelInputHint');
+  if (btn) { btn.disabled = true; btn.textContent = "Qo'shilmoqda..."; }
+  if (hint) hint.textContent = "YouTube'dan ma'lumot olinmoqda...";
+  try {
+    const r = await fetch('/api/music?resource=music-channels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add', input, customName, customImage }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    ytChannels = Array.isArray(data.channels) ? data.channels : ytChannels;
+    renderYtChannels();
+    document.getElementById('ytChannelInput').value = '';
+    document.getElementById('ytChannelCustomName').value = '';
+    document.getElementById('ytChannelCustomImageUrl').value = '';
+    ytChannelUploadedUrl = '';
+    setYtChannelPreview('');
+    showNotification("Qo'shiqchi qo'shildi.");
+    if (hint) hint.textContent = "@handle, /channel/UC..., /c/Name yoki to'liq URL — barchasi ishlaydi.";
+  } catch (err) {
+    if (hint) hint.textContent = `Xato: ${err.message}`;
+    showNotification(`Xato: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "+ Qo'shiqchi qo'shish"; }
+  }
+}
+
+async function deleteYtChannel(channelId, name) {
+  if (!confirm(`O'chirilsinmi: ${name}?`)) return;
+  try {
+    const r = await fetch('/api/music?resource=music-channels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', channelId }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    ytChannels = Array.isArray(data.channels) ? data.channels : ytChannels.filter((c) => c.channelId !== channelId);
+    renderYtChannels();
+    showNotification("O'chirildi.");
+  } catch (err) {
+    showNotification(`Xato: ${err.message}`, 'error');
+  }
+}
+
+async function refreshYtChannel(channelId) {
+  try {
+    const r = await fetch('/api/music?resource=music-channels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'refresh', channelId }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    const idx = ytChannels.findIndex((c) => c.channelId === channelId);
+    if (idx >= 0 && data.channel) ytChannels[idx] = data.channel;
+    renderYtChannels();
+    showNotification('Yangilandi.');
+  } catch (err) {
+    showNotification(`Xato: ${err.message}`, 'error');
+  }
+}
+
+async function editYtChannel(channelId) {
+  const ch = ytChannels.find((c) => c.channelId === channelId);
+  if (!ch) return;
+  const currName = ch.customName || ch.snapshot?.title || '';
+  const newName = prompt("Qo'shiqchi nomi:", currName);
+  if (newName === null) return;
+  const currImg = ch.customImage || '';
+  const newImg = prompt("Rasm URL (bo'sh = kanal avatari):", currImg);
+  if (newImg === null) return;
+  try {
+    const r = await fetch('/api/music?resource=music-channels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', channelId, customName: newName.trim(), customImage: newImg.trim() }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    const idx = ytChannels.findIndex((c) => c.channelId === channelId);
+    if (idx >= 0 && data.channel) ytChannels[idx] = data.channel;
+    renderYtChannels();
+    showNotification('Saqlandi.');
+  } catch (err) {
+    showNotification(`Xato: ${err.message}`, 'error');
+  }
+}
+
+async function uploadYtChannelImage(file) {
+  try {
+    const raw = await readFileAsDataUrl(file);
+    const compressed = await compressImageDataUrl(raw, 800, 800, 0.86);
+    const res = await fetch('/api/music?resource=music-channels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'upload', dataUrl: compressed, name: document.getElementById('ytChannelCustomName').value.trim() || 'channel' }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.url) throw new Error(json.error || `HTTP ${res.status}`);
+    ytChannelUploadedUrl = json.url;
+    document.getElementById('ytChannelCustomImageUrl').value = json.url;
+    setYtChannelPreview(json.url);
+    showNotification('Rasm yuklandi.');
+  } catch (err) {
+    showNotification(`Rasm yuklashda xato: ${err.message}`, 'error');
+  }
+}
+
+document.getElementById('ytChannelForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = document.getElementById('ytChannelInput').value.trim();
+  const customName = document.getElementById('ytChannelCustomName').value.trim();
+  const urlInput = document.getElementById('ytChannelCustomImageUrl').value.trim();
+  const customImage = ytChannelUploadedUrl || urlInput;
+  if (!input) return;
+  addYtChannel(input, customName, customImage);
+});
+document.getElementById('ytChannelReloadBtn')?.addEventListener('click', () => fetchYtChannels());
+document.getElementById('ytChannelImageFile')?.addEventListener('change', (e) => {
+  const f = e.target.files?.[0]; if (f) uploadYtChannelImage(f);
+});
+document.getElementById('ytChannelCustomImageUrl')?.addEventListener('input', (e) => {
+  ytChannelUploadedUrl = '';
+  setYtChannelPreview(e.target.value.trim());
+});
+document.getElementById('ytChannelsListGrid')?.addEventListener('click', (e) => {
+  const del = e.target.closest('[data-ytch-delete]');
+  if (del) {
+    const [id, name] = del.dataset.ytchDelete.split('|');
+    deleteYtChannel(id, name);
+    return;
+  }
+  const ref = e.target.closest('[data-ytch-refresh]');
+  if (ref) { refreshYtChannel(ref.dataset.ytchRefresh); return; }
+  const ed = e.target.closest('[data-ytch-edit]');
+  if (ed) { editYtChannel(ed.dataset.ytchEdit); return; }
 });
 
 // ===== Kategoriyalar =====

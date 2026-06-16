@@ -296,6 +296,7 @@
           <div class="music-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--border,#e3e6ec);">
             <button type="button" class="music-tab is-active" data-music-tab="songs" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid var(--primary,#3b82f6);font-weight:600;color:var(--text,#111);cursor:pointer;">Musiqalar</button>
             <button type="button" class="music-tab" data-music-tab="artists" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">Qo'shiqchilar</button>
+            <button type="button" class="music-tab" data-music-tab="ytchannels" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">YouTube qo'shiqchilar</button>
           </div>
 
           <!-- Songs Tab -->
@@ -444,6 +445,57 @@
               </div>
             </div>
           </div><!-- /artists tabpanel -->
+
+          <!-- YouTube Channels (Music) Tab -->
+          <div class="music-tabpanel" data-music-tabpanel="ytchannels" hidden>
+            <div class="section-header">
+              <h2>YouTube qo'shiqchilar</h2>
+              <p class="form-hint">YouTube kanal URL/@handle kiriting — kanal nomi va avatari avtomatik tortib olinadi va kanalning hamma videosi qo'shiq sifatida mini app musiqa bo'limida ko'rinadi. Ixtiyoriy: nomni almashtirish va o'z rasmingizni yuklash mumkin.</p>
+              <p class="form-hint" id="ytChannelsSummary" style="margin-top:6px;font-weight:600;">—</p>
+            </div>
+
+            <div class="card-block">
+              <form id="ytChannelForm" class="channel-form">
+                <div class="form-row">
+                  <div class="form-group" style="flex:1;">
+                    <label>Kanal URL yoki @handle</label>
+                    <input type="text" id="ytChannelInput" class="form-input" placeholder="@WeekndVEVO yoki https://youtube.com/@WeekndVEVO" required>
+                    <small class="form-hint" id="ytChannelInputHint">@handle, /channel/UC..., /c/Name yoki to'liq URL — barchasi ishlaydi.</small>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Qo'shiqchi nomi (ixtiyoriy)</label>
+                    <input type="text" id="ytChannelCustomName" class="form-input" placeholder="Bo'sh qoldirsangiz kanal nomi olinadi">
+                  </div>
+                  <div class="form-group">
+                    <label>Rasm URL (ixtiyoriy)</label>
+                    <input type="text" id="ytChannelCustomImageUrl" class="form-input" placeholder="Bo'sh qoldirsangiz kanal avatari olinadi">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Rasm yuklash (Vercel Blob)</label>
+                    <input type="file" id="ytChannelImageFile" class="form-input" accept="image/*">
+                    <small class="form-hint">Yoki yuqoridagi URL maydoniga to'g'ridan-to'g'ri link kiriting.</small>
+                  </div>
+                  <div class="form-group" style="flex:1;">
+                    <label>Ko'rinish</label>
+                    <div id="ytChannelImagePreview" style="width:100%;max-width:240px;aspect-ratio:1/1;border-radius:50%;background:#f1f3f7 center/cover no-repeat;border:1px solid var(--border,#e3e6ec);"></div>
+                  </div>
+                </div>
+                <div class="modal-actions" style="margin-top:8px;gap:10px;">
+                  <button type="submit" class="btn btn-primary" id="ytChannelSubmitBtn">+ Qo'shiqchi qo'shish</button>
+                  <button type="button" id="ytChannelReloadBtn" class="btn btn-secondary">Yangilash</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="section-header" style="margin-top:24px;">
+              <h2 style="font-size:18px;">Qo'shilgan YouTube qo'shiqchilar</h2>
+            </div>
+            <div id="ytChannelsListGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:8px;"></div>
+          </div><!-- /ytchannels tabpanel -->
         </section>
 
         <!-- Potkastlar Section -->
@@ -1151,6 +1203,6 @@
     }
   </style>
 
-  <script src="/admin/admin.js?v=20260604-podcasts-yt"></script>
+  <script src="/admin/admin.js?v=20260616-music-yt-channels"></script>
 </body>
 </html>
