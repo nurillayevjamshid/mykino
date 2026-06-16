@@ -340,6 +340,7 @@
       const catBtn = event.target.closest("[data-music-cat]");
       if (catBtn) {
         musicCategory = catBtn.dataset.musicCat;
+        allSongsPage = 1;
         renderAllSongs();
         return;
       }
@@ -349,6 +350,17 @@
         renderAllSongs();
         return;
       }
+      const pageBtn = event.target.closest("[data-allsongs-page]");
+      if (pageBtn) {
+        if (pageBtn.disabled) return;
+        const dir = pageBtn.dataset.allsongsPage;
+        const total = Math.max(1, Math.ceil(shuffleTracks(filteredMusicTracks()).length / MUSIC_PAGE_SIZE));
+        if (dir === "prev") allSongsPage = Math.max(1, allSongsPage - 1);
+        else if (dir === "next") allSongsPage = Math.min(total, allSongsPage + 1);
+        renderAllSongs();
+        scrollAllSongsTop();
+        return;
+      }
       const row = event.target.closest("[data-music-row]");
       if (row) {
         const track = musicAllTracks.find((t) => t.youtubeId === row.dataset.musicRow);
@@ -356,6 +368,13 @@
       }
     });
     return panel;
+  }
+
+  let allSongsPage = 1;
+
+  function scrollAllSongsTop() {
+    try { document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" }); } catch (_) {}
+    try { window.scrollTo({ top: 0, behavior: "auto" }); } catch (_) {}
   }
 
   function renderAllSongs() {
@@ -370,13 +389,48 @@
       }))).join("");
     }
     const listEl = document.getElementById("allSongsList");
-    if (listEl) {
-      const playlist = readMusicPlaylist();
-      const list = shuffleTracks(filteredMusicTracks());
-      listEl.innerHTML = list.length
-        ? list.map((t) => musicRowHtml(t, playlist)).join("")
-        : `<li class="music-state music-state--empty"><span>Hech narsa topilmadi</span></li>`;
+    if (!listEl) return;
+    const playlist = readMusicPlaylist();
+    const list = shuffleTracks(filteredMusicTracks());
+    if (!list.length) {
+      listEl.innerHTML = `<li class="music-state music-state--empty"><span>Hech narsa topilmadi</span></li>`;
+      const pager = document.getElementById("allSongsPager");
+      if (pager) pager.innerHTML = "";
+      return;
     }
+    const totalPages = Math.max(1, Math.ceil(list.length / MUSIC_PAGE_SIZE));
+    if (allSongsPage > totalPages) allSongsPage = totalPages;
+    if (allSongsPage < 1) allSongsPage = 1;
+    const start = (allSongsPage - 1) * MUSIC_PAGE_SIZE;
+    const slice = list.slice(start, start + MUSIC_PAGE_SIZE);
+    listEl.innerHTML = slice.map((t) => musicRowHtml(t, playlist)).join("");
+    renderAllSongsPager(totalPages);
+  }
+
+  function renderAllSongsPager(totalPages) {
+    let pager = document.getElementById("allSongsPager");
+    if (!pager) {
+      const listEl = document.getElementById("allSongsList");
+      if (!listEl) return;
+      pager = document.createElement("nav");
+      pager.id = "allSongsPager";
+      pager.className = "music-pager";
+      listEl.insertAdjacentElement("afterend", pager);
+    }
+    if (totalPages <= 1) { pager.innerHTML = ""; return; }
+    const prevDisabled = allSongsPage <= 1 ? "disabled" : "";
+    const nextDisabled = allSongsPage >= totalPages ? "disabled" : "";
+    pager.innerHTML = `
+      <button class="music-pager__btn" type="button" data-allsongs-page="prev" ${prevDisabled} aria-label="Oldingi sahifa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
+        <span>Oldingi</span>
+      </button>
+      <span class="music-pager__info">${allSongsPage} / ${totalPages}</span>
+      <button class="music-pager__btn" type="button" data-allsongs-page="next" ${nextDisabled} aria-label="Keyingi sahifa">
+        <span>Keyingi</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+      </button>
+    `;
   }
 
   function scrollMusicTop() {
@@ -387,6 +441,7 @@
   function openAllSongs() {
     const panel = ensureAllSongsDom();
     if (!panel) return;
+    allSongsPage = 1;
     renderAllSongs();
     document.body.classList.add("is-music-all-songs");
     panel.hidden = false;

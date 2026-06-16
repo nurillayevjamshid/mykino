@@ -985,6 +985,51 @@ html[data-theme="light"] .music-more__btn {
   color: #11131a;
 }
 
+.music-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 16px 8px;
+}
+.music-pager:empty { display: none; }
+.music-pager__btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(139, 92, 255, 0.14);
+  color: #f5f6fa;
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.12s ease, opacity 0.16s ease;
+}
+.music-pager__btn svg { width: 16px; height: 16px; }
+.music-pager__btn:active { transform: scale(0.96); }
+.music-pager__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+.music-pager__info {
+  font-weight: 700;
+  font-size: 13px;
+  color: rgba(245, 246, 250, 0.78);
+  min-width: 48px;
+  text-align: center;
+}
+html[data-theme="light"] .music-pager__btn {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(139, 92, 255, 0.14);
+  color: #11131a;
+}
+html[data-theme="light"] .music-pager__info { color: rgba(17, 19, 26, 0.72); }
+
 .music-player {
   position: fixed;
   left: 0; right: 0; bottom: 0;
