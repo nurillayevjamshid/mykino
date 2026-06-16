@@ -905,18 +905,40 @@
         <h1 class="music-artist-detail__name" data-playlists-title>Mening playlistlarim</h1>
       </header>
       <ol class="music-playlists-list" id="musicPlaylistsList"></ol>
-      <ol class="music-list" id="musicPlaylistDetailList" hidden></ol>
+      <section class="music-playlist-detail" id="musicPlaylistDetail" hidden>
+        <div class="music-playlist-hero" id="musicPlaylistHero"></div>
+        <ol class="music-list" id="musicPlaylistDetailList"></ol>
+      </section>
       <div class="music-view__spacer"></div>`;
     musicView.appendChild(panel);
     panel.addEventListener("click", onPlaylistsViewClick);
     return panel;
+  }
+  function playlistCoverIds(pl) {
+    const ids = (pl?.tracks || [])
+      .filter((id) => musicAllTracks.some((t) => t.youtubeId === id))
+      .slice(0, 4);
+    return ids;
+  }
+  function playlistCoverHtml(pl, fallbackSvgSize) {
+    const ids = playlistCoverIds(pl);
+    if (ids.length >= 4) {
+      return `<span class="music-playlist-card__mosaic" aria-hidden="true">
+        ${ids.map((id) => `<span style="background-image:url('https://i.ytimg.com/vi/${escapeMusicHtml(id)}/mqdefault.jpg')"></span>`).join("")}
+      </span>`;
+    }
+    if (ids.length >= 1) {
+      return `<span class="music-playlist-card__mosaic" style="background-image:url('https://i.ytimg.com/vi/${escapeMusicHtml(ids[0])}/mqdefault.jpg');background-size:cover;background-position:center;" aria-hidden="true"></span>`;
+    }
+    const size = fallbackSvgSize || 24;
+    return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="14" y2="6"></line><line x1="3" y1="12" x2="14" y2="12"></line><line x1="3" y1="18" x2="10" y2="18"></line><polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon></svg>`;
   }
   function renderPlaylistsView() {
     const panel = document.getElementById("musicPlaylistsView");
     if (!panel || panel.hidden) return;
     if (playlistsViewOpenedId) { renderPlaylistDetail(playlistsViewOpenedId); return; }
     const list = document.getElementById("musicPlaylistsList");
-    const detail = document.getElementById("musicPlaylistDetailList");
+    const detail = document.getElementById("musicPlaylistDetail");
     if (detail) detail.hidden = true;
     if (list) list.hidden = false;
     const title = panel.querySelector("[data-playlists-title]");
@@ -924,6 +946,7 @@
     if (!list) return;
     const playlists = getPlaylists();
     if (!playlists.length) {
+      list.style.display = "block";
       list.innerHTML = `
         <li class="music-playlists-empty">
           <span class="music-playlists-empty__icon" aria-hidden="true">
@@ -939,22 +962,21 @@
         </li>`;
       return;
     }
+    list.style.display = "";
     list.innerHTML = playlists.map((pl) => {
       const count = Array.isArray(pl.tracks) ? pl.tracks.length : 0;
-      const firstTrack = (pl.tracks || []).find((id) => musicAllTracks.some((t) => t.youtubeId === id));
-      const cover = firstTrack ? `url('https://i.ytimg.com/vi/${escapeMusicHtml(firstTrack)}/mqdefault.jpg')` : "";
       return `
       <li class="music-playlist-card" data-playlist-open="${escapeMusicHtml(pl.id)}">
-        <span class="music-playlist-card__cover" style="${cover ? `background-image:${cover}` : ""}">
-          ${cover ? "" : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="14" y2="6"></line><line x1="3" y1="12" x2="14" y2="12"></line><line x1="3" y1="18" x2="10" y2="18"></line><polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon></svg>`}
-        </span>
-        <span class="music-playlist-card__meta">
-          <span class="music-playlist-card__name">${escapeMusicHtml(pl.name)}</span>
-          <span class="music-playlist-card__count">${count} qo'shiq</span>
+        <span class="music-playlist-card__cover">
+          ${playlistCoverHtml(pl)}
         </span>
         <button class="music-playlist-card__menu" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="Boshqarish">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
         </button>
+        <span class="music-playlist-card__meta">
+          <span class="music-playlist-card__name">${escapeMusicHtml(pl.name)}</span>
+          <span class="music-playlist-card__count">${count} qo'shiq</span>
+        </span>
       </li>`;
     }).join("");
   }
@@ -964,24 +986,65 @@
     const pl = getPlaylists().find((p) => p.id === playlistId);
     if (!pl) { playlistsViewOpenedId = null; renderPlaylistsView(); return; }
     const list = document.getElementById("musicPlaylistsList");
-    const detail = document.getElementById("musicPlaylistDetailList");
+    const detail = document.getElementById("musicPlaylistDetail");
+    const detailList = document.getElementById("musicPlaylistDetailList");
+    const hero = document.getElementById("musicPlaylistHero");
     const title = panel.querySelector("[data-playlists-title]");
     if (list) list.hidden = true;
     if (detail) detail.hidden = false;
-    if (title) title.textContent = pl.name;
-    if (!detail) return;
+    if (title) title.textContent = "";
     const tracks = (pl.tracks || []).map((id) => musicAllTracks.find((t) => t.youtubeId === id)).filter(Boolean);
+
+    if (hero) {
+      const coverIds = playlistCoverIds(pl);
+      const heroBg = coverIds[0]
+        ? `url('https://i.ytimg.com/vi/${escapeMusicHtml(coverIds[0])}/mqdefault.jpg')`
+        : "none";
+      hero.style.setProperty("--pl-hero-bg", heroBg);
+      hero.innerHTML = `
+        <div class="music-playlist-hero__cover">
+          ${playlistCoverHtml(pl, 54)}
+        </div>
+        <h2 class="music-playlist-hero__name">${escapeMusicHtml(pl.name)}</h2>
+        <div class="music-playlist-hero__count">${tracks.length} qo'shiq</div>
+        <div class="music-playlist-hero__actions">
+          <button class="music-playlist-hero__play" type="button" data-playlist-playall="${escapeMusicHtml(pl.id)}" ${tracks.length ? "" : "disabled"}>
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
+            <span>Hammasini ijro etish</span>
+          </button>
+          <button class="music-playlist-hero__menu" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="Boshqarish">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
+          </button>
+        </div>`;
+    }
+
+    if (!detailList) return;
     if (!tracks.length) {
-      detail.innerHTML = `<li class="music-playlists-empty">Bu playlist bo'sh.</li>`;
+      detailList.innerHTML = `<li class="music-playlists-empty">
+        <span class="music-playlists-empty__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="14" y2="6"></line><line x1="3" y1="12" x2="14" y2="12"></line><line x1="3" y1="18" x2="10" y2="18"></line><polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon></svg>
+        </span>
+        <p class="music-playlists-empty__text">Bu playlist bo'sh. Musiqa ro'yxatidan qo'shiq qo'shing.</p>
+      </li>`;
       return;
     }
     const playlistIds = readMusicPlaylist();
-    detail.innerHTML = tracks.map((t) => musicRowHtml(t, playlistIds)).join("");
+    detailList.innerHTML = tracks.map((t) => musicRowHtml(t, playlistIds)).join("");
   }
   function onPlaylistsViewClick(event) {
     if (event.target.closest("[data-playlists-back]")) {
       if (playlistsViewOpenedId) { playlistsViewOpenedId = null; renderPlaylistsView(); }
       else closePlaylistsView();
+      return;
+    }
+    const playAllBtn = event.target.closest("[data-playlist-playall]");
+    if (playAllBtn) {
+      event.stopPropagation();
+      const pl = getPlaylists().find((p) => p.id === playAllBtn.dataset.playlistPlayall);
+      const firstTrack = pl && (pl.tracks || [])
+        .map((id) => musicAllTracks.find((t) => t.youtubeId === id))
+        .find(Boolean);
+      if (firstTrack) playMusicTrack(firstTrack);
       return;
     }
     const menuBtn = event.target.closest("[data-playlist-menu]");
