@@ -361,7 +361,7 @@
       const row = event.target.closest("[data-music-row]");
       if (row) {
         const track = musicAllTracks.find((t) => t.youtubeId === row.dataset.musicRow);
-        if (track) playMusicTrack(track);
+        if (track) { setMusicPlayContext({ kind: "list" }); playMusicTrack(track); }
       }
     });
     return panel;
@@ -964,24 +964,18 @@
     }
     list.style.display = "";
     list.innerHTML = playlists.map((pl) => {
-      const count = Array.isArray(pl.tracks) ? pl.tracks.length : 0;
       return `
       <li class="music-playlist-card" data-playlist-open="${escapeMusicHtml(pl.id)}">
         <span class="music-playlist-card__cover">
           <span class="music-playlist-card__art">
-            ${playlistCoverHtml(pl, 30)}
-          </span>
-          <span class="music-playlist-card__badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="14" y2="6"></line><line x1="3" y1="12" x2="14" y2="12"></line><line x1="3" y1="18" x2="10" y2="18"></line><polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon></svg>
-            ${count}
+            ${playlistCoverHtml(pl, 28)}
           </span>
         </span>
         <span class="music-playlist-card__meta">
           <span class="music-playlist-card__name">${escapeMusicHtml(pl.name)}</span>
-          <span class="music-playlist-card__sub">Playlist</span>
         </span>
-        <button class="music-playlist-card__menu" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="Boshqarish">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
+        <button class="music-playlist-card__go" type="button" data-playlist-open="${escapeMusicHtml(pl.id)}" aria-label="Ochish">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
         </button>
       </li>`;
     }).join("");
@@ -1051,11 +1045,15 @@
     const playAllBtn = event.target.closest("[data-playlist-playall]");
     if (playAllBtn) {
       event.stopPropagation();
-      const pl = getPlaylists().find((p) => p.id === playAllBtn.dataset.playlistPlayall);
+      const plId = playAllBtn.dataset.playlistPlayall;
+      const pl = getPlaylists().find((p) => p.id === plId);
       const firstTrack = pl && (pl.tracks || [])
         .map((id) => musicAllTracks.find((t) => t.youtubeId === id))
         .find(Boolean);
-      if (firstTrack) playMusicTrack(firstTrack);
+      if (firstTrack) {
+        setMusicPlayContext({ kind: "playlist", id: plId });
+        playMusicTrack(firstTrack);
+      }
       return;
     }
     const menuBtn = event.target.closest("[data-playlist-menu]");
@@ -1067,7 +1065,11 @@
     const row = event.target.closest("[data-music-row]");
     if (row) {
       const track = musicAllTracks.find((t) => t.youtubeId === row.dataset.musicRow);
-      if (track) playMusicTrack(track);
+      if (track) {
+        if (playlistsViewOpenedId) setMusicPlayContext({ kind: "playlist", id: playlistsViewOpenedId });
+        else setMusicPlayContext({ kind: "list" });
+        playMusicTrack(track);
+      }
     }
   }
   function openPlaylistMenu(playlistId) {
@@ -1282,7 +1284,7 @@
       if (row) {
         const id = row.dataset.musicRow;
         const track = musicAllTracks.find((t) => t.youtubeId === id);
-        if (track) playMusicTrack(track);
+        if (track) { setMusicPlayContext({ kind: "list" }); playMusicTrack(track); }
       }
     });
     return panel;
@@ -1572,7 +1574,7 @@
     if (row) {
       const id = row.dataset.musicRow;
       const track = musicAllTracks.find((t) => t.youtubeId === id);
-      if (track) playMusicTrack(track);
+      if (track) { setMusicPlayContext({ kind: "list" }); playMusicTrack(track); }
     }
   });
 
@@ -1616,6 +1618,8 @@
 
   let musicShuffle = false;
   let musicRepeat = "off";
+  let musicPlayContext = { kind: "list" };
+  function setMusicPlayContext(ctx) { musicPlayContext = ctx && ctx.kind ? ctx : { kind: "list" }; }
 
   function moveYtIntoFullPlayer() {
     musicFullPlayerArt?.classList.add("has-video");
@@ -1654,12 +1658,26 @@
     tgBackUnregister("music-fullplayer");
   }
 
+  function playlistTracks(plId) {
+    const pl = getPlaylists().find((p) => p.id === plId);
+    if (!pl) return [];
+    return (pl.tracks || [])
+      .map((id) => musicAllTracks.find((t) => t.youtubeId === id))
+      .filter(Boolean);
+  }
+  function getContextList() {
+    if (musicPlayContext.kind === "playlist") {
+      const list = playlistTracks(musicPlayContext.id);
+      if (list.length) return list;
+    }
+    return shuffleTracks(filteredMusicTracks());
+  }
   function currentTrackIndex() {
-    const list = shuffleTracks(filteredMusicTracks());
+    const list = getContextList();
     return list.findIndex((t) => trackKey(t) === musicCurrentTrackKey);
   }
   function playRelative(offset) {
-    const list = shuffleTracks(filteredMusicTracks());
+    const list = getContextList();
     if (!list.length) return;
     const cur = currentTrackIndex();
     let nextIdx;
@@ -1676,11 +1694,62 @@
       try { ytPlayer?.seekTo?.(0, true); ytPlayer?.playVideo?.(); } catch (_) {}
       return;
     }
-    const list = shuffleTracks(filteredMusicTracks());
+    const list = getContextList();
     if (!list.length) return;
     const cur = currentTrackIndex();
+    if (musicPlayContext.kind === "playlist" && cur >= list.length - 1) {
+      if (musicRepeat === "all") { playMusicTrack(list[0]); return; }
+      handlePlaylistEnded();
+      return;
+    }
     if (musicRepeat === "off" && !musicShuffle && cur >= list.length - 1) return;
     playRelative(1);
+  }
+
+  function handlePlaylistEnded() {
+    const curPl = getPlaylists().find((p) => p.id === musicPlayContext.id);
+    if (!curPl) return;
+    const all = getPlaylists();
+    const idx = all.findIndex((p) => p.id === curPl.id);
+    let nextPl = null;
+    for (let i = idx + 1; i < all.length; i += 1) {
+      if (playlistTracks(all[i].id).length) { nextPl = all[i]; break; }
+    }
+    const tg = window.Telegram?.WebApp;
+    const restart = () => {
+      const tracks = playlistTracks(curPl.id);
+      if (!tracks[0]) return;
+      setMusicPlayContext({ kind: "playlist", id: curPl.id });
+      playMusicTrack(tracks[0]);
+    };
+    const playNext = () => {
+      if (!nextPl) { restart(); return; }
+      const tracks = playlistTracks(nextPl.id);
+      if (!tracks[0]) { restart(); return; }
+      setMusicPlayContext({ kind: "playlist", id: nextPl.id });
+      playMusicTrack(tracks[0]);
+    };
+    try { ytPlayer?.pauseVideo?.(); } catch (_) {}
+    const buttons = [{ id: "restart", type: "default", text: "Boshidan boshlash" }];
+    if (nextPl) buttons.push({ id: "next", type: "default", text: `Keyingisi: ${nextPl.name}` });
+    buttons.push({ id: "cancel", type: "cancel" });
+    if (tg?.showPopup) {
+      tg.showPopup({
+        title: `"${curPl.name}" tugadi`,
+        message: nextPl ? "Boshidan boshlaysizmi yoki keyingi playlistga o'tasizmi?" : "Boshidan boshlaymizmi?",
+        buttons,
+      }, (id) => {
+        if (id === "restart") restart();
+        else if (id === "next") playNext();
+      });
+    } else {
+      const msg = nextPl
+        ? `"${curPl.name}" tugadi.\nOK — boshidan, Bekor — "${nextPl.name}" ga o'tish.`
+        : `"${curPl.name}" tugadi. Boshidan boshlaymizmi?`;
+      const ok = (window.confirm || (() => false))(msg);
+      if (ok) restart();
+      else if (nextPl) playNext();
+    }
   }
 
   musicFullPlayer?.addEventListener("click", (e) => {
@@ -1735,7 +1804,7 @@
     if (!slide) return;
     const id = slide.dataset.musicSlide;
     const track = musicAllTracks.find((t) => t.youtubeId === id);
-    if (track) playMusicTrack(track);
+    if (track) { setMusicPlayContext({ kind: "list" }); playMusicTrack(track); }
   });
   musicCarouselDots?.addEventListener("click", (e) => {
     const dot = e.target.closest("[data-music-dot]");
