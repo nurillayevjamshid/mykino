@@ -328,10 +328,6 @@
         </button>
         <h1 class="music-artist-detail__name">Hamma musiqalar</h1>
       </header>
-      <div class="music-filters">
-        <div class="music-filter-label">Kategoriya</div>
-        <div class="music-card-row" id="allSongsCategoryRow"></div>
-      </div>
       <ol class="music-list" id="allSongsList"></ol>
       <div class="music-view__spacer"></div>
     `;
