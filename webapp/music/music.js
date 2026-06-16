@@ -239,23 +239,18 @@
   function renderMusicFilters() {
     if (musicCategoryRow) {
       const cats = shuffleMusicCats(uniqSorted(musicAllTracks.flatMap(trackCategories)));
-      const items = [
-        musicChipHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", icon: musicCategoryIcon("all") }),
-      ].concat(cats.map((c) => musicChipHtml({
+      const items = cats.map((c) => musicChipHtml({
         active: musicCategory === c,
         dataAttr: "data-music-cat",
         value: c,
         label: c,
         icon: musicCategoryIcon(c),
-      })));
+      }));
       musicCategoryRow.innerHTML = items.join("");
     }
     if (musicArtistRow) {
       const eligible = shuffleMusicArtists(eligibleArtistNames());
-      const items = [
-        musicArtistCardHtml("Hammasi", "all", "Hammasi"),
-      ].concat(eligible.map((a) => musicArtistCardHtml(a)));
-      musicArtistRow.innerHTML = items.join("");
+      musicArtistRow.innerHTML = eligible.map((a) => musicArtistCardHtml(a)).join("");
     }
   }
 
@@ -312,7 +307,7 @@
     if (list.length > MUSIC_PAGE_SIZE) {
       musicListEl.insertAdjacentHTML("beforeend", `
         <li class="music-more">
-          <button class="music-more__btn" type="button" data-music-more>Ko'proq ko'rish (${list.length - MUSIC_PAGE_SIZE})</button>
+          <button class="music-more__btn" type="button" data-music-more>Ko'proq ko'rish</button>
         </li>`);
     }
   }
@@ -421,11 +416,9 @@
     const catRow = document.getElementById("allSongsCategoryRow");
     if (catRow) {
       const cats = shuffleMusicCats(uniqSorted(musicAllTracks.flatMap(trackCategories)));
-      catRow.innerHTML = [
-        musicChipHtml({ active: musicCategory === "all", dataAttr: "data-music-cat", value: "all", label: "Hammasi", icon: musicCategoryIcon("all") }),
-      ].concat(cats.map((c) => musicChipHtml({
+      catRow.innerHTML = cats.map((c) => musicChipHtml({
         active: musicCategory === c, dataAttr: "data-music-cat", value: c, label: c, icon: musicCategoryIcon(c),
-      }))).join("");
+      })).join("");
     }
     const listEl = document.getElementById("allSongsList");
     if (!listEl) return;
@@ -931,7 +924,19 @@
     if (!list) return;
     const playlists = getPlaylists();
     if (!playlists.length) {
-      list.innerHTML = `<li class="music-playlists-empty">Hozircha playlist yo'q. Qo'shiq yonidagi <strong>navbat</strong> ikonkasini bosib saqlang.</li>`;
+      list.innerHTML = `
+        <li class="music-playlists-empty">
+          <span class="music-playlists-empty__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="6" x2="14" y2="6"></line>
+              <line x1="3" y1="12" x2="14" y2="12"></line>
+              <line x1="3" y1="18" x2="10" y2="18"></line>
+              <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
+            </svg>
+          </span>
+          <h3 class="music-playlists-empty__title">Playlistlar bo'sh</h3>
+          <p class="music-playlists-empty__text">Hali bironta playlist yaratilmagan. Musiqa ro'yxatida qo'shiq yonidagi <strong>navbat</strong> ikonkasini bosib o'z playlistingizni qo'shing.</p>
+        </li>`;
       return;
     }
     list.innerHTML = playlists.map((pl) => {
