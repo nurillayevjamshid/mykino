@@ -43,7 +43,7 @@
   <div class="ad-modal" id="adModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="adModalTitle">
     <div class="ad-modal__backdrop" data-ad-close></div>
     <div class="ad-modal__dialog" role="document">
-      <button type="button" class="ad-modal__close" data-ad-close aria-label="Yopish">
+      <button type="button" class="ad-modal__close" data-ad-close aria-label="Yopish" data-i18n-aria-label="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18"></path>
           <path d="m6 6 12 12"></path>
@@ -63,7 +63,7 @@
     </div>
   </div>
   <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
-  <aside class="sidebar" id="appSidebar" aria-label="Asosiy menyu" aria-hidden="true">
+  <aside class="sidebar" id="appSidebar" aria-label="Asosiy menyu" aria-hidden="true" data-i18n-aria-label="menu">
     <div class="sidebar__head">
       <div class="brand sidebar__brand" aria-hidden="true">
         <span class="brand-logo">
@@ -77,7 +77,7 @@
           <span class="brand-text__bottom">PLAYLIST</span>
         </span>
       </div>
-      <button class="sidebar__close" type="button" data-action="sidebar-close" aria-label="Yopish">
+      <button class="sidebar__close" type="button" data-action="sidebar-close" aria-label="Yopish" data-i18n-aria-label="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18"></path>
           <path d="m6 6 12 12"></path>
@@ -130,7 +130,7 @@
           </svg>
           <span data-i18n="nightMode">Tungi rejim</span>
         </div>
-        <button class="theme-switch" type="button" id="sidebarThemeSwitch" role="switch" aria-checked="false" aria-label="Tungi rejim">
+        <button class="theme-switch" type="button" id="sidebarThemeSwitch" role="switch" aria-checked="false" aria-label="Tungi rejim" data-i18n-aria-label="nightMode">
           <span class="theme-switch__track">
             <svg class="theme-switch__icon theme-switch__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4"></circle>
@@ -169,7 +169,7 @@
 
   <main class="app-shell" id="appShell" style="opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
     <header class="topbar topbar--centered">
-      <button class="icon-button icon-button--top topbar-menu" id="topbarMenuButton" type="button" data-action="sidebar-open" aria-label="Menyu" aria-controls="appSidebar" aria-expanded="false">
+      <button class="icon-button icon-button--top topbar-menu" id="topbarMenuButton" type="button" data-action="sidebar-open" aria-label="Menyu" data-i18n-aria-label="menu" aria-controls="appSidebar" aria-expanded="false">
         <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="4" y1="7" x2="20" y2="7"></line>
           <line x1="4" y1="12" x2="20" y2="12"></line>
@@ -190,7 +190,7 @@
       </div>
       <div class="topbar-controls topbar-controls--minimal">
 <div class="topbar-search">
-          <button class="icon-button icon-button--top topbar-search__trigger" type="button" data-action="search" aria-label="Qidirish">
+          <button class="icon-button icon-button--top topbar-search__trigger" type="button" data-action="search" aria-label="Qidirish" data-i18n-aria-label="search">
             <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="11" cy="11" r="7"></circle>
               <path d="M20 20l-3.5-3.5"></path>
@@ -206,8 +206,8 @@
           <circle cx="11" cy="11" r="7"></circle>
           <path d="M20 20l-3.5-3.5"></path>
         </svg>
-        <input id="searchInput" type="search" placeholder="Kino qidirish" autocomplete="off" />
-        <button class="search-box__clear" type="button" id="searchClearBtn" aria-label="Tozalash" hidden>
+        <input id="searchInput" type="search" placeholder="Kino qidirish" data-i18n-placeholder="placeholder" autocomplete="off" />
+        <button class="search-box__clear" type="button" id="searchClearBtn" aria-label="Tozalash" data-i18n-aria-label="clearHistory" hidden>
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18"></path>
           </svg>
@@ -215,8 +215,8 @@
       </label>
       <div class="search-recents" id="searchRecents" hidden>
         <div class="search-recents__header">
-          <span class="search-recents__title" id="searchRecentsTitle">Oxirgi qidiruvlar</span>
-          <button class="search-recents__clear" type="button" id="searchRecentsClear">Tozalash</button>
+          <span class="search-recents__title" id="searchRecentsTitle" data-i18n="recentSearches">Oxirgi qidiruvlar</span>
+          <button class="search-recents__clear" type="button" id="searchRecentsClear" data-i18n="clearHistory">Tozalash</button>
         </div>
         <div class="search-recents__list" id="searchRecentsList"></div>
       </div>
@@ -232,9 +232,9 @@
         <div class="hero__actions">
           <button class="hero__play" id="heroPlayButton" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
-            <span id="heroPlayLabel">Ko'rish</span>
+            <span id="heroPlayLabel" data-i18n="watch">Ko'rish</span>
           </button>
-          <button class="hero__info" id="heroInfoButton" type="button" aria-label="Batafsil">
+          <button class="hero__info" id="heroInfoButton" type="button" aria-label="Batafsil" data-i18n-aria-label="showMore">
             <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -245,16 +245,16 @@
       </div>
     </section>
 
-    <button class="fifa-banner" type="button" id="fifaHomeBanner" aria-label="FIFA JCH 2026 bo'limi">
+    <button class="fifa-banner" type="button" id="fifaHomeBanner" aria-label="FIFA JCH 2026 bo'limi" data-i18n-aria-label="fifaBannerAria">
       <span class="fifa-banner__glow" aria-hidden="true"></span>
       <span class="fifa-banner__live" aria-hidden="true">
         <span class="fifa-banner__live-dot"></span>
         LIVE
       </span>
       <span class="fifa-banner__body">
-        <span class="fifa-banner__kicker">JAHON CHEMPIONATI</span>
+        <span class="fifa-banner__kicker" data-i18n="fifaKicker">JAHON CHEMPIONATI</span>
         <span class="fifa-banner__title">FIFA JCH 2026</span>
-        <span class="fifa-banner__sub">Matchlar va guruhlar</span>
+        <span class="fifa-banner__sub" data-i18n="fifaSub">Matchlar va guruhlar</span>
       </span>
       <span class="fifa-banner__cta" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -265,15 +265,15 @@
 
     <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
 
-    <section class="categories-view" id="categoriesView" hidden aria-label="Kategoriyalar">
-      <h2 class="categories-view__title" data-i18n="categories">Kategoriyalar</h2>
+    <section class="categories-view" id="categoriesView" hidden aria-label="Kategoriyalar" data-i18n-aria-label="categoriesTitle">
+      <h2 class="categories-view__title" data-i18n="categoriesTitle">Kategoriyalar</h2>
       <div class="categories-grid" id="categoriesGrid"></div>
-      <p class="categories-empty" id="categoriesEmpty" hidden>Kategoriyalar hali qo'shilmagan.</p>
+      <p class="categories-empty" id="categoriesEmpty" data-i18n="categoriesEmpty" hidden>Kategoriyalar hali qo'shilmagan.</p>
     </section>
 
     <section class="category-detail-view" id="categoryDetailView" hidden aria-label="Kategoriya kinolari">
       <header class="category-detail-view__head">
-        <button type="button" class="category-detail-view__back" id="categoryDetailBack" aria-label="Orqaga">
+        <button type="button" class="category-detail-view__back" id="categoryDetailBack" aria-label="Orqaga" data-i18n-aria-label="back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M15 6 9 12l6 6"></path>
           </svg>
@@ -281,25 +281,25 @@
         <h2 class="category-detail-view__title" id="categoryDetailTitle"></h2>
       </header>
       <div class="movie-grid category-detail-view__grid" id="categoryDetailGrid"></div>
-      <p class="category-detail-view__empty" id="categoryDetailEmpty" hidden>Bu kategoriyada kinolar topilmadi.</p>
+      <p class="category-detail-view__empty" id="categoryDetailEmpty" data-i18n="categoryEmpty" hidden>Bu kategoriyada kinolar topilmadi.</p>
     </section>
 
-    <section class="category-detail-view" id="seriesListView" hidden aria-label="Seriallar">
+    <section class="category-detail-view" id="seriesListView" hidden aria-label="Seriallar" data-i18n-aria-label="seriesTitle">
       <header class="category-detail-view__head">
-        <button type="button" class="category-detail-view__back" id="seriesListBack" aria-label="Orqaga">
+        <button type="button" class="category-detail-view__back" id="seriesListBack" aria-label="Orqaga" data-i18n-aria-label="back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M15 6 9 12l6 6"></path>
           </svg>
         </button>
-        <h2 class="category-detail-view__title">Seriallar</h2>
+        <h2 class="category-detail-view__title" data-i18n="seriesTitle">Seriallar</h2>
       </header>
       <div class="movie-grid category-detail-view__grid" id="seriesListGrid"></div>
-      <p class="category-detail-view__empty" id="seriesListEmpty" hidden>Seriallar hali qo'shilmagan.</p>
+      <p class="category-detail-view__empty" id="seriesListEmpty" data-i18n="seriesEmpty" hidden>Seriallar hali qo'shilmagan.</p>
     </section>
 
     <section class="category-detail-view" id="seriesDetailView" hidden aria-label="Serial">
       <header class="category-detail-view__head">
-        <button type="button" class="category-detail-view__back" id="seriesDetailBack" aria-label="Orqaga">
+        <button type="button" class="category-detail-view__back" id="seriesDetailBack" aria-label="Orqaga" data-i18n-aria-label="back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M15 6 9 12l6 6"></path>
           </svg>
@@ -319,14 +319,14 @@
         </span>
         <span class="app-footer__name">MY PLAYLIST</span>
       </div>
-      <p class="app-footer__tagline" id="footerTagline">Eng sara kinolar mini-ilovasi</p>
+      <p class="app-footer__tagline" id="footerTagline" data-i18n="footerTagline">Eng sara kinolar mini-ilovasi</p>
       <p class="app-footer__copy" id="footerCopy">&copy; 2026 My Playlist. Barcha huquqlar himoyalangan.</p>
     </footer>
 
-    <section class="music-view" id="musicView" hidden aria-label="Musiqa">
+    <section class="music-view" id="musicView" hidden aria-label="Musiqa" data-i18n-aria-label="musicLabel">
       <div class="music-beta-notice">
-        <span class="music-beta-notice__text">Musiqa bo'limi beta versiyada ishlayapti</span>
-        <button class="music-beta-notice__info" type="button" data-music-beta-info aria-label="Batafsil ma'lumot">
+        <span class="music-beta-notice__text" data-i18n="musicBetaNotice">Musiqa bo'limi beta versiyada ishlayapti</span>
+        <button class="music-beta-notice__info" type="button" data-music-beta-info aria-label="Batafsil ma'lumot" data-i18n-aria-label="musicBetaInfo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9.5"></circle>
             <path d="M9.3 9.2a2.8 2.8 0 0 1 5.4.9c0 1.9-2.7 2.4-2.7 4.2"></path>
@@ -334,27 +334,27 @@
           </svg>
         </button>
       </div>
-      <section class="music-carousel" id="musicCarousel" aria-label="Tavsiya etilgan treklar">
+      <section class="music-carousel" id="musicCarousel" aria-label="Tavsiya etilgan treklar" data-i18n-aria-label="musicLabel">
         <div class="music-carousel__track" id="musicCarouselTrack"></div>
         <div class="music-carousel__dots" id="musicCarouselDots"></div>
       </section>
 
       <div class="music-filters">
-        <div class="music-filter-label">Qo'shiqchilar</div>
+        <div class="music-filter-label" data-i18n="artistsNav">Qo'shiqchilar</div>
         <div class="music-card-row" id="musicArtistRow"></div>
       </div>
 
       <div class="music-state music-state--loading" id="musicLoading" hidden>
         <span class="music-spinner" aria-hidden="true"></span>
-        <span>Yuklanmoqda...</span>
+        <span data-i18n="musicLoading">Yuklanmoqda...</span>
       </div>
       <div class="music-state music-state--error" id="musicError" hidden>
-        <strong>Yuklab bo'lmadi</strong>
-        <span id="musicErrorText">Tarmoqni tekshiring va qayta urinib ko'ring.</span>
-        <button type="button" class="music-link" id="musicRetryBtn">Qayta urinish</button>
+        <strong data-i18n="loadFailed">Yuklab bo'lmadi</strong>
+        <span id="musicErrorText" data-i18n="checkNetwork">Tarmoqni tekshiring va qayta urinib ko'ring.</span>
+        <button type="button" class="music-link" id="musicRetryBtn" data-i18n="retry">Qayta urinish</button>
       </div>
       <div class="music-state music-state--empty" id="musicEmpty" hidden>
-        <span>Hech narsa topilmadi</span>
+        <span data-i18n="nothingFound">Hech narsa topilmadi</span>
       </div>
 
       <ol class="music-list" id="musicList"></ol>
@@ -369,14 +369,14 @@
           </span>
           <span class="app-footer__name">MY PLAYLIST</span>
         </div>
-        <p class="app-footer__tagline">Eng sara qo'shiqlar mini-ilovasi</p>
+        <p class="app-footer__tagline" data-i18n="musicFooterTagline">Eng sara qo'shiqlar mini-ilovasi</p>
         <p class="app-footer__copy">&copy; 2026 My Playlist. Barcha huquqlar himoyalangan.</p>
       </footer>
 
       <div class="music-view__spacer"></div>
     </section>
 
-    <section class="podcasts-view" id="podcastsView" hidden aria-label="Potkastlar">
+    <section class="podcasts-view" id="podcastsView" hidden aria-label="Potkastlar" data-i18n-aria-label="tvNav">
       <div class="podcasts-view__inner" id="podcastsRoot"></div>
     </section>
 
@@ -391,8 +391,8 @@
       </header>
       <div class="fifa-view__promo" hidden></div>
       <nav class="fifa-tabs" role="tablist" aria-label="FIFA bo'limlar">
-        <button class="fifa-tab is-active" type="button" role="tab" data-fifa-tab="matches" aria-selected="true">Matchlar</button>
-        <button class="fifa-tab" type="button" role="tab" data-fifa-tab="groups" aria-selected="false">Guruhlar</button>
+        <button class="fifa-tab is-active" type="button" role="tab" data-fifa-tab="matches" aria-selected="true" data-i18n="fifaTabMatches">Matchlar</button>
+        <button class="fifa-tab" type="button" role="tab" data-fifa-tab="groups" aria-selected="false" data-i18n="fifaTabGroups">Guruhlar</button>
       </nav>
       <div class="fifa-panels">
         <div class="fifa-panel is-active" id="fifaPanelMatches" role="tabpanel"></div>
@@ -405,8 +405,8 @@
     <section class="coming-soon-view" id="categoryComingSoon" hidden>
       <div class="coming-soon-view__inner">
         <div class="coming-soon-view__icon">📂</div>
-        <h2 class="coming-soon-view__title">Kategoriyalar</h2>
-        <p class="coming-soon-view__text">Bu yerda podcast kategoriyalari bo'ladi</p>
+        <h2 class="coming-soon-view__title" data-i18n="categoriesTitle">Kategoriyalar</h2>
+        <p class="coming-soon-view__text" data-i18n="podcastCatPlaceholder">Bu yerda podcast kategoriyalari bo'ladi</p>
       </div>
     </section>
 
@@ -414,24 +414,24 @@
     <section class="coming-soon-view" id="favoritesComingSoon" hidden>
       <div class="coming-soon-view__inner">
         <div class="coming-soon-view__icon">🔖</div>
-        <h2 class="coming-soon-view__title">Saqlangan</h2>
-        <p class="coming-soon-view__text">Yaqinda sozlanadi</p>
+        <h2 class="coming-soon-view__title" data-i18n="savedNav">Saqlangan</h2>
+        <p class="coming-soon-view__text" data-i18n="soonToBeReady">Yaqinda sozlanadi</p>
       </div>
     </section>
 
     <!-- Podcast tomosha tarixi (Profil) — endi profile modal ishlatiladi -->
 
     <!-- Kinolar bo'limi uchun pastki navbar -->
-    <nav class="bottom-bar bottom-bar--movie" aria-label="Kino menyusi">
+    <nav class="bottom-bar bottom-bar--movie" aria-label="Kino menyusi" data-i18n-aria-label="kinoNav">
       <div class="bottom-bar__inner">
-        <button class="bottom-bar__button is-active" type="button" data-filter="all" aria-label="Kino" title="Kino">
+        <button class="bottom-bar__button is-active" type="button" data-filter="all" aria-label="Kino" title="Kino" data-i18n-aria-label="kinoNav" data-i18n-title="kinoNav">
           <svg class="icon-svg brand-logo__svg" viewBox="0 0 32 32" aria-hidden="true">
             <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
             <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
           </svg>
-          <span class="bottom-bar__label">Kino</span>
+          <span class="bottom-bar__label" data-i18n="kinoNav">Kino</span>
         </button>
-        <button class="bottom-bar__button" type="button" data-action="categories-view" aria-label="Kategoriyalar" title="Kategoriyalar">
+        <button class="bottom-bar__button" type="button" data-action="categories-view" aria-label="Kategoriyalar" title="Kategoriyalar" data-i18n-aria-label="categoriesTitle" data-i18n-title="categoriesTitle">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
             <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
@@ -440,107 +440,107 @@
           </svg>
           <span class="bottom-bar__label" data-i18n="categories">Kategoriya</span>
         </button>
-        <button class="bottom-bar__button" type="button" data-action="favorites" aria-label="Sevimlilar" title="Sevimlilar">
+        <button class="bottom-bar__button" type="button" data-action="favorites" aria-label="Sevimlilar" title="Sevimlilar" data-i18n-aria-label="favoritesNav" data-i18n-title="favoritesNav">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
           </svg>
           <span class="bottom-bar__label" data-i18n="favoritesNav">Sevimlilar</span>
         </button>
-        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
+        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil" data-i18n-aria-label="profileNav" data-i18n-title="profileNav">
           <span class="bottom-bar__avatar">
             <img class="profile-trigger__photo headerAvatarPhoto" id="headerAvatarPhoto" alt="Telegram user" hidden />
             <span class="profile-trigger__initials headerAvatar" id="headerAvatar">KI</span>
           </span>
-          <span class="bottom-bar__label">Profil</span>
+          <span class="bottom-bar__label" data-i18n="profileNav">Profil</span>
         </button>
       </div>
     </nav>
 
     <!-- Musiqalar bo'limi uchun pastki navbar -->
-    <nav class="bottom-bar bottom-bar--music" aria-label="Musiqa menyusi">
+    <nav class="bottom-bar bottom-bar--music" aria-label="Musiqa menyusi" data-i18n-aria-label="musicNav">
       <div class="bottom-bar__inner">
-        <button class="bottom-bar__button" type="button" data-action="categories" aria-label="Musiqa" title="Musiqa">
+        <button class="bottom-bar__button" type="button" data-action="categories" aria-label="Musiqa" title="Musiqa" data-i18n-aria-label="musicNav" data-i18n-title="musicNav">
           <svg class="icon-svg music-nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 16.8V5.8l9.4-2v10.7"></path>
             <path d="M9 8.8 18.4 7"></path>
             <ellipse class="nav-icon-fill" cx="6.4" cy="17.1" rx="2.9" ry="2.2" transform="rotate(-10 6.4 17.1)"></ellipse>
             <ellipse class="nav-icon-fill" cx="15.8" cy="14.8" rx="2.9" ry="2.2" transform="rotate(-10 15.8 14.8)"></ellipse>
           </svg>
-          <span class="bottom-bar__label">Musiqa</span>
+          <span class="bottom-bar__label" data-i18n="musicNav">Musiqa</span>
         </button>
-        <button class="bottom-bar__button" type="button" data-action="artists" aria-label="Qo'shiqchilar" title="Qo'shiqchilar">
+        <button class="bottom-bar__button" type="button" data-action="artists" aria-label="Qo'shiqchilar" title="Qo'shiqchilar" data-i18n-aria-label="artistsNav" data-i18n-title="artistsNav">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect class="nav-icon-fill" x="8" y="2.5" width="8" height="13.5" rx="4" fill="currentColor" stroke="none"></rect>
             <path d="M4.8 10.8v1.4a7.2 7.2 0 0 0 14.4 0v-1.4"></path>
             <line x1="12" y1="19.4" x2="12" y2="22"></line>
             <line x1="8.4" y1="22" x2="15.6" y2="22"></line>
           </svg>
-          <span class="bottom-bar__label">Qo'shiqchilar</span>
+          <span class="bottom-bar__label" data-i18n="artistsNav">Qo'shiqchilar</span>
         </button>
-        <button class="bottom-bar__button" type="button" data-action="playlist" aria-label="Playlist" title="Playlist">
+        <button class="bottom-bar__button" type="button" data-action="playlist" aria-label="Playlist" title="Playlist" data-i18n-aria-label="playlistNav" data-i18n-title="playlistNav">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="3" y1="6" x2="14" y2="6"></line>
             <line x1="3" y1="12" x2="14" y2="12"></line>
             <line x1="3" y1="18" x2="10" y2="18"></line>
             <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
           </svg>
-          <span class="bottom-bar__label">Playlist</span>
+          <span class="bottom-bar__label" data-i18n="playlistNav">Playlist</span>
         </button>
-        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
+        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil" data-i18n-aria-label="profileNav" data-i18n-title="profileNav">
           <span class="bottom-bar__avatar">
             <img class="profile-trigger__photo headerAvatarPhoto" alt="Telegram user" hidden />
             <span class="profile-trigger__initials headerAvatar">KI</span>
           </span>
-          <span class="bottom-bar__label">Profil</span>
+          <span class="bottom-bar__label" data-i18n="profileNav">Profil</span>
         </button>
       </div>
     </nav>
 
     <!-- Podcastlar bo'limi uchun pastki navbar -->
-    <nav class="bottom-bar bottom-bar--podcast" aria-label="Podcast menyusi">
+    <nav class="bottom-bar bottom-bar--podcast" aria-label="Podcast menyusi" data-i18n-aria-label="podcastsNav">
       <div class="bottom-bar__inner">
-        <button class="bottom-bar__button" type="button" data-action="podcasts-tab" aria-label="Podcastlar" title="Podcastlar">
+        <button class="bottom-bar__button" type="button" data-action="podcasts-tab" aria-label="Podcastlar" title="Podcastlar" data-i18n-aria-label="podcastsNav" data-i18n-title="podcastsNav">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="9" y="2" width="6" height="13" rx="3"></rect>
             <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
             <line x1="12" y1="19" x2="12" y2="22"></line>
           </svg>
-          <span class="bottom-bar__label">Podcastlar</span>
+          <span class="bottom-bar__label" data-i18n="podcastsNav">Podcastlar</span>
         </button>
-        <button class="bottom-bar__button" type="button" data-action="podcast-discover" aria-label="Kategoriyalar" title="Kategoriyalar">
+        <button class="bottom-bar__button" type="button" data-action="podcast-discover" aria-label="Kategoriyalar" title="Kategoriyalar" data-i18n-aria-label="categoriesTitle" data-i18n-title="categoriesTitle">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
             <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
             <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
             <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
           </svg>
-          <span class="bottom-bar__label">Kategoriya</span>
+          <span class="bottom-bar__label" data-i18n="categories">Kategoriya</span>
         </button>
-        <button class="bottom-bar__button" type="button" data-action="podcast-saved" aria-label="Saqlanganlar" title="Saqlanganlar">
+        <button class="bottom-bar__button" type="button" data-action="podcast-saved" aria-label="Saqlanganlar" title="Saqlanganlar" data-i18n-aria-label="savedNav" data-i18n-title="savedNav">
           <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
           </svg>
-          <span class="bottom-bar__label">Saqlangan</span>
+          <span class="bottom-bar__label" data-i18n="savedNav">Saqlangan</span>
         </button>
-        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil">
+        <button class="bottom-bar__button profile-trigger" type="button" data-action="profile" aria-label="Profil" title="Profil" data-i18n-aria-label="profileNav" data-i18n-title="profileNav">
           <span class="bottom-bar__avatar">
             <img class="profile-trigger__photo headerAvatarPhoto" alt="Telegram user" hidden />
             <span class="profile-trigger__initials headerAvatar">KI</span>
           </span>
-          <span class="bottom-bar__label">Profil</span>
+          <span class="bottom-bar__label" data-i18n="profileNav">Profil</span>
         </button>
       </div>
     </nav>
   </main>
 
   <dialog class="movie-modal" id="movieModal">
-    <button class="modal-close" type="button" data-close aria-label="Yopish">
+    <button class="modal-close" type="button" data-close aria-label="Yopish" data-i18n-aria-label="close">
       <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M18 6 6 18"></path>
         <path d="m6 6 12 12"></path>
       </svg>
     </button>
-    <button class="modal-share" id="modalShareButton" type="button" aria-label="Do'stga ulashish">
+    <button class="modal-share" id="modalShareButton" type="button" aria-label="Do'stga ulashish" data-i18n-aria-label="share">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
         <polyline points="16 6 12 2 8 6"></polyline>
@@ -554,7 +554,7 @@
         <div class="modal-meta" id="modalMeta"></div>
         <div class="modal-rating" id="modalRating" aria-hidden="true"></div>
         <div class="watch-actions" id="watchActions">
-          <button class="watch-button watch-button--pill" id="watchButton" type="button" aria-label="Tomosha qilish">
+          <button class="watch-button watch-button--pill" id="watchButton" type="button" aria-label="Tomosha qilish" data-i18n-aria-label="watch">
             <span class="watch-button__label" data-i18n="watch">Tomosha qilish</span>
             <span class="watch-button__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
@@ -567,19 +567,19 @@
             </span>
             <span class="watch-resume-chip__text">
               <span class="watch-resume-chip__time" id="watchResumeChipTime"></span>
-              <span class="watch-resume-chip__label">dan davom etish</span>
+              <span class="watch-resume-chip__label" data-i18n="resumeFrom">dan davom etish</span>
             </span>
           </button>
         </div>
         <button class="modal-description-toggle" id="modalDescriptionToggle" type="button" aria-expanded="false">
-          <span class="modal-description-toggle__label">Show More</span>
+          <span class="modal-description-toggle__label" data-i18n="showMore">Show More</span>
           <svg class="modal-description-toggle__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
         <button class="comments-trigger" id="commentsTrigger" type="button" aria-haspopup="dialog" aria-controls="commentsSheet">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
-          <span class="comments-trigger__label">Izohlar</span>
+          <span class="comments-trigger__label" data-i18n="commentsTitle">Izohlar</span>
           <span class="comments-trigger__count" id="commentsTriggerCount">0</span>
         </button>
       </div>
@@ -589,13 +589,13 @@
 
     </div>
 
-    <div class="comments-sheet" id="commentsSheet" hidden aria-hidden="true" role="dialog" aria-label="Izohlar">
+    <div class="comments-sheet" id="commentsSheet" hidden aria-hidden="true" role="dialog" aria-label="Izohlar" data-i18n-aria-label="commentsTitle">
       <div class="comments-sheet__backdrop" data-close-sheet></div>
       <div class="comments-sheet__panel" id="commentsSheetPanel">
         <div class="comments-sheet__grabber" data-close-sheet aria-hidden="true"></div>
         <header class="comments-sheet__head">
-          <h2 class="comments-sheet__title">Izohlar <span class="comments__count" id="commentsCount">0</span></h2>
-          <button class="comments-sheet__close" type="button" data-close-sheet aria-label="Yopish">
+          <h2 class="comments-sheet__title"><span data-i18n="commentsTitle">Izohlar</span> <span class="comments__count" id="commentsCount">0</span></h2>
+          <button class="comments-sheet__close" type="button" data-close-sheet aria-label="Yopish" data-i18n-aria-label="close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M18 6 6 18"></path>
               <path d="m6 6 12 12"></path>
@@ -604,11 +604,11 @@
         </header>
         <div class="comments-sheet__scroll">
           <div class="comments__list" id="commentsList"></div>
-          <p class="comments__empty" id="commentsEmpty" hidden>Hali izohlar yo'q. Birinchi bo'lib yozing.</p>
+          <p class="comments__empty" id="commentsEmpty" data-i18n="commentsEmpty" hidden>Hali izohlar yo'q. Birinchi bo'lib yozing.</p>
         </div>
         <form class="comments__form" id="commentsForm" autocomplete="off">
           <div class="comments__input-row">
-            <input class="comments__input" id="commentsInput" type="text" maxlength="500" placeholder="Izoh yozing..." aria-label="Izoh" />
+            <input class="comments__input" id="commentsInput" type="text" maxlength="500" placeholder="Izoh yozing..." aria-label="Izoh" data-i18n-placeholder="commentsPlaceholder" data-i18n-aria-label="commentsTitle" />
             <button class="comments__submit" type="submit" id="commentsSubmit">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -623,7 +623,7 @@
   </dialog>
 
   <dialog class="profile-modal" id="profileModal">
-    <button class="modal-close" type="button" data-close-profile aria-label="Yopish">
+    <button class="modal-close" type="button" data-close-profile aria-label="Yopish" data-i18n-aria-label="close">
       <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M18 6 6 18"></path>
         <path d="m6 6 12 12"></path>
@@ -663,25 +663,25 @@
             <strong id="watchedHistoryTitle">Ko'rilgan kinolar</strong>
             <span id="watchedMovieCount">0 ta</span>
           </div>
-          <button class="profile-history__clear" id="clearHistoryButton" type="button">Tozalash</button>
+          <button class="profile-history__clear" id="clearHistoryButton" type="button" data-i18n="clearHistory">Tozalash</button>
         </div>
         <div class="profile-history__list" id="watchedMovieList"></div>
-        <p class="profile-history__empty" id="watchedMovieEmpty">Hali ko'rilgan kino yo'q.</p>
+        <p class="profile-history__empty" id="watchedMovieEmpty" data-i18n="historyEmpty">Hali ko'rilgan kino yo'q.</p>
       </section>
 
       <section class="profile-history profile-history--music">
         <div class="profile-history__head">
           <div class="profile-history__meta">
-            <strong>Oxirgi eshitilgan qo'shiqlar</strong>
+            <strong data-i18n="musicHistoryTitle">Oxirgi eshitilgan qo'shiqlar</strong>
             <span id="musicHistoryCount">0 ta</span>
           </div>
-          <button class="profile-history__clear" id="clearMusicHistoryButton" type="button">Tozalash</button>
+          <button class="profile-history__clear" id="clearMusicHistoryButton" type="button" data-i18n="clearHistory">Tozalash</button>
         </div>
         <div class="profile-history__list" id="musicHistoryList"></div>
-        <p class="profile-history__empty" id="musicHistoryEmpty">Hali eshitilgan qo'shiq yo'q.</p>
+        <p class="profile-history__empty" id="musicHistoryEmpty" data-i18n="musicHistoryEmpty">Hali eshitilgan qo'shiq yo'q.</p>
       </section>
 
-      <section class="profile-support" aria-label="Qo'llab-quvvatlash">
+      <section class="profile-support" aria-label="Qo'llab-quvvatlash" data-i18n-aria-label="supportTitle">
         <button class="page-support__btn" type="button" data-support="feedback">
           <span class="page-support__icon" aria-hidden="true">💬</span>
           <span class="page-support__label" id="supportFeedbackLabel">Talab va takliflar uchun</span>
@@ -692,7 +692,7 @@
   </dialog>
 
   <dialog class="feedback-modal" id="feedbackModal">
-    <button class="modal-close" type="button" data-feedback-close aria-label="Yopish">
+    <button class="modal-close" type="button" data-feedback-close aria-label="Yopish" data-i18n-aria-label="close">
       <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M18 6 6 18"></path>
         <path d="m6 6 12 12"></path>
@@ -717,9 +717,9 @@
 
     <div class="preroll" id="preRollLayer" hidden aria-hidden="true">
       <video class="preroll__video" id="preRollVideo" playsinline preload="auto"></video>
-      <a class="preroll__click" id="preRollClick" target="_blank" rel="noopener noreferrer" hidden aria-label="Reklamaga o'tish"></a>
-      <div class="preroll__badge">REKLAMA</div>
-      <button type="button" class="preroll__skip" id="preRollSkip" aria-label="Reklamani o'tkazib yuborish">
+      <a class="preroll__click" id="preRollClick" target="_blank" rel="noopener noreferrer" hidden aria-label="Reklamaga o'tish" data-i18n-aria-label="adGo"></a>
+      <div class="preroll__badge" data-i18n="adLabel">REKLAMA</div>
+      <button type="button" class="preroll__skip" id="preRollSkip" aria-label="Reklamani o'tkazib yuborish" data-i18n-aria-label="adSkip">
         <span class="preroll__skip-label" id="preRollSkipLabel">5</span>
         <svg class="preroll__skip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden>
           <path d="m13 6 6 6-6 6"></path><path d="M5 6l6 6-6 6"></path>
@@ -841,16 +841,16 @@
 
   <section class="music-fullplayer" id="musicFullPlayer" aria-hidden="true" aria-label="Music Player">
     <header class="music-fullplayer__top">
-      <button class="music-fullplayer__close" type="button" data-music-fp-close aria-label="Yopish">
+      <button class="music-fullplayer__close" type="button" data-music-fp-close aria-label="Yopish" data-i18n-aria-label="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </button>
       <div class="music-fullplayer__heading">
-        <span class="music-fullplayer__eyebrow">PLAYING FROM</span>
-        <strong id="musicFullPlayerAlbum">Music</strong>
+        <span class="music-fullplayer__eyebrow" data-i18n="musicPlayingFrom">PLAYING FROM</span>
+        <strong id="musicFullPlayerAlbum" data-i18n="musicLabel">Music</strong>
       </div>
-      <button class="music-fullplayer__close music-fullplayer__queue" type="button" aria-label="Navbat">
+      <button class="music-fullplayer__close music-fullplayer__queue" type="button" aria-label="Navbat" data-i18n-aria-label="queueLabel">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="3" y1="6" x2="21" y2="6"></line>
           <line x1="3" y1="12" x2="15" y2="12"></line>
@@ -863,7 +863,7 @@
       <div class="music-fullplayer__yt-slot" id="musicFullPlayerYtSlot"><div id="ytPlayer"></div></div>
     </div>
     <div class="music-fullplayer__info">
-      <button class="music-fullplayer__like" type="button" id="musicFullPlayerLike" aria-label="Saqlash" aria-pressed="false">
+      <button class="music-fullplayer__like" type="button" id="musicFullPlayerLike" aria-label="Saqlash" data-i18n-aria-label="likeTrack" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
@@ -872,7 +872,7 @@
         <h2 id="musicFullPlayerTitle">—</h2>
         <p id="musicFullPlayerArtist">—</p>
       </div>
-      <button class="music-fullplayer__more" type="button" aria-label="Boshqa">
+      <button class="music-fullplayer__more" type="button" aria-label="Boshqa" data-i18n-aria-label="moreOptions">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="5" cy="12" r="2"></circle>
           <circle cx="12" cy="12" r="2"></circle>
@@ -889,7 +889,7 @@
       <span id="musicFullPlayerDur">0:00</span>
     </div>
     <div class="music-fullplayer__controls">
-      <button class="music-fullplayer__ctl music-fullplayer__ctl--mode" type="button" id="musicFullPlayerShuffle" data-music-fp-shuffle aria-label="Aralashtirish" aria-pressed="false">
+      <button class="music-fullplayer__ctl music-fullplayer__ctl--mode" type="button" id="musicFullPlayerShuffle" data-music-fp-shuffle aria-label="Aralashtirish" data-i18n-aria-label="shuffle" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="3" y1="6" x2="14" y2="6"></line>
           <line x1="3" y1="12" x2="14" y2="12"></line>
@@ -897,7 +897,7 @@
           <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
         </svg>
       </button>
-      <button class="music-fullplayer__ctl" type="button" data-music-fp-prev aria-label="Oldingi">
+      <button class="music-fullplayer__ctl" type="button" data-music-fp-prev aria-label="Oldingi" data-i18n-aria-label="previous">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M6 5h2v14H6z"></path>
           <path d="M20 5v14l-11-7z"></path>
@@ -907,13 +907,13 @@
         <svg class="mfp-icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
         <svg class="mfp-icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path></svg>
       </button>
-      <button class="music-fullplayer__ctl" type="button" data-music-fp-next aria-label="Keyingi">
+      <button class="music-fullplayer__ctl" type="button" data-music-fp-next aria-label="Keyingi" data-i18n-aria-label="next">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M16 5h2v14h-2z"></path>
           <path d="M4 5v14l11-7z"></path>
         </svg>
       </button>
-      <button class="music-fullplayer__ctl music-fullplayer__ctl--mode" type="button" id="musicFullPlayerRepeat" data-music-fp-repeat aria-label="Takrorlash" data-repeat="off">
+      <button class="music-fullplayer__ctl music-fullplayer__ctl--mode" type="button" id="musicFullPlayerRepeat" data-music-fp-repeat aria-label="Takrorlash" data-i18n-aria-label="repeat" data-repeat="off">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="17 1 21 5 17 9"></polyline>
           <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
@@ -925,7 +925,7 @@
   </section>
 
   <div class="mini-player" id="miniPlayer" aria-hidden="true">
-    <button type="button" class="mini-player__expand" id="miniPlayerExpand" aria-label="Kengaytirish">
+    <button type="button" class="mini-player__expand" id="miniPlayerExpand" aria-label="Kengaytirish" data-i18n-aria-label="expandPlayer">
       <div class="mini-player__art">
         <img id="miniPlayerArt" alt="" />
       </div>
@@ -936,7 +936,7 @@
     </button>
     <div class="mini-player__bar"><div class="mini-player__bar-fill" id="miniPlayerBarFill"></div></div>
     <div class="mini-player__actions">
-      <button type="button" class="mini-player__btn" id="miniPlayerPrev" aria-label="Oldingi">
+      <button type="button" class="mini-player__btn" id="miniPlayerPrev" aria-label="Oldingi" data-i18n-aria-label="previous">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M6 5h2v14H6z"></path>
           <path d="M20 5v14l-11-7z"></path>
@@ -946,13 +946,13 @@
         <svg class="mini-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
         <svg class="mini-icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path></svg>
       </button>
-      <button type="button" class="mini-player__btn" id="miniPlayerNext" aria-label="Keyingi">
+      <button type="button" class="mini-player__btn" id="miniPlayerNext" aria-label="Keyingi" data-i18n-aria-label="next">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M16 5h2v14h-2z"></path>
           <path d="M4 5v14l11-7z"></path>
         </svg>
       </button>
-      <button type="button" class="mini-player__btn mini-player__btn--close" id="miniPlayerClose" aria-label="Yopish">
+      <button type="button" class="mini-player__btn mini-player__btn--close" id="miniPlayerClose" aria-label="Yopish" data-i18n-aria-label="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
       </button>
     </div>
