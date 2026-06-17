@@ -67,6 +67,7 @@
       langEn: "Inglizcha",
       shareSubs: "obunachi",
       shareVideo: "video",
+      shareBtn: "Ulashish",
     },
     ru: {
       headerTitle: "Подкасты",
@@ -127,6 +128,7 @@
       langEn: "Английский",
       shareSubs: "подписчиков",
       shareVideo: "видео",
+      shareBtn: "Поделиться",
     },
     en: {
       headerTitle: "Podcasts",
@@ -187,6 +189,7 @@
       langEn: "English",
       shareSubs: "subscribers",
       shareVideo: "videos",
+      shareBtn: "Share",
     },
   };
   function uiLang() {
@@ -912,7 +915,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>
         <div class="pod-topbar__title pod-topbar__title--ch">${escapeHtml(ch.title || "")}</div>
-        <button class="pod-topbar__share" type="button" data-pod-share aria-label="Ulashish">
+        <button class="pod-topbar__share" type="button" data-pod-share aria-label="${escapeHtml(T("shareBtn") || "Share")}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
             <polyline points="16 6 12 2 8 6"></polyline>
@@ -1602,4 +1605,17 @@
     prefetchDone = 0;
     backgroundPreloadPodcasts();
   }, PRELOAD_REFRESH_MS);
+
+  // Til o'zgarganda — joriy ko'rinishni qayta render qilamiz (matnlar T() orqali oladi).
+  try {
+    window.addEventListener("kino-lang-change", () => {
+      try {
+        if (currentView === "channel" && currentChannelId) {
+          renderChannel(currentChannelId);
+        } else {
+          renderList?.();
+        }
+      } catch (_) {}
+    });
+  } catch (_) {}
 })();
