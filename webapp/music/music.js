@@ -7,6 +7,104 @@
 (function () {
   "use strict";
 
+  // ===== i18n (musiqa moduli uchun mahalliy tarjima jadvali) =====
+  // kino.js dagi __i18n.lang ga ergashadi. Yangi til qo'shish uchun shu
+  // ob'ektga til kodi va kalit-qiymat juftlarini qo'shish kifoya.
+  const MUSIC_COPY = {
+    uz: {
+      addToPlaylist: "Playlistga qo'shish",
+      play: "Play",
+      back: "Orqaga",
+      prevPage: "Oldingi sahifa",
+      nextPage: "Keyingi sahifa",
+      favoritesPl: "Sevimlilar",
+      signInRequired: "Telegram orqali kiring.",
+      savePlaylist: "Playlistga saqlash",
+      close: "Yopish",
+      playlistName: "Playlist nomi",
+      saveFailed: "Saqlanmadi.",
+      createFailed: "Yaratib bo'lmadi.",
+      playlistNeedSignIn: "Playlist saqlash uchun Telegram orqali kiring.",
+      myPlaylists: "Mening playlistlarim",
+      open: "Ochish",
+      manage: "Boshqarish",
+      renameFailed: "Nomni o'zgartirib bo'lmadi.",
+      deleteFailed: "O'chirib bo'lmadi.",
+      choose: "Tanlang",
+      renameItem: "Nomini o'zgartirish",
+      deleteItem: "O'chirish",
+      embedRestricted: "Bu trekni o'ynatib bo'lmadi (embed cheklangan). Boshqasini tanlang.",
+      musicLabel: "Music",
+      startOver: "Boshidan boshlash",
+      startOverOrNext: "Boshidan boshlaysizmi yoki keyingi playlistga o'tasizmi?",
+      startOverConfirm: "Boshidan boshlaymizmi?",
+      loadFailed: "Yuklab bo'lmadi.",
+    },
+    ru: {
+      addToPlaylist: "Добавить в плейлист",
+      play: "Воспроизвести",
+      back: "Назад",
+      prevPage: "Предыдущая страница",
+      nextPage: "Следующая страница",
+      favoritesPl: "Избранное",
+      signInRequired: "Войдите через Telegram.",
+      savePlaylist: "Сохранить в плейлист",
+      close: "Закрыть",
+      playlistName: "Название плейлиста",
+      saveFailed: "Не удалось сохранить.",
+      createFailed: "Не удалось создать.",
+      playlistNeedSignIn: "Для сохранения плейлиста войдите через Telegram.",
+      myPlaylists: "Мои плейлисты",
+      open: "Открыть",
+      manage: "Управление",
+      renameFailed: "Не удалось переименовать.",
+      deleteFailed: "Не удалось удалить.",
+      choose: "Выберите",
+      renameItem: "Переименовать",
+      deleteItem: "Удалить",
+      embedRestricted: "Этот трек нельзя проиграть (встраивание ограничено). Выберите другой.",
+      musicLabel: "Music",
+      startOver: "Начать сначала",
+      startOverOrNext: "Начать сначала или перейти к следующему плейлисту?",
+      startOverConfirm: "Начнём сначала?",
+      loadFailed: "Не удалось загрузить.",
+    },
+    en: {
+      addToPlaylist: "Add to playlist",
+      play: "Play",
+      back: "Back",
+      prevPage: "Previous page",
+      nextPage: "Next page",
+      favoritesPl: "Favorites",
+      signInRequired: "Sign in via Telegram.",
+      savePlaylist: "Save to playlist",
+      close: "Close",
+      playlistName: "Playlist name",
+      saveFailed: "Failed to save.",
+      createFailed: "Failed to create.",
+      playlistNeedSignIn: "Sign in via Telegram to save a playlist.",
+      myPlaylists: "My playlists",
+      open: "Open",
+      manage: "Manage",
+      renameFailed: "Failed to rename.",
+      deleteFailed: "Failed to delete.",
+      choose: "Choose",
+      renameItem: "Rename",
+      deleteItem: "Delete",
+      embedRestricted: "This track can't play (embedding restricted). Pick another.",
+      musicLabel: "Music",
+      startOver: "Start over",
+      startOverOrNext: "Start over or move to the next playlist?",
+      startOverConfirm: "Start over?",
+      loadFailed: "Failed to load.",
+    },
+  };
+  function M(key) {
+    const lang = (window.__i18n && window.__i18n.lang) || "uz";
+    const table = MUSIC_COPY[lang] || MUSIC_COPY.uz;
+    return table[key] || MUSIC_COPY.uz[key] || key;
+  }
+
   // ===== DOM refs =====
   const MUSIC_LOCAL_KEY = "kino_admin_music_v1";
   const musicView = document.getElementById("musicView");
@@ -142,7 +240,7 @@
       const json = await res.json();
       seed = Array.isArray(json.tracks) ? json.tracks : [];
     } catch (err) {
-      if (musicErrorText) musicErrorText.textContent = err.message || "Yuklab bo'lmadi.";
+      if (musicErrorText) musicErrorText.textContent = err.message || M("loadFailed");
       showMusicState("error");
       hideMusicSplash();
       return;
@@ -280,7 +378,7 @@
             </span>
           </button>
           <div class="music-row__actions">
-            <button class="music-row__btn music-row__btn--add ${inPl ? "is-added" : ""}" type="button" data-music-add="${id}" aria-label="Playlistga qo'shish">
+            <button class="music-row__btn music-row__btn--add ${inPl ? "is-added" : ""}" type="button" data-music-add="${id}" aria-label="${escapeMusicHtml(M("addToPlaylist"))}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="3" y1="6" x2="14" y2="6"></line>
                 <line x1="3" y1="12" x2="14" y2="12"></line>
@@ -288,7 +386,7 @@
                 <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
               </svg>
             </button>
-            <button class="music-row__btn music-row__btn--play" type="button" data-music-row="${id}" aria-label="Play">
+            <button class="music-row__btn music-row__btn--play" type="button" data-music-row="${id}" aria-label="${escapeMusicHtml(M("play"))}">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
             </button>
           </div>
@@ -323,7 +421,7 @@
     panel.hidden = true;
     panel.innerHTML = `
       <header class="music-artist-detail__head">
-        <button class="music-artist-detail__back" type="button" data-allsongs-back aria-label="Orqaga">
+        <button class="music-artist-detail__back" type="button" data-allsongs-back aria-label="${escapeMusicHtml(M("back"))}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
         </button>
         <h1 class="music-artist-detail__name">Hamma musiqalar</h1>
@@ -449,12 +547,12 @@
     const prevDisabled = allSongsPage <= 1 ? "disabled" : "";
     const nextDisabled = allSongsPage >= totalPages ? "disabled" : "";
     pager.innerHTML = `
-      <button class="music-pager__btn" type="button" data-allsongs-page="prev" ${prevDisabled} aria-label="Oldingi sahifa">
+      <button class="music-pager__btn" type="button" data-allsongs-page="prev" ${prevDisabled} aria-label="${escapeMusicHtml(M("prevPage"))}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
         <span>Oldingi</span>
       </button>
       <span class="music-pager__info">${allSongsPage} / ${totalPages}</span>
-      <button class="music-pager__btn" type="button" data-allsongs-page="next" ${nextDisabled} aria-label="Keyingi sahifa">
+      <button class="music-pager__btn" type="button" data-allsongs-page="next" ${nextDisabled} aria-label="${escapeMusicHtml(M("nextPage"))}">
         <span>Keyingi</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
       </button>
@@ -497,7 +595,7 @@
     panel.hidden = true;
     panel.innerHTML = `
       <header class="music-artist-detail__head">
-        <button class="music-artist-detail__back" type="button" data-allartists-back aria-label="Orqaga">
+        <button class="music-artist-detail__back" type="button" data-allartists-back aria-label="${escapeMusicHtml(M("back"))}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
         </button>
         <h1 class="music-artist-detail__name">Barcha qo'shiqchilar</h1>
@@ -618,7 +716,7 @@
         const ids = JSON.parse(legacy);
         if (Array.isArray(ids) && ids.length) {
           const now = Date.now();
-          return [{ id: `pl_local_${now.toString(36)}`, name: "Sevimlilar", createdAt: now, updatedAt: now, tracks: ids }];
+          return [{ id: `pl_local_${now.toString(36)}`, name: M("favoritesPl"), createdAt: now, updatedAt: now, tracks: ids }];
         }
       }
     } catch {}
@@ -667,7 +765,7 @@
   async function apiPlaylist(payload) {
     const userId = getMusicUserId();
     if (!userId) {
-      const err = new Error("Telegram orqali kiring."); err.code = "NO_USER"; throw err;
+      const err = new Error(M("signInRequired")); err.code = "NO_USER"; throw err;
     }
     const resp = await fetch(PLAYLIST_ENDPOINT, {
       method: "POST",
@@ -717,10 +815,10 @@
     el.hidden = true;
     el.innerHTML = `
       <div class="music-savesheet__backdrop" data-savesheet-close></div>
-      <div class="music-savesheet__panel" role="dialog" aria-modal="true" aria-label="Playlistga saqlash">
+      <div class="music-savesheet__panel" role="dialog" aria-modal="true" aria-label="${escapeMusicHtml(M("savePlaylist"))}">
         <header class="music-savesheet__head">
           <h3>Saqlash</h3>
-          <button class="music-savesheet__close" type="button" data-savesheet-close aria-label="Yopish">
+          <button class="music-savesheet__close" type="button" data-savesheet-close aria-label="${escapeMusicHtml(M("close"))}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6l-12 12"></path></svg>
           </button>
         </header>
@@ -731,7 +829,7 @@
             <span>Yangi playlist</span>
           </button>
           <form class="music-savesheet__form" data-savesheet-form hidden>
-            <input type="text" maxlength="80" placeholder="Playlist nomi" data-savesheet-input />
+            <input type="text" maxlength="80" placeholder="${escapeMusicHtml(M("playlistName"))}" data-savesheet-input />
             <div class="music-savesheet__form-actions">
               <button type="button" class="music-savesheet__form-cancel" data-savesheet-cancel>Bekor</button>
               <button type="submit" class="music-savesheet__form-save">Yaratish</button>
@@ -842,7 +940,7 @@
       setPlaylists(reverted);
       cb.checked = !cb.checked;
       refreshPlaylistAffectedViews();
-      try { (window.Telegram?.WebApp?.showAlert || alert)(err.message || "Saqlanmadi."); } catch (_) {}
+      try { (window.Telegram?.WebApp?.showAlert || alert)(err.message || M("saveFailed")); } catch (_) {}
     } finally {
       cb.disabled = false;
     }
@@ -872,7 +970,7 @@
         if (newBtn) newBtn.hidden = false;
       }
     } catch (err) {
-      try { (window.Telegram?.WebApp?.showAlert || alert)(err.message || "Yaratib bo'lmadi."); } catch (_) {}
+      try { (window.Telegram?.WebApp?.showAlert || alert)(err.message || M("createFailed")); } catch (_) {}
     } finally {
       if (submitBtn) submitBtn.disabled = false;
     }
@@ -880,7 +978,7 @@
   function handleSaveButtonClick(trackId) {
     if (!trackId) return;
     if (!getMusicUserId()) {
-      try { (window.Telegram?.WebApp?.showAlert || alert)("Playlist saqlash uchun Telegram orqali kiring."); } catch (_) {}
+      try { (window.Telegram?.WebApp?.showAlert || alert)(M("playlistNeedSignIn")); } catch (_) {}
       return;
     }
     loadPlaylistsFromServer();
@@ -899,7 +997,7 @@
     panel.hidden = true;
     panel.innerHTML = `
       <header class="music-artist-detail__head">
-        <button class="music-artist-detail__back" type="button" data-playlists-back aria-label="Orqaga">
+        <button class="music-artist-detail__back" type="button" data-playlists-back aria-label="${escapeMusicHtml(M("back"))}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
         </button>
         <h1 class="music-artist-detail__name" data-playlists-title>Mening playlistlarim</h1>
@@ -942,7 +1040,7 @@
     if (detail) detail.hidden = true;
     if (list) list.hidden = false;
     const title = panel.querySelector("[data-playlists-title]");
-    if (title) title.textContent = "Mening playlistlarim";
+    if (title) title.textContent = M("myPlaylists");
     if (!list) return;
     const playlists = getPlaylists();
     if (!playlists.length) {
@@ -972,7 +1070,7 @@
         <span class="music-playlist-card__meta">
           <span class="music-playlist-card__name">${escapeMusicHtml(pl.name)}</span>
         </span>
-        <button class="music-playlist-card__go" type="button" data-playlist-open="${escapeMusicHtml(pl.id)}" aria-label="Ochish">
+        <button class="music-playlist-card__go" type="button" data-playlist-open="${escapeMusicHtml(pl.id)}" aria-label="${escapeMusicHtml(M("open"))}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
         </button>
       </li>`;
@@ -1015,7 +1113,7 @@
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
             <span>Play all</span>
           </button>
-          <button class="music-playlist-hero__icon-btn" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="Boshqarish">
+          <button class="music-playlist-hero__icon-btn" type="button" data-playlist-menu="${escapeMusicHtml(pl.id)}" aria-label="${escapeMusicHtml(M("manage"))}">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
           </button>
         </div>`;
@@ -1086,7 +1184,7 @@
         apiPlaylist({ action: "rename", id: pl.id, name }).catch(() => {
           setPlaylists(old);
           refreshPlaylistAffectedViews();
-          try { (tg?.showAlert || alert)("Nomni o'zgartirib bo'lmadi."); } catch (_) {}
+          try { (tg?.showAlert || alert)(M("renameFailed")); } catch (_) {}
         });
       } else if (action === "delete") {
         const ok = (window.confirm || (() => false))(`"${pl.name}" o'chirilsinmi?`);
@@ -1098,17 +1196,17 @@
         apiPlaylist({ action: "delete", id: pl.id }).catch(() => {
           setPlaylists(old);
           refreshPlaylistAffectedViews();
-          try { (tg?.showAlert || alert)("O'chirib bo'lmadi."); } catch (_) {}
+          try { (tg?.showAlert || alert)(M("deleteFailed")); } catch (_) {}
         });
       }
     };
     if (tg?.showPopup) {
       tg.showPopup({
         title: pl.name,
-        message: "Tanlang",
+        message: M("choose"),
         buttons: [
-          { id: "rename", type: "default", text: "Nomini o'zgartirish" },
-          { id: "delete", type: "destructive", text: "O'chirish" },
+          { id: "rename", type: "default", text: M("renameItem") },
+          { id: "delete", type: "destructive", text: M("deleteItem") },
           { id: "cancel", type: "cancel" },
         ],
       }, (id) => choose(id));
@@ -1261,7 +1359,7 @@
     panel.hidden = true;
     panel.innerHTML = `
       <header class="music-artist-detail__head">
-        <button class="music-artist-detail__back" type="button" data-artist-detail-back aria-label="Orqaga">
+        <button class="music-artist-detail__back" type="button" data-artist-detail-back aria-label="${escapeMusicHtml(M("back"))}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"></path></svg>
         </button>
         <h1 class="music-artist-detail__name" id="musicArtistDetailName"></h1>
@@ -1308,7 +1406,7 @@
             </span>
           </button>
           <div class="music-row__actions">
-            <button class="music-row__btn music-row__btn--add ${inPl ? "is-added" : ""}" type="button" data-music-add="${id}" aria-label="Playlistga qo'shish">
+            <button class="music-row__btn music-row__btn--add ${inPl ? "is-added" : ""}" type="button" data-music-add="${id}" aria-label="${escapeMusicHtml(M("addToPlaylist"))}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="3" y1="6" x2="14" y2="6"></line>
                 <line x1="3" y1="12" x2="14" y2="12"></line>
@@ -1316,7 +1414,7 @@
                 <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
               </svg>
             </button>
-            <button class="music-row__btn music-row__btn--play" type="button" data-music-row="${id}" aria-label="Play">
+            <button class="music-row__btn music-row__btn--play" type="button" data-music-row="${id}" aria-label="${escapeMusicHtml(M("play"))}">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7z"></path></svg>
             </button>
           </div>
@@ -1463,7 +1561,7 @@
           },
           onError: (e) => {
             console.warn("YT player error", e?.data);
-            if (musicErrorText) musicErrorText.textContent = "Bu trekni o'ynatib bo'lmadi (embed cheklangan). Boshqasini tanlang.";
+            if (musicErrorText) musicErrorText.textContent = M("embedRestricted");
           },
         },
       });
@@ -1630,7 +1728,7 @@
     if (!musicFullPlayer || !track) return;
     document.body.classList.add("fullplayer-open");
     if (musicFullPlayerArtFallback) musicFullPlayerArtFallback.style.backgroundImage = `url('https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg')`;
-    if (musicFullPlayerAlbum) musicFullPlayerAlbum.textContent = (track.category && track.category !== "all") ? track.category : "Music";
+    if (musicFullPlayerAlbum) musicFullPlayerAlbum.textContent = (track.category && track.category !== "all") ? track.category : M("musicLabel");
     if (musicFullPlayerTitle) musicFullPlayerTitle.textContent = track.title;
     if (musicFullPlayerArtist) musicFullPlayerArtist.textContent = track.artist;
     if (musicFullPlayerBarFill) musicFullPlayerBarFill.style.width = "0%";
@@ -1728,13 +1826,13 @@
       playMusicTrack(tracks[0]);
     };
     try { ytPlayer?.pauseVideo?.(); } catch (_) {}
-    const buttons = [{ id: "restart", type: "default", text: "Boshidan boshlash" }];
+    const buttons = [{ id: "restart", type: "default", text: M("startOver") }];
     if (nextPl) buttons.push({ id: "next", type: "default", text: `Keyingisi: ${nextPl.name}` });
     buttons.push({ id: "cancel", type: "cancel" });
     if (tg?.showPopup) {
       tg.showPopup({
         title: `"${curPl.name}" tugadi`,
-        message: nextPl ? "Boshidan boshlaysizmi yoki keyingi playlistga o'tasizmi?" : "Boshidan boshlaymizmi?",
+        message: nextPl ? M("startOverOrNext") : M("startOverConfirm"),
         buttons,
       }, (id) => {
         if (id === "restart") restart();
@@ -1897,4 +1995,14 @@
     findTrackById(id) { return musicAllTracks.find((t) => t.youtubeId === id) || null; },
     hideMiniPlayer,
   };
+
+  // Til o'zgarganda — musiqa ro'yxati va artist row qayta render qilinadi,
+  // shu bilan birga statik aria-label/title atributlar mavjud DOM ichida
+  // qayta yangilanadi (kino.js dagi applyCopy data-i18n-* atributlarini topib oladi).
+  try {
+    window.addEventListener("kino-lang-change", () => {
+      try { renderMusicList?.(); } catch (_) {}
+      try { renderArtistRow?.(); } catch (_) {}
+    });
+  } catch (_) {}
 })();
