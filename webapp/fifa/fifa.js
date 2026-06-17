@@ -10,6 +10,96 @@
   const appShell = document.getElementById("appShell");
   if (!fifaView) return;
 
+  // ===== i18n (FIFA modulining mahalliy tarjima jadvali) =====
+  const F_COPY = {
+    uz: {
+      finished: "Tugadi",
+      noLiveTitle: "Hozir jonli efir yo'q",
+      noLiveHint: "Yaqin matchlar pastda ko'rsatilgan.",
+      upcomingMatches: "Yaqin matchlar",
+      scheduleNotFound: "Jadval topilmadi",
+      sourceUnavailable: "Manba vaqtincha javob bermayapti.",
+      noScheduleYet: "Hali jadval yo'q",
+      groupsAfterRounds: "Birinchi turlar tugagandan keyin ko'rinadi.",
+      teamCol: "Jamoa",
+      liveSoon: "Jonli efir tez orada ulanadi",
+      liveTitleDefault: "Jonli efir",
+      joinChannel: "Kanalga kirish",
+      connectionLost: "Ulanish uzildi",
+      fullscreen: "To'liq ekran",
+      streamLoadFailed: "Oqimni yuklab bo'lmadi",
+      yellowCard: "Sariq karta",
+      redCard: "Qizil karta",
+      lineupsTitle: "O'yin tarkiblari",
+      lineupsLoading: "Tarkiblar yuklanmoqda…",
+      lineupNotAvailable: "Bu o'yin uchun tarkib hali mavjud emas.",
+      lineupLoadFailed: "Tarkibni yuklab bo'lmadi.",
+      headCoach: "Bosh murabbiy",
+      mute: "Ovozni o'chirish",
+      unmute: "Ovozni yoqish",
+    },
+    ru: {
+      finished: "Завершён",
+      noLiveTitle: "Сейчас прямой трансляции нет",
+      noLiveHint: "Ближайшие матчи показаны ниже.",
+      upcomingMatches: "Ближайшие матчи",
+      scheduleNotFound: "Расписание не найдено",
+      sourceUnavailable: "Источник временно не отвечает.",
+      noScheduleYet: "Расписания пока нет",
+      groupsAfterRounds: "Появится после первых туров.",
+      teamCol: "Команда",
+      liveSoon: "Прямая трансляция скоро будет подключена",
+      liveTitleDefault: "Прямая трансляция",
+      joinChannel: "Перейти в канал",
+      connectionLost: "Соединение потеряно",
+      fullscreen: "Во весь экран",
+      streamLoadFailed: "Не удалось загрузить поток",
+      yellowCard: "Жёлтая карточка",
+      redCard: "Красная карточка",
+      lineupsTitle: "Составы команд",
+      lineupsLoading: "Составы загружаются…",
+      lineupNotAvailable: "Состав для этого матча пока недоступен.",
+      lineupLoadFailed: "Не удалось загрузить состав.",
+      headCoach: "Главный тренер",
+      mute: "Выключить звук",
+      unmute: "Включить звук",
+    },
+    en: {
+      finished: "Finished",
+      noLiveTitle: "No live broadcast right now",
+      noLiveHint: "Upcoming matches are shown below.",
+      upcomingMatches: "Upcoming matches",
+      scheduleNotFound: "Schedule not found",
+      sourceUnavailable: "The source is temporarily unavailable.",
+      noScheduleYet: "No schedule yet",
+      groupsAfterRounds: "Appears after the first rounds.",
+      teamCol: "Team",
+      liveSoon: "Live stream will be connected soon",
+      liveTitleDefault: "Live broadcast",
+      joinChannel: "Join channel",
+      connectionLost: "Connection lost",
+      fullscreen: "Full screen",
+      streamLoadFailed: "Failed to load the stream",
+      yellowCard: "Yellow card",
+      redCard: "Red card",
+      lineupsTitle: "Match lineups",
+      lineupsLoading: "Loading lineups…",
+      lineupNotAvailable: "Lineup not yet available for this match.",
+      lineupLoadFailed: "Failed to load lineup.",
+      headCoach: "Head coach",
+      mute: "Mute",
+      unmute: "Unmute",
+    },
+  };
+  function curLang() {
+    return (window.__i18n && window.__i18n.lang) || "uz";
+  }
+  function F(key) {
+    const lang = curLang();
+    const tbl = F_COPY[lang] || F_COPY.uz;
+    return tbl[key] || F_COPY.uz[key] || key;
+  }
+
   // Jamoa nomi (openfootball EN) → { uz, flag }
   // JCH 2026: 47 ta tasdiqlangan + play-off g'oliblari uchun placeholder mapping.
   const TEAM_MAP = {
@@ -62,7 +152,12 @@
     "Uruguay":             { uz: "Urugvay",         flag: "🇺🇾" },
     "Uzbekistan":          { uz: "O'zbekiston",     flag: "🇺🇿" },
   };
-  const teamUz = (name) => (TEAM_MAP[name]?.uz) || name || "—";
+  // Jamoa nomi: o'zbek tilida bo'lsa TEAM_MAP dan, aks holda asl (ingliz) nom.
+  const teamUz = (name) => {
+    const lang = curLang();
+    if (lang === "uz") return (TEAM_MAP[name]?.uz) || name || "—";
+    return name || "—";
+  };
   const teamFlag = (name) => (TEAM_MAP[name]?.flag) || "🏳️";
 
   // Windows/Telegram desktop emoji bayroqlarni rangli ko'rsatmaydi —
@@ -84,9 +179,19 @@
     return `<img class="fifa-flag fifa-flag--img" loading="lazy" decoding="async" src="${url}" alt="${altSafe}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fifa-flag fifa-flag--emoji',textContent:'${flag}'}))">`;
   }
 
-  // O'zbek hafta kunlari va oylari
-  const WD = ["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"];
-  const MO = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
+  // Hafta kunlari va oylari (tilga qarab)
+  const WD_BY_LANG = {
+    uz: ["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"],
+    ru: ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"],
+    en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  };
+  const MO_BY_LANG = {
+    uz: ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"],
+    ru: ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"],
+    en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  };
+  const WD = new Proxy({}, { get: (_, idx) => (WD_BY_LANG[curLang()] || WD_BY_LANG.uz)[idx] });
+  const MO = new Proxy({}, { get: (_, idx) => (MO_BY_LANG[curLang()] || MO_BY_LANG.uz)[idx] });
 
   // Match vaqtini Toshkent (UTC+5) ga o'tkazish
   // openfootball format: "13:00 UTC-6"
@@ -286,7 +391,7 @@
     const panel = document.getElementById("fifaPanelMatches");
     if (!panel) return;
     if (isLoading()) { panel.innerHTML = loadingHtml("Matchlar jadvali yuklanmoqda…", "Iltimos, biroz kuting."); return; }
-    if (!FIFA_DATA.matches.length) { panel.innerHTML = emptyHtml("Jadval topilmadi", "Manba vaqtincha javob bermayapti."); return; }
+    if (!FIFA_DATA.matches.length) { panel.innerHTML = emptyHtml(F("scheduleNotFound"), F("sourceUnavailable")); return; }
     panel.innerHTML = FIFA_DATA.matches.map((day) => `
       <div class="fifa-day">${esc(day.day)}</div>
       ${day.items.map((m) => {
@@ -298,7 +403,7 @@
              <div class="fifa-match__status"><span class="fifa-match__status-dot"></span>${esc(m.minute || "LIVE")}</div>`;
         } else if (isFinished) {
           center = `<div class="fifa-match__score">${esc(m.score)}</div>
-             <div class="fifa-match__time">Tugadi</div>`;
+             <div class="fifa-match__time">${F("finished")}</div>`;
         } else {
           center = `<div class="fifa-match__score">vs</div>
              <div class="fifa-match__time">${esc(m.time)}</div>`;
@@ -345,11 +450,11 @@
         `).join("")
       : `<div class="fifa-live-empty">
            <div class="fifa-live-empty__icon">📺</div>
-           <div class="fifa-live-empty__title">Hozir jonli efir yo'q</div>
-           <div>Yaqin matchlar pastda ko'rsatilgan.</div>
+           <div class="fifa-live-empty__title">${F("noLiveTitle")}</div>
+           <div>${F("noLiveHint")}</div>
          </div>`;
     const upcomingHtml = upcoming.length
-      ? `<div class="fifa-upcoming-title">Yaqin matchlar</div>` +
+      ? `<div class="fifa-upcoming-title">${F("upcomingMatches")}</div>` +
         upcoming.map((m) => `
           <div class="fifa-match">
             <div class="fifa-match__team fifa-match__team--home">
@@ -370,8 +475,8 @@
     panel.innerHTML = liveHtml + upcomingHtml;
     panel.querySelectorAll("[data-fifa-watch]").forEach((b) => {
       b.addEventListener("click", () => {
-        try { window.Telegram?.WebApp?.showAlert?.("Jonli efir tez orada ulanadi"); }
-        catch (_) { alert("Jonli efir tez orada ulanadi"); }
+        try { window.Telegram?.WebApp?.showAlert?.(F("liveSoon")); }
+        catch (_) { alert(F("liveSoon")); }
       });
     });
   }
@@ -381,14 +486,14 @@
     const panel = document.getElementById("fifaPanelGroups");
     if (!panel) return;
     if (isLoading()) { panel.innerHTML = loadingHtml("Guruhlar yuklanmoqda…", "Iltimos, biroz kuting."); return; }
-    if (!FIFA_DATA.groups.length) { panel.innerHTML = emptyHtml("Hali jadval yo'q", "Birinchi turlar tugagandan keyin ko'rinadi."); return; }
+    if (!FIFA_DATA.groups.length) { panel.innerHTML = emptyHtml(F("noScheduleYet"), F("groupsAfterRounds")); return; }
     panel.innerHTML = FIFA_DATA.groups.map((g) => `
       <div class="fifa-group">
         <div class="fifa-group__head"><span>${esc(g.name)}</span></div>
         <table class="fifa-group__table">
           <thead>
             <tr>
-              <th style="text-align:left">Jamoa</th>
+              <th style="text-align:left">${F("teamCol")}</th>
               <th>O</th><th>G</th><th>D</th><th>M</th><th>+/-</th><th>O</th>
             </tr>
           </thead>
@@ -439,9 +544,9 @@
       promo.removeAttribute("tabindex");
       return;
     }
-    const title = esc(cfg.title || "Jonli efir");
+    const title = esc(cfg.title || F("liveTitleDefault"));
     const subtitle = esc(cfg.subtitle || "JCH 2026 o'yinlarini jonli tomosha qiling");
-    const buttonText = esc(cfg.buttonText || "Kanalga kirish");
+    const buttonText = esc(cfg.buttonText || F("joinChannel"));
     const bg = cfg.imageUrl
       ? `style="background-image:linear-gradient(180deg,rgba(8,12,22,.25),rgba(8,12,22,.85)),url('${esc(cfg.imageUrl)}')"`
       : "";
@@ -729,7 +834,7 @@
     btn.id = "fifaPlayerOverlay";
     btn.type = "button";
     btn.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:20;padding:14px 22px;border-radius:32px;border:0;background:rgba(229,57,53,.96);color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.5);animation:fifaPlayerPulse 1.6s infinite;";
-    btn.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>Ovozni yoqish`;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>${F("unmute")}`;
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       enableLiveAudio(modal, video);
@@ -907,7 +1012,7 @@
       };
       pc.oniceconnectionstatechange = () => {
         console.log("[whep] iceConnectionState=", pc.iceConnectionState);
-        if (pc.iceConnectionState === "failed") setStatus("Ulanish uzildi");
+        if (pc.iceConnectionState === "failed") setStatus(F("connectionLost"));
       };
       pc.onconnectionstatechange = () => {
         console.log("[whep] connectionState=", pc.connectionState);
@@ -981,7 +1086,7 @@
           <button type="button" id="fifaHlsMute" class="fifa-player__icon-btn" aria-label="Ovoz">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
           </button>
-          <button type="button" id="fifaHlsFs" class="fifa-player__icon-btn" aria-label="To'liq ekran">
+          <button type="button" id="fifaHlsFs" class="fifa-player__icon-btn" aria-label="${F("fullscreen")}">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
           </button>
         </div>
@@ -1105,7 +1210,7 @@
         return;
       }
       video.src = src;
-      const onErr = () => setStatus("Oqimni yuklab bo'lmadi");
+      const onErr = () => setStatus(F("streamLoadFailed"));
       video.addEventListener("loadedmetadata", () => setStatus(""), { once: true });
       video.addEventListener("error", onErr, { once: true });
       video.play().catch(() => {});
@@ -1278,8 +1383,8 @@
   function playerInlineBadgesHtml(p) {
     const out = [];
     if (p.goals > 0) out.push(`<span class="fifa-badge fifa-badge--goal" title="Gol">⚽${p.goals > 1 ? `<sup>${p.goals}</sup>` : ""}</span>`);
-    if (p.redCard) out.push(`<span class="fifa-badge fifa-badge--red" title="Qizil karta"></span>`);
-    else if (p.yellowCard) out.push(`<span class="fifa-badge fifa-badge--yellow" title="Sariq karta"></span>`);
+    if (p.redCard) out.push(`<span class="fifa-badge fifa-badge--red" title="${F("redCard")}"></span>`);
+    else if (p.yellowCard) out.push(`<span class="fifa-badge fifa-badge--yellow" title="${F("yellowCard")}"></span>`);
     if (p.isCaptain) out.push(`<span class="fifa-badge fifa-badge--cap" title="Kapitan">C</span>`);
     return out.join("");
   }
@@ -1361,7 +1466,7 @@
     modal.hidden = true;
     modal.innerHTML = `
       <div class="fifa-lineup-modal__backdrop" data-close></div>
-      <div class="fifa-lineup-modal__sheet" role="dialog" aria-modal="true" aria-label="O'yin tarkiblari">
+      <div class="fifa-lineup-modal__sheet" role="dialog" aria-modal="true" aria-label="${F("lineupsTitle")}">
         <div class="fifa-lineup-modal__grabber"></div>
         <div class="fifa-lineup-modal__head">
           <div class="fifa-lineup-modal__teams" id="fifaLineupHead"></div>
@@ -1378,7 +1483,7 @@
   }
 
   function lineupLoadingHtml() {
-    return `<div class="fifa-lineup-loading"><div class="fifa-spinner"></div><div>Tarkiblar yuklanmoqda…</div></div>`;
+    return `<div class="fifa-lineup-loading"><div class="fifa-spinner"></div><div>${F("lineupsLoading")}</div></div>`;
   }
   function lineupEmptyHtml(msg) {
     return `<div class="fifa-lineup-empty"><div class="fifa-live-empty__icon">⚽</div><div>${esc(msg)}</div></div>`;
@@ -1399,7 +1504,7 @@
   }
 
   function renderLineupBody(data, homeUz, awayUz, homeFlag, awayFlag) {
-    if (!data || !data.found) return lineupEmptyHtml("Bu o'yin uchun tarkib hali mavjud emas.");
+    if (!data || !data.found) return lineupEmptyHtml(F("lineupNotAvailable"));
     const home = data.home || { starting: [], subs: [] };
     const away = data.away || { starting: [], subs: [] };
     const teamHeader = (team, name, flag) => {
@@ -1445,7 +1550,7 @@
         ` : ""}
         ${coach ? `
           <div class="fifa-bench__group">
-            <div class="fifa-bench__title">Bosh murabbiy</div>
+            <div class="fifa-bench__title">${F("headCoach")}</div>
             <div class="fifa-bench__list">
               <div class="fifa-bench__item">
                 <div class="fifa-bench__avatar">
@@ -1499,7 +1604,7 @@
       const data = await fetchLineup(homeEn, awayEn, date);
       body.innerHTML = renderLineupBody(data, homeUz, awayUz, homeFlag, awayFlag);
     } catch (err) {
-      body.innerHTML = lineupEmptyHtml("Tarkibni yuklab bo'lmadi.");
+      body.innerHTML = lineupEmptyHtml(F("lineupLoadFailed"));
     }
   }
 
@@ -1527,6 +1632,17 @@
       date: row.dataset.date,
     });
   });
+
+  // Til o'zgarganda — joriy ko'rinmoqda bo'lgan panelni qayta render qilamiz.
+  try {
+    window.addEventListener("kino-lang-change", () => {
+      try {
+        if (!fifaView || fifaView.hidden) return;
+        const groupsActive = document.getElementById("fifaPanelGroups")?.classList.contains("is-active");
+        if (groupsActive) renderGroups(); else renderMatches();
+      } catch (_) {}
+    });
+  } catch (_) {}
 })();
 
 // Modul tashqi interfeysi — lazy-loader uchun
