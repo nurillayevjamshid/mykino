@@ -305,6 +305,23 @@ const copy = {
     musicPlayingFrom: "PLAYING FROM",
     musicLabel: "Musiqa",
     countSuffix: "ta",
+    networkError: "Tarmoq xatoligi.",
+    networkErrorDetailed: "Tarmoq xatosi — internet aloqasini tekshirib qayta urinib ko'ring.",
+    sessionExpired: "Sessiya tugagan. Qayta kiring.",
+    deleteFailed: "O'chirishda xatolik.",
+    watchCancelled: "Tomosha bekor qilindi.",
+    sourcePreparing: "Tomosha uchun manba tayyorlanmoqda.",
+    daytimeMode: "Kunduzgi rejim",
+    eveningMode: "Kechki rejim",
+    wishlistAdd: "Sevimlilarga qo'shish",
+    userFallback: "Foydalanuvchi",
+    adSkipLabel: "O'tkazib yuborish",
+    podcastUserLabel: "Podcast foydalanuvchi",
+    podcastWatchedTitle: "Ko'rilgan podcast videolar",
+    podcastHistoryEmpty: "Hali ko'rilgan podcast video yo'q.",
+    podcastViewLabel: "Ko'rilgan video",
+    seriesLoading: "Yuklanmoqda...",
+    adFallbackButton: "Tomosha qilish",
   },
   ru: {
     all: "Все",
@@ -429,6 +446,23 @@ const copy = {
     musicPlayingFrom: "PLAYING FROM",
     musicLabel: "Музыка",
     countSuffix: "шт.",
+    networkError: "Сетевая ошибка.",
+    networkErrorDetailed: "Ошибка сети — проверьте интернет и попробуйте снова.",
+    sessionExpired: "Сессия истекла. Войдите снова.",
+    deleteFailed: "Ошибка при удалении.",
+    watchCancelled: "Просмотр отменён.",
+    sourcePreparing: "Источник для просмотра готовится.",
+    daytimeMode: "Дневной режим",
+    eveningMode: "Ночной режим",
+    wishlistAdd: "Добавить в избранное",
+    userFallback: "Пользователь",
+    adSkipLabel: "Пропустить",
+    podcastUserLabel: "Пользователь подкастов",
+    podcastWatchedTitle: "Просмотренные подкаст-видео",
+    podcastHistoryEmpty: "Вы ещё не смотрели подкаст-видео.",
+    podcastViewLabel: "Просмотрено",
+    seriesLoading: "Загрузка...",
+    adFallbackButton: "Смотреть",
   },
   en: {
     all: "All",
@@ -553,6 +587,23 @@ const copy = {
     musicPlayingFrom: "PLAYING FROM",
     musicLabel: "Music",
     countSuffix: "items",
+    networkError: "Network error.",
+    networkErrorDetailed: "Network error — check your internet and try again.",
+    sessionExpired: "Session expired. Sign in again.",
+    deleteFailed: "Failed to delete.",
+    watchCancelled: "Watch cancelled.",
+    sourcePreparing: "Preparing the source for playback.",
+    daytimeMode: "Day mode",
+    eveningMode: "Night mode",
+    wishlistAdd: "Add to favorites",
+    userFallback: "User",
+    adSkipLabel: "Skip",
+    podcastUserLabel: "Podcast user",
+    podcastWatchedTitle: "Watched podcast videos",
+    podcastHistoryEmpty: "No watched podcast videos yet.",
+    podcastViewLabel: "Watched",
+    seriesLoading: "Loading...",
+    adFallbackButton: "Watch",
   },
 };
 
@@ -586,10 +637,8 @@ const WATCH_PROGRESS_MIN_SECONDS = 15;
 const WATCH_PROGRESS_END_GAP = 12;
 const WATCH_PROGRESS_SYNC_ENDPOINT = "/api/watch-progress";
 const WATCH_PROGRESS_SYNC_DELAY_MS = 25000;
-const TELEGRAM_STREAM_ERROR_MESSAGE =
-  "Tomosha uchun manba tayyorlanmoqda.";
-const DRIVE_STREAM_ERROR_MESSAGE =
-  "Tomosha uchun manba tayyorlanmoqda.";
+// Stream error xabarlari endi runtime'da t() orqali olinadi (til o'zgarsa o'zgaradi)
+const getStreamErrorMessage = () => plainLabel(t("sourcePreparing"));
 
 let movies = [];
 
@@ -856,7 +905,7 @@ function applyTheme(theme) {
     themeToggle.dataset.theme = nextTheme;
     themeToggle.setAttribute(
       "aria-label",
-      nextTheme === "dark" ? "Kunduzgi rejim" : "Kechki rejim",
+      plainLabel(t(nextTheme === "dark" ? "daytimeMode" : "eveningMode")),
     );
   }
   const headerHex = nextTheme === "light" ? "#fafafb" : "#050505";
@@ -2430,7 +2479,7 @@ function createMovieCard(movie) {
         <span class="badge">${escapeHtml(movie.quality || "HD")}</span>
         <span class="rating"><span>&#9733;</span> ${escapeHtml(ratingText)}</span>
       </span>
-      <button class="wishlist-toggle${inWishlist ? " is-active" : ""}" type="button" aria-pressed="${inWishlist ? "true" : "false"}" aria-label="Sevimlilarga qo'shish" data-wishlist-id="${escapeHtml(movie.id)}">
+      <button class="wishlist-toggle${inWishlist ? " is-active" : ""}" type="button" aria-pressed="${inWishlist ? "true" : "false"}" aria-label="${plainLabel(t("wishlistAdd"))}" data-wishlist-id="${escapeHtml(movie.id)}">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
         </svg>
@@ -2977,7 +3026,7 @@ function commentAvatarHtml(comment) {
 }
 
 function renderCommentItem(comment) {
-  const name = escapeHtml(String(comment.userName || "Foydalanuvchi"));
+  const name = escapeHtml(String(comment.userName || plainLabel(t("userFallback"))));
   const time = escapeHtml(formatRelativeTime(comment.createdAt));
   const text = escapeHtml(String(comment.text || ""));
   const adminBtn = isCommentAdmin()
@@ -3065,7 +3114,7 @@ async function submitComment(movie, text) {
   }
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim()
     || String(user?.username || "").trim()
-    || "Foydalanuvchi";
+    || plainLabel(t("userFallback"));
   const userPhotoUrl = user?.photo_url || (user?.id ? `${runtimeApiBase}/api/user-photo?userId=${encodeURIComponent(user.id)}` : "");
   if (commentsSubmit) commentsSubmit.disabled = true;
 
@@ -3120,7 +3169,7 @@ async function submitComment(movie, text) {
   } catch {
     optimisticNode?.remove();
     if (commentsInput) commentsInput.value = text;
-    setCommentsHint("Tarmoq xatoligi.", true);
+    setCommentsHint(plainLabel(t("networkError")), true);
   } finally {
     if (commentsSubmit) commentsSubmit.disabled = false;
   }
@@ -3140,16 +3189,16 @@ async function adminDeleteComment(movie, commentId) {
     const data = await res.json().catch(() => null);
     if (res.status === 401) {
       try { localStorage.removeItem("adminLoggedIn"); } catch {}
-      alert("Sessiya tugagan. Qayta kiring.");
+      alert(plainLabel(t("sessionExpired")));
       return;
     }
     if (!data || data.ok === false) {
-      alert(data?.error || "O'chirishda xatolik.");
+      alert(data?.error || plainLabel(t("deleteFailed")));
       return;
     }
     await loadComments(movie);
   } catch {
-    alert("Tarmoq xatoligi.");
+    alert(plainLabel(t("networkError")));
   }
 }
 
@@ -3448,7 +3497,7 @@ function describeVideoError(videoEl) {
   if (!err) return "";
   switch (err.code) {
     case 1: // MEDIA_ERR_ABORTED
-      return "Tomosha bekor qilindi.";
+      return plainLabel(t("watchCancelled"));
     case 2: // MEDIA_ERR_NETWORK
       return "Tarmoq xatosi — internet aloqasini tekshirib qayta urinib ko'ring.";
     case 3: // MEDIA_ERR_DECODE
@@ -4326,7 +4375,7 @@ function createVideoElement(src, movie, options = {}) {
   const {
     isFallback = false,
     fallbackUrl = "",
-    fallbackMessage = "Tomosha uchun manba tayyorlanmoqda.",
+    fallbackMessage = getStreamErrorMessage(),
     fallbackEmbedUrl = "",
     sourceLabel = t("customPlayer"),
     // Sekin 3G/cold-start serverless da 9s yetmaydi va kino tayyor bo'lguncha
@@ -4487,7 +4536,7 @@ function renderVideoSource(videoUrl, movie, options = {}) {
     forceIframe = false,
     errorOnly = false,
     requestId = activeVideoRequest,
-    fallbackMessage = "Tomosha uchun manba tayyorlanmoqda.",
+    fallbackMessage = getStreamErrorMessage(),
   } = options;
   destroyYouTubePlayer();
   clearVideoLoadTimer();
@@ -4680,7 +4729,7 @@ async function openVideoPlayer(movie, options = {}) {
       forceVideo: true,
       originalUrl: "",
       requestId,
-      fallbackMessage: DRIVE_STREAM_ERROR_MESSAGE,
+      fallbackMessage: getStreamErrorMessage(),
     });
     return;
   }
@@ -4691,7 +4740,7 @@ async function openVideoPlayer(movie, options = {}) {
       errorOnly: true,
       originalUrl: videoUrl,
       requestId,
-      fallbackMessage: TELEGRAM_STREAM_ERROR_MESSAGE,
+      fallbackMessage: getStreamErrorMessage(),
     });
     return;
   }
@@ -5286,10 +5335,10 @@ function renderPodcastProfileModal() {
   const entries = getPodcastHistory();
 
   // Sarlavha va label'larni podcast uchun o'zgartirish
-  if (profileName) profileName.textContent = "Podcast foydalanuvchi";
-  if (watchedHistoryTitle) watchedHistoryTitle.textContent = "Ko'rilgan podcast videolar";
-  if (watchedMovieEmpty) watchedMovieEmpty.textContent = "Hali ko'rilgan podcast video yo'q.";
-  if (statWatchedLabel) statWatchedLabel.textContent = "Ko'rilgan video";
+  if (profileName) profileName.textContent = plainLabel(t("podcastUserLabel"));
+  if (watchedHistoryTitle) watchedHistoryTitle.textContent = plainLabel(t("podcastWatchedTitle"));
+  if (watchedMovieEmpty) watchedMovieEmpty.textContent = plainLabel(t("podcastHistoryEmpty"));
+  if (statWatchedLabel) statWatchedLabel.textContent = plainLabel(t("podcastViewLabel"));
   if (statTimeLabel) statTimeLabel.textContent = "Tomosha vaqti";
   if (statGenreLabel) statGenreLabel.parentElement.style.display = "none";
 
@@ -5709,7 +5758,7 @@ function renderSeriesListGrid() {
   if (!seriesCatalog.length) {
     if (seriesListEmpty) {
       seriesListEmpty.hidden = false;
-      seriesListEmpty.textContent = "Seriallar hali qo'shilmagan.";
+      seriesListEmpty.textContent = plainLabel(t("seriesEmpty"));
     }
     return;
   }
@@ -5733,7 +5782,7 @@ function openSeriesListView() {
     if (seriesListGrid) seriesListGrid.innerHTML = "";
     if (seriesListEmpty) {
       seriesListEmpty.hidden = false;
-      seriesListEmpty.textContent = "Yuklanmoqda...";
+      seriesListEmpty.textContent = plainLabel(t("seriesLoading"));
     }
     loadSeriesCatalog();
   } else {
@@ -6942,7 +6991,7 @@ async function loadAppSettings() {
               imageUrl: m.coverUrl || "",
               title: m.title || "Jonli efir",
               subtitle: "",
-              buttonText: "Tomosha qilish",
+              buttonText: plainLabel(t("adFallbackButton")),
             };
           } else {
             fifaLiveConfig = null;
@@ -7014,7 +7063,7 @@ function playPreRollAd() {
 
     const makeSkippable = () => {
       skipBtn.classList.add("is-ready");
-      if (skipLabel) skipLabel.textContent = "O'tkazib yuborish";
+      if (skipLabel) skipLabel.textContent = plainLabel(t("adSkipLabel"));
       if (skipIcon) skipIcon.hidden = false;
       skipBtn.onclick = cleanup;
     };
@@ -7038,7 +7087,7 @@ function playPreRollAd() {
       }
     }
 
-    if (skipLabel) skipLabel.textContent = skipAfter > 0 ? String(skipAfter) : "O'tkazib yuborish";
+    if (skipLabel) skipLabel.textContent = skipAfter > 0 ? String(skipAfter) : plainLabel(t("adSkipLabel"));
     if (skipIcon) skipIcon.hidden = skipAfter > 0;
     if (skipAfter === 0) makeSkippable();
 
