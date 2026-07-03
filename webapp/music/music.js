@@ -142,6 +142,13 @@
     return `${(t.title || "").toLowerCase()}|${(t.artist || "").toLowerCase()}|${t.youtubeId || ""}`;
   }
 
+  function displayTrackTitle(t) {
+    const title = (t && t.title) || "";
+    const idx = title.search(/\s[-–—]\s/);
+    if (idx > 0) return title.slice(idx).replace(/^\s[-–—]\s/, "").trim();
+    return title;
+  }
+
   function dedupeTracks(list) {
     const seen = new Map();
     for (const t of list) {
@@ -373,7 +380,7 @@
           <button class="music-row__main" type="button" data-music-row="${id}">
             <span class="music-row__cover" style="background-image:url('https://i.ytimg.com/vi/${id}/mqdefault.jpg')"></span>
             <span class="music-row__meta">
-              <span class="music-row__title">${escapeMusicHtml(t.title)}</span>
+              <span class="music-row__title">${escapeMusicHtml(displayTrackTitle(t))}</span>
               <span class="music-row__sub">${escapeMusicHtml(t.artist)}</span>
             </span>
           </button>
@@ -1401,7 +1408,7 @@
           <button class="music-row__main" type="button" data-music-row="${id}">
             <span class="music-row__cover" style="background-image:url('https://i.ytimg.com/vi/${id}/mqdefault.jpg')"></span>
             <span class="music-row__meta">
-              <span class="music-row__title">${escapeMusicHtml(t.title)}</span>
+              <span class="music-row__title">${escapeMusicHtml(displayTrackTitle(t))}</span>
               <span class="music-row__sub">${escapeMusicHtml(t.artist)}</span>
             </span>
           </button>
@@ -1609,7 +1616,7 @@
     if (!track) return;
     musicCurrentTrackKey = trackKey(track);
     try { recordMusicListen?.(track); } catch (_) {}
-    if (miniPlayerTitle) miniPlayerTitle.textContent = track.title;
+    if (miniPlayerTitle) miniPlayerTitle.textContent = displayTrackTitle(track);
     if (miniPlayerArtistEl) miniPlayerArtistEl.textContent = track.artist;
     const miniArt = document.getElementById("miniPlayerArt");
     if (miniArt) miniArt.src = `https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg`;
@@ -1729,7 +1736,7 @@
     document.body.classList.add("fullplayer-open");
     if (musicFullPlayerArtFallback) musicFullPlayerArtFallback.style.backgroundImage = `url('https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg')`;
     if (musicFullPlayerAlbum) musicFullPlayerAlbum.textContent = (track.category && track.category !== "all") ? track.category : M("musicLabel");
-    if (musicFullPlayerTitle) musicFullPlayerTitle.textContent = track.title;
+    if (musicFullPlayerTitle) musicFullPlayerTitle.textContent = displayTrackTitle(track);
     if (musicFullPlayerArtist) musicFullPlayerArtist.textContent = track.artist;
     if (musicFullPlayerBarFill) musicFullPlayerBarFill.style.width = "0%";
     if (musicFullPlayerBarThumb) musicFullPlayerBarThumb.style.left = "0%";
