@@ -143,10 +143,18 @@
   }
 
   function displayTrackTitle(t) {
-    const title = (t && t.title) || "";
+    let title = (t && t.title) || "";
     const idx = title.search(/\s[-–—]\s/);
-    if (idx > 0) return title.slice(idx).replace(/^\s[-–—]\s/, "").trim();
-    return title;
+    if (idx > 0) title = title.slice(idx).replace(/^\s[-–—]\s/, "");
+    let prev;
+    do {
+      prev = title;
+      title = title.replace(/\s*[\(\[\{][^\)\]\}]*[\)\]\}]\s*$/, "");
+    } while (prev !== title);
+    title = title.replace(/\s*[|·—–-]\s+[^|·—–-]*$/i, (m) => {
+      return /(audio|video|official|live|lyric|remix|hd|explicit|mv|karaoke|cover)/i.test(m) ? "" : m;
+    });
+    return title.trim();
   }
 
   function dedupeTracks(list) {
@@ -364,7 +372,12 @@
     return musicAllTracks.filter((t) => {
       if (musicCategory !== "all" && !trackCategories(t).some((c) => c === musicCategory)) return false;
       if (musicArtist !== "all" && !trackHasArtist(t, musicArtist)) return false;
-      if (q && !(t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q))) return false;
+      if (q) {
+        const songName = displayTrackTitle(t).toLowerCase();
+        const rawTitle = (t.title || "").toLowerCase();
+        const artist = (t.artist || "").toLowerCase();
+        if (!songName.includes(q) && !rawTitle.includes(q) && !artist.includes(q)) return false;
+      }
       return true;
     });
   }
