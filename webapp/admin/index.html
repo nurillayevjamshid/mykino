@@ -159,6 +159,7 @@
           <div class="movie-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--border,#e3e6ec);">
             <button type="button" class="movie-tab is-active" data-movie-tab="movies" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid var(--primary,#3b82f6);font-weight:600;color:var(--text,#111);cursor:pointer;">Kinolar</button>
             <button type="button" class="movie-tab" data-movie-tab="series" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">Seriallar</button>
+            <button type="button" class="movie-tab" data-movie-tab="categories" role="tab" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">Kategoriyalar</button>
           </div>
 
           <!-- Movies Tab -->
@@ -205,6 +206,17 @@
                   <!-- Dynamic content -->
                 </tbody>
               </table>
+            </div>
+
+            <div class="pagination" id="moviesPagination" hidden>
+              <button type="button" class="pagination__btn" data-page-action="prev" aria-label="Oldingi sahifa">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
+              </button>
+              <div class="pagination__pages" id="moviesPaginationPages"></div>
+              <button type="button" class="pagination__btn" data-page-action="next" aria-label="Keyingi sahifa">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+              </button>
+              <span class="pagination__info" id="moviesPaginationInfo"></span>
             </div>
           </div><!-- /movies tabpanel -->
 
@@ -924,6 +936,22 @@
                 <span>Yangilash</span>
               </button>
             </div>
+          </div>
+
+          <div class="users-toolbar">
+            <select id="usersSortSelect" class="users-sort" aria-label="Saralash">
+              <option value="newest">Eng yangilar tepada</option>
+              <option value="oldest">Eng eskilar tepada</option>
+              <option value="name-asc">Nom (A → Z)</option>
+              <option value="name-desc">Nom (Z → A)</option>
+            </select>
+            <label class="users-date-wrap" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted,#666);">
+              Sana:
+              <input type="date" id="usersDateFrom" class="users-date" aria-label="Boshlanish sanasi">
+              <span>—</span>
+              <input type="date" id="usersDateTo" class="users-date" aria-label="Tugash sanasi">
+            </label>
+            <button type="button" class="btn btn-secondary" id="usersResetFilterBtn" title="Filtrlarni tozalash" style="padding:8px 12px;font-size:12px;">Tozalash</button>
           </div>
 
           <div class="table-container">

@@ -67,6 +67,8 @@ window.ensureAdminSession = async function ensureAdminSession(promptMsg) {
 let movies = [];
 let filteredMovies = [];
 let currentSearchQuery = '';
+const MOVIES_PAGE_SIZE = 30;
+let moviesCurrentPage = 1;
 let selectedPosterDataUrl = '';
 let selectedHeaderDataUrl = '';
 
@@ -504,13 +506,19 @@ function switchSection(name) {
 
 // ------------- Subscribers -------------
 function normalizeUser(record) {
+  const firstSeenAt = Number(record.firstSeenAt) || 0;
   return {
     telegram_id: record.telegram_id || record.id || record.telegramId || '',
     username: record.username || '',
     first_name: record.first_name || record.firstName || record.firstSeenName || '',
-    started_at: record.started_at || (record.firstSeenAt ? String(record.firstSeenAt).slice(0, 10) : ''),
+    started_at: record.started_at || (firstSeenAt ? new Date(firstSeenAt).toISOString().slice(0, 10) : ''),
+    _sortTs: firstSeenAt || (record.started_at ? Date.parse(record.started_at + 'T00:00:00Z') : 0),
   };
 }
+
+let usersSortMode = 'newest';
+let usersDateFrom = '';
+let usersDateTo = '';
 
 async function fetchUsers() {
   const tbody = document.getElementById('usersTableBody');
@@ -533,7 +541,7 @@ async function fetchUsers() {
     const data = await response.json();
     const list = Array.isArray(data) ? data : (Array.isArray(data?.users) ? data.users : []);
     usersList = list.map(normalizeUser);
-    filteredUsers = [...usersList];
+    applyUsersFilterSort();
     renderUsers();
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -555,16 +563,60 @@ async function fetchUsers() {
   }
 }
 
-function filterUsers(query) {
-  userSearchQuery = String(query || '').toLowerCase().trim();
-  if (!userSearchQuery) {
-    filteredUsers = [...usersList];
-  } else {
-    filteredUsers = usersList.filter(u => {
+function applyUsersFilterSort() {
+  let list = [...usersList];
+  if (userSearchQuery) {
+    list = list.filter(u => {
       const haystack = [u.first_name, u.username, String(u.telegram_id), u.started_at].join(' ').toLowerCase();
       return haystack.includes(userSearchQuery);
     });
   }
+  const fromTs = usersDateFrom ? Date.parse(usersDateFrom + 'T00:00:00') : 0;
+  const toTs = usersDateTo ? Date.parse(usersDateTo + 'T23:59:59') : 0;
+  if (fromTs || toTs) {
+    list = list.filter(u => {
+      const ts = u._sortTs || (u.started_at ? Date.parse(u.started_at + 'T12:00:00') : 0);
+      if (!ts) return false;
+      if (fromTs && ts < fromTs) return false;
+      if (toTs && ts > toTs) return false;
+      return true;
+    });
+  }
+  const nameCollator = new Intl.Collator('uz', { sensitivity: 'base' });
+  switch (usersSortMode) {
+    case 'oldest':
+      list.sort((a, b) => (a._sortTs || 0) - (b._sortTs || 0));
+      break;
+    case 'name-asc':
+      list.sort((a, b) => nameCollator.compare(a.first_name || '', b.first_name || ''));
+      break;
+    case 'name-desc':
+      list.sort((a, b) => nameCollator.compare(b.first_name || '', a.first_name || ''));
+      break;
+    case 'newest':
+    default:
+      list.sort((a, b) => (b._sortTs || 0) - (a._sortTs || 0));
+      break;
+  }
+  filteredUsers = list;
+}
+
+function filterUsers(query) {
+  userSearchQuery = String(query || '').toLowerCase().trim();
+  applyUsersFilterSort();
+  renderUsers();
+}
+
+function setUsersSort(mode) {
+  usersSortMode = mode || 'newest';
+  applyUsersFilterSort();
+  renderUsers();
+}
+
+function setUsersDateRange(from, to) {
+  usersDateFrom = from || '';
+  usersDateTo = to || '';
+  applyUsersFilterSort();
   renderUsers();
 }
 
@@ -572,7 +624,8 @@ function renderUsers() {
   const tbody = document.getElementById('usersTableBody');
   if (!tbody) return;
 
-  const list = userSearchQuery ? filteredUsers : usersList;
+  const list = filteredUsers;
+  const hasFilter = !!(userSearchQuery || usersDateFrom || usersDateTo);
 
   const sectionHeader = document.querySelector('#usersSection .section-header h2');
   if (sectionHeader) {
@@ -584,8 +637,8 @@ function renderUsers() {
       <tr>
         <td colspan="5">
           <div class="empty-state">
-            <h3>${userSearchQuery ? 'Qidiruv natijasi yo\'q' : 'Obunachilar hali yo\'q'}</h3>
-            <p>${userSearchQuery ? `"${escapeHtml(userSearchQuery)}" bo'yicha topilmadi` : 'Foydalanuvchilar /start bosishi bilan bu yerda ko\'rinadi.'}</p>
+            <h3>${hasFilter ? 'Filtr natijasi yo\'q' : 'Obunachilar hali yo\'q'}</h3>
+            <p>${hasFilter ? 'Boshqa qidiruv yoki sana oralig\'ini sinab ko\'ring.' : 'Foydalanuvchilar /start bosishi bilan bu yerda ko\'rinadi.'}</p>
           </div>
         </td>
       </tr>
@@ -669,6 +722,41 @@ function bindEvents() {
   document.getElementById('refreshUsersBtn')?.addEventListener('click', async () => {
     await fetchUsers();
     showNotification('Ro\'yxat yangilandi.');
+  });
+  document.getElementById('usersSortSelect')?.addEventListener('change', (e) => {
+    setUsersSort(e.target.value);
+  });
+  document.getElementById('usersDateFrom')?.addEventListener('change', (e) => {
+    setUsersDateRange(e.target.value, usersDateTo);
+  });
+  document.getElementById('usersDateTo')?.addEventListener('change', (e) => {
+    setUsersDateRange(usersDateFrom, e.target.value);
+  });
+  document.getElementById('usersResetFilterBtn')?.addEventListener('click', () => {
+    const searchInput = document.getElementById('userSearchInput');
+    if (searchInput) searchInput.value = '';
+    const fromInput = document.getElementById('usersDateFrom');
+    if (fromInput) fromInput.value = '';
+    const toInput = document.getElementById('usersDateTo');
+    if (toInput) toInput.value = '';
+    const sortSelect = document.getElementById('usersSortSelect');
+    if (sortSelect) sortSelect.value = 'newest';
+    userSearchQuery = '';
+    usersSortMode = 'newest';
+    usersDateFrom = '';
+    usersDateTo = '';
+    applyUsersFilterSort();
+    renderUsers();
+  });
+
+  // Pagination click delegation
+  document.getElementById('moviesPagination')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.dataset.pageAction === 'prev') { goToMoviesPage(moviesCurrentPage - 1); return; }
+    if (btn.dataset.pageAction === 'next') { goToMoviesPage(moviesCurrentPage + 1); return; }
+    const page = parseInt(btn.dataset.page || '', 10);
+    if (Number.isFinite(page)) goToMoviesPage(page);
   });
 
   // Table row actions - event delegation (only edit, no delete)
@@ -972,6 +1060,7 @@ function filterMovies(query) {
     });
   }
 
+  moviesCurrentPage = 1;
   renderMovies();
 }
 
@@ -981,6 +1070,8 @@ function renderMovies() {
   if (!tbody) return;
 
   const moviesToRender = currentSearchQuery ? filteredMovies : movies;
+
+  renderMoviesPagination(moviesToRender.length);
 
   if (moviesToRender.length === 0) {
     tbody.innerHTML = `
@@ -1006,7 +1097,13 @@ function renderMovies() {
     sectionHeader.textContent = `Kinolar ro'yxati (${movies.length})`;
   }
 
-  tbody.innerHTML = moviesToRender.map(movie => `
+  const totalPages = Math.max(1, Math.ceil(moviesToRender.length / MOVIES_PAGE_SIZE));
+  if (moviesCurrentPage > totalPages) moviesCurrentPage = totalPages;
+  if (moviesCurrentPage < 1) moviesCurrentPage = 1;
+  const startIdx = (moviesCurrentPage - 1) * MOVIES_PAGE_SIZE;
+  const pageSlice = moviesToRender.slice(startIdx, startIdx + MOVIES_PAGE_SIZE);
+
+  tbody.innerHTML = pageSlice.map(movie => `
     <tr data-id="${escapeHtml(movie.id)}">
       <td>
         <img src="${escapeHtml(movie.poster ? proxiedPoster(movie.poster) : POSTER_PLACEHOLDER)}"
@@ -1035,6 +1132,64 @@ function renderMovies() {
       </td>
     </tr>
   `).join('');
+}
+
+function renderMoviesPagination(totalItems) {
+  const wrap = document.getElementById('moviesPagination');
+  const pagesWrap = document.getElementById('moviesPaginationPages');
+  const info = document.getElementById('moviesPaginationInfo');
+  if (!wrap || !pagesWrap) return;
+
+  if (totalItems <= MOVIES_PAGE_SIZE) {
+    wrap.hidden = true;
+    pagesWrap.innerHTML = '';
+    if (info) info.textContent = '';
+    return;
+  }
+
+  wrap.hidden = false;
+  const totalPages = Math.max(1, Math.ceil(totalItems / MOVIES_PAGE_SIZE));
+  if (moviesCurrentPage > totalPages) moviesCurrentPage = totalPages;
+  if (moviesCurrentPage < 1) moviesCurrentPage = 1;
+
+  const prevBtn = wrap.querySelector('[data-page-action="prev"]');
+  const nextBtn = wrap.querySelector('[data-page-action="next"]');
+  if (prevBtn) prevBtn.disabled = moviesCurrentPage <= 1;
+  if (nextBtn) nextBtn.disabled = moviesCurrentPage >= totalPages;
+
+  const pageNums = buildPageList(moviesCurrentPage, totalPages);
+  pagesWrap.innerHTML = pageNums.map(p => {
+    if (p === '…') return `<span class="pagination__page is-ellipsis">…</span>`;
+    const active = p === moviesCurrentPage ? ' is-active' : '';
+    return `<button type="button" class="pagination__page${active}" data-page="${p}">${p}</button>`;
+  }).join('');
+
+  if (info) {
+    const start = (moviesCurrentPage - 1) * MOVIES_PAGE_SIZE + 1;
+    const end = Math.min(totalItems, moviesCurrentPage * MOVIES_PAGE_SIZE);
+    info.textContent = `${start}-${end} / ${totalItems}`;
+  }
+}
+
+function buildPageList(current, total) {
+  const pages = [];
+  const window_ = 1;
+  const push = (v) => { if (pages[pages.length - 1] !== v) pages.push(v); };
+  push(1);
+  if (current - window_ > 2) push('…');
+  for (let p = Math.max(2, current - window_); p <= Math.min(total - 1, current + window_); p++) push(p);
+  if (current + window_ < total - 1) push('…');
+  if (total > 1) push(total);
+  return pages;
+}
+
+function goToMoviesPage(page) {
+  const list = currentSearchQuery ? filteredMovies : movies;
+  const totalPages = Math.max(1, Math.ceil(list.length / MOVIES_PAGE_SIZE));
+  moviesCurrentPage = Math.max(1, Math.min(totalPages, page));
+  renderMovies();
+  const anchor = document.getElementById('moviesListTitle');
+  anchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Open Movie Modal
@@ -1474,6 +1629,12 @@ let seriesLoaded = false;
 
 function switchMovieTab(name) {
   if (!name) return;
+  if (name === 'categories') {
+    // "Kategoriyalar" tab kino bo'limidan to'g'ridan-to'g'ri kategoriyalar
+    // bo'limiga o'tkazadi (sidebar'dagi mavjud section).
+    switchSection('categories');
+    return;
+  }
   document.querySelectorAll('.movie-tab').forEach(tab => {
     const active = tab.dataset.movieTab === name;
     tab.classList.toggle('is-active', active);

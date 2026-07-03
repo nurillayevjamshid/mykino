@@ -1128,14 +1128,56 @@ body {
 
   /* Users table: 5 cols (#, name, username, id, date) */
   #usersTableBody tr {
-    grid-template-columns: 32px 1fr auto;
-    grid-template-areas: "num info date";
+    grid-template-columns: 34px 1fr auto;
+    grid-template-areas:
+      "num name date"
+      "num user date"
+      "num id   id";
+    column-gap: 10px;
+    row-gap: 2px;
+    align-items: center;
   }
-  #usersTableBody td:nth-child(1) { grid-area: num; font-weight: 700; color: var(--text-muted); }
-  #usersTableBody td:nth-child(2) { grid-area: info; font-size: 15px; }
-  #usersTableBody td:nth-child(3) { grid-area: info; font-size: 12px; color: var(--text-muted); align-self: end; }
-  #usersTableBody td:nth-child(4) { display: none; }
-  #usersTableBody td:nth-child(5) { grid-area: date; font-size: 11px; color: var(--text-muted); }
+  #usersTableBody td {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #usersTableBody td:nth-child(1) {
+    grid-area: num;
+    font-weight: 700;
+    color: var(--text-muted);
+    align-self: center;
+  }
+  #usersTableBody td:nth-child(2) {
+    grid-area: name;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  #usersTableBody td:nth-child(3) {
+    grid-area: user;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  #usersTableBody td:nth-child(4) {
+    grid-area: id;
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: normal;
+    word-break: break-all;
+  }
+  #usersTableBody td:nth-child(4) code {
+    font-size: 11px;
+    background: transparent;
+    padding: 0;
+  }
+  #usersTableBody td:nth-child(5) {
+    grid-area: date;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    align-self: center;
+  }
 
   /* Categories table */
   #categoriesTableBody tr {
@@ -1351,3 +1393,93 @@ body {
 .pod-lang-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .pod-lang-row .pod-lang-mini { font-size: 11px; padding: 4px 10px; border: 1px solid var(--border, #e3e6ec); border-radius: 999px; background: transparent; cursor: pointer; color: var(--text-muted, #666); }
 .pod-lang-row .pod-lang-mini.is-active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  padding: 18px 8px 6px;
+  flex-wrap: wrap;
+}
+.pagination__btn,
+.pagination__page {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border, #e3e6ec);
+  background: var(--bg-card, #fff);
+  color: var(--text, #111);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pagination__btn:hover:not(:disabled),
+.pagination__page:hover:not(.is-active):not(:disabled) {
+  background: var(--bg-elevated, #f5f7fa);
+  border-color: var(--primary, #3b82f6);
+}
+.pagination__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pagination__page.is-active {
+  background: var(--primary, #3b82f6);
+  color: #fff;
+  border-color: var(--primary, #3b82f6);
+}
+.pagination__page.is-ellipsis {
+  border: 0;
+  background: transparent;
+  cursor: default;
+  color: var(--text-muted, #666);
+}
+.pagination__pages {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.pagination__info {
+  font-size: 12px;
+  color: var(--text-muted, #666);
+  margin-left: 6px;
+}
+@media (max-width: 640px) {
+  .pagination__info { flex-basis: 100%; text-align: center; margin-left: 0; margin-top: 6px; }
+  .pagination__page { min-width: 32px; height: 32px; font-size: 12px; padding: 0 8px; }
+  .pagination__btn { min-width: 32px; height: 32px; }
+}
+
+/* Subscribers filter/sort bar */
+.users-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.users-toolbar .users-sort {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e3e6ec);
+  background: var(--bg-card, #fff);
+  color: var(--text, #111);
+  font-size: 13px;
+  min-width: 190px;
+}
+.users-toolbar .users-date {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e3e6ec);
+  background: var(--bg-card, #fff);
+  color: var(--text, #111);
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .users-toolbar .users-sort,
+  .users-toolbar .users-date { flex: 1 1 100%; min-width: 0; }
+}
