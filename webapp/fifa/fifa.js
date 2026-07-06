@@ -8,6 +8,8 @@
   const fifaView = document.getElementById("fifaView");
   const fifaBanner = document.getElementById("fifaHomeBanner");
   const appShell = document.getElementById("appShell");
+  const fifaPromoShare = document.getElementById("fifaPromoShare");
+  const fifaPromoShareLabel = document.getElementById("fifaPromoShareLabel");
   if (!fifaView) return;
 
   // ===== i18n (FIFA modulining mahalliy tarjima jadvali) =====
@@ -37,6 +39,8 @@
       headCoach: "Bosh murabbiy",
       mute: "Ovozni o'chirish",
       unmute: "Ovozni yoqish",
+      shareLive: "Translatsiyani yuborish",
+      shareLiveText: "Jonli translatsiyani MY PLAYLIST botida tomosha qiling — bir bosish bilan ochiladi 👇",
     },
     ru: {
       finished: "Завершён",
@@ -63,6 +67,8 @@
       headCoach: "Главный тренер",
       mute: "Выключить звук",
       unmute: "Включить звук",
+      shareLive: "Поделиться трансляцией",
+      shareLiveText: "Смотрите прямую трансляцию в боте MY PLAYLIST — открывается одним нажатием 👇",
     },
     en: {
       finished: "Finished",
@@ -89,6 +95,8 @@
       headCoach: "Head coach",
       mute: "Mute",
       unmute: "Unmute",
+      shareLive: "Share the broadcast",
+      shareLiveText: "Watch the live broadcast in the MY PLAYLIST bot — opens with one tap 👇",
     },
   };
   function curLang() {
@@ -542,6 +550,10 @@
       promo.innerHTML = "";
       promo.removeAttribute("role");
       promo.removeAttribute("tabindex");
+      if (fifaPromoShare) {
+        fifaPromoShare.hidden = true;
+        fifaPromoShare.onclick = null;
+      }
       return;
     }
     const title = esc(cfg.title || F("liveTitleDefault"));
@@ -571,6 +583,40 @@
     promo.onkeydown = (e) => {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
     };
+
+    if (fifaPromoShare) {
+      if (fifaPromoShareLabel) fifaPromoShareLabel.textContent = F("shareLive");
+      fifaPromoShare.hidden = false;
+      fifaPromoShare.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        shareFifaLive(cfg);
+      };
+    }
+  }
+
+  // === Jonli translatsiyani do'stlarga yuborish ===
+  // Yuborilgan xabardagi havola bosilganda mini-ilova to'g'ridan-to'g'ri FIFA
+  // bo'limiga ochiladi (kino.js dagi tryHandleFifaDeepLink orqali).
+  const FIFA_SHARE_BOT_USERNAME = "mykinoplay_bot";
+  function buildFifaShareUrl(matchTitle) {
+    const shareLink = `https://t.me/${FIFA_SHARE_BOT_USERNAME}?startapp=fifa`;
+    const text = `⚽ ${matchTitle}\n\n📺 ${F("shareLiveText")}`;
+    return `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(text)}`;
+  }
+
+  function shareFifaLive(cfg) {
+    if (!cfg || !cfg.channelUrl) return;
+    const tg = window.Telegram?.WebApp;
+    try { tg?.HapticFeedback?.impactOccurred?.("medium"); } catch (_) {}
+    const matchTitle = String(cfg.title || F("liveTitleDefault")).trim();
+    const url = buildFifaShareUrl(matchTitle);
+    try {
+      if (tg?.openTelegramLink) tg.openTelegramLink(url);
+      else window.open(url, "_blank", "noopener");
+    } catch (_) {
+      window.open(url, "_blank", "noopener");
+    }
   }
 
   function openFifaLiveChannel(url) {
