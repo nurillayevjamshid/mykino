@@ -7299,6 +7299,30 @@ function tryHandleDeepLink() {
   }, 300);
 }
 
+// === Deep link: ?fifa=1 yoki Telegram startapp=fifa orqali kelganda
+// FIFA JCH 2026 bo'limini avtomatik ochish (jonli translatsiyani
+// "Yuborish" tugmasi orqali ulashilgan havola bosilganda ishlaydi). ===
+function getDeepLinkFifaParam() {
+  // 1) URL query: ?fifa=1
+  const fromQuery = String(pageParams.get("fifa") || "").trim();
+  if (fromQuery) return fromQuery;
+  // 2) Telegram startapp: t.me/bot/app?startapp=fifa
+  const fromTg = String(tg?.initDataUnsafe?.start_param || "").trim();
+  if (/^fifa\b/i.test(fromTg)) return fromTg;
+  return "";
+}
+
+let fifaDeepLinkHandled = false;
+function tryHandleFifaDeepLink() {
+  if (fifaDeepLinkHandled) return;
+  fifaDeepLinkHandled = true;
+  const param = getDeepLinkFifaParam();
+  if (!param) return;
+  setTimeout(() => {
+    try { openFifaView(); } catch (_) {}
+  }, 300);
+}
+
 async function initApp() {
   await loadAppSettings();
   const splash = initSplashScreen();
@@ -7309,6 +7333,7 @@ async function initApp() {
     try { await awaitFirstPostersReady(movies); } catch (_) {}
     try { splash?.tryHide?.(); } catch (_) {}
     try { tryHandleDeepLink(); } catch (_) {}
+    try { tryHandleFifaDeepLink(); } catch (_) {}
   });
   startMoviesPolling();
   loadProgressFromBackend().catch(() => {});

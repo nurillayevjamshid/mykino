@@ -9172,6 +9172,34 @@ html[data-theme="light"] .fifa-view__promo {
 }
 .fifa-view__promo-cta svg { width: 16px; height: 16px; }
 
+/* Translatsiyani do'stlarga yuborish tugmasi — promo kartasi ostida */
+.fifa-view__promo-share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.06));
+  color: var(--text, #f7f7fb);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.fifa-view__promo-share svg { width: 18px; height: 18px; flex-shrink: 0; }
+.fifa-view__promo-share:active { transform: scale(0.97); }
+.fifa-view__promo-share[hidden] { display: none; }
+html[data-theme="light"] .fifa-view__promo-share {
+  background: #ffffff;
+  border-color: #eaeaea;
+  color: #0d0d10;
+  box-shadow: 0 8px 24px rgba(15, 15, 18, 0.06);
+}
+
 .fifa-tabs {
   display: flex;
   gap: 8px;
