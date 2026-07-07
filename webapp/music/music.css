@@ -8,7 +8,7 @@
   color: #f5f6fa;
   padding: 0 0 24px;
   font-family: inherit;
-  border-radius: 18px;
+  border-radius: 24px;
   margin: 6px 0 12px;
 }
 .music-view > :first-child { margin-top: 0 !important; }
@@ -109,7 +109,7 @@ body.is-podcasts .bottom-bar--podcast { display: block !important; }
 .pod-hero,
 .pod-hero-slide {
   position: relative;
-  border-radius: 18px;
+  border-radius: 24px;
   overflow: hidden;
   min-height: 160px;
   cursor: pointer;
@@ -192,7 +192,7 @@ body.is-podcasts .bottom-bar--podcast { display: block !important; }
   position: relative;
   flex: 0 0 calc(100% - 48px);
   min-height: 160px;
-  border-radius: 18px;
+  border-radius: 24px;
   overflow: hidden;
   cursor: pointer;
   scroll-snap-align: start;
@@ -305,7 +305,7 @@ html[data-theme="light"] .pod-featured-card__meta { color: #666; }
   flex: 0 0 calc(100% - 28px);
   scroll-snap-align: center;
   height: 180px;
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
   border: 0;
   padding: 18px;
@@ -1156,7 +1156,7 @@ html[data-theme="light"] .music-pager__info { color: rgba(17, 19, 26, 0.72); }
   padding: 10px 14px;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
+  border-radius: 9999px;
 }
 .music-search-bar[hidden] { display: none; }
 .music-search-bar .icon-svg {
@@ -1541,7 +1541,7 @@ html[data-theme="light"] .music-artist-detail__back {
   flex: 0 0 auto;
   width: 130px;
   height: 170px;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.08);
   background: #14141d;
@@ -1596,7 +1596,7 @@ html[data-theme="light"] .music-artist-detail__back {
   margin: 8px 16px 0;
   padding: 8px;
   background: linear-gradient(180deg, #14141d 0%, #0f0f17 100%);
-  border-radius: 18px;
+  border-radius: 22px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -2073,7 +2073,7 @@ body.fullplayer-open .mini-player[aria-hidden="false"] {
   position: relative;
   width: min(78vw, 340px);
   aspect-ratio: 1 / 1;
-  border-radius: 20px;
+  border-radius: 28px;
   background-color: #1a1d35;
   box-shadow: 0 20px 40px -16px rgba(0,0,0,0.6);
   margin: 8px 0 26px;
@@ -2571,7 +2571,7 @@ body.is-music .profile-history:not(.profile-history--music) { display: none !imp
   position: relative;
   width: 100%; max-width: 520px;
   background: #14141c; color: #f5f6fa;
-  border-radius: 18px 18px 0 0;
+  border-radius: 28px 28px 0 0;
   padding: 14px 4px 22px;
   transform: translateY(100%);
   transition: transform 220ms cubic-bezier(.2,.7,.2,1);

@@ -1,4 +1,4 @@
-const VERSION = "v20260703-music-title-cleanup-2";
+const VERSION = "v20260707-soft-ui";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
