@@ -6049,87 +6049,85 @@ function syncSidebarSettings() {
 }
 syncSidebarSettings();
 
-function syncSidebarMusicItem() {
-  const item = document.getElementById("sidebarMusicItem");
-  if (!item) return;
-  const isMusic = document.body.classList.contains("is-music");
-  const isPodcasts = document.body.classList.contains("is-podcasts");
-  if (isMusic || isPodcasts) {
-    item.dataset.sidebarAction = "kino-back";
-    item.innerHTML = `
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
-        <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
-      </svg>
-      <span data-i18n="kinoNav">${plainLabel(t("kinoNav"))}</span>`;
-  } else {
-    item.dataset.sidebarAction = "music";
-    item.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M9 18V5l12-2v13"></path>
-        <circle cx="6" cy="18" r="3"></circle>
-        <circle cx="18" cy="16" r="3"></circle>
-      </svg>
-      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>`;
-  }
-}
+// Sidebar yuqori 3 slot — joriy bo'limdan boshqa bo'limlarga o'tish tugmalari.
+// Tartib har bo'limda qat'iy:
+//   Kino:       Futbol, Musiqa, Potkastlar
+//   Futbol:     Kino, Musiqa, Potkastlar
+//   Musiqa:     Kino, Futbol, Potkastlar
+//   Potkastlar: Kino, Futbol, Musiqa
+function syncSidebarSectionItems() {
+  const slots = [
+    document.getElementById("sidebarFifaItem"),
+    document.getElementById("sidebarMusicItem"),
+    document.getElementById("sidebarPodcastsItem"),
+  ];
+  if (!slots.some(Boolean)) return;
 
-function syncSidebarFifaItem() {
-  const item = document.getElementById("sidebarFifaItem");
-  if (!item) return;
-  const isFifa = document.body.classList.contains("is-fifa");
-  if (isFifa) {
-    item.dataset.sidebarAction = "kino-back";
-    item.innerHTML = `
+  const section = document.body.classList.contains("is-fifa") ? "fifa"
+    : document.body.classList.contains("is-music") ? "music"
+    : document.body.classList.contains("is-podcasts") ? "podcasts"
+    : "kino";
+
+  const ITEMS = {
+    kino: {
+      action: "kino-back",
+      html: `
       <svg viewBox="0 0 32 32" aria-hidden="true">
         <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
         <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
       </svg>
-      <span data-i18n="kinoNav">${plainLabel(t("kinoNav"))}</span>`;
-    item.classList.remove("sidebar__item--fifa");
-  } else {
-    item.dataset.sidebarAction = "fifa";
-    item.innerHTML = `
+      <span data-i18n="kinoNav">${plainLabel(t("kinoNav"))}</span>`,
+    },
+    fifa: {
+      action: "fifa",
+      fifaClass: true,
+      html: `
       <img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="22" height="22" loading="eager" decoding="async">
-      <span>Futbol</span>`;
-    item.classList.add("sidebar__item--fifa");
-  }
-}
-
-function syncSidebarPodcastsItem() {
-  const item = document.getElementById("sidebarPodcastsItem");
-  if (!item) return;
-  const isPodcasts = document.body.classList.contains("is-podcasts");
-  const isMusic = document.body.classList.contains("is-music");
-  if (isPodcasts) {
-    // Potkast bo'limida 2-slot: Musiqa
-    item.dataset.sidebarAction = "music";
-    item.innerHTML = `
+      <span>Futbol</span>`,
+    },
+    music: {
+      action: "music",
+      html: `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 18V5l12-2v13"></path>
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
       </svg>
-      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>`;
-  } else {
-    // Kino yoki Musiqa bo'limida 2-slot: Potkastlar
-    item.dataset.sidebarAction = "podcasts";
-    item.innerHTML = `
+      <span data-i18n="musicNav">${plainLabel(t("musicNav"))}</span>`,
+    },
+    podcasts: {
+      action: "podcasts",
+      html: `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="9" y="2" width="6" height="13" rx="3"></rect>
         <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
         <line x1="12" y1="19" x2="12" y2="22"></line>
       </svg>
-      <span data-i18n="tvNav">${plainLabel(t("tvNav"))}</span>`;
-  }
+      <span data-i18n="tvNav">${plainLabel(t("tvNav"))}</span>`,
+    },
+  };
+
+  const ORDER = {
+    kino: ["fifa", "music", "podcasts"],
+    fifa: ["kino", "music", "podcasts"],
+    music: ["kino", "fifa", "podcasts"],
+    podcasts: ["kino", "fifa", "music"],
+  };
+
+  ORDER[section].forEach((key, i) => {
+    const el = slots[i];
+    if (!el) return;
+    const cfg = ITEMS[key];
+    el.dataset.sidebarAction = cfg.action;
+    el.innerHTML = cfg.html;
+    el.classList.toggle("sidebar__item--fifa", !!cfg.fifaClass);
+  });
 }
 
 function setSidebarOpen(open) {
   if (!appSidebar || !sidebarBackdrop) return;
   if (open) {
-    syncSidebarMusicItem();
-    syncSidebarPodcastsItem();
-    syncSidebarFifaItem();
+    syncSidebarSectionItems();
     sidebarBackdrop.hidden = false;
     requestAnimationFrame(() => {
       appSidebar.classList.add("is-open");
@@ -6223,9 +6221,7 @@ sidebarLangPills?.querySelectorAll(".lang-pill").forEach((pill) => {
     if (!next) return;
     lang = next;
     localStorage.setItem("kino_lang", next);
-    try { syncSidebarMusicItem(); } catch (_) {}
-    try { syncSidebarPodcastsItem(); } catch (_) {}
-    try { syncSidebarFifaItem(); } catch (_) {}
+    try { syncSidebarSectionItems(); } catch (_) {}
     try { applyCopy(); } catch (_) {}
     syncSidebarSettings();
     try {
