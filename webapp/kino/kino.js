@@ -5428,7 +5428,7 @@ function ensureMusicCss() {
   __musicCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/music/music.css?v=20260613-folder-split";
+    link.href = "/static/music/music.css?v=20260707-soft-ui";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -5441,7 +5441,7 @@ function ensureMusicModule() {
   const cssPromise = ensureMusicCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music/music.js?v=20260613-folder-split";
+    script.src = "/static/music/music.js?v=20260707-soft-ui";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -5469,7 +5469,7 @@ function ensurePotcastsCss() {
   __potcastsCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/potcasts/potcasts.css?v=20260613-folder-split";
+    link.href = "/static/potcasts/potcasts.css?v=20260707-soft-ui";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -5482,7 +5482,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20260613-folder-split";
+    script.src = "/static/potcasts/potcasts.js?v=20260707-soft-ui";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -7985,7 +7985,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20260613-folder-split";
+    script.src = "/static/fifa/fifa.js?v=20260707-soft-ui";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
