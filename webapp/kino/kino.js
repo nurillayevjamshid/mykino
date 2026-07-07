@@ -6090,11 +6090,8 @@ function syncSidebarFifaItem() {
   } else {
     item.dataset.sidebarAction = "fifa";
     item.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="9.5"></circle>
-        <path d="M12 2.5 14.6 7l4.7 1-3.4 3.6.9 4.9-4.8-2.4-4.8 2.4.9-4.9L4.7 8l4.7-1Z"></path>
-      </svg>
-      <span>FIFA JCH 2026</span>`;
+      <img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="22" height="22" loading="eager" decoding="async">
+      <span>Futbol</span>`;
     item.classList.add("sidebar__item--fifa");
   }
 }
