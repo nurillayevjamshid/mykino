@@ -201,6 +201,26 @@ async function getJsonFromR2Signed(key, fallback = null) {
   }
 }
 
+// Strict variant for read-modify-write flows. Silently treating a transient
+// error as "empty file" is catastrophic there: the caller would write back a
+// nearly-empty list and wipe every stored user. Only a genuine 404 (object
+// doesn't exist yet) returns null; any other failure throws so the caller
+// aborts its write and the stored data survives.
+async function getJsonFromR2SignedStrict(key) {
+  const req = await signedR2Request({ method: "GET", key });
+  const response = await fetch(req.url, { method: "GET", headers: req.headers });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    const error = new Error(`R2 GET failed (${response.status}). ${text.slice(0, 200)}`);
+    error.statusCode = 502;
+    error.code = "R2_GET_FAILED";
+    throw error;
+  }
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+
 async function deleteFromR2(key) {
   const req = await signedR2Request({ method: "DELETE", key });
   const response = await fetch(req.url, { method: "DELETE", headers: req.headers });
@@ -289,4 +309,4 @@ async function uploadFileToR2(dataUrl, fileNamePrefix, options = {}) {
   return { directUrl: `${publicUrl}/${key}`, key, contentType, size: body.length };
 }
 
-module.exports = { uploadImageToR2, uploadFileToR2, putJsonToR2, getJsonFromR2, getJsonFromR2Signed, deleteFromR2 };
+module.exports = { uploadImageToR2, uploadFileToR2, putJsonToR2, getJsonFromR2, getJsonFromR2Signed, getJsonFromR2SignedStrict, deleteFromR2 };
