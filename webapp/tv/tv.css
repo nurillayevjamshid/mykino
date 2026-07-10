@@ -305,3 +305,25 @@ body.tv-player-open { overflow: hidden; }
   max-width: 90%;
   text-align: center;
 }
+
+/* --- Yuklanish holati --- */
+.tv-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 80px 20px;
+  color: var(--c-text-mute, rgba(128, 128, 136, 0.9));
+  font-size: 14px;
+  text-align: center;
+}
+.tv-loading__spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(128, 128, 136, 0.25);
+  border-top-color: var(--c-accent, #e50914);
+  animation: tvSpin 0.9s linear infinite;
+}
+@keyframes tvSpin { to { transform: rotate(360deg); } }
