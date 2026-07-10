@@ -172,18 +172,26 @@ describe("katalog metadata wipe himoyasi", () => {
     assert.ok(uploadedBody.includes("Yangi nom"));
   });
 
-  test("restoreCatalogMovieOverrides revisiyadan o'chib ketgan posterlarni qaytaradi", async () => {
+  test("restoreCatalogMovieOverrides revisiyalardan o'chib ketgan posterlarni yig'ib qaytaradi", async () => {
     const wipedMetadata = {
       version: 1,
       movies: { "movie-a": { reactions: { "user-1": "like" } } },
     };
-    const goodRevision = {
+    // Yangi revisiyada movie-a/b, eskisida esa faqat movie-c bor — tiklash
+    // BITTA revisiya bilan cheklanmay, hammasidan yig'ishi kerak.
+    const newRevision = {
       version: 1,
       movies: {
         "movie-a": { posterImage: "https://r2.example.com/img/poster-a.jpg", title: "Kino A" },
         "movie-b": { posterImage: "https://r2.example.com/img/poster-b.jpg" },
       },
       settings: { splashImageUrl: "https://r2.example.com/img/splash.jpg" },
+    };
+    const oldRevision = {
+      version: 1,
+      movies: {
+        "movie-c": { posterImage: "https://r2.example.com/img/poster-c.jpg" },
+      },
     };
     const stub = installFetch([
       tokenRoute,
@@ -194,17 +202,17 @@ describe("katalog metadata wipe himoyasi", () => {
         respond: () => jsonResponse({
           revisions: [
             { id: "rev-old", modifiedTime: "2026-07-01T00:00:00Z" },
-            { id: "rev-good", modifiedTime: "2026-07-09T00:00:00Z" },
+            { id: "rev-new", modifiedTime: "2026-07-09T00:00:00Z" },
           ],
         }),
       },
       {
-        match: (url, method) => method === "GET" && url.includes(`/files/${META_FILE.id}/revisions/rev-good`),
-        respond: () => jsonResponse(goodRevision),
+        match: (url, method) => method === "GET" && url.includes(`/files/${META_FILE.id}/revisions/rev-new`),
+        respond: () => jsonResponse(newRevision),
       },
       {
         match: (url, method) => method === "GET" && url.includes(`/files/${META_FILE.id}/revisions/rev-old`),
-        respond: () => jsonResponse({ version: 1, movies: {} }),
+        respond: () => jsonResponse(oldRevision),
       },
       uploadRoute(),
     ]);
@@ -212,13 +220,14 @@ describe("katalog metadata wipe himoyasi", () => {
 
     const googleDrive = freshGoogleDrive();
     const result = await googleDrive.restoreCatalogMovieOverrides();
-    assert.equal(result.restored, 2, "ikkala kino posteri qaytishi kerak");
+    assert.equal(result.restored, 3, "uchala kino posteri ham qaytishi kerak");
 
     const uploads = uploadCalls(stub.calls);
     assert.equal(uploads.length, 1);
     const uploadedBody = String(uploads[0].body);
     assert.ok(uploadedBody.includes("poster-a.jpg"));
     assert.ok(uploadedBody.includes("poster-b.jpg"));
+    assert.ok(uploadedBody.includes("poster-c.jpg"), "eski revisiyadagi poster ham yig'ilishi kerak");
     assert.ok(uploadedBody.includes("user-1"), "reactions saqlanib qolishi kerak");
     assert.ok(uploadedBody.includes("splash.jpg"), "bo'sh settings zaxiradan to'ldirilishi kerak");
   });
