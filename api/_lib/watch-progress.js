@@ -1,5 +1,6 @@
 const {
   readCatalogMetadata,
+  readCatalogMetadataStrict,
   writeCatalogMetadata,
 } = require("./google-drive");
 
@@ -84,7 +85,9 @@ async function handleWatchProgress(request, response) {
       const removeIds = Array.isArray(body.removeIds) ? body.removeIds.map(trim).filter(Boolean) : [];
       const clearAll = body.clearAll === true;
 
-      const metadataState = await readCatalogMetadata();
+      // Strict: o'qish xatosi "bo'sh katalog" bo'lib ko'rinsa, quyidagi yozuv
+      // barcha kino posterlari va sozlamalarni o'chirib yuborardi.
+      const metadataState = await readCatalogMetadataStrict();
       const root = metadataState.data && typeof metadataState.data === "object" ? metadataState.data : {};
       const allProgress = root.watchProgress && typeof root.watchProgress === "object" ? { ...root.watchProgress } : {};
       const currentUserMap = allProgress[userId] && typeof allProgress[userId] === "object" ? { ...allProgress[userId] } : {};
