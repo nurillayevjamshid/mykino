@@ -2,6 +2,7 @@ const {
   authorizeRequest,
   setCorsHeaders,
   safeCompareStrings,
+  getVerifiedInitDataUser,
   signAdminSession,
   setAdminSessionCookie,
   clearAdminSessionCookie,
@@ -13,12 +14,29 @@ const {
 const {
   readCatalogMetadata,
 } = require("./_lib/google-drive");
-const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
-const { getJsonFromR2Signed, putJsonToR2 } = require("./_lib/r2-store");
+const { readBlobJson, readBlobJsonStrict, writeBlobJson } = require("./_lib/blob-store");
+const { getJsonFromR2Signed, getJsonFromR2SignedStrict, putJsonToR2 } = require("./_lib/r2-store");
 const { handleWatchProgress } = require("./_lib/watch-progress");
 
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
 const R2_USERS_KEY = "settings/bot-users.json";
+
+// Kunlik zaxira nusxa kaliti — asosiy fayl biror sabab bilan buzilsa/o'chsa,
+// oxirgi kunlardagi ro'yxatni shu yerdan tiklash mumkin bo'ladi.
+function usersBackupKey(date = new Date()) {
+  return `settings/bot-users-backup-${date.toISOString().slice(0, 10)}.json`;
+}
+
+// Saqlashga arziydigan maydonlar o'zgarmagan bo'lsa yozib o'tirmaymiz — Mini App
+// har ochilganda POST yuboradi, ortiqcha yozish parallel so'rovlar orasida
+// read-modify-write to'qnashuvi (yozuvlar yo'qolishi) ehtimolini oshiradi.
+function sameUserRecord(a, b) {
+  if (!a || !b) return false;
+  return String(a.telegram_id) === String(b.telegram_id)
+    && String(a.username || "") === String(b.username || "")
+    && String(a.first_name || "") === String(b.first_name || "")
+    && String(a.started_at || "") === String(b.started_at || "");
+}
 
 async function readRequestBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
@@ -58,7 +76,18 @@ function normalizeUser(record) {
 function readUsersFromMetadata(metadata) {
   const raw = metadata?.users;
   if (Array.isArray(raw)) return raw.map(normalizeUser).filter(Boolean);
-  if (raw && typeof raw === "object") return Object.values(raw).map(normalizeUser).filter(Boolean);
+  if (raw && typeof raw === "object") {
+    // Eski sxemada users obyekt bo'lib, kaliti telegram ID edi va qiymat ichida
+    // id maydoni bo'lmasligi mumkin. Object.values kalitni tashlab yuborib,
+    // bunday yozuvlarning hammasini yo'qotardi — kalitni fallback ID qilamiz.
+    return Object.entries(raw)
+      .map(([key, value]) => {
+        if (!value || typeof value !== "object") return null;
+        const hasId = value.telegram_id || value.telegramId || value.id;
+        return normalizeUser(hasId ? value : { ...value, telegram_id: key });
+      })
+      .filter(Boolean);
+  }
   return [];
 }
 
@@ -96,6 +125,37 @@ async function readUsersFromR2() {
   }
 }
 
+// Git repodagi kunlik zaxira (GitHub Actions yangilab boradi, deploy bilan
+// birga keladi). Tashqi storage'lar butunlay buzilsa ham bu manba qoladi.
+function readUsersFromRepoBackup() {
+  try {
+    const data = require("../data/users-backup.json");
+    const list = Array.isArray(data?.users) ? data.users : Array.isArray(data) ? data : [];
+    return list.map(normalizeUser).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+// So'nggi kunlik zaxira nusxalar — asosiy fayl buzilgan/qisqargan bo'lsa ham
+// GET ular bilan birlashtirib to'liq ro'yxatni qaytaradi (o'z-o'zini tiklash).
+async function readUsersFromR2Backups(days = 7) {
+  const keys = [];
+  for (let i = 0; i < days; i++) {
+    keys.push(usersBackupKey(new Date(Date.now() - i * 86400000)));
+  }
+  const lists = await Promise.all(keys.map(async (key) => {
+    try {
+      const data = await getJsonFromR2Signed(key, null);
+      const list = Array.isArray(data?.users) ? data.users : [];
+      return list.map(normalizeUser).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }));
+  return lists.flat();
+}
+
 function mergeUsers(...lists) {
   const map = new Map();
   for (const list of lists) {
@@ -110,7 +170,9 @@ function mergeUsers(...lists) {
         telegram_id: prev.telegram_id || u.telegram_id,
         username: prev.username || u.username,
         first_name: prev.first_name || u.first_name,
-        started_at: prev.started_at || u.started_at,
+        // Eng erta sana — userning haqiqiy qo'shilgan kuni. Aks holda wipe'dan
+        // keyin qayta ro'yxatdan o'tganlarda bugungi sana ko'rinib qoladi.
+        started_at: [prev.started_at, u.started_at].filter(Boolean).sort()[0] || "",
       });
     }
   }
@@ -235,9 +297,14 @@ module.exports = async function handler(request, response) {
       const debugMatch = /[?&]_debug=([^&]+)/.exec(reqUrl);
       const expectedAdmin = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
       const isDebug = debugMatch && safeCompareStrings(decodeURIComponent(debugMatch[1]), expectedAdmin);
-      const [r2Outcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
+      const repoBackupUsers = readUsersFromRepoBackup();
+      const [r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
         (async () => {
           try { return { ok: true, users: await readUsersFromR2() }; }
+          catch (e) { return { ok: false, error: e?.message || String(e) }; }
+        })(),
+        (async () => {
+          try { return { ok: true, users: await readUsersFromR2Backups() }; }
           catch (e) { return { ok: false, error: e?.message || String(e) }; }
         })(),
         (async () => {
@@ -255,17 +322,20 @@ module.exports = async function handler(request, response) {
           } catch (e) { return { ok: false, error: e?.message || String(e) }; }
         })(),
       ]);
-      const merged = mergeUsers(r2Outcome.users || [], blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
+      const merged = mergeUsers(r2Outcome.users || [], backupOutcome.users || [], repoBackupUsers, blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
       if (isDebug) {
         response.status(200).json({
           merged,
           counts: {
             r2: r2Outcome.users?.length || 0,
+            backups: backupOutcome.users?.length || 0,
+            repo: repoBackupUsers.length,
             blob: blobOutcome.users?.length || 0,
             proxied: proxiedOutcome.users?.length || 0,
             metadata: metaOutcome.users?.length || 0,
           },
           r2: r2Outcome,
+          backups: backupOutcome,
           blob: blobOutcome,
           proxied: proxiedOutcome,
           metadata: metaOutcome,
@@ -292,57 +362,96 @@ module.exports = async function handler(request, response) {
         response.status(400).json({ ok: false, error: "telegram_id kerak." });
         return;
       }
+      // Strict o'qish: o'qish xatosini "bo'sh fayl" deb qabul qilib, keyin
+      // yozish butun ro'yxatni o'chirib yubormasin.
       let r2Ok = false, r2Err = null, blobOk = false, blobErr = null;
       try {
-        const data = (await getJsonFromR2Signed(R2_USERS_KEY, null)) || { users: [] };
+        const data = (await getJsonFromR2SignedStrict(R2_USERS_KEY)) || { users: [] };
         const list = (Array.isArray(data.users) ? data.users : []).filter(u => String(u.telegram_id) !== String(telegramId));
         await putJsonToR2(R2_USERS_KEY, { users: list, updatedAt: new Date().toISOString() });
         r2Ok = true;
       } catch (err) { r2Err = err?.message || String(err); }
       try {
-        const blob = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
+        const blob = (await readBlobJsonStrict(BLOB_USERS_PATHNAME)) || { users: [] };
         const list = (Array.isArray(blob.users) ? blob.users : []).filter(u => String(u.telegram_id) !== String(telegramId));
         await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
         blobOk = true;
       } catch (err) { blobErr = err?.message || String(err); }
+      // Zaxira nusxalardan ham o'chiramiz — aks holda GET merge orqali user
+      // 7 kungacha ro'yxatga qaytib kelaveradi (best-effort).
+      for (let i = 0; i < 7; i++) {
+        const key = usersBackupKey(new Date(Date.now() - i * 86400000));
+        try {
+          const backup = await getJsonFromR2SignedStrict(key);
+          if (!backup || !Array.isArray(backup.users)) continue;
+          const filtered = backup.users.filter(u => String(u.telegram_id) !== String(telegramId));
+          if (filtered.length !== backup.users.length) {
+            await putJsonToR2(key, { users: filtered, updatedAt: new Date().toISOString() });
+          }
+        } catch {}
+      }
       response.status(200).json({ ok: r2Ok || blobOk, r2Ok, blobOk, r2Err, blobErr });
       return;
     }
 
     if (request.method === "POST") {
       const body = await readRequestBody(request);
-      const next = normalizeUser(body);
+      // Mini App o'zini ro'yxatga olganda telegram_id'ni tanadan emas, imzolangan
+      // initData'dan olamiz — shunda hech kim boshqa ID bilan soxta obunachi
+      // qo'sha olmaydi. Admin panel (cookie/parol) esa tanadagi ID bilan ishlaydi.
+      const tgUser = getVerifiedInitDataUser(request);
+      const next = normalizeUser(tgUser ? {
+        telegram_id: tgUser.id,
+        username: tgUser.username || body.username,
+        first_name: tgUser.first_name || body.first_name,
+      } : body);
       if (!next) {
         response.status(400).json({ ok: false, error: "telegram_id kerak." });
         return;
       }
       // R2 — primary (private signed GET). Blob — best-effort legacy.
+      // MUHIM: bu yerda strict o'qish ishlatiladi. Oddiy o'qish har qanday
+      // vaqtinchalik xatoni "fayl bo'sh" deb qaytarar edi, keyin yozuv butun
+      // obunachilar ro'yxatini bitta user bilan almashtirib yuborardi.
       let saved = next;
       let r2Ok = false;
       let r2Err = null;
       let blobOk = false;
       let blobErr = null;
       try {
-        const data = (await getJsonFromR2Signed(R2_USERS_KEY, null)) || { users: [] };
+        const data = (await getJsonFromR2SignedStrict(R2_USERS_KEY)) || { users: [] };
         const list = Array.isArray(data.users) ? data.users : [];
         const idx = list.findIndex(u => String(u.telegram_id) === String(next.telegram_id));
         const prev = idx >= 0 ? list[idx] : null;
         saved = { ...(prev || {}), ...next, started_at: prev?.started_at || next.started_at };
-        if (idx >= 0) list[idx] = saved; else list.push(saved);
-        list.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
-        await putJsonToR2(R2_USERS_KEY, { users: list, updatedAt: new Date().toISOString() });
-        r2Ok = true;
+        if (prev && sameUserRecord(prev, saved)) {
+          r2Ok = true; // allaqachon ro'yxatda, hech narsa o'zgarmadi — yozish shart emas
+        } else {
+          if (idx >= 0) list[idx] = saved; else list.push(saved);
+          list.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
+          await putJsonToR2(R2_USERS_KEY, { users: list, updatedAt: new Date().toISOString() });
+          r2Ok = true;
+          // Yangi obunachi qo'shilganda kunlik zaxira nusxa (best-effort).
+          if (!prev) {
+            try { await putJsonToR2(usersBackupKey(), { users: list, updatedAt: new Date().toISOString() }); } catch {}
+          }
+        }
       } catch (err) {
         r2Err = err?.message || String(err);
       }
       try {
-        const blob = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
+        const blob = (await readBlobJsonStrict(BLOB_USERS_PATHNAME)) || { users: [] };
         const list = Array.isArray(blob.users) ? blob.users : [];
         const idx = list.findIndex(u => String(u.telegram_id) === String(next.telegram_id));
-        const merged = { ...(idx >= 0 ? list[idx] : {}), ...next };
-        if (idx >= 0) list[idx] = merged; else list.push(merged);
-        await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
-        blobOk = true;
+        const prev = idx >= 0 ? list[idx] : null;
+        const merged = { ...(prev || {}), ...next, started_at: prev?.started_at || next.started_at };
+        if (prev && sameUserRecord(prev, merged)) {
+          blobOk = true;
+        } else {
+          if (idx >= 0) list[idx] = merged; else list.push(merged);
+          await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
+          blobOk = true;
+        }
       } catch (err) { blobErr = err?.message || String(err); }
       if (!r2Ok && !blobOk) {
         response.status(502).json({ ok: false, error: r2Err || blobErr || "Saqlash xato." });

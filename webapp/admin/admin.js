@@ -632,7 +632,13 @@ function renderUsers() {
 
   const sectionHeader = document.querySelector('#usersSection .section-header h2');
   if (sectionHeader) {
-    sectionHeader.textContent = `Obunachilar ro'yxati (${usersList.length})`;
+    const total = usersList.length;
+    // When a search/date filter is active, the table only shows the matching
+    // subscribers, so the header must reflect that visible count (with the
+    // total for context) instead of always printing the full total.
+    sectionHeader.textContent = hasFilter
+      ? `Obunachilar ro'yxati (${list.length} / ${total})`
+      : `Obunachilar ro'yxati (${total})`;
   }
 
   if (list.length === 0) {

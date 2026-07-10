@@ -42,6 +42,46 @@ async function readBlobJson(pathname, fallback = null) {
   }
 }
 
+// Strict variant for read-modify-write flows: "blob genuinely absent" returns
+// null, but a failed list/fetch/parse throws. Without this, a transient Blob
+// API error reads as an empty file and the caller's write-back wipes the list.
+async function readBlobJsonStrict(pathname) {
+  const token = getBlobToken();
+  const url = new URL(BLOB_API_BASE);
+  url.searchParams.set("prefix", pathname);
+  url.searchParams.set("limit", "1");
+  const listResponse = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "x-api-version": "7",
+    },
+  });
+  if (!listResponse.ok) {
+    const error = new Error(`Vercel Blob list failed (${listResponse.status}).`);
+    error.statusCode = 502;
+    error.code = "BLOB_LIST_FAILED";
+    throw error;
+  }
+  const payload = await listResponse.json().catch(() => null);
+  if (!payload) {
+    const error = new Error("Vercel Blob list javobi o'qilmadi.");
+    error.statusCode = 502;
+    error.code = "BLOB_LIST_FAILED";
+    throw error;
+  }
+  const match = (payload.blobs || []).find((b) => b.pathname === pathname);
+  if (!match?.url) return null; // blob genuinely doesn't exist yet
+  const response = await fetch(match.url, { cache: "no-store" });
+  if (!response.ok) {
+    const error = new Error(`Vercel Blob GET failed (${response.status}).`);
+    error.statusCode = 502;
+    error.code = "BLOB_GET_FAILED";
+    throw error;
+  }
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+
 async function writeBlobJson(pathname, data) {
   const token = getBlobToken();
   const url = new URL(`${BLOB_API_BASE}/${pathname.replace(/^\/+/, "")}`);
@@ -71,5 +111,6 @@ async function writeBlobJson(pathname, data) {
 
 module.exports = {
   readBlobJson,
+  readBlobJsonStrict,
   writeBlobJson,
 };

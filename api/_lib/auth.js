@@ -79,6 +79,27 @@ function verifyTelegramWebappInitData(initData, botToken) {
   }
 }
 
+// Tasdiqlangan initData'dan Telegram foydalanuvchisini ajratib oladi.
+// hash tekshiruvidan o'tmasa yoki user bo'lmasa null qaytaradi. Bu Mini App
+// o'zini obunachi sifatida ro'yxatga olganda, tanadagi telegram_id'ga ishonmay,
+// haqiqiy (imzolangan) foydalanuvchini olish uchun ishlatiladi.
+function getVerifiedInitDataUser(request, botToken = process.env.BOT_TOKEN) {
+  if (!botToken) return null;
+  const authHeader = request.headers["authorization"] || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : "";
+  const initData = request.headers["x-tg-init-data"] || request.headers["x-telegram-init-data"] || bearer;
+  if (!initData || typeof initData !== "string") return null;
+  if (!verifyTelegramWebappInitData(initData, botToken)) return null;
+  try {
+    const rawUser = new URLSearchParams(initData).get("user");
+    if (!rawUser) return null;
+    const parsed = JSON.parse(rawUser);
+    return parsed && parsed.id ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function generateSignedToken(fileId, botToken) {
   const expires = Math.floor(Date.now() / 1000) + 7200; // 2 hours
   const stringToSign = `${fileId}:${expires}`;
@@ -424,6 +445,7 @@ module.exports = {
   setCorsHeaders,
   isOriginAllowed,
   verifyTelegramWebappInitData,
+  getVerifiedInitDataUser,
   generateSignedToken,
   verifySignedToken,
   // admin auth helpers
