@@ -2244,6 +2244,14 @@ function syncNavButtons() {
   document.querySelectorAll('[data-action="favorites"]').forEach((button) => {
     button.classList.toggle("is-active", activeFilter === "favorites");
   });
+
+  // Kategoriya tugmasi (kino bar) — kategoriya view yopilganda active holati
+  // ham tozalanishi shart, aks holda ikkita tugma is-active bo'lib qoladi
+  // va pill indikator noto'g'ri tugmada qolib ketadi.
+  const categoriesViewEl = document.getElementById("categoriesView");
+  document.querySelectorAll('.bottom-bar [data-action="categories-view"]').forEach((button) => {
+    button.classList.toggle("is-active", Boolean(categoriesViewEl && !categoriesViewEl.hidden));
+  });
 }
 
 let heroFeaturedMovie = null;
@@ -5482,7 +5490,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20260708-no-shorts";
+    script.src = "/static/potcasts/potcasts.js?v=20260708-pill-state";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);

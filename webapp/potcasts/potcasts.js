@@ -1251,6 +1251,9 @@
     if (!podcastsView) return;
     podcastsView.hidden = false;
     document.body.classList.add("is-podcasts");
+    // Qaysi yo'l bilan kirilmasin (sidebar, bottom bar) — potkast barida
+    // "Podcastlar" tugmasi active bo'lib, pill indikator uning ustida tursin.
+    try { window.setActiveBottomTab?.("podcasts-tab"); } catch (_) {}
     document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
     if (!loaded) {
       podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>${escapeHtml(T("loading"))}</div></div>`;
