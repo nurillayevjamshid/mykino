@@ -31,7 +31,7 @@
         TV_CHANNELS = api.channels;
         return TV_CHANNELS;
       }
-      const def = await fetchJson("/static/tv/tv-channels.json?v=20260710-tv-admin", 8000);
+      const def = await fetchJson("/static/tv/tv-channels.json?v=20260710-tv-sport-cleanup", 8000);
       if (def && Array.isArray(def.channels)) TV_CHANNELS = def.channels;
       return TV_CHANNELS;
     })().finally(() => { tvChannelsPromise = null; });
@@ -79,7 +79,6 @@
           <span class="tv-card__fallback" style="display:none;">${esc(channelInitial(ch.name))}</span>
         </span>
         <span class="tv-card__name">${esc(ch.name)}</span>
-        <span class="tv-card__live"><span class="tv-card__live-dot"></span>LIVE</span>
       </button>`;
   }
 

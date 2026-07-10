@@ -5609,7 +5609,7 @@ function ensureTvCss() {
   __tvCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/tv/tv.css?v=20260710-tv-admin";
+    link.href = "/static/tv/tv.css?v=20260710-tv-sport-cleanup";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -5622,7 +5622,7 @@ function ensureTvModule() {
   const cssPromise = ensureTvCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/tv/tv.js?v=20260710-tv-admin";
+    script.src = "/static/tv/tv.js?v=20260710-tv-sport-cleanup";
     script.onload = () => resolve(window.__tv);
     script.onerror = (err) => { __tvModulePromise = null; reject(err); };
     document.head.appendChild(script);
