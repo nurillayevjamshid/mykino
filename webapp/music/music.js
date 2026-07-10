@@ -1727,7 +1727,7 @@
   const musicFullPlayerBarFill = document.getElementById("musicFullPlayerBarFill");
   const musicFullPlayerBarThumb = document.getElementById("musicFullPlayerBarThumb");
   const musicFullPlayerToggle = document.getElementById("musicFullPlayerToggle");
-  const musicFullPlayerShuffle = document.getElementById("musicFullPlayerShuffle");
+  const musicFullPlayerAddToPlaylist = document.getElementById("musicFullPlayerAddToPlaylist");
   const musicFullPlayerRepeat = document.getElementById("musicFullPlayerRepeat");
   const musicFullPlayerLike = document.getElementById("musicFullPlayerLike");
   const miniPlayerYtHost = document.getElementById("miniPlayerYt");
@@ -1880,9 +1880,10 @@
     }
     if (e.target.closest("[data-music-fp-prev]")) { playRelative(-1); return; }
     if (e.target.closest("[data-music-fp-next]")) { playRelative(1); return; }
-    if (e.target.closest("[data-music-fp-shuffle]")) {
-      musicShuffle = !musicShuffle;
-      if (musicFullPlayerShuffle) musicFullPlayerShuffle.setAttribute("aria-pressed", musicShuffle ? "true" : "false");
+    if (e.target.closest("[data-music-fp-addlist]")) {
+      // Joriy qo'shiqni playlistga qo'shish — savesheet ochiladi
+      const id = musicFullPlayerLike?.dataset.id;
+      if (id) handleSaveButtonClick(id);
       return;
     }
     if (e.target.closest("[data-music-fp-repeat]")) {
