@@ -1011,6 +1011,34 @@ function getUserInitials(user) {
   return first.slice(0, 2).toUpperCase() || "KI";
 }
 
+// Mini App'ni ochgan har bir foydalanuvchini obunachilar ro'yxatiga yozamiz.
+// Ilgari faqat botga /start bosganlar hisobga olinardi — shu sababli admin
+// paneldagi obunachilar soni haqiqiy foydalanuvchilar sonidan ancha kam edi.
+// Server telegram_id'ni tasdiqlangan initData'dan oladi, tanadagi ID'ga ishonmaydi.
+let __userRegistrationDone = false;
+async function registerTelegramUser() {
+  if (__userRegistrationDone) return;
+  const initData = String(window.Telegram?.WebApp?.initData || "");
+  const user = tg?.initDataUnsafe?.user || parseInitDataUser(initData);
+  // Serverdagi tekshiruv haqiqiy initData'ni talab qiladi; usiz yubormaymiz.
+  if (!initData || !user || !user.id) return;
+  __userRegistrationDone = true;
+  try {
+    const resp = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-TG-Init-Data": initData },
+      body: JSON.stringify({
+        telegram_id: user.id,
+        username: user.username || "",
+        first_name: user.first_name || "",
+      }),
+    });
+    if (!resp.ok) __userRegistrationDone = false; // keyingi urinishga ruxsat
+  } catch (_) {
+    __userRegistrationDone = false; // tarmoq xatosi — qayta urinish mumkin
+  }
+}
+
 function applyTelegramUser() {
   const user = getTelegramUser();
   if (!user) {
@@ -5144,6 +5172,7 @@ document.querySelectorAll("[data-support]").forEach((btn) => {
         if (live && live.id) {
           cacheTelegramUser(live);
           applyTelegramUser();
+          registerTelegramUser();
         }
       } catch (_) {}
     }, ms);
