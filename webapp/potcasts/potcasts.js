@@ -374,7 +374,8 @@
       const view = channelViewCache.get(c.channelId);
       if (!view) continue;
       const chTitle = view.channel?.title || c.snapshot?.title || "";
-      const all = [...(view.videos || []), ...(view.shorts || [])];
+      // Shorts qidiruv natijalarida ko'rsatilmaydi
+      const all = view.videos || [];
       for (const v of all) {
         if (matchesQuery(v.title)) {
           out.push({ ...v, channelId: c.channelId, channelTitle: chTitle });
@@ -510,7 +511,8 @@
       const view = channelViewCache.get(c.channelId);
       if (!view) continue;
       const chTitle = view.channel?.title || c.snapshot?.title || "";
-      const all = [...(view.videos || []), ...(view.shorts || [])];
+      // Shorts "yangi videolar" qatorida ham ko'rsatilmaydi
+      const all = view.videos || [];
       for (const v of all) {
         if (!v.publishedAt) continue;
         const ts = new Date(v.publishedAt).getTime();
@@ -840,29 +842,20 @@
   }
 
   function buildTabContent(data) {
-    let { videos = [], shorts = [], playlists = [] } = data;
+    // Shorts va playlistlar kanal sahifasida ko'rsatilmaydi — faqat videolar.
+    let { videos = [] } = data;
     if (currentQuery) {
       videos = videos.filter((v) => matchesQuery(v.title));
-      shorts = shorts.filter((v) => matchesQuery(v.title));
-      playlists = playlists.filter((p) => matchesQuery(p.title));
     }
     if (currentTab === "home") {
       const latest = videos.slice(0, 1);
       const recent = videos.slice(1, 9);
-      const shortsRow = shorts.slice(0, 10);
       return `
         ${latest.length ? `
           <section class="pod-ch-section">
             <h3 class="pod-ch-section__title">${escapeHtml(T("sectionLatest"))}</h3>
             <div class="pod-vid-grid pod-vid-grid--featured">
               ${buildVideoCard(latest[0])}
-            </div>
-          </section>` : ""}
-        ${shortsRow.length ? `
-          <section class="pod-ch-section">
-            <h3 class="pod-ch-section__title">${escapeHtml(T("sectionShorts"))}</h3>
-            <div class="pod-shorts-row">
-              ${shortsRow.map(buildShortCard).join("")}
             </div>
           </section>` : ""}
         ${recent.length ? `
@@ -872,14 +865,7 @@
               ${recent.map(buildVideoCard).join("")}
             </div>
           </section>` : ""}
-        ${playlists.length ? `
-          <section class="pod-ch-section">
-            <h3 class="pod-ch-section__title">${escapeHtml(T("sectionPlaylists"))}</h3>
-            <div class="pod-pl-row">
-              ${playlists.slice(0, 8).map(buildPlaylistCard).join("")}
-            </div>
-          </section>` : ""}
-        ${(!videos.length && !shorts.length && !playlists.length) ? `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("emptyContent"))}</div></div>` : ""}
+        ${!videos.length ? `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("emptyContent"))}</div></div>` : ""}
       `;
     }
     if (currentTab === "videos") {
@@ -887,15 +873,6 @@
       const shown = videos.slice(0, visibleVideos);
       const hasMore = videos.length > shown.length;
       return `<div class="pod-vid-grid" data-pod-grid="videos">${shown.map(buildVideoCard).join("")}</div>${hasMore ? `<div class="pod-load-sentinel" data-pod-load-more="videos" style="height:1px;"></div>` : ""}`;
-    }
-    if (currentTab === "shorts") {
-      if (!shorts.length) return `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("noShorts"))}</div></div>`;
-      const shown = shorts.slice(0, visibleShorts);
-      const hasMore = shorts.length > shown.length;
-      return `<div class="pod-shorts-grid" data-pod-grid="shorts">${shown.map(buildShortCard).join("")}</div>${hasMore ? `<div class="pod-load-sentinel" data-pod-load-more="shorts" style="height:1px;"></div>` : ""}`;
-    }
-    if (currentTab === "playlists") {
-      return `<div class="pod-pl-grid">${playlists.map(buildPlaylistCard).join("") || `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("noPlaylists"))}</div></div>`}</div>`;
     }
     return "";
   }
@@ -906,8 +883,6 @@
     const tabs = [
       { id: "home", label: T("tabHome") },
       { id: "videos", label: T("tabVideos") },
-      { id: "shorts", label: T("tabShorts") },
-      { id: "playlists", label: T("tabPlaylists") },
     ];
     return `
       <header class="pod-topbar pod-topbar--channel">

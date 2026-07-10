@@ -5482,7 +5482,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20260707-soft-ui";
+    script.src = "/static/potcasts/potcasts.js?v=20260708-no-shorts";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
