@@ -2,6 +2,7 @@ const {
   authorizeRequest,
   setCorsHeaders,
   safeCompareStrings,
+  getVerifiedInitDataUser,
   signAdminSession,
   setAdminSessionCookie,
   clearAdminSessionCookie,
@@ -311,7 +312,15 @@ module.exports = async function handler(request, response) {
 
     if (request.method === "POST") {
       const body = await readRequestBody(request);
-      const next = normalizeUser(body);
+      // Mini App o'zini ro'yxatga olganda telegram_id'ni tanadan emas, imzolangan
+      // initData'dan olamiz — shunda hech kim boshqa ID bilan soxta obunachi
+      // qo'sha olmaydi. Admin panel (cookie/parol) esa tanadagi ID bilan ishlaydi.
+      const tgUser = getVerifiedInitDataUser(request);
+      const next = normalizeUser(tgUser ? {
+        telegram_id: tgUser.id,
+        username: tgUser.username || body.username,
+        first_name: tgUser.first_name || body.first_name,
+      } : body);
       if (!next) {
         response.status(400).json({ ok: false, error: "telegram_id kerak." });
         return;
