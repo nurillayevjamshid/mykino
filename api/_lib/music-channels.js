@@ -11,6 +11,10 @@ const YT_API_BASE = "https://www.googleapis.com/youtube/v3";
 const CHANNELS_KEY = "music:channels:v1";
 const CHANNEL_CACHE_TTL = 600;
 const MAX_VIDEOS_PER_CHANNEL = 200;
+// Musiqa sifatida qabul qilinadigan video davomiyligi: 1.5–5 daqiqa.
+// Shorts, uzun mix/podkast va jonli efirlar chiqarib tashlanadi.
+const MIN_TRACK_SECONDS = 90;
+const MAX_TRACK_SECONDS = 300;
 const BLOB_API_BASE = "https://blob.vercel-storage.com";
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
@@ -157,8 +161,8 @@ async function fetchChannelVideos(uploadsPlaylistId, maxResults = MAX_VIDEOS_PER
     for (const v of (vresp?.items || [])) {
       const sn = v.snippet || {};
       const dur = isoToSeconds(v.contentDetails?.duration);
-      // Shorts (<=60s) ni musiqa sifatida o'tkazib yuboramiz
-      if (dur > 0 && dur <= 60) continue;
+      // Faqat 1.5–5 daqiqalik videolar olinadi (davomiyligi noma'lumlar ham tashlanadi)
+      if (dur < MIN_TRACK_SECONDS || dur > MAX_TRACK_SECONDS) continue;
       videos.push({
         videoId: v.id,
         title: sn.title || "",
@@ -273,6 +277,10 @@ async function loadAllChannelTracks() {
     if (!artistName) continue;
     for (const v of (ch.videos || [])) {
       if (!v?.videoId || !v?.title) continue;
+      // Oldin qo'shilgan kanallarning keshidagi videolarga ham davomiylik
+      // filtri qo'llanadi (davomiyligi noma'lum eski yozuvlar refresh'gacha qoladi)
+      const dur = Number(v.durationSec || 0);
+      if (dur && (dur < MIN_TRACK_SECONDS || dur > MAX_TRACK_SECONDS)) continue;
       tracks.push({
         id: `ytch-${v.videoId}`,
         title: String(v.title).slice(0, 200),
