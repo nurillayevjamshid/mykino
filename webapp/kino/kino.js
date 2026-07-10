@@ -5223,6 +5223,7 @@ function setActiveBottomTab(action) {
 function hideAllCustomViews() {
   closeMusicView();
   closePodcastsView();
+  closeTvView();
   closeCategoriesView();
   if (seriesListView) seriesListView.hidden = true;
   if (seriesDetailView) seriesDetailView.hidden = true;
@@ -5500,6 +5501,38 @@ function ensurePotcastsModule() {
 }
 function openPodcastsView() { ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
 function closePodcastsView() { window.__potcasts?.closePodcastsView?.(); }
+
+// TV moduli — alohida webapp/tv/tv.{js,css}, lazy-load (potcasts naqshi).
+let __tvModulePromise = null;
+let __tvCssPromise = null;
+function ensureTvCss() {
+  if (__tvCssPromise) return __tvCssPromise;
+  __tvCssPromise = new Promise((resolve) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/static/tv/tv.css?v=20260708-tv";
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+  return __tvCssPromise;
+}
+function ensureTvModule() {
+  if (window.__tv) return Promise.resolve(window.__tv);
+  if (__tvModulePromise) return __tvModulePromise;
+  const cssPromise = ensureTvCss();
+  const jsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/static/tv/tv.js?v=20260708-tv";
+    script.onload = () => resolve(window.__tv);
+    script.onerror = (err) => { __tvModulePromise = null; reject(err); };
+    document.head.appendChild(script);
+  });
+  __tvModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__tv);
+  return __tvModulePromise;
+}
+function openTvView() { ensureTvModule().then((m) => m?.openTvView?.()).catch(() => {}); }
+function closeTvView() { window.__tv?.closeTvView?.(); }
 
 // ===== Categories view (bottom-bar) =====
 const categoriesView = document.getElementById("categoriesView");
@@ -6130,6 +6163,24 @@ function syncSidebarSectionItems() {
     el.innerHTML = cfg.html;
     el.classList.toggle("sidebar__item--fifa", !!cfg.fifaClass);
   });
+
+  // TV item (4-slot, statik) — TV bo'limida turganda "Kino"ga aylanadi,
+  // aks holda "TV" bo'lib qoladi.
+  const tvItem = document.getElementById("sidebarTvItem");
+  if (tvItem) {
+    if (document.body.classList.contains("is-tv")) {
+      tvItem.dataset.sidebarAction = "kino-back";
+      tvItem.innerHTML = ITEMS.kino.html;
+    } else {
+      tvItem.dataset.sidebarAction = "tv";
+      tvItem.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="7" width="20" height="14" rx="3"></rect>
+        <path d="m8 2 4 4 4-4"></path>
+      </svg>
+      <span>TV</span>`;
+    }
+  }
 }
 
 function setSidebarOpen(open) {
@@ -6177,6 +6228,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     if (action === "music") {
       closePodcastsView();
       closeFifaView();
+      closeTvView();
       openMusicView();
       setSidebarOpen(false);
       return;
@@ -6184,6 +6236,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     if (action === "podcasts") {
       closeMusicView();
       closeFifaView();
+      closeTvView();
       openPodcastsView();
       setSidebarOpen(false);
       return;
@@ -6191,7 +6244,16 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     if (action === "fifa") {
       closeMusicView();
       closePodcastsView();
+      closeTvView();
       openFifaView();
+      setSidebarOpen(false);
+      return;
+    }
+    if (action === "tv") {
+      closeMusicView();
+      closePodcastsView();
+      closeFifaView();
+      openTvView();
       setSidebarOpen(false);
       return;
     }
@@ -6199,6 +6261,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       closeMusicView();
       closePodcastsView();
       closeFifaView();
+      closeTvView();
       setFilter("all");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
       setSidebarOpen(false);
@@ -6208,6 +6271,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       closeMusicView();
       closePodcastsView();
       closeFifaView();
+      closeTvView();
       setFilter("favorites");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
     } else if (action === "profile") {
