@@ -367,6 +367,39 @@ function getMetadataOverride(metadataMap, fileId) {
   return entry && typeof entry === "object" ? entry : null;
 }
 
+// JSON override (top) fayl descriptionidagi embedded override (base) ustidan
+// FAQAT bo'sh bo'lmagan qiymatlari bilan g'olib chiqadi. Aks holda JSON'dagi
+// posterImage:"" kabi bo'sh maydonlar fayldagi asl posterni bekitib qo'yadi —
+// katalog yozuvi shikastlanganda kino postersiz ko'rinishining asosiy sababi.
+const OVERRIDE_STRING_KEYS = [
+  "title", "genre", "category", "quality", "posterImage", "poster",
+  "headerImage", "heroPoster", "headerPoster", "heroImage", "description", "cdnUrl",
+];
+
+function mergeOverridePreferNonEmpty(base, top) {
+  const baseObj = base && typeof base === "object" ? base : {};
+  const topObj = top && typeof top === "object" ? top : {};
+  const result = { ...baseObj, ...topObj };
+  for (const key of OVERRIDE_STRING_KEYS) {
+    if (!trimString(topObj[key]) && trimString(baseObj[key])) {
+      result[key] = baseObj[key];
+    }
+  }
+  if (!(Number(topObj.rating) > 0) && Number(baseObj.rating) > 0) {
+    result.rating = baseObj.rating;
+  }
+  if (!topObj.year && baseObj.year) {
+    result.year = baseObj.year;
+  }
+  if (topObj.showInHeader === undefined && baseObj.showInHeader !== undefined) {
+    result.showInHeader = baseObj.showInHeader;
+  }
+  if (!topObj.headerCrop && baseObj.headerCrop) {
+    result.headerCrop = baseObj.headerCrop;
+  }
+  return result;
+}
+
 function isDataImageValue(value) {
   return trimString(value).startsWith("data:image/");
 }
@@ -544,7 +577,7 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const year = inferYear(file.name, file.createdTime || file.modifiedTime);
   const jsonOverride = getMetadataOverride(metadataMap, file.id) || {};
   const embeddedOverride = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
-  const override = { ...embeddedOverride, ...jsonOverride };
+  const override = mergeOverridePreferNonEmpty(embeddedOverride, jsonOverride);
   const genre = sanitizePublicGenre(override?.genre || override?.category) || "Kino";
   const posterImage = trimString(override?.posterImage || override?.poster);
   const rawHeaderImage = trimString(override?.headerImage || override?.heroPoster || override?.headerPoster || override?.heroImage);
@@ -946,9 +979,37 @@ async function readMetadataFileRevision(fileId, revisionId) {
   return response.text();
 }
 
+// Foydalanuvchilarning ko'rish tarixi (watchProgress) har kino uchun poster
+// URL'ini ham saqlaydi — bu katalog yozuvi o'chganda ham omon qoladigan va
+// mijozlar tomonidan doimiy yangilanadigan jonli manba. Har kino uchun eng
+// so'nggi ko'rilgan haqiqiy poster URL'ini yig'amiz.
+function collectPosterCandidatesFromWatchProgress(watchProgress) {
+  const best = {};
+  if (!watchProgress || typeof watchProgress !== "object") return {};
+  for (const userMap of Object.values(watchProgress)) {
+    if (!userMap || typeof userMap !== "object") continue;
+    for (const [movieId, entry] of Object.entries(userMap)) {
+      const poster = trimString(entry?.poster);
+      // Faqat haqiqiy tashqi poster URL'lari: fallback thumbnail/generatsiya emas
+      if (!/^https?:\/\//i.test(poster)) continue;
+      if (poster.includes("/api/drive-thumbnail")) continue;
+      const updatedAt = Number(entry?.updatedAt || 0);
+      if (!best[movieId] || updatedAt > best[movieId].updatedAt) {
+        best[movieId] = { posterImage: poster, updatedAt };
+      }
+    }
+  }
+  const movies = {};
+  for (const [movieId, value] of Object.entries(best)) {
+    movies[movieId] = { posterImage: value.posterImage };
+  }
+  return movies;
+}
+
 // O'chib ketgan kino override'larini (posterlar, sarlavhalar, sozlamalar)
-// R2 zaxiradan va Drive fayl revisiyalaridan qaytaradi. Fill-only merge —
-// hozirgi qiymatlarning ustiga yozmaydi.
+// bir nechta manbadan qaytaradi: R2 zaxira, foydalanuvchilar ko'rish tarixi,
+// har kino faylining o'z descriptionidagi embedded metadata va Drive fayl
+// revisiyalari. Fill-only merge — hozirgi qiymatlarning ustiga yozmaydi.
 async function restoreCatalogMovieOverrides() {
   const metadataState = await readCatalogMetadataStrict();
   const current = normalizeCatalogMetadata(metadataState.data);
@@ -962,7 +1023,45 @@ async function restoreCatalogMovieOverrides() {
     }
   } catch (_) { /* zaxira bo'lmasa keyingi manbaga o'tamiz */ }
 
-  // 2) Drive revisiyalari: butun tarix bo'ylab namunalar olib, HAR BIRIDAN
+  // 2) Ko'rish tarixidagi poster URL'lari (joriy metadata ichida)
+  try {
+    const fromProgress = collectPosterCandidatesFromWatchProgress(current.watchProgress);
+    if (Object.keys(fromProgress).length) {
+      sources.push({ name: "watch-progress", movies: fromProgress });
+    }
+  } catch (_) { /* ixtiyoriy manba */ }
+
+  // 3) Har bir kino faylining descriptionidagi [MY_KINO_META] bloklari —
+  //    quota-fallback davrida yozilgan, katalog wipe'laridan mustaqil saqlanadi.
+  try {
+    const { folderId } = getDriveConfig();
+    const embeddedMovies = {};
+    let pageToken = "";
+    do {
+      const payload = await driveFetchJson("", {
+        query: {
+          q: `'${folderId}' in parents and trashed=false and mimeType contains 'video/'`,
+          pageSize: 100,
+          pageToken,
+          supportsAllDrives: "true",
+          includeItemsFromAllDrives: "true",
+          fields: "nextPageToken,files(id,description)",
+        },
+      });
+      for (const file of payload.files || []) {
+        const embedded = extractEmbeddedMovieMetadata(file.description || "");
+        if (embedded.override && isMeaningfulMovieOverride(embedded.override)) {
+          embeddedMovies[file.id] = embedded.override;
+        }
+      }
+      pageToken = payload.nextPageToken || "";
+    } while (pageToken);
+    if (Object.keys(embeddedMovies).length) {
+      sources.push({ name: "embedded-descriptions", movies: embeddedMovies });
+    }
+  } catch (_) { /* ixtiyoriy manba */ }
+
+  // 4) Drive revisiyalari: butun tarix bo'ylab namunalar olib, HAR BIRIDAN
   //    yetishmayotgan maydonlarni yig'amiz (bitta "eng yaxshi" revisiya emas —
   //    turli paytlarda qo'yilgan posterlar turli revisiyalarda bo'ladi).
   //    Yangi revisiyalar birinchi qayta ishlanadi, shuning uchun bir kino
@@ -1044,7 +1143,7 @@ function autoRestoreCatalogOverrides() {
 // Versiya oshirilganda (yangi deploy'da tiklash mantig'i kuchaytirilganda)
 // birinchi katalog so'rovida qayta ishga tushadi. Fill-only bo'lgani uchun
 // xavfsiz: admin keyin kiritgan qiymatlar hech qachon eskisi bilan almashmaydi.
-const CATALOG_DEEP_RESTORE_VERSION = 2;
+const CATALOG_DEEP_RESTORE_VERSION = 3;
 const CATALOG_DEEP_RETRY_INTERVAL_MS = 30 * 60_000;
 
 let deepRestoreInflight = null;
@@ -1115,10 +1214,12 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   const jsonCurrent = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
     ? metadata.movies[normalizedFileId]
     : {};
-  const current = {
-    ...(embedded.override && typeof embedded.override === "object" ? embedded.override : {}),
-    ...jsonCurrent,
-  };
+  // Bo'sh JSON maydonlari fayldagi embedded posterni bekitmasin — tahrir
+  // paytida asl qiymatlar JSON yozuviga qaytarilib, doimiy saqlanadi.
+  const current = mergeOverridePreferNonEmpty(
+    embedded.override && typeof embedded.override === "object" ? embedded.override : {},
+    jsonCurrent,
+  );
   const next = { ...current };
 
   if (updates.title !== undefined) next.title = trimString(updates.title);
