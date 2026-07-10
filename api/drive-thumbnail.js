@@ -8,6 +8,9 @@ function getFileId(request) {
 // Ruxsat etilgan R2 host'lari (ochiq proxy bo'lib qolmasligi uchun).
 function allowedR2Hosts() {
   const hosts = new Set();
+  // Custom R2 domeni — frontend eski r2.dev URL'larni shu hostga almashtiradi,
+  // shuning uchun R2_PUBLIC_URL'dan qat'i nazar ruxsat etilgan bo'lishi kerak.
+  hosts.add("r2.myplaylist.uz");
   const pub = String(process.env.R2_PUBLIC_URL || "").trim();
   if (pub) {
     try { hosts.add(new URL(pub).host); } catch (_) { /* ignore */ }
