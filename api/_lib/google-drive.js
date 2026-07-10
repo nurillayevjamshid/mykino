@@ -898,13 +898,39 @@ async function writeCatalogMetadata(data, existingFile = null) {
 
 // ===== Drive fayl revisiyalaridan o'chib ketgan override'larni tiklash =====
 async function listMetadataFileRevisions(fileId) {
-  const payload = await driveFetchJson(`${encodeURIComponent(fileId)}/revisions`, {
-    query: {
-      fields: "revisions(id,modifiedTime)",
-      pageSize: 200,
-    },
-  });
-  return Array.isArray(payload.revisions) ? payload.revisions : [];
+  const revisions = [];
+  let pageToken = "";
+  do {
+    const payload = await driveFetchJson(`${encodeURIComponent(fileId)}/revisions`, {
+      query: {
+        fields: "nextPageToken,revisions(id,modifiedTime)",
+        pageSize: 1000,
+        pageToken,
+      },
+    });
+    revisions.push(...(Array.isArray(payload.revisions) ? payload.revisions : []));
+    pageToken = payload.nextPageToken || "";
+  } while (pageToken);
+  return revisions;
+}
+
+// Tekshiriladigan revisiyalarni tanlash: eng yangi bir nechtasi + qolgan
+// tarix bo'ylab teng oraliqdagi namunalar. Metadata fayli har like/ko'rish
+// yozuvida qayta yoziladi, shuning uchun faqat eng yangi revisiyalarni
+// ko'rish bir necha soatnigina qamrab olardi — posterlar o'chishidan OLDINGI
+// holat esa ancha chuqurda bo'lishi mumkin.
+function sampleRevisionIndexes(total, newestCount = 8, budget = 28) {
+  const picked = new Set();
+  for (let i = 0; i < Math.min(newestCount, total); i += 1) picked.add(i);
+  const remaining = budget - picked.size;
+  const span = total - newestCount;
+  if (span > 0 && remaining > 0) {
+    for (let i = 0; i < remaining; i += 1) {
+      const offset = Math.min(span - 1, Math.round(((i + 0.5) * span) / remaining));
+      picked.add(newestCount + offset);
+    }
+  }
+  return [...picked].sort((a, b) => a - b);
 }
 
 async function readMetadataFileRevision(fileId, revisionId) {
@@ -936,7 +962,11 @@ async function restoreCatalogMovieOverrides() {
     }
   } catch (_) { /* zaxira bo'lmasa keyingi manbaga o'tamiz */ }
 
-  // 2) Drive revisiyalari (eng yangisidan boshlab, eng boy revisiyani tanlaymiz)
+  // 2) Drive revisiyalari: butun tarix bo'ylab namunalar olib, HAR BIRIDAN
+  //    yetishmayotgan maydonlarni yig'amiz (bitta "eng yaxshi" revisiya emas —
+  //    turli paytlarda qo'yilgan posterlar turli revisiyalarda bo'ladi).
+  //    Yangi revisiyalar birinchi qayta ishlanadi, shuning uchun bir kino
+  //    uchun eng so'nggi qiymat ustun bo'ladi.
   if (metadataState.file) {
     let revisions = [];
     try {
@@ -944,24 +974,21 @@ async function restoreCatalogMovieOverrides() {
     } catch (_) { revisions = []; }
     revisions.sort((a, b) => String(b.modifiedTime || "").localeCompare(String(a.modifiedTime || "")));
 
-    let best = null;
-    let sinceImproved = 0;
-    for (const revision of revisions.slice(0, 25)) {
+    const startedAt = Date.now();
+    const TIME_BUDGET_MS = 6500; // Vercel funksiya limitidan xavfsiz masofada
+    for (const index of sampleRevisionIndexes(revisions.length)) {
+      if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+      const revision = revisions[index];
       try {
         const parsed = normalizeCatalogMetadata(JSON.parse(await readMetadataFileRevision(metadataState.file.id, revision.id)));
-        const count = countMeaningfulMovieOverrides(parsed.movies);
-        if (!best || count > best.count) {
-          best = { count, movies: parsed.movies, settings: parsed.settings };
-          sinceImproved = 0;
-        } else {
-          sinceImproved += 1;
+        if (countMeaningfulMovieOverrides(parsed.movies) > 0) {
+          sources.push({
+            name: `drive-revision:${revision.modifiedTime || revision.id}`,
+            movies: parsed.movies,
+            settings: parsed.settings,
+          });
         }
-        // Yaxshi revisiya topilgach, yana bir nechta eskirog'ini tekshirib to'xtaymiz
-        if (best && best.count > 0 && sinceImproved >= 5) break;
-      } catch (_) { /* buzuq revisiya — o'tkazib yuboramiz */ }
-    }
-    if (best && best.count > 0) {
-      sources.push({ name: "drive-revision", movies: best.movies, settings: best.settings });
+      } catch (_) { /* buzuq/o'chirilgan revisiya — o'tkazib yuboramiz */ }
     }
   }
 
@@ -998,7 +1025,11 @@ function autoRestoreCatalogOverrides() {
       if (marker && Number(marker.ts) && Date.now() - Number(marker.ts) < CATALOG_RESTORE_MIN_INTERVAL_MS) {
         return;
       }
-      await putJsonToR2(CATALOG_RESTORE_MARKER_KEY, { ts: Date.now() });
+      // deepVersion kabi mavjud maydonlarni saqlab qolamiz
+      await putJsonToR2(CATALOG_RESTORE_MARKER_KEY, {
+        ...(marker && typeof marker === "object" ? marker : {}),
+        ts: Date.now(),
+      });
       await restoreCatalogMovieOverrides();
     } catch (_) {
       /* fon jarayoni — jim */
@@ -1007,6 +1038,43 @@ function autoRestoreCatalogOverrides() {
     }
   })();
   return autoRestoreInflight;
+}
+
+// Chuqur tiklash — versiyalangan, R2 marker orqali BIR MARTA ishlaydi.
+// Versiya oshirilganda (yangi deploy'da tiklash mantig'i kuchaytirilganda)
+// birinchi katalog so'rovida qayta ishga tushadi. Fill-only bo'lgani uchun
+// xavfsiz: admin keyin kiritgan qiymatlar hech qachon eskisi bilan almashmaydi.
+const CATALOG_DEEP_RESTORE_VERSION = 2;
+const CATALOG_DEEP_RETRY_INTERVAL_MS = 30 * 60_000;
+
+let deepRestoreInflight = null;
+function maybeDeepRestoreCatalogOverrides() {
+  if (deepRestoreInflight) return deepRestoreInflight;
+  deepRestoreInflight = (async () => {
+    try {
+      let marker = null;
+      try { marker = await getJsonFromR2(CATALOG_RESTORE_MARKER_KEY, null); } catch (_) { marker = null; }
+      const doneVersion = Number(marker?.deepVersion || 0);
+      if (doneVersion >= CATALOG_DEEP_RESTORE_VERSION) return false;
+      const lastAttempt = Number(marker?.ts || 0);
+      if (lastAttempt && Date.now() - lastAttempt < CATALOG_DEEP_RETRY_INTERVAL_MS) return false;
+      // Markerni oldindan yozamiz — parallel instansiyalar va xato holatida
+      // qayta-qayta urinishning oldini oladi.
+      await putJsonToR2(CATALOG_RESTORE_MARKER_KEY, { deepVersion: doneVersion, ts: Date.now() });
+      const result = await restoreCatalogMovieOverrides();
+      await putJsonToR2(CATALOG_RESTORE_MARKER_KEY, {
+        deepVersion: CATALOG_DEEP_RESTORE_VERSION,
+        ts: Date.now(),
+        restored: result.restored,
+      });
+      return result.restored > 0;
+    } catch (_) {
+      return false;
+    } finally {
+      deepRestoreInflight = null;
+    }
+  })();
+  return deepRestoreInflight;
 }
 
 async function updateCatalogMovieMetadata(fileId, updates = {}) {
@@ -1334,6 +1402,11 @@ async function listDriveMoviesUncached() {
     }
     throw error;
   }
+  // Deploy'dan keyin bir marta: o'chib ketgan poster bog'lanishlarini Drive
+  // revisiyalari va R2 zaxiradan chuqur qidirib tiklash. Marker tufayli
+  // odatiy so'rovlarda bitta yengil R2 GET bilan o'tib ketadi.
+  try { await maybeDeepRestoreCatalogOverrides(); } catch (_) {}
+
   const files = [];
   let pageToken = "";
   const metadataState = await readCatalogMetadata();
@@ -1392,6 +1465,7 @@ async function listDriveMoviesFromDrive() {
     if (error.statusCode === 404) return null;
     throw error;
   }
+  try { await maybeDeepRestoreCatalogOverrides(); } catch (_) {}
   const files = [];
   let pageToken = "";
   const metadataState = await readCatalogMetadata();
@@ -1842,6 +1916,7 @@ module.exports = {
   readCatalogMetadata,
   readCatalogMetadataStrict,
   restoreCatalogMovieOverrides,
+  maybeDeepRestoreCatalogOverrides,
   countMeaningfulMovieOverrides,
   mergeMovieOverridesFillOnly,
   writeCatalogMetadata,
