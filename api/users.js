@@ -125,6 +125,18 @@ async function readUsersFromR2() {
   }
 }
 
+// Git repodagi kunlik zaxira (GitHub Actions yangilab boradi, deploy bilan
+// birga keladi). Tashqi storage'lar butunlay buzilsa ham bu manba qoladi.
+function readUsersFromRepoBackup() {
+  try {
+    const data = require("../data/users-backup.json");
+    const list = Array.isArray(data?.users) ? data.users : Array.isArray(data) ? data : [];
+    return list.map(normalizeUser).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 // So'nggi kunlik zaxira nusxalar — asosiy fayl buzilgan/qisqargan bo'lsa ham
 // GET ular bilan birlashtirib to'liq ro'yxatni qaytaradi (o'z-o'zini tiklash).
 async function readUsersFromR2Backups(days = 7) {
@@ -158,7 +170,9 @@ function mergeUsers(...lists) {
         telegram_id: prev.telegram_id || u.telegram_id,
         username: prev.username || u.username,
         first_name: prev.first_name || u.first_name,
-        started_at: prev.started_at || u.started_at,
+        // Eng erta sana — userning haqiqiy qo'shilgan kuni. Aks holda wipe'dan
+        // keyin qayta ro'yxatdan o'tganlarda bugungi sana ko'rinib qoladi.
+        started_at: [prev.started_at, u.started_at].filter(Boolean).sort()[0] || "",
       });
     }
   }
@@ -283,6 +297,7 @@ module.exports = async function handler(request, response) {
       const debugMatch = /[?&]_debug=([^&]+)/.exec(reqUrl);
       const expectedAdmin = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
       const isDebug = debugMatch && safeCompareStrings(decodeURIComponent(debugMatch[1]), expectedAdmin);
+      const repoBackupUsers = readUsersFromRepoBackup();
       const [r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
         (async () => {
           try { return { ok: true, users: await readUsersFromR2() }; }
@@ -307,13 +322,14 @@ module.exports = async function handler(request, response) {
           } catch (e) { return { ok: false, error: e?.message || String(e) }; }
         })(),
       ]);
-      const merged = mergeUsers(r2Outcome.users || [], backupOutcome.users || [], blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
+      const merged = mergeUsers(r2Outcome.users || [], backupOutcome.users || [], repoBackupUsers, blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
       if (isDebug) {
         response.status(200).json({
           merged,
           counts: {
             r2: r2Outcome.users?.length || 0,
             backups: backupOutcome.users?.length || 0,
+            repo: repoBackupUsers.length,
             blob: blobOutcome.users?.length || 0,
             proxied: proxiedOutcome.users?.length || 0,
             metadata: metaOutcome.users?.length || 0,
