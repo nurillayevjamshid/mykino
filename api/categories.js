@@ -344,6 +344,88 @@ async function writeFifaLiveMatch(match) {
   }
 }
 
+// ===== TV kanallar (admin boshqaradi) =====
+// Redis'da saqlanadi; bo'sh bo'lsa webapp statik /static/tv/tv-channels.json'ga o'tadi.
+const TV_CHANNELS_KEY = "tv-channels:v1";
+const TV_CHANNELS_MAX = 600;
+
+function normalizeTvChannel(c) {
+  if (!c || typeof c !== "object") return null;
+  const name = String(c.name || "").trim().slice(0, 100);
+  const url = String(c.url || "").trim().slice(0, 800);
+  if (!name || !/^https?:\/\//i.test(url)) return null;
+  return {
+    name,
+    group: String(c.group || "General").trim().slice(0, 40) || "General",
+    logo: String(c.logo || "").trim().slice(0, 500),
+    url,
+  };
+}
+
+async function readTvChannels() {
+  const client = await getRedis();
+  if (!client) return null;
+  try {
+    const raw = await client.get(TV_CHANNELS_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data.map(normalizeTvChannel).filter(Boolean) : null;
+  } catch (err) {
+    console.warn("redis get tv-channels xato:", err.message);
+    return null;
+  }
+}
+
+async function writeTvChannels(list) {
+  const client = await getRedis();
+  if (!client) return false;
+  try {
+    if (list) await client.set(TV_CHANNELS_KEY, JSON.stringify(list));
+    else await client.del(TV_CHANNELS_KEY);
+    return true;
+  } catch (err) {
+    console.warn("redis set tv-channels xato:", err.message);
+    return false;
+  }
+}
+
+async function handleTvChannels(request, response) {
+  if (request.method === "GET") {
+    try {
+      const channels = await readTvChannels();
+      response.setHeader("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");
+      response.status(200).json({ ok: true, channels });
+    } catch (err) {
+      response.status(500).json({ ok: false, error: err.message || "Yuklab bo'lmadi." });
+    }
+    return;
+  }
+  // Yozish — auth talab
+  if (!(await authorizeRequest(request, response))) return;
+  try {
+    const body = await readBody(request);
+    if (!isRedisEnabled()) {
+      response.status(503).json({ ok: false, error: "Vercel Redis sozlanmagan." });
+      return;
+    }
+    if (request.method === "DELETE" || body.action === "reset") {
+      // Ro'yxatni tozalash — webapp default statik ro'yxatga qaytadi
+      await writeTvChannels(null);
+      response.status(200).json({ ok: true, channels: null });
+      return;
+    }
+    const list = Array.isArray(body.channels) ? body.channels : null;
+    if (!list) { response.status(400).json({ ok: false, error: "channels massivi kerak." }); return; }
+    const normalized = list.map(normalizeTvChannel).filter(Boolean).slice(0, TV_CHANNELS_MAX);
+    if (!normalized.length) { response.status(400).json({ ok: false, error: "Kamida bitta yaroqli kanal kerak (nom + https URL)." }); return; }
+    const ok = await writeTvChannels(normalized);
+    if (!ok) { response.status(500).json({ ok: false, error: "Saqlash muvaffaqiyatsiz." }); return; }
+    response.status(200).json({ ok: true, channels: normalized });
+  } catch (err) {
+    response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
+  }
+}
+
 async function handleFifaLive(request, response) {
   if (request.method === "GET") {
     try {
@@ -629,6 +711,10 @@ module.exports = async function handler(request, response) {
   }
   if (earlyType === "fifa-live") {
     await handleFifaLive(request, response);
+    return;
+  }
+  if (earlyType === "tv-channels") {
+    await handleTvChannels(request, response);
     return;
   }
   if (earlyType === "fifa-lineup") {

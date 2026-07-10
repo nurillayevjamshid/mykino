@@ -101,6 +101,15 @@
               <span class="nav-text">FIFA Jonli</span>
             </a>
           </li>
+          <li class="nav-item" data-section="tv">
+            <a href="#" class="nav-link">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="3"></rect>
+                <path d="m8 2 4 4 4-4"></path>
+              </svg>
+              <span class="nav-text">TV kanallar</span>
+            </a>
+          </li>
         </ul>
       </nav>
 
@@ -921,6 +930,72 @@
           </div>
         </section>
 
+        <!-- TV kanallar Section -->
+        <section class="content-section" id="tvSection">
+          <div class="section-header">
+            <h2>TV kanallar</h2>
+            <div class="section-header__hint" style="color:var(--text-muted);font-size:13px;">
+              Mini appdagi TV bo'limi kanallari. O'zgartirishlar saqlangach foydalanuvchilarga darhol ko'rinadi.
+              "Standartga qaytarish" bosilsa, ilova o'rnatilgan default ro'yxatga qaytadi.
+            </div>
+          </div>
+
+          <div class="form-card" style="background:var(--card-bg,#fff);padding:20px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+              <input type="text" id="tvChSearch" class="form-input" placeholder="Kanal qidirish..." style="max-width:260px;">
+              <select id="tvChGroupFilter" class="form-input" style="max-width:180px;">
+                <option value="">Barcha guruhlar</option>
+              </select>
+              <span style="flex:1;"></span>
+              <button type="button" class="btn btn-secondary" id="tvChResetBtn">Standartga qaytarish</button>
+              <button type="button" class="btn btn-primary" id="tvChAddBtn">+ Yangi kanal</button>
+            </div>
+
+            <!-- Qo'shish/tahrirlash formasi -->
+            <div id="tvChForm" hidden style="border:1px solid var(--border-color,#e5e7eb);border-radius:10px;padding:16px;margin-bottom:16px;">
+              <input type="hidden" id="tvChFormIndex" value="">
+              <div class="form-group">
+                <label>Kanal nomi</label>
+                <input type="text" id="tvChFormName" class="form-input" maxlength="100" placeholder="Masalan: Sport">
+              </div>
+              <div class="form-group">
+                <label>Guruh</label>
+                <select id="tvChFormGroup" class="form-input">
+                  <option value="General">Umumiy</option>
+                  <option value="Entertainment">Ko'ngilochar</option>
+                  <option value="Movies">Kino</option>
+                  <option value="Music">Musiqa</option>
+                  <option value="Kids">Bolalar</option>
+                  <option value="News">Yangiliklar</option>
+                  <option value="Sports">Sport</option>
+                  <option value="Family">Oila</option>
+                  <option value="Documentary">Hujjatli</option>
+                  <option value="Undefined">Boshqa</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Logo havolasi (https://...)</label>
+                <input type="url" id="tvChFormLogo" class="form-input" placeholder="https://i.imgur.com/xxx.png">
+                <div style="margin-top:8px;">
+                  <img id="tvChFormLogoPreview" src="" alt="" style="width:56px;height:56px;object-fit:contain;background:#fff;border:1px solid var(--border-color,#e5e7eb);border-radius:10px;display:none;">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Stream havolasi (HLS .m3u8, https://...)</label>
+                <input type="url" id="tvChFormUrl" class="form-input" placeholder="https://.../playlist.m3u8">
+              </div>
+              <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" id="tvChFormCancel">Bekor</button>
+                <button type="button" class="btn btn-primary" id="tvChFormSave">Saqlash</button>
+              </div>
+            </div>
+
+            <div id="tvChStatus" style="margin-bottom:10px;font-size:13px;"></div>
+            <div id="tvChCount" style="margin-bottom:10px;font-size:13px;color:var(--text-muted);"></div>
+            <div id="tvChList"></div>
+          </div>
+        </section>
+
         <!-- Obunachilar Section -->
         <section class="content-section" id="usersSection">
           <div class="section-header">
@@ -1156,6 +1231,6 @@
     }
   </style>
 
-  <script src="/admin/admin.js?v=20260616-music-yt-channels"></script>
+  <script src="/admin/admin.js?v=20260710-tv-admin"></script>
 </body>
 </html>
