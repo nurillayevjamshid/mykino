@@ -8002,3 +8002,68 @@ document.addEventListener("DOMContentLoaded", () => {
     openFifaView();
   });
 });
+
+// ============================================================
+// Liquid Glass bottom nav — sirg'anuvchi pill indikator
+// Aktiv tugma (is-active) o'zgarganda pill spring animatsiya
+// bilan yangi o'ringa sirg'anadi. Barcha bottom-bar'larda ishlaydi.
+// (revertable: delete this block)
+// ============================================================
+(function initBottomBarPills() {
+  const inners = document.querySelectorAll(".bottom-bar__inner");
+  if (!inners.length) return;
+
+  inners.forEach((inner) => {
+    const pill = document.createElement("span");
+    pill.className = "bottom-bar__pill";
+    pill.setAttribute("aria-hidden", "true");
+    inner.prepend(pill);
+
+    // Bar yashirin holatdan ko'ringanida pill eski joydan sirg'anib
+    // kelmasligi uchun birinchi sync transition'siz bajariladi.
+    let needsInstantSync = true;
+
+    const sync = () => {
+      const active = inner.querySelector(".bottom-bar__button.is-active");
+      const innerRect = inner.getBoundingClientRect();
+      if (!active || !innerRect.width) {
+        pill.classList.remove("is-visible");
+        needsInstantSync = true;
+        return;
+      }
+      const btnRect = active.getBoundingClientRect();
+      if (!btnRect.width) {
+        pill.classList.remove("is-visible");
+        needsInstantSync = true;
+        return;
+      }
+      const x = btnRect.left - innerRect.left + 4;
+      const w = Math.max(36, btnRect.width - 8);
+      if (needsInstantSync) {
+        pill.style.transition = "none";
+        needsInstantSync = false;
+        requestAnimationFrame(() => { pill.style.transition = ""; });
+      }
+      pill.style.width = `${w}px`;
+      pill.style.transform = `translate(${x}px, -50%)`;
+      pill.classList.add("is-visible");
+    };
+
+    // is-active class o'zgarishlarini kuzatamiz — qaysi kod toggle
+    // qilishidan qat'i nazar (kino/musiqa/potkast bo'limlari).
+    const observer = new MutationObserver(sync);
+    inner.querySelectorAll(".bottom-bar__button").forEach((btn) => {
+      observer.observe(btn, { attributes: true, attributeFilter: ["class"] });
+    });
+
+    // Bar ko'rinishi/o'lchami o'zgarganda (bo'lim almashganda, resize'da)
+    if (typeof ResizeObserver === "function") {
+      new ResizeObserver(sync).observe(inner);
+    }
+    window.addEventListener("resize", sync);
+    // Til almashganda label kengligi o'zgaradi — layout'dan keyin qayta hisob
+    window.addEventListener("kino-lang-change", () => setTimeout(sync, 60));
+
+    sync();
+  });
+})();
