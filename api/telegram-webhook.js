@@ -1,5 +1,5 @@
-const { readBlobJson, writeBlobJson } = require("./_lib/blob-store");
-const { getJsonFromR2Signed, putJsonToR2 } = require("./_lib/r2-store");
+const { readBlobJsonStrict, writeBlobJson } = require("./_lib/blob-store");
+const { getJsonFromR2SignedStrict, putJsonToR2 } = require("./_lib/r2-store");
 const { verifyTelegramWebappInitData, setCorsHeaders } = require("./_lib/auth");
 
 const TG_API = "https://api.telegram.org";
@@ -151,12 +151,25 @@ async function answerCallback(callbackId, text = "") {
   } catch {}
 }
 
+// O'zgarish bo'lmasa yozmaymiz — ortiqcha yozish parallel so'rovlar orasida
+// read-modify-write to'qnashuvi (yozuvlar yo'qolishi) xavfini oshiradi.
+function sameUserRecord(a, b) {
+  if (!a || !b) return false;
+  return String(a.telegram_id) === String(b.telegram_id)
+    && String(a.username || "") === String(b.username || "")
+    && String(a.first_name || "") === String(b.first_name || "")
+    && String(a.started_at || "") === String(b.started_at || "");
+}
+
 async function upsertUserBlob(record) {
   // Try to persist to Vercel Blob (legacy storage). Throws on suspended/missing token.
-  const data = (await readBlobJson(BLOB_USERS_PATHNAME, null)) || { users: [] };
+  // Strict o'qish: vaqtinchalik xato "bo'sh fayl" bo'lib ko'rinib, yozuv butun
+  // ro'yxatni bitta user bilan almashtirib yubormasligi uchun.
+  const data = (await readBlobJsonStrict(BLOB_USERS_PATHNAME)) || { users: [] };
   const list = Array.isArray(data.users) ? data.users : [];
   const idx = list.findIndex((u) => String(u.telegram_id) === String(record.telegram_id));
   const merged = idx >= 0 ? { ...list[idx], ...record, started_at: list[idx].started_at || record.started_at } : record;
+  if (idx >= 0 && sameUserRecord(list[idx], merged)) return;
   if (idx >= 0) list[idx] = merged;
   else list.push(merged);
   await writeBlobJson(BLOB_USERS_PATHNAME, { users: list, updatedAt: new Date().toISOString() });
@@ -164,16 +177,23 @@ async function upsertUserBlob(record) {
 
 async function upsertUserR2(record) {
   // Primary storage: Cloudflare R2 (signed GET to keep user list private).
-  const data = (await getJsonFromR2Signed(R2_USERS_KEY, null)) || { users: [] };
+  // Strict o'qish — yuqoridagi izohga qarang.
+  const data = (await getJsonFromR2SignedStrict(R2_USERS_KEY)) || { users: [] };
   const list = Array.isArray(data.users) ? data.users : [];
   const idx = list.findIndex((u) => String(u?.telegram_id) === String(record.telegram_id));
   const merged = idx >= 0
     ? { ...list[idx], ...record, started_at: list[idx]?.started_at || record.started_at }
     : record;
+  if (idx >= 0 && sameUserRecord(list[idx], merged)) return;
   if (idx >= 0) list[idx] = merged;
   else list.push(merged);
   list.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
   await putJsonToR2(R2_USERS_KEY, { users: list, updatedAt: new Date().toISOString() });
+  // Yangi obunachi qo'shilganda kunlik zaxira nusxa (best-effort).
+  if (idx < 0) {
+    const backupKey = `settings/bot-users-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    try { await putJsonToR2(backupKey, { users: list, updatedAt: new Date().toISOString() }); } catch {}
+  }
 }
 
 async function upsertUser(telegramUser) {
@@ -206,7 +226,16 @@ async function upsertUser(telegramUser) {
     const metadataState = await readCatalogMetadata();
     if (metadataState.file) {
       const data = metadataState.data;
-      const list = Array.isArray(data.users) ? data.users : (data.users ? Object.values(data.users) : []);
+      // Eski obyekt-sxemada kalit = telegram ID; Object.values kalitni tashlab
+      // yuborib ID'siz yozuvlar qoldirardi. Kalitni fallback ID sifatida saqlaymiz.
+      const list = Array.isArray(data.users)
+        ? data.users
+        : (data.users && typeof data.users === "object"
+          ? Object.entries(data.users).map(([key, value]) => {
+              if (!value || typeof value !== "object") return null;
+              return (value.telegram_id || value.telegramId || value.id) ? value : { ...value, telegram_id: key };
+            }).filter(Boolean)
+          : []);
       const idx = list.findIndex(u => String(u.telegram_id) === String(record.telegram_id));
       const merged = idx >= 0 ? { ...list[idx], ...record, started_at: list[idx].started_at || record.started_at } : record;
       if (idx >= 0) list[idx] = merged; else list.push(merged);
