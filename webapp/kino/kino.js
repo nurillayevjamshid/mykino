@@ -1615,6 +1615,44 @@ function buildDriveThumbnailUrl(fileId) {
   return buildApiUrl(`/api/drive-thumbnail/${encodeURIComponent(fileId)}`);
 }
 
+// Stream URL'idagi imzolangan tokenni ajratib oladi — drive-thumbnail ham
+// xuddi shu (fileId, BOT_TOKEN) imzosini qabul qiladi.
+function extractStreamToken(movie) {
+  const source = String(movie?.videoUrl || movie?.streamUrl || "");
+  const match = source.match(/[?&]token=([^&#]+)/);
+  if (!match) return "";
+  try { return decodeURIComponent(match[1]); } catch { return match[1]; }
+}
+
+// Faqat R2 host'lari server proxy'sidan o'tkaziladi (drive-thumbnail?u= shu
+// host'largagina ruxsat beradi).
+const POSTER_PROXYABLE_HOST = /(^|\.)r2\.dev$|^r2\.myplaylist\.uz$/i;
+
+// Poster yuklanmay qolganda navbat bilan sinaladigan zaxira manbalar:
+// 1) O'z domenimiz orqali R2 proxy (foydalanuvchi tarmog'ida R2 host
+//    bloklangan/throttle bo'lsa yordam beradi);
+// 2) Drive videoning o'z thumbnail'i (o'lik URL — masalan eski Vercel Blob —
+//    o'rnini bosadi; thumbnail bo'lmasa server logo'ga redirect qiladi);
+// 3) Nomdan yasalgan SVG poster (data URL — doim ishlaydi).
+// Shu zanjir tufayli kartochka hech qachon qop-qora bo'lib qolmaydi.
+function buildPosterFallbackList(movie, primarySrc) {
+  const list = [];
+  const primary = String(primarySrc || "").trim();
+  try {
+    const host = new URL(primary).host;
+    if (POSTER_PROXYABLE_HOST.test(host)) {
+      list.push(buildApiUrl(`/api/drive-thumbnail?u=${encodeURIComponent(primary)}`));
+    }
+  } catch (_) { /* nisbiy yoki data: URL — proxy kerak emas */ }
+  const id = String(movie?.driveFileId || movie?.fileId || movie?.id || "").trim();
+  if (id && !/^local-/i.test(id) && !primary.includes("/api/drive-thumbnail/")) {
+    const token = extractStreamToken(movie);
+    list.push(buildDriveThumbnailUrl(id) + (token ? `?token=${encodeURIComponent(token)}` : ""));
+  }
+  list.push(buildGeneratedPosterDataUrl(movie));
+  return list.filter((url, index, all) => url && url !== primary && all.indexOf(url) === index);
+}
+
 function fileExtension(value) {
   const path = String(value || "").split("?")[0].split("#")[0];
   const match = path.match(/\.([a-z0-9]{2,6})$/i);
@@ -2309,6 +2347,28 @@ function renderHeroSlide(movie) {
       // qo'shiladi; rasm yuklanishi bilan brauzer o'zi ko'rsatadi.
       heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
       heroBackdrop.classList.add("is-loaded");
+      // Rasm o'lik URL bo'lsa (masalan eski Blob), zaxira manbalarga o'tamiz.
+      const heroFallbacks = buildPosterFallbackList(movie, imageUrl);
+      const probe = new Image();
+      probe.onerror = () => {
+        const tryNextHero = () => {
+          if (heroFeaturedMovie !== movie) return; // slayd almashib ketgan
+          const next = heroFallbacks.shift();
+          if (!next) {
+            heroBackdrop.style.backgroundImage = "linear-gradient(135deg, #1f1f1f, #050505)";
+            return;
+          }
+          const retry = new Image();
+          retry.onload = () => {
+            if (heroFeaturedMovie !== movie) return;
+            heroBackdrop.style.backgroundImage = `url('${next.replaceAll("'", "%27")}')`;
+          };
+          retry.onerror = tryNextHero;
+          retry.src = next;
+        };
+        tryNextHero();
+      };
+      probe.src = imageUrl;
     } else {
       heroBackdrop.style.backgroundImage = "linear-gradient(135deg, #1f1f1f, #050505)";
       heroBackdrop.classList.add("is-loaded");
@@ -2539,7 +2599,17 @@ function createMovieCard(movie) {
       posterImg.classList.add("is-loaded");
       posterImg.parentElement && posterImg.parentElement.classList.add("poster--loaded");
     };
+    // Yuklanmasa qora kartochka qoldirmaymiz: zaxira manbalarni navbat bilan
+    // sinaymiz (R2 proxy -> Drive thumbnail -> generatsiya qilingan poster).
+    const posterFallbacks = buildPosterFallbackList(movie, posterSrc);
     const markFailed = () => {
+      const next = posterFallbacks.shift();
+      if (next) {
+        posterImg.addEventListener("load", markLoaded, { once: true });
+        posterImg.addEventListener("error", markFailed, { once: true });
+        posterImg.src = next;
+        return;
+      }
       posterImg.parentElement && posterImg.parentElement.classList.add("poster--loaded");
       posterImg.remove();
     };
