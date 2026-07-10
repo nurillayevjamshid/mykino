@@ -8037,8 +8037,8 @@ document.addEventListener("DOMContentLoaded", () => {
         needsInstantSync = true;
         return;
       }
-      const x = btnRect.left - innerRect.left + 4;
-      const w = Math.max(36, btnRect.width - 8);
+      const x = btnRect.left - innerRect.left + 2;
+      const w = Math.max(40, btnRect.width - 4);
       if (needsInstantSync) {
         pill.style.transition = "none";
         needsInstantSync = false;

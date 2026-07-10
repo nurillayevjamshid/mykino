@@ -10071,6 +10071,18 @@ html[data-theme="light"] .bottom-bar__pill {
 .bottom-bar__inner > .bottom-bar__button {
   position: relative;
   z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Label pill ichidan chiqib ketmasin — uzun so'zlar qisqartiriladi */
+.bottom-bar__label {
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+  max-width: calc(100% - 10px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* --- Aktiv ikonka pop: scale 0.95 -> 1.0 + fade + bounce --- */
