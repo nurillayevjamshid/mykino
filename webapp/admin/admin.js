@@ -84,6 +84,7 @@ const SECTION_TITLES = {
   users: 'Obunachilar',
   ad: 'Reklama',
   fifaLive: 'FIFA Jonli',
+  tv: 'TV kanallar',
 };
 
 // Modal kategoriyalari uchun: tanlangan + mavjudlar ro'yxati
@@ -473,6 +474,7 @@ function switchSection(name) {
     users: 'usersSection',
     ad: 'adSection',
     fifaLive: 'fifaLiveSection',
+    tv: 'tvSection',
   };
   const targetId = sections[name];
   if (!targetId) return;
@@ -495,6 +497,7 @@ function switchSection(name) {
   if (name === 'categories') fetchCategories();
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
   if (name === 'fifaLive') { loadFifaLiveMatch(); }
+  if (name === 'tv') { loadTvChannelsAdmin(); }
 
   if (window.innerWidth <= 768) {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -4147,3 +4150,193 @@ document.getElementById('fifaLiveCoverUrl')?.addEventListener('input', (e) => {
 document.getElementById('fifaLiveSaveBtn')?.addEventListener('click', saveFifaLiveMatch);
 document.getElementById('fifaLiveDeleteBtn')?.addEventListener('click', deleteFifaLiveMatch);
 
+
+// ============================================================
+// TV kanallar bo'limi — ro'yxat, tahrirlash, o'chirish, qo'shish.
+// Saqlangan ro'yxat Redis'da (/api/categories?type=tv-channels);
+// bo'sh bo'lsa default /static/tv/tv-channels.json ko'rsatiladi.
+// ============================================================
+let tvChannelsAdmin = [];
+let tvChannelsLoadedAdmin = false;
+let tvChannelsIsDefault = false;
+
+function tvChSetStatus(text, kind) {
+  const el = document.getElementById('tvChStatus');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = kind === 'error' ? '#dc2626' : kind === 'ok' ? '#16a34a' : 'var(--text-muted)';
+}
+
+function tvChEsc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function loadTvChannelsAdmin(force) {
+  if (tvChannelsLoadedAdmin && !force) { renderTvChannelsAdmin(); return; }
+  tvChSetStatus('Yuklanmoqda...');
+  try {
+    const res = await fetch('/api/categories?type=tv-channels', { cache: 'no-store' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    if (Array.isArray(json.channels) && json.channels.length) {
+      tvChannelsAdmin = json.channels;
+      tvChannelsIsDefault = false;
+    } else {
+      const defRes = await fetch('/static/tv/tv-channels.json', { cache: 'no-store' });
+      const def = await defRes.json();
+      tvChannelsAdmin = Array.isArray(def.channels) ? def.channels : [];
+      tvChannelsIsDefault = true;
+    }
+    tvChannelsLoadedAdmin = true;
+    tvChSetStatus(tvChannelsIsDefault
+      ? "Default ro'yxat ko'rsatilmoqda (hali o'zgartirilmagan)."
+      : "Admin saqlagan ro'yxat ko'rsatilmoqda.");
+    fillTvGroupFilter();
+    renderTvChannelsAdmin();
+  } catch (err) {
+    tvChSetStatus(`Yuklashda xato: ${err.message}`, 'error');
+  }
+}
+
+function fillTvGroupFilter() {
+  const sel = document.getElementById('tvChGroupFilter');
+  if (!sel) return;
+  const cur = sel.value;
+  const groups = [...new Set(tvChannelsAdmin.map((c) => c.group || 'General'))];
+  sel.innerHTML = '<option value="">Barcha guruhlar</option>' +
+    groups.map((g) => `<option value="${tvChEsc(g)}">${tvChEsc(g)}</option>`).join('');
+  if (groups.includes(cur)) sel.value = cur;
+}
+
+function renderTvChannelsAdmin() {
+  const list = document.getElementById('tvChList');
+  const countEl = document.getElementById('tvChCount');
+  if (!list) return;
+  const q = (document.getElementById('tvChSearch')?.value || '').trim().toLowerCase();
+  const grp = document.getElementById('tvChGroupFilter')?.value || '';
+  const rows = tvChannelsAdmin
+    .map((ch, idx) => ({ ch, idx }))
+    .filter(({ ch }) => (!q || ch.name.toLowerCase().includes(q)) && (!grp || (ch.group || 'General') === grp));
+  if (countEl) countEl.textContent = `${rows.length} / ${tvChannelsAdmin.length} kanal`;
+  list.innerHTML = rows.map(({ ch, idx }) => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border-color,#e5e7eb);border-radius:10px;margin-bottom:8px;">
+      <img src="${tvChEsc(ch.logo)}" alt="" referrerpolicy="no-referrer" loading="lazy"
+           style="width:40px;height:40px;object-fit:contain;background:#fff;border-radius:8px;flex:0 0 auto;"
+           onerror="this.style.visibility='hidden'">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tvChEsc(ch.name)}</div>
+        <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tvChEsc(ch.group || 'General')} · ${tvChEsc(ch.url)}</div>
+      </div>
+      <button type="button" class="btn btn-secondary" data-tv-edit="${idx}" style="flex:0 0 auto;">Tahrirlash</button>
+      <button type="button" class="btn btn-secondary" data-tv-del="${idx}" style="flex:0 0 auto;color:#dc2626;">O'chirish</button>
+    </div>
+  `).join('') || '<div style="color:var(--text-muted);padding:20px;text-align:center;">Kanal topilmadi.</div>';
+
+  list.querySelectorAll('[data-tv-edit]').forEach((b) =>
+    b.addEventListener('click', () => openTvChForm(Number(b.dataset.tvEdit))));
+  list.querySelectorAll('[data-tv-del]').forEach((b) =>
+    b.addEventListener('click', () => deleteTvChannel(Number(b.dataset.tvDel))));
+}
+
+function openTvChForm(index) {
+  const form = document.getElementById('tvChForm');
+  if (!form) return;
+  const ch = Number.isInteger(index) && index >= 0 ? tvChannelsAdmin[index] : null;
+  document.getElementById('tvChFormIndex').value = ch ? String(index) : '';
+  document.getElementById('tvChFormName').value = ch?.name || '';
+  document.getElementById('tvChFormGroup').value = ch?.group || 'General';
+  document.getElementById('tvChFormLogo').value = ch?.logo || '';
+  document.getElementById('tvChFormUrl').value = ch?.url || '';
+  syncTvChLogoPreview();
+  form.hidden = false;
+  form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeTvChForm() {
+  const form = document.getElementById('tvChForm');
+  if (form) form.hidden = true;
+}
+
+function syncTvChLogoPreview() {
+  const url = (document.getElementById('tvChFormLogo')?.value || '').trim();
+  const img = document.getElementById('tvChFormLogoPreview');
+  if (!img) return;
+  if (/^https?:\/\//i.test(url)) {
+    img.src = url;
+    img.style.display = 'inline-block';
+  } else {
+    img.style.display = 'none';
+  }
+}
+
+async function saveTvChannelsToServer(next, successMsg) {
+  tvChSetStatus('Saqlanmoqda...');
+  const res = await fetch('/api/categories?type=tv-channels', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ channels: next }),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  tvChannelsAdmin = json.channels;
+  tvChannelsIsDefault = false;
+  fillTvGroupFilter();
+  renderTvChannelsAdmin();
+  tvChSetStatus(successMsg || 'Saqlandi.', 'ok');
+}
+
+async function submitTvChForm() {
+  const idxRaw = document.getElementById('tvChFormIndex').value;
+  const name = (document.getElementById('tvChFormName')?.value || '').trim();
+  const group = document.getElementById('tvChFormGroup')?.value || 'General';
+  const logo = (document.getElementById('tvChFormLogo')?.value || '').trim();
+  const url = (document.getElementById('tvChFormUrl')?.value || '').trim();
+  if (!name) { tvChSetStatus('Kanal nomini kiriting.', 'error'); return; }
+  if (!/^https:\/\//i.test(url)) { tvChSetStatus("Stream havolasi https:// bilan boshlanishi kerak.", 'error'); return; }
+  const entry = { name, group, logo, url };
+  const next = tvChannelsAdmin.slice();
+  if (idxRaw === '') next.unshift(entry);
+  else next[Number(idxRaw)] = entry;
+  try {
+    await saveTvChannelsToServer(next, idxRaw === '' ? "Kanal qo'shildi." : 'Kanal yangilandi.');
+    closeTvChForm();
+  } catch (err) {
+    tvChSetStatus(`Saqlashda xato: ${err.message}`, 'error');
+  }
+}
+
+async function deleteTvChannel(index) {
+  const ch = tvChannelsAdmin[index];
+  if (!ch) return;
+  if (!confirm(`"${ch.name}" kanalini o'chirasizmi?`)) return;
+  const next = tvChannelsAdmin.slice();
+  next.splice(index, 1);
+  try {
+    await saveTvChannelsToServer(next, "Kanal o'chirildi.");
+  } catch (err) {
+    tvChSetStatus(`O'chirishda xato: ${err.message}`, 'error');
+  }
+}
+
+async function resetTvChannels() {
+  if (!confirm("Barcha o'zgarishlar bekor qilinib, default ro'yxatga qaytariladi. Davom etasizmi?")) return;
+  tvChSetStatus('Qaytarilmoqda...');
+  try {
+    const res = await fetch('/api/categories?type=tv-channels', { method: 'DELETE' });
+    const json = await res.json();
+    if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    tvChannelsLoadedAdmin = false;
+    await loadTvChannelsAdmin(true);
+    tvChSetStatus("Default ro'yxatga qaytarildi.", 'ok');
+  } catch (err) {
+    tvChSetStatus(`Xato: ${err.message}`, 'error');
+  }
+}
+
+document.getElementById('tvChAddBtn')?.addEventListener('click', () => openTvChForm(-1));
+document.getElementById('tvChFormCancel')?.addEventListener('click', closeTvChForm);
+document.getElementById('tvChFormSave')?.addEventListener('click', submitTvChForm);
+document.getElementById('tvChResetBtn')?.addEventListener('click', resetTvChannels);
+document.getElementById('tvChSearch')?.addEventListener('input', () => renderTvChannelsAdmin());
+document.getElementById('tvChGroupFilter')?.addEventListener('change', () => renderTvChannelsAdmin());
+document.getElementById('tvChFormLogo')?.addEventListener('input', syncTvChLogoPreview);
