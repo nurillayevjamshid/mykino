@@ -1,0 +1,42 @@
+# Har kuni obunachilar ro'yxatini production API'dan olib, data/users-backup.json
+# bilan birlashtirib repoga commit qiladi. Git tarixi = abadiy kunlik zaxira.
+#
+# ESLATMA: Repo Settings -> Secrets and variables -> Actions bo'limida
+# BOT_TOKEN (yoki ADMIN_PASSWORD) secret'ini qo'shish kerak, aks holda API 401 qaytaradi.
+name: Users backup
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # har kuni 03:00 UTC (08:00 Toshkent)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch and merge users
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: node scripts/backup-users.js
+
+      - name: Commit backup if changed
+        run: |
+          if git diff --quiet -- data/users-backup.json; then
+            echo "O'zgarish yo'q — commit shart emas."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/users-backup.json
+          git commit -m "chore: kunlik obunachilar zaxirasi"
+          git push
