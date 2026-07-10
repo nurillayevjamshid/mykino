@@ -317,12 +317,21 @@
     return String(name || "?").trim().charAt(0).toUpperCase();
   }
 
+  // Logolar rasm-proxy (weserv.nl) orqali yuklanadi — imgur ba'zi hududlarda
+  // bloklangan/hotlink'ga 403 qaytaradi. Proxy ishlamasa to'g'ridan-to'g'ri
+  // URL'ga, u ham bo'lmasa harfli fallback'ga o'tiladi.
+  function logoProxyUrl(url) {
+    if (!url) return "";
+    return "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&w=112&h=112&fit=contain";
+  }
+
   function buildChannelCard(ch, idx) {
+    const proxied = logoProxyUrl(ch.logo);
     return `
       <button class="tv-card" type="button" data-tv-play="${idx}">
         <span class="tv-card__logo">
-          <img src="${esc(ch.logo)}" alt="" loading="lazy" decoding="async"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+          <img src="${esc(proxied)}" data-direct="${esc(ch.logo)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"
+               onerror="if(this.dataset.direct){this.src=this.dataset.direct;this.removeAttribute('data-direct');}else{this.style.display='none';this.nextElementSibling.style.display='grid';}" />
           <span class="tv-card__fallback" style="display:none;">${esc(channelInitial(ch.name))}</span>
         </span>
         <span class="tv-card__name">${esc(ch.name)}</span>
