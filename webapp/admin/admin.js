@@ -6,24 +6,56 @@
 // next successful adminLogin() clears it.
 (function() {
   const originalFetch = window.fetch;
+
+  // Sessiya cookie'si eskirganda (7 kun) localStorage'dagi adminLoggedIn belgisi
+  // qolaveradi: GET so'rovlar ishlayveradi, lekin har qanday saqlash (POST/PUT/
+  // DELETE) 401 "Ruxsat berilmadi" bilan yiqiladi va panel parolni qayta
+  // so'ramaydi. Shu holatda bir marta parol so'rab, qayta login qilamiz va
+  // asl so'rovni takrorlaymiz. Parallel 401'lar bitta prompt'ga yig'iladi.
+  let reloginPromise = null;
+  function reloginOnce() {
+    if (!reloginPromise) {
+      reloginPromise = (async () => {
+        try { localStorage.removeItem('adminLoggedIn'); } catch {}
+        const password = (window.prompt("Admin sessiyasi muddati tugagan. Parolni qayta kiriting:") || '').trim();
+        if (!password) return false;
+        const res = await window.adminLogin(password);
+        if (!res.ok) {
+          alert(res.error || "Parol noto'g'ri.");
+          return false;
+        }
+        return true;
+      })().finally(() => { reloginPromise = null; });
+    }
+    return reloginPromise;
+  }
+
   window.fetch = function(url, options) {
     options = options || {};
     const urlStr = String(url);
     const isApi = urlStr.startsWith('/api/') || (window.location.origin && urlStr.startsWith(window.location.origin + '/api/'));
-    if (isApi) {
-      options.headers = options.headers || {};
-      if (window.Telegram?.WebApp?.initData) {
-        options.headers['X-TG-Init-Data'] = window.Telegram.WebApp.initData;
-      }
-      if (!options.credentials) options.credentials = 'include';
-      try {
-        const legacyPass = localStorage.getItem('adminPassword');
-        if (legacyPass && !options.headers['X-Admin-Password']) {
-          options.headers['X-Admin-Password'] = legacyPass;
-        }
-      } catch {}
+    if (!isApi) return originalFetch(url, options);
+
+    options.headers = options.headers || {};
+    if (window.Telegram?.WebApp?.initData) {
+      options.headers['X-TG-Init-Data'] = window.Telegram.WebApp.initData;
     }
-    return originalFetch(url, options);
+    if (!options.credentials) options.credentials = 'include';
+    try {
+      const legacyPass = localStorage.getItem('adminPassword');
+      if (legacyPass && !options.headers['X-Admin-Password']) {
+        options.headers['X-Admin-Password'] = legacyPass;
+      }
+    } catch {}
+
+    // Login/logout so'rovlarida 401-retry qilinmaydi (aks holda cheksiz halqa).
+    const isAuthRoute = /[?&]action=admin-log(in|out)(?:&|$)/.test(urlStr);
+    return originalFetch(url, options).then(async (resp) => {
+      if (resp.status !== 401 || isAuthRoute) return resp;
+      const loggedIn = await reloginOnce();
+      if (!loggedIn) return resp;
+      return originalFetch(url, options);
+    });
   };
 })();
 
@@ -4268,6 +4300,13 @@ function syncTvChLogoPreview() {
   const img = document.getElementById('tvChFormLogoPreview');
   if (!img) return;
   if (/^https?:\/\//i.test(url)) {
+    // Rasm yuklanmasa (masalan Wikipedia sahifa havolasi qo'yilgan bo'lsa,
+    // to'g'ridan-to'g'ri rasm URL emas) — foydalanuvchini darhol ogohlantiramiz.
+    img.onerror = () => {
+      img.style.display = 'none';
+      tvChSetStatus("Logo rasmi ochilmadi — sahifa havolasi emas, to'g'ridan-to'g'ri rasm havolasini (.png/.jpg/.svg) qo'ying. Rasm ustiga bosib «Rasm manzilini nusxalash» ni tanlang.", 'error');
+    };
+    img.onload = () => { tvChSetStatus('', ''); };
     img.src = url;
     img.style.display = 'inline-block';
   } else {
