@@ -5523,7 +5523,7 @@ function ensureTvModule() {
   const cssPromise = ensureTvCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/tv/tv.js?v=20260708-tv-sports";
+    script.src = "/static/tv/tv.js?v=20260708-tv-logos";
     script.onload = () => resolve(window.__tv);
     script.onerror = (err) => { __tvModulePromise = null; reject(err); };
     document.head.appendChild(script);
