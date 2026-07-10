@@ -1,4 +1,4 @@
-const VERSION = "v20260708-tv-sports";
+const VERSION = "v20260708-tv-logos";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
