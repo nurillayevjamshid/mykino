@@ -256,6 +256,86 @@ describe("katalog metadata wipe himoyasi", () => {
     assert.equal(uploadCalls(stub.calls).length, 0, "xatoda katalog yozilmasligi kerak");
   });
 
+  test("JSON'dagi bo'sh posterImage fayl descriptionidagi asl posterni bekitmaydi", async () => {
+    // Katalog yozuvida posterImage:"" (shikastlangan holat), lekin kino
+    // faylining descriptionida embedded poster bor — tahrir saqlanganda
+    // asl poster JSON yozuviga qaytishi kerak.
+    const existingMetadata = {
+      version: 1,
+      movies: { "movie-a": { title: "Kino A", posterImage: "" } },
+    };
+    const embeddedDescription = [
+      "[MY_KINO_META]",
+      JSON.stringify({ posterImage: "https://r2.example.com/img/embedded-a.jpg", rating: 9.5 }),
+      "[/MY_KINO_META]",
+      "Tavsif matni",
+    ].join("\n");
+    const stub = installFetch([
+      tokenRoute,
+      metaSearchRoute,
+      metaMediaRoute(() => jsonResponse(existingMetadata)),
+      {
+        match: (url, method) => method === "GET" && url.includes("/drive/v3/files/movie-a?"),
+        respond: () => jsonResponse({ id: "movie-a", name: "Movie A.mp4", mimeType: "video/mp4", description: embeddedDescription }),
+      },
+      uploadRoute(),
+    ]);
+    restoreFetch = stub.restore;
+
+    const googleDrive = freshGoogleDrive();
+    const saved = await googleDrive.updateCatalogMovieMetadata("movie-a", { quality: "4K" });
+    assert.equal(saved.override.posterImage, "https://r2.example.com/img/embedded-a.jpg", "embedded poster JSON'ga qaytishi kerak");
+    assert.equal(saved.override.title, "Kino A", "JSON'dagi to'ldirilgan qiymat ustun turadi");
+
+    const uploads = uploadCalls(stub.calls);
+    assert.equal(uploads.length, 1);
+    assert.ok(String(uploads[0].body).includes("embedded-a.jpg"));
+  });
+
+  test("restore ko'rish tarixidagi poster URL'laridan ham tiklaydi", async () => {
+    const wipedMetadata = {
+      version: 1,
+      movies: { "movie-a": { title: "Kino A", posterImage: "" } },
+      watchProgress: {
+        "user-1": {
+          "movie-a": { time: 30, duration: 100, updatedAt: 111, poster: "https://r2.example.com/img/poster-a.jpg", title: "Kino A" },
+          "movie-b": { time: 10, duration: 90, updatedAt: 90, poster: "https://example.com/api/drive-thumbnail/movie-b", title: "B" },
+        },
+        "user-2": {
+          "movie-a": { time: 50, duration: 100, updatedAt: 222, poster: "https://r2.example.com/img/poster-a-yangi.jpg", title: "Kino A" },
+        },
+      },
+    };
+    const stub = installFetch([
+      tokenRoute,
+      metaSearchRoute,
+      metaMediaRoute(() => jsonResponse(wipedMetadata)),
+      {
+        // Embedded-manba uchun kino fayllari ro'yxati — bo'sh
+        match: (url, method) => method === "GET"
+          && url.startsWith("https://www.googleapis.com/drive/v3/files?")
+          && decodeURIComponent(url).includes("mimeType contains 'video/'"),
+        respond: () => jsonResponse({ files: [] }),
+      },
+      {
+        match: (url, method) => method === "GET" && url.includes(`/files/${META_FILE.id}/revisions?`),
+        respond: () => jsonResponse({ revisions: [] }),
+      },
+      uploadRoute(),
+    ]);
+    restoreFetch = stub.restore;
+
+    const googleDrive = freshGoogleDrive();
+    const result = await googleDrive.restoreCatalogMovieOverrides();
+    assert.equal(result.restored, 1, "movie-a posteri tarixdan qaytishi kerak");
+
+    const uploads = uploadCalls(stub.calls);
+    assert.equal(uploads.length, 1);
+    const uploadedBody = String(uploads[0].body);
+    assert.ok(uploadedBody.includes("poster-a-yangi.jpg"), "eng so'nggi (updatedAt bo'yicha) poster tanlanadi");
+    assert.ok(!uploadedBody.includes('"movie-b": {"posterImage"'), "drive-thumbnail fallback URL'lari poster sifatida olinmaydi");
+  });
+
   test("fill-only merge admin kiritgan yangi qiymatlarni buzmaydi", () => {
     const googleDrive = freshGoogleDrive();
     const { merged, filled } = googleDrive.mergeMovieOverridesFillOnly(
