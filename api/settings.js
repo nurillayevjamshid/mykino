@@ -5,6 +5,7 @@ const {
   isServiceAccountStorageQuotaError,
   listAdVideos,
   readCatalogMetadata,
+  readCatalogMetadataStrict,
   updateDriveFileMetadata,
   writeCatalogMetadata,
 } = require("./_lib/google-drive");
@@ -357,7 +358,11 @@ module.exports = async function handler(request, response) {
   }
 
   try {
-    const metadataState = await readCatalogMetadata();
+    // POST butun katalog faylini qayta yozadi — strict o'qish shart, aks holda
+    // vaqtinchalik o'qish xatosi barcha posterlar/sozlamalarni o'chirib yuboradi.
+    const metadataState = request.method === "POST"
+      ? await readCatalogMetadataStrict()
+      : await readCatalogMetadata();
     const settings = metadataState.data.settings || {};
 
     if (request.method === "GET") {

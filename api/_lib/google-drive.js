@@ -618,9 +618,13 @@ function toDriveMovie(file, index, metadataMap = {}) {
 }
 
 async function findFolderFileByName(folderId, fileName) {
+  // orderBy: dublikat fayl paydo bo'lib qolgan holatda ham har doim bir xil
+  // (eng oxirgi yozilgan) faylni tanlaymiz — aks holda o'qishlar ikki fayl
+  // orasida "sakrab", posterlar goh ko'rinib goh yo'qolib qolardi.
   const payload = await driveFetchJson("", {
     query: {
       q: `'${folderId}' in parents and trashed=false and name='${fileName}'`,
+      orderBy: "modifiedTime desc",
       pageSize: 1,
       supportsAllDrives: "true",
       includeItemsFromAllDrives: "true",
@@ -634,6 +638,7 @@ async function findServiceAccountJsonByName(fileName) {
   const payload = await driveFetchJson("", {
     query: {
       q: `name='${fileName}' and mimeType='application/json' and trashed=false and 'me' in owners`,
+      orderBy: "modifiedTime desc",
       pageSize: 1,
       spaces: "drive",
       fields: "files(id,name,mimeType,modifiedTime)",
@@ -660,7 +665,8 @@ async function readDriveTextFile(fileId) {
   return response.text();
 }
 
-async function readAppJsonByName(fileName, fallbackFactory) {
+async function readAppJsonByName(fileName, fallbackFactory, options = {}) {
+  const strict = Boolean(options.strict);
   const { folderId } = getDriveConfig();
   const existing = (await findFolderFileByName(folderId, fileName)) || (await findServiceAccountJsonByName(fileName));
   if (!existing) {
@@ -670,18 +676,39 @@ async function readAppJsonByName(fileName, fallbackFactory) {
     };
   }
 
-  try {
-    const text = await readDriveTextFile(existing.id);
-    return {
-      file: existing,
-      data: JSON.parse(text),
-    };
-  } catch {
-    return {
-      file: existing,
-      data: fallbackFactory(),
-    };
+  // Strict rejim: read-modify-write oqimlari uchun. Vaqtinchalik o'qish xatosini
+  // "bo'sh fayl" deb qabul qilish halokatli — chaqiruvchi butun katalogni
+  // (barcha poster/override'larni) bo'sh holat bilan qayta yozib yuboradi.
+  // Shuning uchun strict'da faqat haqiqiy "fayl yo'q" bo'sh hisoblanadi;
+  // o'qish/parse xatosi esa throw qiladi va yozuv bekor bo'ladi.
+  const attempts = strict ? 2 : 1;
+  let lastError = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const text = await readDriveTextFile(existing.id);
+      return {
+        file: existing,
+        data: JSON.parse(text),
+      };
+    } catch (error) {
+      lastError = error;
+    }
   }
+
+  if (strict) {
+    const wrapped = new Error(
+      "Katalog metadata o'qilmadi — mavjud ma'lumot o'chib ketmasligi uchun saqlash bekor qilindi. Birozdan so'ng qayta urinib ko'ring.",
+    );
+    wrapped.statusCode = 502;
+    wrapped.code = "CATALOG_METADATA_READ_FAILED";
+    wrapped.cause = lastError;
+    throw wrapped;
+  }
+
+  return {
+    file: existing,
+    data: fallbackFactory(),
+  };
 }
 
 function buildJsonMultipartBody(metadata, data) {
@@ -733,14 +760,253 @@ async function readCatalogMetadata() {
   return readAppJsonByName(METADATA_FILE_NAME, defaultMetadataPayload);
 }
 
+// Read-modify-write oqimlari uchun: o'qish xatosi throw qiladi, shunda
+// chaqiruvchi bo'sh holatni qayta yozib butun katalogni o'chirib yubormaydi.
+async function readCatalogMetadataStrict() {
+  return readAppJsonByName(METADATA_FILE_NAME, defaultMetadataPayload, { strict: true });
+}
+
+// ===== Katalog metadata zaxira/tiklash (poster wipe'dan himoya) =====
+const CATALOG_BACKUP_LATEST_KEY = "backups/catalog-metadata-latest.json";
+const CATALOG_RESTORE_MARKER_KEY = "backups/catalog-restore-marker.json";
+const CATALOG_RESTORE_MIN_INTERVAL_MS = 6 * 3600_000;
+
+function catalogBackupDailyKey(date = new Date()) {
+  return `backups/catalog-metadata-${date.toISOString().slice(0, 10)}.json`;
+}
+
+// Faqat mazmunli override hisoblanadi (poster, sarlavha va h.k.);
+// reactions-only yozuvlar hisobga olinmaydi.
+function isMeaningfulMovieOverride(entry) {
+  if (!entry || typeof entry !== "object") return false;
+  return Boolean(
+    trimString(entry.posterImage)
+    || trimString(entry.poster)
+    || trimString(entry.headerImage)
+    || trimString(entry.title)
+    || trimString(entry.description)
+    || trimString(entry.genre)
+    || (entry.rating !== undefined && Number(entry.rating) > 0),
+  );
+}
+
+function countMeaningfulMovieOverrides(movies) {
+  if (!movies || typeof movies !== "object") return 0;
+  let count = 0;
+  for (const entry of Object.values(movies)) {
+    if (isMeaningfulMovieOverride(entry)) count += 1;
+  }
+  return count;
+}
+
+// Manbadagi override'lardan faqat joriy holatda YO'Q yoki BO'SH maydonlarni
+// to'ldiradi — admin keyin kiritgan yangi qiymatlar hech qachon eskisi bilan
+// almashtirilmaydi, reactions'ga tegilmaydi.
+function mergeMovieOverridesFillOnly(currentMovies, sourceMovies) {
+  const merged = { ...(currentMovies && typeof currentMovies === "object" ? currentMovies : {}) };
+  let filled = 0;
+  for (const [movieId, source] of Object.entries(sourceMovies && typeof sourceMovies === "object" ? sourceMovies : {})) {
+    if (!source || typeof source !== "object") continue;
+    const current = merged[movieId] && typeof merged[movieId] === "object" ? merged[movieId] : null;
+    if (!current) {
+      if (isMeaningfulMovieOverride(source)) {
+        const copy = { ...source };
+        delete copy.reactions;
+        merged[movieId] = copy;
+        filled += 1;
+      }
+      continue;
+    }
+    const next = { ...current };
+    let changed = false;
+    for (const key of ["title", "genre", "quality", "posterImage", "headerImage", "description", "cdnUrl"]) {
+      if (!trimString(next[key]) && trimString(source[key])) {
+        next[key] = trimString(source[key]);
+        changed = true;
+      }
+    }
+    if (!(Number(next.rating) > 0) && Number(source.rating) > 0) {
+      next.rating = source.rating;
+      changed = true;
+    }
+    if (!next.year && source.year) {
+      next.year = source.year;
+      changed = true;
+    }
+    if (next.showInHeader === undefined && source.showInHeader !== undefined) {
+      next.showInHeader = source.showInHeader;
+      changed = true;
+    }
+    if (!next.headerCrop && source.headerCrop) {
+      next.headerCrop = source.headerCrop;
+      changed = true;
+    }
+    if (changed) {
+      merged[movieId] = next;
+      filled += 1;
+    }
+  }
+  return { merged, filled };
+}
+
+// R2'ga zaxira: users/watchProgress kirmaydi (bucket ochiq — shaxsiy
+// ma'lumot chiqarmaymiz), tiklash uchun movies/settings/series yetarli.
+async function backupCatalogMetadataToR2(normalized) {
+  const count = countMeaningfulMovieOverrides(normalized.movies);
+  if (!count) return;
+  const payload = {
+    updatedAt: normalized.updatedAt || new Date().toISOString(),
+    settings: normalized.settings || {},
+    movies: normalized.movies || {},
+    series: normalized.series || {},
+  };
+  const previous = await getJsonFromR2(CATALOG_BACKUP_LATEST_KEY, null);
+  const previousCount = countMeaningfulMovieOverrides(previous?.movies);
+  // Kichik kamayish normal (admin kino o'chirishi mumkin), keskin qisqarish
+  // esa wipe belgisi — bunday holatda "latest" zaxirani buzmaymiz.
+  if (count >= previousCount || count >= Math.ceil(previousCount * 0.6)) {
+    await putJsonToR2(CATALOG_BACKUP_LATEST_KEY, payload);
+    await putJsonToR2(catalogBackupDailyKey(), payload);
+  }
+}
+
 async function writeCatalogMetadata(data, existingFile = null) {
   const normalized = normalizeCatalogMetadata(data);
+
+  // Oxirgi himoya chizig'i: yozilayotgan holatda birorta ham mazmunli kino
+  // override'i qolmagan bo'lsa (wipe belgisi), R2 zaxiradan to'ldirib yozamiz.
+  if (countMeaningfulMovieOverrides(normalized.movies) === 0) {
+    try {
+      const backup = await getJsonFromR2(CATALOG_BACKUP_LATEST_KEY, null);
+      if (countMeaningfulMovieOverrides(backup?.movies) > 0) {
+        normalized.movies = mergeMovieOverridesFillOnly(normalized.movies, backup.movies).merged;
+        if (!Object.keys(normalized.settings || {}).length && backup.settings && Object.keys(backup.settings).length) {
+          normalized.settings = backup.settings;
+        }
+      }
+    } catch (_) { /* zaxira o'qilmasa — mavjud oqimni to'xtatmaymiz */ }
+  }
+
   normalized.updatedAt = new Date().toISOString();
   const file = await writeAppJsonByName(METADATA_FILE_NAME, normalized, existingFile);
+  backupCatalogMetadataToR2(normalized).catch(() => {});
   return {
     file,
     data: normalized,
   };
+}
+
+// ===== Drive fayl revisiyalaridan o'chib ketgan override'larni tiklash =====
+async function listMetadataFileRevisions(fileId) {
+  const payload = await driveFetchJson(`${encodeURIComponent(fileId)}/revisions`, {
+    query: {
+      fields: "revisions(id,modifiedTime)",
+      pageSize: 200,
+    },
+  });
+  return Array.isArray(payload.revisions) ? payload.revisions : [];
+}
+
+async function readMetadataFileRevision(fileId, revisionId) {
+  const response = await driveFetch(`${encodeURIComponent(fileId)}/revisions/${encodeURIComponent(revisionId)}`, {
+    query: { alt: "media" },
+  });
+  if (!response.ok) {
+    const error = new Error("Drive revision o'qilmadi.");
+    error.statusCode = response.status || 502;
+    error.code = "GOOGLE_DRIVE_REVISION_READ_FAILED";
+    throw error;
+  }
+  return response.text();
+}
+
+// O'chib ketgan kino override'larini (posterlar, sarlavhalar, sozlamalar)
+// R2 zaxiradan va Drive fayl revisiyalaridan qaytaradi. Fill-only merge —
+// hozirgi qiymatlarning ustiga yozmaydi.
+async function restoreCatalogMovieOverrides() {
+  const metadataState = await readCatalogMetadataStrict();
+  const current = normalizeCatalogMetadata(metadataState.data);
+  const sources = [];
+
+  // 1) R2 "latest" zaxira
+  try {
+    const backup = await getJsonFromR2(CATALOG_BACKUP_LATEST_KEY, null);
+    if (countMeaningfulMovieOverrides(backup?.movies) > 0) {
+      sources.push({ name: "r2-backup", movies: backup.movies, settings: backup.settings });
+    }
+  } catch (_) { /* zaxira bo'lmasa keyingi manbaga o'tamiz */ }
+
+  // 2) Drive revisiyalari (eng yangisidan boshlab, eng boy revisiyani tanlaymiz)
+  if (metadataState.file) {
+    let revisions = [];
+    try {
+      revisions = await listMetadataFileRevisions(metadataState.file.id);
+    } catch (_) { revisions = []; }
+    revisions.sort((a, b) => String(b.modifiedTime || "").localeCompare(String(a.modifiedTime || "")));
+
+    let best = null;
+    let sinceImproved = 0;
+    for (const revision of revisions.slice(0, 25)) {
+      try {
+        const parsed = normalizeCatalogMetadata(JSON.parse(await readMetadataFileRevision(metadataState.file.id, revision.id)));
+        const count = countMeaningfulMovieOverrides(parsed.movies);
+        if (!best || count > best.count) {
+          best = { count, movies: parsed.movies, settings: parsed.settings };
+          sinceImproved = 0;
+        } else {
+          sinceImproved += 1;
+        }
+        // Yaxshi revisiya topilgach, yana bir nechta eskirog'ini tekshirib to'xtaymiz
+        if (best && best.count > 0 && sinceImproved >= 5) break;
+      } catch (_) { /* buzuq revisiya — o'tkazib yuboramiz */ }
+    }
+    if (best && best.count > 0) {
+      sources.push({ name: "drive-revision", movies: best.movies, settings: best.settings });
+    }
+  }
+
+  let movies = current.movies;
+  let restored = 0;
+  for (const source of sources) {
+    const result = mergeMovieOverridesFillOnly(movies, source.movies);
+    movies = result.merged;
+    restored += result.filled;
+    if (!Object.keys(current.settings || {}).length && source.settings && Object.keys(source.settings).length) {
+      current.settings = source.settings;
+    }
+  }
+
+  if (!restored) {
+    return { restored: 0, total: countMeaningfulMovieOverrides(movies), sources: sources.map((s) => s.name) };
+  }
+
+  current.movies = movies;
+  await writeCatalogMetadata(current, metadataState.file);
+  invalidateListCache("movies");
+  return { restored, total: countMeaningfulMovieOverrides(movies), sources: sources.map((s) => s.name) };
+}
+
+// Avto-tiklash: kinolar bor-u birorta ham poster override'i qolmagan bo'lsa
+// (to'liq wipe belgisi), fonda tiklashga urinamiz. R2 marker qayta-qayta
+// urinishning oldini oladi.
+let autoRestoreInflight = null;
+function autoRestoreCatalogOverrides() {
+  if (autoRestoreInflight) return autoRestoreInflight;
+  autoRestoreInflight = (async () => {
+    try {
+      const marker = await getJsonFromR2(CATALOG_RESTORE_MARKER_KEY, null);
+      if (marker && Number(marker.ts) && Date.now() - Number(marker.ts) < CATALOG_RESTORE_MIN_INTERVAL_MS) {
+        return;
+      }
+      await putJsonToR2(CATALOG_RESTORE_MARKER_KEY, { ts: Date.now() });
+      await restoreCatalogMovieOverrides();
+    } catch (_) {
+      /* fon jarayoni — jim */
+    } finally {
+      autoRestoreInflight = null;
+    }
+  })();
+  return autoRestoreInflight;
 }
 
 async function updateCatalogMovieMetadata(fileId, updates = {}) {
@@ -774,7 +1040,9 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
     updates.heroPoster = upload.directUrl;
   }
 
-  const metadataState = await readCatalogMetadata();
+  // Strict o'qish: vaqtinchalik xato "bo'sh katalog" bo'lib ko'rinib,
+  // yozuv barcha kinolarning posterlarini o'chirib yubormasligi uchun.
+  const metadataState = await readCatalogMetadataStrict();
   const metadata = normalizeCatalogMetadata(metadataState.data);
   const jsonCurrent = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
     ? metadata.movies[normalizedFileId]
@@ -865,7 +1133,7 @@ function countReactions(reactionsMap) {
   return { likes, dislikes };
 }
 
-async function readMovieReactionState(fileId) {
+async function readMovieReactionState(fileId, options = {}) {
   const normalizedFileId = trimString(fileId);
   if (!normalizedFileId) {
     const error = new Error("Kino ID si kerak.");
@@ -873,7 +1141,8 @@ async function readMovieReactionState(fileId) {
     error.code = "MOVIE_ID_MISSING";
     throw error;
   }
-  const metadataState = await readCatalogMetadata();
+  // Yozish oldidan chaqirilganda strict — o'qish xatosi wipe'ga aylanmasin.
+  const metadataState = options.strict ? await readCatalogMetadataStrict() : await readCatalogMetadata();
   const metadata = normalizeCatalogMetadata(metadataState.data);
   const entry = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
     ? metadata.movies[normalizedFileId]
@@ -900,7 +1169,7 @@ async function setMovieReaction(fileId, userId, reaction) {
     throw error;
   }
 
-  const { metadataState, metadata } = await readMovieReactionState(normalizedFileId);
+  const { metadataState, metadata } = await readMovieReactionState(normalizedFileId, { strict: true });
   const entry = metadata.movies[normalizedFileId] && typeof metadata.movies[normalizedFileId] === "object"
     ? metadata.movies[normalizedFileId]
     : {};
@@ -1092,6 +1361,12 @@ async function listDriveMoviesUncached() {
 
   const movies = files.map((file, index) => toDriveMovie(file, index, metadataMap));
 
+  // Kinolar bor-u birorta ham poster override'i yo'q — to'liq wipe belgisi.
+  // Fonda zaxira/revisiyalardan tiklashga urinamiz.
+  if (files.length >= 3 && countMeaningfulMovieOverrides(metadataMap) === 0) {
+    autoRestoreCatalogOverrides();
+  }
+
   // R2'ga keshga yozish (keyingi cold start uchun)
   putJsonToR2(MOVIE_R2_CACHE_KEY, { movies, ts: Date.now() }).catch(() => {});
 
@@ -1141,6 +1416,10 @@ async function listDriveMoviesFromDrive() {
     files.push(...(payload.files || []));
     pageToken = payload.nextPageToken || "";
   } while (pageToken);
+
+  if (files.length >= 3 && countMeaningfulMovieOverrides(metadataMap) === 0) {
+    autoRestoreCatalogOverrides();
+  }
 
   return files.map((file, index) => toDriveMovie(file, index, metadataMap));
 }
@@ -1219,7 +1498,7 @@ async function updateAdVideoCdn(driveFileId, cdnUrl) {
     error.code = "AD_VIDEO_ID_MISSING";
     throw error;
   }
-  const metadataState = await readCatalogMetadata();
+  const metadataState = await readCatalogMetadataStrict();
   const data = normalizeCatalogMetadata(metadataState.data);
   if (!data.settings || typeof data.settings !== "object") data.settings = {};
   const adCdn = data.settings.adCdn && typeof data.settings.adCdn === "object"
@@ -1561,6 +1840,10 @@ module.exports = {
   invalidateListCache,
   updateCatalogSeriesMetadata,
   readCatalogMetadata,
+  readCatalogMetadataStrict,
+  restoreCatalogMovieOverrides,
+  countMeaningfulMovieOverrides,
+  mergeMovieOverridesFillOnly,
   writeCatalogMetadata,
   setCors,
   updateDriveFileMetadata,

@@ -222,8 +222,10 @@ async function upsertUser(telegramUser) {
   
   // Google Drive Metadata (Kafolatli zaxira)
   try {
-    const { readCatalogMetadata, writeCatalogMetadata } = require("./_lib/google-drive");
-    const metadataState = await readCatalogMetadata();
+    // Strict o'qish — transient xato bo'lsa Drive zaxirasini shu safar o'tkazib
+    // yuboramiz (catch pastda), lekin katalogdagi posterlarni o'chirmaymiz.
+    const { readCatalogMetadataStrict, writeCatalogMetadata } = require("./_lib/google-drive");
+    const metadataState = await readCatalogMetadataStrict();
     if (metadataState.file) {
       const data = metadataState.data;
       // Eski obyekt-sxemada kalit = telegram ID; Object.values kalitni tashlab

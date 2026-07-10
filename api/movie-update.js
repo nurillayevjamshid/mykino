@@ -4,6 +4,7 @@ const {
   setCors,
   updateCatalogMovieMetadata,
   deleteMovieComment,
+  restoreCatalogMovieOverrides,
 } = require("./_lib/google-drive");
 
 async function readRequestBody(request) {
@@ -58,6 +59,28 @@ module.exports = async function handler(request, response) {
   try {
     const body = await readRequestBody(request);
     const action = trimString(request.query?.action || body.action).toLowerCase();
+
+    // Admin: o'chib ketgan posterlar/override'larni R2 zaxira va Drive fayl
+    // revisiyalaridan qaytarish. Fill-only — hozirgi qiymatlarga tegmaydi.
+    if (action === "restoreposters" || action === "restore") {
+      const expected = trimString(process.env.ADMIN_PASSWORD) || "admin123";
+      const password = trimString(body.password);
+      const okByCookieOrHeader = isAdminAuthorized(request);
+      const okByBody = password && safeCompareStrings(password, expected);
+      if (!okByCookieOrHeader && !okByBody) {
+        response.status(401).json({ ok: false, code: "UNAUTHORIZED", error: "Parol noto'g'ri." });
+        return;
+      }
+      const data = await restoreCatalogMovieOverrides();
+      response.status(200).json({
+        ok: true,
+        message: data.restored > 0
+          ? `${data.restored} ta kino ma'lumoti (poster va h.k.) zaxiradan qaytarildi.`
+          : "Qaytariladigan qo'shimcha ma'lumot topilmadi.",
+        ...data,
+      });
+      return;
+    }
 
     if (action === "deletecomment") {
       const expected = trimString(process.env.ADMIN_PASSWORD) || "admin123";
