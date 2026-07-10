@@ -105,6 +105,13 @@
         </svg>
         <span data-i18n="tvNav">Potkastlar</span>
       </button>
+      <button class="sidebar__item sidebar__item--top" type="button" id="sidebarTvItem" data-sidebar-action="tv">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="7" width="20" height="14" rx="3"></rect>
+          <path d="m8 2 4 4 4-4"></path>
+        </svg>
+        <span>TV</span>
+      </button>
       <div class="sidebar__divider"></div>
       <button class="sidebar__item" type="button" data-sidebar-action="favorites">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -390,6 +397,8 @@
       </div>
       <div class="fifa-view__spacer"></div>
     </section>
+
+    <section class="tv-view" id="tvView" hidden aria-label="TV kanallar"></section>
 
     <!-- Kategoriya placeholder -->
     <section class="coming-soon-view" id="categoryComingSoon" hidden>
@@ -948,7 +957,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20260708-pill-state"></script>
+  <script src="/static/kino/kino.js?v=20260708-tv"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
