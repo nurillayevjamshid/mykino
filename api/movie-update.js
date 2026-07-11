@@ -6,6 +6,13 @@ const {
   deleteMovieComment,
   restoreCatalogMovieOverrides,
 } = require("./_lib/google-drive");
+const { listR2Objects } = require("./_lib/r2-store");
+
+function isAdminRequest(request, body) {
+  const expected = trimString(process.env.ADMIN_PASSWORD) || "admin123";
+  const password = trimString(body?.password);
+  return isAdminAuthorized(request) || (password && safeCompareStrings(password, expected));
+}
 
 async function readRequestBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
@@ -63,11 +70,7 @@ module.exports = async function handler(request, response) {
     // Admin: o'chib ketgan posterlar/override'larni R2 zaxira va Drive fayl
     // revisiyalaridan qaytarish. Fill-only — hozirgi qiymatlarga tegmaydi.
     if (action === "restoreposters" || action === "restore") {
-      const expected = trimString(process.env.ADMIN_PASSWORD) || "admin123";
-      const password = trimString(body.password);
-      const okByCookieOrHeader = isAdminAuthorized(request);
-      const okByBody = password && safeCompareStrings(password, expected);
-      if (!okByCookieOrHeader && !okByBody) {
+      if (!isAdminRequest(request, body)) {
         response.status(401).json({ ok: false, code: "UNAUTHORIZED", error: "Parol noto'g'ri." });
         return;
       }
@@ -79,6 +82,18 @@ module.exports = async function handler(request, response) {
           : "Qaytariladigan qo'shimcha ma'lumot topilmadi.",
         ...data,
       });
+      return;
+    }
+
+    // Admin: R2 bucket'dagi yuklangan rasmlar ro'yxati — admin panelda
+    // "R2'dagi rasmlardan tanlash" oynasi uchun.
+    if (action === "listposters") {
+      if (!isAdminRequest(request, body)) {
+        response.status(401).json({ ok: false, code: "UNAUTHORIZED", error: "Parol noto'g'ri." });
+        return;
+      }
+      const images = await listR2Objects("img/", 1000);
+      response.status(200).json({ ok: true, total: images.length, images });
       return;
     }
 
