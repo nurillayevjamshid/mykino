@@ -1195,14 +1195,30 @@ function maybeDeepRestoreCatalogOverrides() {
       try { marker = await getJsonFromR2(CATALOG_RESTORE_MARKER_KEY, null); } catch (_) { marker = null; }
       const doneVersion = Number(marker?.deepVersion || 0);
       if (doneVersion >= CATALOG_DEEP_RESTORE_VERSION) return false;
+      // 30 daqiqalik tanaffus faqat AYNAN SHU versiyaning oldingi urinishiga
+      // taalluqli. Yangi versiya deploy bo'lganda (attemptedVersion < joriy)
+      // darhol ishga tushadi — aks holda yangi tuzatish 30 daqiqagacha
+      // eski versiya urinishining tanaffusida kutib qolardi.
+      const attemptedVersion = Number(marker?.attemptedVersion || 0);
       const lastAttempt = Number(marker?.ts || 0);
-      if (lastAttempt && Date.now() - lastAttempt < CATALOG_DEEP_RETRY_INTERVAL_MS) return false;
+      if (
+        attemptedVersion >= CATALOG_DEEP_RESTORE_VERSION
+        && lastAttempt
+        && Date.now() - lastAttempt < CATALOG_DEEP_RETRY_INTERVAL_MS
+      ) {
+        return false;
+      }
       // Markerni oldindan yozamiz — parallel instansiyalar va xato holatida
       // qayta-qayta urinishning oldini oladi.
-      await putJsonToR2(CATALOG_RESTORE_MARKER_KEY, { deepVersion: doneVersion, ts: Date.now() });
+      await putJsonToR2(CATALOG_RESTORE_MARKER_KEY, {
+        deepVersion: doneVersion,
+        attemptedVersion: CATALOG_DEEP_RESTORE_VERSION,
+        ts: Date.now(),
+      });
       const result = await restoreCatalogMovieOverrides();
       await putJsonToR2(CATALOG_RESTORE_MARKER_KEY, {
         deepVersion: CATALOG_DEEP_RESTORE_VERSION,
+        attemptedVersion: CATALOG_DEEP_RESTORE_VERSION,
         ts: Date.now(),
         restored: result.restored,
       });

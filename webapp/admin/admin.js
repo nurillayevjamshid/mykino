@@ -744,6 +744,33 @@ function bindEvents() {
     showNotification('Ro\'yxat yangilandi.');
   });
 
+  // O'chib ketgan posterlarni zaxira manbalardan (ko'rish tarixi, kino
+  // fayllari metadata'si, Drive revisiyalari, R2 zaxira) majburiy tiklash.
+  document.getElementById('restorePostersBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (btn.dataset.busy) return;
+    btn.dataset.busy = '1';
+    const label = btn.querySelector('span');
+    const oldText = label ? label.textContent : '';
+    if (label) label.textContent = 'Tiklanmoqda...';
+    try {
+      const resp = await fetch('/api/movie-update?action=restoreposters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) throw new Error(data.error || 'Tiklash bajarilmadi.');
+      showNotification(data.message || `${data.restored || 0} ta kino ma'lumoti qaytarildi.`);
+      await fetchMovies();
+    } catch (err) {
+      showNotification(err.message || 'Tiklashda xatolik.', 'error');
+    } finally {
+      delete btn.dataset.busy;
+      if (label) label.textContent = oldText;
+    }
+  });
+
   // Theme toggle
   themeToggle?.addEventListener('click', toggleTheme);
 
