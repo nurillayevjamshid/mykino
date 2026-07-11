@@ -221,6 +221,66 @@ async function getJsonFromR2SignedStrict(key) {
   return text ? JSON.parse(text) : null;
 }
 
+// Bucket'dagi obyektlarni prefiks bo'yicha ro'yxatlash (S3 ListObjectsV2).
+// Admin panelda R2'ga yuklangan posterlardan tanlash uchun ishlatiladi.
+async function listR2Objects(prefix, maxKeys = 1000) {
+  const { endpoint, bucket, accessKeyId, secretAccessKey, publicUrl } = getR2Config();
+  const cleanPrefix = String(prefix || "").replace(/^\/+/, "");
+  const query = `list-type=2&max-keys=${Math.max(1, Math.min(1000, Number(maxKeys) || 1000))}&prefix=${encodeURIComponent(cleanPrefix)}`;
+  // signedR2Request obyekt kalitini URL yo'liga qo'yadi — list uchun bucket
+  // ildizi + query string imzolanishi kerak, shuning uchun alohida quramiz.
+  const url = new URL(`${endpoint}/${bucket}?${query}`);
+  const host = url.host;
+  const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const payloadHash = sha256Hex(Buffer.alloc(0));
+  const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+  const signedHeaders = "host;x-amz-content-sha256;x-amz-date";
+  // Canonical query: kalitlar alfavit tartibida bo'lishi shart
+  const canonicalQuery = url.search.slice(1).split("&").sort().join("&");
+  const canonicalUri = url.pathname.split("/").map(encodeURIComponent).join("/");
+  const canonicalRequest = ["GET", canonicalUri, canonicalQuery, canonicalHeaders, signedHeaders, payloadHash].join("\n");
+  const scope = `${dateStamp}/auto/s3/aws4_request`;
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, sha256Hex(canonicalRequest)].join("\n");
+  const kDate = hmac(`AWS4${secretAccessKey}`, dateStamp);
+  const kRegion = hmac(kDate, "auto");
+  const kService = hmac(kRegion, "s3");
+  const kSigning = hmac(kService, "aws4_request");
+  const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex");
+  const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  const response = await fetch(url, {
+    headers: {
+      Host: host,
+      "x-amz-content-sha256": payloadHash,
+      "x-amz-date": amzDate,
+      Authorization: authorization,
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    const error = new Error(`R2 LIST failed (${response.status}). ${text.slice(0, 200)}`);
+    error.statusCode = 502;
+    error.code = "R2_LIST_FAILED";
+    throw error;
+  }
+  const xml = await response.text();
+  const objects = [];
+  const contentRe = /<Contents>([\s\S]*?)<\/Contents>/g;
+  let match;
+  while ((match = contentRe.exec(xml)) !== null) {
+    const block = match[1];
+    const key = (block.match(/<Key>([\s\S]*?)<\/Key>/) || [])[1] || "";
+    const lastModified = (block.match(/<LastModified>([\s\S]*?)<\/LastModified>/) || [])[1] || "";
+    const size = Number((block.match(/<Size>(\d+)<\/Size>/) || [])[1] || 0);
+    if (key) {
+      objects.push({ key, lastModified, size, url: `${publicUrl}/${key}` });
+    }
+  }
+  objects.sort((a, b) => String(b.lastModified).localeCompare(String(a.lastModified)));
+  return objects;
+}
+
 async function deleteFromR2(key) {
   const req = await signedR2Request({ method: "DELETE", key });
   const response = await fetch(req.url, { method: "DELETE", headers: req.headers });
@@ -309,4 +369,4 @@ async function uploadFileToR2(dataUrl, fileNamePrefix, options = {}) {
   return { directUrl: `${publicUrl}/${key}`, key, contentType, size: body.length };
 }
 
-module.exports = { uploadImageToR2, uploadFileToR2, putJsonToR2, getJsonFromR2, getJsonFromR2Signed, getJsonFromR2SignedStrict, deleteFromR2 };
+module.exports = { uploadImageToR2, uploadFileToR2, putJsonToR2, getJsonFromR2, getJsonFromR2Signed, getJsonFromR2SignedStrict, deleteFromR2, listR2Objects };

@@ -303,6 +303,9 @@ describe("katalog metadata wipe himoyasi", () => {
         },
         "user-2": {
           "movie-a": { time: 50, duration: 100, updatedAt: 222, poster: "https://r2.example.com/img/poster-a-yangi.jpg", title: "Kino A" },
+          // Wipe'dan KEYIN ko'rgan foydalanuvchi tarixida logo saqlanib qolgan —
+          // eng yangi updatedAt bo'lsa ham poster sifatida olinmasligi kerak.
+          "movie-c": { time: 5, duration: 80, updatedAt: 999, poster: "https://example.com/static/assets/my-kino-logo.png", title: "C" },
         },
       },
     };
@@ -332,8 +335,29 @@ describe("katalog metadata wipe himoyasi", () => {
     const uploads = uploadCalls(stub.calls);
     assert.equal(uploads.length, 1);
     const uploadedBody = String(uploads[0].body);
-    assert.ok(uploadedBody.includes("poster-a-yangi.jpg"), "eng so'nggi (updatedAt bo'yicha) poster tanlanadi");
-    assert.ok(!uploadedBody.includes('"movie-b": {"posterImage"'), "drive-thumbnail fallback URL'lari poster sifatida olinmaydi");
+    // Multipart bodydan data qismini (oxirgi JSON) ajratib olamiz — logo URL
+    // watchProgress ichida qonuniy qoladi, tekshiruv faqat movies bo'limida.
+    const jsonParts = uploadedBody
+      .split(/--mykino_[^\r\n]*/)
+      .map((part) => {
+        const start = part.indexOf("{");
+        return start >= 0 ? part.slice(start).trim() : "";
+      })
+      .filter(Boolean);
+    const written = JSON.parse(jsonParts[jsonParts.length - 1]);
+    assert.equal(written.movies["movie-a"].posterImage, "https://r2.example.com/img/poster-a-yangi.jpg", "eng so'nggi (updatedAt bo'yicha) poster tanlanadi");
+    assert.ok(!written.movies["movie-b"]?.posterImage, "drive-thumbnail fallback URL'lari poster sifatida olinmaydi");
+    assert.ok(!written.movies["movie-c"]?.posterImage, "logo URL'lari poster sifatida olinmaydi");
+  });
+
+  test("logo URL bilan band bo'lgan posterImage haqiqiy poster bilan almashtiriladi", () => {
+    const googleDrive = freshGoogleDrive();
+    const { merged, filled } = googleDrive.mergeMovieOverridesFillOnly(
+      { "movie-a": { posterImage: "https://example.com/static/assets/my-kino-logo.png", title: "Kino A" } },
+      { "movie-a": { posterImage: "https://r2.example.com/img/poster-a.jpg" } },
+    );
+    assert.equal(merged["movie-a"].posterImage, "https://r2.example.com/img/poster-a.jpg", "logo haqiqiy poster deb hisoblanmaydi");
+    assert.equal(filled, 1);
   });
 
   test("fill-only merge admin kiritgan yangi qiymatlarni buzmaydi", () => {

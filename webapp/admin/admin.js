@@ -984,6 +984,11 @@ function bindEvents() {
     if (group) group.style.display = e.target.checked ? 'block' : 'none';
   });
 
+  document.getElementById('posterPickR2Btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openR2PosterPicker();
+  });
+
   document.getElementById('posterRemoveBtn')?.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1312,6 +1317,82 @@ function openMovieModal(movie) {
   modal.classList.add('active');
   tgHaptic('light');
   tgPushBack(closeMovieModal);
+}
+
+// === R2 rasm tanlagich ===
+// Katalogdagi poster bog'lanishi o'chib ketganda rasmning o'zi R2'da qolgan
+// bo'ladi. Bu oyna bucket'dagi barcha yuklangan rasmlarni ko'rsatadi — admin
+// kerakli rasmni bosib, kinoga qayta bog'laydi.
+let r2ImagesCache = null;
+async function openR2PosterPicker() {
+  let overlay = document.getElementById('r2PickerOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'r2PickerOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(8,10,16,0.82);display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-card,#141927);border-radius:16px;max-width:720px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.08);">
+          <strong>R2'dagi rasmlar</strong>
+          <button type="button" id="r2PickerClose" class="btn btn-secondary" style="padding:4px 12px;">Yopish</button>
+        </div>
+        <div id="r2PickerBody" style="overflow-y:auto;padding:12px;">
+          <div style="text-align:center;padding:30px;color:var(--text-muted,#8b93a7);">Yuklanmoqda...</div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.style.display = 'none';
+    });
+    overlay.querySelector('#r2PickerClose').addEventListener('click', () => {
+      overlay.style.display = 'none';
+    });
+  }
+  overlay.style.display = 'flex';
+  const body = overlay.querySelector('#r2PickerBody');
+
+  try {
+    if (!r2ImagesCache) {
+      const resp = await fetch('/api/movie-update?action=listposters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) throw new Error(data.error || 'Rasmlar olinmadi.');
+      r2ImagesCache = data.images || [];
+    }
+    if (!r2ImagesCache.length) {
+      body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted,#8b93a7);">R2 bucket\'da rasm topilmadi.</div>';
+      return;
+    }
+    body.innerHTML = `
+      <div style="font-size:12px;color:var(--text-muted,#8b93a7);margin-bottom:10px;">
+        Jami: ${r2ImagesCache.length} ta rasm (yangi yuklanganlari birinchi). Kerakli posterni bosing.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;">
+        ${r2ImagesCache.map((img) => `
+          <button type="button" class="r2-pick-item" data-url="${escapeHtml(img.url)}"
+                  style="border:none;padding:0;background:#0e1220;border-radius:10px;overflow:hidden;cursor:pointer;aspect-ratio:2/3;">
+            <img src="${escapeHtml(img.url)}" alt="" loading="lazy" decoding="async"
+                 style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'">
+          </button>`).join('')}
+      </div>`;
+    body.querySelectorAll('.r2-pick-item').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const url = btn.dataset.url || '';
+        if (!url) return;
+        selectedPosterDataUrl = '';
+        const urlInput = document.getElementById('moviePosterUrl');
+        if (urlInput) urlInput.value = url;
+        updatePosterPreview(url);
+        overlay.style.display = 'none';
+        tgHaptic('light');
+      });
+    });
+  } catch (err) {
+    body.innerHTML = `<div style="text-align:center;padding:30px;color:#f87171;">${escapeHtml(err.message || 'Xatolik')}</div>`;
+  }
 }
 
 function updatePosterPreview(url) {
