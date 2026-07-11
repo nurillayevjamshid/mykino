@@ -1,5 +1,114 @@
 {
-  "updatedAt": null,
-  "count": 0,
-  "users": []
+  "updatedAt": "2026-07-11T05:42:13.186Z",
+  "count": 18,
+  "users": [
+    {
+      "telegram_id": 74402946,
+      "username": "",
+      "first_name": "ABDULLOH",
+      "started_at": "2026-07-10"
+    },
+    {
+      "telegram_id": 679291909,
+      "username": "nurillaevv",
+      "first_name": "Жам Нуриллаев",
+      "started_at": "2026-05-15"
+    },
+    {
+      "telegram_id": 887888146,
+      "username": "Chessff",
+      "first_name": "Turganbaev Asirbek",
+      "started_at": "2026-07-10"
+    },
+    {
+      "telegram_id": 939937763,
+      "username": "Abujon97",
+      "first_name": "AbdullaJoN",
+      "started_at": "2026-07-10"
+    },
+    {
+      "telegram_id": 1953922336,
+      "username": "DeveLopper_99",
+      "first_name": "Муфтофиддин",
+      "started_at": "2026-06-26"
+    },
+    {
+      "telegram_id": 2027436082,
+      "username": "Wetnexs",
+      "first_name": "𝑧𝑎𝑟𝑖𝑝𝑜𝑣",
+      "started_at": "2026-07-10"
+    },
+    {
+      "telegram_id": 2111426807,
+      "username": "nurbek1112",
+      "first_name": "Nurbek",
+      "started_at": "2026-07-11"
+    },
+    {
+      "telegram_id": 5878057404,
+      "username": "miocomment",
+      "first_name": "MIO BEAUTY",
+      "started_at": "2026-05-21"
+    },
+    {
+      "telegram_id": 6117815120,
+      "username": "diyorbek_anorboyev",
+      "first_name": "Diyorbek",
+      "started_at": "2026-07-11"
+    },
+    {
+      "telegram_id": 6446152481,
+      "username": "shohruz_177",
+      "first_name": "ШОХРУЗ",
+      "started_at": "2026-07-10"
+    },
+    {
+      "telegram_id": 6910213815,
+      "username": "",
+      "first_name": "Abdug’aniyeva Zulayho",
+      "started_at": "2026-05-16"
+    },
+    {
+      "telegram_id": 7019918814,
+      "username": "",
+      "first_name": "Hasanova",
+      "started_at": "2026-05-21"
+    },
+    {
+      "telegram_id": 7158891995,
+      "username": "gulixonmalik",
+      "first_name": "Gulixon",
+      "started_at": "2026-05-15"
+    },
+    {
+      "telegram_id": 7304156338,
+      "username": "",
+      "first_name": "@",
+      "started_at": "2026-07-11"
+    },
+    {
+      "telegram_id": 7542979189,
+      "username": "bobuur_mirzoo",
+      "first_name": "Bobur",
+      "started_at": "2026-07-10"
+    },
+    {
+      "telegram_id": 7951662623,
+      "username": "",
+      "first_name": "Orozali",
+      "started_at": "2026-06-28"
+    },
+    {
+      "telegram_id": 8743970761,
+      "username": "anvaarv",
+      "first_name": "anvarov",
+      "started_at": "2026-06-23"
+    },
+    {
+      "telegram_id": 8925490943,
+      "username": "",
+      "first_name": "💙❤️💙💙",
+      "started_at": "2026-07-08"
+    }
+  ]
 }
