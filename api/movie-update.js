@@ -75,10 +75,13 @@ module.exports = async function handler(request, response) {
         return;
       }
       const data = await restoreCatalogMovieOverrides();
+      const pendingNote = data.pendingPersist > 0
+        ? ` ${data.pendingPersist} tasi hali saqlangani yo'q — "Posterlarni tiklash"ni yana bosing.`
+        : "";
       response.status(200).json({
         ok: true,
         message: data.restored > 0
-          ? `${data.restored} ta kino ma'lumoti (poster va h.k.) zaxiradan qaytarildi.`
+          ? `${data.restored} ta kino ma'lumoti (poster va h.k.) zaxiradan qaytarildi.${pendingNote}`
           : "Qaytariladigan qo'shimcha ma'lumot topilmadi.",
         ...data,
       });
