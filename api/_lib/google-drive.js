@@ -1380,6 +1380,9 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
     await updateDriveFileMetadata(normalizedFileId, {
       description: buildCatalogFallbackDescription(embedded.visibleDescription, cleaned, updates),
     });
+    // JSON fayl yozilmasa ham (SA kvota) yangi poster bog'lanishi R2
+    // zaxirasida doimiy qolsin — kelajakdagi tiklashlar shu yerdan o'qiydi.
+    backupCatalogMetadataToR2(normalizeCatalogMetadata(metadata)).catch(() => {});
   }
 
   invalidateListCache("movies");
