@@ -317,7 +317,7 @@ describe("katalog metadata wipe himoyasi", () => {
         // Embedded-manba uchun kino fayllari ro'yxati — bo'sh
         match: (url, method) => method === "GET"
           && url.startsWith("https://www.googleapis.com/drive/v3/files?")
-          && decodeURIComponent(url).includes("mimeType contains 'video/'"),
+          && decodeURIComponent(String(url).replace(/\+/g, "%20")).includes("mimeType contains 'video/'"),
         respond: () => jsonResponse({ files: [] }),
       },
       {
@@ -358,6 +358,109 @@ describe("katalog metadata wipe himoyasi", () => {
     );
     assert.equal(merged["movie-a"].posterImage, "https://r2.example.com/img/poster-a.jpg", "logo haqiqiy poster deb hisoblanmaydi");
     assert.equal(filled, 1);
+  });
+
+  test("TO'LIQ OQIM: logo bilan buzilgan katalog birinchi so'rovda o'zi tiklanadi", async () => {
+    // Production holatining aynan nusxasi: katalogda movie-a posteri logo URL
+    // bilan band (eski tiklash xatosi), haqiqiy R2 poster esa ko'rish
+    // tarixida turibdi. Marker esa YAQINDA urinilgan eski versiya (v3) bilan
+    // yozilgan — yangi versiya baribir darhol ishlashi kerak.
+    process.env.R2_ENDPOINT = "https://r2-api.test.example";
+    process.env.R2_BUCKET = "kino";
+    process.env.R2_ACCESS_KEY_ID = "test-key";
+    process.env.R2_SECRET_ACCESS_KEY = "test-secret";
+    process.env.R2_PUBLIC_URL = "https://r2.test.example";
+
+    // Drive'dagi metadata fayli STATEFUL: tiklash yozsa, keyingi o'qish
+    // yangilangan holatni ko'radi (xuddi haqiqiy Drive kabi).
+    let storedMetadata = {
+      version: 1,
+      movies: {
+        "movie-a": { title: "Kino A", posterImage: "https://site.example/static/assets/my-kino-logo.png" },
+      },
+      watchProgress: {
+        "user-1": {
+          "movie-a": { time: 40, duration: 100, updatedAt: 123, poster: "https://r2.test.example/img/poster-a.jpg" },
+        },
+      },
+    };
+    const extractWrittenJson = (body) => {
+      const parts = String(body).split(/--mykino_[^\r\n]*/).map((p) => {
+        const i = p.indexOf("{");
+        return i >= 0 ? p.slice(i).trim() : "";
+      }).filter(Boolean);
+      return JSON.parse(parts[parts.length - 1]);
+    };
+
+    const stub = installFetch([
+      tokenRoute,
+      metaSearchRoute,
+      metaMediaRoute(() => jsonResponse(storedMetadata)),
+      {
+        // R2 marker: eski versiya urinishi YAQINDA bo'lgan — yangi versiyani bloklamasin
+        match: (url) => url.startsWith("https://r2.test.example/backups/catalog-restore-marker.json"),
+        respond: () => jsonResponse({ deepVersion: 3, attemptedVersion: 3, ts: Date.now() }),
+      },
+      {
+        // Qolgan R2 public o'qishlar (kesh, zaxira) — yo'q
+        match: (url) => url.startsWith("https://r2.test.example/"),
+        respond: () => new Response("not found", { status: 404 }),
+      },
+      {
+        // R2 yozuvlar (marker, zaxira, kesh) — muvaffaqiyatli
+        match: (url, method) => method === "PUT" && url.startsWith("https://r2-api.test.example/"),
+        respond: () => new Response("", { status: 200 }),
+      },
+      {
+        // Drive papka tekshiruvi
+        match: (url, method) => method === "GET" && url.includes("/drive/v3/files/folder-1?"),
+        respond: () => jsonResponse({ id: "folder-1", name: "kino", mimeType: "application/vnd.google-apps.folder" }),
+      },
+      {
+        // Kino fayllari ro'yxati (embedded manba uchun ham, asosiy listing uchun ham)
+        match: (url, method) => method === "GET"
+          && url.startsWith("https://www.googleapis.com/drive/v3/files?")
+          && decodeURIComponent(String(url).replace(/\+/g, "%20")).includes("mimeType contains 'video/'"),
+        respond: () => jsonResponse({
+          files: [{
+            id: "movie-a",
+            name: "Kino A 2020.mp4",
+            mimeType: "video/mp4",
+            description: "",
+            thumbnailLink: "https://lh3.example/thumb-a",
+            createdTime: "2020-01-01T00:00:00Z",
+            modifiedTime: "2020-01-01T00:00:00Z",
+          }],
+        }),
+      },
+      {
+        match: (url, method) => method === "GET" && url.includes(`/files/${META_FILE.id}/revisions?`),
+        respond: () => jsonResponse({ revisions: [] }),
+      },
+      {
+        // Metadata yozuvi — stateful: keyingi o'qishlar yangi holatni ko'radi
+        match: (url, method) => method === "PATCH" && url.startsWith("https://www.googleapis.com/upload/drive/v3/files"),
+        respond: (url, init) => {
+          storedMetadata = extractWrittenJson(init.body);
+          return jsonResponse({ ...META_FILE });
+        },
+      },
+    ]);
+    restoreFetch = stub.restore;
+
+    freshGoogleDrive();
+    delete require.cache[require.resolve("../../api/movies.js")];
+    const moviesHandler = require("../../api/movies.js");
+    const req = createMockReq({ method: "GET", url: "/api/movies", headers: { "x-api-key": "fake-bot-token" } });
+    const res = createMockRes();
+    await moviesHandler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.ok(Array.isArray(res.body), "kinolar ro'yxati qaytishi kerak");
+    const movie = res.body.find((m) => m.id === "movie-a");
+    assert.ok(movie, "movie-a ro'yxatda bo'lishi kerak");
+    assert.equal(movie.posterImage, "https://r2.test.example/img/poster-a.jpg", "logo o'rniga haqiqiy R2 poster qaytishi kerak");
+    assert.equal(storedMetadata.movies["movie-a"].posterImage, "https://r2.test.example/img/poster-a.jpg", "tiklangan poster Drive'ga yozilgan bo'lishi kerak");
   });
 
   test("fill-only merge admin kiritgan yangi qiymatlarni buzmaydi", () => {
