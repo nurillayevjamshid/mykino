@@ -186,6 +186,10 @@
               </h2>
               <div class="search-container">
                 <input type="text" id="movieSearchInput" class="search-input" placeholder="Kino nomi, kod yoki kategoriya bo'yicha qidirish...">
+                <label style="display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;font-size:13px;">
+                  <input type="checkbox" id="missingPostersToggle" style="width:16px;height:16px;cursor:pointer;">
+                  <span>Faqat postersiz</span>
+                </label>
                 <button class="btn btn-secondary" id="restorePostersBtn" title="O'chib ketgan posterlarni zaxira manbalardan qaytarish">
                   🛠 <span>Posterlarni tiklash</span>
                 </button>
@@ -1237,6 +1241,6 @@
     }
   </style>
 
-  <script src="/admin/admin.js?v=20260711-restore-btn"></script>
+  <script src="/admin/admin.js?v=20260711-postersiz"></script>
 </body>
 </html>

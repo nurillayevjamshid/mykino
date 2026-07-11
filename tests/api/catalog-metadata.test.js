@@ -520,6 +520,41 @@ describe("katalog metadata wipe himoyasi", () => {
     assert.ok(descriptionPatch.description.includes("Tavsif"), "ko'rinadigan tavsif saqlanib qolishi kerak");
   });
 
+  test("admin poster saqlashi SA kvota xatosida ham descriptionga yoziladi", async () => {
+    // R2 tanlagichdan poster tanlab saqlanganda katalog JSON yozilmasa ham
+    // (SA kvota) natija yo'qolmasligi kerak.
+    let descriptionPatch = null;
+    const stub = installFetch([
+      tokenRoute,
+      metaSearchRoute,
+      metaMediaRoute(() => jsonResponse({ version: 1, movies: {} })),
+      {
+        match: (url, method) => method === "GET" && url.includes("/drive/v3/files/movie-a?"),
+        respond: () => jsonResponse({ id: "movie-a", name: "Kino A.mp4", mimeType: "video/mp4", description: "" }),
+      },
+      {
+        match: (url, method) => method === "PATCH" && url.startsWith("https://www.googleapis.com/upload/drive/v3/files"),
+        respond: () => jsonResponse({ error: { message: "Service Accounts do not have storage quota." } }, 403),
+      },
+      {
+        match: (url, method) => method === "PATCH" && url.includes("/drive/v3/files/movie-a"),
+        respond: (url, init) => {
+          descriptionPatch = JSON.parse(String(init.body));
+          return jsonResponse({ id: "movie-a" });
+        },
+      },
+    ]);
+    restoreFetch = stub.restore;
+
+    const googleDrive = freshGoogleDrive();
+    const saved = await googleDrive.updateCatalogMovieMetadata("movie-a", {
+      posterImage: "https://r2.example.com/img/poster-a.jpg",
+    });
+    assert.equal(saved.override.posterImage, "https://r2.example.com/img/poster-a.jpg");
+    assert.ok(descriptionPatch, "kvota xatosida description yozilishi kerak");
+    assert.ok(descriptionPatch.description.includes("poster-a.jpg"));
+  });
+
   test("fill-only merge admin kiritgan yangi qiymatlarni buzmaydi", () => {
     const googleDrive = freshGoogleDrive();
     const { merged, filled } = googleDrive.mergeMovieOverridesFillOnly(

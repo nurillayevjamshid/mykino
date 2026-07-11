@@ -744,6 +744,15 @@ function bindEvents() {
     showNotification('Ro\'yxat yangilandi.');
   });
 
+  // "Faqat postersiz kinolar" filtri — R2 tanlagich bilan tez bog'lab chiqish uchun
+  document.getElementById('missingPostersToggle')?.addEventListener('change', (e) => {
+    showOnlyMissingPosters = Boolean(e.target.checked);
+    filterMovies(currentSearchQuery || '');
+    if (showOnlyMissingPosters) {
+      showNotification(`${filteredMovies.length} ta kinoda haqiqiy ablojka yo'q.`);
+    }
+  });
+
   // O'chib ketgan posterlarni zaxira manbalardan (ko'rish tarixi, kino
   // fayllari metadata'si, Drive revisiyalari, R2 zaxira) majburiy tiklash.
   document.getElementById('restorePostersBtn')?.addEventListener('click', async (e) => {
@@ -1115,6 +1124,20 @@ function bindEvents() {
 }
 
 // Filter movies based on search query
+// Haqiqiy ablojkasi yo'q kino: poster bo'sh yoki fallback (drive-thumbnail,
+// logo, placeholder) URL. Postersizlarni tez topib, R2 tanlagich bilan
+// bog'lab chiqish uchun ishlatiladi.
+let showOnlyMissingPosters = false;
+function movieHasRealPoster(movie) {
+  const poster = String(movie.poster || '').trim().toLowerCase();
+  if (!poster) return false;
+  if (poster.startsWith('data:image/svg')) return false;
+  return !poster.includes('/api/drive-thumbnail')
+    && !poster.includes('/static/assets/')
+    && !poster.includes('my-kino-logo')
+    && !poster.includes('placeholder.com');
+}
+
 function filterMovies(query) {
   currentSearchQuery = query.toLowerCase().trim();
 
@@ -1131,6 +1154,10 @@ function filterMovies(query) {
       ].join(' ').toLowerCase();
       return searchFields.includes(currentSearchQuery);
     });
+  }
+
+  if (showOnlyMissingPosters) {
+    filteredMovies = filteredMovies.filter((movie) => !movieHasRealPoster(movie));
   }
 
   moviesCurrentPage = 1;
