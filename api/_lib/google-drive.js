@@ -367,6 +367,35 @@ function getMetadataOverride(metadataMap, fileId) {
   return entry && typeof entry === "object" ? entry : null;
 }
 
+// "Yolg'on" poster URL'lari: logo, placeholder, drive-thumbnail fallback'lari.
+// Bular haqiqiy poster emas — saqlash/merge/tiklashda bo'sh deb hisoblanadi,
+// aks holda (masalan, ko'rish tarixidan kelgan logo URL) asl posterning
+// o'rnini band qilib, keyingi tiklashlarga ham to'sqinlik qiladi.
+function isFallbackPosterUrl(value) {
+  const url = trimString(value).toLowerCase();
+  if (!url) return false;
+  return url.includes("/static/assets/")
+    || url.includes("my-kino-logo")
+    || url.includes("kino-play-logo")
+    || url.includes("placeholder.com")
+    || url.includes("/api/drive-thumbnail");
+}
+
+function usablePosterValue(value) {
+  const url = trimString(value);
+  return isFallbackPosterUrl(url) ? "" : url;
+}
+
+// Rasm ko'rsatuvchi maydonlar — bularda isFallbackPosterUrl ham "bo'sh" sanaladi
+const OVERRIDE_IMAGE_KEYS = new Set([
+  "posterImage", "poster", "headerImage", "heroPoster", "headerPoster", "heroImage",
+]);
+
+function overrideFieldValue(object, key) {
+  const raw = object ? object[key] : "";
+  return OVERRIDE_IMAGE_KEYS.has(key) ? usablePosterValue(raw) : trimString(raw);
+}
+
 // JSON override (top) fayl descriptionidagi embedded override (base) ustidan
 // FAQAT bo'sh bo'lmagan qiymatlari bilan g'olib chiqadi. Aks holda JSON'dagi
 // posterImage:"" kabi bo'sh maydonlar fayldagi asl posterni bekitib qo'yadi —
@@ -381,7 +410,7 @@ function mergeOverridePreferNonEmpty(base, top) {
   const topObj = top && typeof top === "object" ? top : {};
   const result = { ...baseObj, ...topObj };
   for (const key of OVERRIDE_STRING_KEYS) {
-    if (!trimString(topObj[key]) && trimString(baseObj[key])) {
+    if (!overrideFieldValue(topObj, key) && overrideFieldValue(baseObj, key)) {
       result[key] = baseObj[key];
     }
   }
@@ -438,8 +467,11 @@ function sanitizeHeaderCrop(value) {
 }
 
 function cleanupStoredMovieOverride(current = {}) {
-  const posterImage = trimString(current.posterImage || current.poster);
-  const rawHeaderImage = trimString(current.headerImage || current.heroPoster || current.headerPoster || current.heroImage);
+  const posterImage = usablePosterValue(current.posterImage) || usablePosterValue(current.poster);
+  const rawHeaderImage = usablePosterValue(current.headerImage)
+    || usablePosterValue(current.heroPoster)
+    || usablePosterValue(current.headerPoster)
+    || usablePosterValue(current.heroImage);
   const headerImage = resolveStoredHeaderImage(rawHeaderImage);
   const showInHeader = safeBooleanFlag(current.showInHeader) && (!rawHeaderImage || Boolean(headerImage));
   const next = {
@@ -579,8 +611,13 @@ function toDriveMovie(file, index, metadataMap = {}) {
   const embeddedOverride = embedded.override && typeof embedded.override === "object" ? embedded.override : {};
   const override = mergeOverridePreferNonEmpty(embeddedOverride, jsonOverride);
   const genre = sanitizePublicGenre(override?.genre || override?.category) || "Kino";
-  const posterImage = trimString(override?.posterImage || override?.poster);
-  const rawHeaderImage = trimString(override?.headerImage || override?.heroPoster || override?.headerPoster || override?.heroImage);
+  // Logo/placeholder kabi yolg'on URL'lar poster sifatida qabul qilinmaydi —
+  // ular o'rniga Drive thumbnail fallback ishlaydi.
+  const posterImage = usablePosterValue(override?.posterImage) || usablePosterValue(override?.poster);
+  const rawHeaderImage = usablePosterValue(override?.headerImage)
+    || usablePosterValue(override?.heroPoster)
+    || usablePosterValue(override?.headerPoster)
+    || usablePosterValue(override?.heroImage);
   const headerImage = resolveStoredHeaderImage(rawHeaderImage);
 
   const botToken = process.env.BOT_TOKEN || "";
@@ -813,9 +850,9 @@ function catalogBackupDailyKey(date = new Date()) {
 function isMeaningfulMovieOverride(entry) {
   if (!entry || typeof entry !== "object") return false;
   return Boolean(
-    trimString(entry.posterImage)
-    || trimString(entry.poster)
-    || trimString(entry.headerImage)
+    usablePosterValue(entry.posterImage)
+    || usablePosterValue(entry.poster)
+    || usablePosterValue(entry.headerImage)
     || trimString(entry.title)
     || trimString(entry.description)
     || trimString(entry.genre)
@@ -853,8 +890,10 @@ function mergeMovieOverridesFillOnly(currentMovies, sourceMovies) {
     const next = { ...current };
     let changed = false;
     for (const key of ["title", "genre", "quality", "posterImage", "headerImage", "description", "cdnUrl"]) {
-      if (!trimString(next[key]) && trimString(source[key])) {
-        next[key] = trimString(source[key]);
+      // Rasm maydonlarida logo/placeholder kabi yolg'on URL'lar bo'sh sanaladi —
+      // ular ham haqiqiy qiymat bilan to'ldiriladi.
+      if (!overrideFieldValue(next, key) && overrideFieldValue(source, key)) {
+        next[key] = overrideFieldValue(source, key);
         changed = true;
       }
     }
@@ -990,9 +1029,10 @@ function collectPosterCandidatesFromWatchProgress(watchProgress) {
     if (!userMap || typeof userMap !== "object") continue;
     for (const [movieId, entry] of Object.entries(userMap)) {
       const poster = trimString(entry?.poster);
-      // Faqat haqiqiy tashqi poster URL'lari: fallback thumbnail/generatsiya emas
+      // Faqat haqiqiy tashqi poster URL'lari: logo, placeholder va
+      // drive-thumbnail kabi fallback rasmlar poster sifatida olinmaydi.
       if (!/^https?:\/\//i.test(poster)) continue;
-      if (poster.includes("/api/drive-thumbnail")) continue;
+      if (isFallbackPosterUrl(poster)) continue;
       const updatedAt = Number(entry?.updatedAt || 0);
       if (!best[movieId] || updatedAt > best[movieId].updatedAt) {
         best[movieId] = { posterImage: poster, updatedAt };
@@ -1143,7 +1183,7 @@ function autoRestoreCatalogOverrides() {
 // Versiya oshirilganda (yangi deploy'da tiklash mantig'i kuchaytirilganda)
 // birinchi katalog so'rovida qayta ishga tushadi. Fill-only bo'lgani uchun
 // xavfsiz: admin keyin kiritgan qiymatlar hech qachon eskisi bilan almashmaydi.
-const CATALOG_DEEP_RESTORE_VERSION = 3;
+const CATALOG_DEEP_RESTORE_VERSION = 4;
 const CATALOG_DEEP_RETRY_INTERVAL_MS = 30 * 60_000;
 
 let deepRestoreInflight = null;
@@ -1482,16 +1522,24 @@ const MOVIE_R2_CACHE_KEY = "cache/movies.json";
 const MOVIE_R2_CACHE_TTL_MS = 600_000; // 10 daqiqa
 
 async function listDriveMoviesUncached() {
+  // Deploy'dan keyin bir marta: chuqur tiklash — R2 keshdan OLDIN, aks holda
+  // eski (postersiz) kesh bir necha sikl davomida tiklashni kechiktiradi.
+  // Marker tufayli odatiy holatda bu bitta yengil R2 GET xolos.
+  let justRestored = false;
+  try { justRestored = Boolean(await maybeDeepRestoreCatalogOverrides()); } catch (_) {}
+
   // Cold start bo'lganda R2'dan tezkor o'qish (100ms vs 3-4s Drive API)
-  try {
-    const r2Cache = await getJsonFromR2(MOVIE_R2_CACHE_KEY, null);
-    if (r2Cache && r2Cache.movies && r2Cache.ts && (Date.now() - r2Cache.ts < MOVIE_R2_CACHE_TTL_MS)) {
-      // R2 kesh yangi — Drive API'ga murojaat qilmaymiz
-      // Fon'da Drive'dan yangilash
-      refreshMoviesFromDrive(r2Cache.movies).catch(() => {});
-      return r2Cache.movies;
-    }
-  } catch (_) { /* R2 xatolik — Drive'dan olishda davom etamiz */ }
+  if (!justRestored) {
+    try {
+      const r2Cache = await getJsonFromR2(MOVIE_R2_CACHE_KEY, null);
+      if (r2Cache && r2Cache.movies && r2Cache.ts && (Date.now() - r2Cache.ts < MOVIE_R2_CACHE_TTL_MS)) {
+        // R2 kesh yangi — Drive API'ga murojaat qilmaymiz
+        // Fon'da Drive'dan yangilash
+        refreshMoviesFromDrive(r2Cache.movies).catch(() => {});
+        return r2Cache.movies;
+      }
+    } catch (_) { /* R2 xatolik — Drive'dan olishda davom etamiz */ }
+  }
 
   const { folderId } = getDriveConfig();
   try {
@@ -1503,11 +1551,6 @@ async function listDriveMoviesUncached() {
     }
     throw error;
   }
-  // Deploy'dan keyin bir marta: o'chib ketgan poster bog'lanishlarini Drive
-  // revisiyalari va R2 zaxiradan chuqur qidirib tiklash. Marker tufayli
-  // odatiy so'rovlarda bitta yengil R2 GET bilan o'tib ketadi.
-  try { await maybeDeepRestoreCatalogOverrides(); } catch (_) {}
-
   const files = [];
   let pageToken = "";
   const metadataState = await readCatalogMetadata();
