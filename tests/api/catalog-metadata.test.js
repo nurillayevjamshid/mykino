@@ -463,6 +463,63 @@ describe("katalog metadata wipe himoyasi", () => {
     assert.equal(storedMetadata.movies["movie-a"].posterImage, "https://r2.test.example/img/poster-a.jpg", "tiklangan poster Drive'ga yozilgan bo'lishi kerak");
   });
 
+  test("JSON fayl yozilmasa (SA kvota) tiklash kino descriptioniga yozadi", async () => {
+    // Production'dagi haqiqiy holat: Google service account'da saqlash kvotasi
+    // yo'q, katalog JSON PATCH'i 403 qaytaradi. Tiklash natijasi yo'qolmasligi
+    // kerak — har kino faylining descriptioniga (metadata-only PATCH) yoziladi.
+    const wipedMetadata = {
+      version: 1,
+      movies: { "movie-a": { title: "Kino A", posterImage: "" } },
+      watchProgress: {
+        "user-1": {
+          "movie-a": { time: 10, duration: 100, updatedAt: 5, poster: "https://r2.example.com/img/poster-a.jpg" },
+        },
+      },
+    };
+    let descriptionPatch = null;
+    const stub = installFetch([
+      tokenRoute,
+      metaSearchRoute,
+      metaMediaRoute(() => jsonResponse(wipedMetadata)),
+      {
+        match: (url, method) => method === "GET"
+          && url.startsWith("https://www.googleapis.com/drive/v3/files?")
+          && decodeURIComponent(String(url).replace(/\+/g, "%20")).includes("mimeType contains 'video/'"),
+        respond: () => jsonResponse({ files: [] }),
+      },
+      {
+        match: (url, method) => method === "GET" && url.includes(`/files/${META_FILE.id}/revisions?`),
+        respond: () => jsonResponse({ revisions: [] }),
+      },
+      {
+        // Katalog JSON yozuvi — kvota xatosi (aynan production'dagi xabar)
+        match: (url, method) => method === "PATCH" && url.startsWith("https://www.googleapis.com/upload/drive/v3/files"),
+        respond: () => jsonResponse({ error: { message: "Service Accounts do not have storage quota. Leverage shared drives instead." } }, 403),
+      },
+      {
+        match: (url, method) => method === "GET" && url.includes("/drive/v3/files/movie-a?"),
+        respond: () => jsonResponse({ id: "movie-a", name: "Kino A.mp4", mimeType: "video/mp4", description: "Tavsif" }),
+      },
+      {
+        // Kino fayli descriptionini yangilash (metadata-only PATCH — kvotasiz ishlaydi)
+        match: (url, method) => method === "PATCH" && url.includes("/drive/v3/files/movie-a"),
+        respond: (url, init) => {
+          descriptionPatch = JSON.parse(String(init.body));
+          return jsonResponse({ id: "movie-a", name: "Kino A.mp4" });
+        },
+      },
+    ]);
+    restoreFetch = stub.restore;
+
+    const googleDrive = freshGoogleDrive();
+    const result = await googleDrive.restoreCatalogMovieOverrides();
+    assert.equal(result.restored, 1, "poster ko'rish tarixidan tiklanishi kerak");
+    assert.equal(result.pendingPersist, 0);
+    assert.ok(descriptionPatch, "kino descriptioniga yozilishi kerak");
+    assert.ok(descriptionPatch.description.includes("poster-a.jpg"), "descriptionda tiklangan poster URL bo'lishi kerak");
+    assert.ok(descriptionPatch.description.includes("Tavsif"), "ko'rinadigan tavsif saqlanib qolishi kerak");
+  });
+
   test("fill-only merge admin kiritgan yangi qiymatlarni buzmaydi", () => {
     const googleDrive = freshGoogleDrive();
     const { merged, filled } = googleDrive.mergeMovieOverridesFillOnly(

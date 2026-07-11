@@ -1131,6 +1131,7 @@ async function restoreCatalogMovieOverrides() {
     }
   }
 
+  const originalMovies = current.movies;
   let movies = current.movies;
   let restored = 0;
   for (const source of sources) {
@@ -1143,13 +1144,53 @@ async function restoreCatalogMovieOverrides() {
   }
 
   if (!restored) {
-    return { restored: 0, total: countMeaningfulMovieOverrides(movies), sources: sources.map((s) => s.name) };
+    return { restored: 0, pendingPersist: 0, total: countMeaningfulMovieOverrides(movies), sources: sources.map((s) => s.name) };
   }
 
   current.movies = movies;
-  await writeCatalogMetadata(current, metadataState.file);
+  let pendingPersist = 0;
+  try {
+    await writeCatalogMetadata(current, metadataState.file);
+  } catch (error) {
+    if (!isServiceAccountStorageQuotaError(error)) {
+      throw error;
+    }
+    // Google service account'larda saqlash kvotasi yo'q — katalog JSON fayli
+    // yozilmaydi. Tiklangan override'larni har bir kino faylining
+    // descriptioniga yozamiz: bu metadata-only PATCH, kvota talab qilmaydi
+    // va toDriveMovie o'qishda embedded metadata'ni baribir birlashtiradi.
+    const changedIds = Object.keys(movies).filter(
+      (movieId) => JSON.stringify(movies[movieId]) !== JSON.stringify(originalMovies[movieId]),
+    );
+    const startedAt = Date.now();
+    const PERSIST_TIME_BUDGET_MS = 6000;
+    for (const movieId of changedIds) {
+      if (Date.now() - startedAt > PERSIST_TIME_BUDGET_MS) {
+        pendingPersist += 1;
+        continue;
+      }
+      try {
+        const movieFile = await getDriveFileMetadata(movieId, "id,name,description");
+        const embedded = extractEmbeddedMovieMetadata(movieFile.description || "");
+        const mergedOverride = mergeOverridePreferNonEmpty(
+          embedded.override && typeof embedded.override === "object" ? embedded.override : {},
+          movies[movieId],
+        );
+        delete mergedOverride.reactions;
+        const cleaned = cleanupStoredMovieOverride(mergedOverride);
+        await updateDriveFileMetadata(movieId, {
+          description: buildEmbeddedMovieDescription(embedded.visibleDescription, cleaned, DRIVE_DESCRIPTION_MAX_LENGTH),
+        });
+      } catch (_) {
+        // Bitta kino yozilmasa (masalan fayl o'chirilgan) qolganini davom ettiramiz
+      }
+    }
+    // JSON yozilmasa ham tiklangan xarita R2 zaxirasida doimiy saqlansin —
+    // keyingi tiklashlar va wipe-himoya shu yerdan o'qiy oladi.
+    backupCatalogMetadataToR2(current).catch(() => {});
+  }
   invalidateListCache("movies");
-  return { restored, total: countMeaningfulMovieOverrides(movies), sources: sources.map((s) => s.name) };
+  return { restored, pendingPersist, total: countMeaningfulMovieOverrides(movies), sources: sources.map((s) => s.name) };
 }
 
 // Avto-tiklash: kinolar bor-u birorta ham poster override'i qolmagan bo'lsa
@@ -1216,8 +1257,11 @@ function maybeDeepRestoreCatalogOverrides() {
         ts: Date.now(),
       });
       const result = await restoreCatalogMovieOverrides();
+      // Hammasi saqlanmagan bo'lsa (vaqt chegarasi) versiyani "bajarildi" deb
+      // belgilamaymiz — 30 daqiqadan keyin qolganini davom ettiradi.
+      const fullyPersisted = !result.pendingPersist;
       await putJsonToR2(CATALOG_RESTORE_MARKER_KEY, {
-        deepVersion: CATALOG_DEEP_RESTORE_VERSION,
+        deepVersion: fullyPersisted ? CATALOG_DEEP_RESTORE_VERSION : doneVersion,
         attemptedVersion: CATALOG_DEEP_RESTORE_VERSION,
         ts: Date.now(),
         restored: result.restored,
