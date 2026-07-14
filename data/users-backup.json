@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-07-13T06:20:38.664Z",
-  "count": 19,
+  "updatedAt": "2026-07-14T05:31:26.862Z",
+  "count": 20,
   "users": [
     {
       "telegram_id": 74402946,
@@ -102,6 +102,12 @@
       "telegram_id": 8271571443,
       "username": "Chanmiss1",
       "first_name": "Дж'",
+      "started_at": "2026-07-13"
+    },
+    {
+      "telegram_id": 8672835408,
+      "username": "profilee_link",
+      "first_name": "kaulitz",
       "started_at": "2026-07-13"
     },
     {
