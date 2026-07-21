@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-07-20T06:19:16.487Z",
-  "count": 21,
+  "updatedAt": "2026-07-21T05:51:57.154Z",
+  "count": 22,
   "users": [
     {
       "telegram_id": 74402946,
@@ -97,6 +97,12 @@
       "username": "",
       "first_name": "Orozali",
       "started_at": "2026-06-28"
+    },
+    {
+      "telegram_id": 8085459396,
+      "username": "",
+      "first_name": "🍃",
+      "started_at": "2026-07-20"
     },
     {
       "telegram_id": 8271571443,
