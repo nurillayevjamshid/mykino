@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-08-22T03:41:47.585Z",
-  "count": 25,
+  "updatedAt": "2026-08-23T03:50:23.546Z",
+  "count": 26,
   "users": [
     {
       "telegram_id": 74402946,
@@ -43,6 +43,12 @@
       "username": "nurbek1112",
       "first_name": "Nurbek",
       "started_at": "2026-07-11"
+    },
+    {
+      "telegram_id": 5112737503,
+      "username": "M17_21",
+      "first_name": "꧁༺ϻ༻꧂",
+      "started_at": "2026-08-22"
     },
     {
       "telegram_id": 5878057404,
