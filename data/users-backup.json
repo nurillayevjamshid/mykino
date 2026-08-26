@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-08-25T03:48:59.253Z",
-  "count": 26,
+  "updatedAt": "2026-08-26T03:53:44.687Z",
+  "count": 27,
   "users": [
     {
       "telegram_id": 74402946,
@@ -31,6 +31,12 @@
       "username": "DeveLopper_99",
       "first_name": "Муфтофиддин",
       "started_at": "2026-06-26"
+    },
+    {
+      "telegram_id": 1973516199,
+      "username": "Mynerde",
+      "first_name": "Aytenov Baxadir",
+      "started_at": "2026-08-25"
     },
     {
       "telegram_id": 2027436082,
