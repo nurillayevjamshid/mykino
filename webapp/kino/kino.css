@@ -5718,10 +5718,10 @@ html[data-theme="light"] {
 html[data-theme="dark"] {
   color-scheme: dark;
   /* Image reference palette: deep teal/green instead of the previous blue-purple cast. */
-  --c-bg: #001213;
-  --c-surface: #092a2b;
-  --c-surface-2: rgba(109, 211, 198, 0.10);
-  --c-surface-3: rgba(109, 211, 198, 0.06);
+  --c-bg: #000a0c;
+  --c-surface: #062022;
+  --c-surface-2: rgba(109, 211, 198, 0.08);
+  --c-surface-3: rgba(109, 211, 198, 0.045);
   --c-border: rgba(109, 211, 198, 0.16);
   --c-border-strong: rgba(109, 211, 198, 0.28);
   --c-text: #f2fbf9;
@@ -5729,16 +5729,16 @@ html[data-theme="dark"] {
   --c-text-mute: rgba(225, 243, 239, 0.52);
   --c-accent: #29c9ba;
   --c-accent-strong: #118e84;
-  --c-bottom-glass: rgba(2, 28, 29, 0.84);
-  --c-modal-bg: linear-gradient(180deg, rgba(15, 54, 54, 0.97) 0%, rgba(0, 18, 19, 0.99) 100%);
+  --c-bottom-glass: rgba(1, 18, 20, 0.90);
+  --c-modal-bg: linear-gradient(180deg, rgba(8, 35, 36, 0.98) 0%, rgba(0, 10, 12, 0.995) 100%);
   --c-shadow-card: 0 12px 30px rgba(0, 5, 5, 0.58);
   --c-shadow-card-hover: 0 22px 46px rgba(0, 5, 5, 0.74), 0 18px 42px rgba(41, 201, 186, 0.18);
   --c-shadow-pill: 0 18px 50px rgba(0, 5, 5, 0.68);
   --c-app-glow:
-    radial-gradient(900px 520px at 12% -8%, rgba(64, 157, 146, 0.28), transparent 62%),
-    radial-gradient(720px 440px at 92% -10%, rgba(64, 139, 126, 0.18), transparent 60%),
-    radial-gradient(1100px 700px at 50% 110%, rgba(27, 92, 83, 0.16), transparent 70%),
-    linear-gradient(180deg, #103d3e 0%, #062727 55%, #001213 100%);
+    radial-gradient(900px 520px at 12% -8%, rgba(64, 157, 146, 0.20), transparent 62%),
+    radial-gradient(720px 440px at 92% -10%, rgba(64, 139, 126, 0.12), transparent 60%),
+    radial-gradient(1100px 700px at 50% 110%, rgba(27, 92, 83, 0.10), transparent 70%),
+    linear-gradient(180deg, #0c3233 0%, #042021 55%, #000a0c 100%);
 }
 
 html,
@@ -5770,21 +5770,21 @@ html[data-theme="dark"] .app-shell {
 html[data-theme="dark"],
 html[data-theme="dark"] body {
   background:
-    linear-gradient(180deg, #123f40 0%, #082a2b 46%, #001213 100%);
+    linear-gradient(180deg, #0b2d2e 0%, #041d1f 46%, #000a0c 100%);
 }
 
 html[data-theme="dark"] .app-shell {
   background:
-    radial-gradient(120% 60% at 15% 0%, rgba(64, 157, 146, 0.30) 0%, rgba(64, 157, 146, 0) 60%),
-    radial-gradient(110% 55% at 95% 8%, rgba(64, 139, 126, 0.18) 0%, rgba(64, 139, 126, 0) 55%),
-    radial-gradient(130% 70% at 50% 100%, rgba(27, 92, 83, 0.15) 0%, rgba(27, 92, 83, 0) 60%),
-    linear-gradient(180deg, #103d3e 0%, #062727 55%, #001213 100%);
+    radial-gradient(120% 60% at 15% 0%, rgba(64, 157, 146, 0.20) 0%, rgba(64, 157, 146, 0) 60%),
+    radial-gradient(110% 55% at 95% 8%, rgba(64, 139, 126, 0.12) 0%, rgba(64, 139, 126, 0) 55%),
+    radial-gradient(130% 70% at 50% 100%, rgba(27, 92, 83, 0.10) 0%, rgba(27, 92, 83, 0) 60%),
+    linear-gradient(180deg, #0c3233 0%, #042021 55%, #000a0c 100%);
 }
 
 @media (min-width: 768px) {
   html[data-theme="dark"] body {
     background:
-      linear-gradient(180deg, #123f40 0%, #082a2b 46%, #001213 100%);
+      linear-gradient(180deg, #0b2d2e 0%, #041d1f 46%, #000a0c 100%);
   }
   html[data-theme="light"] body {
     background: #ffffff;
