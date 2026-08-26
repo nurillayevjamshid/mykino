@@ -1,4 +1,4 @@
-const VERSION = "v20260711-poster-fallback";
+const VERSION = "v20260827-dark-teal";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
