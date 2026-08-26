@@ -5718,8 +5718,8 @@ html[data-theme="light"] {
 html[data-theme="dark"] {
   color-scheme: dark;
   /* Image reference palette: deep teal/green instead of the previous blue-purple cast. */
-  --c-bg: #000a0c;
-  --c-surface: #062022;
+  --c-bg: #00070a;
+  --c-surface: #041719;
   --c-surface-2: rgba(109, 211, 198, 0.08);
   --c-surface-3: rgba(109, 211, 198, 0.045);
   --c-border: rgba(109, 211, 198, 0.16);
@@ -5730,7 +5730,7 @@ html[data-theme="dark"] {
   --c-accent: #29c9ba;
   --c-accent-strong: #118e84;
   --c-bottom-glass: rgba(1, 18, 20, 0.90);
-  --c-modal-bg: linear-gradient(180deg, rgba(8, 35, 36, 0.98) 0%, rgba(0, 10, 12, 0.995) 100%);
+  --c-modal-bg: linear-gradient(180deg, rgba(5, 25, 27, 0.98) 0%, rgba(0, 7, 10, 0.995) 100%);
   --c-shadow-card: 0 12px 30px rgba(0, 5, 5, 0.58);
   --c-shadow-card-hover: 0 22px 46px rgba(0, 5, 5, 0.74), 0 18px 42px rgba(41, 201, 186, 0.18);
   --c-shadow-pill: 0 18px 50px rgba(0, 5, 5, 0.68);
@@ -5738,7 +5738,7 @@ html[data-theme="dark"] {
     radial-gradient(900px 520px at 12% -8%, rgba(64, 157, 146, 0.20), transparent 62%),
     radial-gradient(720px 440px at 92% -10%, rgba(64, 139, 126, 0.12), transparent 60%),
     radial-gradient(1100px 700px at 50% 110%, rgba(27, 92, 83, 0.10), transparent 70%),
-    linear-gradient(180deg, #0c3233 0%, #042021 55%, #000a0c 100%);
+    linear-gradient(180deg, #08272a 0%, #03171a 55%, #00070a 100%);
 }
 
 html,
@@ -5770,21 +5770,21 @@ html[data-theme="dark"] .app-shell {
 html[data-theme="dark"],
 html[data-theme="dark"] body {
   background:
-    linear-gradient(180deg, #0b2d2e 0%, #041d1f 46%, #000a0c 100%);
+    linear-gradient(180deg, #061d1f 0%, #021418 46%, #00070a 100%);
 }
 
 html[data-theme="dark"] .app-shell {
   background:
-    radial-gradient(120% 60% at 15% 0%, rgba(64, 157, 146, 0.20) 0%, rgba(64, 157, 146, 0) 60%),
-    radial-gradient(110% 55% at 95% 8%, rgba(64, 139, 126, 0.12) 0%, rgba(64, 139, 126, 0) 55%),
-    radial-gradient(130% 70% at 50% 100%, rgba(27, 92, 83, 0.10) 0%, rgba(27, 92, 83, 0) 60%),
-    linear-gradient(180deg, #0c3233 0%, #042021 55%, #000a0c 100%);
+    radial-gradient(120% 60% at 15% 0%, rgba(64, 157, 146, 0.14) 0%, rgba(64, 157, 146, 0) 60%),
+    radial-gradient(110% 55% at 95% 8%, rgba(64, 139, 126, 0.08) 0%, rgba(64, 139, 126, 0) 55%),
+    radial-gradient(130% 70% at 50% 100%, rgba(27, 92, 83, 0.06) 0%, rgba(27, 92, 83, 0) 60%),
+    linear-gradient(180deg, #08272a 0%, #03171a 55%, #00070a 100%);
 }
 
 @media (min-width: 768px) {
   html[data-theme="dark"] body {
     background:
-      linear-gradient(180deg, #0b2d2e 0%, #041d1f 46%, #000a0c 100%);
+      linear-gradient(180deg, #061d1f 0%, #021418 46%, #00070a 100%);
   }
   html[data-theme="light"] body {
     background: #ffffff;
