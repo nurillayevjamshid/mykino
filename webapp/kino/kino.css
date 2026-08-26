@@ -5717,27 +5717,28 @@ html[data-theme="light"] {
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --c-bg: #060a18;
-  --c-surface: #131316;
-  --c-surface-2: rgba(255, 255, 255, 0.06);
-  --c-surface-3: rgba(255, 255, 255, 0.04);
-  --c-border: rgba(255, 255, 255, 0.08);
-  --c-border-strong: rgba(255, 255, 255, 0.16);
-  --c-text: #ffffff;
-  --c-text-soft: rgba(255, 255, 255, 0.7);
-  --c-text-mute: rgba(255, 255, 255, 0.5);
-  --c-accent: #ff2a38;
-  --c-accent-strong: #b80710;
-  --c-bottom-glass: rgba(15, 15, 17, 0.78);
-  --c-modal-bg: linear-gradient(180deg, rgba(22, 22, 24, 0.96) 0%, rgba(10, 10, 12, 0.98) 100%);
-  --c-shadow-card: 0 12px 30px rgba(0, 0, 0, 0.55);
-  --c-shadow-card-hover: 0 22px 46px rgba(0, 0, 0, 0.7), 0 18px 42px rgba(229, 9, 20, 0.22);
-  --c-shadow-pill: 0 18px 50px rgba(0, 0, 0, 0.65);
+  /* Image reference palette: deep teal/green instead of the previous blue-purple cast. */
+  --c-bg: #001213;
+  --c-surface: #092a2b;
+  --c-surface-2: rgba(109, 211, 198, 0.10);
+  --c-surface-3: rgba(109, 211, 198, 0.06);
+  --c-border: rgba(109, 211, 198, 0.16);
+  --c-border-strong: rgba(109, 211, 198, 0.28);
+  --c-text: #f2fbf9;
+  --c-text-soft: rgba(235, 249, 246, 0.74);
+  --c-text-mute: rgba(225, 243, 239, 0.52);
+  --c-accent: #29c9ba;
+  --c-accent-strong: #118e84;
+  --c-bottom-glass: rgba(2, 28, 29, 0.84);
+  --c-modal-bg: linear-gradient(180deg, rgba(15, 54, 54, 0.97) 0%, rgba(0, 18, 19, 0.99) 100%);
+  --c-shadow-card: 0 12px 30px rgba(0, 5, 5, 0.58);
+  --c-shadow-card-hover: 0 22px 46px rgba(0, 5, 5, 0.74), 0 18px 42px rgba(41, 201, 186, 0.18);
+  --c-shadow-pill: 0 18px 50px rgba(0, 5, 5, 0.68);
   --c-app-glow:
-    radial-gradient(900px 520px at 12% -8%, rgba(40, 90, 200, 0.18), transparent 62%),
-    radial-gradient(720px 440px at 92% -10%, rgba(60, 130, 220, 0.10), transparent 60%),
-    radial-gradient(1100px 700px at 50% 110%, rgba(30, 80, 180, 0.08), transparent 70%),
-    linear-gradient(180deg, #08101f 0%, #050a16 100%);
+    radial-gradient(900px 520px at 12% -8%, rgba(64, 157, 146, 0.28), transparent 62%),
+    radial-gradient(720px 440px at 92% -10%, rgba(64, 139, 126, 0.18), transparent 60%),
+    radial-gradient(1100px 700px at 50% 110%, rgba(27, 92, 83, 0.16), transparent 70%),
+    linear-gradient(180deg, #103d3e 0%, #062727 55%, #001213 100%);
 }
 
 html,
@@ -5764,26 +5765,26 @@ html[data-theme="dark"] .app-shell {
     inset 0 0 120px rgba(229, 9, 20, 0.04);
 }
 
-/* Dark rejim — kino bo'limi foni musiqa bo'limidagidek binafsha gradient.
+/* Dark rejim — reference dizayndagi chuqur yashil-teal gradient.
    Light rejimga ta'sir qilmaydi. */
 html[data-theme="dark"],
 html[data-theme="dark"] body {
   background:
-    linear-gradient(180deg, #0a1426 0%, #060b1a 55%, #04080f 100%);
+    linear-gradient(180deg, #123f40 0%, #082a2b 46%, #001213 100%);
 }
 
 html[data-theme="dark"] .app-shell {
   background:
-    radial-gradient(120% 60% at 15% 0%, rgba(40, 100, 220, 0.30) 0%, rgba(40, 100, 220, 0) 60%),
-    radial-gradient(110% 55% at 95% 8%, rgba(70, 140, 230, 0.16) 0%, rgba(70, 140, 230, 0) 55%),
-    radial-gradient(130% 70% at 50% 100%, rgba(30, 90, 180, 0.12) 0%, rgba(30, 90, 180, 0) 60%),
-    linear-gradient(180deg, #0a1426 0%, #060b1a 55%, #04080f 100%);
+    radial-gradient(120% 60% at 15% 0%, rgba(64, 157, 146, 0.30) 0%, rgba(64, 157, 146, 0) 60%),
+    radial-gradient(110% 55% at 95% 8%, rgba(64, 139, 126, 0.18) 0%, rgba(64, 139, 126, 0) 55%),
+    radial-gradient(130% 70% at 50% 100%, rgba(27, 92, 83, 0.15) 0%, rgba(27, 92, 83, 0) 60%),
+    linear-gradient(180deg, #103d3e 0%, #062727 55%, #001213 100%);
 }
 
 @media (min-width: 768px) {
   html[data-theme="dark"] body {
     background:
-      linear-gradient(180deg, #0a1426 0%, #060b1a 55%, #04080f 100%);
+      linear-gradient(180deg, #123f40 0%, #082a2b 46%, #001213 100%);
   }
   html[data-theme="light"] body {
     background: #ffffff;

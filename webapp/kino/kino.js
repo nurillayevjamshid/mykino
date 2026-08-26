@@ -908,8 +908,8 @@ function applyTheme(theme) {
       plainLabel(t(nextTheme === "dark" ? "daytimeMode" : "eveningMode")),
     );
   }
-  const headerHex = nextTheme === "light" ? "#fafafb" : "#050505";
-  const bgHex = nextTheme === "light" ? "#f7f7f8" : "#050505";
+  const headerHex = nextTheme === "light" ? "#fafafb" : "#123f40";
+  const bgHex = nextTheme === "light" ? "#f7f7f8" : "#001213";
   if (themeColorMeta) {
     themeColorMeta.setAttribute("content", headerHex);
   }
