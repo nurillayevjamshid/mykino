@@ -103,12 +103,12 @@ async function handleSharePage(request, response) {
     }
   }
 
-  const title = movie ? `🎬 ${movie.title}` : "MY PLAYLIST — Kinolar to'plami";
+  const title = movie ? `🎬 ${movie.title}` : "NTV — Kinolar to'plami";
   const genre = trimString(movie?.genre || "");
   const year = trimString(movie?.year || "");
   const metaLine = [year, genre].filter(Boolean).join(" • ");
   const description = movie
-    ? (metaLine ? `${metaLine} — MY PLAYLIST'da bepul tomosha qiling 🍿` : "MY PLAYLIST'da bepul tomosha qiling 🍿")
+    ? (metaLine ? `${metaLine} — NTV'da bepul tomosha qiling 🍿` : "NTV'da bepul tomosha qiling 🍿")
     : "Eng so'nggi kinolar, seriallar va musiqalar bir joyda. Hoziroq tomosha qiling 🍿";
   const posterRel = trimString(movie?.cdnUrl) || trimString(movie?.posterImage) || "/static/assets/og-default.png";
   const posterUrl = absoluteUrl(request, posterRel);
@@ -121,7 +121,7 @@ async function handleSharePage(request, response) {
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <meta property="og:type" content="video.movie">
-<meta property="og:site_name" content="MY PLAYLIST">
+<meta property="og:site_name" content="NTV">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:image" content="${escapeHtml(posterUrl)}">
@@ -137,7 +137,7 @@ async function handleSharePage(request, response) {
 <body>
 <div>
 <h2>${escapeHtml(title)}</h2>
-<p>MY PLAYLIST ochilmoqda…</p>
+<p>NTV ochilmoqda…</p>
 <p><a href="${escapeHtml(targetUrl)}">Agar avtomatik ochilmasa, shu yerga bosing</a></p>
 </div>
 </body>

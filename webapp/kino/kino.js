@@ -1660,7 +1660,7 @@ function fileExtension(value) {
 }
 
 function buildGeneratedPosterDataUrl(movie) {
-  const title = String(movie?.title || "My Playlist").trim();
+  const title = String(movie?.title || "NTV").trim();
   const subtitle = [movie?.year, movie?.quality || "HD"].filter(Boolean).join(" - ") || "Cinematic streaming";
   const safeTitle = escapeHtml(title);
   const safeSubtitle = escapeHtml(subtitle);
@@ -1681,7 +1681,7 @@ function buildGeneratedPosterDataUrl(movie) {
       <circle cx="585" cy="170" r="132" fill="rgba(255,204,79,0.22)"/>
       <circle cx="162" cy="902" r="176" fill="rgba(84,130,255,0.12)"/>
       <rect x="48" y="48" width="624" height="984" rx="42" fill="rgba(12,16,24,0.28)" stroke="url(#glass)" stroke-width="2"/>
-      <text x="74" y="166" fill="#f8d25c" font-size="28" font-family="Inter, Arial, sans-serif" letter-spacing="2">MY PLAYLIST</text>
+      <text x="74" y="166" fill="#f8d25c" font-size="28" font-family="Inter, Arial, sans-serif" letter-spacing="2">NTV</text>
       <text x="74" y="820" fill="#ffffff" font-size="62" font-weight="700" font-family="Georgia, Times New Roman, serif">${safeTitle}</text>
       <text x="74" y="888" fill="rgba(255,255,255,0.78)" font-size="28" font-family="Inter, Arial, sans-serif">${safeSubtitle}</text>
       <text x="74" y="952" fill="rgba(255,255,255,0.58)" font-size="22" font-family="Inter, Arial, sans-serif">Poster topilmaganda avtomatik cover</text>
@@ -3447,7 +3447,7 @@ function buildShareUrl(movie) {
   const year = String(movie?.year || "").trim();
   const metaParts = [year, genre].filter(Boolean).join(" • ");
   const metaLine = metaParts ? `\n📅 ${metaParts}` : "";
-  const text = `🎬 ${title}${metaLine}\n\n🍿 MY PLAYLIST botida bepul tomosha qiling — bir bosish bilan ochiladi 👇`;
+  const text = `🎬 ${title}${metaLine}\n\n🍿 NTV botida bepul tomosha qiling — bir bosish bilan ochiladi 👇`;
   return `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(text)}`;
 }
 
