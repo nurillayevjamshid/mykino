@@ -40,7 +40,7 @@
       mute: "Ovozni o'chirish",
       unmute: "Ovozni yoqish",
       shareLive: "Translatsiyani yuborish",
-      shareLiveText: "Jonli translatsiyani MY PLAYLIST botida tomosha qiling — bir bosish bilan ochiladi 👇",
+      shareLiveText: "Jonli translatsiyani NTV botida tomosha qiling — bir bosish bilan ochiladi 👇",
     },
     ru: {
       finished: "Завершён",
@@ -68,7 +68,7 @@
       mute: "Выключить звук",
       unmute: "Включить звук",
       shareLive: "Поделиться трансляцией",
-      shareLiveText: "Смотрите прямую трансляцию в боте MY PLAYLIST — открывается одним нажатием 👇",
+      shareLiveText: "Смотрите прямую трансляцию в боте NTV — открывается одним нажатием 👇",
     },
     en: {
       finished: "Finished",
@@ -96,7 +96,7 @@
       mute: "Mute",
       unmute: "Unmute",
       shareLive: "Share the broadcast",
-      shareLiveText: "Watch the live broadcast in the MY PLAYLIST bot — opens with one tap 👇",
+      shareLiveText: "Watch the live broadcast in the NTV bot — opens with one tap 👇",
     },
   };
   function curLang() {

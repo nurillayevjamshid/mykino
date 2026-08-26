@@ -1492,7 +1492,7 @@ html[data-theme="light"] .category-row__more:focus-visible {
   z-index: 6;
 }
 
-/* Player ichidagi MY PLAYLIST brendi (play tugma + matn) — responsive */
+/* Player ichidagi NTV brendi (play tugma + matn) — responsive */
 .kino-watermark--brand {
   background-image: none;
   display: inline-flex;

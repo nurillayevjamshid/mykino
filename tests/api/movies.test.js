@@ -193,7 +193,7 @@ describe("api/movies.js", () => {
     assert.equal(res.statusCode, 200);
     assert.match(res.headers["Content-Type"], /text\/html/);
     assert.ok(typeof res.body === "string", "share page should be HTML string");
-    assert.match(res.body, /MY PLAYLIST/);
+    assert.match(res.body, /NTV/);
     assert.match(res.body, /<meta property="og:title"/);
   });
 
