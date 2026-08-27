@@ -260,7 +260,7 @@ textarea,
 }
 
 .splash-screen__name span {
-  font-size: 33px;
+  font-size: 40px;
   font-weight: 400;
   letter-spacing: 0.015em;
   opacity: 1;
@@ -1818,7 +1818,7 @@ html[data-theme="light"] .card-watch-button {
   gap: 8px;
   font-weight: 800;
   letter-spacing: 0.18em;
-  font-size: 13px;
+  font-size: 15px;
   color: #ffd15c;
 }
 
@@ -6195,7 +6195,7 @@ html[data-theme="dark"] .soon-badge {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 @media (max-width: 380px) {
@@ -6315,7 +6315,7 @@ html[data-theme="dark"] .soon-badge {
 .brand-text__top,
 .brand-text__bottom {
   font-weight: 900;
-  font-size: 11px;
+  font-size: 15px;
   letter-spacing: 0.16em;
   line-height: 1.05;
   color: var(--c-text);
