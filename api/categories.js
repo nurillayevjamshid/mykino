@@ -169,20 +169,54 @@ async function writePodLangs(map) {
 }
 
 // =========================================================================
-// FIFA JCH 2026 ma'lumotlari (proxy + kesh).
-// Jadval: openfootball/worldcup.json (public domain, CORS OK)
-// LIVE/standings: worldcup26.ir/get/{games,groups,teams} (CORS yo'q — proxy)
-// 5 daqiqali in-memory kesh — funktsiya isitilgan paytda tashqi so'rovni kamaytiradi.
+// Futbol ligalari ma'lumotlari (ESPN public API proxy + qisqa kesh).
+// Scoreboard va standings API manzillari brauzer CORS cheklovlarini chetlab
+// o'tish uchun shu serverless endpoint orqali chaqiriladi.
 // =========================================================================
-const FIFA_CACHE = { data: null, at: 0 };
-// Live skor va daqiqa real vaqt rejimida yangilanishi uchun keshni qisqa
-// ushlaymiz. Manba endpoint'lari yengil (4 ta fetch, allSettled), shu sababli
-// 30 soniyalik TTL xavfsiz.
-const FIFA_TTL_MS = 30 * 1000;
-const FIFA_SCHEDULE_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
-const FIFA_LIVE_GAMES_URL = "https://worldcup26.ir/get/games";
-const FIFA_LIVE_GROUPS_URL = "https://worldcup26.ir/get/groups";
-const FIFA_LIVE_TEAMS_URL = "https://worldcup26.ir/get/teams";
+const FOOTBALL_LEAGUES = [
+  { id: "eng.1", name: "APL", fullName: "Premier League" },
+  { id: "esp.1", name: "La Liga", fullName: "La Liga" },
+  { id: "ger.1", name: "Bundesliga", fullName: "Bundesliga" },
+  { id: "ita.1", name: "A Serie", fullName: "Serie A" },
+  { id: "fra.1", name: "Liga 1", fullName: "Ligue 1" },
+  { id: "ksa.1", name: "Saudi Liga", fullName: "Saudi Pro League" },
+  { id: "uefa.champions", name: "UCL", fullName: "UEFA Champions League" },
+  { id: "uefa.europa", name: "Yevropa Ligasi", fullName: "UEFA Europa League" },
+  { id: "uefa.europa.conf", name: "Konferensiyalar Ligasi", fullName: "UEFA Conference League" },
+];
+const FOOTBALL_SCOREBOARD_CACHE = new Map();
+const FOOTBALL_STANDINGS_CACHE = new Map();
+const FOOTBALL_TTL_MS = 30 * 1000;
+const ESPN_SCOREBOARD_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
+const ESPN_STANDINGS_BASE = "https://site.api.espn.com/apis/v2/sports/soccer";
+const FOOTBALL_TIME_ZONE = "Asia/Tashkent";
+
+function dateKeyInTimeZone(date = new Date(), timeZone = FOOTBALL_TIME_ZONE) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(date).reduce((acc, part) => {
+    if (part.type !== "literal") acc[part.type] = part.value;
+    return acc;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function normalizeFootballDate(raw) {
+  const value = String(raw || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const date = new Date(`${value}T00:00:00Z`);
+    if (!Number.isNaN(date.getTime())) return value;
+  }
+  return dateKeyInTimeZone();
+}
+
+function adjacentUtcDates(dateKey) {
+  const base = new Date(`${dateKey}T12:00:00Z`);
+  return [-1, 0, 1].map((offset) => {
+    const date = new Date(base.getTime() + offset * 86400000);
+    return date.toISOString().slice(0, 10).replaceAll("-", "");
+  });
+}
 
 async function fetchJson(url, timeoutMs = 6000) {
   const ctl = new AbortController();
@@ -196,69 +230,134 @@ async function fetchJson(url, timeoutMs = 6000) {
   }
 }
 
-async function buildFifaPayload() {
-  const [scheduleRes, gamesRes, groupsRes, teamsRes] = await Promise.allSettled([
-    fetchJson(FIFA_SCHEDULE_URL),
-    fetchJson(FIFA_LIVE_GAMES_URL),
-    fetchJson(FIFA_LIVE_GROUPS_URL),
-    fetchJson(FIFA_LIVE_TEAMS_URL),
-  ]);
+function espnStatValue(entry, names) {
+  const wanted = new Set(names.map((name) => String(name).toLowerCase()));
+  const stat = (Array.isArray(entry?.stats) ? entry.stats : []).find((item) => wanted.has(String(item?.name || "").toLowerCase()));
+  const value = Number(stat?.value ?? stat?.displayValue ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
 
-  const schedule = scheduleRes.status === "fulfilled" ? scheduleRes.value : null;
-  const liveGames = gamesRes.status === "fulfilled" ? gamesRes.value : null;
-  const liveGroups = groupsRes.status === "fulfilled" ? groupsRes.value : null;
-  const liveTeams = teamsRes.status === "fulfilled" ? teamsRes.value : null;
+function espnTeamLogo(team) {
+  return String(team?.logo || team?.logos?.[0]?.href || "").trim();
+}
 
-  // Live games'ni "team1|team2" kalit bilan map qilamiz
-  const liveMap = new Map();
-  const arr = Array.isArray(liveGames) ? liveGames : (liveGames?.games || []);
-  for (const g of arr) {
-    const home = String(g.home_team_name || g.home_team || g.home || "").trim();
-    const away = String(g.away_team_name || g.away_team || g.away || "").trim();
-    if (!home || !away) continue;
-    liveMap.set(`${home}|${away}`.toLowerCase(), {
-      status: String(g.status || "").toLowerCase(),
-      score_home: g.home_score ?? g.score_home ?? null,
-      score_away: g.away_score ?? g.score_away ?? null,
-      minute: g.minute ?? g.time_elapsed ?? null,
-    });
+function normalizeEspnMatch(event, league, dateKey) {
+  const competition = event?.competitions?.[0] || {};
+  const competitors = Array.isArray(competition.competitors) ? competition.competitors : [];
+  const home = competitors.find((item) => item.homeAway === "home") || competitors[0];
+  const away = competitors.find((item) => item.homeAway === "away") || competitors[1];
+  const start = event?.date || competition?.startDate;
+  if (!home?.team || !away?.team || !start) return null;
+  const date = new Date(start);
+  if (Number.isNaN(date.getTime())) return null;
+  const dateInTashkent = dateKeyInTimeZone(date);
+  if (dateInTashkent !== dateKey) return null;
+  const statusType = competition?.status?.type || {};
+  const state = String(statusType.state || "").toLowerCase();
+  const isLive = state === "in" || state === "live" || /in.progress|in progress|halftime|delayed/i.test(String(statusType.name || statusType.description || ""));
+  const isFinished = Boolean(statusType.completed) || state === "post" || /final|full time|ended|finished/i.test(String(statusType.name || statusType.description || ""));
+  const status = isLive ? "live" : isFinished ? "finished" : "upcoming";
+  const localTime = new Intl.DateTimeFormat("en-GB", {
+    timeZone: FOOTBALL_TIME_ZONE, hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(date);
+  const homeScore = home.score != null && home.score !== "" ? String(home.score) : null;
+  const awayScore = away.score != null && away.score !== "" ? String(away.score) : null;
+  const score = (status !== "upcoming" && homeScore != null && awayScore != null)
+    ? `${homeScore} : ${awayScore}`
+    : null;
+  return {
+    id: String(event.id || `${league.id}-${start}-${home.team.id}-${away.team.id}`),
+    leagueId: league.id,
+    leagueName: league.name,
+    leagueFullName: league.fullName,
+    leagueLogo: league.logo || "",
+    kickoffUtc: date.toISOString(),
+    time: localTime,
+    status,
+    minute: isLive ? String(competition?.status?.displayClock || competition?.status?.clock || "LIVE") : null,
+    score,
+    home: {
+      name: String(home.team.displayName || home.team.shortDisplayName || home.team.name || "").trim(),
+      logo: espnTeamLogo(home.team),
+    },
+    away: {
+      name: String(away.team.displayName || away.team.shortDisplayName || away.team.name || "").trim(),
+      logo: espnTeamLogo(away.team),
+    },
+  };
+}
+
+function normalizeEspnStandings(raw, league) {
+  const children = Array.isArray(raw?.children) ? raw.children : [];
+  const entries = children.flatMap((child) => Array.isArray(child?.standings?.entries) ? child.standings.entries : (Array.isArray(child?.entries) ? child.entries : []));
+  const rows = entries.map((entry, index) => {
+    const team = entry?.team || {};
+    return {
+      rank: Number(entry?.note?.rank || entry?.rank || index + 1) || index + 1,
+      team: String(team.displayName || team.shortDisplayName || team.name || "").trim(),
+      logo: espnTeamLogo(team),
+      p: espnStatValue(entry, ["gamesPlayed", "matchesPlayed"]),
+      w: espnStatValue(entry, ["wins"]),
+      d: espnStatValue(entry, ["ties", "draws"]),
+      l: espnStatValue(entry, ["losses"]),
+      gf: espnStatValue(entry, ["pointsFor", "goalsFor"]),
+      ga: espnStatValue(entry, ["pointsAgainst", "goalsAgainst"]),
+      gd: espnStatValue(entry, ["pointDifferential", "goalDifference"]),
+      pts: espnStatValue(entry, ["points"]),
+    };
+  }).filter((row) => row.team);
+  rows.sort((a, b) => a.rank - b.rank || b.pts - a.pts);
+  return {
+    leagueId: league.id,
+    leagueName: league.name,
+    leagueFullName: league.fullName,
+    leagueLogo: league.logo || "",
+    rows,
+  };
+}
+
+async function fetchFootballScoreboard(league, dateKey) {
+  const date = dateKey.replaceAll("-", "");
+  const payload = await fetchJson(`${ESPN_SCOREBOARD_BASE}/${league.id}/scoreboard?dates=${date}`, 9000);
+  const sourceLeague = payload?.leagues?.[0] || {};
+  const sourceLogo = sourceLeague?.logos?.find((logo) => Array.isArray(logo.rel) && logo.rel.includes("full"))?.href || sourceLeague?.logos?.[0]?.href || "";
+  const enrichedLeague = { ...league, logo: sourceLogo || league.logo || "" };
+  const events = Array.isArray(payload?.events) ? payload.events : [];
+  return {
+    league: enrichedLeague,
+    matches: events.map((event) => normalizeEspnMatch(event, enrichedLeague, dateKey)).filter(Boolean),
+  };
+}
+
+async function fetchFootballStandings(league) {
+  const payload = await fetchJson(`${ESPN_STANDINGS_BASE}/${league.id}/standings`, 9000);
+  return normalizeEspnStandings(payload, league);
+}
+
+async function buildFootballPayload(dateKey, activeLeagueId) {
+  const activeLeague = FOOTBALL_LEAGUES.find((league) => league.id === activeLeagueId) || FOOTBALL_LEAGUES[0];
+  const scoreboardResults = await Promise.allSettled(FOOTBALL_LEAGUES.map((league) => fetchFootballScoreboard(league, dateKey)));
+  const leagueData = scoreboardResults.map((result, index) => {
+    const fallback = FOOTBALL_LEAGUES[index];
+    if (result.status === "fulfilled") return result.value;
+    return { league: fallback, matches: [], error: result.reason?.message || "scoreboard unavailable" };
+  });
+  const selectedLeague = leagueData.find((item) => item.league.id === activeLeague.id)?.league || activeLeague;
+  let standings = { leagueId: selectedLeague.id, leagueName: selectedLeague.name, leagueFullName: selectedLeague.fullName, leagueLogo: selectedLeague.logo || "", rows: [], error: "" };
+  try {
+    standings = await fetchFootballStandings(selectedLeague);
+  } catch (error) {
+    standings.error = error.message || "standings unavailable";
   }
-
-  // Team id → name (worldcup26.ir teams uchun)
-  const teamIdName = new Map();
-  const tArr = Array.isArray(liveTeams) ? liveTeams : (liveTeams?.teams || []);
-  for (const t of tArr) {
-    const id = String(t.team_id ?? t._id ?? t.id ?? "").trim();
-    const name = String(t.name || t.team || "").trim();
-    if (id && name) teamIdName.set(id, name);
-  }
-
-  const groupsArr = Array.isArray(liveGroups) ? liveGroups : (liveGroups?.groups || []);
-  const standings = groupsArr.map((g) => ({
-    name: String(g.name || "").trim(),
-    rows: (g.teams || []).map((row) => ({
-      team: teamIdName.get(String(row.team_id)) || `Team ${row.team_id}`,
-      p: Number(row.mp || 0),
-      w: Number(row.w || 0),
-      d: Number(row.d || 0),
-      l: Number(row.l || 0),
-      gf: Number(row.gf || 0),
-      ga: Number(row.ga || 0),
-      pts: Number(row.pts || 0),
-    })),
-  })).filter((g) => g.name);
-
   return {
     updatedAt: new Date().toISOString(),
-    schedule: schedule || { matches: [] },
-    liveMap: Object.fromEntries(liveMap),
+    date: dateKey,
+    timeZone: FOOTBALL_TIME_ZONE,
+    activeLeagueId: selectedLeague.id,
+    leagues: leagueData.map((item) => item.league),
+    matches: leagueData.flatMap((item) => item.matches).sort((a, b) => a.kickoffUtc.localeCompare(b.kickoffUtc)),
     standings,
-    sources: {
-      schedule: scheduleRes.status,
-      games: gamesRes.status,
-      groups: groupsRes.status,
-      teams: teamsRes.status,
-    },
+    sources: leagueData.map((item) => ({ leagueId: item.league.id, ok: !item.error })),
   };
 }
 
@@ -465,25 +564,30 @@ async function handleFifaLive(request, response) {
 }
 
 async function handleFifa(request, response) {
+  const url = new URL(request.url || "/", "http://localhost");
+  const dateKey = normalizeFootballDate(url.searchParams.get("date"));
+  const leagueId = String(url.searchParams.get("league") || FOOTBALL_LEAGUES[0].id).trim();
+  const activeLeagueId = FOOTBALL_LEAGUES.some((league) => league.id === leagueId) ? leagueId : FOOTBALL_LEAGUES[0].id;
+  const cacheKey = `${dateKey}:${activeLeagueId}`;
   const now = Date.now();
-  if (FIFA_CACHE.data && now - FIFA_CACHE.at < FIFA_TTL_MS) {
-    response.setHeader("X-Fifa-Cache", "HIT");
-    response.status(200).json(FIFA_CACHE.data);
+  const cached = FOOTBALL_SCOREBOARD_CACHE.get(cacheKey);
+  if (cached && now - cached.at < FOOTBALL_TTL_MS) {
+    response.setHeader("X-Football-Cache", "HIT");
+    response.status(200).json(cached.data);
     return;
   }
   try {
-    const data = await buildFifaPayload();
-    FIFA_CACHE.data = data;
-    FIFA_CACHE.at = now;
-    response.setHeader("X-Fifa-Cache", "MISS");
+    const data = await buildFootballPayload(dateKey, activeLeagueId);
+    FOOTBALL_SCOREBOARD_CACHE.set(cacheKey, { data, at: now });
+    response.setHeader("X-Football-Cache", cached ? "REVALIDATED" : "MISS");
     response.status(200).json(data);
   } catch (err) {
-    if (FIFA_CACHE.data) {
-      response.setHeader("X-Fifa-Cache", "STALE");
-      response.status(200).json(FIFA_CACHE.data);
+    if (cached) {
+      response.setHeader("X-Football-Cache", "STALE");
+      response.status(200).json(cached.data);
       return;
     }
-    response.status(502).json({ ok: false, error: err.message || "FIFA manbasi javob bermadi." });
+    response.status(502).json({ ok: false, error: err.message || "Futbol manbasi javob bermadi." });
   }
 }
 

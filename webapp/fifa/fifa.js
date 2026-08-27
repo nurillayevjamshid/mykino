@@ -16,6 +16,12 @@
   const F_COPY = {
     uz: {
       finished: "Tugadi",
+      noMatchesToday: "Bugun o'yinlar yo'q",
+      matchesDate: "Toshkent vaqti",
+      standingsTitle: "Turnir jadvali",
+      standingsLoading: "Turnir jadvali yuklanmoqda…",
+      standingsUnavailable: "Turnir jadvali vaqtincha mavjud emas.",
+      updatedAt: "Yangilandi",
       noLiveTitle: "Hozir jonli efir yo'q",
       noLiveHint: "Yaqin matchlar pastda ko'rsatilgan.",
       upcomingMatches: "Yaqin matchlar",
@@ -44,6 +50,12 @@
     },
     ru: {
       finished: "Завершён",
+      noMatchesToday: "Сегодня матчей нет",
+      matchesDate: "Время Ташкента",
+      standingsTitle: "Турнирная таблица",
+      standingsLoading: "Загрузка турнирной таблицы…",
+      standingsUnavailable: "Турнирная таблица временно недоступна.",
+      updatedAt: "Обновлено",
       noLiveTitle: "Сейчас прямой трансляции нет",
       noLiveHint: "Ближайшие матчи показаны ниже.",
       upcomingMatches: "Ближайшие матчи",
@@ -72,6 +84,12 @@
     },
     en: {
       finished: "Finished",
+      noMatchesToday: "No matches today",
+      matchesDate: "Tashkent time",
+      standingsTitle: "League table",
+      standingsLoading: "Loading league table…",
+      standingsUnavailable: "League table is temporarily unavailable.",
+      updatedAt: "Updated",
       noLiveTitle: "No live broadcast right now",
       noLiveHint: "Upcoming matches are shown below.",
       upcomingMatches: "Upcoming matches",
@@ -233,141 +251,80 @@
     return `${day}-${MO[month]}, ${wd}`;
   }
 
-  let FIFA_DATA = { matches: [], groups: [] };
+  let FIFA_DATA = { date: "", timeZone: "Asia/Tashkent", leagues: [], matches: [], standings: null };
   let loadState = "idle"; // idle | loading | ready | error
+  let activeLeagueId = "eng.1";
+  let selectedDateKey = "";
 
-  function normalizeFromPayload(payload) {
-    const schedule = payload?.schedule?.matches || [];
-    const liveMap = payload?.liveMap || {};
-    const standings = payload?.standings || [];
-
-    // Match'larni Toshkent kuniga guruhlash
-    const byDay = new Map();
-    for (const m of schedule) {
-      const kickoff = parseKickoff(m.date, m.time);
-      if (!kickoff) continue;
-      // 00:00 (Toshkent) da boshlanadigan o'yinlarni 23:55 (oldingi kun) sifatida ko'rsatamiz —
-      // obunachi sanani chalkashtirmasligi uchun.
-      const displayKickoff = fmtTashkentTime(kickoff) === "00:00"
-        ? new Date(kickoff.getTime() - 5 * 60 * 1000)
-        : kickoff;
-      const dayKey = fmtTashkentDayKey(displayKickoff);
-      const live = liveMap[`${m.team1}|${m.team2}`.toLowerCase()] || null;
-      // Openfootball jadvali tugagan o'yinlar uchun score1/score2 ni saqlaydi —
-      // bu live API tushib qolsa ham tarixiy hisobni ushlab turishga yordam beradi.
-      const schedHome = m?.score?.ht?.[0] ?? m?.score1 ?? m?.home_score ?? null;
-      const schedAway = m?.score?.ht?.[1] ?? m?.score2 ?? m?.away_score ?? null;
-      const schedFt = m?.score?.ft || null;
-      const hasSchedScore = Array.isArray(schedFt)
-        ? (schedFt[0] != null && schedFt[1] != null)
-        : (schedHome != null && schedAway != null);
-      const liveStatus = String(live?.status || "").toLowerCase();
-      let status;
-      if (liveStatus === "live" || liveStatus === "inprogress" || liveStatus === "playing") status = "live";
-      else if (liveStatus === "finished" || liveStatus === "ft" || liveStatus === "ended") status = "finished";
-      else if (hasSchedScore) status = "finished";
-      else status = "upcoming";
-
-      let score = null;
-      if (live && live.score_home != null && live.score_away != null) {
-        score = `${live.score_home} : ${live.score_away}`;
-      } else if (Array.isArray(schedFt) && schedFt[0] != null && schedFt[1] != null) {
-        score = `${schedFt[0]} : ${schedFt[1]}`;
-      } else if (schedHome != null && schedAway != null) {
-        score = `${schedHome} : ${schedAway}`;
-      }
-      const item = {
-        home: teamUz(m.team1),
-        away: teamUz(m.team2),
-        homeEn: m.team1,
-        awayEn: m.team2,
-        homeFlag: teamFlagHtml(m.team1),
-        awayFlag: teamFlagHtml(m.team2),
-        time: fmtTashkentTime(displayKickoff),
-        kickoff: displayKickoff.toISOString(),
-        group: m.group || "",
-        ground: m.ground || "",
-        status,
-        score,
-        minute: live?.minute ? String(live.minute) + (String(live.minute).includes("'") ? "" : "'") : null,
-      };
-      if (!byDay.has(dayKey)) byDay.set(dayKey, { date: displayKickoff, items: [] });
-      byDay.get(dayKey).items.push(item);
-    }
-
-    const matches = Array.from(byDay.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([, val]) => ({
-        day: fmtDayLabel(val.date),
-        items: val.items.sort((a, b) => a.kickoff.localeCompare(b.kickoff)),
-      }));
-
-    // Guruhlarni openfootball jadvalidan quramiz — kanonik A→L tartibi,
-    // jamoa nomlari ham shu yerdan (worldcup26.ir teams endpointi to'liq emas).
-    const groupTeams = new Map();
-    for (const m of schedule) {
-      const gname = String(m.group || "").trim();
-      if (!/^Group\s+[A-L]$/i.test(gname)) continue;
-      if (!groupTeams.has(gname)) groupTeams.set(gname, new Map());
-      const gt = groupTeams.get(gname);
-      for (const name of [m.team1, m.team2]) {
-        if (name && !gt.has(name)) gt.set(name, { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 });
-      }
-      const live = liveMap[`${m.team1}|${m.team2}`.toLowerCase()];
-      const liveFinished = live && (live.status === "finished" || live.status === "ft" || live.status === "ended");
-      // Live manba'dan tugagan natija; aks holda openfootball jadvalining
-      // o'zidagi yakuniy hisob (score.ft / score1+score2) — manba tushib
-      // qolsa ham jadval to'g'ri qoladi.
-      const schedFt = Array.isArray(m?.score?.ft) ? m.score.ft : null;
-      const schedH = m?.score1 ?? m?.home_score ?? null;
-      const schedA = m?.score2 ?? m?.away_score ?? null;
-      let h = null, a = null;
-      if (liveFinished && live.score_home != null && live.score_away != null) {
-        h = Number(live.score_home); a = Number(live.score_away);
-      } else if (schedFt && schedFt[0] != null && schedFt[1] != null) {
-        h = Number(schedFt[0]); a = Number(schedFt[1]);
-      } else if (schedH != null && schedA != null) {
-        h = Number(schedH); a = Number(schedA);
-      }
-      if (h != null && a != null && Number.isFinite(h) && Number.isFinite(a)) {
-        const t1 = gt.get(m.team1), t2 = gt.get(m.team2);
-        if (t1 && t2) {
-          t1.p++; t2.p++;
-          t1.gf += h; t1.ga += a; t2.gf += a; t2.ga += h;
-          if (h > a) { t1.w++; t2.l++; t1.pts += 3; }
-          else if (h < a) { t2.w++; t1.l++; t2.pts += 3; }
-          else { t1.d++; t2.d++; t1.pts++; t2.pts++; }
-        }
-      }
-    }
-
-    const groups = [...groupTeams.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([name, gt]) => {
-        const letter = name.replace(/^Group\s+/i, "");
-        const rows = [...gt.entries()]
-          .map(([team, s]) => ({ team: teamUz(team), flag: teamFlagHtml(team), ...s }))
-          .sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || a.team.localeCompare(b.team));
-        return { name: `Guruh ${letter}`, rows };
-      });
-
-    return { matches, groups };
+  function getTashkentDateKey(date = new Date()) {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Tashkent", year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(date).reduce((acc, part) => {
+      if (part.type !== "literal") acc[part.type] = part.value;
+      return acc;
+    }, {});
+    return `${parts.year}-${parts.month}-${parts.day}`;
   }
 
-  async function loadFifaData(force = false) {
-    // force=true bo'lsa, ready holatda ham qayta yuklaymiz (live skorni
-    // yangilash uchun). Lekin "loading" oqimini bir vaqtning o'zida
-    // ikki marta boshlamaymiz.
+  function formatFootballDay(dateKey) {
+    const date = new Date(`${dateKey}T12:00:00Z`);
+    return Number.isNaN(date.getTime()) ? dateKey : fmtDayLabel(date);
+  }
+
+  function normalizeFromPayload(payload) {
+    const leagues = Array.isArray(payload?.leagues) ? payload.leagues.map((league) => ({
+      id: String(league.id || ""),
+      name: String(league.name || league.fullName || "Liga"),
+      fullName: String(league.fullName || league.name || ""),
+      logo: String(league.logo || ""),
+    })).filter((league) => league.id) : [];
+    const matches = Array.isArray(payload?.matches) ? payload.matches.map((match) => {
+      const home = match?.home || {};
+      const away = match?.away || {};
+      return {
+        id: String(match.id || ""),
+        leagueId: String(match.leagueId || ""),
+        leagueName: String(match.leagueName || "Liga"),
+        leagueFullName: String(match.leagueFullName || match.leagueName || ""),
+        leagueLogo: String(match.leagueLogo || ""),
+        home: String(home.name || ""),
+        away: String(away.name || ""),
+        homeEn: String(home.name || ""),
+        awayEn: String(away.name || ""),
+        homeLogo: String(home.logo || ""),
+        awayLogo: String(away.logo || ""),
+        time: String(match.time || ""),
+        kickoff: String(match.kickoffUtc || ""),
+        status: String(match.status || "upcoming"),
+        score: match.score ? String(match.score) : null,
+        minute: match.minute ? String(match.minute) : null,
+      };
+    }).filter((match) => match.home && match.away) : [];
+    return {
+      updatedAt: String(payload?.updatedAt || ""),
+      date: String(payload?.date || selectedDateKey || getTashkentDateKey()),
+      timeZone: String(payload?.timeZone || "Asia/Tashkent"),
+      activeLeagueId: String(payload?.activeLeagueId || activeLeagueId),
+      leagues,
+      matches,
+      standings: payload?.standings && typeof payload.standings === "object" ? payload.standings : null,
+    };
+  }
+
+  async function loadFifaData(force = false, requestedLeagueId = activeLeagueId) {
     if (loadState === "loading") return;
     if (!force && loadState === "ready") return;
     const wasReady = loadState === "ready";
     loadState = "loading";
     try {
-      const url = force ? `/api/categories?type=fifa&_=${Date.now()}` : "/api/categories?type=fifa";
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      const date = selectedDateKey || getTashkentDateKey();
+      const params = new URLSearchParams({ type: "fifa", date, league: requestedLeagueId || activeLeagueId });
+      if (force) params.set("_", String(Date.now()));
+      const res = await fetch(`/api/categories?${params.toString()}`, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const payload = await res.json();
       FIFA_DATA = normalizeFromPayload(payload);
+      activeLeagueId = FIFA_DATA.activeLeagueId || requestedLeagueId || activeLeagueId;
       loadState = "ready";
     } catch (err) {
       console.warn("FIFA fetch xato:", err.message);
@@ -394,130 +351,124 @@
   }
   const isLoading = () => loadState === "loading" || loadState === "idle";
 
-  // --- Render: Matchlar ---
+  function teamLogoHtml(url, alt = "") {
+    const safeAlt = esc(alt);
+    const safeUrl = esc(url);
+    if (!safeUrl) return `<span class="fifa-team-logo fifa-team-logo--fallback" aria-hidden="true">${esc(String(alt || "?").slice(0, 1))}</span>`;
+    return `<img class="fifa-team-logo" src="${safeUrl}" alt="${safeAlt}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fifa-team-logo fifa-team-logo--fallback',textContent:'?' }))">`;
+  }
+
+  function leagueLogoHtml(league) {
+    return teamLogoHtml(league?.logo || "", league?.name || "Liga");
+  }
+
+  function renderMatchCard(m) {
+    const isLive = m.status === "live";
+    const isFinished = m.status === "finished" && m.score;
+    let center;
+    if (isLive) {
+      center = `<div class="fifa-match__score">${esc(m.score || "-")}</div>
+        <div class="fifa-match__status"><span class="fifa-match__status-dot"></span>${esc(m.minute || "LIVE")}</div>`;
+    } else if (isFinished) {
+      center = `<div class="fifa-match__score">${esc(m.score)}</div>
+        <div class="fifa-match__time">${F("finished")}</div>`;
+    } else {
+      center = `<div class="fifa-match__score">vs</div>
+        <div class="fifa-match__time">${esc(m.time)}</div>`;
+    }
+    const clickable = Boolean(isFinished);
+    const dateIso = m.kickoff ? String(m.kickoff).slice(0, 10) : "";
+    const dataAttr = clickable
+      ? ` data-fifa-open-lineup="1" data-home-en="${esc(m.homeEn)}" data-away-en="${esc(m.awayEn)}" data-home-uz="${esc(m.home)}" data-away-uz="${esc(m.away)}" data-score="${esc(m.score || "")}" data-date="${esc(dateIso)}" role="button" tabindex="0"`
+      : "";
+    return `
+      <div class="fifa-match${isLive ? " fifa-match--live" : isFinished ? " fifa-match--finished" : ""}${clickable ? " fifa-match--clickable" : ""}"${dataAttr}>
+        <div class="fifa-match__team fifa-match__team--home">
+          <span class="fifa-match__name">${esc(m.home)}</span>
+          <span class="fifa-match__flag">${teamLogoHtml(m.homeLogo, m.home)}</span>
+        </div>
+        <div class="fifa-match__center">${center}</div>
+        <div class="fifa-match__team fifa-match__team--away">
+          <span class="fifa-match__flag">${teamLogoHtml(m.awayLogo, m.away)}</span>
+          <span class="fifa-match__name">${esc(m.away)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // --- Render: Kunlik o'yinlar ---
   function renderMatches() {
     const panel = document.getElementById("fifaPanelMatches");
     if (!panel) return;
-    if (isLoading()) { panel.innerHTML = loadingHtml("Matchlar jadvali yuklanmoqda…", "Iltimos, biroz kuting."); return; }
-    if (!FIFA_DATA.matches.length) { panel.innerHTML = emptyHtml(F("scheduleNotFound"), F("sourceUnavailable")); return; }
-    panel.innerHTML = FIFA_DATA.matches.map((day) => `
-      <div class="fifa-day">${esc(day.day)}</div>
-      ${day.items.map((m) => {
-        const isLive = m.status === "live";
-        const isFinished = m.status === "finished" && m.score;
-        let center;
-        if (isLive) {
-          center = `<div class="fifa-match__score">${esc(m.score || "-")}</div>
-             <div class="fifa-match__status"><span class="fifa-match__status-dot"></span>${esc(m.minute || "LIVE")}</div>`;
-        } else if (isFinished) {
-          center = `<div class="fifa-match__score">${esc(m.score)}</div>
-             <div class="fifa-match__time">${F("finished")}</div>`;
-        } else {
-          center = `<div class="fifa-match__score">vs</div>
-             <div class="fifa-match__time">${esc(m.time)}</div>`;
-        }
-        const clickable = isFinished;
-        const dateIso = m.kickoff ? String(m.kickoff).slice(0, 10) : "";
-        const dataAttr = clickable
-          ? ` data-fifa-open-lineup="1" data-home-en="${esc(m.homeEn)}" data-away-en="${esc(m.awayEn)}" data-home-uz="${esc(m.home)}" data-away-uz="${esc(m.away)}" data-score="${esc(m.score || "")}" data-date="${esc(dateIso)}" role="button" tabindex="0"`
-          : "";
-        return `
-          <div class="fifa-match${isLive ? " fifa-match--live" : isFinished ? " fifa-match--finished" : ""}${clickable ? " fifa-match--clickable" : ""}"${dataAttr}>
-            <div class="fifa-match__team fifa-match__team--home">
-              <span class="fifa-match__name">${esc(m.home)}</span>
-              <span class="fifa-match__flag">${m.homeFlag}</span>
-            </div>
-            <div class="fifa-match__center">${center}</div>
-            <div class="fifa-match__team fifa-match__team--away">
-              <span class="fifa-match__flag">${m.awayFlag}</span>
-              <span class="fifa-match__name">${esc(m.away)}</span>
-            </div>
-          </div>
-        `;
-      }).join("")}
-    `).join("");
+    if (isLoading()) { panel.innerHTML = loadingHtml("Kunlik o'yinlar yuklanmoqda…", F("matchesDate")); return; }
+    const leagues = Array.isArray(FIFA_DATA.leagues) ? FIFA_DATA.leagues : [];
+    const matches = Array.isArray(FIFA_DATA.matches) ? FIFA_DATA.matches : [];
+    if (!leagues.length) { panel.innerHTML = emptyHtml(F("scheduleNotFound"), F("sourceUnavailable")); return; }
+    const day = FIFA_DATA.date || selectedDateKey || getTashkentDateKey();
+    const leagueSections = leagues.map((league) => {
+      const leagueMatches = matches.filter((match) => match.leagueId === league.id);
+      return `
+        <section class="fifa-match-league">
+          <header class="fifa-match-league__head">
+            <span class="fifa-match-league__logo">${leagueLogoHtml(league)}</span>
+            <span class="fifa-match-league__copy"><strong>${esc(league.name)}</strong><small>${esc(league.fullName || "")}</small></span>
+            <span class="fifa-match-league__count">${leagueMatches.length}</span>
+          </header>
+          ${leagueMatches.length ? leagueMatches.map(renderMatchCard).join("") : `<div class="fifa-match-league__empty">${F("noMatchesToday")}</div>`}
+        </section>
+      `;
+    }).join("");
+    panel.innerHTML = `
+      <div class="fifa-day fifa-day--today"><span>${esc(formatFootballDay(day))}</span><small>${F("matchesDate")}</small></div>
+      ${leagueSections}
+    `;
   }
 
   // --- Render: Jonli efir ---
   function renderLive() {
     const panel = document.getElementById("fifaPanelLive");
     if (!panel) return;
-    const live = FIFA_DATA.matches.flatMap((d) => d.items).filter((m) => m.status === "live");
-    const upcoming = FIFA_DATA.matches.flatMap((d) => d.items).filter((m) => m.status === "upcoming").slice(0, 3);
+    const live = (FIFA_DATA.matches || []).filter((m) => m.status === "live");
+    const upcoming = (FIFA_DATA.matches || []).filter((m) => m.status === "upcoming").slice(0, 3);
     const liveHtml = live.length
-      ? live.map((m) => `
-          <div class="fifa-live-card">
-            <span class="fifa-live-card__label"><span class="fifa-banner__live-dot"></span>HOZIR LIVE</span>
-            <div class="fifa-live-card__teams">${m.homeFlag} ${esc(m.home)} ${esc(m.score || "-")} ${esc(m.away)} ${m.awayFlag}</div>
-            <div class="fifa-live-card__meta">${esc(m.minute || "")} · ${esc(m.time)}</div>
-            <button class="fifa-live-card__cta" type="button" data-fifa-watch>
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
-              Tomosha qilish
-            </button>
-          </div>
-        `).join("")
-      : `<div class="fifa-live-empty">
-           <div class="fifa-live-empty__icon">📺</div>
-           <div class="fifa-live-empty__title">${F("noLiveTitle")}</div>
-           <div>${F("noLiveHint")}</div>
-         </div>`;
-    const upcomingHtml = upcoming.length
-      ? `<div class="fifa-upcoming-title">${F("upcomingMatches")}</div>` +
-        upcoming.map((m) => `
-          <div class="fifa-match">
-            <div class="fifa-match__team fifa-match__team--home">
-              <span class="fifa-match__name">${esc(m.home)}</span>
-              <span class="fifa-match__flag">${m.homeFlag}</span>
-            </div>
-            <div class="fifa-match__center">
-              <div class="fifa-match__score">vs</div>
-              <div class="fifa-match__time">${esc(m.time)}</div>
-            </div>
-            <div class="fifa-match__team fifa-match__team--away">
-              <span class="fifa-match__flag">${m.awayFlag}</span>
-              <span class="fifa-match__name">${esc(m.away)}</span>
-            </div>
-          </div>
-        `).join("")
-      : "";
+      ? live.map((m) => `<div class="fifa-live-card"><span class="fifa-live-card__label"><span class="fifa-banner__live-dot"></span>HOZIR LIVE</span><div class="fifa-live-card__teams">${teamLogoHtml(m.homeLogo, m.home)} ${esc(m.home)} ${esc(m.score || "-")} ${esc(m.away)} ${teamLogoHtml(m.awayLogo, m.away)}</div><div class="fifa-live-card__meta">${esc(m.minute || "")} · ${esc(m.time)}</div></div>`).join("")
+      : `<div class="fifa-live-empty"><div class="fifa-live-empty__icon">📺</div><div class="fifa-live-empty__title">${F("noLiveTitle")}</div><div>${F("noLiveHint")}</div></div>`;
+    const upcomingHtml = upcoming.length ? `<div class="fifa-upcoming-title">${F("upcomingMatches")}</div>${upcoming.map(renderMatchCard).join("")}` : "";
     panel.innerHTML = liveHtml + upcomingHtml;
-    panel.querySelectorAll("[data-fifa-watch]").forEach((b) => {
-      b.addEventListener("click", () => {
-        try { window.Telegram?.WebApp?.showAlert?.(F("liveSoon")); }
-        catch (_) { alert(F("liveSoon")); }
-      });
-    });
   }
 
-  // --- Render: Guruhlar ---
+  // --- Render: Turnir jadvali ---
   function renderGroups() {
     const panel = document.getElementById("fifaPanelGroups");
     if (!panel) return;
-    if (isLoading()) { panel.innerHTML = loadingHtml("Guruhlar yuklanmoqda…", "Iltimos, biroz kuting."); return; }
-    if (!FIFA_DATA.groups.length) { panel.innerHTML = emptyHtml(F("noScheduleYet"), F("groupsAfterRounds")); return; }
-    panel.innerHTML = FIFA_DATA.groups.map((g) => `
-      <div class="fifa-group">
-        <div class="fifa-group__head"><span>${esc(g.name)}</span></div>
-        <table class="fifa-group__table">
-          <thead>
-            <tr>
-              <th style="text-align:left">${F("teamCol")}</th>
-              <th>O</th><th>G</th><th>D</th><th>M</th><th>+/-</th><th>O</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${g.rows.map((r) => `
-              <tr>
-                <td class="fifa-cell--team">${r.flag} ${esc(r.team)}</td>
-                <td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
-                <td>${r.gf}:${r.ga}</td>
-                <td class="fifa-cell--pts">${r.pts}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    `).join("");
+    if (isLoading()) { panel.innerHTML = loadingHtml(F("standingsLoading"), F("matchesDate")); return; }
+    const leagues = Array.isArray(FIFA_DATA.leagues) ? FIFA_DATA.leagues : [];
+    if (!leagues.length) { panel.innerHTML = emptyHtml(F("standingsUnavailable"), F("sourceUnavailable")); return; }
+    const active = leagues.find((league) => league.id === activeLeagueId) || leagues[0];
+    const standings = FIFA_DATA.standings && FIFA_DATA.standings.leagueId === active.id ? FIFA_DATA.standings : null;
+    const rows = Array.isArray(standings?.rows) ? standings.rows : [];
+    const updated = FIFA_DATA.updatedAt ? new Date(FIFA_DATA.updatedAt) : null;
+    const updatedLabel = updated && !Number.isNaN(updated.getTime()) ? updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+    const table = standings?.error && !rows.length
+      ? emptyHtml(F("standingsUnavailable"), F("sourceUnavailable"))
+      : rows.length
+        ? `<div class="fifa-standings-card">
+             <div class="fifa-standings-card__head"><strong>${esc(standings.leagueFullName || active.fullName || active.name)}</strong><small>${F("updatedAt")}${updatedLabel ? ` · ${esc(updatedLabel)}` : ""}</small></div>
+             <div class="fifa-standings-scroll"><table class="fifa-group__table fifa-standings-table"><thead><tr><th>#</th><th style="text-align:left">${F("teamCol")}</th><th>O</th><th>G</th><th>D</th><th>M</th><th>GD</th><th>Ochko</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.rank}</td><td class="fifa-cell--team"><span class="fifa-standing-team">${teamLogoHtml(row.logo, row.team)}<span>${esc(row.team)}</span></span></td><td>${row.p}</td><td>${row.w}</td><td>${row.d}</td><td>${row.l}</td><td>${row.gd}</td><td class="fifa-cell--pts">${row.pts}</td></tr>`).join("")}</tbody></table></div>
+           </div>`
+        : emptyHtml(F("standingsUnavailable"), F("sourceUnavailable"));
+    panel.innerHTML = `<div class="fifa-league-tabs" role="tablist" aria-label="${esc(F("standingsTitle"))}">${leagues.map((league) => `<button class="fifa-league-tab${league.id === active.id ? " is-active" : ""}" type="button" role="tab" aria-selected="${league.id === active.id ? "true" : "false"}" data-fifa-league="${esc(league.id)}"><span class="fifa-league-tab__logo">${leagueLogoHtml(league)}</span><span>${esc(league.name)}</span></button>`).join("")}</div>${table}`;
+    panel.querySelectorAll("[data-fifa-league]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const leagueId = String(button.dataset.fifaLeague || "");
+        if (!leagueId || leagueId === activeLeagueId || loadState === "loading") return;
+        activeLeagueId = leagueId;
+        const pending = loadFifaData(true, leagueId);
+        renderGroups();
+        await pending;
+        renderGroups();
+      });
+    });
   }
 
   // --- Tab switching ---
@@ -1356,7 +1307,7 @@
   const FIFA_POLL_MS = 30 * 1000;
 
   async function refreshFifa() {
-    await loadFifaData(true);
+    await loadFifaData(true, activeLeagueId);
     renderMatches();
     renderGroups();
     renderLive();
@@ -1383,10 +1334,11 @@
     appShell?.scrollTo({ top: 0, behavior: "smooth" });
     try { tgBackRegister?.("fifa", () => closeFifaView()); } catch (_) {}
     // Real ma'lumotni fetch qilib qayta render
-    await loadFifaData();
+    selectedDateKey = getTashkentDateKey();
+    await loadFifaData(false, activeLeagueId);
     renderMatches();
     renderGroups();
-    // Live skor real vaqt rejimida yangilanib tursin
+    // Live skor va tanlangan liga jadvali real vaqt rejimida yangilanib tursin
     startFifaPolling();
   }
   function closeFifaView() {
