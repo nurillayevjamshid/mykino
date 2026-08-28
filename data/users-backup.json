@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-08-27T13:51:28.514Z",
-  "count": 27,
+  "updatedAt": "2026-08-28T14:57:18.249Z",
+  "count": 28,
   "users": [
     {
       "telegram_id": 74402946,
@@ -139,6 +139,12 @@
       "username": "Chanmiss1",
       "first_name": "Дж'",
       "started_at": "2026-07-13"
+    },
+    {
+      "telegram_id": 8507063167,
+      "username": "",
+      "first_name": "Umidbekovna♥️",
+      "started_at": "2026-08-28"
     },
     {
       "telegram_id": 8672835408,
