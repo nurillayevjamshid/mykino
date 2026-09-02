@@ -222,7 +222,7 @@ async function fetchJson(url, timeoutMs = 6000) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": "mykino-fifa/1.0" } });
+    const res = await fetch(url, { signal: ctl.signal, headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } finally {
@@ -317,15 +317,28 @@ function normalizeEspnStandings(raw, league) {
 }
 
 async function fetchFootballScoreboard(league, dateKey) {
-  const date = dateKey.replaceAll("-", "");
-  const payload = await fetchJson(`${ESPN_SCOREBOARD_BASE}/${league.id}/scoreboard?dates=${date}`, 9000);
-  const sourceLeague = payload?.leagues?.[0] || {};
+  // Toshkent UTC+5 bo‘lgani uchun mahalliy kun o‘yinlari ESPN’da ikki UTC
+  // sanaga bo‘linishi mumkin (masalan, 00:30 Toshkent = oldingi kun 19:30Z).
+  const utcDates = adjacentUtcDates(dateKey).slice(0, 2);
+  const results = await Promise.allSettled(utcDates.map((date) => (
+    fetchJson(`${ESPN_SCOREBOARD_BASE}/${league.id}/scoreboard?dates=${date}`, 9000)
+  )));
+  const payloads = results.filter((result) => result.status === "fulfilled").map((result) => result.value);
+  if (!payloads.length) {
+    const reason = results.find((result) => result.status === "rejected")?.reason;
+    throw reason || new Error("scoreboard unavailable");
+  }
+  const sourceLeague = payloads.map((payload) => payload?.leagues?.[0] || {}).find((item) => item?.logos?.length || item?.name) || {};
   const sourceLogo = sourceLeague?.logos?.find((logo) => Array.isArray(logo.rel) && logo.rel.includes("full"))?.href || sourceLeague?.logos?.[0]?.href || "";
   const enrichedLeague = { ...league, logo: sourceLogo || league.logo || "" };
-  const events = Array.isArray(payload?.events) ? payload.events : [];
+  const uniqueEvents = new Map();
+  payloads.flatMap((payload) => Array.isArray(payload?.events) ? payload.events : []).forEach((event) => {
+    const key = String(event?.id || `${event?.date || ""}:${event?.name || ""}`);
+    if (!uniqueEvents.has(key)) uniqueEvents.set(key, event);
+  });
   return {
     league: enrichedLeague,
-    matches: events.map((event) => normalizeEspnMatch(event, enrichedLeague, dateKey)).filter(Boolean),
+    matches: [...uniqueEvents.values()].map((event) => normalizeEspnMatch(event, enrichedLeague, dateKey)).filter(Boolean),
   };
 }
 
