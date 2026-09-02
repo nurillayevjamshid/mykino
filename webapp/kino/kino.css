@@ -9030,12 +9030,12 @@ body.is-favorites .fifa-banner { display: none !important; }
   overflow: hidden;
   padding: 26px 22px;
   margin-top: 10px;
-  min-height: 168px;
+  min-height: 200px;
   background: #0a1a3d url("/static/assets/fifa-football-header.png") center/cover no-repeat;
   background-image: url("/static/assets/fifa-football-header.png");
   background-color: #0a1a3d;
   background-size: cover;
-  background-position: center;
+  background-position: center top;
   background-repeat: no-repeat;
   color: #fff;
   box-shadow: 0 18px 40px -20px rgba(13,40,110,.9);
