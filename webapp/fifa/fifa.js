@@ -427,8 +427,13 @@
     const day = FIFA_DATA.date || selectedDateKey || getTashkentDateKey();
     const previousDay = shiftDateKey(day, -1);
     const nextDay = shiftDateKey(day, 1);
-    const leagueSections = leagues.map((league) => {
-      const leagueMatches = matches.filter((match) => match.leagueId === league.id);
+    const leaguesWithMatches = leagues
+      .map((league) => ({
+        league,
+        matches: matches.filter((match) => match.leagueId === league.id),
+      }))
+      .filter(({ matches: leagueMatches }) => leagueMatches.length > 0);
+    const leagueSections = leaguesWithMatches.map(({ league, matches: leagueMatches }) => {
       return `
         <section class="fifa-match-league">
           <header class="fifa-match-league__head">
@@ -436,7 +441,7 @@
             <span class="fifa-match-league__copy"><strong>${esc(league.name)}</strong><small>${esc(league.fullName || "")}</small></span>
             <span class="fifa-match-league__count">${leagueMatches.length}</span>
           </header>
-          ${leagueMatches.length ? leagueMatches.map(renderMatchCard).join("") : `<div class="fifa-match-league__empty">${F("noMatchesToday")}</div>`}
+          ${leagueMatches.map(renderMatchCard).join("")}
         </section>
       `;
     }).join("");
