@@ -10280,3 +10280,73 @@ html[data-theme="light"] .fifa-standings-card__head { background: linear-gradien
   .fifa-match-league__copy small { display: none; }
   .fifa-standings-card__head { align-items: flex-start; flex-direction: column; gap: 3px; }
 }
+
+
+/* Kunlik o'yinlar sanasi navigatsiyasi */
+.fifa-day--today {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 14px 0 12px;
+}
+.fifa-date-nav__label {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+.fifa-date-nav__label strong {
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.fifa-date-nav__label small {
+  color: var(--text-muted, rgba(255,255,255,.55));
+  font-size: 10px;
+}
+.fifa-date-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fifa-date-nav__button,
+.fifa-date-nav__today {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border, rgba(255,255,255,.08));
+  border-radius: 10px;
+  background: var(--surface-2, rgba(255,255,255,.04));
+  color: var(--text, #fff);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+.fifa-date-nav__today {
+  min-width: auto;
+  font-size: 10px;
+  font-weight: 800;
+}
+.fifa-date-nav__button:hover,
+.fifa-date-nav__today:hover {
+  border-color: rgba(42, 201, 186, .65);
+  background: rgba(42, 201, 186, .12);
+}
+.fifa-date-nav__button:active,
+.fifa-date-nav__today:active { transform: scale(.94); }
+html[data-theme="light"] .fifa-date-nav__button,
+html[data-theme="light"] .fifa-date-nav__today { background: #f5f6fa; border-color: #e6e8f0; color: #182033; }
+
+@media (max-width: 420px) {
+  .fifa-date-nav__label strong { font-size: 11px; }
+  .fifa-date-nav__button { min-width: 30px; width: 30px; padding: 0; }
+}

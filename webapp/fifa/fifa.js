@@ -18,6 +18,9 @@
       finished: "Tugadi",
       noMatchesToday: "Bugun o'yinlar yo'q",
       matchesDate: "Toshkent vaqti",
+      previousDay: "Oldingi kun",
+      today: "Bugun",
+      nextDay: "Keyingi kun",
       standingsTitle: "Turnir jadvali",
       standingsLoading: "Turnir jadvali yuklanmoqda…",
       standingsUnavailable: "Turnir jadvali vaqtincha mavjud emas.",
@@ -52,6 +55,9 @@
       finished: "Завершён",
       noMatchesToday: "Сегодня матчей нет",
       matchesDate: "Время Ташкента",
+      previousDay: "Предыдущий день",
+      today: "Сегодня",
+      nextDay: "Следующий день",
       standingsTitle: "Турнирная таблица",
       standingsLoading: "Загрузка турнирной таблицы…",
       standingsUnavailable: "Турнирная таблица временно недоступна.",
@@ -86,6 +92,9 @@
       finished: "Finished",
       noMatchesToday: "No matches today",
       matchesDate: "Tashkent time",
+      previousDay: "Previous day",
+      today: "Today",
+      nextDay: "Next day",
       standingsTitle: "League table",
       standingsLoading: "Loading league table…",
       standingsUnavailable: "League table is temporarily unavailable.",
@@ -271,6 +280,17 @@
     return Number.isNaN(date.getTime()) ? dateKey : fmtDayLabel(date);
   }
 
+  function shiftDateKey(dateKey, offset) {
+    const date = new Date(`${dateKey}T12:00:00Z`);
+    if (Number.isNaN(date.getTime())) return getTashkentDateKey();
+    date.setUTCDate(date.getUTCDate() + offset);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function isTodayDateKey(dateKey) {
+    return String(dateKey || "") === getTashkentDateKey();
+  }
+
   function normalizeFromPayload(payload) {
     const leagues = Array.isArray(payload?.leagues) ? payload.leagues.map((league) => ({
       id: String(league.id || ""),
@@ -405,6 +425,8 @@
     const matches = Array.isArray(FIFA_DATA.matches) ? FIFA_DATA.matches : [];
     if (!leagues.length) { panel.innerHTML = emptyHtml(F("scheduleNotFound"), F("sourceUnavailable")); return; }
     const day = FIFA_DATA.date || selectedDateKey || getTashkentDateKey();
+    const previousDay = shiftDateKey(day, -1);
+    const nextDay = shiftDateKey(day, 1);
     const leagueSections = leagues.map((league) => {
       const leagueMatches = matches.filter((match) => match.leagueId === league.id);
       return `
@@ -419,9 +441,27 @@
       `;
     }).join("");
     panel.innerHTML = `
-      <div class="fifa-day fifa-day--today"><span>${esc(formatFootballDay(day))}</span><small>${F("matchesDate")}</small></div>
+      <div class="fifa-day fifa-day--today">
+        <button type="button" class="fifa-date-nav__button" data-fifa-date="${esc(previousDay)}" aria-label="${esc(F("previousDay"))}">‹</button>
+        <span class="fifa-date-nav__label"><strong>${esc(formatFootballDay(day))}</strong><small>${F("matchesDate")}</small></span>
+        <div class="fifa-date-nav__actions">
+          ${isTodayDateKey(day) ? "" : `<button type="button" class="fifa-date-nav__today" data-fifa-date="${esc(getTashkentDateKey())}">${esc(F("today"))}</button>`}
+          <button type="button" class="fifa-date-nav__button" data-fifa-date="${esc(nextDay)}" aria-label="${esc(F("nextDay"))}">›</button>
+        </div>
+      </div>
       ${leagueSections}
     `;
+    panel.querySelectorAll("[data-fifa-date]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const requestedDate = String(button.dataset.fifaDate || "");
+        if (!requestedDate || requestedDate === selectedDateKey || loadState === "loading") return;
+        selectedDateKey = requestedDate;
+        loadState = "idle";
+        renderMatches();
+        await loadFifaData(true, activeLeagueId);
+        renderMatches();
+      });
+    });
   }
 
   // --- Render: Jonli efir ---
