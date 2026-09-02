@@ -17,6 +17,7 @@
     uz: {
       finished: "Tugadi",
       noMatchesToday: "Bugun o'yinlar yo'q",
+      noTopFiveMatches: "Bugun kuchli 5 lik chempionatlarda o'yinlar yo'q",
       matchesDate: "Toshkent vaqti",
       previousDay: "Oldingi kun",
       today: "Bugun",
@@ -54,6 +55,7 @@
     ru: {
       finished: "Завершён",
       noMatchesToday: "Сегодня матчей нет",
+      noTopFiveMatches: "Сегодня в топ-5 чемпионатах матчей нет",
       matchesDate: "Время Ташкента",
       previousDay: "Предыдущий день",
       today: "Сегодня",
@@ -91,6 +93,7 @@
     en: {
       finished: "Finished",
       noMatchesToday: "No matches today",
+      noTopFiveMatches: "There are no matches today in the top five leagues",
       matchesDate: "Tashkent time",
       previousDay: "Previous day",
       today: "Today",
@@ -454,7 +457,7 @@
           <button type="button" class="fifa-date-nav__button" data-fifa-date="${esc(nextDay)}" aria-label="${esc(F("nextDay"))}">›</button>
         </div>
       </div>
-      ${leagueSections}
+      ${leagueSections || emptyHtml(F("noTopFiveMatches"), F("matchesDate"))}
     `;
     panel.querySelectorAll("[data-fifa-date]").forEach((button) => {
       button.addEventListener("click", async () => {
