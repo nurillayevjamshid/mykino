@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-09-02T07:41:16.391Z",
-  "count": 29,
+  "updatedAt": "2026-09-03T07:50:17.126Z",
+  "count": 30,
   "users": [
     {
       "telegram_id": 74402946,
@@ -13,6 +13,12 @@
       "username": "nurillaevv",
       "first_name": "Жам Нуриллаев",
       "started_at": "2026-05-15"
+    },
+    {
+      "telegram_id": 777003202,
+      "username": "",
+      "first_name": "BEK_002",
+      "started_at": "2026-09-03"
     },
     {
       "telegram_id": 887888146,
