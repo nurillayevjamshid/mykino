@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-09-04T07:46:01.142Z",
-  "count": 30,
+  "updatedAt": "2026-09-05T07:27:25.103Z",
+  "count": 31,
   "users": [
     {
       "telegram_id": 74402946,
@@ -55,6 +55,12 @@
       "username": "nurbek1112",
       "first_name": "Nurbek",
       "started_at": "2026-07-11"
+    },
+    {
+      "telegram_id": 5017737120,
+      "username": "",
+      "first_name": "IBROXIM IMRON",
+      "started_at": "2026-09-04"
     },
     {
       "telegram_id": 5112737503,
