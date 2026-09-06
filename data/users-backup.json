@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-09-05T07:27:25.103Z",
-  "count": 31,
+  "updatedAt": "2026-09-06T07:41:09.159Z",
+  "count": 32,
   "users": [
     {
       "telegram_id": 74402946,
@@ -151,6 +151,12 @@
       "username": "hsnbyy",
       "first_name": "Husanboy",
       "started_at": "2026-08-18"
+    },
+    {
+      "telegram_id": 8262850368,
+      "username": "",
+      "first_name": "Gulchiroy",
+      "started_at": "2026-09-05"
     },
     {
       "telegram_id": 8271571443,
