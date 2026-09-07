@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-09-06T07:41:09.159Z",
-  "count": 32,
+  "updatedAt": "2026-09-07T07:59:21.955Z",
+  "count": 33,
   "users": [
     {
       "telegram_id": 74402946,
@@ -31,6 +31,12 @@
       "username": "Abujon97",
       "first_name": "AbdullaJoN",
       "started_at": "2026-07-10"
+    },
+    {
+      "telegram_id": 1581905028,
+      "username": "Uz_3344",
+      "first_name": "w_10",
+      "started_at": "2026-09-07"
     },
     {
       "telegram_id": 1953922336,
