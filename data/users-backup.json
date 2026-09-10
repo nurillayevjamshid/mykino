@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-09-09T07:54:56.571Z",
-  "count": 33,
+  "updatedAt": "2026-09-10T07:55:05.030Z",
+  "count": 34,
   "users": [
     {
       "telegram_id": 74402946,
@@ -121,6 +121,12 @@
       "username": "gulixonmalik",
       "first_name": "Gulixon",
       "started_at": "2026-05-15"
+    },
+    {
+      "telegram_id": 7248117357,
+      "username": "BNSH970425",
+      "first_name": "Niginabonu",
+      "started_at": "2026-09-09"
     },
     {
       "telegram_id": 7304156338,
