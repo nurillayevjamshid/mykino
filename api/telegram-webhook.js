@@ -6,12 +6,16 @@ const TG_API = "https://api.telegram.org";
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
 const R2_USERS_KEY = "settings/bot-users.json";
 
+// Webapp manzili uchun yagona standart. WEBAPP_URL env o'zgaruvchisi
+// production domenga o'rnatilishi shart — bu yerga faqat zaxira qiymat yoziladi.
+const DEFAULT_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
+
 function getBotToken() {
   return String(process.env.BOT_TOKEN || "").trim();
 }
 
 function getWebappUrl() {
-  return String(process.env.WEBAPP_URL || "https://kino-telegram-mini-app.vercel.app").trim().replace(/\/+$/, "");
+  return String(process.env.WEBAPP_URL || DEFAULT_WEBAPP_URL).trim().replace(/\/+$/, "");
 }
 
 function getContactUsername() {
@@ -252,7 +256,7 @@ async function upsertUser(telegramUser) {
 async function sendStart(chatId) {
   await sendMessage(
     chatId,
-    "Assalomu alaykum, My Playlist botiga xush kelibsiz.\n" +
+    "Assalomu alaykum, NTV botiga xush kelibsiz.\n" +
       "Biz bilan vaqtingiz chog' va maroqli o'tishini tilab qolamiz.\n" +
       "Biz siz uchun doim xizmatdamiz.",
     { reply_markup: startInlineKeyboard() },

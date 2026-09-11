@@ -597,9 +597,10 @@
   // === Jonli translatsiyani do'stlarga yuborish ===
   // Yuborilgan xabardagi havola bosilganda mini-ilova to'g'ridan-to'g'ri FIFA
   // bo'limiga ochiladi (kino.js dagi tryHandleFifaDeepLink orqali).
-  const FIFA_SHARE_BOT_USERNAME = "myntv_bot";
+  // Bot username'i index.html dagi window.MYKINO_BOT_USERNAME'dan olinadi.
+  const FIFA_BOT_USERNAME = String(window.MYKINO_BOT_USERNAME || "myntv_bot").replace(/^@/, "");
   function buildFifaShareUrl(matchTitle) {
-    const shareLink = `https://t.me/${FIFA_SHARE_BOT_USERNAME}?startapp=fifa`;
+    const shareLink = `https://t.me/${FIFA_BOT_USERNAME}?startapp=fifa`;
     const text = `⚽ ${matchTitle}\n\n📺 ${F("shareLiveText")}`;
     return `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(text)}`;
   }

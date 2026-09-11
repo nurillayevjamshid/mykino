@@ -1,14 +1,14 @@
 {
-  "name": "kino-telegram-mini-app",
+  "name": "ntv-telegram-mini-app",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
     "redis": "^4.7.0"
   },
   "scripts": {
-    "check": "node --check webapp/app.js && node --check webapp/admin/admin.js && node --check api/_lib/google-drive.js && node --check api/movies.js && node --check api/movie-update.js && node --check api/settings.js && node --check api/drive-stream.js && node --check api/drive-thumbnail.js && node --check api/music.js && node --check api/broadcast.js && node -e \"JSON.parse(require('fs').readFileSync('data/movies.json','utf8')); console.log('movies json ok')\"",
-    "test": "node --test --test-reporter=spec tests/",
-    "test:ci": "node --test --test-reporter=tap tests/",
+    "check": "node --check webapp/kino/kino.js && node --check webapp/admin/admin.js && node --check api/_lib/google-drive.js && node --check api/movies.js && node --check api/movie-update.js && node --check api/settings.js && node --check api/drive-stream.js && node --check api/drive-thumbnail.js && node --check api/music.js && node --check api/broadcast.js && node --check api/telegram-webhook.js && node -e \"JSON.parse(require('fs').readFileSync('data/movies.json','utf8')); console.log('movies json ok')\"",
+    "test": "node --test --test-reporter=spec \"tests/**/*.test.js\"",
+    "test:ci": "node --test --test-reporter=tap \"tests/**/*.test.js\"",
     "faststart": "node scripts/faststart-drive.js",
     "faststart:apply": "node scripts/faststart-drive.js --apply"
   },
