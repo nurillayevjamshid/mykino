@@ -1,9 +1,12 @@
 const crypto = require("crypto");
 
+// CORS uchun zaxira manzil. WEBAPP_URL env o'zgaruvchisi asosiy manba.
+const DEFAULT_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
+
 // Clean and normalize URLs to get origins
 const ALLOWED_ORIGINS = [
   process.env.WEBAPP_URL,
-  "https://kino-telegram-mini-app.vercel.app"
+  DEFAULT_WEBAPP_URL
 ].map(url => {
   if (!url) return null;
   try {
@@ -34,7 +37,7 @@ function setCorsHeaders(request, response) {
   if (isOriginAllowed(origin)) {
     response.setHeader("Access-Control-Allow-Origin", origin);
   } else {
-    response.setHeader("Access-Control-Allow-Origin", process.env.WEBAPP_URL || "https://kino-telegram-mini-app.vercel.app");
+    response.setHeader("Access-Control-Allow-Origin", process.env.WEBAPP_URL || DEFAULT_WEBAPP_URL);
   }
   response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, Range, Authorization, X-TG-Init-Data, X-API-Key, X-Admin-Password");

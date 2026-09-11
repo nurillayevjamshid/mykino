@@ -10,4 +10,5 @@ node_modules/
 dist/
 build/
 
-.claude/worktrees/
+# AI vositalarining lokal sessiya fayllari (mashinaga xos, repoda kerak emas)
+.claude/

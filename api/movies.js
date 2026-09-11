@@ -79,6 +79,21 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// Ulashish sahifasi uchun manzil. WEBAPP_URL bo'lsa — o'sha; bo'lmasa so'rovni
+// kelgan host ishlatiladi (eski hardcoded domen o'rniga), oxirgi chora standart.
+const DEFAULT_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
+
+function webappBaseUrl(request) {
+  const fromEnv = String(process.env.WEBAPP_URL || "").trim().replace(/\/+$/, "");
+  if (fromEnv) return fromEnv;
+  const host = request?.headers?.["x-forwarded-host"] || request?.headers?.host;
+  if (host) {
+    const proto = request.headers?.["x-forwarded-proto"] || "https";
+    return `${proto}://${host}`;
+  }
+  return DEFAULT_WEBAPP_URL;
+}
+
 function absoluteUrl(request, value) {
   const url = String(value || "").trim();
   if (!url) return "";
@@ -90,7 +105,7 @@ function absoluteUrl(request, value) {
 
 async function handleSharePage(request, response) {
   const code = trimString(request.query?.movie || "").toUpperCase();
-  const webappBase = "https://kino-telegram-mini-app.vercel.app";
+  const webappBase = webappBaseUrl(request);
   const targetUrl = code ? `${webappBase}?movie=${encodeURIComponent(code)}` : webappBase;
 
   let movie = null;

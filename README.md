@@ -1,11 +1,26 @@
-# My Playlist + Telegram Mini App
+# NTV — Telegram Mini App
 
-Telegram ichida kinolar katalogini ko'rish uchun bot va mini app starter loyihasi.
+Telegram ichida kinolar katalogini ko'rish uchun bot va mini app.
+
+## Bot va konfiguratsiya (yagona manbalar)
+
+Botni almashtirishda faqat shu joylarni o'zgartirish kerak — kodda boshqa hardcode yo'q:
+
+| Nima | Qayerda | Izoh |
+| --- | --- | --- |
+| Bot tokeni | `.env` → `BOT_TOKEN` va Vercel env | Ikkalasida ham yangilanishi shart |
+| Bot username'i | `.env` → `BOT_USERNAME` | Backend ulashish havolalari uchun |
+| Bot username'i | `webapp/index.html` → `window.MYKINO_BOT_USERNAME` | Frontend havolalari uchun |
+| Webapp manzili | `.env` → `WEBAPP_URL` va Vercel env | Bot tugmalari, CORS, share sahifasi |
+
+`webapp/beta/index.html` ham xuddi shu `window.MYKINO_BOT_USERNAME` qatoriga ega.
 
 ## Nimalar bor
 
 - Telegram bot user menyusi: kinolar, qidirish, TOP kinolar, premium, profil, bog'lanish.
 - Mini app: rasmga o'xshash qorong'i kino katalog UI, til switcher, qidiruv, kategoriya/top filter, profil/premium modal, kino detail oynasi.
+- Qo'shimcha bo'limlar: musiqa, podkast, TV kanallar, FIFA JCH 2026.
+- Admin panel: kino tahrirlash, obunachilar, broadcast, reklama sozlamalari.
 - Google Drive katalog integratsiyasi: papkadagi videolar kartalar sifatida chiqadi.
 - MP4 (`H.264/AAC`) videolar Mini App ichida eng barqaror ishlaydi, ayniqsa iPhone uchun.
 - Kanalga tashlangan video postlardan to'ladigan JSON ma'lumotlar bazasi: `data/movies.json`.

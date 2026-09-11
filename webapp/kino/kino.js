@@ -1,5 +1,13 @@
 const tg = window.Telegram?.WebApp;
 
+// === Bot konfiguratsiyasi ===
+// Bot username'i butun mini app bo'ylab (ulashish havolalari, deep link,
+// ruxsat berilmagan ekran) shu yerdan olinadi. Botni almashtirganda faqat
+// shu qiymatni o'zgartiring — boshqa joyda hardcode qilinmasin.
+// window.MYKINO_BOT_USERNAME (index.html'da) bo'lsa — o'sha ustun.
+const BOT_USERNAME = String(window.MYKINO_BOT_USERNAME || "myntv_bot").replace(/^@/, "");
+const BOT_URL = `https://t.me/${BOT_USERNAME}`;
+
 // Global fetch monkey-patching to automatically inject Telegram WebApp authorization headers
 // and the HTTP-only admin session cookie (via credentials: "include").
 (function() {
@@ -3432,7 +3440,7 @@ function tgBackButtonSync() {
 })();
 
 // === Kino modali "Do'stga ulashish" tugmasi (poster ustida, o'ng tepada) ===
-const SHARE_BOT_USERNAME = "myntv_bot";
+// Bot username'i fayl boshidagi BOT_USERNAME'dan olinadi.
 
 function buildShareUrl(movie) {
   const code = String(movie?.code || movie?.id || "").trim();
@@ -3440,8 +3448,8 @@ function buildShareUrl(movie) {
   // mini app ochiladi (brauzer emas). startapp parametri webapp tarafda
   // tg.initDataUnsafe.start_param sifatida qabul qilinadi.
   const shareLink = code
-    ? `https://t.me/${SHARE_BOT_USERNAME}?startapp=${encodeURIComponent(code)}`
-    : `https://t.me/${SHARE_BOT_USERNAME}`;
+    ? `${BOT_URL}?startapp=${encodeURIComponent(code)}`
+    : BOT_URL;
   const title = String(movie?.title || "Kino").trim();
   const genre = String(movie?.genre || "").trim();
   const year = String(movie?.year || "").trim();
@@ -6928,7 +6936,7 @@ function showAccessDeniedScreen() {
       <h1 class="access-denied-title">${activeText.title}</h1>
       <p class="access-denied-desc">${activeText.desc}</p>
       <button class="access-denied-btn" id="accessDeniedBtn">${activeText.btn}</button>
-      <div class="access-denied-footer">@myntv_bot</div>
+      <div class="access-denied-footer">@${BOT_USERNAME}</div>
     </div>
   `;
 
@@ -6937,7 +6945,7 @@ function showAccessDeniedScreen() {
   const btn = document.getElementById("accessDeniedBtn");
   if (btn) {
     btn.addEventListener("click", () => {
-      const botUrl = "https://t.me/myntv_bot";
+      const botUrl = BOT_URL;
       if (window.Telegram?.WebApp?.openTelegramLink) {
         window.Telegram.WebApp.openTelegramLink(botUrl);
       } else {

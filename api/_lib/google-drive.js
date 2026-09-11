@@ -16,6 +16,8 @@ const EMBEDDED_META_START = "[MY_KINO_META]";
 const EMBEDDED_META_END = "[/MY_KINO_META]";
 const DRIVE_DESCRIPTION_MAX_LENGTH = 28000;
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
+// CORS uchun zaxira manzil (asosiysi — WEBAPP_URL env o'zgaruvchisi).
+const DEFAULT_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
 const NATURAL_SORT_COLLATOR = new Intl.Collator("uz", { numeric: true, sensitivity: "base" });
 
 let accessTokenCache = {
@@ -66,7 +68,7 @@ function invalidateListCache(key) {
 }
 
 function setCors(response) {
-  response.setHeader("Access-Control-Allow-Origin", process.env.WEBAPP_URL || "https://kino-telegram-mini-app.vercel.app");
+  response.setHeader("Access-Control-Allow-Origin", process.env.WEBAPP_URL || DEFAULT_WEBAPP_URL);
   response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, Range, Authorization, X-TG-Init-Data, X-API-Key, X-Admin-Password");
 }
