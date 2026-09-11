@@ -445,6 +445,36 @@
     const highlightCount = document.getElementById('highlightCount');
     const toast = document.getElementById('toast');
     let toastTimer;
+    function toEmbedUrl(value) {
+      try {
+        const url = new URL(String(value || ''));
+        if (url.hostname === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1)}?rel=0`;
+        if (url.hostname.endsWith('youtube.com') || url.hostname.endsWith('youtube-nocookie.com')) {
+          const id = url.searchParams.get('v');
+          if (id) return `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
+          if (url.pathname.startsWith('/embed/')) return `https://www.youtube-nocookie.com${url.pathname}?rel=0`;
+          if (url.pathname.startsWith('/live/')) return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(6)}?rel=0`;
+        }
+      } catch (_) {}
+      return '';
+    }
+    async function loadConfiguredStreams() {
+      try {
+        const response = await fetch('/api/settings', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        const configured = data.esportsStreams || {};
+        Object.entries(configured).forEach(([key, item]) => {
+          if (!games[key] || !item || item.enabled === false) return;
+          const embed = toEmbedUrl(item.youtubeUrl);
+          if (embed) games[key].streamUrl = embed;
+          if (item.label) games[key].label = item.label;
+          if (item.title) games[key].streamTitle = item.title;
+          if (item.meta) games[key].streamMeta = item.meta;
+        });
+        selectGame(activeKey);
+      } catch (_) {}
+    }
 
     function iconSvg(name, className) {
       return `<svg class="${className || ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.play}</svg>`;
@@ -473,6 +503,7 @@
     function selectGame(key) {
       const game = games[key];
       if (!game) return;
+      activeKey = key;
       renderTabs(key);
       activeGameLabel.textContent = game.label;
       streamTitle.textContent = game.streamTitle;
@@ -514,7 +545,9 @@
     // Bu event faqat Telegram WebApp ranglarini ishga tushirilgandan keyin qayta qo'llash uchun kerak.
     telegram?.onEvent?.('themeChanged', () => document.documentElement.style.colorScheme = 'light dark');
 
-    selectGame('pubg');
+    let activeKey = 'pubg';
+    selectGame(activeKey);
+    loadConfiguredStreams();
   </script>
 </body>
 </html>

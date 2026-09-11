@@ -270,18 +270,40 @@ function normalizeFifaLive(raw) {
   };
 }
 
+function normalizeEsportsStreams(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const defaults = [
+    { key: "cs", label: "CS2" },
+    { key: "pubg", label: "PUBG Mobile" },
+    { key: "clash", label: "Clash of Clans" },
+  ];
+  return defaults.reduce((result, base) => {
+    const item = source[base.key] && typeof source[base.key] === "object" ? source[base.key] : {};
+    result[base.key] = {
+      key: base.key,
+      label: trimString(item.label || base.label).slice(0, 60),
+      title: trimString(item.title).slice(0, 120),
+      meta: trimString(item.meta).slice(0, 160),
+      youtubeUrl: normalizePreRollVideoUrl(item.youtubeUrl).slice(0, 500),
+      enabled: item.enabled !== false,
+    };
+    return result;
+  }, {});
+}
 async function readPersistedSettings(settings) {
   if (
     hasOwn(settings, "splashImageUrl") ||
     hasOwn(settings, "ad") ||
     hasOwn(settings, "preRollAd") ||
-    hasOwn(settings, "fifaLive")
+    hasOwn(settings, "fifaLive") ||
+    hasOwn(settings, "esportsStreams")
   ) {
     return {
       splashImageUrl: readStoredPublicImageUrl(settings.splashImageUrl),
       ad: normalizeAd(settings.ad),
       preRollAd: normalizePreRollAd(settings.preRollAd, settings.adCdn),
       fifaLive: normalizeFifaLive(settings.fifaLive),
+      esportsStreams: normalizeEsportsStreams(settings.esportsStreams),
     };
   }
 
@@ -292,6 +314,7 @@ async function readPersistedSettings(settings) {
       ad: normalizeAd(folderSettings.ad),
       preRollAd: normalizePreRollAd(folderSettings.preRollAd, folderSettings.adCdn),
       fifaLive: normalizeFifaLive(folderSettings.fifaLive),
+      esportsStreams: normalizeEsportsStreams(folderSettings.esportsStreams),
     };
   } catch {
     return {
@@ -299,6 +322,7 @@ async function readPersistedSettings(settings) {
       ad: normalizeAd(null),
       preRollAd: normalizePreRollAd(null),
       fifaLive: normalizeFifaLive(null),
+      esportsStreams: normalizeEsportsStreams(null),
     };
   }
 }
@@ -399,6 +423,10 @@ module.exports = async function handler(request, response) {
       if (hasOwn(body, "fifaLive")) {
         nextSettings.fifaLive = normalizeFifaLive(body.fifaLive);
       }
+      if (hasOwn(body, "esportsStreams")) {
+        const incoming = body.esportsStreams && typeof body.esportsStreams === "object" ? body.esportsStreams : {};
+        nextSettings.esportsStreams = normalizeEsportsStreams(incoming);
+      }
 
       metadataState.data.settings = nextSettings;
       try {
@@ -417,6 +445,7 @@ module.exports = async function handler(request, response) {
         ad: normalizeAd(nextSettings.ad),
         preRollAd: normalizePreRollAd(nextSettings.preRollAd),
         fifaLive: normalizeFifaLive(nextSettings.fifaLive),
+        esportsStreams: normalizeEsportsStreams(nextSettings.esportsStreams),
       });
       return;
     }
