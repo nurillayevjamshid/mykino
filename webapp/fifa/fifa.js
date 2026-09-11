@@ -597,7 +597,7 @@
   // === Jonli translatsiyani do'stlarga yuborish ===
   // Yuborilgan xabardagi havola bosilganda mini-ilova to'g'ridan-to'g'ri FIFA
   // bo'limiga ochiladi (kino.js dagi tryHandleFifaDeepLink orqali).
-  const FIFA_SHARE_BOT_USERNAME = "mykinoplay_bot";
+  const FIFA_SHARE_BOT_USERNAME = "myntv_bot";
   function buildFifaShareUrl(matchTitle) {
     const shareLink = `https://t.me/${FIFA_SHARE_BOT_USERNAME}?startapp=fifa`;
     const text = `⚽ ${matchTitle}\n\n📺 ${F("shareLiveText")}`;
