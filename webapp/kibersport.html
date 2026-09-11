@@ -445,6 +445,8 @@
     const highlightCount = document.getElementById('highlightCount');
     const toast = document.getElementById('toast');
     let toastTimer;
+    let refreshTimer;
+    let activeKey = 'pubg';
     function toEmbedUrl(value) {
       try {
         const url = new URL(String(value || ''));
@@ -471,6 +473,8 @@
           if (item.label) games[key].label = item.label;
           if (item.title) games[key].streamTitle = item.title;
           if (item.meta) games[key].streamMeta = item.meta;
+          games[key].startAt = item.startAt || '';
+          games[key].isLive = Boolean(item.isLive);
         });
         selectGame(activeKey);
       } catch (_) {}
@@ -500,6 +504,20 @@
       `).join('');
     }
 
+    function getStreamState(game) {
+      if (!game || !game.startAt) return game?.isLive === false ? 'waiting' : 'live';
+      const startsAt = Date.parse(game.startAt);
+      if (!Number.isFinite(startsAt)) return game.isLive ? 'live' : 'waiting';
+      return game.isLive || Date.now() >= startsAt ? 'live' : 'waiting';
+    }
+    function formatCountdown(iso) {
+      const ms = Math.max(0, Date.parse(iso) - Date.now());
+      const total = Math.ceil(ms / 1000);
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const sec = total % 60;
+      return h ? `${h}s ${String(m).padStart(2, '0')}d` : `${m}d ${String(sec).padStart(2, '0')}s`;
+    }
     function selectGame(key) {
       const game = games[key];
       if (!game) return;
@@ -508,8 +526,19 @@
       activeGameLabel.textContent = game.label;
       streamTitle.textContent = game.streamTitle;
       streamMeta.textContent = game.streamMeta;
-      viewerCount.textContent = game.viewers;
-      streamFrame.src = game.streamUrl;
+      const state = getStreamState(game);
+      viewerCount.textContent = state === 'live' ? game.viewers : 'Kutilmoqda';
+      if (state === 'live') {
+        streamFrame.hidden = false;
+        streamFrame.src = game.streamUrl;
+        streamTitle.textContent = game.streamTitle;
+        streamMeta.textContent = game.streamMeta;
+      } else {
+        streamFrame.hidden = true;
+        streamFrame.removeAttribute('src');
+        streamTitle.textContent = `${game.label} boshlanishini kuting`;
+        streamMeta.textContent = `Boshlanishiga: ${formatCountdown(game.startAt)}`;
+      }
       renderHighlights(game.highlights);
       tabs.querySelector(`[data-game="${key}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
@@ -545,9 +574,9 @@
     // Bu event faqat Telegram WebApp ranglarini ishga tushirilgandan keyin qayta qo'llash uchun kerak.
     telegram?.onEvent?.('themeChanged', () => document.documentElement.style.colorScheme = 'light dark');
 
-    let activeKey = 'pubg';
     selectGame(activeKey);
     loadConfiguredStreams();
+    refreshTimer = setInterval(() => { if (games[activeKey]) selectGame(activeKey); }, 1000);
   </script>
 </body>
 </html>

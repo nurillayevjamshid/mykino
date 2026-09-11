@@ -270,6 +270,12 @@ function normalizeFifaLive(raw) {
   };
 }
 
+function normalizeEsportsStartAt(value) {
+  const raw = trimString(value);
+  if (!raw) return "";
+  const time = Date.parse(raw);
+  return Number.isFinite(time) ? new Date(time).toISOString() : "";
+}
 function normalizeEsportsStreams(raw) {
   const source = raw && typeof raw === "object" ? raw : {};
   const defaults = [
@@ -285,6 +291,8 @@ function normalizeEsportsStreams(raw) {
       title: trimString(item.title).slice(0, 120),
       meta: trimString(item.meta).slice(0, 160),
       youtubeUrl: normalizePreRollVideoUrl(item.youtubeUrl).slice(0, 500),
+      startAt: normalizeEsportsStartAt(item.startAt),
+      isLive: Boolean(item.isLive),
       enabled: item.enabled !== false,
     };
     return result;
