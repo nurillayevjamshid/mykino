@@ -201,6 +201,14 @@ def create_web_app(settings: Settings) -> web.Application:
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
         return response
 
+    async def admin_index(_: web.Request) -> web.FileResponse:
+        # /admin va /admin/ shu yerga keladi. add_static() ni "index" bilan
+        # ishlatib bo'lmaydi — aiohttp papka nomini xavfsizlik uchun rad etadi
+        # (403 Forbidden). Shuning uchun index.html ni qo'lda qaytaramiz.
+        response = web.FileResponse(settings.webapp_dir / "admin" / "index.html")
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
+
     async def service_worker(_: web.Request) -> web.FileResponse:
         response = web.FileResponse(settings.webapp_dir / "sw.js")
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
@@ -305,6 +313,9 @@ def create_web_app(settings: Settings) -> web.Application:
     app.router.add_get("/api/stream/{fileId}", stream_video)
     app.router.add_get("/api/video-stream/{fileId}", stream_video)
     app.router.add_get("/health", health)
+    # /admin va /admin/ — index.html ni aniq qaytaramiz (aiohttp static 403 beradi).
+    app.router.add_get("/admin", admin_index)
+    app.router.add_get("/admin/", admin_index)
     app.router.add_static("/static", settings.webapp_dir)
     app.router.add_static("/admin", settings.webapp_dir / "admin")
     return app
