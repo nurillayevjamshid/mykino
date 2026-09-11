@@ -1,4 +1,4 @@
-const VERSION = "v20260902-football-dates";
+const VERSION = "v20260911-bot-migration";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
