@@ -542,13 +542,38 @@ function switchSection(name) {
 // ------------- Subscribers -------------
 function normalizeUser(record) {
   const firstSeenAt = Number(record.firstSeenAt) || 0;
+  const startedRaw = record.started_at || (firstSeenAt ? new Date(firstSeenAt).toISOString().slice(0, 10) : '');
+  // last_active — bot har /start da yozadigan to'liq vaqt (ISO). Eski
+  // yozuvlarda yo'q, o'shanda kunlik last_seen_at ga tushamiz.
+  const lastActiveRaw = record.last_active || record.last_seen_at || '';
   return {
     telegram_id: record.telegram_id || record.id || record.telegramId || '',
     username: record.username || '',
     first_name: record.first_name || record.firstName || record.firstSeenName || '',
-    started_at: record.started_at || (firstSeenAt ? new Date(firstSeenAt).toISOString().slice(0, 10) : ''),
-    _sortTs: firstSeenAt || (record.started_at ? Date.parse(record.started_at + 'T00:00:00Z') : 0),
+    last_name: record.last_name || record.lastName || '',
+    started_at: String(startedRaw || '').slice(0, 10),
+    last_active: lastActiveRaw,
+    last_seen_at: record.last_seen_at || '',
+    _sortTs: firstSeenAt || (startedRaw ? Date.parse(startedRaw) : 0),
+    _activeTs: lastActiveRaw ? Date.parse(lastActiveRaw) : 0,
   };
+}
+
+// ISO vaqtni admin panel uchun o'qishli ko'rinishga keltiradi:
+// "2026-09-11T13:54:53.288658+00:00" -> "2026-09-11 13:54"
+function formatLastActive(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '-';
+  const ts = Date.parse(raw);
+  if (!ts) return escapeHtml(raw.slice(0, 16).replace('T', ' '));
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// To'liq ism: "Ali Valiyev" (last_name bo'lmasa faqat first_name).
+function userFullName(user) {
+  return [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
 }
 
 let usersSortMode = 'newest';
@@ -560,7 +585,7 @@ async function fetchUsers() {
   if (tbody) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="5">
+        <td colspan="6">
           <div class="loading-state">
             <div class="loading-spinner"></div>
             <p>Obunachilar yuklanmoqda...</p>
@@ -585,7 +610,7 @@ async function fetchUsers() {
     if (tbody) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="5">
+          <td colspan="6">
             <div class="empty-state error-state">
               <h3>Obunachilarni yuklashda xatolik!</h3>
               <p>${escapeHtml(error.message)}</p>
@@ -602,7 +627,8 @@ function applyUsersFilterSort() {
   let list = [...usersList];
   if (userSearchQuery) {
     list = list.filter(u => {
-      const haystack = [u.first_name, u.username, String(u.telegram_id), u.started_at].join(' ').toLowerCase();
+      const haystack = [u.first_name, u.last_name, u.username, String(u.telegram_id), u.started_at, u.last_active]
+        .join(' ').toLowerCase();
       return haystack.includes(userSearchQuery);
     });
   }
@@ -610,7 +636,8 @@ function applyUsersFilterSort() {
   const toTs = usersDateTo ? Date.parse(usersDateTo + 'T23:59:59') : 0;
   if (fromTs || toTs) {
     list = list.filter(u => {
-      const ts = u._sortTs || (u.started_at ? Date.parse(u.started_at + 'T12:00:00') : 0);
+      // Faol bo'lganlarni last_active, aks holda /start sanasi bo'yicha filtrlaymiz.
+      const ts = u._activeTs || u._sortTs || (u.started_at ? Date.parse(u.started_at + 'T12:00:00') : 0);
       if (!ts) return false;
       if (fromTs && ts < fromTs) return false;
       if (toTs && ts > toTs) return false;
@@ -623,10 +650,13 @@ function applyUsersFilterSort() {
       list.sort((a, b) => (a._sortTs || 0) - (b._sortTs || 0));
       break;
     case 'name-asc':
-      list.sort((a, b) => nameCollator.compare(a.first_name || '', b.first_name || ''));
+      list.sort((a, b) => nameCollator.compare(userFullName(a), userFullName(b)));
       break;
     case 'name-desc':
-      list.sort((a, b) => nameCollator.compare(b.first_name || '', a.first_name || ''));
+      list.sort((a, b) => nameCollator.compare(userFullName(b), userFullName(a)));
+      break;
+    case 'active':
+      list.sort((a, b) => (b._activeTs || 0) - (a._activeTs || 0));
       break;
     case 'newest':
     default:
@@ -676,7 +706,7 @@ function renderUsers() {
   if (list.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="5">
+        <td colspan="6">
           <div class="empty-state">
             <h3>${hasFilter ? 'Filtr natijasi yo\'q' : 'Obunachilar hali yo\'q'}</h3>
             <p>${hasFilter ? 'Boshqa qidiruv yoki sana oralig\'ini sinab ko\'ring.' : 'Foydalanuvchilar /start bosishi bilan bu yerda ko\'rinadi.'}</p>
@@ -690,10 +720,11 @@ function renderUsers() {
   tbody.innerHTML = list.map((user, index) => `
     <tr>
       <td>${index + 1}</td>
-      <td><strong>${escapeHtml(user.first_name || '-')}</strong></td>
+      <td><strong>${escapeHtml(userFullName(user) || '-')}</strong></td>
       <td>${user.username ? '@' + escapeHtml(user.username) : '-'}</td>
       <td><code>${escapeHtml(String(user.telegram_id || '-'))}</code></td>
       <td>${escapeHtml(user.started_at || '-')}</td>
+      <td>${formatLastActive(user.last_active)}</td>
     </tr>
   `).join('');
 }

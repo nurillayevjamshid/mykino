@@ -162,7 +162,13 @@ function sameUserRecord(a, b) {
   return String(a.telegram_id) === String(b.telegram_id)
     && String(a.username || "") === String(b.username || "")
     && String(a.first_name || "") === String(b.first_name || "")
-    && String(a.started_at || "") === String(b.started_at || "");
+    && String(a.last_name || "") === String(b.last_name || "")
+    && String(a.started_at || "") === String(b.started_at || "")
+    && String(a.last_active || "") === String(b.last_active || "")
+    // last_seen_at ham solishtiriladi — aks holda har kungi /start "o'zgarish
+    // yo'q" deb hisoblanib, sana yangilanmay qolardi va bot almashganini
+    // aniqlab bo'lmasdi.
+    && String(a.last_seen_at || "") === String(b.last_seen_at || "");
 }
 
 async function upsertUserBlob(record) {
@@ -172,7 +178,16 @@ async function upsertUserBlob(record) {
   const data = (await readBlobJsonStrict(BLOB_USERS_PATHNAME)) || { users: [] };
   const list = Array.isArray(data.users) ? data.users : [];
   const idx = list.findIndex((u) => String(u.telegram_id) === String(record.telegram_id));
-  const merged = idx >= 0 ? { ...list[idx], ...record, started_at: list[idx].started_at || record.started_at } : record;
+  // started_at — birinchi kirish (saqlanadi). last_seen_at — har safar yangilanadi.
+  // last_name bo'sh kelsa eskisi qoladi (Telegram uni har doim yubormaydi).
+  const merged = idx >= 0
+    ? {
+        ...list[idx],
+        ...record,
+        started_at: list[idx].started_at || record.started_at,
+        last_name: record.last_name || list[idx].last_name || "",
+      }
+    : record;
   if (idx >= 0 && sameUserRecord(list[idx], merged)) return;
   if (idx >= 0) list[idx] = merged;
   else list.push(merged);
@@ -186,7 +201,12 @@ async function upsertUserR2(record) {
   const list = Array.isArray(data.users) ? data.users : [];
   const idx = list.findIndex((u) => String(u?.telegram_id) === String(record.telegram_id));
   const merged = idx >= 0
-    ? { ...list[idx], ...record, started_at: list[idx]?.started_at || record.started_at }
+    ? {
+        ...list[idx],
+        ...record,
+        started_at: list[idx]?.started_at || record.started_at,
+        last_name: record.last_name || list[idx]?.last_name || "",
+      }
     : record;
   if (idx >= 0 && sameUserRecord(list[idx], merged)) return;
   if (idx >= 0) list[idx] = merged;
@@ -203,11 +223,19 @@ async function upsertUserR2(record) {
 async function upsertUser(telegramUser) {
   if (!telegramUser?.id) return;
   const today = new Date().toISOString().slice(0, 10);
+  const nowIso = new Date().toISOString();
   const record = {
     telegram_id: telegramUser.id,
     username: String(telegramUser.username || "").replace(/^@+/, ""),
     first_name: String(telegramUser.first_name || ""),
+    last_name: String(telegramUser.last_name || ""),
+    // started_at — birinchi /start (upsert paytida mavjud qiymat saqlanadi).
+    // last_seen_at — har /start da yangilanadi. Admin panelda bot almashgandan
+    // keyingi obunachilarni ajratish AYNAN shu maydon bo'yicha ishlaydi.
     started_at: today,
+    last_seen_at: today,
+    // last_active — to'liq vaqt (ISO), admin panelda "Oxirgi faollik" ustuni.
+    last_active: nowIso,
   };
   // R2 — primary (reliable, private). Blob — best-effort legacy.
   let r2Ok = false;
@@ -243,7 +271,14 @@ async function upsertUser(telegramUser) {
             }).filter(Boolean)
           : []);
       const idx = list.findIndex(u => String(u.telegram_id) === String(record.telegram_id));
-      const merged = idx >= 0 ? { ...list[idx], ...record, started_at: list[idx].started_at || record.started_at } : record;
+      const merged = idx >= 0
+        ? {
+            ...list[idx],
+            ...record,
+            started_at: list[idx].started_at || record.started_at,
+            last_name: record.last_name || list[idx].last_name || "",
+          }
+        : record;
       if (idx >= 0) list[idx] = merged; else list.push(merged);
       data.users = list.sort((a, b) => Number(a.telegram_id) - Number(b.telegram_id));
       await writeCatalogMetadata(data, metadataState.file);

@@ -23,10 +23,18 @@ const R2_USERS_KEY = "settings/bot-users.json";
 
 // ===== Bot almashgandan keyingi obunachilarni ajratish =====
 // Yangi botga o'tilganda eski bot obunachilari bazada qoladi, lekin admin
-// panelda ko'rinmasligi kerak. BOT_LAUNCH_DATE (YYYY-MM-DD) shu chegara:
-// undan OLDIN /start bosganlar ro'yxatdan chiqariladi.
+// panelda ko'rinmasligi kerak. BOT_LAUNCH_DATE (YYYY-MM-DD) shu chegara.
 //
-// MUHIM: bu filtr FAQAT o'qishda qo'llanadi. Yozish/o'chirish oqimlariga
+// NEGA last_seen_at KERAK (started_at yetarli emas):
+//   started_at faqat user BIRINCHI marta /start bosganda yoziladi va keyin
+//   o'zgarmaydi. Eski botga ilgari kirgan odam yangi botga bugun /start bossa
+//   ham started_at eski sana bo'lib qolaveradi — natijada u "yangi" emas deb
+//   hisoblanib, ro'yxatdan tushib qolardi.
+//   Shuning uchun har POST'da last_seen_at yangilanadi va filtr AYNAN shu
+//   maydon bo'yicha ishlaydi: "oxirgi kirishi chegara sanasidan keyin bo'lgan
+//   har bir kim" — jumladan eski foydalanuvchining yangi botga kirishi.
+//
+// MUHIM: filtr FAQAT o'qishda qo'llanadi. Yozish/o'chirish oqimlariga
 // tegmaydi — eski yozuvlar bazada butunlay saqlanib qoladi.
 //
 // Sana ko'rsatilmagan bo'lsa filtr ishlamaydi (barcha obunachilar ko'rinadi).
@@ -36,14 +44,24 @@ function getBotLaunchDate() {
   return raw;
 }
 
+// Yozuvning "joriy botga tegishli" sanasi: last_seen_at bo'lsa o'sha, aks holda
+// eski yozuvlar uchun started_at (orqaga moslik). Ikkalasi ham YYYY-MM-DD.
+function recordActivityDate(record) {
+  const lastSeen = trimStr(record?.last_seen_at);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(lastSeen)) return lastSeen;
+  const startedAt = trimStr(record?.started_at);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(startedAt)) return startedAt;
+  return "";
+}
+
 function isAfterBotLaunch(record) {
   const launchDate = getBotLaunchDate();
   if (!launchDate) return true;
-  const startedAt = trimStr(record?.started_at);
-  // Sanasi noma'lum yozuvlar ko'rsatiladi — ularni yashirish haqiqiy
+  const activityDate = recordActivityDate(record);
+  // Sanasi umuman yo'q yozuvlar ko'rsatiladi — ularni yashirish haqiqiy
   // obunachini yo'qotish xavfini tug'diradi.
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(startedAt)) return true;
-  return startedAt >= launchDate;
+  if (!activityDate) return true;
+  return activityDate >= launchDate;
 }
 
 function filterByBotLaunch(users) {
@@ -65,7 +83,11 @@ function sameUserRecord(a, b) {
   return String(a.telegram_id) === String(b.telegram_id)
     && String(a.username || "") === String(b.username || "")
     && String(a.first_name || "") === String(b.first_name || "")
-    && String(a.started_at || "") === String(b.started_at || "");
+    && String(a.last_name || "") === String(b.last_name || "")
+    && String(a.started_at || "") === String(b.started_at || "")
+    // last_seen_at ham hisobga olinadi — aks holda har kungi kirish "o'zgarish
+    // yo'q" deb hisoblanib, sana yangilanmay qolardi va filtr ishlamasdi.
+    && String(a.last_seen_at || "") === String(b.last_seen_at || "");
 }
 
 async function readRequestBody(request) {
@@ -95,11 +117,20 @@ function normalizeUser(record) {
   if (!record || typeof record !== "object") return null;
   const telegramId = trimStr(record.telegram_id || record.telegramId || record.id);
   if (!telegramId) return null;
+  const startedAt = trimStr(record.started_at || (record.firstSeenAt ? String(record.firstSeenAt).slice(0, 10) : ""));
+  // last_seen_at — oxirgi marta botga kirgan sana. Eski yozuvlarda bu maydon
+  // yo'q; o'shanda started_at ga tushamiz (filterByBotLaunch ham shunday qiladi).
+  // `last_active` (to'liq vaqt) bot tomonidan yoziladi — sana qismini olamiz.
+  const lastSeen = trimStr(record.last_seen_at) || trimStr(record.last_active).slice(0, 10) || startedAt;
   return {
     telegram_id: Number(telegramId) || telegramId,
     username: trimStr(record.username).replace(/^@+/, ""),
     first_name: trimStr(record.first_name || record.firstName || record.firstSeenName),
-    started_at: trimStr(record.started_at || (record.firstSeenAt ? String(record.firstSeenAt).slice(0, 10) : "")) || todayIsoDate(),
+    last_name: trimStr(record.last_name || record.lastName),
+    started_at: startedAt || todayIsoDate(),
+    last_seen_at: lastSeen || todayIsoDate(),
+    // To'liq vaqt belgisi (ISO) — admin panelda aniq ko'rsatish uchun.
+    last_active: trimStr(record.last_active) || trimStr(record.last_seen_at),
   };
 }
 
@@ -200,9 +231,15 @@ function mergeUsers(...lists) {
         telegram_id: prev.telegram_id || u.telegram_id,
         username: prev.username || u.username,
         first_name: prev.first_name || u.first_name,
+        // last_name birinchi mavjud qiymatdan olinadi (telegram_id bo'yicha
+        // birlashtirilganda bo'sh qiymat mavjudni almashtirmasin).
+        last_name: prev.last_name || u.last_name,
         // Eng erta sana — userning haqiqiy qo'shilgan kuni. Aks holda wipe'dan
         // keyin qayta ro'yxatdan o'tganlarda bugungi sana ko'rinib qoladi.
         started_at: [prev.started_at, u.started_at].filter(Boolean).sort()[0] || "",
+        // Eng kech kirish — joriy botga tegishli ekanini shu ko'rsatadi.
+        last_seen_at: [prev.last_seen_at, u.last_seen_at].filter(Boolean).sort().pop() || "",
+        last_active: [prev.last_active, u.last_active].filter(Boolean).sort().pop() || "",
       });
     }
   }
@@ -439,11 +476,17 @@ module.exports = async function handler(request, response) {
         telegram_id: tgUser.id,
         username: tgUser.username || body.username,
         first_name: tgUser.first_name || body.first_name,
+        last_name: tgUser.last_name || body.last_name,
       } : body);
       if (!next) {
         response.status(400).json({ ok: false, error: "telegram_id kerak." });
         return;
       }
+      // Mini App har ochilganda bu yerga keladi — ya'ni "joriy botga kirdi".
+      // last_seen_at ni HAR SAFAR yangilaymiz (started_at dan farqli o'laroq),
+      // shunda eski foydalanuvchi yangi botga kirsa ham ro'yxatda ko'rinadi.
+      const nowIsoDate = todayIsoDate();
+      const nowIso = new Date().toISOString();
       // R2 — primary (private signed GET). Blob — best-effort legacy.
       // MUHIM: bu yerda strict o'qish ishlatiladi. Oddiy o'qish har qanday
       // vaqtinchalik xatoni "fayl bo'sh" deb qaytarar edi, keyin yozuv butun
@@ -458,7 +501,14 @@ module.exports = async function handler(request, response) {
         const list = Array.isArray(data.users) ? data.users : [];
         const idx = list.findIndex(u => String(u.telegram_id) === String(next.telegram_id));
         const prev = idx >= 0 ? list[idx] : null;
-        saved = { ...(prev || {}), ...next, started_at: prev?.started_at || next.started_at };
+        // started_at — birinchi kirish (o'zgarmaydi). last_seen_at — hozir.
+        saved = {
+          ...(prev || {}),
+          ...next,
+          started_at: prev?.started_at || next.started_at,
+          last_seen_at: nowIsoDate,
+          last_active: nowIso,
+        };
         if (prev && sameUserRecord(prev, saved)) {
           r2Ok = true; // allaqachon ro'yxatda, hech narsa o'zgarmadi — yozish shart emas
         } else {
@@ -479,7 +529,13 @@ module.exports = async function handler(request, response) {
         const list = Array.isArray(blob.users) ? blob.users : [];
         const idx = list.findIndex(u => String(u.telegram_id) === String(next.telegram_id));
         const prev = idx >= 0 ? list[idx] : null;
-        const merged = { ...(prev || {}), ...next, started_at: prev?.started_at || next.started_at };
+        const merged = {
+          ...(prev || {}),
+          ...next,
+          started_at: prev?.started_at || next.started_at,
+          last_seen_at: nowIsoDate,
+          last_active: nowIso,
+        };
         if (prev && sameUserRecord(prev, merged)) {
           blobOk = true;
         } else {
