@@ -21,6 +21,36 @@ const { handleWatchProgress } = require("./_lib/watch-progress");
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
 const R2_USERS_KEY = "settings/bot-users.json";
 
+// ===== Bot almashgandan keyingi obunachilarni ajratish =====
+// Yangi botga o'tilganda eski bot obunachilari bazada qoladi, lekin admin
+// panelda ko'rinmasligi kerak. BOT_LAUNCH_DATE (YYYY-MM-DD) shu chegara:
+// undan OLDIN /start bosganlar ro'yxatdan chiqariladi.
+//
+// MUHIM: bu filtr FAQAT o'qishda qo'llanadi. Yozish/o'chirish oqimlariga
+// tegmaydi — eski yozuvlar bazada butunlay saqlanib qoladi.
+//
+// Sana ko'rsatilmagan bo'lsa filtr ishlamaydi (barcha obunachilar ko'rinadi).
+function getBotLaunchDate() {
+  const raw = String(process.env.BOT_LAUNCH_DATE || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
+  return raw;
+}
+
+function isAfterBotLaunch(record) {
+  const launchDate = getBotLaunchDate();
+  if (!launchDate) return true;
+  const startedAt = trimStr(record?.started_at);
+  // Sanasi noma'lum yozuvlar ko'rsatiladi — ularni yashirish haqiqiy
+  // obunachini yo'qotish xavfini tug'diradi.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startedAt)) return true;
+  return startedAt >= launchDate;
+}
+
+function filterByBotLaunch(users) {
+  if (!Array.isArray(users)) return [];
+  return users.filter(isAfterBotLaunch);
+}
+
 // Kunlik zaxira nusxa kaliti — asosiy fayl biror sabab bilan buzilsa/o'chsa,
 // oxirgi kunlardagi ro'yxatni shu yerdan tiklash mumkin bo'ladi.
 function usersBackupKey(date = new Date()) {
@@ -322,7 +352,9 @@ module.exports = async function handler(request, response) {
           } catch (e) { return { ok: false, error: e?.message || String(e) }; }
         })(),
       ]);
-      const merged = mergeUsers(r2Outcome.users || [], backupOutcome.users || [], repoBackupUsers, blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
+      const allMerged = mergeUsers(r2Outcome.users || [], backupOutcome.users || [], repoBackupUsers, blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
+      // Bot almashgandan oldingi obunachilarni chiqarib tashlaymiz (faqat o'qishda).
+      const merged = filterByBotLaunch(allMerged);
       if (isDebug) {
         response.status(200).json({
           merged,
@@ -334,6 +366,9 @@ module.exports = async function handler(request, response) {
             proxied: proxiedOutcome.users?.length || 0,
             metadata: metaOutcome.users?.length || 0,
           },
+          botLaunchDate: getBotLaunchDate() || null,
+          totalBeforeFilter: allMerged.length,
+          hiddenByLaunchFilter: allMerged.length - merged.length,
           r2: r2Outcome,
           backups: backupOutcome,
           blob: blobOutcome,
