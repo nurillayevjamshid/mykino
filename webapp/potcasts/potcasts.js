@@ -1121,7 +1121,7 @@
     const subText = formatCount(ch.subscriberCount) + " " + T("shareSubs");
     const vidText = formatCount(ch.videoCount) + " " + T("shareVideo");
     const avatar = ch.avatar || "";
-    const link = `https://t.me/mykinoplay_bot?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
+    const link = `https://t.me/myntv_bot?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
     let text = `Potkast nomi: ${ch.title || ""}\n\n`;
     text += `👥 ${subText}\n`;
     text += `🎬 ${vidText}\n\n`;

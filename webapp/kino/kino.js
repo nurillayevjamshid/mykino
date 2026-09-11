@@ -3432,7 +3432,7 @@ function tgBackButtonSync() {
 })();
 
 // === Kino modali "Do'stga ulashish" tugmasi (poster ustida, o'ng tepada) ===
-const SHARE_BOT_USERNAME = "mykinoplay_bot";
+const SHARE_BOT_USERNAME = "myntv_bot";
 
 function buildShareUrl(movie) {
   const code = String(movie?.code || movie?.id || "").trim();
@@ -6928,7 +6928,7 @@ function showAccessDeniedScreen() {
       <h1 class="access-denied-title">${activeText.title}</h1>
       <p class="access-denied-desc">${activeText.desc}</p>
       <button class="access-denied-btn" id="accessDeniedBtn">${activeText.btn}</button>
-      <div class="access-denied-footer">@mykinoplay_bot</div>
+      <div class="access-denied-footer">@myntv_bot</div>
     </div>
   `;
 
@@ -6937,7 +6937,7 @@ function showAccessDeniedScreen() {
   const btn = document.getElementById("accessDeniedBtn");
   if (btn) {
     btn.addEventListener("click", () => {
-      const botUrl = "https://t.me/mykinoplay_bot";
+      const botUrl = "https://t.me/myntv_bot";
       if (window.Telegram?.WebApp?.openTelegramLink) {
         window.Telegram.WebApp.openTelegramLink(botUrl);
       } else {
