@@ -4415,7 +4415,14 @@ async function saveEsportsStreams() {
     const key = el.dataset.esportsKey;
     const field = el.dataset.esportsField;
     result[key] ||= { key };
-    result[key][field] = (field === 'enabled' || field === 'isLive') ? el.checked : el.value.trim();
+    if (field === 'enabled' || field === 'isLive') {
+      result[key][field] = el.checked;
+    } else if (field === 'startAt') {
+      const localDate = el.value.trim();
+      result[key][field] = localDate ? new Date(localDate).toISOString() : '';
+    } else {
+      result[key][field] = el.value.trim();
+    }
   });
   setEsportsStreamsStatus('Saqlanmoqda...');
   try {
