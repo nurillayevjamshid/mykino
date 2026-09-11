@@ -694,7 +694,8 @@
     })();
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
+        // vercel.json da "/static/(.*)" -> "webapp/$1" — fayl ildizda emas.
+        navigator.serviceWorker.register("/static/sw.js", { scope: "/" }).catch(() => {});
       });
     }
   </script>

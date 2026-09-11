@@ -969,7 +969,9 @@
     })();
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
+        // Diqqat: vercel.json da "/static/(.*)" -> "webapp/$1" bog'langan, shuning
+        // uchun fayl ildizda emas, /static/ ostida. Ildizdagi "/sw.js" 404 beradi.
+        navigator.serviceWorker.register("/static/sw.js", { scope: "/" }).catch(() => {});
       });
     }
   </script>
