@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime, timezone
 from typing import Any
 
 from aiohttp import ClientSession, web
@@ -210,7 +211,21 @@ def create_web_app(settings: Settings) -> web.Application:
         return json_response(load_movies(settings.movies_path))
 
     async def users(_: web.Request) -> web.Response:
-        return json_response(load_users(settings.users_path))
+        # Admin panel ham, backend birlashtirish oqimi ham `{users: [...]}` va
+        # `{ok, count}` shaklini kutadi. Ilgari bu yerda to'g'ridan-to'g'ri massiv
+        # qaytarilardi — natijada last_name / last_active maydonlari admin
+        # panelda ko'rinmasdi. Endi to'liq yozuvlar o'zgarishsiz uzatiladi.
+        records = load_users(settings.users_path)
+        response = json_response(
+            {
+                "ok": True,
+                "count": len(records),
+                "updatedAt": datetime.now(timezone.utc).isoformat(),
+                "users": records,
+            }
+        )
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
 
     async def youtube_movies(_: web.Request) -> web.Response:
         response = json_response(await fetch_youtube_movies())
