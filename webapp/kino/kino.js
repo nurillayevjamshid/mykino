@@ -6356,6 +6356,11 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       setSidebarOpen(false);
       return;
     }
+    if (action === "esports") {
+      setSidebarOpen(false);
+      window.location.href = "/kibersport";
+      return;
+    }
     if (action === "kino-back") {
       closeMusicView();
       closePodcastsView();

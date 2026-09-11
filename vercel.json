@@ -88,6 +88,8 @@
     { "src": "/beta", "dest": "/webapp/beta/index.html" },
     { "src": "/beta/", "dest": "/webapp/beta/index.html" },
     { "src": "/beta/(.*)", "dest": "/webapp/beta/$1" },
+    { "src": "/kibersport", "dest": "/webapp/kibersport.html" },
+    { "src": "/kibersport/", "dest": "/webapp/kibersport.html" },
     { "src": "/static/(.*)", "dest": "/webapp/$1" },
     { "src": "/", "dest": "/webapp/index.html" }
   ]
