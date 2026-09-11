@@ -447,15 +447,17 @@
     let toastTimer;
     let refreshTimer;
     let activeKey = 'pubg';
+    let renderedStreamSrc = '';
+    let renderedStreamState = '';
     function toEmbedUrl(value) {
       try {
         const url = new URL(String(value || ''));
-        if (url.hostname === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1)}?rel=0`;
+        if (url.hostname === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1)}?autoplay=1&rel=0`;
         if (url.hostname.endsWith('youtube.com') || url.hostname.endsWith('youtube-nocookie.com')) {
           const id = url.searchParams.get('v');
-          if (id) return `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
-          if (url.pathname.startsWith('/embed/')) return `https://www.youtube-nocookie.com${url.pathname}?rel=0`;
-          if (url.pathname.startsWith('/live/')) return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(6)}?rel=0`;
+          if (id) return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
+          if (url.pathname.startsWith('/embed/')) return `https://www.youtube-nocookie.com${url.pathname}?autoplay=1&rel=0`;
+          if (url.pathname.startsWith('/live/')) return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(6)}?autoplay=1&rel=0`;
         }
       } catch (_) {}
       return '';
@@ -530,12 +532,18 @@
       viewerCount.textContent = state === 'live' ? game.viewers : 'Kutilmoqda';
       if (state === 'live') {
         streamFrame.hidden = false;
-        streamFrame.src = game.streamUrl;
+        if (renderedStreamState !== 'live' || renderedStreamSrc !== game.streamUrl) {
+          streamFrame.src = game.streamUrl;
+          renderedStreamSrc = game.streamUrl;
+        }
+        renderedStreamState = 'live';
         streamTitle.textContent = game.streamTitle;
         streamMeta.textContent = game.streamMeta;
       } else {
         streamFrame.hidden = true;
-        streamFrame.removeAttribute('src');
+        if (renderedStreamState !== 'waiting') streamFrame.removeAttribute('src');
+        renderedStreamState = 'waiting';
+        renderedStreamSrc = '';
         streamTitle.textContent = `${game.label} boshlanishini kuting`;
         streamMeta.textContent = `Boshlanishiga: ${formatCountdown(game.startAt)}`;
       }
