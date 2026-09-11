@@ -6212,6 +6212,7 @@ function syncSidebarSectionItems() {
   if (!slots.some(Boolean)) return;
 
   const section = document.body.classList.contains("is-fifa") ? "fifa"
+    : document.body.classList.contains("is-esport") ? "esport"
     : document.body.classList.contains("is-music") ? "music"
     : document.body.classList.contains("is-podcasts") ? "podcasts"
     : "kino";
@@ -6253,13 +6254,26 @@ function syncSidebarSectionItems() {
       </svg>
       <span data-i18n="tvNav">${plainLabel(t("tvNav"))}</span>`,
     },
+    esport: {
+      action: "esport",
+      html: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="6" width="20" height="12" rx="4"></rect>
+        <path d="M7 12h3"></path>
+        <path d="M8.5 10.5v3"></path>
+        <circle cx="16" cy="11" r="1"></circle>
+        <circle cx="18" cy="13.5" r="1"></circle>
+      </svg>
+      <span>Kibersport</span>`,
+    },
   };
 
   const ORDER = {
     kino: ["fifa", "music", "podcasts"],
-    fifa: ["kino", "music", "podcasts"],
-    music: ["kino", "fifa", "podcasts"],
-    podcasts: ["kino", "fifa", "music"],
+    fifa: ["kino", "esport", "music"],
+    music: ["kino", "fifa", "esport"],
+    podcasts: ["kino", "fifa", "esport"],
+    esport: ["kino", "fifa", "music"],
   };
 
   ORDER[section].forEach((key, i) => {
@@ -6336,6 +6350,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       closePodcastsView();
       closeFifaView();
       closeTvView();
+      closeEsportView();
       openMusicView();
       setSidebarOpen(false);
       return;
@@ -6344,6 +6359,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       closeMusicView();
       closeFifaView();
       closeTvView();
+      closeEsportView();
       openPodcastsView();
       setSidebarOpen(false);
       return;
@@ -6352,7 +6368,17 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       closeMusicView();
       closePodcastsView();
       closeTvView();
+      closeEsportView();
       openFifaView();
+      setSidebarOpen(false);
+      return;
+    }
+    if (action === "esport") {
+      closeMusicView();
+      closePodcastsView();
+      closeFifaView();
+      closeTvView();
+      openEsportView();
       setSidebarOpen(false);
       return;
     }
@@ -6360,6 +6386,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       closeMusicView();
       closePodcastsView();
       closeFifaView();
+      closeEsportView();
       openTvView();
       setSidebarOpen(false);
       return;
@@ -6369,6 +6396,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       closePodcastsView();
       closeFifaView();
       closeTvView();
+      closeEsportView();
       setFilter("all");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
       setSidebarOpen(false);
@@ -6379,6 +6407,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       closePodcastsView();
       closeFifaView();
       closeTvView();
+      closeEsportView();
       setFilter("favorites");
       document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
     } else if (action === "profile") {
@@ -8170,6 +8199,43 @@ function ensureFifaModule() {
 // modulni yuklab, keyin haqiqiy openFifaView ni chaqiradi.
 function openFifaView() { ensureFifaModule().then((m) => m?.openFifaView?.()).catch(() => {}); }
 function closeFifaView() { window.__fifa?.closeFifaView?.(); }
+
+// ============================================================
+// KIBERSPORT ("Kibersport va O'yinlar") — lazy-loader
+// Alohida webapp/esport/esport.{js,css}. Naqsh fifa/music bilan bir xil:
+// CSS va JS parallel yuklanadi, so'ng window.__esport ishlatiladi.
+// ============================================================
+let __esportModulePromise = null;
+let __esportCssPromise = null;
+function ensureEsportCss() {
+  if (__esportCssPromise) return __esportCssPromise;
+  __esportCssPromise = new Promise((resolve) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/static/esport/esport.css?v=20260911-esport-v1";
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+  return __esportCssPromise;
+}
+function ensureEsportModule() {
+  if (window.__esport) return Promise.resolve(window.__esport);
+  if (__esportModulePromise) return __esportModulePromise;
+  const cssPromise = ensureEsportCss();
+  const jsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/static/esport/esport.js?v=20260911-esport-v1";
+    script.onload = () => resolve(window.__esport);
+    script.onerror = (err) => { __esportModulePromise = null; reject(err); };
+    document.head.appendChild(script);
+  });
+  __esportModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__esport);
+  return __esportModulePromise;
+}
+function openEsportView() { ensureEsportModule().then((m) => m?.openEsportView?.()).catch(() => {}); }
+function closeEsportView() { window.__esport?.closeEsportView?.(); }
+
 
 // Kino-home FIFA banner click — modul yuklanmagan bo'lsa lazy-load qiladi.
 document.addEventListener("DOMContentLoaded", () => {

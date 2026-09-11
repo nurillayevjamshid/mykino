@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="uz" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Kibersport — NTV</title>
+
+<!-- Telegram WebApp SDK. Brauzerda ochilganda xato bermaydi (tekshiruv bor). -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<link rel="stylesheet" href="esport.css">
+</head>
+
+<body class="esport-page">
+
+<h1 class="sr-only">Kibersport va o'yinlar bo'limi</h1>
+
+<!-- Bo'lim o'rami: asosiy ilovada shu element ko'rsatiladi/yashiriladi -->
+<div id="esportView">
+
+<!-- ======================================================================
+     HEADER
+     ====================================================================== -->
+<header class="esport-header">
+  <div class="esport-header__mark" aria-hidden="true">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 11h4M8 9v4M15.5 12h.01M18 10h.01"/>
+      <path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.6l-.9 7A3 3 0 0 0 4.78 19c.9 0 1.75-.4 2.33-1.1L9 16h6l1.89 1.9c.58.7 1.43 1.1 2.33 1.1a3 3 0 0 0 2.98-3.4l-.9-7A4 4 0 0 0 17.32 5Z"/>
+    </svg>
+  </div>
+  <div>
+    <h2 class="esport-header__title">Kibersport</h2>
+    <p class="esport-header__sub">Jonli efir va turnirlar</p>
+  </div>
+  <span class="esport-header__live-pill" id="esportHeaderPill">
+    <span class="live-dot" aria-hidden="true"></span> Jonli
+  </span>
+</header>
+
+<!-- ======================================================================
+     FILTR TABLARI
+     ====================================================================== -->
+<nav class="esport-tabs" id="esportGameTabs" role="tablist" aria-label="O'yin tanlash">
+  <button class="esport-tab is-active" type="button" role="tab"
+          data-game="pubg" aria-selected="true">PUBG Mobile</button>
+  <button class="esport-tab" type="button" role="tab"
+          data-game="cs2" aria-selected="false">CS2</button>
+  <button class="esport-tab" type="button" role="tab"
+          data-game="coc" aria-selected="false">Clash of Clans</button>
+</nav>
+
+<!-- ======================================================================
+     ASOSIY STRIM
+     ====================================================================== -->
+<div class="esport-main">
+  <div class="stream-card">
+    <div class="stream-frame">
+
+      <!-- Qizil LIVE belgisi -->
+      <span class="stream-live-badge" id="esportLiveBadge">
+        <span class="stream-live-badge__dot" aria-hidden="true"></span> LIVE
+      </span>
+
+      <!-- iframe shu yerga JS bilan qo'yiladi -->
+      <div id="esportStreamHost"></div>
+
+      <!-- Strim yo'q bo'lgandagi holat -->
+      <div class="stream-empty" id="esportStreamEmpty">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+             stroke-linejoin="round" style="color:var(--c-hint)">
+          <rect x="2" y="5" width="20" height="14" rx="3"/>
+          <path d="m10 9 5 3-5 3z"/>
+        </svg>
+        <p class="stream-empty__title" id="esportEmptyTitle">Hozircha efir yo'q</p>
+        <p class="stream-empty__text">Jonli translyatsiya boshlanganda shu yerda avtomatik ko'rinadi.</p>
+      </div>
+
+    </div>
+
+    <!-- Strim ma'lumoti -->
+    <div class="stream-meta">
+      <div class="stream-meta__info">
+        <p class="stream-meta__title" id="esportStreamTitle">—</p>
+        <p class="stream-meta__sub" id="esportStreamSub">—</p>
+      </div>
+      <span class="stream-meta__viewers" id="esportViewers" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span id="esportViewersNum">0</span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     HAYLAYTLAR
+     ====================================================================== -->
+<div class="section-head">
+  <h3 class="section-head__title">So'nggi haylaytlar</h3>
+  <button class="section-head__link" type="button" id="esportRefreshBtn">Yangilash</button>
+</div>
+<div class="card-list" id="esportHighlightList"></div>
+
+<!-- ======================================================================
+     MATCHLAR TAQVIMI
+     ====================================================================== -->
+<div class="section-head">
+  <h3 class="section-head__title">Kutilayotgan matchlar</h3>
+</div>
+<div class="card-list" id="esportMatchList"></div>
+
+<!-- ======================================================================
+     PASTKI NAVIGATSIYA
+     ====================================================================== -->
+<nav class="esport-bottom-nav" aria-label="Asosiy navigatsiya">
+
+  <button class="esport-bottom-nav__item" type="button" data-nav="kino">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2.5"/>
+      <path d="M3 9h18M8 5v4M16 5v4"/>
+    </svg>
+    <span class="esport-bottom-nav__label">Kino</span>
+  </button>
+
+  <button class="esport-bottom-nav__item" type="button" data-nav="music">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="7" cy="18" r="2.4"/>
+      <circle cx="17.5" cy="15.6" r="2.4"/>
+      <path d="M9.4 18V8.2l10.5-2.4v9.8"/>
+    </svg>
+    <span class="esport-bottom-nav__label">Musiqa</span>
+  </button>
+
+  <button class="esport-bottom-nav__item" type="button" data-nav="podcast">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="9" y="3" width="6" height="11" rx="3"/>
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/>
+    </svg>
+    <span class="esport-bottom-nav__label">Podkast</span>
+  </button>
+
+  <button class="esport-bottom-nav__item" type="button" data-nav="fifa">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="m12 7.5 3.4 2.5-1.3 4h-4.2l-1.3-4z"/>
+      <path d="M12 3v4.5M4.2 8.9l4.4 1.1M19.8 8.9l-4.4 1.1M7 20.4l2.9-6.4M17 20.4l-2.9-6.4"/>
+    </svg>
+    <span class="esport-bottom-nav__label">Futbol</span>
+  </button>
+
+  <!-- FAOL BO'LIM: Kibersport -->
+  <button class="esport-bottom-nav__item is-active" type="button" data-nav="esport" aria-current="page">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 11h4M8 9v4M15.5 12h.01M18 10h.01"/>
+      <path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.6l-.9 7A3 3 0 0 0 4.78 19c.9 0 1.75-.4 2.33-1.1L9 16h6l1.89 1.9c.58.7 1.43 1.1 2.33 1.1a3 3 0 0 0 2.98-3.4l-.9-7A4 4 0 0 0 17.32 5Z"/>
+    </svg>
+    <span class="esport-bottom-nav__label">Kibersport</span>
+  </button>
+
+</nav>
+
+</div><!-- /#esportView -->
+
+<script src="esport.js"></script>
+
+</body>
+</html>
