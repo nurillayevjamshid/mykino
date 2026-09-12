@@ -447,8 +447,23 @@
               <span class="stream-live-badge__dot" aria-hidden="true"></span> LIVE
             </span>
 
+            <!-- Preview (ijro qilinmaguncha ko'rinadi) -->
+            <button class="stream-preview" id="esportStreamPreview" type="button" aria-label="Jonli efirni tomosha qilish" hidden>
+              <img class="stream-preview__img" id="esportStreamPreviewImg" alt="Jonli efir preview">
+              <span class="stream-preview__play">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7V5Z"/></svg>
+              </span>
+            </button>
+
             <!-- YouTube iframe shu yerga JS bilan qo'yiladi -->
             <div id="esportStreamHost"></div>
+
+            <!-- Full Screen tugmasi -->
+            <button class="stream-fullscreen" id="esportFullscreenBtn" type="button" aria-label="Full screen" hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+            </button>
 
             <!-- Efir yo'q bo'lgandagi holat -->
             <div class="stream-empty" id="esportStreamEmpty">
