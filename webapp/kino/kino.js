@@ -6197,6 +6197,16 @@ function syncSidebarSettings() {
 }
 syncSidebarSettings();
 
+// Kibersport sidebaridan kelgan bo'lim yo'nalishini ishga tushirish.
+const requestedSection = new URLSearchParams(window.location.search).get('section');
+if (requestedSection) {
+  window.setTimeout(() => {
+    if (requestedSection === 'music') openMusicView();
+    else if (requestedSection === 'podcasts') openPodcastsView();
+    else if (requestedSection === 'football') openFifaView();
+  }, 0);
+}
+
 // Sidebar yuqori 3 slot — joriy bo'limdan boshqa bo'limlarga o'tish tugmalari.
 // Tartib har bo'limda qat'iy:
 //   Kino:       Futbol, Musiqa, Potkastlar
@@ -6389,6 +6399,11 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       closeEsportView();
       openTvView();
       setSidebarOpen(false);
+      return;
+    }
+    if (action === "esports") {
+      setSidebarOpen(false);
+      window.location.href = "/kibersport";
       return;
     }
     if (action === "kino-back") {
@@ -7888,10 +7903,10 @@ initApp();
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
   // === Tweak qilinadigan sozlamalar ===
-  const MULTIPLIER = 3.1;      // barmoq harakatini necha barobar kuchaytirish (1 = native)
-  const FRICTION = 0.94;       // inertia decay (har frame'da velocity * FRICTION). Katta = uzoqroq sirpanadi
+  const MULTIPLIER = 3.6;      // barmoq harakatini necha barobar kuchaytirish (1 = native)
+  const FRICTION = 0.91;       // inertia decay (har frame'da velocity * FRICTION). Katta = uzoqroq sirpanadi
   const MIN_VELOCITY = 0.04;   // px/ms — bundan past tezlikda inertia to'xtaydi
-  const MAX_VELOCITY = 9;      // px/ms — cheksiz tezlanmasin
+  const MAX_VELOCITY = 6.5;    // px/ms — cheksiz tezlanmasin
   const INNER_SCROLLERS =
     ".category-row__list, .music-card-row, .music-filter-row, .music-carousel," +
     " .music-artists, .modal-content, .modal-poster, .video-player, .ad-modal," +
