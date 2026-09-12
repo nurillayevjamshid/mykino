@@ -209,6 +209,16 @@ def create_web_app(settings: Settings) -> web.Application:
         response.headers["Cache-Control"] = "no-store, max-age=0"
         return response
 
+    async def kibersport_index(_: web.Request) -> web.FileResponse:
+        # Mini appdagi "Kibersport" tugmasi /kibersport manziliga o'tadi
+        # (kino.js: window.location.href = "/kibersport"). Vercel'da bu yo'l
+        # vercel.json rewrite orqali ishlaydi, VPS'dagi aiohttp serverda esa
+        # yo'l ro'yxatga olinmagan edi — natijada 404 qaytib, admin panelda
+        # saqlangan YouTube strim mini appda umuman ochilmasdi.
+        response = web.FileResponse(settings.webapp_dir / "kibersport.html")
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
+
     async def service_worker(_: web.Request) -> web.FileResponse:
         response = web.FileResponse(settings.webapp_dir / "sw.js")
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
@@ -316,6 +326,11 @@ def create_web_app(settings: Settings) -> web.Application:
     # /admin va /admin/ — index.html ni aniq qaytaramiz (aiohttp static 403 beradi).
     app.router.add_get("/admin", admin_index)
     app.router.add_get("/admin/", admin_index)
+    # /kibersport — mini appdagi Kibersport bo'limi (YouTube jonli efir).
+    # .html varianti ham qo'shildi: ba'zi havolalar to'liq fayl nomi bilan keladi.
+    app.router.add_get("/kibersport", kibersport_index)
+    app.router.add_get("/kibersport/", kibersport_index)
+    app.router.add_get("/kibersport.html", kibersport_index)
     app.router.add_static("/static", settings.webapp_dir)
     app.router.add_static("/admin", settings.webapp_dir / "admin")
     return app
