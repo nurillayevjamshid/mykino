@@ -6189,6 +6189,16 @@ function syncSidebarSettings() {
 }
 syncSidebarSettings();
 
+// Kibersport sidebaridan kelgan bo'lim yo'nalishini ishga tushirish.
+const requestedSection = new URLSearchParams(window.location.search).get('section');
+if (requestedSection) {
+  window.setTimeout(() => {
+    if (requestedSection === 'music') openMusicView();
+    else if (requestedSection === 'podcasts') openPodcastsView();
+    else if (requestedSection === 'football') openFifaView();
+  }, 0);
+}
+
 // Sidebar yuqori 3 slot — joriy bo'limdan boshqa bo'limlarga o'tish tugmalari.
 // Tartib har bo'limda qat'iy:
 //   Kino:       Futbol, Musiqa, Potkastlar
