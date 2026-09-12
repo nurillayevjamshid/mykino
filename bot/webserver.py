@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime, timezone
 from typing import Any
 
 from aiohttp import ClientSession, web
@@ -200,6 +201,24 @@ def create_web_app(settings: Settings) -> web.Application:
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
         return response
 
+    async def admin_index(_: web.Request) -> web.FileResponse:
+        # /admin va /admin/ shu yerga keladi. add_static() ni "index" bilan
+        # ishlatib bo'lmaydi — aiohttp papka nomini xavfsizlik uchun rad etadi
+        # (403 Forbidden). Shuning uchun index.html ni qo'lda qaytaramiz.
+        response = web.FileResponse(settings.webapp_dir / "admin" / "index.html")
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
+
+    async def kibersport_index(_: web.Request) -> web.FileResponse:
+        # Mini appdagi "Kibersport" tugmasi /kibersport manziliga o'tadi
+        # (kino.js: window.location.href = "/kibersport"). Vercel'da bu yo'l
+        # vercel.json rewrite orqali ishlaydi, VPS'dagi aiohttp serverda esa
+        # yo'l ro'yxatga olinmagan edi — natijada 404 qaytib, admin panelda
+        # saqlangan YouTube strim mini appda umuman ochilmasdi.
+        response = web.FileResponse(settings.webapp_dir / "kibersport.html")
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
+
     async def service_worker(_: web.Request) -> web.FileResponse:
         response = web.FileResponse(settings.webapp_dir / "sw.js")
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
@@ -210,7 +229,21 @@ def create_web_app(settings: Settings) -> web.Application:
         return json_response(load_movies(settings.movies_path))
 
     async def users(_: web.Request) -> web.Response:
-        return json_response(load_users(settings.users_path))
+        # Admin panel ham, backend birlashtirish oqimi ham `{users: [...]}` va
+        # `{ok, count}` shaklini kutadi. Ilgari bu yerda to'g'ridan-to'g'ri massiv
+        # qaytarilardi — natijada last_name / last_active maydonlari admin
+        # panelda ko'rinmasdi. Endi to'liq yozuvlar o'zgarishsiz uzatiladi.
+        records = load_users(settings.users_path)
+        response = json_response(
+            {
+                "ok": True,
+                "count": len(records),
+                "updatedAt": datetime.now(timezone.utc).isoformat(),
+                "users": records,
+            }
+        )
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
 
     async def youtube_movies(_: web.Request) -> web.Response:
         response = json_response(await fetch_youtube_movies())
@@ -290,6 +323,14 @@ def create_web_app(settings: Settings) -> web.Application:
     app.router.add_get("/api/stream/{fileId}", stream_video)
     app.router.add_get("/api/video-stream/{fileId}", stream_video)
     app.router.add_get("/health", health)
+    # /admin va /admin/ — index.html ni aniq qaytaramiz (aiohttp static 403 beradi).
+    app.router.add_get("/admin", admin_index)
+    app.router.add_get("/admin/", admin_index)
+    # /kibersport — mini appdagi Kibersport bo'limi (YouTube jonli efir).
+    # .html varianti ham qo'shildi: ba'zi havolalar to'liq fayl nomi bilan keladi.
+    app.router.add_get("/kibersport", kibersport_index)
+    app.router.add_get("/kibersport/", kibersport_index)
+    app.router.add_get("/kibersport.html", kibersport_index)
     app.router.add_static("/static", settings.webapp_dir)
     app.router.add_static("/admin", settings.webapp_dir / "admin")
     return app

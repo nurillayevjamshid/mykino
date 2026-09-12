@@ -1,4 +1,4 @@
-const VERSION = "v20260902-football-dates";
+const VERSION = "v20260912-kibersport-live";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
@@ -13,7 +13,13 @@ const STATIC_ASSETS = [
 
 // Faqat shu API yo'llari stale-while-revalidate keshlanadi.
 // /api/stream, /api/video-stream va boshqalar keshlanmaydi.
-const SWR_API_PATHS = ["/api/movies", "/api/settings", "/api/categories"];
+const SWR_API_PATHS = ["/api/movies", "/api/categories"];
+
+// /api/settings — murosasiz tarmoqdan (network-first). Admin panelda
+// "Hozir boshlash" bosilgach strim mini appda DARHOL ko'rinishi kerak.
+// Ilgari bu yo'l ham SWR edi: foydalanuvchi eski keshni ko'rar, strim
+// faqat sahifa ikkinchi marta ochilganda paydo bo'lardi.
+const NETWORK_FIRST_API_PATHS = ["/api/settings"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
@@ -47,6 +53,10 @@ function isSwrApi(url) {
   return SWR_API_PATHS.some((p) => url.pathname === p);
 }
 
+function isNetworkFirstApi(url) {
+  return NETWORK_FIRST_API_PATHS.some((p) => url.pathname === p);
+}
+
 function isStreamingApi(url) {
   return url.pathname.startsWith("/api/stream")
     || url.pathname.startsWith("/api/video-stream")
@@ -63,7 +73,26 @@ self.addEventListener("fetch", (event) => {
   // Streaming endpointlarni hech qachon ushlamaslik.
   if (sameOrigin && isStreamingApi(url)) return;
 
-  // SWR keshlanadigan API'lar (movies/settings/categories).
+  // Sozlamalar — network-first: doim yangi holat, tarmoq yo'q bo'lsa keshdan.
+  if (sameOrigin && isNetworkFirstApi(url)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(API_CACHE);
+      try {
+        const fresh = await fetch(req);
+        if (fresh && fresh.ok) {
+          cache.put(req, fresh.clone()).catch(() => {});
+        }
+        return fresh;
+      } catch (err) {
+        const cached = await cache.match(req, { ignoreSearch: false });
+        if (cached) return cached;
+        throw err;
+      }
+    })());
+    return;
+  }
+
+  // SWR keshlanadigan API'lar (movies/categories).
   if (sameOrigin && isSwrApi(url)) {
     event.respondWith((async () => {
       const cache = await caches.open(API_CACHE);

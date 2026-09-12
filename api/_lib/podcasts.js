@@ -324,7 +324,8 @@ async function handlePodcastsRequest(request, response) {
         const subs = Number(ch.subscriberCount || 0);
         const vids = Number(ch.videoCount || 0);
         const avatar = ch.avatar || ch.banner || "";
-        const link = `https://t.me/myntv_bot?startapp=pod_${encodeURIComponent(channelId)}`;
+        const podcastBotUsername = String(process.env.BOT_USERNAME || "myntv_bot").trim().replace(/^@/, "");
+        const link = `https://t.me/${podcastBotUsername}?startapp=pod_${encodeURIComponent(channelId)}`;
         const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const fmt = (n) => {
           if (!n) return "0";

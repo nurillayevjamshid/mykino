@@ -10,4 +10,10 @@ node_modules/
 dist/
 build/
 
-.claude/worktrees/
+# AI vositalarining lokal sessiya fayllari (mashinaga xos, repoda kerak emas)
+.claude/
+
+# Foydalanuvchi ma'lumotlari — bot /start bosganlarni shu yerga yozadi.
+# Repoga TUSHMASLIGI kerak (shaxsiy ma'lumot + har serverda o'ziniki bo'ladi).
+data/users.json
+data/backups/

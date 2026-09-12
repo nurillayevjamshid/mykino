@@ -1118,10 +1118,12 @@
       debug(`Share API yo'q: userId=${userId || "?"} hasShare=${hasShare} ver=${ver}`);
     }
     // Fallback: eski t.me/share/url (yashirin link ishlamaydi, lekin ishlaydi)
+    // Bot username'i index.html dagi window.MYKINO_BOT_USERNAME'dan olinadi.
+    const podcastBotUsername = String(window.MYKINO_BOT_USERNAME || "myntv_bot").replace(/^@/, "");
     const subText = formatCount(ch.subscriberCount) + " " + T("shareSubs");
     const vidText = formatCount(ch.videoCount) + " " + T("shareVideo");
     const avatar = ch.avatar || "";
-    const link = `https://t.me/myntv_bot?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
+    const link = `https://t.me/${podcastBotUsername}?startapp=pod_${encodeURIComponent(ch.channelId || "")}`;
     let text = `Potkast nomi: ${ch.title || ""}\n\n`;
     text += `👥 ${subText}\n`;
     text += `🎬 ${vidText}\n\n`;
