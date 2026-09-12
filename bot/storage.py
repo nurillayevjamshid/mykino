@@ -64,6 +64,12 @@ def save_users(path: Path, users: list[dict[str, Any]]) -> None:
 
 
 def upsert_user(path: Path, user: Any) -> dict[str, Any] | None:
+    """Telegram /start bosgan foydalanuvchini users.json ga yozadi.
+
+    Bir user qayta /start bossa YANGI yozuv yaratilmaydi — telegram_id bo'yicha
+    topilgan mavjud yozuv yangilanadi (last_active, username, ism).
+    Fayl oddiy JSON bo'lib serverda qoladi, qayta ishga tushganda yo'qolmaydi.
+    """
     user_id = getattr(user, "id", None)
     if not user_id:
         return None
@@ -74,11 +80,32 @@ def upsert_user(path: Path, user: Any) -> dict[str, Any] | None:
     # Check by telegram_id first, fallback to id for backwards compatibility
     existing_index = next((index for index, item in enumerate(users) if str(item.get("telegram_id")) == key or str(item.get("id")) == key), None)
     existing = users[existing_index] if existing_index is not None else {}
+
+    # Telegram'dan kelgan qiymat bo'sh bo'lsa, eskisini saqlab qolamiz —
+    # aks holda foydalanuvchi username'ini o'chirsa bizda ham o'chib ketardi.
+    def pick(field: str, *legacy: str) -> str:
+        value = getattr(user, field, None)
+        if value:
+            return str(value)
+        for name in (field, *legacy):
+            if existing.get(name):
+                return str(existing[name])
+        return ""
+
+    # started_at — BIRINCHI /start vaqti (o'zgarmaydi, orqaga moslik uchun
+    # eski YYYY-MM-DD qiymat ham qabul qilinadi).
+    started_at = existing.get("started_at") or existing.get("firstSeenAt") or now
+
     record = {
         "telegram_id": int(user_id),
-        "username": getattr(user, "username", None) or existing.get("username", ""),
-        "first_name": getattr(user, "first_name", None) or existing.get("first_name", existing.get("firstName", "")),
-        "started_at": existing.get("started_at") or existing.get("firstSeenAt") or now[:10],  # Format: 2026-05-04
+        "username": pick("username"),
+        "first_name": pick("first_name", "firstName"),
+        "last_name": pick("last_name", "lastName"),
+        "started_at": started_at,
+        # last_active — har /start da yangilanadi (admin panelda "oxirgi faollik").
+        "last_active": now,
+        # Admin panel va backend birlashtirish oqimi shu kalitdan foydalanadi.
+        "last_seen_at": now[:10],
     }
 
     if existing_index is None:
@@ -88,7 +115,9 @@ def upsert_user(path: Path, user: Any) -> dict[str, Any] | None:
         merged = {**existing, **record}
         # Migrate old field names if present
         if "firstSeenAt" in existing and not existing.get("started_at"):
-            merged["started_at"] = existing["firstSeenAt"][:10]
+            merged["started_at"] = existing["firstSeenAt"]
+        # started_at hech qachon yangilanmasin — eng erta qiymat qoladi.
+        merged["started_at"] = existing.get("started_at") or existing.get("firstSeenAt") or now
         users[existing_index] = merged
 
     save_users(path, sorted(users, key=lambda item: int(item.get("telegram_id", item.get("id", 0)))))

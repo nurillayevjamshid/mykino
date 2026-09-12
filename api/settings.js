@@ -276,6 +276,36 @@ function normalizeEsportsStartAt(value) {
   const time = Date.parse(raw);
   return Number.isFinite(time) ? new Date(time).toISOString() : "";
 }
+
+// Kibersport strimi uchun YouTube havolasini normallashtirish.
+// Admin panelga turli ko'rinishda yozilishi mumkin:
+//   https://www.youtube.com/watch?v=ID   https://youtu.be/ID
+//   https://www.youtube.com/live/ID      https://www.youtube.com/embed/ID
+//   https://www.youtube.com/shorts/ID    youtube.com/live/ID (sxemasiz)
+//   ID (11 belgili toza video ID)
+// Har qanday holatda ham kanonik "watch?v=ID" havolasi qaytariladi, aks holda "".
+// Ilgari bu yerda oddiy URL validatsiyasi ishlatilardi: sxemasiz havola yoki
+// toza ID "" ga aylanib, admin panelda "Saqlandi" deyilsa-da strim chiqmasdi.
+function normalizeEsportsYoutubeUrl(value) {
+  const raw = trimString(value);
+  if (!raw) return "";
+
+  // YouTube video ID doim 11 belgi. Faqat shu holatda toza ID deb qabul qilamiz
+  // (aks holda "not-a-link" kabi matn ham ID bo'lib qolib, buzuq strim chiqadi).
+  if (/^[\w-]{11}$/.test(raw)) {
+    return `https://www.youtube.com/watch?v=${raw}`;
+  }
+
+  const match = raw.match(
+    /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([\w-]{10,12})/
+  );
+  if (match) return `https://www.youtube.com/watch?v=${match[1]}`;
+
+  // YouTube'ga o'xshamaydigan havola — eski xatti-harakat saqlanadi
+  // (masalan, o'z HLS/embed manzili), lekin faqat to'g'ri http(s) bo'lsa.
+  return normalizePreRollVideoUrl(raw).slice(0, 500);
+}
+
 function normalizeEsportsStreams(raw) {
   const source = raw && typeof raw === "object" ? raw : {};
   const defaults = [
@@ -290,7 +320,7 @@ function normalizeEsportsStreams(raw) {
       label: trimString(item.label || base.label).slice(0, 60),
       title: trimString(item.title).slice(0, 120),
       meta: trimString(item.meta).slice(0, 160),
-      youtubeUrl: normalizePreRollVideoUrl(item.youtubeUrl).slice(0, 500),
+      youtubeUrl: normalizeEsportsYoutubeUrl(item.youtubeUrl).slice(0, 500),
       startAt: normalizeEsportsStartAt(item.startAt),
       isLive: Boolean(item.isLive),
       enabled: item.enabled !== false,

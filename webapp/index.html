@@ -18,6 +18,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="/static/kino/kino.css?v=20260827-football-leagues" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Bot username'i yagona joydan boshqariladi: botni almashtirganda faqat shu
+       qatorni o'zgartiring (kino.js, fifa.js, potcasts.js shu qiymatni o'qiydi). -->
+  <script>window.MYKINO_BOT_USERNAME = "myntv_bot";</script>
 </head>
 
 <body>
@@ -400,6 +403,101 @@
 
     <section class="tv-view" id="tvView" hidden aria-label="TV kanallar"></section>
 
+    <!-- ====================================================================
+         KIBERSPORT VA O'YINLAR bo'limi
+         CSS va JS lazy-load qilinadi (kino.js dagi ensureEsportModule).
+         Barcha ichki ID'lar "esport" prefiksi bilan — to'qnashuv bo'lmasin.
+         ==================================================================== -->
+    <section class="esport-view" id="esportView" hidden aria-label="Kibersport va o'yinlar">
+
+      <!-- HEADER -->
+      <header class="esport-header">
+        <div class="esport-header__mark" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 11h4M8 9v4M15.5 12h.01M18 10h.01"/>
+            <path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.6l-.9 7A3 3 0 0 0 4.78 19c.9 0 1.75-.4 2.33-1.1L9 16h6l1.89 1.9c.58.7 1.43 1.1 2.33 1.1a3 3 0 0 0 2.98-3.4l-.9-7A4 4 0 0 0 17.32 5Z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="esport-header__title">Kibersport</h2>
+          <p class="esport-header__sub">Jonli efir va turnirlar</p>
+        </div>
+        <span class="esport-header__live-pill" id="esportHeaderPill">
+          <span class="live-dot" aria-hidden="true"></span> Jonli
+        </span>
+      </header>
+
+      <!-- O'YIN FILTR TABLARI -->
+      <nav class="esport-tabs" id="esportGameTabs" role="tablist" aria-label="O'yin tanlash">
+        <button class="esport-tab is-active" type="button" role="tab"
+                data-game="pubg" aria-selected="true">PUBG Mobile</button>
+        <button class="esport-tab" type="button" role="tab"
+                data-game="cs2" aria-selected="false">CS2</button>
+        <button class="esport-tab" type="button" role="tab"
+                data-game="coc" aria-selected="false">Clash of Clans</button>
+      </nav>
+
+      <!-- ASOSIY STRIM -->
+      <div class="esport-main">
+        <div class="stream-card">
+          <div class="stream-frame">
+
+            <!-- Qizil LIVE belgisi (efir bo'lmaganda JS yashiradi) -->
+            <span class="stream-live-badge" id="esportLiveBadge">
+              <span class="stream-live-badge__dot" aria-hidden="true"></span> LIVE
+            </span>
+
+            <!-- YouTube iframe shu yerga JS bilan qo'yiladi -->
+            <div id="esportStreamHost"></div>
+
+            <!-- Efir yo'q bo'lgandagi holat -->
+            <div class="stream-empty" id="esportStreamEmpty">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                   stroke-linejoin="round" style="color:var(--c-hint)">
+                <rect x="2" y="5" width="20" height="14" rx="3"/>
+                <path d="m10 9 5 3-5 3z"/>
+              </svg>
+              <p class="stream-empty__title" id="esportEmptyTitle">Hozircha efir yo'q</p>
+              <p class="stream-empty__text">Jonli translyatsiya boshlanganda shu yerda avtomatik ko'rinadi.</p>
+            </div>
+
+          </div>
+
+          <!-- Strim sarlavhasi va tomoshabinlar soni -->
+          <div class="stream-meta">
+            <div class="stream-meta__info">
+              <p class="stream-meta__title" id="esportStreamTitle">—</p>
+              <p class="stream-meta__sub" id="esportStreamSub">—</p>
+            </div>
+            <span class="stream-meta__viewers" id="esportViewers" hidden>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <span id="esportViewersNum">0</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HAYLAYTLAR -->
+      <div class="section-head">
+        <h3 class="section-head__title">So'nggi haylaytlar</h3>
+        <button class="section-head__link" type="button" id="esportRefreshBtn">Yangilash</button>
+      </div>
+      <div class="card-list" id="esportHighlightList"></div>
+
+      <!-- MATCHLAR TAQVIMI -->
+      <div class="section-head">
+        <h3 class="section-head__title">Kutilayotgan matchlar</h3>
+      </div>
+      <div class="card-list" id="esportMatchList"></div>
+
+      <div class="esport-view__spacer"></div>
+    </section>
+
     <!-- Kategoriya placeholder -->
     <section class="coming-soon-view" id="categoryComingSoon" hidden>
       <div class="coming-soon-view__inner">
@@ -636,7 +734,7 @@
         </div>
         <div class="profile-copy">
           <h2 id="profileName">Kino foydalanuvchi</h2>
-          <p class="profile-username" id="profileUsername">@myplaylist</p>
+          <p class="profile-username" id="profileUsername">@myntv_bot</p>
           <p class="profile-userid" id="profileUserId">ID: —</p>
         </div>
       </div>
@@ -973,7 +1071,9 @@
     })();
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
+        // Diqqat: vercel.json da "/static/(.*)" -> "webapp/$1" bog'langan, shuning
+        // uchun fayl ildizda emas, /static/ ostida. Ildizdagi "/sw.js" 404 beradi.
+        navigator.serviceWorker.register("/static/sw.js", { scope: "/" }).catch(() => {});
       });
     }
   </script>
