@@ -149,7 +149,11 @@
       background: var(--tg-theme-secondary-bg-color);
     }
 
-    .stream-frame iframe { display: block; width: 100%; height: 100%; border: 0; pointer-events: none; }
+    .stream-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+    .stream-preview { position: absolute; inset: 0; z-index: 3; display: block; width: 100%; height: 100%; padding: 0; border: 0; cursor: pointer; background: #000; }
+    .stream-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .stream-preview__play { position: absolute; left: 50%; top: 50%; display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: rgba(255,0,0,.92); color: #fff; transform: translate(-50%, -50%); }
+    .stream-preview__play svg { width: 30px; height: 30px; }
     .stream-frame.is-fullscreen { aspect-ratio: auto; height: 100vh; }
     .stream-fullscreen { position: absolute; z-index: 4; right: 10px; bottom: 10px; display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 10px; background: rgba(0,0,0,.68); color: #fff; cursor: pointer; }
     .stream-fullscreen svg { width: 20px; height: 20px; }
@@ -388,7 +392,8 @@
           <div class="stream-frame">
             <span class="live-badge">LIVE</span>
             <div class="stream-scheduled" id="streamScheduled" hidden><div><strong id="scheduledTitle">Efir rejalashtirilgan</strong><p id="scheduledMeta"></p></div></div>
-            <iframe id="streamFrame" title="Kibersport jonli strimi" src="" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+            <iframe id="streamFrame" title="Kibersport jonli strimi" src="" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+            <button class="stream-preview" id="streamPreview" type="button" aria-label="Jonli efirni tomosha qilish" hidden><img id="streamPreviewImg" alt="Jonli efir preview"><span class="stream-preview__play"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7V5Z"/></svg></span></button>
             <button class="stream-fullscreen" id="streamFullscreen" type="button" aria-label="To‘liq ekran" title="To‘liq ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M21 16v5h-5"></path></svg></button>
           </div>
           <div class="stream-info">
@@ -506,6 +511,9 @@
     const scheduledTitle = document.getElementById('scheduledTitle');
     const scheduledMeta = document.getElementById('scheduledMeta');
     const streamFullscreen = document.getElementById('streamFullscreen');
+    const streamPreview = document.getElementById('streamPreview');
+    const streamPreviewImg = document.getElementById('streamPreviewImg');
+    let playingVideoId = '';
     const activeGameLabel = document.getElementById('activeGameLabel');
     const streamTitle = document.getElementById('streamTitle');
     const streamMeta = document.getElementById('streamMeta');
@@ -522,19 +530,30 @@
       const date = new Date(iso);
       return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('uz-UZ', { dateStyle: 'medium', timeStyle: 'short' });
     }
-    function toEmbedUrl(value) {
+    function extractYouTubeId(value) {
       try {
         const url = new URL(String(value || ''));
-        const embedParams = 'autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0&enablejsapi=1';
-        if (url.hostname === 'youtu.be') return `https://www.youtube.com/embed/${url.pathname.slice(1).split('/')[0]}?${embedParams}`;
-        if (url.hostname.endsWith('youtube.com') || url.hostname.endsWith('youtube-nocookie.com')) {
+        const host = url.hostname.replace(/^www\./, '');
+        if (host === 'youtu.be') return url.pathname.slice(1).split('/')[0] || '';
+        if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
           const id = url.searchParams.get('v');
-          if (id) return `https://www.youtube.com/embed/${id}?${embedParams}`;
-          if (url.pathname.startsWith('/embed/')) return `https://www.youtube-nocookie.com${url.pathname}?${embedParams}`;
-          if (url.pathname.startsWith('/live/')) return `https://www.youtube.com/embed/${url.pathname.slice(6).split('/')[0]}?${embedParams}`;
+          if (id) return id;
+          for (const prefix of ['/embed/', '/live/', '/shorts/', '/v/']) {
+            if (url.pathname.startsWith(prefix)) return url.pathname.slice(prefix.length).split('/')[0] || '';
+          }
         }
       } catch (_) {}
       return '';
+    }
+    function toEmbedUrl(value, autoplay) {
+      const id = extractYouTubeId(value);
+      if (!id) return '';
+      const params = `autoplay=${autoplay ? '1' : '0'}&controls=1&fs=1&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0&enablejsapi=1`;
+      return `https://www.youtube.com/embed/${id}?${params}`;
+    }
+    function previewImageUrl(value) {
+      const id = extractYouTubeId(value);
+      return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
     }
     async function loadConfiguredStreams() {
       try {
@@ -546,8 +565,12 @@
         Object.entries(configured).forEach(([rawKey, item]) => {
           const key = gameKey(rawKey);
           if (!games[key] || !item || item.enabled === false) return;
-          const embed = toEmbedUrl(item.youtubeUrl);
-          if (embed) games[key].streamUrl = embed;
+          const embed = toEmbedUrl(item.youtubeUrl, false);
+          if (embed) {
+            games[key].streamUrl = embed;
+            games[key].videoId = extractYouTubeId(item.youtubeUrl);
+            games[key].youtubeUrl = item.youtubeUrl;
+          }
           if (item.label) games[key].label = item.label;
           if (item.title) games[key].streamTitle = item.title;
           if (item.meta) games[key].streamMeta = item.meta;
@@ -611,10 +634,23 @@
       if (state === 'live') {
         streamFrame.hidden = false;
         streamScheduled.hidden = true;
-        streamFullscreen.hidden = false;
-        if (renderedStreamState !== 'live' || renderedStreamSrc !== game.streamUrl) {
-          streamFrame.src = game.streamUrl;
-          renderedStreamSrc = game.streamUrl;
+        const isPlaying = playingVideoId && playingVideoId === game.videoId && renderedStreamState === 'live';
+        if (isPlaying) {
+          streamPreview.hidden = true;
+          streamFullscreen.hidden = false;
+        } else {
+          playingVideoId = '';
+          streamFrame.removeAttribute('src');
+          renderedStreamSrc = '';
+          const thumb = previewImageUrl(game.youtubeUrl || game.streamUrl);
+          if (thumb) {
+            streamPreviewImg.src = thumb;
+            streamPreviewImg.alt = game.streamTitle;
+          } else {
+            streamPreviewImg.removeAttribute('src');
+          }
+          streamPreview.hidden = false;
+          streamFullscreen.hidden = true;
         }
         renderedStreamState = 'live';
         streamTitle.textContent = game.streamTitle;
@@ -623,6 +659,8 @@
         streamFrame.hidden = true;
         streamScheduled.hidden = false;
         streamFullscreen.hidden = true;
+        streamPreview.hidden = true;
+        playingVideoId = '';
         if (renderedStreamState !== 'scheduled') streamFrame.removeAttribute('src');
         renderedStreamState = 'scheduled';
         renderedStreamSrc = '';
@@ -634,6 +672,8 @@
         streamFrame.hidden = true;
         streamScheduled.hidden = true;
         streamFullscreen.hidden = true;
+        streamPreview.hidden = true;
+        playingVideoId = '';
         streamFrame.removeAttribute('src');
         renderedStreamState = 'offline';
         renderedStreamSrc = '';
@@ -649,24 +689,39 @@
       toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2200);
     }
 
+    streamPreview.addEventListener('click', () => {
+      const game = games[activeKey];
+      if (!game || !game.streamUrl) return;
+      const src = toEmbedUrl(game.youtubeUrl || game.streamUrl, true);
+      if (!src) { showToast('Stream manzili noto‘g‘ri'); return; }
+      playingVideoId = game.videoId || src;
+      streamFrame.src = src;
+      renderedStreamSrc = src;
+      streamPreview.hidden = true;
+      streamFullscreen.hidden = false;
+    });
+    streamPreviewImg.addEventListener('error', () => { streamPreviewImg.removeAttribute('src'); });
+
     streamFullscreen.addEventListener('click', (event) => {
       event.preventDefault();
-      // Telegram Mini App WebView: requestFullscreen() user gesture ichida
-      // sinxron chaqirilishi kerak, aks holda Telegram uni rad etishi mumkin.
-      const tg = window.Telegram && window.Telegram.WebApp;
-      if (tg && typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
-        try { tg.requestFullscreen(); tg.BackButton?.hide?.(); return; } catch (_) {}
-      }
       if (document.fullscreenElement) {
         try { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); } catch (_) {}
         return;
       }
       const request = streamFrameWrap.requestFullscreen || streamFrameWrap.webkitRequestFullscreen;
       if (request) {
-        try { request.call(streamFrameWrap); } catch (_) { showToast('To‘liq ekran rejimi mavjud emas'); }
-      } else {
-        showToast('To‘liq ekran rejimi mavjud emas');
+        try {
+          const result = request.call(streamFrameWrap);
+          if (result && typeof result.catch === 'function') result.catch(() => showToast('To‘liq ekran rejimi mavjud emas'));
+        } catch (_) { showToast('To‘liq ekran rejimi mavjud emas'); }
+        return;
       }
+      // Fallback: Telegram Mini App fullscreen (user gesture ichida sinxron chaqiriladi).
+      const tg = window.Telegram && window.Telegram.WebApp;
+      if (tg && typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
+        try { tg.requestFullscreen(); return; } catch (_) {}
+      }
+      showToast('To‘liq ekran rejimi mavjud emas');
     });
 
     tabs.addEventListener('click', (event) => {
