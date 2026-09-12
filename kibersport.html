@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="var(--tg-theme-bg-color)">
+  <title>NTV — Kibersport</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    /*
+      NTV Kibersport — Telegram Mini App uchun yagona fayl.
+      Ranglar to'g'ridan-to'g'ri Telegram tema o'zgaruvchilaridan olinadi.
+      Fallback qiymatlar sahifani Telegramdan tashqari oddiy brauzerda ham ko'rish uchun qo'yilgan.
+    */
+    :root {
+      --tg-theme-bg-color: #f2f2f7;
+      --tg-theme-secondary-bg-color: #ffffff;
+      --tg-theme-section-bg-color: #ffffff;
+      --tg-theme-section-header-text-color: #6d6d72;
+      --tg-theme-section-separator-color: #e5e5ea;
+      --tg-theme-text-color: #1c1c1e;
+      --tg-theme-hint-color: #8e8e93;
+      --tg-theme-link-color: #2481cc;
+      --tg-theme-button-color: #2481cc;
+      --tg-theme-button-text-color: #ffffff;
+      --tg-theme-destructive-text-color: #ff3b30;
+      --tg-theme-subtitle-text-color: #8e8e93;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      background: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      color-scheme: light dark;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: env(safe-area-inset-top) 0 calc(86px + env(safe-area-inset-bottom));
+      background: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button, a, iframe { -webkit-tap-highlight-color: transparent; }
+    button { color: inherit; font: inherit; }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--tg-theme-link-color); outline-offset: 3px; }
+
+    .app-shell { width: min(100%, 720px); margin: 0 auto; }
+    .page { padding: 16px 16px 12px; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 52px;
+      margin-bottom: 16px;
+    }
+
+    .eyebrow {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--tg-theme-section-header-text-color);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(26px, 7vw, 34px); line-height: 1.08; letter-spacing: -.035em; }
+    h2 { font-size: 18px; line-height: 1.2; letter-spacing: -.02em; }
+
+    .header-mark {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 14px;
+      background: var(--tg-theme-button-color);
+      color: var(--tg-theme-button-text-color);
+    }
+
+    .header-mark svg { width: 24px; height: 24px; }
+
+    .tabs-wrap { margin: 0 -16px 18px; overflow: hidden; }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 2px 16px 5px;
+      scrollbar-width: none;
+      scroll-snap-type: x proximity;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      min-height: 38px;
+      padding: 0 15px;
+      border: 1px solid var(--tg-theme-section-separator-color);
+      border-radius: 999px;
+      background: var(--tg-theme-secondary-bg-color);
+      color: var(--tg-theme-text-color);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 650;
+      white-space: nowrap;
+      scroll-snap-align: start;
+      transition: background-color .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+    }
+    .tab:active { transform: scale(.97); }
+    .tab[aria-selected="true"] {
+      border-color: var(--tg-theme-button-color);
+      background: var(--tg-theme-button-color);
+      color: var(--tg-theme-button-text-color);
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 22px 0 10px;
+    }
+    .section-label span { color: var(--tg-theme-hint-color); font-size: 12px; }
+
+    .stream-card {
+      overflow: hidden;
+      border: 1px solid var(--tg-theme-section-separator-color);
+      border-radius: 18px;
+      background: var(--tg-theme-section-bg-color);
+      box-shadow: 0 5px 20px color-mix(in srgb, var(--tg-theme-text-color) 8%, transparent);
+    }
+
+    .stream-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: var(--tg-theme-secondary-bg-color);
+    }
+
+    .stream-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+    .stream-preview { position: absolute; inset: 0; z-index: 3; display: block; width: 100%; height: 100%; padding: 0; border: 0; cursor: pointer; background: #000; }
+    .stream-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .stream-preview__play { position: absolute; left: 50%; top: 50%; display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: rgba(255,0,0,.92); color: #fff; transform: translate(-50%, -50%); }
+    .stream-preview__play svg { width: 30px; height: 30px; }
+    .stream-frame.is-fullscreen { aspect-ratio: auto; height: 100vh; }
+    .stream-fullscreen { position: absolute; z-index: 4; right: 10px; bottom: 10px; display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 10px; background: rgba(0,0,0,.68); color: #fff; cursor: pointer; }
+    .stream-fullscreen svg { width: 20px; height: 20px; }
+    .stream-scheduled { display: grid; height: 100%; min-height: 180px; place-items: center; padding: 24px; background: linear-gradient(145deg, var(--tg-theme-secondary-bg-color), var(--tg-theme-bg-color)); color: var(--tg-theme-hint-color); text-align: center; }
+    .stream-scheduled strong { display: block; margin-bottom: 7px; color: var(--tg-theme-text-color); font-size: 16px; }
+    .stream-scheduled p { font-size: 13px; line-height: 1.4; }
+
+    .live-badge {
+      position: absolute;
+      z-index: 2;
+      top: 11px;
+      left: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: var(--tg-theme-destructive-text-color);
+      color: var(--tg-theme-button-text-color);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .05em;
+    }
+    .live-badge::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+      animation: pulse 1.3s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+    .stream-info { padding: 14px; }
+    .stream-info__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .stream-title { font-size: 16px; font-weight: 750; line-height: 1.25; }
+    .stream-meta { margin-top: 5px; color: var(--tg-theme-hint-color); font-size: 12px; line-height: 1.35; }
+    .viewer-count {
+      flex: 0 0 auto;
+      padding: 5px 8px;
+      border-radius: 8px;
+      background: var(--tg-theme-bg-color);
+      color: var(--tg-theme-section-header-text-color);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .highlight-list { display: grid; gap: 9px; }
+    .highlight-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--tg-theme-section-separator-color);
+      border-radius: 15px;
+      background: var(--tg-theme-section-bg-color);
+      text-align: left;
+      cursor: pointer;
+      transition: transform .18s ease, background-color .18s ease;
+    }
+    .highlight-card:active { transform: scale(.985); background: var(--tg-theme-bg-color); }
+    .highlight-thumb {
+      display: grid;
+      width: 54px;
+      height: 54px;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 12px;
+      background: var(--tg-theme-button-color);
+      color: var(--tg-theme-button-text-color);
+    }
+    .highlight-thumb svg { width: 23px; height: 23px; }
+    .highlight-copy { min-width: 0; flex: 1; }
+    .highlight-title { overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+    .highlight-subtitle { margin-top: 4px; color: var(--tg-theme-hint-color); font-size: 12px; line-height: 1.25; }
+    .highlight-arrow { width: 18px; height: 18px; color: var(--tg-theme-hint-color); flex: 0 0 auto; }
+
+    .empty-state {
+      padding: 24px 14px;
+      border: 1px dashed var(--tg-theme-section-separator-color);
+      border-radius: 15px;
+      color: var(--tg-theme-hint-color);
+      text-align: center;
+    }
+    .empty-state strong { display: block; margin-bottom: 4px; color: var(--tg-theme-text-color); }
+    .empty-state p { font-size: 12px; line-height: 1.4; }
+
+    .bottom-nav {
+      position: fixed;
+      z-index: 20;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--tg-theme-section-separator-color);
+      background: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 92%, transparent);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .bottom-nav__inner { display: grid; grid-template-columns: repeat(5, 1fr); width: min(100%, 720px); margin: 0 auto; gap: 2px; }
+    .nav-item {
+      display: flex;
+      min-width: 0;
+      min-height: 51px;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+      border: 0;
+      border-radius: 13px;
+      background: transparent;
+      color: var(--tg-theme-hint-color);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 600;
+      transition: background-color .18s ease, color .18s ease, transform .18s ease;
+    }
+    .nav-item svg { width: 21px; height: 21px; }
+    .nav-item span { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-item[aria-current="page"] { background: var(--tg-theme-bg-color); color: var(--tg-theme-button-color); }
+    .nav-item:active { transform: scale(.95); }
+
+    .toast {
+      position: fixed;
+      z-index: 30;
+      right: 16px;
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      left: 16px;
+      display: none;
+      padding: 12px 14px;
+      border-radius: 13px;
+      background: var(--tg-theme-text-color);
+      color: var(--tg-theme-bg-color);
+      font-size: 13px;
+      line-height: 1.35;
+      text-align: center;
+    }
+    .toast.is-visible { display: block; animation: toast-in .2s ease-out; }
+    @keyframes toast-in { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (min-width: 600px) {
+      .page { padding: 24px 22px 18px; }
+      .tabs-wrap { margin-right: -22px; margin-left: -22px; }
+      .tabs { padding-right: 22px; padding-left: 22px; }
+      .highlight-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+    /* Kino bo'limidagi yagona yuqori navigatsiya */
+    body { padding-bottom: env(safe-area-inset-bottom); }
+    .topbar.topbar--centered { position: relative; min-height: 52px; margin: 0 -4px 16px; }
+    .topbar-menu {
+      display: grid; width: 42px; height: 42px; place-items: center; flex: 0 0 auto;
+      border: 1px solid var(--tg-theme-section-separator-color); border-radius: 13px;
+      background: var(--tg-theme-secondary-bg-color); color: var(--tg-theme-text-color); cursor: pointer;
+    }
+    .topbar-menu svg { width: 22px; height: 22px; }
+    .brand--center { position: absolute; left: 50%; top: 50%; display: inline-flex; align-items: center; gap: 7px; transform: translate(-50%, -50%); color: var(--tg-theme-text-color); }
+    .brand-logo { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+    .brand-logo svg { width: 22px; height: 22px; }
+    .brand-text { font-size: 19px; font-weight: 850; letter-spacing: -.04em; }
+    .topbar-spacer { width: 42px; height: 42px; }
+    .sidebar-backdrop { position: fixed; z-index: 40; inset: 0; background: rgba(0,0,0,.42); opacity: 0; transition: opacity .2s ease; }
+    .sidebar-backdrop.is-open { opacity: 1; }
+    .sidebar { position: fixed; z-index: 50; top: 0; bottom: 0; left: 0; width: min(308px, 86vw); padding: calc(16px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom)); overflow-y: auto; background: var(--tg-theme-secondary-bg-color); box-shadow: 12px 0 32px rgba(0,0,0,.18); transform: translateX(-105%); transition: transform .24s ease; }
+    .sidebar.is-open { transform: translateX(0); }
+    .sidebar__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .sidebar__brand { display: inline-flex; align-items: center; gap: 8px; color: var(--tg-theme-text-color); }
+    .sidebar__brand .brand-logo { width: 34px; height: 34px; }
+    .sidebar__brand .brand-logo svg { width: 24px; height: 24px; }
+    .sidebar__close { display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 11px; background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); cursor: pointer; }
+    .sidebar__close svg { width: 19px; height: 19px; }
+    .sidebar__title { margin: 8px 8px 7px; color: var(--tg-theme-hint-color); font-size: 11px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar__nav { display: grid; gap: 4px; }
+    .sidebar__item { display: flex; width: 100%; min-height: 48px; align-items: center; gap: 13px; padding: 0 12px; border: 0; border-radius: 13px; background: transparent; color: var(--tg-theme-text-color); cursor: pointer; font-size: 14px; font-weight: 650; text-align: left; }
+    .sidebar__item:hover, .sidebar__item:focus-visible { background: var(--tg-theme-bg-color); }
+    .sidebar__item svg { width: 21px; height: 21px; flex: 0 0 auto; color: var(--tg-theme-button-color); }
+    .sidebar__divider { height: 1px; margin: 14px 8px; background: var(--tg-theme-section-separator-color); }
+    .sidebar__hint { margin: 18px 12px 0; color: var(--tg-theme-hint-color); font-size: 11px; line-height: 1.4; }
+    @media (min-width: 600px) { .topbar.topbar--centered { margin-right: 2px; margin-left: 2px; } }
+
+  </style>
+</head>
+<body>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+  <aside class="sidebar" id="appSidebar" aria-label="Asosiy menyu" aria-hidden="true">
+    <div class="sidebar__head">
+      <div class="sidebar__brand" aria-hidden="true">
+        <span class="brand-logo"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg></span>
+        <span class="brand-text">NTV</span>
+      </div>
+      <button class="sidebar__close" type="button" id="sidebarClose" aria-label="Yopish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+    </div>
+    <div class="sidebar__title">Bo‘limlar</div>
+    <nav class="sidebar__nav">
+      <button class="sidebar__item" type="button" data-section="kino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="m8 4 2 4M14 4l2 4M8 20l2-4M14 20l2-4M3 9h18M3 15h18"></path></svg><span>Kino</span></button>
+      <button class="sidebar__item" type="button" data-section="music"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="16" cy="16" r="3"></circle></svg><span>Musiqa</span></button>
+      <button class="sidebar__item" type="button" data-section="podcasts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="15" rx="5"></rect><path d="M4 11v1a8 8 0 0 0 16 0v-1M12 19v3"></path></svg><span>Podkastlar</span></button>
+      <button class="sidebar__item" type="button" data-section="football"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="m12 7 3 2v3.5l-3 2-3-2V9l3-2Z"></path></svg><span>Futbol</span></button>
+      <button class="sidebar__item" type="button" data-section="esports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 7.5h7l1.4 2.2 2.1-1.1 1.3 6.6a2 2 0 0 1-3.5 1.5l-2.3-2.7h-5l-2.3 2.7a2 2 0 0 1-3.5-1.5L5 8.6l2.1 1.1L8.5 7.5Z"></path><path d="M8.5 11.5v3M7 13h3M15.8 12.5h.1M18 14h.1"></path></svg><span>Kibersport</span></button>
+    </nav>
+    <div class="sidebar__divider"></div>
+    <p class="sidebar__hint">Kerakli bo‘limni tanlang. Menyu chap yuqoridagi tugma orqali ochiladi.</p>
+  </aside>
+
+  <main class="app-shell" aria-label="NTV Kibersport bo'limi">
+    <div class="page">
+      <header class="topbar topbar--centered">
+        <button class="topbar-menu" id="topbarMenuButton" type="button" aria-label="Menyu" aria-controls="appSidebar" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
+        </button>
+        <div class="brand--center" aria-label="NTV">
+          <span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg></span>
+          <span class="brand-text">NTV</span>
+        </div>
+        <span class="topbar-spacer" aria-hidden="true"></span>
+      </header>
+
+      <div class="tabs-wrap" aria-label="Kibersport yo'nalishlari">
+        <div class="tabs" id="gameTabs" role="tablist"></div>
+      </div>
+
+      <section id="streamSection" aria-labelledby="liveHeading">
+        <div class="section-label">
+          <h2 id="liveHeading">Jonli strim</h2>
+          <span id="activeGameLabel">PUBG Mobile</span>
+        </div>
+
+        <article class="stream-card">
+          <div class="stream-frame">
+            <span class="live-badge">LIVE</span>
+            <div class="stream-scheduled" id="streamScheduled" hidden><div><strong id="scheduledTitle">Efir rejalashtirilgan</strong><p id="scheduledMeta"></p></div></div>
+            <iframe id="streamFrame" title="Kibersport jonli strimi" src="" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+            <button class="stream-preview" id="streamPreview" type="button" aria-label="Jonli efirni tomosha qilish" hidden><img id="streamPreviewImg" alt="Jonli efir preview"><span class="stream-preview__play"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7V5Z"/></svg></span></button>
+            <button class="stream-fullscreen" id="streamFullscreen" type="button" aria-label="To‘liq ekran" title="To‘liq ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M21 16v5h-5"></path></svg></button>
+          </div>
+          <div class="stream-info">
+            <div class="stream-info__top">
+              <div>
+                <h3 class="stream-title" id="streamTitle">PUBG Mobile — NTV Arena</h3>
+                <p class="stream-meta" id="streamMeta">Bugun, 20:00 · Grand Final</p>
+              </div>
+              <span class="viewer-count" id="viewerCount">Jonli</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section aria-labelledby="highlightsHeading">
+        <div class="section-label">
+          <h2 id="highlightsHeading">So‘nggi haylaytlar</h2>
+          <span id="highlightCount">3 ta</span>
+        </div>
+        <div class="highlight-list" id="highlightList"></div>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+
+    const sidebar = document.getElementById('appSidebar');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+    const menuButton = document.getElementById('topbarMenuButton');
+    const closeSidebar = () => {
+      sidebar.classList.remove('is-open'); sidebarBackdrop.classList.remove('is-open');
+      sidebar.setAttribute('aria-hidden', 'true'); menuButton.setAttribute('aria-expanded', 'false');
+      setTimeout(() => { if (!sidebar.classList.contains('is-open')) sidebarBackdrop.hidden = true; }, 220);
+    };
+    const openSidebar = () => {
+      sidebarBackdrop.hidden = false;
+      requestAnimationFrame(() => { sidebar.classList.add('is-open'); sidebarBackdrop.classList.add('is-open'); });
+      sidebar.setAttribute('aria-hidden', 'false'); menuButton.setAttribute('aria-expanded', 'true');
+    };
+    menuButton.addEventListener('click', openSidebar);
+    document.getElementById('sidebarClose').addEventListener('click', closeSidebar);
+    sidebarBackdrop.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeSidebar(); });
+    sidebar.querySelectorAll('[data-section]').forEach((item) => item.addEventListener('click', () => {
+      const section = item.dataset.section;
+      closeSidebar();
+      if (section === 'esports') return;
+      const target = section === 'kino' ? '/' : `/?section=${section}`;
+      window.location.href = target;
+    }));
+
+    // Telegram Web App SDK mavjud bo'lsa, Mini App'ni ekran balandligiga yoyamiz.
+    const telegram = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (telegram) {
+      telegram.ready();
+      telegram.expand();
+    }
+
+    const games = {
+      pubg: {
+        label: 'PUBG Mobile',
+        streamTitle: 'PUBG Mobile — NTV Arena',
+        streamMeta: 'Bugun, 20:00 · Grand Final',
+        viewers: 'Jonli',
+        streamUrl: '',
+        highlights: [
+          { title: 'Grand Final oldidan so‘nggi tayyorgarlik', subtitle: 'Bugun · 12 daqiqa', icon: 'target' },
+          { title: 'Eng yaxshi clutch momentlar', subtitle: 'Kecha · 08 daqiqa', icon: 'play' },
+          { title: 'Jamoalar bilan qisqa intervyu', subtitle: '2 kun oldin · 05 daqiqa', icon: 'mic' }
+        ]
+      },
+      cs: {
+        label: 'CS2',
+        streamTitle: 'CS2 — NTV Arena',
+        streamMeta: 'Ertaga, 19:30 · Playoff',
+        viewers: 'Jadval',
+        streamUrl: '',
+        highlights: [
+          { title: 'Playoff bracket e’lon qilindi', subtitle: 'Bugun · 04 daqiqa', icon: 'trophy' },
+          { title: 'Haftaning eng yaxshi deagle roundi', subtitle: 'Kecha · 07 daqiqa', icon: 'play' },
+          { title: 'Map veto: jamoalar tanlovi', subtitle: '3 kun oldin · 06 daqiqa', icon: 'map' }
+        ]
+      },
+      clash: {
+        label: 'Clash of Clans',
+        streamTitle: 'Clash of Clans — NTV Arena',
+        streamMeta: 'Shanba, 18:00 · Clan War League',
+        viewers: 'Jadval',
+        streamUrl: '',
+        highlights: [
+          { title: 'Clan War League: asosiy janglar', subtitle: 'Shanba · 11 daqiqa', icon: 'shield' },
+          { title: '3 yulduzli hujumlar to‘plami', subtitle: 'Kecha · 09 daqiqa', icon: 'play' },
+          { title: 'Turnir oldidan strategiyalar', subtitle: '4 kun oldin · 10 daqiqa', icon: 'spark' }
+        ]
+      }
+    };
+
+    const icons = {
+      play: '<path d="m9 6 8 6-8 6V6Z" fill="currentColor" stroke="none"/>',
+      target: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+      mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/>',
+      trophy: '<path d="M8 4h8v4a4 4 0 0 1-8 0V4ZM8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 12v5M8 21h8M9 17h6"/>',
+      map: '<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/>',
+      shield: '<path d="M12 3 19 6v5c0 4.4-2.9 8.3-7 10-4.1-1.7-7-5.6-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/>',
+      spark: '<path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3ZM19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7L19 16Z"/>'
+    };
+
+    const tabs = document.getElementById('gameTabs');
+    const streamFrame = document.getElementById('streamFrame');
+    const streamSection = document.getElementById('streamSection');
+    const streamFrameWrap = streamFrame.closest('.stream-frame');
+    const streamScheduled = document.getElementById('streamScheduled');
+    const scheduledTitle = document.getElementById('scheduledTitle');
+    const scheduledMeta = document.getElementById('scheduledMeta');
+    const streamFullscreen = document.getElementById('streamFullscreen');
+    const streamPreview = document.getElementById('streamPreview');
+    const streamPreviewImg = document.getElementById('streamPreviewImg');
+    let playingVideoId = '';
+    const activeGameLabel = document.getElementById('activeGameLabel');
+    const streamTitle = document.getElementById('streamTitle');
+    const streamMeta = document.getElementById('streamMeta');
+    const viewerCount = document.getElementById('viewerCount');
+    const highlightList = document.getElementById('highlightList');
+    const highlightCount = document.getElementById('highlightCount');
+    const toast = document.getElementById('toast');
+    let toastTimer;
+    let refreshTimer;
+    let activeKey = 'pubg';
+    let renderedStreamSrc = '';
+    let renderedStreamState = '';
+    function formatStartTime(iso) {
+      const date = new Date(iso);
+      return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('uz-UZ', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    function extractYouTubeId(value) {
+      try {
+        const url = new URL(String(value || ''));
+        const host = url.hostname.replace(/^www\./, '');
+        if (host === 'youtu.be') return url.pathname.slice(1).split('/')[0] || '';
+        if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+          const id = url.searchParams.get('v');
+          if (id) return id;
+          for (const prefix of ['/embed/', '/live/', '/shorts/', '/v/']) {
+            if (url.pathname.startsWith(prefix)) return url.pathname.slice(prefix.length).split('/')[0] || '';
+          }
+        }
+      } catch (_) {}
+      return '';
+    }
+    function toEmbedUrl(value, autoplay) {
+      const id = extractYouTubeId(value);
+      if (!id) return '';
+      const params = `autoplay=${autoplay ? '1' : '0'}&controls=1&fs=1&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0&enablejsapi=1`;
+      return `https://www.youtube.com/embed/${id}?${params}`;
+    }
+    function previewImageUrl(value) {
+      const id = extractYouTubeId(value);
+      return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
+    }
+    async function loadConfiguredStreams() {
+      try {
+        const response = await fetch('/api/settings', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        const configured = data.esportsStreams || {};
+        const gameKey = (key) => ({ cs2: 'cs', coc: 'clash' }[key] || key);
+        Object.entries(configured).forEach(([rawKey, item]) => {
+          const key = gameKey(rawKey);
+          if (!games[key] || !item || item.enabled === false) return;
+          const embed = toEmbedUrl(item.youtubeUrl, false);
+          if (embed) {
+            games[key].streamUrl = embed;
+            games[key].videoId = extractYouTubeId(item.youtubeUrl);
+            games[key].youtubeUrl = item.youtubeUrl;
+          }
+          if (item.label) games[key].label = item.label;
+          if (item.title) games[key].streamTitle = item.title;
+          if (item.meta) games[key].streamMeta = item.meta;
+          games[key].startAt = item.startAt || '';
+          games[key].isLive = Boolean(item.isLive);
+        });
+        selectGame(activeKey);
+      } catch (_) {}
+    }
+
+    function iconSvg(name, className) {
+      return `<svg class="${className || ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.play}</svg>`;
+    }
+
+    function renderTabs(activeKey) {
+      tabs.innerHTML = Object.entries(games).map(([key, game]) => `
+        <button class="tab" type="button" role="tab" aria-selected="${key === activeKey}" data-game="${key}">${game.label}</button>
+      `).join('');
+    }
+
+    function renderHighlights(items) {
+      highlightCount.textContent = `${items.length} ta`;
+      highlightList.innerHTML = items.map((item) => `
+        <button class="highlight-card" type="button" data-highlight="${item.title.replaceAll('"', '&quot;')}">
+          <span class="highlight-thumb">${iconSvg(item.icon)}</span>
+          <span class="highlight-copy">
+            <strong class="highlight-title">${item.title}</strong>
+            <span class="highlight-subtitle">${item.subtitle}</span>
+          </span>
+          <svg class="highlight-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      `).join('');
+    }
+
+    function getStreamState(game) {
+      if (!game || !game.streamUrl) return 'offline';
+      if (!game.startAt) return game.isLive ? 'live' : 'offline';
+      const startsAt = Date.parse(game.startAt);
+      if (!Number.isFinite(startsAt)) return game.isLive ? 'live' : 'offline';
+      return Date.now() >= startsAt ? 'live' : 'scheduled';
+    }
+    function formatCountdown(iso) {
+      const ms = Math.max(0, Date.parse(iso) - Date.now());
+      const total = Math.ceil(ms / 1000);
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const sec = total % 60;
+      return h ? `${h}s ${String(m).padStart(2, '0')}d` : `${m}d ${String(sec).padStart(2, '0')}s`;
+    }
+    function selectGame(key) {
+      const game = games[key];
+      if (!game) return;
+      activeKey = key;
+      renderTabs(key);
+      activeGameLabel.textContent = game.label;
+      streamTitle.textContent = game.streamTitle;
+      streamMeta.textContent = game.streamMeta;
+      const state = getStreamState(game);
+      streamSection.hidden = state === 'offline';
+      viewerCount.textContent = state === 'live' ? game.viewers : state === 'scheduled' ? 'Rejalashtirilgan' : '';
+      if (state === 'live') {
+        streamFrame.hidden = false;
+        streamScheduled.hidden = true;
+        const isPlaying = playingVideoId && playingVideoId === game.videoId && renderedStreamState === 'live';
+        if (isPlaying) {
+          streamPreview.hidden = true;
+          streamFullscreen.hidden = false;
+        } else {
+          playingVideoId = '';
+          streamFrame.removeAttribute('src');
+          renderedStreamSrc = '';
+          const thumb = previewImageUrl(game.youtubeUrl || game.streamUrl);
+          if (thumb) {
+            streamPreviewImg.src = thumb;
+            streamPreviewImg.alt = game.streamTitle;
+          } else {
+            streamPreviewImg.removeAttribute('src');
+          }
+          streamPreview.hidden = false;
+          streamFullscreen.hidden = true;
+        }
+        renderedStreamState = 'live';
+        streamTitle.textContent = game.streamTitle;
+        streamMeta.textContent = game.streamMeta;
+      } else if (state === 'scheduled') {
+        streamFrame.hidden = true;
+        streamScheduled.hidden = false;
+        streamFullscreen.hidden = true;
+        streamPreview.hidden = true;
+        playingVideoId = '';
+        if (renderedStreamState !== 'scheduled') streamFrame.removeAttribute('src');
+        renderedStreamState = 'scheduled';
+        renderedStreamSrc = '';
+        scheduledTitle.textContent = `${game.label} efiri rejalashtirilgan`;
+        scheduledMeta.textContent = `${formatStartTime(game.startAt)} da boshlanadi. Boshlanishiga: ${formatCountdown(game.startAt)}`;
+        streamTitle.textContent = `${game.label} efiri rejalashtirilgan`;
+        streamMeta.textContent = `${formatStartTime(game.startAt)} da boshlanadi`;
+      } else {
+        streamFrame.hidden = true;
+        streamScheduled.hidden = true;
+        streamFullscreen.hidden = true;
+        streamPreview.hidden = true;
+        playingVideoId = '';
+        streamFrame.removeAttribute('src');
+        renderedStreamState = 'offline';
+        renderedStreamSrc = '';
+      }
+      renderHighlights(game.highlights);
+      tabs.querySelector(`[data-game="${key}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('is-visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2200);
+    }
+
+    streamPreview.addEventListener('click', () => {
+      const game = games[activeKey];
+      if (!game || !game.streamUrl) return;
+      const src = toEmbedUrl(game.youtubeUrl || game.streamUrl, true);
+      if (!src) { showToast('Stream manzili noto‘g‘ri'); return; }
+      playingVideoId = game.videoId || src;
+      streamFrame.src = src;
+      renderedStreamSrc = src;
+      streamPreview.hidden = true;
+      streamFullscreen.hidden = false;
+    });
+    streamPreviewImg.addEventListener('error', () => { streamPreviewImg.removeAttribute('src'); });
+
+    streamFullscreen.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (document.fullscreenElement) {
+        try { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); } catch (_) {}
+        return;
+      }
+      const request = streamFrameWrap.requestFullscreen || streamFrameWrap.webkitRequestFullscreen;
+      if (request) {
+        try {
+          const result = request.call(streamFrameWrap);
+          if (result && typeof result.catch === 'function') result.catch(() => showToast('To‘liq ekran rejimi mavjud emas'));
+        } catch (_) { showToast('To‘liq ekran rejimi mavjud emas'); }
+        return;
+      }
+      // Fallback: Telegram Mini App fullscreen (user gesture ichida sinxron chaqiriladi).
+      const tg = window.Telegram && window.Telegram.WebApp;
+      if (tg && typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
+        try { tg.requestFullscreen(); return; } catch (_) {}
+      }
+      showToast('To‘liq ekran rejimi mavjud emas');
+    });
+
+    tabs.addEventListener('click', (event) => {
+      const tab = event.target.closest('[data-game]');
+      if (tab) selectGame(tab.dataset.game);
+    });
+
+    highlightList.addEventListener('click', (event) => {
+      const card = event.target.closest('[data-highlight]');
+      if (card) showToast(`Haylayt: ${card.dataset.highlight}`);
+    });
+
+    document.querySelectorAll('[data-nav]').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('[data-nav]').forEach((item) => item.removeAttribute('aria-current'));
+        button.setAttribute('aria-current', 'page');
+        if (button.dataset.nav !== 'esports') {
+          showToast(`${button.querySelector('span').textContent} bo‘limi NTV ilovasida ochiladi`);
+        }
+      });
+    });
+
+    // Telegram tema o'zgarganda CSS o'zgaruvchilari avtomatik ishlaydi.
+    // Bu event faqat Telegram WebApp ranglarini ishga tushirilgandan keyin qayta qo'llash uchun kerak.
+    telegram?.onEvent?.('themeChanged', () => document.documentElement.style.colorScheme = 'light dark');
+
+    selectGame(activeKey);
+    loadConfiguredStreams();
+    refreshTimer = setInterval(() => { if (games[activeKey]) selectGame(activeKey); }, 1000);
+  </script>
+</body>
+</html>
+
+<!--
+  Ishlatish:
+  1. Ushbu faylni brauzerda to'g'ridan-to'g'ri ochish mumkin.
+  2. Telegram Mini App ichida Telegram WebApp SDK ni ulash uchun <head> ichiga quyidagini qo'shing:
+     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  3. Real YouTube/Twitch strimlari uchun games obyektidagi streamUrl qiymatlarini o'zgartiring.
+-->

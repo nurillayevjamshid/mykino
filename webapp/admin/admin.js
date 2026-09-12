@@ -116,6 +116,7 @@ const SECTION_TITLES = {
   users: 'Obunachilar',
   ad: 'Reklama',
   fifaLive: 'FIFA Jonli',
+  esportsStreams: 'Kibersport translatsiyalari',
   tv: 'TV kanallar',
 };
 
@@ -506,6 +507,7 @@ function switchSection(name) {
     users: 'usersSection',
     ad: 'adSection',
     fifaLive: 'fifaLiveSection',
+    esportsStreams: 'esportsStreamsSection',
     tv: 'tvSection',
   };
   const targetId = sections[name];
@@ -529,6 +531,7 @@ function switchSection(name) {
   if (name === 'categories') fetchCategories();
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
   if (name === 'fifaLive') { loadFifaLiveMatch(); }
+  if (name === 'esportsStreams') { loadEsportsStreams(); }
   if (name === 'tv') { loadTvChannelsAdmin(); }
 
   if (window.innerWidth <= 768) {
@@ -4354,6 +4357,114 @@ document.getElementById('fifaLiveCoverUrl')?.addEventListener('input', (e) => {
 document.getElementById('fifaLiveSaveBtn')?.addEventListener('click', saveFifaLiveMatch);
 document.getElementById('fifaLiveDeleteBtn')?.addEventListener('click', deleteFifaLiveMatch);
 
+
+// ============================================================
+// Kibersport YouTube translatsiyalari
+const esportsStreamDefaults = [
+  { key: 'cs', label: 'CS2' },
+  { key: 'pubg', label: 'PUBG Mobile' },
+  { key: 'clash', label: 'Clash of Clans' },
+];
+let esportsStreamsLoaded = false;
+function setEsportsStreamsStatus(text, kind = '') {
+  const el = document.getElementById('esportsStreamsStatus');
+  if (el) { el.textContent = text; el.style.color = kind === 'error' ? '#dc2626' : kind === 'ok' ? '#16a34a' : ''; }
+}
+function esportsLocalDate(iso) {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+function renderEsportsStreams(items) {
+  const wrap = document.getElementById('esportsStreamsForm');
+  if (!wrap) return;
+  const activeKey = wrap.dataset.activeKey || items[0]?.key || 'cs';
+  wrap.innerHTML = `
+    <div class="music-tabs" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap;">
+      ${items.map((item) => `<button type="button" class="btn ${item.key === activeKey ? 'btn-primary' : 'btn-secondary'}" data-esports-tab="${item.key}">${escapeHtml(item.label)}</button>`).join('')}
+    </div>
+    ${items.map((item) => `
+      <div data-esports-panel="${item.key}" ${item.key !== activeKey ? 'hidden' : ''}>
+        <div class="card-block" style="border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:16px;">
+          <h3 style="margin:0 0 14px;font-size:16px;">${escapeHtml(item.label)} translatsiyasi</h3>
+          <div class="form-row">
+            <div class="form-group" style="flex:1;"><label>Bo‘lim nomi</label><input class="form-input" data-esports-field="label" data-esports-key="${item.key}" value="${escapeHtml(item.label)}" maxlength="60"></div>
+            <div class="form-group" style="flex:2;"><label>YouTube linki</label><input class="form-input" data-esports-field="youtubeUrl" data-esports-key="${item.key}" value="${escapeHtml(item.youtubeUrl || '')}" placeholder="https://youtube.com/live/..." type="url"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1;"><label>Stream sarlavhasi</label><input class="form-input" data-esports-field="title" data-esports-key="${item.key}" value="${escapeHtml(item.title || '')}" placeholder="Masalan: CS2 Grand Final"></div>
+            <div class="form-group" style="flex:1;"><label>Qo‘shimcha ma’lumot</label><input class="form-input" data-esports-field="meta" data-esports-key="${item.key}" value="${escapeHtml(item.meta || '')}" placeholder="Grand Final"></div>
+          </div>
+          <div class="form-row" style="align-items:end;">
+            <div class="form-group" style="flex:1;"><label>Boshlanish vaqti</label><input class="form-input" data-esports-field="startAt" data-esports-key="${item.key}" value="${esportsLocalDate(item.startAt)}" type="datetime-local"><small class="form-hint">Bo‘sh qoldirilsa, hozir boshlanadi.</small></div>
+            <div class="form-group" style="flex:0 0 auto;"><button type="button" class="btn btn-secondary" data-esports-start-now="${item.key}">Hozir boshlash</button></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" data-esports-field="isLive" data-esports-key="${item.key}" ${item.isLive ? 'checked' : ''}> Hozir jonli efirda</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;"><input type="checkbox" data-esports-field="enabled" data-esports-key="${item.key}" ${item.enabled !== false ? 'checked' : ''}> Foydalanuvchilarga ko‘rsatish</label>
+        </div>
+      </div>`).join('')}`;
+  wrap.dataset.activeKey = activeKey;
+  wrap.querySelectorAll('[data-esports-tab]').forEach((button) => button.addEventListener('click', () => {
+    const key = button.dataset.esportsTab;
+    wrap.dataset.activeKey = key;
+    wrap.querySelectorAll('[data-esports-tab]').forEach((tab) => {
+      const active = tab.dataset.esportsTab === key;
+      tab.classList.toggle('btn-primary', active);
+      tab.classList.toggle('btn-secondary', !active);
+    });
+    wrap.querySelectorAll('[data-esports-panel]').forEach((panel) => {
+      panel.hidden = panel.dataset.esportsPanel !== key;
+    });
+  }));
+  wrap.querySelectorAll('[data-esports-start-now]').forEach((button) => button.addEventListener('click', () => {
+    const key = button.dataset.esportsStartNow;
+    const field = wrap.querySelector(`[data-esports-field="startAt"][data-esports-key="${key}"]`);
+    const live = wrap.querySelector(`[data-esports-field="isLive"][data-esports-key="${key}"]`);
+    if (field) field.value = esportsLocalDate(new Date().toISOString());
+    if (live) live.checked = true;
+    setEsportsStreamsStatus(`${key.toUpperCase()} ishga tushirilmoqda...`);
+    saveEsportsStreams();
+  }));
+}
+
+async function loadEsportsStreams() {
+  if (esportsStreamsLoaded) return;
+  try {
+    const res = await fetch('/api/settings', { cache: 'no-store' });
+    const json = await res.json();
+    const incoming = json.esportsStreams || {};
+    const items = esportsStreamDefaults.map((base) => ({ ...base, ...(incoming[base.key] || {}) }));
+    renderEsportsStreams(items);
+    esportsStreamsLoaded = true;
+  } catch (err) { setEsportsStreamsStatus(`Yuklashda xato: ${err.message}`, 'error'); }
+}
+async function saveEsportsStreams() {
+  const result = {};
+  document.querySelectorAll('[data-esports-key]').forEach((el) => {
+    const key = el.dataset.esportsKey;
+    const field = el.dataset.esportsField;
+    result[key] ||= { key };
+    if (field === 'enabled' || field === 'isLive') {
+      result[key][field] = el.checked;
+    } else if (field === 'startAt') {
+      const localDate = el.value.trim();
+      result[key][field] = localDate ? new Date(localDate).toISOString() : '';
+    } else {
+      result[key][field] = el.value.trim();
+    }
+  });
+  setEsportsStreamsStatus('Saqlanmoqda...');
+  try {
+    const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ esportsStreams: result }) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    esportsStreamsLoaded = false;
+    setEsportsStreamsStatus('Saqlandi. Kibersport sahifasida yangilanadi.', 'ok');
+  } catch (err) { setEsportsStreamsStatus(`Saqlashda xato: ${err.message}`, 'error'); }
+}
+document.getElementById('esportsStreamsSaveBtn')?.addEventListener('click', saveEsportsStreams);
 
 // ============================================================
 // TV kanallar bo'limi — ro'yxat, tahrirlash, o'chirish, qo'shish.
