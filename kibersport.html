@@ -151,11 +151,6 @@
     }
 
     .stream-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
-    .stream-controls { position:absolute; z-index:4; right:10px; bottom:10px; left:10px; display:flex; align-items:center; justify-content:flex-end; gap:7px; pointer-events:none; }
-    .stream-control { display:grid; width:36px; height:36px; place-items:center; padding:0; border:1px solid rgba(255,255,255,.28); border-radius:9px; background:rgba(0,0,0,.72); color:#fff; cursor:pointer; pointer-events:auto; }
-    .stream-control svg { width:19px; height:19px; }
-    .stream-control--play { margin-right:auto; border-radius:50%; }
-    .stream-quality, .stream-speed { height:36px; padding:0 7px; border:1px solid rgba(255,255,255,.28); border-radius:9px; background:rgba(0,0,0,.72); color:#fff; font:600 11px inherit; cursor:pointer; pointer-events:auto; }
 
     .live-badge {
       position: absolute;
@@ -333,13 +328,7 @@
         <article class="stream-card">
           <div class="stream-frame">
             <span class="live-badge">LIVE</span>
-            <iframe id="streamFrame" title="Kibersport jonli strimi" src="https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?controls=0&enablejsapi=1&rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share" allowfullscreen></iframe>
-            <div class="stream-controls" aria-label="Video boshqaruvlari">
-              <button class="stream-control stream-control--play" id="streamPlayButton" type="button" aria-label="Play" title="Play"><svg id="streamPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7V5Z"/></svg></button>
-              <select class="stream-quality" id="streamQuality" aria-label="Video sifati" title="Video sifati"><option value="default">Auto</option><option value="hd1080">1080p</option><option value="hd720">720p</option><option value="large">480p</option><option value="medium">360p</option></select>
-              <select class="stream-speed" id="streamSpeed" aria-label="Video tezligi" title="Video tezligi"><option value="1">1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="1.75">1.75x</option><option value="2">2x</option></select>
-              <button class="stream-control" id="streamFullscreenButton" type="button" aria-label="To‘liq ekran" title="To‘liq ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
-            </div>
+            <iframe id="streamFrame" title="Kibersport jonli strimi" src="https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
           </div>
           <div class="stream-info">
             <div class="stream-info__top">
@@ -456,44 +445,20 @@
     const highlightList = document.getElementById('highlightList');
     const highlightCount = document.getElementById('highlightCount');
     const toast = document.getElementById('toast');
-    const streamPlayButton = document.getElementById('streamPlayButton');
-    const streamPlayIcon = document.getElementById('streamPlayIcon');
-    const streamQuality = document.getElementById('streamQuality');
-    const streamSpeed = document.getElementById('streamSpeed');
-    const streamFullscreenButton = document.getElementById('streamFullscreenButton');
     let toastTimer;
     document.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });
     document.addEventListener('gesturechange', (event) => event.preventDefault(), { passive: false });
     document.addEventListener('gestureend', (event) => event.preventDefault(), { passive: false });
     document.addEventListener('wheel', (event) => { if (event.ctrlKey) event.preventDefault(); }, { passive: false });
-    let streamPlaying = false;
-    function sendStreamCommand(func, args = []) {
-      streamFrame.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
-    }
-    function setStreamPlaying(playing) {
-      streamPlaying = Boolean(playing);
-      if (streamPlayIcon) streamPlayIcon.innerHTML = streamPlaying ? '<path d="M7 5v14M17 5v14"/>' : '<path d="m8 5 12 7-12 7V5Z"/>';
-    }
-    streamPlayButton?.addEventListener('click', () => { sendStreamCommand(streamPlaying ? 'pauseVideo' : 'playVideo'); setStreamPlaying(!streamPlaying); });
-    streamQuality?.addEventListener('change', () => sendStreamCommand('setPlaybackQuality', [streamQuality.value]));
-    streamSpeed?.addEventListener('change', () => sendStreamCommand('setPlaybackRate', [Number(streamSpeed.value)]));
-    streamFullscreenButton?.addEventListener('click', async () => {
-      const frame = streamFrame.closest('.stream-frame');
-      try { if (document.fullscreenElement) await document.exitFullscreen(); else await frame.requestFullscreen(); } catch (_) {}
-    });
-    window.addEventListener('message', (event) => {
-      if (event.source !== streamFrame.contentWindow) return;
-      try { const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data; if (data?.event === 'onStateChange') setStreamPlaying(Number(data.info) === 1); } catch (_) {}
-    });
     function toEmbedUrl(value) {
       try {
         const url = new URL(String(value || ''));
-        if (url.hostname === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1)}?controls=0&enablejsapi=1&rel=0&modestbranding=1`;
+        if (url.hostname === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1)}?rel=0`;
         if (url.hostname.endsWith('youtube.com') || url.hostname.endsWith('youtube-nocookie.com')) {
           const id = url.searchParams.get('v');
-          if (id) return `https://www.youtube-nocookie.com/embed/${id}?controls=0&enablejsapi=1&rel=0&modestbranding=1`;
-          if (url.pathname.startsWith('/embed/')) return `https://www.youtube-nocookie.com${url.pathname}?controls=0&enablejsapi=1&rel=0&modestbranding=1`;
-          if (url.pathname.startsWith('/live/')) return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(6)}?controls=0&enablejsapi=1&rel=0&modestbranding=1`;
+          if (id) return `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
+          if (url.pathname.startsWith('/embed/')) return `https://www.youtube-nocookie.com${url.pathname}?rel=0`;
+          if (url.pathname.startsWith('/live/')) return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(6)}?rel=0`;
         }
       } catch (_) {}
       return '';
