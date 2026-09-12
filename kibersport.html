@@ -454,7 +454,7 @@
           { title: 'Jamoalar bilan qisqa intervyu', subtitle: '2 kun oldin · 05 daqiqa', icon: 'mic' }
         ]
       },
-      cs2: {
+      cs: {
         label: 'CS2',
         streamTitle: 'CS2 — NTV Arena',
         streamMeta: 'Ertaga, 19:30 · Playoff',
@@ -466,7 +466,7 @@
           { title: 'Map veto: jamoalar tanlovi', subtitle: '3 kun oldin · 06 daqiqa', icon: 'map' }
         ]
       },
-      coc: {
+      clash: {
         label: 'Clash of Clans',
         streamTitle: 'Clash of Clans — NTV Arena',
         streamMeta: 'Shanba, 18:00 · Clan War League',
@@ -523,7 +523,9 @@
         if (!response.ok) return;
         const data = await response.json();
         const configured = data.esportsStreams || {};
-        Object.entries(configured).forEach(([key, item]) => {
+        const gameKey = (key) => ({ cs2: 'cs', coc: 'clash' }[key] || key);
+        Object.entries(configured).forEach(([rawKey, item]) => {
+          const key = gameKey(rawKey);
           if (!games[key] || !item || item.enabled === false) return;
           const embed = toEmbedUrl(item.youtubeUrl);
           if (embed) games[key].streamUrl = embed;
