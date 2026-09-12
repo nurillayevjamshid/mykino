@@ -522,20 +522,16 @@
       const date = new Date(iso);
       return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('uz-UZ', { dateStyle: 'medium', timeStyle: 'short' });
     }
-    function formatStartTime(iso) {
-      const date = new Date(iso);
-      return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('uz-UZ', { dateStyle: 'medium', timeStyle: 'short' });
-    }
     function toEmbedUrl(value) {
       try {
         const url = new URL(String(value || ''));
-        const embedParams = 'autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0';
-        if (url.hostname === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1).split('/')[0]}?${embedParams}`;
+        const embedParams = 'autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0&enablejsapi=1';
+        if (url.hostname === 'youtu.be') return `https://www.youtube.com/embed/${url.pathname.slice(1).split('/')[0]}?${embedParams}`;
         if (url.hostname.endsWith('youtube.com') || url.hostname.endsWith('youtube-nocookie.com')) {
           const id = url.searchParams.get('v');
-          if (id) return `https://www.youtube-nocookie.com/embed/${id}?${embedParams}`;
+          if (id) return `https://www.youtube.com/embed/${id}?${embedParams}`;
           if (url.pathname.startsWith('/embed/')) return `https://www.youtube-nocookie.com${url.pathname}?${embedParams}`;
-          if (url.pathname.startsWith('/live/')) return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(6).split('/')[0]}?${embedParams}`;
+          if (url.pathname.startsWith('/live/')) return `https://www.youtube.com/embed/${url.pathname.slice(6).split('/')[0]}?${embedParams}`;
         }
       } catch (_) {}
       return '';
@@ -653,12 +649,24 @@
       toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2200);
     }
 
-    streamFullscreen.addEventListener('click', async () => {
-      try {
-        if (document.fullscreenElement) await document.exitFullscreen();
-        else if (streamFrameWrap.requestFullscreen) await streamFrameWrap.requestFullscreen();
-        else if (streamFrameWrap.webkitRequestFullscreen) streamFrameWrap.webkitRequestFullscreen();
-      } catch (_) { showToast('To‘liq ekran rejimi mavjud emas'); }
+    streamFullscreen.addEventListener('click', (event) => {
+      event.preventDefault();
+      // Telegram Mini App WebView: requestFullscreen() user gesture ichida
+      // sinxron chaqirilishi kerak, aks holda Telegram uni rad etishi mumkin.
+      const tg = window.Telegram && window.Telegram.WebApp;
+      if (tg && typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
+        try { tg.requestFullscreen(); tg.BackButton?.hide?.(); return; } catch (_) {}
+      }
+      if (document.fullscreenElement) {
+        try { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); } catch (_) {}
+        return;
+      }
+      const request = streamFrameWrap.requestFullscreen || streamFrameWrap.webkitRequestFullscreen;
+      if (request) {
+        try { request.call(streamFrameWrap); } catch (_) { showToast('To‘liq ekran rejimi mavjud emas'); }
+      } else {
+        showToast('To‘liq ekran rejimi mavjud emas');
+      }
     });
 
     tabs.addEventListener('click', (event) => {
