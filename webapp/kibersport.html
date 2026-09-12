@@ -653,23 +653,12 @@
       if (state === 'live') {
         streamFrame.hidden = false;
         streamScheduled.hidden = true;
-        const isPlaying = Boolean(playingVideoId) && playingVideoId === streamIdentity(game) && renderedStreamState === 'live';
-        if (isPlaying) {
-          streamPreview.hidden = true;
-          streamFullscreen.hidden = false;
-        } else {
-          playingVideoId = '';
-          streamFrame.removeAttribute('src');
-          renderedStreamSrc = '';
-          const thumb = previewImageUrl(game.youtubeUrl || game.streamUrl);
-          if (thumb) {
-            streamPreviewImg.src = thumb;
-            streamPreviewImg.alt = game.streamTitle;
-          } else {
-            streamPreviewImg.removeAttribute('src');
-          }
-          streamPreview.hidden = false;
-          streamFullscreen.hidden = true;
+        streamPreview.hidden = true;
+        streamFullscreen.hidden = false;
+        const directSrc = toEmbedUrl(game.youtubeUrl || game.streamUrl, false);
+        if (directSrc && renderedStreamSrc !== directSrc) {
+          streamFrame.src = directSrc;
+          renderedStreamSrc = directSrc;
         }
         renderedStreamState = 'live';
         streamTitle.textContent = game.streamTitle;
