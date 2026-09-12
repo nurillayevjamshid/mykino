@@ -150,6 +150,12 @@
     }
 
     .stream-frame iframe { display: block; width: 100%; height: 100%; border: 0; pointer-events: none; }
+    .stream-frame.is-fullscreen { aspect-ratio: auto; height: 100vh; }
+    .stream-fullscreen { position: absolute; z-index: 4; right: 10px; bottom: 10px; display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 10px; background: rgba(0,0,0,.68); color: #fff; cursor: pointer; }
+    .stream-fullscreen svg { width: 20px; height: 20px; }
+    .stream-scheduled { display: grid; height: 100%; min-height: 180px; place-items: center; padding: 24px; background: linear-gradient(145deg, var(--tg-theme-secondary-bg-color), var(--tg-theme-bg-color)); color: var(--tg-theme-hint-color); text-align: center; }
+    .stream-scheduled strong { display: block; margin-bottom: 7px; color: var(--tg-theme-text-color); font-size: 16px; }
+    .stream-scheduled p { font-size: 13px; line-height: 1.4; }
 
     .live-badge {
       position: absolute;
@@ -372,7 +378,7 @@
         <div class="tabs" id="gameTabs" role="tablist"></div>
       </div>
 
-      <section aria-labelledby="liveHeading">
+      <section id="streamSection" aria-labelledby="liveHeading">
         <div class="section-label">
           <h2 id="liveHeading">Jonli strim</h2>
           <span id="activeGameLabel">PUBG Mobile</span>
@@ -381,7 +387,9 @@
         <article class="stream-card">
           <div class="stream-frame">
             <span class="live-badge">LIVE</span>
-            <iframe id="streamFrame" title="Kibersport jonli strimi" src="https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&amp;controls=0&amp;disablekb=1&amp;fs=0&amp;iv_load_policy=3&amp;modestbranding=1&amp;playsinline=1&amp;rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+            <div class="stream-scheduled" id="streamScheduled" hidden><div><strong id="scheduledTitle">Efir rejalashtirilgan</strong><p id="scheduledMeta"></p></div></div>
+            <iframe id="streamFrame" title="Kibersport jonli strimi" src="" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+            <button class="stream-fullscreen" id="streamFullscreen" type="button" aria-label="To‘liq ekran" title="To‘liq ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M21 16v5h-5"></path></svg></button>
           </div>
           <div class="stream-info">
             <div class="stream-info__top">
@@ -447,7 +455,7 @@
         streamTitle: 'PUBG Mobile — NTV Arena',
         streamMeta: 'Bugun, 20:00 · Grand Final',
         viewers: 'Jonli',
-        streamUrl: 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0',
+        streamUrl: '',
         highlights: [
           { title: 'Grand Final oldidan so‘nggi tayyorgarlik', subtitle: 'Bugun · 12 daqiqa', icon: 'target' },
           { title: 'Eng yaxshi clutch momentlar', subtitle: 'Kecha · 08 daqiqa', icon: 'play' },
@@ -459,7 +467,7 @@
         streamTitle: 'CS2 — NTV Arena',
         streamMeta: 'Ertaga, 19:30 · Playoff',
         viewers: 'Jadval',
-        streamUrl: 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0',
+        streamUrl: '',
         highlights: [
           { title: 'Playoff bracket e’lon qilindi', subtitle: 'Bugun · 04 daqiqa', icon: 'trophy' },
           { title: 'Haftaning eng yaxshi deagle roundi', subtitle: 'Kecha · 07 daqiqa', icon: 'play' },
@@ -471,7 +479,7 @@
         streamTitle: 'Clash of Clans — NTV Arena',
         streamMeta: 'Shanba, 18:00 · Clan War League',
         viewers: 'Jadval',
-        streamUrl: 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0',
+        streamUrl: '',
         highlights: [
           { title: 'Clan War League: asosiy janglar', subtitle: 'Shanba · 11 daqiqa', icon: 'shield' },
           { title: '3 yulduzli hujumlar to‘plami', subtitle: 'Kecha · 09 daqiqa', icon: 'play' },
@@ -492,6 +500,12 @@
 
     const tabs = document.getElementById('gameTabs');
     const streamFrame = document.getElementById('streamFrame');
+    const streamSection = document.getElementById('streamSection');
+    const streamFrameWrap = streamFrame.closest('.stream-frame');
+    const streamScheduled = document.getElementById('streamScheduled');
+    const scheduledTitle = document.getElementById('scheduledTitle');
+    const scheduledMeta = document.getElementById('scheduledMeta');
+    const streamFullscreen = document.getElementById('streamFullscreen');
     const activeGameLabel = document.getElementById('activeGameLabel');
     const streamTitle = document.getElementById('streamTitle');
     const streamMeta = document.getElementById('streamMeta');
@@ -504,6 +518,14 @@
     let activeKey = 'pubg';
     let renderedStreamSrc = '';
     let renderedStreamState = '';
+    function formatStartTime(iso) {
+      const date = new Date(iso);
+      return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('uz-UZ', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    function formatStartTime(iso) {
+      const date = new Date(iso);
+      return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('uz-UZ', { dateStyle: 'medium', timeStyle: 'short' });
+    }
     function toEmbedUrl(value) {
       try {
         const url = new URL(String(value || ''));
@@ -565,10 +587,11 @@
     }
 
     function getStreamState(game) {
-      if (!game || !game.startAt) return game?.isLive === false ? 'waiting' : 'live';
+      if (!game || !game.streamUrl) return 'offline';
+      if (!game.startAt) return game.isLive ? 'live' : 'offline';
       const startsAt = Date.parse(game.startAt);
-      if (!Number.isFinite(startsAt)) return game.isLive ? 'live' : 'waiting';
-      return game.isLive || Date.now() >= startsAt ? 'live' : 'waiting';
+      if (!Number.isFinite(startsAt)) return game.isLive ? 'live' : 'offline';
+      return Date.now() >= startsAt ? 'live' : 'scheduled';
     }
     function formatCountdown(iso) {
       const ms = Math.max(0, Date.parse(iso) - Date.now());
@@ -587,9 +610,12 @@
       streamTitle.textContent = game.streamTitle;
       streamMeta.textContent = game.streamMeta;
       const state = getStreamState(game);
-      viewerCount.textContent = state === 'live' ? game.viewers : 'Kutilmoqda';
+      streamSection.hidden = state === 'offline';
+      viewerCount.textContent = state === 'live' ? game.viewers : state === 'scheduled' ? 'Rejalashtirilgan' : '';
       if (state === 'live') {
         streamFrame.hidden = false;
+        streamScheduled.hidden = true;
+        streamFullscreen.hidden = false;
         if (renderedStreamState !== 'live' || renderedStreamSrc !== game.streamUrl) {
           streamFrame.src = game.streamUrl;
           renderedStreamSrc = game.streamUrl;
@@ -597,13 +623,24 @@
         renderedStreamState = 'live';
         streamTitle.textContent = game.streamTitle;
         streamMeta.textContent = game.streamMeta;
+      } else if (state === 'scheduled') {
+        streamFrame.hidden = true;
+        streamScheduled.hidden = false;
+        streamFullscreen.hidden = true;
+        if (renderedStreamState !== 'scheduled') streamFrame.removeAttribute('src');
+        renderedStreamState = 'scheduled';
+        renderedStreamSrc = '';
+        scheduledTitle.textContent = `${game.label} efiri rejalashtirilgan`;
+        scheduledMeta.textContent = `${formatStartTime(game.startAt)} da boshlanadi. Boshlanishiga: ${formatCountdown(game.startAt)}`;
+        streamTitle.textContent = `${game.label} efiri rejalashtirilgan`;
+        streamMeta.textContent = `${formatStartTime(game.startAt)} da boshlanadi`;
       } else {
         streamFrame.hidden = true;
-        if (renderedStreamState !== 'waiting') streamFrame.removeAttribute('src');
-        renderedStreamState = 'waiting';
+        streamScheduled.hidden = true;
+        streamFullscreen.hidden = true;
+        streamFrame.removeAttribute('src');
+        renderedStreamState = 'offline';
         renderedStreamSrc = '';
-        streamTitle.textContent = `${game.label} boshlanishini kuting`;
-        streamMeta.textContent = `Boshlanishiga: ${formatCountdown(game.startAt)}`;
       }
       renderHighlights(game.highlights);
       tabs.querySelector(`[data-game="${key}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -615,6 +652,14 @@
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2200);
     }
+
+    streamFullscreen.addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else if (streamFrameWrap.requestFullscreen) await streamFrameWrap.requestFullscreen();
+        else if (streamFrameWrap.webkitRequestFullscreen) streamFrameWrap.webkitRequestFullscreen();
+      } catch (_) { showToast('To‘liq ekran rejimi mavjud emas'); }
+    });
 
     tabs.addEventListener('click', (event) => {
       const tab = event.target.closest('[data-game]');
