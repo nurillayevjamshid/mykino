@@ -7,7 +7,7 @@
    - Ko'rinish elementga bog'lanadi: #esportView (index.html ichida).
 
    Kontent ikki manbadan keladi:
-     1. /api/settings  -> esportLive  (admin panelda kiritilgan strim)
+     1. /api/settings  -> esportsStreams  (admin panelda kiritilgan strim)
      2. /api/esport    -> haylaytlar va matchlar ro'yxati
 
    API javob bermasa (brauzerda ochilganda yoki offline), NAMUNA
@@ -87,7 +87,8 @@
      --------------------------------------------------------------- */
   var state = {
     game: "pubg",        // faol tab
-    data: SAMPLE         // API'dan kelgan yoki namuna ma'lumot
+    data: SAMPLE,        // API'dan kelgan yoki namuna ma'lumot
+    playingId: null      // hozir ijro etilayotgan YouTube video ID
   };
 
   /* ---------------------------------------------------------------
@@ -112,7 +113,10 @@
     highlights:  $id("esportHighlightList"),
     matches:     $id("esportMatchList"),
     headerPill:  $id("esportHeaderPill"),
-    refreshBtn:  $id("esportRefreshBtn")
+    refreshBtn:  $id("esportRefreshBtn"),
+    preview:     $id("esportStreamPreview"),
+    previewImg:  $id("esportStreamPreviewImg"),
+    fullscreen:  $id("esportFullscreenBtn")
   };
 
   /* ---------------------------------------------------------------
@@ -163,7 +167,60 @@
   }
 
   /* ---------------------------------------------------------------
-     Strimni chizish
+     Admin panel kalitlarini modul kalitlariga moslash
+     Admin: cs, pubg, clash  ->  Modul: cs2, pubg, coc
+     --------------------------------------------------------------- */
+  function settingsToGameKey(adminKey) {
+    var map = { cs: "cs2", pubg: "pubg", clash: "coc" };
+    return map[adminKey] || adminKey;
+  }
+
+  /* ---------------------------------------------------------------
+     YouTube thumbnail URL
+     --------------------------------------------------------------- */
+  function previewImageUrl(ytId) {
+    if (!ytId) return "";
+    return "https://i.ytimg.com/vi/" + esc(ytId) + "/hqdefault.jpg";
+  }
+
+  /* ---------------------------------------------------------------
+     Strimni ijro qilish — ilovaning o'z pleyerida (podcast naqshi)
+     --------------------------------------------------------------- */
+  function playStream(ytId, title) {
+    if (!ytId) return;
+    if (typeof window.__playYouTubeStandalone === "function") {
+      state.playingId = ytId;
+      renderStream();
+      try {
+        window.__playYouTubeStandalone(ytId, { title: title || "Jonli efir" });
+      } catch (_) {}
+      return;
+    }
+    // Fallback: iframe ichida ochish (brauzerda)
+    state.playingId = ytId;
+    renderStream();
+  }
+
+  /* ---------------------------------------------------------------
+     Full Screen — Telegram WebApp API bilan
+     --------------------------------------------------------------- */
+  function toggleStreamFullscreen() {
+    var wrap = esportView.querySelector(".stream-frame");
+    if (!wrap) return;
+
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
+      try { tg.requestFullscreen(); return; } catch (_) {}
+    }
+
+    var req = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
+    if (req) {
+      try { req.call(wrap); } catch (_) {}
+    }
+  }
+
+  /* ---------------------------------------------------------------
+     Strimni chizish — PREVIEW vs PLAYING holat
      --------------------------------------------------------------- */
   function renderStream() {
     var gameData = state.data[state.game] || {};
@@ -188,26 +245,48 @@
     el.liveBadge.hidden = !isLive;
     el.headerPill.style.display = isLive ? "" : "none";
 
-    // Iframe yoki bo'sh holat
-    if (ytId) {
-      el.streamEmpty.hidden = true;
-      // Allaqachon shu video yuklangan bo'lsa qayta yuklamaymiz (iframe miltillamasin)
-      if (el.streamHost.dataset.currentId !== ytId) {
-        el.streamHost.dataset.currentId = ytId;
-        el.streamHost.innerHTML =
-          '<iframe src="https://www.youtube.com/embed/' + esc(ytId) + '?rel=0&playsinline=1"' +
-          ' title="' + esc(stream.title || "Jonli efir") + '"' +
-          ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"' +
-          ' allowfullscreen loading="lazy"></iframe>';
-      }
-    } else {
+    // Fullscreen tugmasi
+    if (el.fullscreen) el.fullscreen.hidden = !ytId;
+
+    if (!ytId) {
       // Video yo'q — bo'sh holatni ko'rsatamiz
       el.streamHost.innerHTML = "";
       el.streamHost.dataset.currentId = "";
+      if (el.preview) el.preview.hidden = true;
       el.streamEmpty.hidden = false;
       el.emptyTitle.textContent = stream.title
         ? "Efir hozircha mavjud emas"
         : "Hozircha efir yo'q";
+      return;
+    }
+
+    // Preview rasmi (ijro qilinmaguncha iframe yo'q)
+    if (state.playingId !== ytId) {
+      el.streamEmpty.hidden = true;
+      el.streamHost.innerHTML = "";
+      el.streamHost.dataset.currentId = ytId;
+      if (el.preview) {
+        el.preview.hidden = false;
+        var thumb = previewImageUrl(ytId);
+        if (el.previewImg) {
+          el.previewImg.src = thumb;
+          el.previewImg.alt = stream.title || "Jonli efir";
+        }
+      }
+      return;
+    }
+
+    // PLAYING holat — iframe ochiladi (faqat brauzer fallback)
+    el.streamEmpty.hidden = true;
+    if (el.preview) el.preview.hidden = true;
+    if (el.streamHost.dataset.currentId !== ytId) {
+      el.streamHost.dataset.currentId = ytId;
+      el.streamHost.innerHTML =
+        '<iframe src="https://www.youtube.com/embed/' + esc(ytId) +
+        '?rel=0&playsinline=1&autoplay=1"' +
+        ' title="' + esc(stream.title || "Jonli efir") + '"' +
+        ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"' +
+        ' allowfullscreen loading="eager"></iframe>';
     }
   }
 
@@ -322,6 +401,32 @@
   }
 
   /* ---------------------------------------------------------------
+     Admin sozlamalaridan strimni modulga qo'yish
+     --------------------------------------------------------------- */
+  function applyConfiguredStream(settings) {
+    var streams = settings && settings.esportsStreams;
+    if (!streams || typeof streams !== "object") return;
+
+    Object.keys(streams).forEach(function (adminKey) {
+      var cfg = streams[adminKey];
+      if (!cfg || !cfg.enabled) return;
+      var ytUrl = cfg.youtubeUrl || "";
+      var ytId = extractYoutubeId(ytUrl);
+      if (!ytId) return;
+
+      var modKey = settingsToGameKey(adminKey);
+      if (!state.data[modKey]) state.data[modKey] = {};
+      state.data[modKey].stream = {
+        youtubeId: ytId,
+        title: cfg.title || cfg.label || "Jonli efir",
+        subtitle: cfg.meta || modKey.toUpperCase(),
+        isLive: Boolean(cfg.isLive),
+        viewers: 0
+      };
+    });
+  }
+
+  /* ---------------------------------------------------------------
      API'dan ma'lumot olish
      API javob bermasa — namuna ma'lumot qoladi (sahifa bo'sh qolmaydi)
      --------------------------------------------------------------- */
@@ -330,18 +435,7 @@
     fetch("/api/settings", { headers: { Accept: "application/json" } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (settings) {
-        var live = settings && settings.esportLive;
-        if (!live || !live.youtubeId) return;
-
-        var key = live.game || state.game;
-        if (!state.data[key]) state.data[key] = {};
-        state.data[key].stream = {
-          youtubeId: live.youtubeId,
-          title: live.title || "Jonli efir",
-          subtitle: live.subtitle || key.toUpperCase(),
-          isLive: Boolean(live.enabled),
-          viewers: Number(live.viewers) || 0
-        };
+        applyConfiguredStream(settings);
         renderStream();
       })
       .catch(function () { /* API yo'q — namuna qoladi */ });
@@ -405,6 +499,23 @@
       // Sahifani strimga surish
       esportView.querySelector(".stream-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+
+    // Preview ustiga bosilganda — strimni ijro qilish (podcast naqshi)
+    if (el.preview) {
+      el.preview.addEventListener("click", function () {
+        var gameData = state.data[state.game] || {};
+        var stream = gameData.stream || {};
+        var ytId = extractYoutubeId(stream.youtubeId || stream.url || "");
+        if (ytId) playStream(ytId, stream.title);
+      });
+    }
+
+    // Fullscreen tugmasi
+    if (el.fullscreen) {
+      el.fullscreen.addEventListener("click", function () {
+        toggleStreamFullscreen();
+      });
+    }
 
     // "Yangilash" tugmasi
     el.refreshBtn.addEventListener("click", function () {
@@ -500,7 +611,7 @@
     try { window.tgBackRegister?.("esport", function () { closeEsportView(); }); } catch (_) {}
 
     // So'ng real ma'lumotni olib kelib qayta chizamiz:
-    //   /api/settings -> esportLive (admin panelda kiritilgan strim)
+    //   /api/settings -> esportsStreams (admin panelda kiritilgan strim)
     //   /api/esport   -> haylaytlar va matchlar
     // Ikkalasi ham ishlamasa SAMPLE ma'lumot qoladi.
     loadData();
@@ -510,6 +621,14 @@
     esportView.hidden = true;
     document.body.classList.remove("is-esport");
     try { window.tgBackUnregister?.("esport"); } catch (_) {}
+
+    // Iframe tozalaymiz (audio fonda qolmasin)
+    state.playingId = null;
+    if (el.streamHost) {
+      el.streamHost.innerHTML = "";
+      el.streamHost.dataset.currentId = "";
+    }
+    if (el.preview) el.preview.hidden = true;
   }
 
   window.__esport = { openEsportView: openEsportView, closeEsportView: closeEsportView };

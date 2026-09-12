@@ -8227,7 +8227,7 @@ function ensureEsportCss() {
   __esportCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/esport/esport.css?v=20260911-esport-v1";
+    link.href = "/static/esport/esport.css?v=20260912-esport-preview";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -8240,7 +8240,7 @@ function ensureEsportModule() {
   const cssPromise = ensureEsportCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/esport/esport.js?v=20260911-esport-v1";
+    script.src = "/static/esport/esport.js?v=20260912-esport-preview";
     script.onload = () => resolve(window.__esport);
     script.onerror = (err) => { __esportModulePromise = null; reject(err); };
     document.head.appendChild(script);
