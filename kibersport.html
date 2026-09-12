@@ -636,6 +636,9 @@
       const sec = total % 60;
       return h ? `${h}s ${String(m).padStart(2, '0')}d` : `${m}d ${String(sec).padStart(2, '0')}s`;
     }
+    function streamIdentity(game) {
+      return String(game?.videoId || game?.youtubeUrl || game?.streamUrl || '');
+    }
     function selectGame(key) {
       const game = games[key];
       if (!game) return;
@@ -650,7 +653,7 @@
       if (state === 'live') {
         streamFrame.hidden = false;
         streamScheduled.hidden = true;
-        const isPlaying = playingVideoId && playingVideoId === game.videoId && renderedStreamState === 'live';
+        const isPlaying = Boolean(playingVideoId) && playingVideoId === streamIdentity(game) && renderedStreamState === 'live';
         if (isPlaying) {
           streamPreview.hidden = true;
           streamFullscreen.hidden = false;
@@ -710,9 +713,11 @@
       if (!game || !game.streamUrl) return;
       const src = toEmbedUrl(game.youtubeUrl || game.streamUrl, true);
       if (!src) { showToast('Stream manzili noto‘g‘ri'); return; }
-      playingVideoId = game.videoId || src;
+      playingVideoId = streamIdentity(game) || src;
       streamFrame.src = src;
       renderedStreamSrc = src;
+      renderedStreamState = 'live';
+      streamFrame.hidden = false;
       streamPreview.hidden = true;
       streamFullscreen.hidden = false;
     });
