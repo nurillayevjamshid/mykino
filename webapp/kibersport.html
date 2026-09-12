@@ -531,8 +531,13 @@
       return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('uz-UZ', { dateStyle: 'medium', timeStyle: 'short' });
     }
     function extractYouTubeId(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      // Toza video ID (admin panelga havola o'rniga ID yozilgan bo'lsa).
+      // YouTube ID doim 11 belgi — qisqaroq matn ID deb qabul qilinmaydi.
+      if (/^[\w-]{11}$/.test(raw)) return raw;
       try {
-        const url = new URL(String(value || ''));
+        const url = new URL(raw);
         const host = url.hostname.replace(/^www\./, '');
         if (host === 'youtu.be') return url.pathname.slice(1).split('/')[0] || '';
         if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
@@ -543,7 +548,11 @@
           }
         }
       } catch (_) {}
-      return '';
+      // Sxemasiz yozilgan havola (youtube.com/live/..., youtu.be/...)
+      const match = raw.match(
+        /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([\w-]{10,12})/
+      );
+      return match ? match[1] : '';
     }
     function toEmbedUrl(value, autoplay) {
       const id = extractYouTubeId(value);
