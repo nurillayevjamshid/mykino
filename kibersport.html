@@ -149,7 +149,7 @@
       background: var(--tg-theme-secondary-bg-color);
     }
 
-    .stream-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+    .stream-frame iframe { display: block; width: 100%; height: 100%; border: 0; pointer-events: none; }
 
     .live-badge {
       position: absolute;
@@ -381,7 +381,7 @@
         <article class="stream-card">
           <div class="stream-frame">
             <span class="live-badge">LIVE</span>
-            <iframe id="streamFrame" title="Kibersport jonli strimi" src="https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            <iframe id="streamFrame" title="Kibersport jonli strimi" src="https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&amp;controls=0&amp;disablekb=1&amp;fs=0&amp;iv_load_policy=3&amp;modestbranding=1&amp;playsinline=1&amp;rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
           </div>
           <div class="stream-info">
             <div class="stream-info__top">
@@ -447,7 +447,7 @@
         streamTitle: 'PUBG Mobile — NTV Arena',
         streamMeta: 'Bugun, 20:00 · Grand Final',
         viewers: 'Jonli',
-        streamUrl: 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?rel=0',
+        streamUrl: 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0',
         highlights: [
           { title: 'Grand Final oldidan so‘nggi tayyorgarlik', subtitle: 'Bugun · 12 daqiqa', icon: 'target' },
           { title: 'Eng yaxshi clutch momentlar', subtitle: 'Kecha · 08 daqiqa', icon: 'play' },
@@ -459,7 +459,7 @@
         streamTitle: 'CS2 — NTV Arena',
         streamMeta: 'Ertaga, 19:30 · Playoff',
         viewers: 'Jadval',
-        streamUrl: 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?rel=0',
+        streamUrl: 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0',
         highlights: [
           { title: 'Playoff bracket e’lon qilindi', subtitle: 'Bugun · 04 daqiqa', icon: 'trophy' },
           { title: 'Haftaning eng yaxshi deagle roundi', subtitle: 'Kecha · 07 daqiqa', icon: 'play' },
@@ -471,7 +471,7 @@
         streamTitle: 'Clash of Clans — NTV Arena',
         streamMeta: 'Shanba, 18:00 · Clan War League',
         viewers: 'Jadval',
-        streamUrl: 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?rel=0',
+        streamUrl: 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0',
         highlights: [
           { title: 'Clan War League: asosiy janglar', subtitle: 'Shanba · 11 daqiqa', icon: 'shield' },
           { title: '3 yulduzli hujumlar to‘plami', subtitle: 'Kecha · 09 daqiqa', icon: 'play' },
@@ -507,12 +507,13 @@
     function toEmbedUrl(value) {
       try {
         const url = new URL(String(value || ''));
-        if (url.hostname === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1)}?autoplay=1&rel=0`;
+        const embedParams = 'autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0';
+        if (url.hostname === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1).split('/')[0]}?${embedParams}`;
         if (url.hostname.endsWith('youtube.com') || url.hostname.endsWith('youtube-nocookie.com')) {
           const id = url.searchParams.get('v');
-          if (id) return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
-          if (url.pathname.startsWith('/embed/')) return `https://www.youtube-nocookie.com${url.pathname}?autoplay=1&rel=0`;
-          if (url.pathname.startsWith('/live/')) return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(6)}?autoplay=1&rel=0`;
+          if (id) return `https://www.youtube-nocookie.com/embed/${id}?${embedParams}`;
+          if (url.pathname.startsWith('/embed/')) return `https://www.youtube-nocookie.com${url.pathname}?${embedParams}`;
+          if (url.pathname.startsWith('/live/')) return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(6).split('/')[0]}?${embedParams}`;
         }
       } catch (_) {}
       return '';
