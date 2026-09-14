@@ -4403,6 +4403,20 @@ function renderEsportsStreams(items) {
           </div>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" data-esports-field="isLive" data-esports-key="${item.key}" ${item.isLive ? 'checked' : ''}> Hozir jonli efirda</label>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;"><input type="checkbox" data-esports-field="enabled" data-esports-key="${item.key}" ${item.enabled !== false ? 'checked' : ''}> Foydalanuvchilarga ko‘rsatish</label>
+          <h3 style="margin:22px 0 10px;">So‘nggi haylaytlar</h3>
+          <div style="display:grid;gap:10px;">
+            ${Array.from({ length: 3 }, (_, index) => {
+              const highlight = Array.isArray(item.highlights) ? (item.highlights[index] || {}) : {};
+              return `<div style="padding:12px;border:1px solid var(--border,#e5e7eb);border-radius:10px;">
+                <strong>${index + 1}-haylayt</strong>
+                <div class="form-row" style="margin-top:8px;">
+                  <div class="form-group" style="flex:1;"><label>Sarlavha</label><input class="form-input" data-esports-highlight-field="title" data-esports-highlight-index="${index}" data-esports-key="${item.key}" value="${escapeHtml(highlight.title || '')}" placeholder="Haylayt nomi" maxlength="120"></div>
+                  <div class="form-group" style="flex:1;"><label>Izoh</label><input class="form-input" data-esports-highlight-field="subtitle" data-esports-highlight-index="${index}" data-esports-key="${item.key}" value="${escapeHtml(highlight.subtitle || '')}" placeholder="Bugun · 05 daqiqa" maxlength="160"></div>
+                </div>
+                <div class="form-group"><label>YouTube video linki</label><input class="form-input" data-esports-highlight-field="youtubeUrl" data-esports-highlight-index="${index}" data-esports-key="${item.key}" value="${escapeHtml(highlight.youtubeUrl || '')}" placeholder="https://youtu.be/..." type="url"></div>
+              </div>`;
+            }).join('')}
+          </div>
         </div>
       </div>`).join('')}`;
   wrap.dataset.activeKey = activeKey;
@@ -4454,6 +4468,15 @@ async function saveEsportsStreams() {
     } else {
       result[key][field] = el.value.trim();
     }
+  });
+  document.querySelectorAll('[data-esports-highlight-field]').forEach((el) => {
+    const key = el.dataset.esportsKey;
+    const index = Number(el.dataset.esportsHighlightIndex);
+    const field = el.dataset.esportsHighlightField;
+    result[key] ||= { key };
+    result[key].highlights ||= [];
+    result[key].highlights[index] ||= {};
+    result[key].highlights[index][field] = el.value.trim();
   });
   setEsportsStreamsStatus('Saqlanmoqda...');
   try {

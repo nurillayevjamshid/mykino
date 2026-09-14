@@ -315,6 +315,7 @@ function normalizeEsportsStreams(raw) {
   ];
   return defaults.reduce((result, base) => {
     const item = source[base.key] && typeof source[base.key] === "object" ? source[base.key] : {};
+    const highlights = Array.isArray(item.highlights) ? item.highlights : [];
     result[base.key] = {
       key: base.key,
       label: trimString(item.label || base.label).slice(0, 60),
@@ -324,6 +325,11 @@ function normalizeEsportsStreams(raw) {
       startAt: normalizeEsportsStartAt(item.startAt),
       isLive: Boolean(item.isLive),
       enabled: item.enabled !== false,
+      highlights: highlights.slice(0, 6).map((highlight) => ({
+        title: trimString(highlight?.title).slice(0, 120),
+        subtitle: trimString(highlight?.subtitle).slice(0, 160),
+        youtubeUrl: normalizeEsportsYoutubeUrl(highlight?.youtubeUrl).slice(0, 500),
+      })),
     };
     return result;
   }, {});

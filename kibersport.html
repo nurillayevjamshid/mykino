@@ -463,6 +463,7 @@
       } catch (_) {}
       return '';
     }
+    function highlightIcon(index) { return ['play', 'target', 'mic'][index % 3]; }
     async function loadConfiguredStreams() {
       try {
         const response = await fetch('/api/settings', { cache: 'no-store' });
@@ -476,6 +477,14 @@
           if (item.label) games[key].label = item.label;
           if (item.title) games[key].streamTitle = item.title;
           if (item.meta) games[key].streamMeta = item.meta;
+          if (Array.isArray(item.highlights) && item.highlights.length) {
+            games[key].highlights = item.highlights.filter((highlight) => highlight && (highlight.title || highlight.youtubeUrl)).map((highlight, index) => ({
+              title: highlight.title || 'Haylayt video',
+              subtitle: highlight.subtitle || 'Video',
+              icon: highlightIcon(index),
+              youtubeUrl: highlight.youtubeUrl || '',
+            }));
+          }
         });
         selectGame(activeKey);
       } catch (_) {}
@@ -494,7 +503,7 @@
     function renderHighlights(items) {
       highlightCount.textContent = `${items.length} ta`;
       highlightList.innerHTML = items.map((item) => `
-        <button class="highlight-card" type="button" data-highlight="${item.title.replaceAll('"', '&quot;')}">
+        <button class="highlight-card" type="button" data-highlight="${item.title.replaceAll('"', '&quot;')}" data-highlight-url="${(item.youtubeUrl || '').replaceAll('"', '&quot;')}">
           <span class="highlight-thumb">${iconSvg(item.icon)}</span>
           <span class="highlight-copy">
             <strong class="highlight-title">${item.title}</strong>
@@ -533,7 +542,14 @@
 
     highlightList.addEventListener('click', (event) => {
       const card = event.target.closest('[data-highlight]');
-      if (card) showToast(`Haylayt: ${card.dataset.highlight}`);
+      if (card) {
+        const url = toEmbedUrl(card.dataset.highlightUrl || '');
+        if (url) {
+          streamFrame.src = `${url}&autoplay=1`;
+          streamFrame.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        else showToast(`Haylayt: ${card.dataset.highlight}`);
+      }
     });
 
     document.querySelectorAll('[data-nav]').forEach((button) => {
