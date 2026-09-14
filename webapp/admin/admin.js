@@ -4456,7 +4456,7 @@ async function loadEsportsStreams() {
 }
 async function saveEsportsStreams() {
   const result = {};
-  document.querySelectorAll('[data-esports-key]').forEach((el) => {
+  document.querySelectorAll('[data-esports-field]').forEach((el) => {
     const key = el.dataset.esportsKey;
     const field = el.dataset.esportsField;
     result[key] ||= { key };
@@ -4469,18 +4469,9 @@ async function saveEsportsStreams() {
       result[key][field] = el.value.trim();
     }
   });
-  document.querySelectorAll('[data-esports-highlight-field]').forEach((el) => {
-    const key = el.dataset.esportsKey;
-    const index = Number(el.dataset.esportsHighlightIndex);
-    const field = el.dataset.esportsHighlightField;
-    result[key] ||= { key };
-    result[key].highlights ||= [];
-    result[key].highlights[index] ||= {};
-    result[key].highlights[index][field] = el.value.trim();
-  });
   setEsportsStreamsStatus('Saqlanmoqda...');
   try {
-    const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ esportsStreams: result }) });
+    const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ esportsStreamsPatch: result }) });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
     esportsStreamsLoaded = false;
@@ -4488,6 +4479,26 @@ async function saveEsportsStreams() {
   } catch (err) { setEsportsStreamsStatus(`Saqlashda xato: ${err.message}`, 'error'); }
 }
 document.getElementById('esportsStreamsSaveBtn')?.addEventListener('click', saveEsportsStreams);
+async function saveEsportsHighlights() {
+  const result = {};
+  document.querySelectorAll('[data-esports-highlight-field]').forEach((el) => {
+    const key = el.dataset.esportsKey;
+    const index = Number(el.dataset.esportsHighlightIndex);
+    const field = el.dataset.esportsHighlightField;
+    result[key] ||= { key, highlights: [] };
+    result[key].highlights[index] ||= {};
+    result[key].highlights[index][field] = el.value.trim();
+  });
+  setEsportsStreamsStatus('Haylaytlar saqlanmoqda...');
+  try {
+    const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ esportsStreamsPatch: result }) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    esportsStreamsLoaded = false;
+    setEsportsStreamsStatus('Haylaytlar saqlandi.', 'ok');
+  } catch (err) { setEsportsStreamsStatus(`Saqlashda xato: ${err.message}`, 'error'); }
+}
+document.getElementById('esportsHighlightsSaveBtn')?.addEventListener('click', saveEsportsHighlights);
 
 // ============================================================
 // TV kanallar bo'limi — ro'yxat, tahrirlash, o'chirish, qo'shish.

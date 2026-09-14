@@ -471,6 +471,16 @@ module.exports = async function handler(request, response) {
         const incoming = body.esportsStreams && typeof body.esportsStreams === "object" ? body.esportsStreams : {};
         nextSettings.esportsStreams = normalizeEsportsStreams(incoming);
       }
+      if (hasOwn(body, "esportsStreamsPatch")) {
+        const patch = body.esportsStreamsPatch && typeof body.esportsStreamsPatch === "object" ? body.esportsStreamsPatch : {};
+        const current = normalizeEsportsStreams(nextSettings.esportsStreams);
+        Object.entries(patch).forEach(([key, value]) => {
+          if (!current[key] || !value || typeof value !== "object") return;
+          current[key] = { ...current[key], ...value };
+          current[key].highlights = value.highlights === undefined ? current[key].highlights : value.highlights;
+        });
+        nextSettings.esportsStreams = normalizeEsportsStreams(current);
+      }
 
       metadataState.data.settings = nextSettings;
       try {
