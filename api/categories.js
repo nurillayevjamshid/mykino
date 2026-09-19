@@ -521,15 +521,14 @@ async function handleTvChannels(request, response) {
       return;
     }
     if (request.method === "DELETE" || body.action === "reset") {
-      // Ro'yxatni tozalash — webapp default statik ro'yxatga qaytadi
-      await writeTvChannels(null);
-      response.status(200).json({ ok: true, channels: null });
+      // Ro'yxatni to'liq tozalash — default statik ro'yxatga qaytmaydi.
+      await writeTvChannels([]);
+      response.status(200).json({ ok: true, channels: [] });
       return;
     }
     const list = Array.isArray(body.channels) ? body.channels : null;
     if (!list) { response.status(400).json({ ok: false, error: "channels massivi kerak." }); return; }
     const normalized = list.map(normalizeTvChannel).filter(Boolean).slice(0, TV_CHANNELS_MAX);
-    if (!normalized.length) { response.status(400).json({ ok: false, error: "Kamida bitta yaroqli kanal kerak (nom + https URL)." }); return; }
     const ok = await writeTvChannels(normalized);
     if (!ok) { response.status(500).json({ ok: false, error: "Saqlash muvaffaqiyatsiz." }); return; }
     response.status(200).json({ ok: true, channels: normalized });
