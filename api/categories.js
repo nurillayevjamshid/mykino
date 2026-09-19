@@ -458,7 +458,8 @@ async function writeFifaLiveMatch(match) {
 
 // ===== TV kanallar (admin boshqaradi) =====
 // Redis'da saqlanadi; bo'sh bo'lsa webapp statik /static/tv/tv-channels.json'ga o'tadi.
-const TV_CHANNELS_KEY = "tv-channels:v1";
+// v2 ataylab yangi bo‘sh namespace: eski v1 kanallari public/admin’da qayta chiqmaydi.
+const TV_CHANNELS_KEY = "tv-channels:v2";
 const TV_CHANNELS_MAX = 600;
 
 function normalizeTvChannel(c) {
