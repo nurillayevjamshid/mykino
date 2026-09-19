@@ -4527,7 +4527,7 @@ async function loadTvChannelsAdmin(force) {
     const res = await fetch('/api/categories?type=tv-channels', { cache: 'no-store' });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    if (Array.isArray(json.channels) && json.channels.length) {
+    if (Array.isArray(json.channels)) {
       tvChannelsAdmin = json.channels;
       tvChannelsIsDefault = false;
     } else {
@@ -4675,15 +4675,15 @@ async function deleteTvChannel(index) {
 }
 
 async function resetTvChannels() {
-  if (!confirm("Barcha o'zgarishlar bekor qilinib, default ro'yxatga qaytariladi. Davom etasizmi?")) return;
-  tvChSetStatus('Qaytarilmoqda...');
+  if (!confirm("Barcha TV kanallarini public va admin paneldan tozalaysizmi?")) return;
+  tvChSetStatus('Kanallar tozalanmoqda...');
   try {
     const res = await fetch('/api/categories?type=tv-channels', { method: 'DELETE' });
     const json = await res.json();
     if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
     tvChannelsLoadedAdmin = false;
     await loadTvChannelsAdmin(true);
-    tvChSetStatus("Default ro'yxatga qaytarildi.", 'ok');
+    tvChSetStatus("Barcha TV kanallari tozalandi.", 'ok');
   } catch (err) {
     tvChSetStatus(`Xato: ${err.message}`, 'error');
   }

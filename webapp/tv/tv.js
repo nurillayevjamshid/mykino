@@ -27,7 +27,7 @@
     if (tvChannelsPromise) return tvChannelsPromise;
     tvChannelsPromise = (async () => {
       const api = await fetchJson("/api/categories?type=tv-channels", 5000);
-      if (api && api.ok && Array.isArray(api.channels) && api.channels.length) {
+      if (api && api.ok && Array.isArray(api.channels)) {
         TV_CHANNELS = api.channels;
         return TV_CHANNELS;
       }
