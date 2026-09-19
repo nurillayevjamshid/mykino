@@ -537,11 +537,20 @@
     b.addEventListener("click", () => setActiveTab(b.dataset.fifaTab));
   });
 
-  // --- Jonli efir promo kartasi (Telegram jonli efir / translatsiya havolasi) ---
+  // --- Jonli efir promo kartasi (Telegram jonli efir / HLS translatsiya) ---
+  // Admin konfiguratsiyasida jonli kanal bo'lmasa ham futbol bo'limida
+  // doimiy kanal cardi ko'rinadi. HLS oqimi mavjud player modalida ochiladi.
+  const DEFAULT_FIFA_STREAM = {
+    channelUrl: "https://example.com/live/channel.m3u8",
+    title: "Futbol jonli efiri",
+    subtitle: "Futbol uchrashuvlarini jonli tomosha qiling",
+    buttonText: "Tomosha qilish",
+  };
   function renderFifaLivePromo() {
     const promo = fifaView.querySelector(".fifa-view__promo");
     if (!promo) return;
-    const cfg = (typeof fifaLiveConfig !== "undefined" && fifaLiveConfig) || null;
+    const cfg = (typeof fifaLiveConfig !== "undefined" && fifaLiveConfig)
+      || DEFAULT_FIFA_STREAM;
     if (!cfg || !cfg.channelUrl) {
       // Config yo'q — bo'sh placeholder holatiga qaytamiz
       promo.hidden = true;
