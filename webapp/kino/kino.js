@@ -645,8 +645,9 @@ const WATCH_PROGRESS_MIN_SECONDS = 15;
 const WATCH_PROGRESS_END_GAP = 12;
 const WATCH_PROGRESS_SYNC_ENDPOINT = "/api/watch-progress";
 const WATCH_PROGRESS_SYNC_DELAY_MS = 25000;
-// Stream error xabarlari endi runtime'da t() orqali olinadi (til o'zgarsa o'zgaradi)
-const getStreamErrorMessage = () => plainLabel(t("sourcePreparing"));
+// Stream xatosi uchun alohida fallback oynasi ko'rsatilmaydi.
+// Video playerning o'zi loading/error holatini boshqaradi.
+const getStreamErrorMessage = () => "";
 
 let movies = [];
 
@@ -3575,7 +3576,12 @@ function setVideoLoading(isLoading) {
 function setFallbackMessage(message = "", externalUrl = "") {
   const hasMessage = Boolean(message && String(message).trim());
   const hasUrl = Boolean(externalUrl && String(externalUrl).trim());
-  if (!hasMessage && !hasUrl) {
+  // Kino playerida "Tomosha uchun manba tayyorlanmoqda" oynasi va
+  // "Manbani ochish" tugmasi ko'rinmasin — video o'zining native loading
+  // holatini ko'rsatadi. Bu, ayniqsa, iOS Telegram WebView'da timeoutdan
+  // keyin video ishlayotgan bo'lsa ham ustida eski fallback qolib ketishini
+  // oldini oladi.
+  if (!hasMessage) {
     videoFallback.hidden = true;
     if (videoFallbackText) {
       videoFallbackText.textContent = "";
