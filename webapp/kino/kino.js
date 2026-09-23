@@ -6317,7 +6317,10 @@ function syncSidebarSectionItems() {
       </svg>
       <span>TV</span>`;
     }
+    tvItem.hidden = true;
   }
+  const esportsItem = document.getElementById("sidebarEsportsItem");
+  if (esportsItem) esportsItem.hidden = true;
 }
 
 function setSidebarOpen(open) {

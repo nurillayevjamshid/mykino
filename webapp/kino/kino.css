@@ -5924,6 +5924,13 @@ html[data-theme="light"] .sidebar {
   position: relative;
 }
 
+/* Vaqtincha o'chirilgan bo'limlar: umumiy display qoidasi [hidden] atributini
+   bosib ketmasligi uchun !important ishlatiladi. Kod va bo'limlar saqlanadi. */
+.sidebar__item#sidebarTvItem[hidden],
+.sidebar__item#sidebarEsportsItem[hidden] {
+  display: none !important;
+}
+
 .sidebar__item svg {
   width: 22px;
   height: 22px;
