@@ -120,6 +120,40 @@ Eslatma: kanal public bo'lsa, Vercel `/api/movies` yangi video postlarni taxmina
 
 Productionda Google Drive katalog ishlashi uchun Vercel environment variables ichida `GOOGLE_DRIVE_FOLDER_ID` va `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64` bo'lishi shart. Telegram video endpoint ishlashi uchun `BOT_TOKEN` kerak. iPhone uchun eng yaxshi natija beradigan format `MP4 (H.264/AAC)`.
 
+## Google Drive → Cloudflare R2 migratsiyasi
+
+Mini App `cdnUrl` mavjud bo'lsa videoni to'g'ridan-to'g'ri R2 CDN'dan ochadi. `scripts/migrate-to-r2.js` Drive'dagi kino, serial epizodi va reklama videolarini tekshiradi; kerak bo'lsa MP4/H.264/AAC (`+faststart`) qilib R2'ga yuklaydi va `cdnUrl`ni Drive metadata'ga yozadi. R2'ga ko'chgan obyektlar qayta yuklanmaydi.
+
+### Windows PowerShell (tavsiya etilgan)
+
+1. Repo'ni kompyuterga clone qiling va dependency'larni o'rnating:
+
+```powershell
+gh repo clone nurillayevjamshid/mykino $env:USERPROFILE\Desktop\mykino
+cd $env:USERPROFILE\Desktop\mykino
+npm install
+```
+
+2. `.mykino-r2.env.example`ni `.mykino-r2.env` nomi bilan nusxalang va R2 qiymatlarini kiriting. Google service-account JSON'ni `$env:USERPROFILE\.mykino-sa.json` nomi bilan saqlash mumkin. Bu fayllar `.gitignore`da.
+
+3. `scripts\mykino-r2-run.ps1`ni `$env:USERPROFILE\.mykino-r2-run.ps1` qilib nusxalang. Shundan keyin eski kabi quyidagi buyruqlar ishlaydi:
+
+```powershell
+& "$env:USERPROFILE\.mykino-r2-run.ps1"                   # status, hech narsa o'zgarmaydi
+& "$env:USERPROFILE\.mykino-r2-run.ps1" --apply --limit 1 # 1 ta test migratsiya
+& "$env:USERPROFILE\.mykino-r2-run.ps1" --apply --all    # barcha kino + serial + reklama
+```
+
+Wrapper repo'ni joriy papka, `$env:MYKINO_REPO`, `Desktop\mykino`, `mykino` va `Documents\mykino` ichidan topadi. Boshqa joyda bo'lsa:
+
+```powershell
+$env:MYKINO_REPO = "$env:USERPROFILE\Desktop\mykino"
+```
+
+Qo'shimcha variantlar: `--apply --episodes`, `--apply --limit 5`, `--apply --series "serial nomi"`, `--apply --force --all`. `--force` allaqachon R2'ga ko'chgan fayllarni ham qayta konvert qiladi; katta katalogda avval `--limit 1` bilan tekshiring.
+
+Talablar: Node.js, `npm install` va `ffmpeg`/`ffprobe` PATH'da bo'lishi kerak. `R2_PUBLIC_URL` Mini App/Vercel'dagi `R2_PUBLIC_URL` bilan bir xil custom domain bo'lsin.
+
 Production deploy:
 
 ```powershell
