@@ -3,17 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1047.0",
+    "@aws-sdk/lib-storage": "^3.1047.0",
     "redis": "^4.7.0"
   },
   "scripts": {
     "check": "node scripts/check-syntax.js",
     "test": "node scripts/run-tests.js --reporter=spec",
     "test:ci": "node scripts/run-tests.js --reporter=tap",
+    "migrate:r2": "node scripts/migrate-to-r2.js",
     "faststart": "node scripts/faststart-drive.js",
     "faststart:apply": "node scripts/faststart-drive.js --apply"
-  },
-  "devDependencies": {
-    "@aws-sdk/client-s3": "^3.1047.0",
-    "@aws-sdk/lib-storage": "^3.1047.0"
   }
 }

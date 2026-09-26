@@ -1,4 +1,6 @@
 .env
+.mykino-r2.env
+.mykino-sa.json
 .vercel
 __pycache__/
 *.pyc
