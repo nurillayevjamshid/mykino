@@ -1907,3 +1907,109 @@ body { background: radial-gradient(circle at 72% -10%, #f9fbff 0, var(--page-bg)
   #seriesCardGrid .series-card > div:last-child { padding-left: 10px !important; padding-right: 10px !important; }
   #usersTableBody tr.user-row .user-row__username { max-width: 40vw; }
 }
+
+
+/* =====================================================================
+   Dark theme QA pass — preserve contrast after the 2026 UI polish layer
+   ===================================================================== */
+[data-theme="dark"] {
+  --primary: #8b98ff;
+  --primary-dark: #7180f0;
+  --primary-light: #aab4ff;
+  --primary-soft: rgba(139,152,255,.16);
+  --primary-bg: rgba(139,152,255,.20);
+  --page-bg: #0b1020;
+  --bg-dark: #0b1020;
+  --bg-card: #151b30;
+  --bg-sidebar: #11172a;
+  --bg-elevated: #1c2540;
+  --bg-shell: rgba(17,22,42,.94);
+  --surface-bg: #11172a;
+  --card: #151b30;
+  --card-bg: #151b30;
+  --border-color: #2a3555;
+  --text: #f4f7ff;
+  --text-secondary: #c9d2e8;
+  --text-muted: #93a1bd;
+  --border: #2a3555;
+  --border-light: #202a47;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.38);
+  --shadow-sm: 0 8px 24px rgba(0,0,0,.24);
+  --shadow: 0 12px 30px rgba(0,0,0,.30);
+  --shadow-md: 0 18px 42px rgba(0,0,0,.38);
+  --success-bg: rgba(34,197,94,.16);
+  --danger-bg: rgba(239,68,68,.16);
+  --warning-bg: rgba(234,88,12,.18);
+}
+
+[data-theme="dark"] body { background: radial-gradient(circle at 72% -10%, #182346 0, var(--page-bg) 48%, #080c18 100%); }
+[data-theme="dark"] .admin-layout { background: transparent; }
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .main-content,
+[data-theme="dark"] .card-block,
+[data-theme="dark"] .table-container,
+[data-theme="dark"] .form-card { background-color: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .sidebar { background: rgba(17,23,42,.96); border-color: #2a3555; box-shadow: 0 16px 40px rgba(0,0,0,.34); }
+[data-theme="dark"] .main-content { box-shadow: 0 16px 40px rgba(0,0,0,.28); }
+[data-theme="dark"] .admin-header { background: rgba(17,22,42,.92); border-color: var(--border-light); }
+[data-theme="dark"] .theme-toggle,
+[data-theme="dark"] .menu-toggle,
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .btn-icon,
+[data-theme="dark"] .search-input,
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-textarea { background-color: #151b30; color: var(--text); border-color: var(--border); }
+[data-theme="dark"] .menu-toggle span { background: #c9d2e8; }
+[data-theme="dark"] .menu-toggle.active { background: var(--primary-soft); border-color: var(--primary); }
+[data-theme="dark"] .search-input:focus,
+[data-theme="dark"] .form-input:focus,
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] .form-textarea:focus { background-color: #1a2240; border-color: var(--primary); }
+[data-theme="dark"] .data-table th { background: #1b2340; color: var(--text-secondary); }
+[data-theme="dark"] .data-table tbody tr:hover { background: #1b2340; }
+[data-theme="dark"] .data-table tr,
+[data-theme="dark"] .series-card,
+[data-theme="dark"] .artist-card,
+[data-theme="dark"] .yt-channel-card,
+[data-theme="dark"] .podcast-admin-card,
+[data-theme="dark"] .pod-lang-card { background-color: var(--bg-card) !important; border-color: var(--border) !important; }
+[data-theme="dark"] .movie-tabs,
+[data-theme="dark"] .music-tabs,
+[data-theme="dark"] .ad-tabs { background: #11172a; border-color: var(--border) !important; }
+[data-theme="dark"] .movie-tab.is-active,
+[data-theme="dark"] .music-tab.is-active,
+[data-theme="dark"] .ad-tab.is-active,
+[data-theme="dark"] .ad-tab-item.is-active { background: #222d51 !important; color: var(--primary-light) !important; }
+[data-theme="dark"] .ad-tab-item { background: #151b30; border-color: var(--border); }
+[data-theme="dark"] .modal-content { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .modal-header { background: var(--bg-card); border-color: var(--border-light); }
+[data-theme="dark"] .sidebar-overlay { background: rgba(2,6,18,.66); }
+[data-theme="dark"] .category-chips,
+[data-theme="dark"] #preRollAdVideoList,
+[data-theme="dark"] #broadcastPreview { background: #0e1426 !important; border-color: var(--border) !important; }
+[data-theme="dark"] .preroll-video-item { background: var(--bg-card) !important; border-color: var(--border) !important; }
+[data-theme="dark"] .artist-card { background: #1b2340 !important; }
+[data-theme="dark"] #categoryImagePreview,
+[data-theme="dark"] #artistImagePreview,
+[data-theme="dark"] #ytChannelImagePreview,
+[data-theme="dark"] #tvChFormLogoPreview { background-color: #1b2340 !important; border-color: var(--border) !important; }
+[data-theme="dark"] .brand-icon { background: #222d51; }
+[data-theme="dark"] .admin-badge { background: #1b2340; border-color: var(--border); }
+[data-theme="dark"] .btn-primary { color: #fff; background: linear-gradient(135deg,#6f7ff0,#8b98ff); }
+[data-theme="dark"] .btn-danger { color: #fff; }
+
+@media (max-width: 768px) {
+  [data-theme="dark"] .admin-header { background: rgba(17,22,42,.96); box-shadow: 0 4px 18px rgba(0,0,0,.24); }
+  [data-theme="dark"] .sidebar { background: #11172a; border-color: var(--border); box-shadow: 24px 0 60px rgba(0,0,0,.48); }
+  [data-theme="dark"] .movie-tabs,
+  [data-theme="dark"] .music-tabs,
+  [data-theme="dark"] .ad-tabs { background: transparent; }
+  [data-theme="dark"] .movie-tab.is-active,
+  [data-theme="dark"] .music-tab.is-active,
+  [data-theme="dark"] .ad-tab.is-active { background: #222d51 !important; box-shadow: 0 3px 12px rgba(0,0,0,.28); }
+  [data-theme="dark"] .data-table tr { box-shadow: 0 7px 20px rgba(0,0,0,.24); }
+  [data-theme="dark"] #usersTableBody tr.user-row.is-expanded { background: #1b2340; border-color: var(--primary); }
+  [data-theme="dark"] .modal-actions .btn,
+  [data-theme="dark"] .form-actions .btn { box-shadow: 0 5px 14px rgba(0,0,0,.2); }
+}
