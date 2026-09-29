@@ -50,11 +50,16 @@
 
     // Login/logout so'rovlarida 401-retry qilinmaydi (aks holda cheksiz halqa).
     const isAuthRoute = /[?&]action=admin-log(in|out)(?:&|$)/.test(urlStr);
+    const requestMethod = String(options.method || 'GET').toUpperCase();
     return originalFetch(url, options).then(async (resp) => {
+      if (resp.ok) invalidateAdminCachesForUrl(urlStr, requestMethod);
       if (resp.status !== 401 || isAuthRoute) return resp;
       const loggedIn = await reloginOnce();
       if (!loggedIn) return resp;
-      return originalFetch(url, options);
+      return originalFetch(url, options).then((retryResp) => {
+        if (retryResp.ok) invalidateAdminCachesForUrl(urlStr, requestMethod);
+        return retryResp;
+      });
     });
   };
 })();
@@ -128,6 +133,43 @@ let availableCategories = [];
 const API_URL = '/api';
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 const POSTER_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+// Section kataloglari uchun yengil stale-while-revalidate cache.
+// Cache faqat tezkor UI snapshot: serverdagi haqiqiy ma'lumotni almashtirmaydi.
+const ADMIN_CACHE_TTL = 5 * 60 * 1000;
+const ADMIN_CACHE_PREFIX = 'mykino-admin-cache-v2:';
+function readAdminCache(name) {
+  try {
+    const raw = localStorage.getItem(ADMIN_CACHE_PREFIX + name);
+    if (!raw) return null;
+    const item = JSON.parse(raw);
+    if (!item || !item.savedAt || typeof item.data === 'undefined') return null;
+    return { ...item, fresh: Date.now() - item.savedAt < ADMIN_CACHE_TTL };
+  } catch (_) { return null; }
+}
+function writeAdminCache(name, data, etag = '') {
+  try {
+    localStorage.setItem(ADMIN_CACHE_PREFIX + name, JSON.stringify({ savedAt: Date.now(), etag, data }));
+  } catch (_) { /* localStorage quota — network response still works */ }
+}
+function clearAdminCache(...names) {
+  try { names.forEach((name) => localStorage.removeItem(ADMIN_CACHE_PREFIX + name)); } catch (_) {}
+}
+function invalidateAdminCachesForUrl(url, method = 'GET') {
+  if (/^(GET|HEAD)$/i.test(method)) return;
+  const value = String(url || '');
+  if (value.includes('/movies') || value.includes('/movie-update')) clearAdminCache('movies', 'categories');
+  if (value.includes('/series')) clearAdminCache('series', 'categories');
+  if (value.includes('/music')) clearAdminCache('music');
+  if (value.includes('/users')) clearAdminCache('users');
+  if (value.includes('/podcasts')) clearAdminCache('podcasts');
+  if (value.includes('/categories')) clearAdminCache('categories');
+}
+function cachedRequestHeaders(cached, force) {
+  const headers = {};
+  if (!force && cached?.etag) headers['If-None-Match'] = cached.etag;
+  return headers;
+}
 const POSTER_PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70"><rect width="50" height="70" fill="#1a1f2e"/><text x="25" y="38" text-anchor="middle" font-family="Arial" font-size="9" fill="#ffc73a">No Image</text></svg>');
 
 // Eski r2.dev bepul domeni ko'p so'rovda 403 (throttle) qaytaradi va Vercel
@@ -270,9 +312,20 @@ function normalizeMovieFromApi(movie) {
 }
 
 // Fetch movies from API
-async function fetchMovies() {
+async function fetchMovies(force = false) {
   const tbody = document.getElementById('moviesTableBody');
-  if (tbody) {
+  const cached = readAdminCache('movies');
+  const applyMovies = (data) => {
+    movies = (Array.isArray(data) ? data : []).map(normalizeMovieFromApi).filter(movie => movie.id);
+    filteredMovies = [...movies];
+    renderMovies();
+    syncAvailableCategories();
+  };
+  if (cached?.data && !force) {
+    applyMovies(cached.data);
+    if (cached.fresh) return movies;
+  }
+  if (tbody && (force || !cached?.data)) {
     tbody.innerHTML = `
       <tr>
         <td colspan="8">
@@ -286,20 +339,22 @@ async function fetchMovies() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/movies?t=${Date.now()}`);
+    const response = await fetch(`${API_URL}/movies`, { headers: cachedRequestHeaders(cached, force) });
+    if (response.status === 304 && cached?.data) {
+      writeAdminCache('movies', cached.data, cached.etag);
+      return movies;
+    }
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       throw new Error(errorData?.error || `Server xatolik: ${response.status}`);
     }
     const data = await response.json();
-
-    movies = data.map(normalizeMovieFromApi).filter(movie => movie.id);
-    filteredMovies = [...movies];
-
-    renderMovies();
-    syncAvailableCategories();
+    writeAdminCache('movies', data, response.headers.get('ETag') || '');
+    applyMovies(data);
+    return movies;
   } catch (error) {
     console.error('Error fetching movies:', error);
+    if (cached?.data) return movies;
     movies = [];
     if (tbody) {
       tbody.innerHTML = `
@@ -587,9 +642,20 @@ let usersSortMode = 'newest';
 let usersDateFrom = '';
 let usersDateTo = '';
 
-async function fetchUsers() {
+async function fetchUsers(force = false) {
   const tbody = document.getElementById('usersTableBody');
-  if (tbody) {
+  const cached = readAdminCache('users');
+  const applyUsers = (data) => {
+    const list = Array.isArray(data) ? data : (Array.isArray(data?.users) ? data.users : []);
+    usersList = list.map(normalizeUser);
+    applyUsersFilterSort();
+    renderUsers();
+  };
+  if (cached?.data && !force) {
+    applyUsers(cached.data);
+    if (cached.fresh) return usersList;
+  }
+  if (tbody && (force || !cached?.data)) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6">
@@ -603,15 +669,19 @@ async function fetchUsers() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/users`);
+    const response = await fetch(`${API_URL}/users`, { headers: cachedRequestHeaders(cached, force) });
+    if (response.status === 304 && cached?.data) {
+      writeAdminCache('users', cached.data, cached.etag);
+      return usersList;
+    }
     if (!response.ok) throw new Error(`Server xatolik: ${response.status}`);
     const data = await response.json();
-    const list = Array.isArray(data) ? data : (Array.isArray(data?.users) ? data.users : []);
-    usersList = list.map(normalizeUser);
-    applyUsersFilterSort();
-    renderUsers();
+    writeAdminCache('users', data, response.headers.get('ETag') || '');
+    applyUsers(data);
+    return usersList;
   } catch (error) {
     console.error('Error fetching users:', error);
+    if (cached?.data) return usersList;
     usersList = [];
     filteredUsers = [];
     if (tbody) {
@@ -778,7 +848,7 @@ function bindEvents() {
 
   // Refresh button
   document.getElementById('refreshMoviesBtn')?.addEventListener('click', async () => {
-    await fetchMovies();
+    await fetchMovies(true);
     showNotification('Ro\'yxat yangilandi.');
   });
 
@@ -848,7 +918,7 @@ function bindEvents() {
     row.click();
   });
   document.getElementById('refreshUsersBtn')?.addEventListener('click', async () => {
-    await fetchUsers();
+    await fetchUsers(true);
     showNotification('Ro\'yxat yangilandi.');
   });
   document.getElementById('usersSortSelect')?.addEventListener('change', (e) => {
@@ -1915,9 +1985,20 @@ function normalizeSeriesFromApi(item) {
   };
 }
 
-async function fetchSeries() {
+async function fetchSeries(force = false) {
   const grid = document.getElementById('seriesCardGrid');
-  if (grid) {
+  const cached = readAdminCache('series');
+  const applySeries = (data) => {
+    seriesList = (Array.isArray(data) ? data : []).map(normalizeSeriesFromApi).filter(s => s.id);
+    filteredSeries = [...seriesList];
+    seriesLoaded = true;
+    renderSeries();
+  };
+  if (cached?.data && !force) {
+    applySeries(cached.data);
+    if (cached.fresh) return seriesList;
+  }
+  if (grid && (force || !cached?.data)) {
     grid.innerHTML = `
       <div class="loading-state" style="grid-column:1/-1;">
         <div class="loading-spinner"></div>
@@ -1927,18 +2008,22 @@ async function fetchSeries() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/series?t=${Date.now()}`);
+    const response = await fetch(`${API_URL}/series`, { headers: cachedRequestHeaders(cached, force) });
+    if (response.status === 304 && cached?.data) {
+      writeAdminCache('series', cached.data, cached.etag);
+      return seriesList;
+    }
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       throw new Error(errorData?.error || `Server xatolik: ${response.status}`);
     }
     const data = await response.json();
-    seriesList = (Array.isArray(data) ? data : []).map(normalizeSeriesFromApi).filter(s => s.id);
-    filteredSeries = [...seriesList];
-    seriesLoaded = true;
-    renderSeries();
+    writeAdminCache('series', data, response.headers.get('ETag') || '');
+    applySeries(data);
+    return seriesList;
   } catch (error) {
     console.error('Error fetching series:', error);
+    if (cached?.data) return seriesList;
     seriesList = [];
     filteredSeries = [];
     if (grid) {
@@ -2523,32 +2608,48 @@ function dedupeMusic(list) {
   return Array.from(seen.values());
 }
 
-async function fetchMusic() {
+async function fetchMusic(force = false) {
   const tbody = document.getElementById('musicTableBody');
-  if (tbody) {
+  const cached = readAdminCache('music');
+  const applyMusic = (payload) => {
+    const serverList = Array.isArray(payload?.tracks) ? payload.tracks : (Array.isArray(payload) ? payload : []);
+    musicTracks = dedupeMusic(serverList);
+    renderMusicTable();
+    renderMusicCategoryChips();
+    const summary = document.getElementById('musicStorageSummary');
+    if (summary) {
+      const storage = payload?.storage || 'seed';
+      const isPersistent = storage === 'redis' || storage === 'kv';
+      summary.textContent = isPersistent
+        ? `Persistent Redis ulangan · ${musicTracks.length} ta qo'shiq`
+        : `Faqat seed (Redis sozlanmagan) · ${musicTracks.length} ta qo'shiq`;
+      summary.style.color = isPersistent ? '#3ecf8e' : '#ffb84d';
+    }
+  };
+  if (cached?.data && !force) {
+    applyMusic(cached.data);
+    if (cached.fresh) return musicTracks;
+  }
+  if (tbody && (force || !cached?.data)) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="loading-state"><div class="loading-spinner"></div><p>Yuklanmoqda...</p></div></td></tr>`;
   }
-  let serverList = [];
-  let storage = 'seed';
   try {
-    const res = await fetch('/api/music', { cache: 'no-store' });
+    const res = await fetch('/api/music', { cache: 'no-store', headers: cachedRequestHeaders(cached, force) });
+    if (res.status === 304 && cached?.data) {
+      writeAdminCache('music', cached.data, cached.etag);
+      return musicTracks;
+    }
     if (res.ok) {
       const json = await res.json();
-      serverList = Array.isArray(json.tracks) ? json.tracks : [];
-      storage = json.storage || 'seed';
+      writeAdminCache('music', json, res.headers.get('ETag') || '');
+      applyMusic(json);
+      return musicTracks;
     }
   } catch (_) {}
-  musicTracks = dedupeMusic(serverList);
+  if (cached?.data) return musicTracks;
+  musicTracks = [];
   renderMusicTable();
   renderMusicCategoryChips();
-  const summary = document.getElementById('musicStorageSummary');
-  if (summary) {
-    const isPersistent = storage === 'redis' || storage === 'kv';
-    summary.textContent = isPersistent
-      ? `Persistent Redis ulangan · ${musicTracks.length} ta qo'shiq`
-      : `Faqat seed (Redis sozlanmagan) · ${musicTracks.length} ta qo'shiq`;
-    summary.style.color = isPersistent ? '#3ecf8e' : '#ffb84d';
-  }
 }
 
 function renderMusicTable() {
@@ -2715,7 +2816,7 @@ document.getElementById('musicLink')?.addEventListener('input', (e) => {
 });
 
 document.getElementById('musicExportBtn')?.addEventListener('click', exportMusicJSON);
-document.getElementById('musicReloadBtn')?.addEventListener('click', fetchMusic);
+document.getElementById('musicReloadBtn')?.addEventListener('click', () => fetchMusic(true));
 document.getElementById('musicSearchAdminInput')?.addEventListener('input', (e) => {
   musicSearchQueryAdmin = e.target.value.trim();
   renderMusicTable();
@@ -3339,30 +3440,44 @@ function resetCategoryForm() {
   if (hint) { hint.textContent = "Yoki pastdagi URL maydoniga to'g'ridan-to'g'ri link kiriting."; hint.style.color = ''; }
 }
 
-async function fetchCategories() {
+async function fetchCategories(force = false) {
   const tbody = document.getElementById('categoriesTableBody');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="4"><div class="loading-state"><div class="loading-spinner"></div><p>Yuklanmoqda...</p></div></td></tr>`;
-  try {
-    if (!movies.length) { try { await fetchMovies(); } catch (_) {} }
-    const res = await fetch('/api/categories', { cache: 'no-store' });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    categoriesList = Array.isArray(json.categories) ? json.categories : [];
+  const cached = readAdminCache('categories');
+  const applyCategories = (json) => {
+    categoriesList = Array.isArray(json?.categories) ? json.categories : [];
     const movieCats = collectKnownCategories();
     const datalist = document.getElementById('categoryNameList');
-    if (datalist) {
-      datalist.innerHTML = movieCats.map((name) => `<option value="${escapeHtml(name)}"></option>`).join('');
-    }
+    if (datalist) datalist.innerHTML = movieCats.map((name) => `<option value="${escapeHtml(name)}"></option>`).join('');
     const summary = document.getElementById('categoriesStorageSummary');
     if (summary) {
-      const ok = json.storage === 'redis';
+      const ok = json?.storage === 'redis';
       summary.textContent = ok
         ? `Redis ulangan · ${categoriesList.length} ta saqlangan, ${movieCats.length} ta kinolarda`
         : `Redis sozlanmagan · ${categoriesList.length} ta saqlangan`;
       summary.style.color = ok ? '#3ecf8e' : '#ffb84d';
     }
     renderCategoriesTable();
+  };
+  if (cached?.data && !force) {
+    if (!movies.length) { try { await fetchMovies(); } catch (_) {} }
+    applyCategories(cached.data);
+    if (cached.fresh) return categoriesList;
+  }
+  if (tbody && (force || !cached?.data)) tbody.innerHTML = `<tr><td colspan="4"><div class="loading-state"><div class="loading-spinner"></div><p>Yuklanmoqda...</p></div></td></tr>`;
+  try {
+    if (!movies.length) { try { await fetchMovies(); } catch (_) {} }
+    const res = await fetch('/api/categories', { cache: 'no-store', headers: cachedRequestHeaders(cached, force) });
+    if (res.status === 304 && cached?.data) {
+      writeAdminCache('categories', cached.data, cached.etag);
+      return categoriesList;
+    }
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    writeAdminCache('categories', json, res.headers.get('ETag') || '');
+    applyCategories(json);
+    return categoriesList;
   } catch (err) {
+    if (cached?.data) return categoriesList;
     if (tbody) tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state error-state"><h3>Xatolik</h3><p>${escapeHtml(err.message)}</p></div></td></tr>`;
   }
 }
@@ -3498,7 +3613,7 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
 });
 
 document.getElementById('categoryResetBtn')?.addEventListener('click', resetCategoryForm);
-document.getElementById('categoriesReloadBtn')?.addEventListener('click', fetchCategories);
+document.getElementById('categoriesReloadBtn')?.addEventListener('click', () => fetchCategories(true));
 
 document.getElementById('categoriesTableBody')?.addEventListener('click', async (e) => {
   const attachBtn = e.target.closest('[data-cat-attach]');
@@ -3908,18 +4023,33 @@ function formatCount(n) {
   return String(x);
 }
 
-async function fetchPodcasts() {
+async function fetchPodcasts(force = false) {
   const grid = document.getElementById('podcastsListGrid');
   const summary = document.getElementById('podcastsStorageSummary');
-  if (grid) grid.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Kanallar yuklanmoqda...</p></div>';
-  try {
-    const r = await fetch(`${API_URL}/podcasts?t=${Date.now()}`);
-    const data = await r.json();
-    if (!r.ok || !data.ok) throw new Error(data.error || 'Yuklab bo\'lmadi.');
-    podcastChannels = Array.isArray(data.channels) ? data.channels : [];
+  const cached = readAdminCache('podcasts');
+  const applyPodcasts = (data) => {
+    podcastChannels = Array.isArray(data?.channels) ? data.channels : (Array.isArray(data) ? data : []);
     renderPodcasts();
     if (summary) summary.textContent = `${podcastChannels.length} ta kanal qo'shilgan.`;
+  };
+  if (cached?.data && !force) {
+    applyPodcasts(cached.data);
+    if (cached.fresh) return podcastChannels;
+  }
+  if (grid && (force || !cached?.data)) grid.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Kanallar yuklanmoqda...</p></div>';
+  try {
+    const r = await fetch(`${API_URL}/podcasts`, { headers: cachedRequestHeaders(cached, force) });
+    if (r.status === 304 && cached?.data) {
+      writeAdminCache('podcasts', cached.data, cached.etag);
+      return podcastChannels;
+    }
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'Yuklab bo\'lmadi.');
+    writeAdminCache('podcasts', data, r.headers.get('ETag') || '');
+    applyPodcasts(data);
+    return podcastChannels;
   } catch (err) {
+    if (cached?.data) return podcastChannels;
     console.error('podcasts fetch:', err);
     if (grid) grid.innerHTML = `<div class="empty-state error-state"><h3>Kanallarni yuklab bo'lmadi</h3><p>${escapeHtml(err.message)}</p></div>`;
     if (summary) summary.textContent = 'Xatolik: ' + err.message;
@@ -4217,7 +4347,7 @@ document.getElementById('podLangsSaveBtn')?.addEventListener('click', async () =
 
 document.getElementById('podLangsReloadBtn')?.addEventListener('click', () => fetchPodLangs());
 
-document.getElementById('podcastReloadBtn')?.addEventListener('click', () => fetchPodcasts());
+document.getElementById('podcastReloadBtn')?.addEventListener('click', () => fetchPodcasts(true));
 document.getElementById('podcastsListGrid')?.addEventListener('click', (e) => {
   const del = e.target.closest('[data-pod-delete]');
   if (del) {
