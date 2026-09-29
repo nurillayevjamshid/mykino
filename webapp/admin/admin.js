@@ -447,7 +447,13 @@ async function init() {
   createSidebarOverlay();
 
   const savedSection = localStorage.getItem('admin-section');
-  if (savedSection && savedSection !== 'movies') switchSection(savedSection);
+  if (savedSection === 'categories') {
+    // Oldingi versiyadagi alohida sidebar bo'limini kino ichidagi tabga migrate qilamiz.
+    localStorage.setItem('admin-section', 'movies');
+    switchMovieTab('categories');
+  } else if (savedSection && savedSection !== 'movies') {
+    switchSection(savedSection);
+  }
 }
 
 // ===== Bottom-sheet swipe-down to close (modals) =====
@@ -503,7 +509,6 @@ function switchSection(name) {
     movies: 'moviesSection',
     music: 'musicSection',
     podcasts: 'podcastsSection',
-    categories: 'categoriesSection',
     users: 'usersSection',
     ad: 'adSection',
     fifaLive: 'fifaLiveSection',
@@ -528,7 +533,6 @@ function switchSection(name) {
   if (name === 'users') fetchUsers();
   if (name === 'music') fetchMusic();
   if (name === 'podcasts') { fetchPodcasts(); fetchPodLangs(); }
-  if (name === 'categories') fetchCategories();
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
   if (name === 'fifaLive') { loadFifaLiveMatch(); }
   if (name === 'esportsStreams') { loadEsportsStreams(); }
@@ -1852,12 +1856,6 @@ let seriesLoaded = false;
 
 function switchMovieTab(name) {
   if (!name) return;
-  if (name === 'categories') {
-    // "Kategoriyalar" tab kino bo'limidan to'g'ridan-to'g'ri kategoriyalar
-    // bo'limiga o'tkazadi (sidebar'dagi mavjud section).
-    switchSection('categories');
-    return;
-  }
   document.querySelectorAll('.movie-tab').forEach(tab => {
     const active = tab.dataset.movieTab === name;
     tab.classList.toggle('is-active', active);
@@ -1871,6 +1869,7 @@ function switchMovieTab(name) {
     closeSeriesEditor();
     if (!seriesLoaded) fetchSeries();
   }
+  if (name === 'categories') fetchCategories();
 }
 
 function switchAdTab(name) {
