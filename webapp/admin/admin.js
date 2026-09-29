@@ -721,13 +721,13 @@ function renderUsers() {
   }
 
   tbody.innerHTML = list.map((user, index) => `
-    <tr>
+    <tr class="user-row" data-user-row tabindex="0" aria-expanded="false">
       <td>${index + 1}</td>
-      <td><strong>${escapeHtml(userFullName(user) || '-')}</strong></td>
-      <td>${user.username ? '@' + escapeHtml(user.username) : '-'}</td>
-      <td><code>${escapeHtml(String(user.telegram_id || '-'))}</code></td>
-      <td>${escapeHtml(user.started_at || '-')}</td>
-      <td>${formatLastActive(user.last_active)}</td>
+      <td class="user-row__name"><strong>${escapeHtml(userFullName(user) || '-')}</strong></td>
+      <td class="user-row__username">${user.username ? '@' + escapeHtml(user.username) : '-'}</td>
+      <td class="user-row__detail"><code>${escapeHtml(String(user.telegram_id || '-'))}</code></td>
+      <td class="user-row__detail">${escapeHtml(user.started_at || '-')}</td>
+      <td class="user-row__detail">${formatLastActive(user.last_active)}</td>
     </tr>
   `).join('');
 }
@@ -829,6 +829,19 @@ function bindEvents() {
   // Users search + refresh
   document.getElementById('userSearchInput')?.addEventListener('input', (e) => {
     filterUsers(e.target.value);
+  });
+  document.getElementById('usersTableBody')?.addEventListener('click', (e) => {
+    const row = e.target.closest('[data-user-row]');
+    if (!row) return;
+    const expanded = row.classList.toggle('is-expanded');
+    row.setAttribute('aria-expanded', String(expanded));
+  });
+  document.getElementById('usersTableBody')?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const row = e.target.closest('[data-user-row]');
+    if (!row) return;
+    e.preventDefault();
+    row.click();
   });
   document.getElementById('refreshUsersBtn')?.addEventListener('click', async () => {
     await fetchUsers();
