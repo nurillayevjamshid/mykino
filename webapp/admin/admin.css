@@ -1569,6 +1569,10 @@ body { background: radial-gradient(circle at 72% -10%, #f9fbff 0, var(--page-bg)
 .command-result strong, .command-result small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .command-result small, .command-empty { color:var(--text-muted); font-size:12px; }
 .command-empty { padding:24px; text-align:center; }
+.admin-button-spinner { width:14px; height:14px; display:inline-block; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:adminSpin .65s linear infinite; vertical-align:-2px; margin-right:7px; }
+.admin-undo-toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:1200; display:flex; align-items:center; gap:14px; max-width:calc(100vw - 28px); padding:12px 14px; border:1px solid var(--border); border-radius:12px; background:var(--bg-card,#fff); color:var(--text); box-shadow:0 14px 34px rgba(0,0,0,.2); font-size:13px; }
+.admin-undo-toast button { border:0; background:var(--primary); color:#fff; border-radius:8px; padding:7px 10px; font-weight:700; cursor:pointer; }
+@keyframes adminSpin { to { transform:rotate(360deg); } }
 [data-theme="dark"] .command-search-wrap { background:var(--bg-elevated,var(--bg-card)); }
 @media (max-width: 768px) {
   .admin-list-pagination { justify-content:center; gap:6px; flex-wrap:wrap; }
