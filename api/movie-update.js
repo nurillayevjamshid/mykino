@@ -3,6 +3,8 @@ const {
   getDriveFileMetadata,
   setCors,
   updateCatalogMovieMetadata,
+  trashDriveFile,
+  restoreDriveFile,
   deleteMovieComment,
   restoreCatalogMovieOverrides,
 } = require("./_lib/google-drive");
@@ -66,6 +68,17 @@ module.exports = async function handler(request, response) {
   try {
     const body = await readRequestBody(request);
     const action = trimString(request.query?.action || body.action).toLowerCase();
+
+    if (action === "bulkdelete" || action === "bulkrestore") {
+      if (!isAdminRequest(request, body)) { response.status(401).json({ ok: false, code: "UNAUTHORIZED", error: "Parol noto'g'ri." }); return; }
+      const ids = Array.isArray(body.ids) ? [...new Set(body.ids.map(trimString).filter(Boolean))].slice(0, 100) : [];
+      if (!ids.length) { response.status(400).json({ ok: false, code: "MISSING_IDS", error: "Kamida bitta kino ID si kerak." }); return; }
+      const operation = action === "bulkdelete" ? trashDriveFile : restoreDriveFile;
+      const results = await Promise.allSettled(ids.map(operation));
+      const failed = results.filter(item => item.status === "rejected").length;
+      response.status(failed === ids.length ? 502 : 200).json({ ok: failed < ids.length, processed: ids.length - failed, failed, ids });
+      return;
+    }
 
     // Admin: o'chib ketgan posterlar/override'larni R2 zaxira va Drive fayl
     // revisiyalaridan qaytarish. Fill-only — hozirgi qiymatlarga tegmaydi.

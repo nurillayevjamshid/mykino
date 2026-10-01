@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#3d4adf">
   <title>NTV - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20261001-optimistic-ui">
+  <link rel="stylesheet" href="/admin/admin.css?v=20261002-error-bulk">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -202,10 +202,19 @@
               </div>
             </div>
 
+            <div class="bulk-toolbar" id="moviesBulkToolbar" hidden>
+              <strong><span id="moviesSelectedCount">0</span> ta tanlandi</strong>
+              <select id="bulkMovieCategory" class="form-select" aria-label="Bulk kategoriya"><option value="">Kategoriya tanlang</option></select>
+              <button type="button" class="btn btn-secondary" id="bulkMovieCategoryBtn">Kategoriya almashtirish</button>
+              <button type="button" class="btn btn-secondary" id="bulkMovieRestoreBtn">Posterlarni tiklash</button>
+              <button type="button" class="btn btn-danger" id="bulkMovieDeleteBtn">O‘chirish</button>
+              <button type="button" class="btn btn-ghost" id="clearMovieSelectionBtn">Bekor qilish</button>
+            </div>
             <div class="table-container">
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th class="bulk-select-col"><input type="checkbox" id="selectAllMovies" aria-label="Barchasini tanlash"></th>
                     <th>Poster</th>
                     <th>Header</th>
                     <th>Nomi</th>
@@ -1268,6 +1277,6 @@
     }
   </style>
 
-  <script src="/admin/admin.js?v=20261001-optimistic-ui"></script>
+  <script src="/admin/admin.js?v=20261002-error-bulk"></script>
 </body>
 </html>
