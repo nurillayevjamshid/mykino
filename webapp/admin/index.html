@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#3d4adf">
   <title>NTV - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20260930-dark-qa">
+  <link rel="stylesheet" href="/admin/admin.css?v=20261001-pagination-command">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -452,6 +452,12 @@
               </thead>
               <tbody id="musicTableBody"></tbody>
             </table>
+          </div>
+          <div class="pagination admin-list-pagination" id="musicPagination" hidden>
+            <button type="button" class="pagination__page" data-page-action="prev">‹</button>
+            <div class="pagination__pages" id="musicPaginationPages"></div>
+            <button type="button" class="pagination__page" data-page-action="next">›</button>
+            <span class="pagination__info" id="musicPaginationInfo"></span>
           </div>
           </div><!-- /songs tabpanel -->
 
@@ -1067,6 +1073,12 @@
               </tbody>
             </table>
           </div>
+          <div class="pagination admin-list-pagination" id="usersPagination" hidden>
+            <button type="button" class="pagination__page" data-page-action="prev">‹</button>
+            <div class="pagination__pages" id="usersPaginationPages"></div>
+            <button type="button" class="pagination__page" data-page-action="next">›</button>
+            <span class="pagination__info" id="usersPaginationInfo"></span>
+          </div>
         </section>
 
       </div>
@@ -1256,6 +1268,6 @@
     }
   </style>
 
-  <script src="/admin/admin.js?v=20260711-postersiz"></script>
+  <script src="/admin/admin.js?v=20261001-pagination-command"></script>
 </body>
 </html>
