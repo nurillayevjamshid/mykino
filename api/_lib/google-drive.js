@@ -221,6 +221,13 @@ async function updateDriveFileMetadata(fileId, metadata, fields = "id,name,mimeT
   });
 }
 
+async function trashDriveFile(fileId) {
+  return driveFetchJson(encodeURIComponent(fileId), { method: "PATCH", headers: { "Content-Type": "application/json; charset=UTF-8" }, body: JSON.stringify({ trashed: true }), query: { supportsAllDrives: "true", fields: "id,name,trashed" } });
+}
+async function restoreDriveFile(fileId) {
+  return driveFetchJson(encodeURIComponent(fileId), { method: "PATCH", headers: { "Content-Type": "application/json; charset=UTF-8" }, body: JSON.stringify({ trashed: false }), query: { supportsAllDrives: "true", fields: "id,name,trashed" } });
+}
+
 async function driveUploadFetch(pathname, options = {}) {
   const normalizedPath = pathname ? `/${String(pathname).replace(/^\/+/, "")}` : "";
   const url = new URL(`${DRIVE_UPLOAD_BASE}${normalizedPath}`);
@@ -2131,6 +2138,8 @@ module.exports = {
   writeCatalogMetadata,
   setCors,
   updateDriveFileMetadata,
+  trashDriveFile,
+  restoreDriveFile,
   updateCatalogMovieMetadata,
   getMovieReaction,
   setMovieReaction,

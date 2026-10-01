@@ -1066,6 +1066,39 @@ function bindEvents() {
     const page = parseInt(btn.dataset.page || '', 10);
     if (Number.isFinite(page)) goToMoviesPage(page);
   });
+  document.getElementById('selectAllMovies')?.addEventListener('change', (e) => {
+    document.querySelectorAll('#moviesTableBody input[data-movie-select]').forEach(input => e.target.checked ? selectedMovieIds.add(input.value) : selectedMovieIds.delete(input.value));
+    updateMoviesBulkToolbar();
+    renderMovies();
+  });
+  document.getElementById('moviesTableBody')?.addEventListener('change', (e) => {
+    const input = e.target.closest('input[data-movie-select]');
+    if (!input) return;
+    if (input.checked) selectedMovieIds.add(input.value); else selectedMovieIds.delete(input.value);
+    updateMoviesBulkToolbar();
+  });
+  document.getElementById('bulkMovieCategoryBtn')?.addEventListener('click', bulkChangeMovieCategory);
+  document.getElementById('bulkMovieRestoreBtn')?.addEventListener('click', bulkRestoreMoviePosters);
+  document.getElementById('clearMovieSelectionBtn')?.addEventListener('click', clearMovieSelection);
+  document.getElementById('bulkMovieDeleteBtn')?.addEventListener('click', async (e) => {
+    const ids = [...selectedMovieIds];
+    if (!ids.length) return showNotification('Avval kinolarni tanlang.', 'error');
+    if (!confirm(`${ids.length} ta kinoni Drive trash’ga yuborish tasdiqlansinmi? 6 soniya ichida Bekor qilish mumkin.`)) return;
+    const button = e.currentTarget; const removed = movies.filter(movie => selectedMovieIds.has(String(movie.id)));
+    movies = movies.filter(movie => !selectedMovieIds.has(String(movie.id))); filteredMovies = [...movies]; renderMovies(); setButtonBusy(button, true, 'O‘chirilmoqda');
+    try {
+      const response = await fetch(`${API_URL}/movie-update?action=bulkdelete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || `${data.failed || 0} ta kino o‘chirilmadi.`);
+      clearMovieSelection();
+      showUndoNotification(`${data.processed} ta kino trash’ga yuborildi.`, async () => {
+        const restore = await fetch(`${API_URL}/movie-update?action=bulkrestore`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+        const restored = await restore.json().catch(() => ({})); if (!restore.ok || !restored.ok) throw new Error(restored.error || 'Kinolarni qaytarib bo‘lmadi.');
+        movies = [...movies, ...removed]; filteredMovies = [...movies]; renderMovies(); showNotification(`${restored.processed} ta kino qaytarildi.`);
+      });
+    } catch (err) { movies = [...movies, ...removed]; filteredMovies = [...movies]; renderMovies(); showNotification(`Bulk o‘chirishda xato: ${err.message}`, 'error'); }
+    finally { setButtonBusy(button, false); }
+  });
 
   document.getElementById('usersPagination')?.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
@@ -1147,6 +1180,8 @@ function bindEvents() {
 
   // Forms
   document.getElementById('movieForm')?.addEventListener('submit', handleMovieSubmit);
+  document.getElementById('movieForm')?.addEventListener('input', markMovieFormDirty);
+  document.getElementById('movieForm')?.addEventListener('change', markMovieFormDirty);
   document.getElementById('movieDescription')?.addEventListener('input', updateDescriptionCounter);
 
   // Push checkbox toggle
@@ -1338,6 +1373,8 @@ function bindEvents() {
   document.getElementById('seriesCancelBtn')?.addEventListener('click', closeSeriesEditor);
   document.getElementById('seriesSaveBtn')?.addEventListener('click', () => handleSeriesSubmit());
   document.getElementById('seriesForm')?.addEventListener('submit', (e) => { e.preventDefault(); handleSeriesSubmit(); });
+  document.getElementById('seriesForm')?.addEventListener('input', (e) => { e.currentTarget.dataset.dirty = '1'; });
+  document.getElementById('seriesForm')?.addEventListener('change', (e) => { e.currentTarget.dataset.dirty = '1'; });
   document.getElementById('seriesDescription')?.addEventListener('input', updateSeriesDescriptionCounter);
 
   // Series poster upload
@@ -1368,10 +1405,18 @@ function bindEvents() {
     }
   });
 
+  setupImageDropUpload('posterUploadArea', 'moviePosterFile', async file => { selectedPosterDataUrl = await readPosterFile(file); updatePosterPreview(selectedPosterDataUrl); const input = document.getElementById('moviePosterUrl'); if (input) input.value = ''; });
+  setupImageDropUpload('headerUploadArea', 'movieHeaderImageFile', async file => { selectedHeaderDataUrl = await readHeaderFile(file); updateHeaderPreview(selectedHeaderDataUrl); const input = document.getElementById('movieHeaderImage'); if (input) input.value = ''; });
+  setupImageDropUpload('seriesPosterUploadArea', 'seriesPosterFile', async file => { selectedSeriesPosterDataUrl = await readPosterFile(file); updateSeriesPosterPreview(selectedSeriesPosterDataUrl); const input = document.getElementById('seriesPosterUrl'); if (input) input.value = ''; });
+  document.getElementById('moviePosterUrl')?.addEventListener('blur', e => { if (!isValidImageUrl(e.target.value.trim())) showNotification('Poster URL noto‘g‘ri. http:// yoki https:// bilan boshlanishi kerak.', 'error'); });
+  document.getElementById('movieHeaderImage')?.addEventListener('blur', e => { if (!isValidImageUrl(e.target.value.trim())) showNotification('Header URL noto‘g‘ri.', 'error'); });
+  document.getElementById('seriesPosterUrl')?.addEventListener('blur', e => { if (!isValidImageUrl(e.target.value.trim())) showNotification('Serial poster URL noto‘g‘ri.', 'error'); });
   // Close modals on backdrop click
   document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.remove('active');
+      if (e.target !== modal) return;
+      if (modal.id === 'movieModal') closeMovieModal();
+      else modal.classList.remove('active');
     });
   });
 }
@@ -1381,6 +1426,59 @@ function bindEvents() {
 // logo, placeholder) URL. Postersizlarni tez topib, R2 tanlagich bilan
 // bog'lab chiqish uchun ishlatiladi.
 let showOnlyMissingPosters = false;
+const selectedMovieIds = new Set();
+function updateMoviesBulkToolbar() {
+  const toolbar = document.getElementById('moviesBulkToolbar');
+  const count = document.getElementById('moviesSelectedCount');
+  if (count) count.textContent = String(selectedMovieIds.size);
+  if (toolbar) toolbar.hidden = selectedMovieIds.size === 0;
+  const visible = [...document.querySelectorAll('#moviesTableBody input[data-movie-select]')];
+  const all = visible.length > 0 && visible.every(input => selectedMovieIds.has(input.value));
+  const selectAll = document.getElementById('selectAllMovies');
+  if (selectAll) { selectAll.checked = all; selectAll.indeterminate = !all && visible.some(input => selectedMovieIds.has(input.value)); }
+}
+function updateBulkMovieCategoryOptions() {
+  const select = document.getElementById('bulkMovieCategory');
+  if (!select) return;
+  const current = select.value;
+  const categories = [...new Set(movies.flatMap(m => splitCategories(m.category)))].sort((a, b) => a.localeCompare(b));
+  select.innerHTML = '<option value="">Kategoriya tanlang</option>' + categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  select.value = current;
+}
+async function bulkChangeMovieCategory() {
+  const category = document.getElementById('bulkMovieCategory')?.value.trim();
+  const ids = [...selectedMovieIds];
+  if (!ids.length) return showNotification('Avval kinolarni tanlang.', 'error');
+  if (!category) return showNotification('Bulk kategoriya tanlang.', 'error');
+  const button = document.getElementById('bulkMovieCategoryBtn');
+  const snapshots = new Map(ids.map(id => [id, { ...movies.find(m => String(m.id) === id) }]));
+  movies.forEach(movie => { if (selectedMovieIds.has(String(movie.id))) movie.category = category; });
+  filterMovies(currentSearchQuery || '');
+  setButtonBusy(button, true, 'Saqlanmoqda');
+  try {
+    const results = await Promise.all(ids.map(id => fetch(`${API_URL}/movie-update`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, genre: category }) }).then(async r => { const data = await r.json().catch(() => ({})); if (!r.ok || !data.ok) throw new Error(data.error || `HTTP ${r.status}`); return data; })));
+    showNotification(`${results.length} ta kinoning kategoriyasi yangilandi.`);
+    clearMovieSelection();
+    await fetchMovies(true);
+  } catch (err) {
+    movies.forEach(movie => { const old = snapshots.get(String(movie.id)); if (old) Object.assign(movie, old); });
+    filterMovies(currentSearchQuery || '');
+    showNotification(`Bulk saqlashda xato: ${err.message}`, 'error');
+  } finally { setButtonBusy(button, false); }
+}
+async function bulkRestoreMoviePosters() {
+  const button = document.getElementById('bulkMovieRestoreBtn');
+  setButtonBusy(button, true, 'Tiklanmoqda');
+  try {
+    const response = await fetch('/api/movie-update?action=restoreposters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Posterlarni tiklab bo\'lmadi.');
+    showNotification(data.message || `${data.restored || 0} ta poster tiklandi.`);
+    await fetchMovies(true); clearMovieSelection();
+  } catch (err) { showNotification(`Poster tiklashda xato: ${err.message}`, 'error'); }
+  finally { setButtonBusy(button, false); }
+}
+function clearMovieSelection() { selectedMovieIds.clear(); updateMoviesBulkToolbar(); renderMovies(); }
 function movieHasRealPoster(movie) {
   const poster = String(movie.poster || '').trim().toLowerCase();
   if (!poster) return false;
@@ -1429,7 +1527,7 @@ function renderMovies() {
   if (moviesToRender.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8">
+        <td colspan="9">
           <div class="empty-state">
             <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
@@ -1458,6 +1556,7 @@ function renderMovies() {
 
   tbody.innerHTML = pageSlice.map(movie => `
     <tr data-id="${escapeHtml(movie.id)}">
+      <td class="bulk-select-col"><input type="checkbox" data-movie-select value="${escapeHtml(movie.id)}" ${selectedMovieIds.has(String(movie.id)) ? 'checked' : ''} aria-label="${escapeHtml(movie.name)} tanlash"></td>
       <td>
         <img src="${escapeHtml(movie.poster ? proxiedPoster(movie.poster) : POSTER_PLACEHOLDER)}"
              alt="${escapeHtml(movie.name)}" class="movie-poster" loading="lazy" decoding="async" onerror="retryPoster(this)">
@@ -1485,6 +1584,8 @@ function renderMovies() {
       </td>
     </tr>
   `).join('');
+  updateBulkMovieCategoryOptions();
+  updateMoviesBulkToolbar();
 }
 
 function renderMoviesPagination(totalItems) {
@@ -1537,7 +1638,7 @@ function buildPageList(current, total) {
 }
 
 function goToMoviesPage(page) {
-  const list = currentSearchQuery ? filteredMovies : movies;
+  const list = (currentSearchQuery || showOnlyMissingPosters) ? filteredMovies : movies;
   const totalPages = Math.max(1, Math.ceil(list.length / MOVIES_PAGE_SIZE));
   moviesCurrentPage = Math.max(1, Math.min(totalPages, page));
   renderMovies();
@@ -1603,6 +1704,8 @@ function openMovieModal(movie) {
   updateHeaderPreview(headerImage);
 
   updateDescriptionCounter();
+  form.dataset.formSnapshot = JSON.stringify({ name: movie.name, category: movie.category, rating: movie.rating, hd: movie.hd, description: movie.description || '', poster: movie.poster || '', headerImage: movie.headerImage || '', showInHeader });
+  form.dataset.dirty = '0';
 
   // Reset push panel
   const pushEnabled = document.getElementById('moviePushEnabled');
@@ -1769,6 +1872,21 @@ function readPosterFile(file) {
   });
 }
 
+function isValidImageUrl(value) {
+  if (!value) return true;
+  try { const url = new URL(value, window.location.origin); return ['http:', 'https:'].includes(url.protocol); } catch (_) { return false; }
+}
+function setupImageDropUpload(areaId, inputId, processFile) {
+  const area = document.getElementById(areaId); const input = document.getElementById(inputId);
+  if (!area || !input || area.dataset.dropReady) return;
+  area.dataset.dropReady = '1';
+  const progress = document.createElement('div'); progress.className = 'poster-upload-progress'; progress.innerHTML = '<span></span>'; progress.hidden = true; area.appendChild(progress);
+  const bar = progress.querySelector('span');
+  const handle = async file => { if (!file) return; progress.hidden = false; bar.style.width = '18%'; try { bar.style.width = '55%'; await processFile(file); bar.style.width = '100%'; setTimeout(() => { progress.hidden = true; bar.style.width = '0'; }, 240); } catch (err) { progress.hidden = true; bar.style.width = '0'; throw err; } };
+  ['dragenter', 'dragover'].forEach(name => area.addEventListener(name, e => { e.preventDefault(); area.classList.add('is-dragover'); }));
+  ['dragleave', 'drop'].forEach(name => area.addEventListener(name, e => { e.preventDefault(); area.classList.remove('is-dragover'); }));
+  area.addEventListener('drop', async e => { try { await handle(e.dataTransfer.files?.[0]); } catch (err) { showNotification(err.message || 'Rasm yuklanmadi.', 'error'); } });
+}
 function updateHeaderPreview(url) {
   const img = document.getElementById('headerPreviewImg');
   const uploadArea = document.getElementById('headerUploadArea');
@@ -1861,9 +1979,17 @@ function hasRatingChanged(nextValue, currentValue) {
 function closeMovieModal() {
   const modal = document.getElementById('movieModal');
   if (modal && modal.classList.contains('active')) {
+    const form = document.getElementById('movieForm');
+    if (form?.dataset.dirty === '1' && !confirm('Saqlanmagan o‘zgarishlar bor. Formani yopmoqchimisiz?')) return;
     modal.classList.remove('active');
     tgPopBack();
   }
+}
+function markMovieFormDirty() {
+  const form = document.getElementById('movieForm');
+  if (!form || !form.dataset.formSnapshot) return;
+  const current = JSON.stringify({ name: document.getElementById('movieName')?.value || '', category: joinCategories([...selectedCategories]), rating: Number(document.getElementById('movieRating')?.value || 0), hd: document.getElementById('movieHd')?.value === 'true', description: document.getElementById('movieDescription')?.value || '', poster: selectedPosterDataUrl || document.getElementById('moviePosterUrl')?.value || '', headerImage: selectedHeaderDataUrl || document.getElementById('movieHeaderImage')?.value || '', showInHeader: Boolean(document.getElementById('movieShowInHeader')?.checked) });
+  form.dataset.dirty = current === form.dataset.formSnapshot ? '0' : '1';
 }
 
 // Handle Movie Submit (edit only - movies originate from Google Drive)
@@ -1973,8 +2099,9 @@ async function handleMovieSubmit(e) {
           await fetchMovies();
           return;
         }
+        form.dataset.dirty = '0';
         closeMovieModal();
-        showNotification('Kino bazada yangilandi! ✅');
+      showNotification('Kino bazada yangilandi! ✅');
         await fetchMovies();
       } else {
         if (currentMovie && previousMovie) Object.assign(currentMovie, previousMovie);
@@ -2281,6 +2408,7 @@ function openSeriesEditor(series) {
   updateSeriesPosterPreview(series.poster || '');
   updateSeriesDescriptionCounter();
   renderSeriesEpisodes(series);
+  if (form) { form.dataset.formSnapshot = JSON.stringify({ name: series.name || '', description: series.description || '', poster: customPoster || '', episodes: (series.episodes || []).map(ep => [ep.id, ep.title || '', ep.season || 1]) }); form.dataset.dirty = '0'; }
 
   const listView = document.getElementById('seriesListAdminView');
   const editorView = document.getElementById('seriesEditorView');
@@ -2292,6 +2420,8 @@ function openSeriesEditor(series) {
 function closeSeriesEditor() {
   const listView = document.getElementById('seriesListAdminView');
   const editorView = document.getElementById('seriesEditorView');
+  const form = document.getElementById('seriesForm');
+  if (form?.dataset.dirty === '1' && !confirm('Saqlanmagan o‘zgarishlar bor. Formani yopmoqchimisiz?')) return;
   if (editorView) editorView.hidden = true;
   if (listView) listView.hidden = false;
 }
@@ -2383,6 +2513,7 @@ async function handleSeriesSubmit() {
     if (result.ok) {
       showNotification('Serial bazada yangilandi! ✅');
       await fetchSeries();
+      form.dataset.dirty = '0';
       closeSeriesEditor();
     } else {
       if (current && previousSeries) Object.assign(current, previousSeries);
@@ -2404,34 +2535,30 @@ window.editSeries = editSeries;
 
 // Show Notification
 function showNotification(message, type = 'success') {
+  const text = String(message || 'Noma’lum xatolik.').trim();
+  if (!text) return;
+  const existing = [...document.querySelectorAll('.admin-toast')].find(node => node.dataset.message === text && node.dataset.type === type);
+  if (existing) { existing.classList.remove('is-visible'); requestAnimationFrame(() => existing.classList.add('is-visible')); return; }
   const notification = document.createElement('div');
-
-  const bgColor = type === 'error'
-    ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-    : 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
-  const textColor = type === 'error' ? '#fff' : '#0f131a';
-
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: ${bgColor};
-    color: ${textColor};
-    padding: 16px 24px;
-    border-radius: 12px;
-    font-weight: 600;
-    z-index: 1000;
-    animation: slideIn 0.3s ease;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-  `;
-  notification.textContent = message;
-  document.body.appendChild(notification);
-
-  setTimeout(() => {
-    notification.style.animation = 'slideOut 0.3s ease';
-    setTimeout(() => notification.remove(), 300);
-  }, 3000);
+  notification.className = `admin-toast admin-toast-${type} is-visible`;
+  notification.dataset.message = text; notification.dataset.type = type;
+  notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  notification.innerHTML = `<span class="admin-toast-icon">${type === 'error' ? '!' : type === 'warning' ? '!' : '✓'}</span><span class="admin-toast-message"></span><button type="button" class="admin-toast-close" aria-label="Yopish">×</button>`;
+  notification.querySelector('.admin-toast-message').textContent = text;
+  notification.querySelector('.admin-toast-close').addEventListener('click', () => notification.remove());
+  let stack = document.querySelector('.admin-toast-stack');
+  if (!stack) { stack = document.createElement('div'); stack.className = 'admin-toast-stack'; stack.setAttribute('aria-live', 'polite'); document.body.appendChild(stack); }
+  stack.appendChild(notification);
+  setTimeout(() => notification.classList.add('is-leaving'), type === 'error' ? 6000 : 3500);
+  setTimeout(() => notification.remove(), type === 'error' ? 6350 : 3850);
 }
+window.addEventListener('error', (event) => {
+  if (event?.message && !String(event.message).includes('ResizeObserver')) showNotification('Kutilmagan xatolik: ' + event.message, 'error');
+});
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event?.reason;
+  if (reason) showNotification('So‘rov bajarilmadi: ' + (reason.message || String(reason)), 'error');
+});
 
 function setButtonBusy(button, busy, label = '') {
   if (!button) return;
@@ -4337,7 +4464,7 @@ async function deletePodcastChannel(channelId, title) {
   } catch (err) {
     podcastChannels = previousChannels;
     renderPodcasts();
-    alert('Xato: ' + err.message);
+    showNotification('Xato: ' + err.message, 'error');
   }
 }
 
@@ -4354,7 +4481,7 @@ async function refreshPodcastChannel(channelId) {
     if (idx >= 0 && data.channel) podcastChannels[idx] = data.channel;
     renderPodcasts();
   } catch (err) {
-    alert('Xato: ' + err.message);
+    showNotification('Xato: ' + err.message, 'error');
   }
 }
 
