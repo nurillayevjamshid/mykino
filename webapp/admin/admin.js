@@ -106,6 +106,10 @@ let filteredMovies = [];
 let currentSearchQuery = '';
 const MOVIES_PAGE_SIZE = 30;
 let moviesCurrentPage = 1;
+const MUSIC_PAGE_SIZE = 30;
+let musicCurrentPage = 1;
+const USERS_PAGE_SIZE = 40;
+let usersCurrentPage = 1;
 let selectedPosterDataUrl = '';
 let selectedHeaderDataUrl = '';
 
@@ -133,6 +137,13 @@ let availableCategories = [];
 const API_URL = '/api';
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 const POSTER_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+function debounce(fn, wait = 280) {
+  let timer = 0;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), wait);
+  };
+}
 
 // Section kataloglari uchun yengil stale-while-revalidate cache.
 // Cache faqat tezkor UI snapshot: serverdagi haqiqiy ma'lumotni almashtirmaydi.
@@ -745,12 +756,14 @@ function applyUsersFilterSort() {
 
 function filterUsers(query) {
   userSearchQuery = String(query || '').toLowerCase().trim();
+  usersCurrentPage = 1;
   applyUsersFilterSort();
   renderUsers();
 }
 
 function setUsersSort(mode) {
   usersSortMode = mode || 'newest';
+  usersCurrentPage = 1;
   applyUsersFilterSort();
   renderUsers();
 }
@@ -758,8 +771,35 @@ function setUsersSort(mode) {
 function setUsersDateRange(from, to) {
   usersDateFrom = from || '';
   usersDateTo = to || '';
+  usersCurrentPage = 1;
   applyUsersFilterSort();
   renderUsers();
+}
+
+function renderListPagination(kind, totalItems, currentPage, pageSize) {
+  const wrap = document.getElementById(`${kind}Pagination`);
+  const pagesWrap = document.getElementById(`${kind}PaginationPages`);
+  const info = document.getElementById(`${kind}PaginationInfo`);
+  if (!wrap || !pagesWrap) return;
+  if (totalItems <= pageSize) {
+    wrap.hidden = true;
+    pagesWrap.innerHTML = '';
+    if (info) info.textContent = '';
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  wrap.hidden = false;
+  wrap.querySelector('[data-page-action="prev"]')?.toggleAttribute('disabled', currentPage <= 1);
+  wrap.querySelector('[data-page-action="next"]')?.toggleAttribute('disabled', currentPage >= totalPages);
+  pagesWrap.innerHTML = buildPageList(currentPage, totalPages).map((page) =>
+    page === '…'
+      ? '<span class="pagination__page is-ellipsis">…</span>'
+      : `<button type="button" class="pagination__page${page === currentPage ? ' is-active' : ''}" data-page="${page}">${page}</button>`
+  ).join('');
+  if (info) {
+    const start = (currentPage - 1) * pageSize + 1;
+    info.textContent = `${start}-${Math.min(totalItems, currentPage * pageSize)} / ${totalItems}`;
+  }
 }
 
 function renderUsers() {
@@ -781,6 +821,7 @@ function renderUsers() {
   }
 
   if (list.length === 0) {
+    renderListPagination('users', 0, usersCurrentPage, USERS_PAGE_SIZE);
     tbody.innerHTML = `
       <tr>
         <td colspan="6">
@@ -794,9 +835,14 @@ function renderUsers() {
     return;
   }
 
-  tbody.innerHTML = list.map((user, index) => `
+  const totalPages = Math.max(1, Math.ceil(list.length / USERS_PAGE_SIZE));
+  usersCurrentPage = Math.max(1, Math.min(totalPages, usersCurrentPage));
+  const start = (usersCurrentPage - 1) * USERS_PAGE_SIZE;
+  const pageSlice = list.slice(start, start + USERS_PAGE_SIZE);
+  renderListPagination('users', list.length, usersCurrentPage, USERS_PAGE_SIZE);
+  tbody.innerHTML = pageSlice.map((user, index) => `
     <tr class="user-row" data-user-row tabindex="0" aria-expanded="false">
-      <td>${index + 1}</td>
+      <td>${start + index + 1}</td>
       <td class="user-row__name"><strong>${escapeHtml(userFullName(user) || '-')}</strong></td>
       <td class="user-row__username">${user.username ? '@' + escapeHtml(user.username) : '-'}</td>
       <td class="user-row__detail"><code>${escapeHtml(String(user.telegram_id || '-'))}</code></td>
@@ -821,8 +867,72 @@ function createSidebarOverlay() {
   document.body.appendChild(overlay);
 }
 
+function commandPaletteItems(query = '') {
+  const q = String(query || '').toLowerCase().trim();
+  const items = [
+    { type: 'command', icon: '＋', label: 'Yangi kino qo\'shish', hint: 'Kinolar bo\'limi', action: () => { switchSection('movies'); showNotification('Yangi kino qo\'shish uchun Google Drive papkasiga fayl yuklang.', 'error'); } },
+    { type: 'command', icon: '▣', label: 'Kinolar bo\'limini ochish', hint: 'Navigation', action: () => switchSection('movies') },
+    { type: 'command', icon: '♫', label: 'Musiqa bo\'limini ochish', hint: 'Navigation', action: () => switchSection('music') },
+    { type: 'command', icon: '♙', label: 'Obunachilarni ochish', hint: 'Navigation', action: () => switchSection('users') },
+    { type: 'command', icon: '◈', label: 'Reklama bo\'limini ochish', hint: 'Navigation', action: () => switchSection('ad') },
+  ];
+  const data = [
+    ...movies.map(m => ({ type: 'movie', icon: '🎬', label: m.name, hint: `${m.code || m.id} · ${m.category || 'Kino'}`, action: () => { switchSection('movies'); editMovie(m.id); }, item: m })),
+    ...seriesList.map(x => ({ type: 'series', icon: '▤', label: x.name, hint: `${x.episodeCount || 0} ta qism`, action: () => { switchSection('movies'); switchMovieTab('series'); editSeries(x.id); }, item: x })),
+    ...usersList.map(u => ({ type: 'user', icon: '♙', label: userFullName(u) || `@${u.username || u.telegram_id}`, hint: u.username ? `@${u.username}` : String(u.telegram_id || ''), action: () => switchSection('users'), item: u })),
+    ...musicTracks.map(t => ({ type: 'music', icon: '♫', label: t.title, hint: t.artist, action: () => switchSection('music'), item: t })),
+  ];
+  const source = q ? [...items, ...data] : [...items, ...readRecentAdminItems()];
+  return source.filter(item => !q || `${item.label} ${item.hint}`.toLowerCase().includes(q)).slice(0, 12);
+}
+function readRecentAdminItems() {
+  try {
+    return JSON.parse(localStorage.getItem('mykino-admin-recent-v1') || '[]').map(item => ({
+      ...item,
+      action: () => {
+        const movie = movies.find(m => m.name === item.label);
+        if (movie) { switchSection('movies'); editMovie(movie.id); return; }
+        switchSection('movies');
+      },
+    }));
+  } catch (_) { return []; }
+}
+function saveRecentAdminItem(item) {
+  if (!item?.label) return;
+  try {
+    const next = [{ type: item.type || 'recent', icon: item.icon || '↗', label: item.label, hint: item.hint || '', action: () => switchSection('movies') }, ...readRecentAdminItems().filter(x => x.label !== item.label)].slice(0, 6);
+    localStorage.setItem('mykino-admin-recent-v1', JSON.stringify(next.map(({ action, ...rest }) => rest)));
+  } catch (_) {}
+}
+function ensureCommandPalette() {
+  if (document.getElementById('commandPalette')) return;
+  const modal = document.createElement('div');
+  modal.className = 'modal command-palette-modal'; modal.id = 'commandPalette';
+  modal.innerHTML = `<div class="modal-content command-palette-content" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
+    <div class="modal-header"><div><h3 id="commandPaletteTitle">Tezkor qidiruv</h3><small>Bo\'lim, buyruq, kino yoki obunachini toping</small></div><button class="modal-close" type="button" data-command-close aria-label="Yopish">&times;</button></div>
+    <div class="command-search-wrap"><span>⌘</span><input id="commandPaletteInput" type="search" autocomplete="off" placeholder="Qidirish yoki buyruq yozish..."><kbd>ESC</kbd></div>
+    <div id="commandPaletteResults" class="command-palette-results"></div>
+  </div>`;
+  document.body.appendChild(modal);
+  const close = () => { modal.classList.remove('active'); };
+  modal.addEventListener('click', e => { if (e.target === modal || e.target.closest('[data-command-close]')) close(); });
+  const input = modal.querySelector('#commandPaletteInput');
+  const render = () => { const results = commandPaletteItems(input.value); modal.querySelector('#commandPaletteResults').innerHTML = results.length ? results.map((x, i) => `<button type="button" class="command-result" data-command-index="${i}"><span class="command-result-icon">${x.icon}</span><span><strong>${escapeHtml(x.label)}</strong><small>${escapeHtml(x.hint)}</small></span><kbd>${x.type === 'command' ? '↵' : ''}</kbd></button>`).join('') : '<div class="command-empty">Hech narsa topilmadi.</div>'; };
+  input.addEventListener('input', render);
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') close(); if (e.key === 'Enter') modal.querySelector('.command-result')?.click(); });
+  modal.addEventListener('click', e => { const btn = e.target.closest('.command-result'); if (!btn) return; const item = commandPaletteItems(input.value)[Number(btn.dataset.commandIndex)]; if (item) { saveRecentAdminItem(item); close(); item.action(); } });
+  modal._open = () => { input.value = ''; render(); modal.classList.add('active'); setTimeout(() => input.focus(), 30); };
+}
+function openCommandPalette() { ensureCommandPalette(); document.getElementById('commandPalette')._open(); }
+
 // Bind Events
 function bindEvents() {
+  ensureCommandPalette();
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openCommandPalette(); }
+    if (e.key === 'Escape') document.getElementById('commandPalette')?.classList.remove('active');
+  });
+
   // Mobile menu toggle
   menuToggle?.addEventListener('click', () => {
     sidebar?.classList.toggle('open');
@@ -842,9 +952,9 @@ function bindEvents() {
   });
 
   // Search Movies
-  document.getElementById('movieSearchInput')?.addEventListener('input', (e) => {
+  document.getElementById('movieSearchInput')?.addEventListener('input', debounce((e) => {
     filterMovies(e.target.value);
-  });
+  }));
 
   // Refresh button
   document.getElementById('refreshMoviesBtn')?.addEventListener('click', async () => {
@@ -901,9 +1011,9 @@ function bindEvents() {
   });
 
   // Users search + refresh
-  document.getElementById('userSearchInput')?.addEventListener('input', (e) => {
+  document.getElementById('userSearchInput')?.addEventListener('input', debounce((e) => {
     filterUsers(e.target.value);
-  });
+  }));
   document.getElementById('usersTableBody')?.addEventListener('click', (e) => {
     const row = e.target.closest('[data-user-row]');
     if (!row) return;
@@ -957,6 +1067,28 @@ function bindEvents() {
     if (Number.isFinite(page)) goToMoviesPage(page);
   });
 
+  document.getElementById('usersPagination')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PAGE_SIZE));
+    if (btn.dataset.pageAction === 'prev') usersCurrentPage--;
+    else if (btn.dataset.pageAction === 'next') usersCurrentPage++;
+    else if (btn.dataset.page) usersCurrentPage = Number(btn.dataset.page);
+    usersCurrentPage = Math.max(1, Math.min(totalPages, usersCurrentPage));
+    renderUsers();
+  });
+  document.getElementById('musicPagination')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const q = musicSearchQueryAdmin.toLowerCase();
+    const total = q ? musicTracks.filter(t => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)).length : musicTracks.length;
+    const totalPages = Math.max(1, Math.ceil(total / MUSIC_PAGE_SIZE));
+    if (btn.dataset.pageAction === 'prev') musicCurrentPage--;
+    else if (btn.dataset.pageAction === 'next') musicCurrentPage++;
+    else if (btn.dataset.page) musicCurrentPage = Number(btn.dataset.page);
+    musicCurrentPage = Math.max(1, Math.min(totalPages, musicCurrentPage));
+    renderMusicTable();
+  });
   // Table row actions - event delegation (only edit, no delete)
   document.getElementById('moviesTableBody')?.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-icon');
@@ -1187,11 +1319,11 @@ function bindEvents() {
   });
 
   // Series search + refresh
-  document.getElementById('seriesSearchInput')?.addEventListener('input', (e) => {
+  document.getElementById('seriesSearchInput')?.addEventListener('input', debounce((e) => {
     filterSeries(e.target.value);
-  });
+  }));
   document.getElementById('refreshSeriesBtn')?.addEventListener('click', async () => {
-    await fetchSeries();
+    await fetchSeries(true);
     showNotification('Ro\'yxat yangilandi.');
   });
 
@@ -1290,7 +1422,7 @@ function renderMovies() {
   const tbody = document.getElementById('moviesTableBody');
   if (!tbody) return;
 
-  const moviesToRender = currentSearchQuery ? filteredMovies : movies;
+  const moviesToRender = (currentSearchQuery || showOnlyMissingPosters) ? filteredMovies : movies;
 
   renderMoviesPagination(moviesToRender.length);
 
@@ -2660,10 +2792,16 @@ function renderMusicTable() {
     ? musicTracks.filter(t => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q))
     : musicTracks;
   if (!list.length) {
+    renderListPagination('music', 0, musicCurrentPage, MUSIC_PAGE_SIZE);
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><h3>Qo'shiqlar yo'q</h3><p>Yangi qo'shiq qo'shing yoki qidiruvni tozalang.</p></div></td></tr>`;
     return;
   }
-  tbody.innerHTML = list.map(t => `
+  const totalPages = Math.max(1, Math.ceil(list.length / MUSIC_PAGE_SIZE));
+  musicCurrentPage = Math.max(1, Math.min(totalPages, musicCurrentPage));
+  const start = (musicCurrentPage - 1) * MUSIC_PAGE_SIZE;
+  const pageSlice = list.slice(start, start + MUSIC_PAGE_SIZE);
+  renderListPagination('music', list.length, musicCurrentPage, MUSIC_PAGE_SIZE);
+  tbody.innerHTML = pageSlice.map(t => `
     <tr>
       <td><img src="https://i.ytimg.com/vi/${escapeHtml(t.youtubeId)}/mqdefault.jpg" alt="" style="width:60px;height:34px;object-fit:cover;border-radius:6px;"></td>
       <td><strong>${escapeHtml(t.title)}</strong></td>
@@ -2817,10 +2955,11 @@ document.getElementById('musicLink')?.addEventListener('input', (e) => {
 
 document.getElementById('musicExportBtn')?.addEventListener('click', exportMusicJSON);
 document.getElementById('musicReloadBtn')?.addEventListener('click', () => fetchMusic(true));
-document.getElementById('musicSearchAdminInput')?.addEventListener('input', (e) => {
+document.getElementById('musicSearchAdminInput')?.addEventListener('input', debounce((e) => {
   musicSearchQueryAdmin = e.target.value.trim();
+  musicCurrentPage = 1;
   renderMusicTable();
-});
+}));
 document.getElementById('musicTableBody')?.addEventListener('click', (e) => {
   const rm = e.target.closest('[data-mcat-remove]');
   if (rm) {
