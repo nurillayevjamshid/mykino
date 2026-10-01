@@ -1940,10 +1940,12 @@ async function handleMovieSubmit(e) {
       return;
     }
 
+    const previousMovie = currentMovie ? { ...currentMovie } : null;
     try {
-      if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.textContent = 'Saqlanmoqda...';
+      setButtonBusy(submitButton, true, 'Saqlanmoqda');
+      if (currentMovie) {
+        Object.assign(currentMovie, normalizeMovieFromApi({ ...currentMovie, ...movieData, title: movieData.name, genre: movieData.category, quality: nextQuality, posterImage: finalPoster }));
+        renderMovies();
       }
 
       const response = await fetch(`${API_URL}/movie-update`, {
@@ -1975,16 +1977,17 @@ async function handleMovieSubmit(e) {
         showNotification('Kino bazada yangilandi! ✅');
         await fetchMovies();
       } else {
+        if (currentMovie && previousMovie) Object.assign(currentMovie, previousMovie);
+        renderMovies();
         showNotification('Xatolik: ' + result.error, 'error');
       }
     } catch (error) {
+      if (currentMovie && previousMovie) Object.assign(currentMovie, previousMovie);
+      renderMovies();
       console.error('Update error:', error);
       showNotification('Serverga ulanishda xatolik!', 'error');
     } finally {
-      if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = 'Saqlash';
-      }
+      setButtonBusy(submitButton, false);
     }
   }
 }
@@ -2364,11 +2367,10 @@ async function handleSeriesSubmit() {
     return;
   }
 
+  const previousSeries = current ? { ...current, episodes: current.episodes?.map(ep => ({ ...ep })) } : null;
   try {
-    if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saqlanmoqda...';
-    }
+    setButtonBusy(saveBtn, true, 'Saqlanmoqda');
+    if (current) { current.name = name; current.description = description; if (finalPoster) current.poster = finalPoster; renderSeries(); }
 
     const response = await fetch(`${API_URL}/series-update`, {
       method: 'PUT',
@@ -2383,16 +2385,17 @@ async function handleSeriesSubmit() {
       await fetchSeries();
       closeSeriesEditor();
     } else {
+      if (current && previousSeries) Object.assign(current, previousSeries);
+      renderSeries();
       showNotification('Xatolik: ' + result.error, 'error');
     }
   } catch (error) {
+    if (current && previousSeries) Object.assign(current, previousSeries);
+    renderSeries();
     console.error('Series update error:', error);
     showNotification('Serverga ulanishda xatolik!', 'error');
   } finally {
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.textContent = 'Saqlash';
-    }
+    setButtonBusy(saveBtn, false);
   }
 }
 
@@ -2428,6 +2431,32 @@ function showNotification(message, type = 'success') {
     notification.style.animation = 'slideOut 0.3s ease';
     setTimeout(() => notification.remove(), 300);
   }, 3000);
+}
+
+function setButtonBusy(button, busy, label = '') {
+  if (!button) return;
+  if (busy) {
+    if (button.dataset.busy === '1') return;
+    button.dataset.busy = '1';
+    button.dataset.originalHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = `<span class="admin-button-spinner" aria-hidden="true"></span>${label ? `<span>${escapeHtml(label)}</span>` : ''}`;
+  } else {
+    button.disabled = false;
+    button.innerHTML = button.dataset.originalHtml || button.innerHTML;
+    delete button.dataset.busy;
+    delete button.dataset.originalHtml;
+  }
+}
+function showUndoNotification(message, onUndo) {
+  const notification = document.createElement('div');
+  notification.className = 'admin-undo-toast';
+  notification.innerHTML = `<span>${escapeHtml(message)}</span><button type="button">Bekor qilish</button>`;
+  document.body.appendChild(notification);
+  let closed = false;
+  const close = () => { if (!closed) { closed = true; notification.remove(); } };
+  notification.querySelector('button')?.addEventListener('click', async () => { close(); try { await onUndo?.(); } catch (err) { showNotification(`Bekor qilishda xato: ${err.message}`, 'error'); } });
+  setTimeout(close, 6000);
 }
 
 // Check Auth — backend bilan tekshiramiz (hardcoded "admin123" tekshiruvi olib tashlandi)
@@ -2816,42 +2845,44 @@ function renderMusicTable() {
   `).join('');
 }
 
-async function addMusicTrack(payload) {
+async function addMusicTrack(payload, button) {
+  const previousTracks = [...musicTracks];
+  musicTracks = dedupeMusic([...musicTracks, payload]);
+  renderMusicTable();
+  setButtonBusy(button, true, "Qo'shilmoqda");
   try {
-    const res = await fetch('/api/music', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ track: payload }),
-    });
+    const res = await fetch('/api/music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ track: payload }) });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    musicTracks = dedupeMusic(Array.isArray(json.tracks) ? json.tracks : []);
-    renderMusicTable();
-    renderMusicCategoryChips();
+    musicTracks = dedupeMusic(Array.isArray(json.tracks) ? json.tracks : musicTracks);
+    renderMusicTable(); renderMusicCategoryChips();
     showNotification(`"${payload.title}" qo'shildi.`);
   } catch (err) {
+    musicTracks = previousTracks; renderMusicTable();
     showNotification(`Qo'shishda xato: ${err.message}`, 'error');
-  }
+  } finally { setButtonBusy(button, false); }
 }
-
-async function deleteMusicTrack(youtubeId, title, artist) {
+async function deleteMusicTrack(youtubeId, title, artist, button) {
   const key = `${title.toLowerCase()}|${artist.toLowerCase()}|${youtubeId}`;
+  const removed = musicTracks.find(t => t.youtubeId === youtubeId);
+  const previousTracks = [...musicTracks];
+  musicTracks = musicTracks.filter(t => t.youtubeId !== youtubeId); renderMusicTable();
+  setButtonBusy(button, true, "O'chirilmoqda");
   try {
-    const res = await fetch('/api/music', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete', key }),
-    });
+    const res = await fetch('/api/music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', key }) });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    musicTracks = dedupeMusic(Array.isArray(json.tracks) ? json.tracks : []);
-    renderMusicTable();
-    showNotification("Qo'shiq o'chirildi.");
+    musicTracks = dedupeMusic(Array.isArray(json.tracks) ? json.tracks : musicTracks); renderMusicTable();
+    showUndoNotification("Qo'shiq o'chirildi.", async () => {
+      if (!removed) return;
+      const restore = await fetch('/api/music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ track: removed }) });
+      if (!restore.ok) throw new Error("Qo'shiqni qaytarib bo'lmadi");
+      const data = await restore.json(); musicTracks = dedupeMusic(Array.isArray(data.tracks) ? data.tracks : [...musicTracks, removed]); renderMusicTable(); showNotification("Qo'shiq qaytarildi.");
+    });
   } catch (err) {
-    showNotification(`O'chirishda xato: ${err.message}`, 'error');
-  }
+    musicTracks = previousTracks; renderMusicTable(); showNotification(`O'chirishda xato: ${err.message}`, 'error');
+  } finally { setButtonBusy(button, false); }
 }
-
 function exportMusicJSON() {
   const json = JSON.stringify(musicTracks, null, 2);
   if (navigator.clipboard?.writeText) {
@@ -2893,7 +2924,7 @@ document.getElementById('musicForm')?.addEventListener('submit', (e) => {
   }
   if (catHint) { catHint.textContent = 'Kamida bitta kategoriya tanlang.'; catHint.style.color = ''; }
   if (hint) { hint.textContent = `Video ID: ${youtubeId}`; hint.style.color = ''; }
-  addMusicTrack({ title, artist, categories, youtubeId });
+  addMusicTrack({ title, artist, categories, youtubeId }, e.target.querySelector('button[type="submit"]'));
   e.target.reset();
   musicFormCategories.clear();
   renderMusicCategoryChips();
@@ -2976,7 +3007,7 @@ document.getElementById('musicTableBody')?.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-music-delete]');
   if (!btn) return;
   const [youtubeId, title, artist] = btn.dataset.musicDelete.split('|');
-  if (confirm(`O'chirilsinmi: ${title} — ${artist}?`)) deleteMusicTrack(youtubeId, title, artist);
+  if (confirm(`O'chirilsinmi: ${title} — ${artist}?`)) deleteMusicTrack(youtubeId, title, artist, btn);
 });
 
 window.fetchMusic = fetchMusic;
@@ -3739,15 +3770,24 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
   const editId = document.getElementById('categoryEditId').value;
   if (!name) return;
   const btn = document.getElementById('categorySubmitBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Saqlanmoqda...'; }
+  const previousCategories = [...categoriesList];
+  const optimistic = { id: editId || `pending-${Date.now()}`, name, image };
+  if (editId) {
+    const index = categoriesList.findIndex(c => c.id === editId);
+    if (index >= 0) categoriesList[index] = { ...categoriesList[index], ...optimistic };
+  } else categoriesList = [optimistic, ...categoriesList];
+  renderCategoriesTable();
+  setButtonBusy(btn, true, 'Saqlanmoqda');
   try {
     await saveCategory({ name, image }, editId);
     showNotification(editId ? 'Kategoriya yangilandi ✅' : "Kategoriya qo'shildi ✅");
     resetCategoryForm();
   } catch (err) {
+    categoriesList = previousCategories;
+    renderCategoriesTable();
     showNotification(`Xato: ${err.message}`, 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = editId ? 'Saqlash' : "+ Qo'shish"; }
+    setButtonBusy(btn, false);
   }
 });
 
@@ -3789,10 +3829,20 @@ document.getElementById('categoriesTableBody')?.addEventListener('click', async 
     const id = delBtn.dataset.catDelete;
     const cat = categoriesList.find((c) => c.id === id);
     if (!confirm(`O'chirilsinmi: ${cat?.name || id}?`)) return;
+    const previousCategories = [...categoriesList];
+    categoriesList = categoriesList.filter(c => c.id !== id);
+    renderCategoriesTable();
     try {
       await deleteCategory(id);
-      showNotification("Kategoriya o'chirildi.");
+      showUndoNotification("Kategoriya o'chirildi.", async () => {
+        if (!cat) return;
+        const restore = await fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: cat.name, image: cat.image || '' }) });
+        if (!restore.ok) throw new Error("Kategoriyani qaytarib bo'lmadi");
+        const data = await restore.json(); categoriesList = Array.isArray(data.categories) ? data.categories : [...categoriesList, cat]; renderCategoriesTable(); showNotification('Kategoriya qaytarildi.');
+      });
     } catch (err) {
+      categoriesList = previousCategories;
+      renderCategoriesTable();
       showNotification(`Xato: ${err.message}`, 'error');
     }
   }
@@ -4241,7 +4291,7 @@ function renderPodcasts() {
 async function addPodcastChannel(input) {
   const btn = document.getElementById('podcastSubmitBtn');
   const hint = document.getElementById('podcastInputHint');
-  if (btn) { btn.disabled = true; btn.textContent = 'Qo\'shilmoqda...'; }
+  setButtonBusy(btn, true, "Qo'shilmoqda");
   if (hint) { hint.textContent = 'YouTube\'dan ma\'lumot olinmoqda...'; hint.style.color = ''; }
   try {
     const r = await fetch(`${API_URL}/podcasts`, {
@@ -4258,12 +4308,16 @@ async function addPodcastChannel(input) {
   } catch (err) {
     if (hint) { hint.textContent = 'Xato: ' + err.message; hint.style.color = '#ff6b6b'; }
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '+ Kanal qo\'shish'; }
+    setButtonBusy(btn, false);
   }
 }
 
 async function deletePodcastChannel(channelId, title) {
   if (!confirm(`O'chirilsinmi: ${title}?`)) return;
+  const removed = podcastChannels.find(c => c.channelId === channelId);
+  const previousChannels = [...podcastChannels];
+  podcastChannels = podcastChannels.filter(c => c.channelId !== channelId);
+  renderPodcasts();
   try {
     const r = await fetch(`${API_URL}/podcasts`, {
       method: 'POST',
@@ -4274,7 +4328,15 @@ async function deletePodcastChannel(channelId, title) {
     if (!r.ok || !data.ok) throw new Error(data.error || 'O\'chirib bo\'lmadi.');
     podcastChannels = Array.isArray(data.channels) ? data.channels : podcastChannels.filter((c) => c.channelId !== channelId);
     renderPodcasts();
+    showUndoNotification("Podcast kanali o'chirildi.", async () => {
+      if (!removed) return;
+      const restore = await fetch(`${API_URL}/podcasts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'add', input: removed.channelId, lang: removed.lang || 'uz' }) });
+      if (!restore.ok) throw new Error("Podcast kanalini qaytarib bo'lmadi");
+      const restored = await restore.json(); podcastChannels = Array.isArray(restored.channels) ? restored.channels : [...podcastChannels, removed]; renderPodcasts();
+    });
   } catch (err) {
+    podcastChannels = previousChannels;
+    renderPodcasts();
     alert('Xato: ' + err.message);
   }
 }
