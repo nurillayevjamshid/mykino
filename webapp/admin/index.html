@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#3d4adf">
   <title>NTV - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20261002-error-bulk">
+  <link rel="stylesheet" href="/admin/admin.css?v=20261002-subscribers-ads">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -745,6 +745,11 @@
             </div>
 
             <div id="adSaveStatus" style="margin-top:12px;font-size:13px;"></div>
+            <div class="ad-live-preview" id="adLivePreview" aria-live="polite">
+              <div class="ad-live-preview__label">Jonli preview</div>
+              <div class="ad-live-preview__phone"><img id="adLivePreviewImage" alt="Reklama preview"><div id="adLivePreviewButton" class="ad-live-preview__button">Batafsil</div></div>
+              <div class="ad-live-preview__meta"><strong id="adCampaignStatus">OFF</strong><span id="adCampaignDestination">Havola kiritilmagan</span></div>
+            </div>
           </div>
           </div>
 
@@ -1049,6 +1054,18 @@
           </div>
 
           <div class="users-toolbar">
+            <select id="usersStatusFilter" class="users-sort" aria-label="Status bo‘yicha filter">
+              <option value="all">Barcha statuslar</option>
+              <option value="active">Faol</option>
+              <option value="inactive">Nofaol</option>
+              <option value="blocked">Bloklangan</option>
+            </select>
+            <select id="usersActivityFilter" class="users-sort" aria-label="Oxirgi faollik">
+              <option value="all">Har qanday faollik</option>
+              <option value="today">Bugun faol</option>
+              <option value="7">7 kun ichida</option>
+              <option value="30">30 kun ichida</option>
+            </select>
             <select id="usersSortSelect" class="users-sort" aria-label="Saralash">
               <option value="newest">Eng yangilar tepada</option>
               <option value="oldest">Eng eskilar tepada</option>
@@ -1062,6 +1079,14 @@
               <span>—</span>
               <input type="date" id="usersDateTo" class="users-date" aria-label="Tugash sanasi">
             </label>
+            <div class="users-quick-dates" role="group" aria-label="Tez sana filtrlari">
+              <button type="button" class="btn btn-ghost users-quick-date" data-users-range="today">Bugun</button>
+              <button type="button" class="btn btn-ghost users-quick-date" data-users-range="7">7 kun</button>
+              <button type="button" class="btn btn-ghost users-quick-date" data-users-range="30">30 kun</button>
+              <button type="button" class="btn btn-ghost users-quick-date" data-users-range="month">Shu oy</button>
+            </div>
+            <button type="button" class="btn btn-secondary" id="usersExportCsvBtn">CSV</button>
+            <button type="button" class="btn btn-secondary" id="usersExportJsonBtn">JSON</button>
             <button type="button" class="btn btn-secondary" id="usersResetFilterBtn" title="Filtrlarni tozalash" style="padding:8px 12px;font-size:12px;">Tozalash</button>
           </div>
 
@@ -1075,6 +1100,7 @@
                   <th>Telegram ID</th>
                   <th>/start sanasi</th>
                   <th>Oxirgi faollik</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody id="usersTableBody">
@@ -1277,6 +1303,6 @@
     }
   </style>
 
-  <script src="/admin/admin.js?v=20261002-error-bulk"></script>
+  <script src="/admin/admin.js?v=20261002-subscribers-ads"></script>
 </body>
 </html>
