@@ -652,6 +652,45 @@ function userFullName(user) {
 let usersSortMode = 'newest';
 let usersDateFrom = '';
 let usersDateTo = '';
+let usersStatusFilter = 'all';
+let usersActivityFilter = 'all';
+const USER_META_KEY = 'mykino-admin-user-meta-v1';
+function readUserMeta() { try { return JSON.parse(localStorage.getItem(USER_META_KEY) || '{}'); } catch (_) { return {}; } }
+function writeUserMeta(meta) { localStorage.setItem(USER_META_KEY, JSON.stringify(meta)); }
+function getUserStatus(user) {
+  const meta = readUserMeta()[String(user.telegram_id)] || {};
+  if (meta.blocked) return 'blocked';
+  const ts = user._activeTs || user._sortTs || 0;
+  return ts && Date.now() - ts <= 30 * 86400000 ? 'active' : 'inactive';
+}
+function userStatusLabel(status) { return { active: 'Faol', inactive: 'Nofaol', blocked: 'Bloklangan' }[status] || status; }
+function userStatusClass(status) { return `user-status user-status--${status}`; }
+function setUsersQuickRange(range) {
+  const now = new Date(); const to = now.toISOString().slice(0, 10); let from = to;
+  if (range === 'month') from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  else if (range === '7' || range === '30') { const d = new Date(now); d.setDate(d.getDate() - Number(range) + 1); from = d.toISOString().slice(0, 10); }
+  setUsersDateRange(from, to);
+  document.querySelectorAll('.users-quick-date').forEach(btn => btn.classList.toggle('is-active', btn.dataset.usersRange === range));
+}
+function downloadUserExport(format) {
+  const data = filteredUsers.map(u => ({ name: userFullName(u), username: u.username ? '@' + u.username : '', telegram_id: u.telegram_id, started_at: u.started_at, last_active: u.last_active, status: userStatusLabel(getUserStatus(u)), segment: readUserMeta()[String(u.telegram_id)]?.segment || '' }));
+  let content, type, ext;
+  if (format === 'csv') { const keys = Object.keys(data[0] || { name: '', username: '', telegram_id: '', started_at: '', last_active: '', status: '', segment: '' }); const cell = v => `"${String(v ?? '').replaceAll('"', '""')}"`; content = [keys.join(','), ...data.map(row => keys.map(k => cell(row[k])).join(','))].join('\n'); type = 'text/csv;charset=utf-8'; ext = 'csv'; }
+  else { content = JSON.stringify(data, null, 2); type = 'application/json;charset=utf-8'; ext = 'json'; }
+  const url = URL.createObjectURL(new Blob([content], { type })); const a = document.createElement('a'); a.href = url; a.download = `mykino-obunachilar-${new Date().toISOString().slice(0, 10)}.${ext}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 500);
+  showNotification(`${data.length} ta obunachi ${ext.toUpperCase()} formatda yuklandi.`);
+}
+function openUserDrawer(user) {
+  if (!user) return;
+  let drawer = document.getElementById('userDetailDrawer');
+  if (!drawer) { drawer = document.createElement('aside'); drawer.id = 'userDetailDrawer'; drawer.className = 'user-detail-drawer'; document.body.appendChild(drawer); }
+  const meta = readUserMeta(); const id = String(user.telegram_id); const current = meta[id] || {}; const status = getUserStatus(user);
+  drawer.innerHTML = `<div class="user-drawer__head"><div><small>Obunachi profili</small><h3>${escapeHtml(userFullName(user) || '@' + (user.username || id))}</h3></div><button type="button" class="modal-close" data-user-drawer-close>×</button></div><div class="user-drawer__body"><div class="user-profile-id"><strong>${user.username ? '@' + escapeHtml(user.username) : 'Username yo‘q'}</strong><code>${escapeHtml(id)}</code></div><div class="user-stat-grid"><div><small>/start sanasi</small><strong>${escapeHtml(user.started_at || '-')}</strong></div><div><small>Oxirgi faollik</small><strong>${escapeHtml(formatLastActive(user.last_active))}</strong></div></div><div class="user-detail-block"><span>Status</span><strong class="${userStatusClass(status)}">${userStatusLabel(status)}</strong></div><div class="user-detail-block"><span>Segment</span><input id="userSegmentInput" class="form-input" value="${escapeHtml(current.segment || '')}" placeholder="Masalan: VIP, reklama-2026"></div><div class="user-detail-block"><span>Ko‘rish tarixi</span><p class="form-hint">Bu foydalanuvchi uchun ko‘rish tarixi API’da mavjud bo‘lsa, shu yerda ko‘rsatiladi. Hozircha alohida tarix yozuvi topilmadi.</p></div><div class="user-detail-block"><span>Yuborilgan xabarlar</span><p class="form-hint">Broadcast tarixiga ulanish tayyorlanmagan.</p></div><div class="user-drawer__actions"><button type="button" class="btn btn-primary" data-user-segment-save>Segmentni saqlash</button><button type="button" class="btn ${status === 'blocked' ? 'btn-secondary' : 'btn-danger'}" data-user-block>${status === 'blocked' ? 'Blokdan chiqarish' : 'Bloklash'}</button></div></div>`;
+  requestAnimationFrame(() => drawer.classList.add('is-open'));
+  const close = () => drawer.classList.remove('is-open'); drawer.querySelector('[data-user-drawer-close]').onclick = close;
+  drawer.querySelector('[data-user-segment-save]').onclick = () => { const next = readUserMeta(); next[id] = { ...(next[id] || {}), segment: drawer.querySelector('#userSegmentInput').value.trim() }; writeUserMeta(next); showNotification('Segment saqlandi.'); };
+  drawer.querySelector('[data-user-block]').onclick = () => { const next = readUserMeta(); next[id] = { ...(next[id] || {}), blocked: status !== 'blocked' }; writeUserMeta(next); close(); applyUsersFilterSort(); renderUsers(); showNotification(status === 'blocked' ? 'Obunachi blokdan chiqarildi.' : 'Obunachi bloklandi.'); };
+}
 
 async function fetchUsers(force = false) {
   const tbody = document.getElementById('usersTableBody');
@@ -719,6 +758,12 @@ function applyUsersFilterSort() {
         .join(' ').toLowerCase();
       return haystack.includes(userSearchQuery);
     });
+  }
+  if (usersStatusFilter !== 'all') list = list.filter(u => getUserStatus(u) === usersStatusFilter);
+  if (usersActivityFilter !== 'all') {
+    const days = usersActivityFilter === 'today' ? 1 : Number(usersActivityFilter);
+    const since = Date.now() - days * 86400000;
+    list = list.filter(u => (u._activeTs || 0) >= since);
   }
   const fromTs = usersDateFrom ? Date.parse(usersDateFrom + 'T00:00:00') : 0;
   const toTs = usersDateTo ? Date.parse(usersDateTo + 'T23:59:59') : 0;
@@ -807,7 +852,7 @@ function renderUsers() {
   if (!tbody) return;
 
   const list = filteredUsers;
-  const hasFilter = !!(userSearchQuery || usersDateFrom || usersDateTo);
+  const hasFilter = !!(userSearchQuery || usersDateFrom || usersDateTo || usersStatusFilter !== 'all' || usersActivityFilter !== 'all');
 
   const sectionHeader = document.querySelector('#usersSection .section-header h2');
   if (sectionHeader) {
@@ -824,7 +869,7 @@ function renderUsers() {
     renderListPagination('users', 0, usersCurrentPage, USERS_PAGE_SIZE);
     tbody.innerHTML = `
       <tr>
-        <td colspan="6">
+        <td colspan="7">
           <div class="empty-state">
             <h3>${hasFilter ? 'Filtr natijasi yo\'q' : 'Obunachilar hali yo\'q'}</h3>
             <p>${hasFilter ? 'Boshqa qidiruv yoki sana oralig\'ini sinab ko\'ring.' : 'Foydalanuvchilar /start bosishi bilan bu yerda ko\'rinadi.'}</p>
@@ -841,13 +886,14 @@ function renderUsers() {
   const pageSlice = list.slice(start, start + USERS_PAGE_SIZE);
   renderListPagination('users', list.length, usersCurrentPage, USERS_PAGE_SIZE);
   tbody.innerHTML = pageSlice.map((user, index) => `
-    <tr class="user-row" data-user-row tabindex="0" aria-expanded="false">
+    <tr class="user-row" data-user-row data-user-id="${escapeHtml(String(user.telegram_id))}" tabindex="0" aria-expanded="false">
       <td>${start + index + 1}</td>
       <td class="user-row__name"><strong>${escapeHtml(userFullName(user) || '-')}</strong></td>
       <td class="user-row__username">${user.username ? '@' + escapeHtml(user.username) : '-'}</td>
       <td class="user-row__detail"><code>${escapeHtml(String(user.telegram_id || '-'))}</code></td>
       <td class="user-row__detail">${escapeHtml(user.started_at || '-')}</td>
       <td class="user-row__detail">${formatLastActive(user.last_active)}</td>
+      <td><span class="${userStatusClass(getUserStatus(user))}">${userStatusLabel(getUserStatus(user))}</span></td>
     </tr>
   `).join('');
 }
@@ -931,6 +977,7 @@ function bindEvents() {
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openCommandPalette(); }
     if (e.key === 'Escape') document.getElementById('commandPalette')?.classList.remove('active');
+    if (e.key === 'Escape') document.getElementById('userDetailDrawer')?.classList.remove('is-open');
   });
 
   // Mobile menu toggle
@@ -1017,8 +1064,8 @@ function bindEvents() {
   document.getElementById('usersTableBody')?.addEventListener('click', (e) => {
     const row = e.target.closest('[data-user-row]');
     if (!row) return;
-    const expanded = row.classList.toggle('is-expanded');
-    row.setAttribute('aria-expanded', String(expanded));
+    const user = usersList.find(item => String(item.telegram_id) === row.dataset.userId);
+    openUserDrawer(user);
   });
   document.getElementById('usersTableBody')?.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -1034,6 +1081,11 @@ function bindEvents() {
   document.getElementById('usersSortSelect')?.addEventListener('change', (e) => {
     setUsersSort(e.target.value);
   });
+  document.getElementById('usersStatusFilter')?.addEventListener('change', e => { usersStatusFilter = e.target.value; usersCurrentPage = 1; applyUsersFilterSort(); renderUsers(); });
+  document.getElementById('usersActivityFilter')?.addEventListener('change', e => { usersActivityFilter = e.target.value; usersCurrentPage = 1; applyUsersFilterSort(); renderUsers(); });
+  document.querySelectorAll('.users-quick-date').forEach(btn => btn.addEventListener('click', () => setUsersQuickRange(btn.dataset.usersRange)));
+  document.getElementById('usersExportCsvBtn')?.addEventListener('click', () => downloadUserExport('csv'));
+  document.getElementById('usersExportJsonBtn')?.addEventListener('click', () => downloadUserExport('json'));
   document.getElementById('usersDateFrom')?.addEventListener('change', (e) => {
     setUsersDateRange(e.target.value, usersDateTo);
   });
@@ -1053,6 +1105,11 @@ function bindEvents() {
     usersSortMode = 'newest';
     usersDateFrom = '';
     usersDateTo = '';
+    usersStatusFilter = 'all';
+    usersActivityFilter = 'all';
+    document.getElementById('usersStatusFilter').value = 'all';
+    document.getElementById('usersActivityFilter').value = 'all';
+    document.querySelectorAll('.users-quick-date').forEach(btn => btn.classList.remove('is-active'));
     applyUsersFilterSort();
     renderUsers();
   });
@@ -4004,6 +4061,21 @@ function setAdStatus(msg, kind) {
   el.textContent = msg || '';
   el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
 }
+function updateAdLivePreview() {
+  const image = (document.getElementById('adImageUrl')?.value || adUploadedUrl || '').trim();
+  const tg = (document.getElementById('adTelegramUrl')?.value || '').trim();
+  const web = (document.getElementById('adWebsiteUrl')?.value || '').trim();
+  const btn = (document.getElementById('adButtonText')?.value || 'Batafsil').trim() || 'Batafsil';
+  const enabled = Boolean(document.getElementById('adEnabled')?.checked);
+  const img = document.getElementById('adLivePreviewImage'); if (img) { img.src = image ? proxiedPoster(image) : ''; img.style.opacity = image ? '1' : '0'; }
+  const button = document.getElementById('adLivePreviewButton'); if (button) button.textContent = btn;
+  const status = document.getElementById('adCampaignStatus'); if (status) { status.textContent = enabled && image ? 'ON · faol' : 'OFF · yashirin'; status.className = enabled && image ? 'is-on' : 'is-off'; }
+  const destination = document.getElementById('adCampaignDestination'); if (destination) destination.textContent = tg || web || 'Havola kiritilmagan';
+}
+function validateAdUrl(value, label) {
+  if (!value) return true;
+  try { const url = new URL(value); if (!['http:', 'https:', 'tg:'].includes(url.protocol)) throw new Error(); return true; } catch (_) { setAdStatus(`${label} URL noto‘g‘ri. To‘liq https:// havola kiriting.`, 'error'); return false; }
+}
 
 async function loadAdSettings() {
   if (adSettingsLoaded) return;
@@ -4028,6 +4100,7 @@ async function loadAdSettings() {
     if (btnEl) btnEl.value = ad.buttonText || '';
     adUploadedUrl = ad.imageUrl || '';
     setAdPreview(ad.imageUrl || '');
+    updateAdLivePreview();
     adSettingsLoaded = true;
   } catch (err) {
     setAdStatus(`Yuklashda xato: ${err.message}`, 'error');
@@ -4108,8 +4181,14 @@ document.getElementById('adImageUrl')?.addEventListener('input', (e) => {
 
 document.getElementById('adSaveBtn')?.addEventListener('click', saveAdSettings);
 document.getElementById('adEnabled')?.addEventListener('change', () => {
+  updateAdLivePreview();
   saveAdSettings({ revertOnFail: true });
 });
+['adImageUrl','adTelegramUrl','adWebsiteUrl','adButtonText'].forEach(id => document.getElementById(id)?.addEventListener('input', updateAdLivePreview));
+['adTelegramUrl','adWebsiteUrl'].forEach(id => document.getElementById(id)?.addEventListener('blur', e => validateAdUrl(e.target.value.trim(), id === 'adTelegramUrl' ? 'Telegram' : 'Website')));
+document.getElementById('adUploadArea')?.addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('is-dragover'); });
+document.getElementById('adUploadArea')?.addEventListener('dragleave', e => { e.preventDefault(); e.currentTarget.classList.remove('is-dragover'); });
+document.getElementById('adUploadArea')?.addEventListener('drop', e => { e.preventDefault(); e.currentTarget.classList.remove('is-dragover'); const file = e.dataTransfer.files?.[0]; const input = document.getElementById('adImageFile'); if (file && input) { const transfer = new DataTransfer(); transfer.items.add(file); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); } });
 document.getElementById('adClearBtn')?.addEventListener('click', () => {
   if (!confirm('Reklama maydonlari tozalansinmi?')) return;
   const enabledEl = document.getElementById('adEnabled');
@@ -4121,6 +4200,7 @@ document.getElementById('adClearBtn')?.addEventListener('click', () => {
   adUploadedUrl = '';
   setAdPreview('');
   setAdStatus('');
+  updateAdLivePreview();
 });
 
 // ===== Pre-roll video reklama (kino oldidan) =====
