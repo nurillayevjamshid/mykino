@@ -5333,6 +5333,47 @@ function setActiveBottomTab(action) {
   });
 }
 
+// Bo'limlar orasida o'tishda foydalanuvchi qayerga o'tayotganini ko'rsatamiz.
+// Bu ayniqsa lazy-load qilinadigan musiqa/podcast/TV modullari yuklanayotganda kerak.
+let sectionLoadingTimer = null;
+let sectionLoadingRequest = 0;
+function showSectionLoading(button) {
+  const label = (button.querySelector(".bottom-bar__label")?.textContent || button.getAttribute("aria-label") || "").trim();
+  if (!label) return;
+
+  const lang = window.__i18n?.lang || "uz";
+  const loadingText = ({ uz: "Yuklanmoqda", ru: "Загрузка", en: "Loading" })[lang] || "Yuklanmoqda";
+  let overlay = document.getElementById("sectionLoadingOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "sectionLoadingOverlay";
+    overlay.className = "section-loading";
+    overlay.setAttribute("role", "status");
+    overlay.setAttribute("aria-live", "polite");
+    overlay.innerHTML = '<span class="section-loading__spinner" aria-hidden="true"></span><span class="section-loading__text"></span>';
+    const style = document.createElement("style");
+    style.textContent = '.section-loading{position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(10,12,20,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;font:600 15px/1.4 system-ui,sans-serif}.section-loading[hidden]{display:none}.section-loading__spinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--accent,#ffc73a);border-radius:50%;animation:section-loading-spin .75s linear infinite}.section-loading__text{text-align:center;padding:0 24px}@keyframes section-loading-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.section-loading__spinner{animation-duration:1.8s}}';
+    document.head.appendChild(style);
+    document.body.appendChild(overlay);
+  }
+  overlay.querySelector(".section-loading__text").textContent = `${loadingText}: ${label}`;
+  overlay.hidden = false;
+  const request = ++sectionLoadingRequest;
+  clearTimeout(sectionLoadingTimer);
+  // Lazy-load va yangi view'ning birinchi renderiga vaqt beramiz; tez o'tishlarda
+  // ham loader ko'zga tashlanadi, lekin xatolik bo'lsa ekranni bloklab qolmaydi.
+  sectionLoadingTimer = setTimeout(() => {
+    if (request === sectionLoadingRequest) overlay.hidden = true;
+  }, 900);
+}
+
+document.querySelectorAll(".bottom-bar .bottom-bar__button").forEach((button) => {
+  button.addEventListener("click", () => {
+    if (button.classList.contains("profile-trigger") || button.dataset.action === "profile") return;
+    showSectionLoading(button);
+  }, true);
+});
+
 function hideAllCustomViews() {
   closeMusicView();
   closePodcastsView();
