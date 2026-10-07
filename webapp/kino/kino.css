@@ -6269,7 +6269,41 @@ html[data-theme="dark"] .soon-badge {
   justify-self: end;
   flex: 0 0 auto;
 }
-
+.topbar.topbar--centered .brand--section {
+  gap: 6px;
+  min-width: 0;
+}
+.brand-section__icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  color: var(--c-text);
+}
+.brand-section__icon svg {
+  width: 30px;
+  height: 30px;
+  display: block;
+}
+.brand--section .brand-text {
+  flex-direction: row !important;
+  align-items: baseline;
+  gap: 5px;
+}
+.brand-section__label {
+  display: block;
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: lowercase;
+  opacity: 0.68;
+}
 /* Profile modal controls row */
 .profile-controls {
   display: flex;
