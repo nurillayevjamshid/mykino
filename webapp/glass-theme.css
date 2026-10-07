@@ -269,3 +269,23 @@ html[data-theme="light"] .bottom-bar__inner {
 }
 html[data-theme="light"] .bottom-bar__pill { background: rgba(117, 190, 213, .18) !important; }
 html[data-theme="light"] .bottom-bar__button.is-active { color: #176b87 !important; }
+
+/* Remove stray decorative overlay bands; keep the actual acrylic surface, border and shadow. */
+.app-shell .movie-card::before,
+.app-shell .movie-card::after,
+.app-shell .glass-panel::before,
+.app-shell .glass-panel::after,
+.app-shell .sidebar::before,
+.app-shell .bottom-bar__inner::before {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* The navigation drawer is mounted outside .app-shell; remove its stray top band too. */
+.sidebar::before {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
