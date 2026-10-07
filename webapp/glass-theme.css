@@ -241,3 +241,31 @@ html[data-theme="light"] .table-container,
 html[data-theme="light"] .admin-layout .modal-content,
 html[data-theme="light"] .admin-layout .search-container,
 html[data-theme="light"] .admin-layout .bulk-toolbar { background: linear-gradient(145deg, rgba(255,255,255,.78), rgba(235,243,250,.62)) !important; color: #152235 !important; }
+
+/* Mobile finishing pass: keep the floating dock from covering the final content row. */
+@media (max-width: 767px) {
+  .app-shell { padding-bottom: calc(124px + var(--safe-bottom)) !important; }
+  .bottom-bar {
+    bottom: max(10px, var(--safe-bottom)) !important;
+    width: calc(100% - 16px) !important;
+    max-width: 620px !important;
+  }
+  .bottom-bar__inner {
+    min-height: 64px;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+  .bottom-bar__button { min-height: 48px !important; }
+  .bottom-bar__label { font-size: 9px !important; line-height: 1.1; }
+  .bottom-bar__button:focus-visible,
+  .topbar button:focus-visible,
+  .movie-card:focus-visible,
+  .hero button:focus-visible { outline: 2px solid var(--glass-cyan); outline-offset: 3px; }
+}
+html[data-theme="light"] .bottom-bar__inner {
+  background: linear-gradient(145deg, rgba(255,255,255,.84), rgba(225,237,247,.68)) !important;
+  border-color: rgba(112, 144, 174, .28) !important;
+  box-shadow: 0 16px 38px rgba(48, 78, 105, .18), inset 0 1px rgba(255,255,255,.94) !important;
+}
+html[data-theme="light"] .bottom-bar__pill { background: rgba(117, 190, 213, .18) !important; }
+html[data-theme="light"] .bottom-bar__button.is-active { color: #176b87 !important; }
