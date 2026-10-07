@@ -1,0 +1,137 @@
+/* NTV Glass Theme — shared VisionOS-inspired acrylic layer for every surface. */
+:root {
+  --glass-ink: #09111f;
+  --glass-surface: rgba(255, 255, 255, .105);
+  --glass-surface-strong: rgba(255, 255, 255, .17);
+  --glass-surface-soft: rgba(255, 255, 255, .065);
+  --glass-border: rgba(255, 255, 255, .22);
+  --glass-border-soft: rgba(255, 255, 255, .12);
+  --glass-text: #f5f9ff;
+  --glass-muted: rgba(221, 232, 246, .68);
+  --glass-cyan: #9deaff;
+  --glass-violet: #c7b6ff;
+  --glass-shadow: 0 24px 70px rgba(0, 0, 0, .28), inset 0 1px rgba(255, 255, 255, .22);
+  --glass-blur: blur(28px) saturate(145%);
+}
+
+/* Shared spatial canvas */
+html:has(.app-shell),
+html:has(.admin-layout),
+html:has(.esport-page) { background: #07111d; }
+html:has(.app-shell) body,
+html:has(.admin-layout) body,
+html:has(.esport-page) body {
+  background:
+    radial-gradient(70vw 46vw at 8% 4%, rgba(109, 168, 255, .19), transparent 64%),
+    radial-gradient(55vw 42vw at 93% 14%, rgba(199, 159, 255, .14), transparent 64%),
+    radial-gradient(70vw 50vw at 50% 110%, rgba(57, 196, 185, .12), transparent 68%),
+    #07111d !important;
+  color: var(--glass-text);
+}
+html:has(.app-shell) body::before,
+html:has(.admin-layout) body::before,
+html:has(.esport-page) body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1;
+  background: linear-gradient(120deg, transparent 15%, rgba(255,255,255,.035) 48%, transparent 72%);
+  opacity: .8;
+}
+
+/* Main NTV shell */
+.app-shell { background: transparent !important; }
+.topbar, .bottom-bar, .sidebar,
+.search-box, .search-recents, .category-panel, .category-detail-view,
+.movie-card, .modal-content, .modal-dialog, .toast,
+.fifa-banner, .fifa-match-league, .fifa-standings-card,
+.music-view, .podcasts-view, .tv-view, .esport-view,
+.player-controls, .player-top, .player-bottom {
+  background: linear-gradient(145deg, rgba(255,255,255,.15), rgba(255,255,255,.055)) !important;
+  border: 1px solid var(--glass-border-soft) !important;
+  box-shadow: var(--glass-shadow) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+.topbar {
+  border-radius: 24px !important;
+  margin: 10px 12px 0;
+  width: calc(100% - 24px) !important;
+  padding-left: 14px !important; padding-right: 14px !important;
+}
+.icon-button, .bottom-bar__button, .category-detail-view__back,
+.category-row__more, .hero__info, .modal-close, .modal-share,
+.player-icon-btn, .player-back-btn, .tv-head__back, .fifa-date-nav__button,
+.fifa-date-nav__today { background: var(--glass-surface-soft) !important; border: 1px solid var(--glass-border-soft) !important; color: var(--glass-text) !important; }
+.icon-button:hover, .bottom-bar__button:hover, .category-row__more:hover,
+.category-detail-view__back:hover { background: var(--glass-surface-strong) !important; transform: translateY(-1px); }
+.brand-text__top, .topbar .brand-text { color: var(--glass-text) !important; }
+
+.sidebar { background: linear-gradient(155deg, rgba(21, 35, 57, .84), rgba(11, 18, 31, .77)) !important; border-radius: 30px !important; }
+.sidebar-backdrop { background: rgba(3, 8, 16, .48) !important; backdrop-filter: blur(8px); }
+.sidebar__item { border: 1px solid transparent !important; border-radius: 17px !important; color: var(--glass-muted) !important; }
+.sidebar__item:hover, .sidebar__item.is-active { background: rgba(255,255,255,.12) !important; border-color: var(--glass-border-soft) !important; color: #fff !important; box-shadow: inset 0 1px rgba(255,255,255,.15); }
+.sidebar__divider { background: rgba(255,255,255,.12) !important; }
+.theme-switch__track, .lang-pill { background: rgba(255,255,255,.09) !important; border-color: var(--glass-border-soft) !important; }
+.lang-pill.is-active { background: rgba(157,234,255,.22) !important; color: var(--glass-cyan) !important; }
+
+.hero { border-radius: 30px !important; overflow: hidden; box-shadow: 0 28px 80px rgba(0,0,0,.32) !important; }
+.hero__gradient { background: linear-gradient(90deg, rgba(5,13,25,.88), rgba(5,13,25,.26) 62%, transparent) !important; }
+.hero__play { background: linear-gradient(135deg, #d7f8ff, #93dff1) !important; color: #092331 !important; box-shadow: 0 12px 30px rgba(104,210,235,.25) !important; }
+.movie-grid { gap: 14px !important; }
+.movie-card { border-radius: 22px !important; overflow: hidden; }
+.movie-card::before { background: linear-gradient(120deg, rgba(255,255,255,.26), transparent 38%) !important; }
+.movie-card:hover, .movie-card:focus-visible { border-color: rgba(157,234,255,.42) !important; box-shadow: 0 20px 48px rgba(0,0,0,.34), 0 0 0 1px rgba(157,234,255,.13) !important; }
+.card-watch-button, .hero__play { border-radius: 14px !important; }
+.bottom-bar { border-radius: 26px !important; margin: 0 10px 10px; width: calc(100% - 20px) !important; }
+.bottom-bar__button.is-active { color: var(--glass-cyan) !important; background: rgba(157,234,255,.13) !important; }
+
+/* Overlays and media players */
+.modal-backdrop, .ad-modal__backdrop { background: rgba(3,8,16,.58) !important; backdrop-filter: blur(12px); }
+.modal-content, .ad-modal__dialog { border-radius: 30px !important; background: linear-gradient(145deg, rgba(33,50,74,.88), rgba(12,21,36,.86)) !important; }
+.player-overlay { background: linear-gradient(180deg, rgba(4,10,18,.58), transparent 30%, transparent 70%, rgba(4,10,18,.7)) !important; }
+
+/* Music, podcasts and TV */
+.music-view, .podcasts-view, .tv-view { background: transparent !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none; }
+.music-topbar, .music-hero, .pod-hero, .pod-hero-card-scroll, .tv-head, .tv-card,
+.music-chart, .music-genre, .music-artist, .pod-featured-card, .pod-stat-card,
+.tv-chip, .tv-player { background: linear-gradient(145deg, rgba(255,255,255,.14), rgba(255,255,255,.055)) !important; border: 1px solid var(--glass-border-soft) !important; box-shadow: var(--glass-shadow) !important; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.music-topbar, .tv-head { border-radius: 22px !important; }
+.music-hero, .pod-hero, .pod-hero-card-scroll { border-radius: 28px !important; }
+.music-tab.is-active, .tv-chip.is-active { color: var(--glass-cyan) !important; background: rgba(157,234,255,.14) !important; border-color: rgba(157,234,255,.32) !important; }
+.music-hero__play, .pod-hero__btn { background: linear-gradient(135deg, #d7f8ff, #93dff1) !important; color: #092331 !important; }
+
+/* Esports */
+.esport-page { background-color: transparent !important; }
+.esport-header, .esport-tabs, .esport-tab, .stream-card, .card, .esport-bottom-nav,
+.section-head, .match-card, .highlight-card { background: linear-gradient(145deg, rgba(255,255,255,.14), rgba(255,255,255,.055)) !important; border: 1px solid var(--glass-border-soft) !important; box-shadow: var(--glass-shadow) !important; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.esport-header { border-radius: 24px !important; }
+.stream-card, .card { border-radius: 22px !important; overflow: hidden; }
+.esport-tab.is-active { background: rgba(157,234,255,.16) !important; color: var(--glass-cyan) !important; border-color: rgba(157,234,255,.35) !important; }
+.esport-bottom-nav { border-radius: 24px !important; }
+
+/* Admin workspace — same material language, with high-contrast controls. */
+.admin-layout { background: transparent !important; }
+.admin-layout .sidebar, .admin-header, .content-section, .card-block, .table-container,
+.admin-layout .modal-content, .admin-layout .search-container, .admin-layout .bulk-toolbar {
+  background: linear-gradient(145deg, rgba(255,255,255,.14), rgba(255,255,255,.055)) !important;
+  border: 1px solid var(--glass-border-soft) !important;
+  box-shadow: var(--glass-shadow) !important;
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+}
+.admin-layout .sidebar { border-radius: 28px !important; }
+.admin-header, .content-section { border-radius: 24px !important; }
+.admin-layout .nav-link { border-radius: 15px !important; color: var(--glass-muted) !important; }
+.admin-layout .nav-link:hover, .admin-layout .nav-item.active .nav-link { background: rgba(157,234,255,.16) !important; color: var(--glass-text) !important; }
+.admin-layout .table-container { overflow: auto; }
+.admin-layout .data-table th { background: rgba(255,255,255,.09) !important; color: var(--glass-muted) !important; }
+.admin-layout .data-table td { border-color: rgba(255,255,255,.08) !important; color: var(--glass-text) !important; }
+.admin-layout input, .admin-layout select, .admin-layout textarea, .admin-layout .form-input, .admin-layout .form-select { background: rgba(2,10,22,.3) !important; color: var(--glass-text) !important; border-color: var(--glass-border-soft) !important; border-radius: 13px !important; }
+.admin-layout .btn-primary, .admin-layout .btn-success { background: linear-gradient(135deg, #baf2ff, #82d3e8) !important; color: #092331 !important; }
+
+@media (max-width: 640px) {
+  .topbar { margin: 8px 8px 0; width: calc(100% - 16px) !important; border-radius: 20px !important; }
+  .bottom-bar { margin: 0 7px 7px; width: calc(100% - 14px) !important; }
+  .movie-card { border-radius: 18px !important; }
+  .admin-layout .sidebar { border-radius: 0 26px 26px 0 !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
