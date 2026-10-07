@@ -135,3 +135,109 @@ html:has(.esport-page) body::before {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Light / daytime acrylic: milky glass over a bright aurora, never the dark palette. */
+html[data-theme="light"] {
+  --glass-ink: #eef5fb;
+  --glass-surface: rgba(255, 255, 255, .62);
+  --glass-surface-strong: rgba(255, 255, 255, .82);
+  --glass-surface-soft: rgba(255, 255, 255, .46);
+  --glass-border: rgba(255, 255, 255, .78);
+  --glass-border-soft: rgba(112, 139, 165, .20);
+  --glass-text: #152235;
+  --glass-muted: rgba(43, 61, 82, .68);
+  --glass-shadow: 0 18px 46px rgba(65, 91, 120, .16), inset 0 1px rgba(255, 255, 255, .9);
+}
+html[data-theme="light"]:has(.app-shell) body,
+html[data-theme="light"]:has(.admin-layout) body,
+html[data-theme="light"]:has(.esport-page) body {
+  background:
+    radial-gradient(70vw 46vw at 8% 4%, rgba(159, 220, 202, .42), transparent 64%),
+    radial-gradient(55vw 42vw at 93% 14%, rgba(177, 198, 255, .42), transparent 64%),
+    radial-gradient(70vw 50vw at 50% 110%, rgba(255, 218, 171, .30), transparent 68%),
+    #edf4fb !important;
+  color: var(--glass-text) !important;
+}
+html[data-theme="light"]:has(.app-shell) body::before,
+html[data-theme="light"]:has(.admin-layout) body::before,
+html[data-theme="light"]:has(.esport-page) body::before {
+  background: linear-gradient(120deg, transparent 15%, rgba(255,255,255,.52) 48%, transparent 72%);
+  opacity: .95;
+}
+html[data-theme="light"] .topbar,
+html[data-theme="light"] .bottom-bar,
+html[data-theme="light"] .sidebar,
+html[data-theme="light"] .search-box,
+html[data-theme="light"] .search-recents,
+html[data-theme="light"] .category-panel,
+html[data-theme="light"] .category-detail-view,
+html[data-theme="light"] .movie-card,
+html[data-theme="light"] .modal-content,
+html[data-theme="light"] .modal-dialog,
+html[data-theme="light"] .toast,
+html[data-theme="light"] .fifa-match-league,
+html[data-theme="light"] .fifa-standings-card,
+html[data-theme="light"] .music-topbar,
+html[data-theme="light"] .music-hero,
+html[data-theme="light"] .pod-hero,
+html[data-theme="light"] .pod-hero-card-scroll,
+html[data-theme="light"] .tv-head,
+html[data-theme="light"] .tv-card,
+html[data-theme="light"] .tv-player,
+html[data-theme="light"] .music-chart,
+html[data-theme="light"] .music-genre,
+html[data-theme="light"] .music-artist,
+html[data-theme="light"] .pod-featured-card,
+html[data-theme="light"] .pod-stat-card {
+  background: linear-gradient(145deg, rgba(255,255,255,.78), rgba(235,243,250,.52)) !important;
+  border-color: rgba(116, 145, 174, .22) !important;
+  box-shadow: var(--glass-shadow) !important;
+  color: var(--glass-text) !important;
+}
+html[data-theme="light"] .sidebar { background: linear-gradient(155deg, rgba(255,255,255,.82), rgba(226,237,247,.70)) !important; }
+html[data-theme="light"] .sidebar__item { color: rgba(34, 52, 73, .72) !important; }
+html[data-theme="light"] .sidebar__item:hover,
+html[data-theme="light"] .sidebar__item.is-active { background: rgba(255,255,255,.72) !important; border-color: rgba(117, 151, 181, .24) !important; color: #132136 !important; box-shadow: 0 8px 22px rgba(70, 104, 135, .11), inset 0 1px rgba(255,255,255,.9); }
+html[data-theme="light"] .sidebar__divider { background: rgba(92, 121, 151, .18) !important; }
+html[data-theme="light"] .icon-button,
+html[data-theme="light"] .bottom-bar__button,
+html[data-theme="light"] .category-detail-view__back,
+html[data-theme="light"] .category-row__more,
+html[data-theme="light"] .hero__info,
+html[data-theme="light"] .modal-close,
+html[data-theme="light"] .modal-share,
+html[data-theme="light"] .player-icon-btn,
+html[data-theme="light"] .player-back-btn,
+html[data-theme="light"] .tv-head__back,
+html[data-theme="light"] .fifa-date-nav__button,
+html[data-theme="light"] .fifa-date-nav__today { color: #1a2a3e !important; background: rgba(255,255,255,.52) !important; border-color: rgba(104, 135, 164, .22) !important; }
+html[data-theme="light"] .brand-text__top,
+html[data-theme="light"] .topbar .brand-text,
+html[data-theme="light"] .category-row__title,
+html[data-theme="light"] .category-detail-view__title,
+html[data-theme="light"] .movie-card .card-copy h2,
+html[data-theme="light"] .movie-card .card-copy p,
+html[data-theme="light"] .music-section__head h2,
+html[data-theme="light"] .music-artist__name,
+html[data-theme="light"] .music-chart__title { color: #152235 !important; }
+html[data-theme="light"] .movie-card .card-copy p,
+html[data-theme="light"] .music-chart__artist,
+html[data-theme="light"] .music-chart__dur,
+html[data-theme="light"] .music-link { color: rgba(43, 61, 82, .66) !important; }
+html[data-theme="light"] .bottom-bar__button.is-active,
+html[data-theme="light"] .music-tab.is-active,
+html[data-theme="light"] .tv-chip.is-active { color: #187b9b !important; background: rgba(157,234,255,.24) !important; }
+html[data-theme="light"] .modal-content,
+html[data-theme="light"] .ad-modal__dialog { background: linear-gradient(145deg, rgba(255,255,255,.90), rgba(226,238,247,.88)) !important; color: #152235 !important; }
+html[data-theme="light"] .modal-backdrop,
+html[data-theme="light"] .ad-modal__backdrop { background: rgba(75, 100, 124, .22) !important; }
+html[data-theme="light"] .music-hero__title,
+html[data-theme="light"] .music-hero__meta strong { color: #fff !important; }
+html[data-theme="light"] .admin-layout .sidebar,
+html[data-theme="light"] .admin-header,
+html[data-theme="light"] .content-section,
+html[data-theme="light"] .card-block,
+html[data-theme="light"] .table-container,
+html[data-theme="light"] .admin-layout .modal-content,
+html[data-theme="light"] .admin-layout .search-container,
+html[data-theme="light"] .admin-layout .bulk-toolbar { background: linear-gradient(145deg, rgba(255,255,255,.78), rgba(235,243,250,.62)) !important; color: #152235 !important; }
