@@ -10,6 +10,7 @@ const {
   adminIsLocked,
   adminRegisterFail,
   adminResetFails,
+  getRequiredAdminPassword,
 } = require("./_lib/auth");
 const {
   readCatalogMetadata,
@@ -309,7 +310,11 @@ async function handleAdminLogin(request, response) {
   let body = {};
   try { body = await readRequestBody(request); } catch { body = {}; }
   const password = trimStr(body.password);
-  const expected = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
+  const expected = getRequiredAdminPassword();
+  if (!expected || !String(process.env.ADMIN_SESSION_SECRET || "").trim()) {
+    response.status(503).json({ ok: false, code: "ADMIN_AUTH_NOT_CONFIGURED", error: "Admin autentifikatsiyasi production uchun sozlanmagan." });
+    return;
+  }
   if (!password || !safeCompareStrings(password, expected)) {
     adminRegisterFail(ip);
     response.status(401).json({ ok: false, code: "BAD_PASSWORD", error: "Parol noto'g'ri." });
@@ -354,6 +359,9 @@ module.exports = async function handler(request, response) {
 
   const isWatchProgressRequest = /\/watch-progress(?:\?|$|\.)/i.test(reqUrl) || /[?&]_watch=1/.test(reqUrl);
   if (isWatchProgressRequest) {
+    const verifiedUser = getVerifiedInitDataUser(request);
+    request.requireVerifiedUser = true;
+    request.verifiedTelegramUserId = verifiedUser?.id ? String(verifiedUser.id) : "";
     return handleWatchProgress(request, response);
   }
 
@@ -362,7 +370,7 @@ module.exports = async function handler(request, response) {
   try {
     if (request.method === "GET") {
       const debugMatch = /[?&]_debug=([^&]+)/.exec(reqUrl);
-      const expectedAdmin = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
+      const expectedAdmin = getRequiredAdminPassword();
       const isDebug = debugMatch && safeCompareStrings(decodeURIComponent(debugMatch[1]), expectedAdmin);
       const repoBackupUsers = readUsersFromRepoBackup();
       const [r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
@@ -420,7 +428,7 @@ module.exports = async function handler(request, response) {
 
     if (request.method === "DELETE") {
       const body = await readRequestBody(request);
-      const expected = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
+      const expected = getRequiredAdminPassword();
       const password = trimStr(body.password);
       const { isAdminAuthorized } = require("./_lib/auth");
       const okByCookieOrHeader = isAdminAuthorized(request);

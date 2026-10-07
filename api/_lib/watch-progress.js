@@ -60,9 +60,14 @@ async function handleWatchProgress(request, response) {
   response.setHeader("Cache-Control", "no-store, max-age=0");
 
   try {
+    const verifiedUserId = trim(request.verifiedTelegramUserId);
+    if (request.requireVerifiedUser && !verifiedUserId) {
+      response.status(401).json({ ok: false, error: "Telegram foydalanuvchisi tasdiqlanmadi." });
+      return;
+    }
     if (request.method === "GET") {
       const url = new URL(request.url || "/", "http://localhost");
-      const userId = trim(url.searchParams.get("userId") || request.query?.userId);
+      const userId = verifiedUserId || trim(url.searchParams.get("userId") || request.query?.userId);
       if (!userId) {
         response.status(400).json({ ok: false, error: "userId kerak." });
         return;
@@ -75,7 +80,12 @@ async function handleWatchProgress(request, response) {
 
     if (request.method === "POST") {
       const body = await readRequestBody(request);
-      const userId = trim(body.userId);
+      const requestedUserId = trim(body.userId);
+      if (verifiedUserId && requestedUserId && requestedUserId !== verifiedUserId) {
+        response.status(403).json({ ok: false, error: "Boshqa foydalanuvchi nomidan amal bajarib bo‘lmaydi." });
+        return;
+      }
+      const userId = verifiedUserId || requestedUserId;
       if (!userId) {
         response.status(400).json({ ok: false, error: "userId kerak." });
         return;

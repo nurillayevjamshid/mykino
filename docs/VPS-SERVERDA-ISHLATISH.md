@@ -59,7 +59,8 @@ BOT_USERNAME=myntv_bot
 WEBAPP_URL=https://<domeningiz>      # oxirida "/" bo'lmasin
 WEB_HOST=0.0.0.0
 WEB_PORT=8080
-ADMIN_PASSWORD=kuchli-parol           # "admin123" QOLDIRMANG
+ADMIN_PASSWORD=<kamida-32-belgili-random-parol>
+ADMIN_SESSION_SECRET=<ADMIN_PASSWORD-dan-alohida-kamida-32-belgili-random-secret>
 ```
 
 Ixtiyoriy (kino katalogi va mini app bo'limlari uchun): `GOOGLE_DRIVE_FOLDER_ID`,

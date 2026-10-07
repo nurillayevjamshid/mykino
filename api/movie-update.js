@@ -1,4 +1,4 @@
-const { authorizeRequest, isAdminAuthorized, safeCompareStrings } = require("./_lib/auth");
+const { authorizeRequest, isAdminAuthorized, safeCompareStrings, getRequiredAdminPassword } = require("./_lib/auth");
 const {
   getDriveFileMetadata,
   setCors,
@@ -11,7 +11,7 @@ const {
 const { listR2Objects } = require("./_lib/r2-store");
 
 function isAdminRequest(request, body) {
-  const expected = trimString(process.env.ADMIN_PASSWORD) || "admin123";
+  const expected = getRequiredAdminPassword();
   const password = trimString(body?.password);
   return isAdminAuthorized(request) || (password && safeCompareStrings(password, expected));
 }
@@ -114,7 +114,7 @@ module.exports = async function handler(request, response) {
     }
 
     if (action === "deletecomment") {
-      const expected = trimString(process.env.ADMIN_PASSWORD) || "admin123";
+      const expected = getRequiredAdminPassword();
       const password = trimString(body.password);
       const okByCookieOrHeader = isAdminAuthorized(request);
       const okByBody = password && safeCompareStrings(password, expected);

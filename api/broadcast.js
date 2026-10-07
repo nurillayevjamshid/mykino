@@ -1,12 +1,15 @@
 const { readCatalogMetadata, setCors } = require("./_lib/google-drive");
 const { readBlobJson } = require("./_lib/blob-store");
 const { getJsonFromR2Signed } = require("./_lib/r2-store");
-const { isAdminAuthorized, safeCompareStrings } = require("./_lib/auth");
+const { isAdminAuthorized, safeCompareStrings, getRequiredAdminPassword } = require("./_lib/auth");
 
 const TELEGRAM_API = "https://api.telegram.org";
 const SEND_DELAY_MS = 50;
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
 const R2_USERS_KEY = "settings/bot-users.json";
+const MAX_BROADCAST_BODY_BYTES = 8 * 1024 * 1024;
+const MAX_BROADCAST_MEDIA_BYTES = 6 * 1024 * 1024;
+const ALLOWED_MEDIA_MIMES = new Set(["image/jpeg", "image/png", "image/webp", "video/mp4"]);
 
 function trimStr(value) {
   return String(value || "").trim();
@@ -14,16 +17,33 @@ function trimStr(value) {
 
 async function readBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
+    if (request.body.length > MAX_BROADCAST_BODY_BYTES) {
+      const error = new Error("So‘rov hajmi juda katta."); error.statusCode = 413; throw error;
+    }
     return JSON.parse(request.body.toString("utf8"));
   }
   if (request.body && typeof request.body === "string") {
+    if (Buffer.byteLength(request.body, "utf8") > MAX_BROADCAST_BODY_BYTES) {
+      const error = new Error("So‘rov hajmi juda katta."); error.statusCode = 413; throw error;
+    }
     return JSON.parse(request.body);
   }
   if (request.body && typeof request.body === "object") {
     return request.body;
   }
+  const contentLength = Number(request.headers?.["content-length"] || 0);
+  if (contentLength > MAX_BROADCAST_BODY_BYTES) {
+    const error = new Error("So‘rov hajmi juda katta."); error.statusCode = 413; throw error;
+  }
   let raw = "";
-  for await (const chunk of request) raw += chunk;
+  let bytes = 0;
+  for await (const chunk of request) {
+    bytes += Buffer.byteLength(chunk);
+    if (bytes > MAX_BROADCAST_BODY_BYTES) {
+      const error = new Error("So‘rov hajmi juda katta."); error.statusCode = 413; throw error;
+    }
+    raw += chunk;
+  }
   return raw ? JSON.parse(raw) : {};
 }
 
@@ -137,10 +157,12 @@ function decodeDataUrl(dataUrl) {
   const m = /^data:([^;,]+)(;base64)?,(.*)$/i.exec(String(dataUrl || ""));
   if (!m) return null;
   const mime = m[1] || "application/octet-stream";
+  if (!ALLOWED_MEDIA_MIMES.has(mime.toLowerCase())) return null;
   const isB64 = !!m[2];
   const raw = m[3] || "";
   try {
     const buf = isB64 ? Buffer.from(raw, "base64") : Buffer.from(decodeURIComponent(raw), "utf8");
+    if (buf.length > MAX_BROADCAST_MEDIA_BYTES) return null;
     return { buffer: buf, mime };
   } catch {
     return null;
@@ -178,7 +200,11 @@ module.exports = async function handler(request, response) {
   try {
     const body = await readBody(request);
     const password = trimStr(body.password);
-    const expectedPassword = trimStr(process.env.ADMIN_PASSWORD) || "admin123";
+    const expectedPassword = getRequiredAdminPassword();
+    if (!expectedPassword) {
+      response.status(503).json({ ok: false, error: "Admin autentifikatsiyasi production uchun sozlanmagan." });
+      return;
+    }
     const okByCookieOrHeader = isAdminAuthorized(request);
     const okByBody = password && safeCompareStrings(password, expectedPassword);
     if (!okByCookieOrHeader && !okByBody) {
@@ -192,6 +218,10 @@ module.exports = async function handler(request, response) {
     const mediaDataUrl = trimStr(body.mediaDataUrl);
     const mediaKind = body.mediaKind === "video" ? "video" : "photo";
     const decodedMedia = mediaDataUrl ? decodeDataUrl(mediaDataUrl) : null;
+    if (mediaDataUrl && !decodedMedia) {
+      response.status(413).json({ ok: false, error: "Media formati yoki hajmi ruxsat etilmagan. Maksimal hajm: 6MB." });
+      return;
+    }
     if (!text && !photoUrl && !videoUrl && !decodedMedia) {
       response.status(400).json({ ok: false, error: "Matn yoki media kerak." });
       return;

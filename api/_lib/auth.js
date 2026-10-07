@@ -247,21 +247,25 @@ function safeCompareStrings(a, b) {
 }
 
 function getAdminSecret() {
-  // Prefer a dedicated secret; fall back to BOT_TOKEN; final fallback so dev never crashes.
-  return process.env.ADMIN_SESSION_SECRET
-    || process.env.BOT_TOKEN
-    || process.env.ADMIN_PASSWORD
-    || "kino-admin-fallback";
+  return String(process.env.ADMIN_SESSION_SECRET || "").trim();
+}
+
+function getRequiredAdminPassword() {
+  return String(process.env.ADMIN_PASSWORD || "").trim();
 }
 
 function signAdminSession(ttlSec = ADMIN_SESSION_TTL_SEC) {
+  const secret = getAdminSecret();
+  if (!secret) throw new Error("ADMIN_SESSION_SECRET sozlanmagan.");
   const exp = Math.floor(Date.now() / 1000) + ttlSec;
   const payload = `v1.${exp}`;
-  const sig = crypto.createHmac("sha256", getAdminSecret()).update(payload).digest("hex").slice(0, 32);
+  const sig = crypto.createHmac("sha256", secret).update(payload).digest("hex").slice(0, 32);
   return { token: `${payload}.${sig}`, exp };
 }
 
 function verifyAdminSession(token) {
+  const secret = getAdminSecret();
+  if (!secret) return false;
   if (!token || typeof token !== "string") return false;
   const parts = token.split(".");
   if (parts.length !== 3) return false;
@@ -270,7 +274,7 @@ function verifyAdminSession(token) {
   const exp = Number(expStr);
   if (!Number.isFinite(exp)) return false;
   if (Math.floor(Date.now() / 1000) > exp) return false;
-  const expectedSig = crypto.createHmac("sha256", getAdminSecret()).update(`${ver}.${expStr}`).digest("hex").slice(0, 32);
+  const expectedSig = crypto.createHmac("sha256", secret).update(`${ver}.${expStr}`).digest("hex").slice(0, 32);
   return safeCompareStrings(sig, expectedSig);
 }
 
@@ -306,6 +310,44 @@ function clearAdminSessionCookie(response) {
   appendSetCookie(response, buildAdminClearCookie());
 }
 
+async function readLimitedJsonBody(request, maxBytes = 1024 * 1024) {
+  const contentLength = Number(request.headers?.["content-length"] || 0);
+  if (contentLength > maxBytes) {
+    const error = new Error("So‘rov hajmi juda katta.");
+    error.statusCode = 413;
+    throw error;
+  }
+  if (request.body && Buffer.isBuffer(request.body)) {
+    if (request.body.length > maxBytes) {
+      const error = new Error("So‘rov hajmi juda katta.");
+      error.statusCode = 413;
+      throw error;
+    }
+    return JSON.parse(request.body.toString("utf8"));
+  }
+  if (request.body && typeof request.body === "string") {
+    if (Buffer.byteLength(request.body, "utf8") > maxBytes) {
+      const error = new Error("So‘rov hajmi juda katta.");
+      error.statusCode = 413;
+      throw error;
+    }
+    return JSON.parse(request.body);
+  }
+  if (request.body && typeof request.body === "object") return request.body;
+  let raw = "";
+  let bytes = 0;
+  for await (const chunk of request) {
+    bytes += Buffer.byteLength(chunk);
+    if (bytes > maxBytes) {
+      const error = new Error("So‘rov hajmi juda katta.");
+      error.statusCode = 413;
+      throw error;
+    }
+    raw += chunk;
+  }
+  return raw ? JSON.parse(raw) : {};
+}
+
 function appendSetCookie(response, value) {
   const prev = response.getHeader("Set-Cookie");
   if (!prev) {
@@ -323,8 +365,8 @@ function isAdminAuthorized(request) {
   if (cookies[ADMIN_COOKIE] && verifyAdminSession(cookies[ADMIN_COOKIE])) return true;
   // 2) Header (legacy, still accepted)
   const headerPass = request.headers["x-admin-password"];
-  const expected = process.env.ADMIN_PASSWORD || "admin123";
-  if (headerPass && safeCompareStrings(headerPass, expected)) return true;
+  const expected = getRequiredAdminPassword();
+  if (expected && headerPass && safeCompareStrings(headerPass, expected)) return true;
   return false;
 }
 
@@ -367,7 +409,7 @@ async function authorizeRequest(request, response, options = {}) {
   const adminPasswordHeader = request.headers["x-admin-password"];
 
   const botToken = process.env.BOT_TOKEN;
-  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+  const adminPassword = getRequiredAdminPassword();
 
   // Check 1: API Key / Bot Token (for Telegram bot or backend requests) — constant-time
   if (apiKey && botToken && (safeCompareStrings(apiKey, botToken) || safeCompareStrings(apiKey, `Bot ${botToken}`))) {
@@ -389,7 +431,7 @@ async function authorizeRequest(request, response, options = {}) {
       response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
       return false;
     }
-    if (safeCompareStrings(adminPasswordHeader, adminPassword)) {
+    if (adminPassword && safeCompareStrings(adminPasswordHeader, adminPassword)) {
       adminResetFails(clientIp);
       return true;
     }
@@ -458,7 +500,9 @@ module.exports = {
   parseCookies,
   setAdminSessionCookie,
   clearAdminSessionCookie,
+  readLimitedJsonBody,
   isAdminAuthorized,
+  getRequiredAdminPassword,
   getClientIp,
   adminIsLocked,
   adminRegisterFail,

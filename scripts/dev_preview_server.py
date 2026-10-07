@@ -4,7 +4,7 @@ Ishlatish:
     .venv/Scripts/python.exe scripts/dev_preview_server.py
 
 So'ngra brauzerda: http://127.0.0.1:8899/admin
-(parol: .env dagi ADMIN_PASSWORD, bo'lmasa "admin123")
+(parol: .env dagi ADMIN_PASSWORD; sozlanmagan bo'lsa admin rejimi ishlamaydi)
 """
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ async def main():
     await web.TCPSite(runner, settings.web_host, PORT).start()
     print(f"Admin panel:  http://127.0.0.1:{PORT}/admin")
     print(f"API tekshirish: http://127.0.0.1:{PORT}/api/users")
-    print(f"Parol: {__import__('os').environ.get('ADMIN_PASSWORD', 'admin123')} (.env yo'q)")
+    print("Parol: ADMIN_PASSWORD muhit o'zgaruvchisida bo'lishi kerak")
     print("To'xtatish: Ctrl+C")
     try:
         import asyncio
