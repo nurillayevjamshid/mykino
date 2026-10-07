@@ -2538,13 +2538,27 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 .music-splash__logo svg { width: 46px; height: 46px; display: block; }
 .music-splash__name {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   line-height: 1.05;
   font-weight: 900;
   letter-spacing: 0.06em;
 }
-.music-splash__name b { font-size: 17px; font-weight: 900; }
-.music-splash__name span { font-size: 17px; font-weight: 900; opacity: 0.55; }
+.music-splash__name span {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  opacity: 1;
+}
+html[data-theme="dark"] .music-splash {
+  background: #0a0a10;
+}
+html[data-theme="dark"] .music-splash__brand {
+  color: #ffffff;
+}
+html[data-theme="dark"] .music-splash__spinner {
+  border-color: rgba(255, 255, 255, 0.15);
+  border-top-color: #8b5cff;
+}
 
 /* --- Profile modal in music mode --- */
 .profile-history--music { display: none; }

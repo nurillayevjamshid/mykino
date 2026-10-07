@@ -5573,9 +5573,13 @@ function ensureMusicModule() {
 }
 
 // Stub'lar: musiqa moduli yuklanmasdan oldin ham nomi bilan chaqirsa bo'ladi.
-// Open* lar moduli yuklab, keyin chaqiradi. Close* lar — agar modul yuklanmagan bo'lsa, no-op.
 function openMusicView() { ensureMusicModule().then((m) => m?.openMusicView?.()).catch(() => {}); }
-function closeMusicView() { window.__music?.closeMusicView?.(); }
+function closeMusicView() {
+  const mv = document.getElementById("musicView");
+  if (mv) mv.hidden = true;
+  document.body.classList.remove("is-music");
+  window.__music?.closeMusicView?.();
+}
 function openAllArtists() { ensureMusicModule().then((m) => m?.openAllArtists?.()).catch(() => {}); }
 function closeAllArtists() { window.__music?.closeAllArtists?.(); }
 function closeAllSongs() { window.__music?.closeAllSongs?.(); }
@@ -5613,7 +5617,12 @@ function ensurePotcastsModule() {
   return __potcastsModulePromise;
 }
 function openPodcastsView() { ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
-function closePodcastsView() { window.__potcasts?.closePodcastsView?.(); }
+function closePodcastsView() {
+  const pv = document.getElementById("podcastsView");
+  if (pv) pv.hidden = true;
+  document.body.classList.remove("is-podcasts");
+  window.__potcasts?.closePodcastsView?.();
+}
 
 // TV moduli — alohida webapp/tv/tv.{js,css}, lazy-load (potcasts naqshi).
 let __tvModulePromise = null;
@@ -6286,9 +6295,9 @@ function syncSidebarSectionItems() {
 
   const ORDER = {
     kino: ["fifa", "music", "podcasts"],
-    fifa: ["kino", "esport", "music"],
-    music: ["kino", "fifa", "esport"],
-    podcasts: ["kino", "fifa", "esport"],
+    fifa: ["kino", "music", "podcasts"],
+    music: ["kino", "fifa", "podcasts"],
+    podcasts: ["kino", "fifa", "music"],
     esport: ["kino", "fifa", "music"],
   };
 
@@ -8222,7 +8231,12 @@ function ensureFifaModule() {
 // chaqiruvchilar (sidebar, banner click) shu nomlarni ishlatadi — funksiya
 // modulni yuklab, keyin haqiqiy openFifaView ni chaqiradi.
 function openFifaView() { ensureFifaModule().then((m) => m?.openFifaView?.()).catch(() => {}); }
-function closeFifaView() { window.__fifa?.closeFifaView?.(); }
+function closeFifaView() {
+  const fv = document.getElementById("fifaView");
+  if (fv) fv.hidden = true;
+  document.body.classList.remove("is-fifa");
+  window.__fifa?.closeFifaView?.();
+}
 
 // ============================================================
 // KIBERSPORT ("Kibersport va O'yinlar") — lazy-loader

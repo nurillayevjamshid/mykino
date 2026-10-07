@@ -232,7 +232,7 @@
           </svg>
         </span>
         <span class="music-splash__name">
-          <b>MY</b><span>PLAYLIST</span>
+          <span>NTV</span>
         </span>
       </div>
     `;
