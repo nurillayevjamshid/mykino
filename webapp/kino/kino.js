@@ -6271,7 +6271,24 @@ if (requestedSection) {
 //   Potkastlar: Kino, Futbol, Musiqa
 function syncTopbarSection() {
   const brand = document.getElementById("topbarSectionBrand");
-  if (brand) brand.setAttribute("aria-label", "NTV");
+  const icon = document.getElementById("topbarSectionIcon");
+  if (!brand || !icon) return;
+  const section = document.body.classList.contains("is-fifa") ? "fifa"
+    : document.body.classList.contains("is-tv") ? "tv"
+    : document.body.classList.contains("is-esport") ? "esport"
+    : document.body.classList.contains("is-music") ? "music"
+    : document.body.classList.contains("is-podcasts") ? "podcasts"
+    : "kino";
+  const icons = {
+    kino: `<svg viewBox="0 0 32 32" class="brand-logo__svg"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg>`,
+    music: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
+    podcasts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="13" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>`,
+    fifa: `<img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="22" height="22">`,
+    tv: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="m8 2 4 4 4-4"></path></svg>`,
+    esport: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8h8a4 4 0 0 1 4 4v3a3 3 0 0 1-5.1 2.1L13 15h-2l-1.9 2.1A3 3 0 0 1 4 15v-3a4 4 0 0 1 4-4Z"></path><path d="M8 11v4M6 13h4M16 12h.01M18 14h.01"></path></svg>`,
+  };
+  icon.innerHTML = icons[section] || icons.kino;
+  brand.setAttribute("aria-label", "NTV");
 }
 function syncSidebarSectionItems() {
   const slots = [
