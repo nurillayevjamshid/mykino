@@ -40,7 +40,7 @@ html:has(.esport-page) body::before {
 .app-shell { background: transparent !important; }
 .topbar, .bottom-bar, .sidebar,
 .search-box, .search-recents, .category-panel, .category-detail-view,
-.movie-card, .modal-content, .modal-dialog, .toast,
+.modal-content, .modal-dialog, .toast,
 .fifa-banner, .fifa-match-league, .fifa-standings-card,
 .music-view, .podcasts-view, .tv-view, .esport-view,
 .player-controls, .player-top, .player-bottom {
@@ -56,11 +56,12 @@ html:has(.esport-page) body::before {
   width: calc(100% - 24px) !important;
   padding-left: 14px !important; padding-right: 14px !important;
 }
-.icon-button, .bottom-bar__button, .category-detail-view__back,
+.icon-button, .category-detail-view__back,
 .category-row__more, .hero__info, .modal-close, .modal-share,
 .player-icon-btn, .player-back-btn, .tv-head__back, .fifa-date-nav__button,
 .fifa-date-nav__today { background: var(--glass-surface-soft) !important; border: 1px solid var(--glass-border-soft) !important; color: var(--glass-text) !important; }
-.icon-button:hover, .bottom-bar__button:hover, .category-row__more:hover,
+.category-row__more { border-radius: 50% !important; aspect-ratio: 1 / 1; }
+.icon-button:hover, .category-row__more:hover,
 .category-detail-view__back:hover { background: var(--glass-surface-strong) !important; transform: translateY(-1px); }
 .brand-text__top, .topbar .brand-text { color: var(--glass-text) !important; }
 
@@ -76,12 +77,12 @@ html:has(.esport-page) body::before {
 .hero__gradient { background: linear-gradient(90deg, rgba(5,13,25,.88), rgba(5,13,25,.26) 62%, transparent) !important; }
 .hero__play { background: linear-gradient(135deg, #d7f8ff, #93dff1) !important; color: #092331 !important; box-shadow: 0 12px 30px rgba(104,210,235,.25) !important; }
 .movie-grid { gap: 14px !important; }
-.movie-card { border-radius: 22px !important; overflow: hidden; }
-.movie-card::before { background: linear-gradient(120deg, rgba(255,255,255,.26), transparent 38%) !important; }
-.movie-card:hover, .movie-card:focus-visible { border-color: rgba(157,234,255,.42) !important; box-shadow: 0 20px 48px rgba(0,0,0,.34), 0 0 0 1px rgba(157,234,255,.13) !important; }
+.movie-card, .movie-card .card-copy { background: transparent !important; border: none !important; border-color: transparent !important; box-shadow: none !important; }
+.movie-card::before, .movie-card::after { display: none !important; content: none !important; }
 .card-watch-button, .hero__play { border-radius: 14px !important; }
 .bottom-bar { border-radius: 26px !important; margin: 0 10px 10px; width: calc(100% - 20px) !important; }
-.bottom-bar__button.is-active { color: var(--glass-cyan) !important; background: rgba(157,234,255,.13) !important; }
+.bottom-bar__button { background: transparent !important; border: none !important; border-color: transparent !important; box-shadow: none !important; border-radius: 9999px !important; }
+.bottom-bar__button.is-active { color: var(--glass-cyan) !important; background: transparent !important; border: none !important; box-shadow: none !important; }
 
 /* Overlays and media players */
 .modal-backdrop, .ad-modal__backdrop { background: rgba(3,8,16,.58) !important; backdrop-filter: blur(12px); }
@@ -171,7 +172,6 @@ html[data-theme="light"] .search-box,
 html[data-theme="light"] .search-recents,
 html[data-theme="light"] .category-panel,
 html[data-theme="light"] .category-detail-view,
-html[data-theme="light"] .movie-card,
 html[data-theme="light"] .modal-content,
 html[data-theme="light"] .modal-dialog,
 html[data-theme="light"] .toast,
@@ -200,7 +200,6 @@ html[data-theme="light"] .sidebar__item:hover,
 html[data-theme="light"] .sidebar__item.is-active { background: rgba(255,255,255,.72) !important; border-color: rgba(117, 151, 181, .24) !important; color: #132136 !important; box-shadow: 0 8px 22px rgba(70, 104, 135, .11), inset 0 1px rgba(255,255,255,.9); }
 html[data-theme="light"] .sidebar__divider { background: rgba(92, 121, 151, .18) !important; }
 html[data-theme="light"] .icon-button,
-html[data-theme="light"] .bottom-bar__button,
 html[data-theme="light"] .category-detail-view__back,
 html[data-theme="light"] .category-row__more,
 html[data-theme="light"] .hero__info,
@@ -211,6 +210,7 @@ html[data-theme="light"] .player-back-btn,
 html[data-theme="light"] .tv-head__back,
 html[data-theme="light"] .fifa-date-nav__button,
 html[data-theme="light"] .fifa-date-nav__today { color: #1a2a3e !important; background: rgba(255,255,255,.52) !important; border-color: rgba(104, 135, 164, .22) !important; }
+html[data-theme="light"] .category-row__more { border-radius: 50% !important; aspect-ratio: 1 / 1; }
 html[data-theme="light"] .brand-text__top,
 html[data-theme="light"] .topbar .brand-text,
 html[data-theme="light"] .category-row__title,
@@ -224,7 +224,8 @@ html[data-theme="light"] .movie-card .card-copy p,
 html[data-theme="light"] .music-chart__artist,
 html[data-theme="light"] .music-chart__dur,
 html[data-theme="light"] .music-link { color: rgba(43, 61, 82, .66) !important; }
-html[data-theme="light"] .bottom-bar__button.is-active,
+html[data-theme="light"] .bottom-bar__button { background: transparent !important; border: none !important; border-color: transparent !important; box-shadow: none !important; border-radius: 9999px !important; }
+html[data-theme="light"] .bottom-bar__button.is-active { color: #176b87 !important; background: transparent !important; border: none !important; box-shadow: none !important; }
 html[data-theme="light"] .music-tab.is-active,
 html[data-theme="light"] .tv-chip.is-active { color: #187b9b !important; background: rgba(157,234,255,.24) !important; }
 html[data-theme="light"] .modal-content,
@@ -288,4 +289,85 @@ html[data-theme="light"] .bottom-bar__button.is-active { color: #176b87 !importa
   display: none !important;
   content: none !important;
   background: none !important;
+}
+
+/* ============================================================
+   Foydalanuvchi talabi bo'yicha tuzatishlar:
+   1. Kategoriya "next" (>) tugmasi orqasi to'rtburchak emas, dumaloq bo'lsin.
+   2. Kinolar rasmi ostidagi card (kino nomi orqasidagi fon/ramka) ko'rinmaydigan bo'lsin.
+   3. Pastki navbardagi bo'limlarni o'tish tugmalari orqasidagi to'rtburchak chiziqlar o'chirilsin.
+   ============================================================ */
+
+/* 1. Kategoriya next icon dumaloq */
+.category-row__more,
+html[data-theme="light"] .category-row__more,
+html[data-theme="dark"] .category-row__more {
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1;
+}
+
+/* 2. Kinolar rasmi card pastidagi card ko'rinmaydigan bo'lsin */
+.movie-card,
+.movie-card .card-copy,
+.category-row__list .movie-card,
+.category-row__list .movie-card .card-copy,
+html[data-theme="light"] .movie-card,
+html[data-theme="light"] .movie-card .card-copy,
+html[data-theme="light"] .category-row__list .movie-card,
+html[data-theme="light"] .category-row__list .movie-card .card-copy,
+html[data-theme="dark"] .movie-card,
+html[data-theme="dark"] .movie-card .card-copy,
+html[data-theme="dark"] .category-row__list .movie-card,
+html[data-theme="dark"] .category-row__list .movie-card .card-copy {
+  background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.movie-card::before,
+.movie-card::after,
+.app-shell .movie-card::before,
+.app-shell .movie-card::after,
+html[data-theme="light"] .movie-card::before,
+html[data-theme="light"] .movie-card::after,
+html[data-theme="dark"] .movie-card::before,
+html[data-theme="dark"] .movie-card::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* 3. Pastki navbardagi tugmalar orqasidagi to'rtburchak chiziqlar va ramkalar o'chirilsin */
+.bottom-bar__button,
+.bottom-bar__inner > .bottom-bar__button,
+html[data-theme="light"] .bottom-bar__button,
+html[data-theme="light"] .bottom-bar__inner > .bottom-bar__button,
+html[data-theme="dark"] .bottom-bar__button,
+html[data-theme="dark"] .bottom-bar__inner > .bottom-bar__button {
+  background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 9999px !important;
+}
+
+.bottom-bar__button:hover,
+.bottom-bar__button:active,
+.bottom-bar__button.is-active,
+html[data-theme="light"] .bottom-bar__button:hover,
+html[data-theme="light"] .bottom-bar__button:active,
+html[data-theme="light"] .bottom-bar__button.is-active,
+html[data-theme="dark"] .bottom-bar__button:hover,
+html[data-theme="dark"] .bottom-bar__button:active,
+html[data-theme="dark"] .bottom-bar__button.is-active {
+  background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
 }

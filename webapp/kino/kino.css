@@ -1231,7 +1231,7 @@ html[data-theme="light"] .category-page__back:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 50%;
   color: var(--text);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1405,6 +1405,7 @@ html[data-theme="light"] .category-row__more {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.08);
   color: #0f131a;
+  border-radius: 50%;
 }
 
 html[data-theme="light"] .category-row__more:hover,
@@ -1935,14 +1936,14 @@ html[data-theme="light"] .app-footer__copy {
 
 html[data-theme="light"] .bottom-bar__button {
   color: rgba(15, 19, 26, 0.8);
-  background: rgba(255, 255, 255, 0.75);
-  border-color: rgba(0, 0, 0, 0.1);
+  background: transparent;
+  border-color: transparent;
 }
 
 html[data-theme="light"] .bottom-bar__button.is-active {
   color: #0f131a;
-  background: linear-gradient(180deg, #ffd15c, #f4b628);
-  border-color: rgba(255, 199, 58, 0.6);
+  background: transparent;
+  border-color: transparent;
 }
 
 html[data-theme="light"] .bottom-bar {
@@ -3411,7 +3412,6 @@ html[data-theme="light"] .lang-select,
 html[data-theme="light"] .theme-toggle,
 html[data-theme="light"] .search-box,
 html[data-theme="light"] .tab,
-html[data-theme="light"] .bottom-bar__button,
 html[data-theme="light"] .category-chip {
   color: #1a1a1a;
   background: rgba(255, 255, 255, 0.9);
@@ -3423,7 +3423,6 @@ html[data-theme="light"] .search-box {
 }
 
 html[data-theme="light"] .tab.is-active,
-html[data-theme="light"] .bottom-bar__button.is-active,
 html[data-theme="light"] .category-chip.is-active {
   color: #0f131a;
   background: linear-gradient(180deg, #ffd15c, #f4b628);
@@ -3453,13 +3452,13 @@ html[data-theme="light"] .glass-panel {
 }
 
 html[data-theme="light"] .movie-card {
-  border-color: rgba(0, 0, 0, 0.08);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 html[data-theme="light"] .card-copy {
-  background: linear-gradient(180deg, rgba(5, 8, 12, 0.05), rgba(5, 8, 12, 0.15));
+  background: transparent;
 }
 
 html[data-theme="light"] .card-copy h2 {
@@ -3495,8 +3494,7 @@ html[data-theme="light"] .card-watch-button {
     0 8px 20px rgba(255, 199, 58, 0.25);
 }
 
-html[data-theme="light"] .ghost-button,
-html[data-theme="light"] .bottom-bar__button {
+html[data-theme="light"] .ghost-button {
   border-color: rgba(0, 0, 0, 0.1);
   background: rgba(255, 255, 255, 0.7);
   color: #0f131a;
@@ -4278,7 +4276,6 @@ html[data-theme="light"] .icon-button,
 html[data-theme="light"] .theme-toggle,
 html[data-theme="light"] .lang-select,
 html[data-theme="light"] .tab,
-html[data-theme="light"] .bottom-bar__button,
 html[data-theme="light"] .category-chip,
 html[data-theme="light"] .ghost-button,
 html[data-theme="light"] .profile-stat,
@@ -4332,7 +4329,6 @@ html[data-theme="light"] .profile-history__remove {
 }
 
 html[data-theme="light"] .tab.is-active,
-html[data-theme="light"] .bottom-bar__button.is-active,
 html[data-theme="light"] .category-chip.is-active,
 html[data-theme="light"] .watch-button,
 html[data-theme="light"] .card-watch-button,
@@ -4352,24 +4348,19 @@ html[data-theme="light"] .badge {
 }
 
 html[data-theme="light"] .movie-card {
-  border-color: rgba(137, 119, 196, 0.14);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 241, 255, 0.88));
-  box-shadow: 0 18px 42px rgba(83, 55, 161, 0.12);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-html[data-theme="light"] .movie-card::before {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.12) 40%, rgba(255, 255, 255, 0.92) 100%);
-}
-
+html[data-theme="light"] .movie-card::before,
 html[data-theme="light"] .movie-card::after {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 28%),
-    linear-gradient(120deg, rgba(255, 255, 255, 0.16), transparent 40%);
+  display: none !important;
+  content: none !important;
 }
 
 html[data-theme="light"] .card-copy {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.96) 68%);
+  background: transparent;
 }
 
 html[data-theme="light"] .card-copy h2,
@@ -4733,14 +4724,14 @@ html[data-theme="light"] .lang-option:hover {
 }
 
 html[data-theme="light"] .movie-card::before {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.04) 52%, rgba(255, 255, 255, 0.68) 100%);
+  display: none !important;
+  content: none !important;
 }
 
 html[data-theme="light"] .card-copy {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.82) 72%);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .modal-meta {
@@ -5251,7 +5242,7 @@ body::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0;
+  border-radius: 50%;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -5484,8 +5475,8 @@ html[data-theme="light"] .card-copy {
   min-height: auto;
   padding: 0;
   background: transparent;
-  border: 0;
-  border-radius: 0;
+  border: none;
+  border-radius: 9999px;
   box-shadow: none;
   color: rgba(255, 255, 255, 0.45);
   display: flex;
@@ -6587,6 +6578,7 @@ html[data-theme="dark"] .lang-options {
 }
 
 .category-row__more {
+  border-radius: 50% !important;
   color: #fff;
   font-weight: 700;
 }
@@ -6598,6 +6590,7 @@ html[data-theme="dark"] .lang-options {
 
 html[data-theme="light"] .category-row__more,
 html[data-theme="light"] .category-row__more:hover {
+  border-radius: 50% !important;
   color: #0f131a;
 }
 
@@ -6606,9 +6599,27 @@ html[data-theme="light"] .category-row__more:hover {
    ============================================================ */
 
 .movie-card,
-.category-row__list .movie-card {
+.category-row__list .movie-card,
+html[data-theme="light"] .movie-card,
+html[data-theme="light"] .category-row__list .movie-card,
+html[data-theme="dark"] .movie-card,
+html[data-theme="dark"] .category-row__list .movie-card {
   background: transparent !important;
-  border: 0 !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.movie-card::before,
+.movie-card::after,
+html[data-theme="light"] .movie-card::before,
+html[data-theme="light"] .movie-card::after,
+html[data-theme="dark"] .movie-card::before,
+html[data-theme="dark"] .movie-card::after {
+  display: none !important;
+  content: none !important;
+  background: transparent !important;
   box-shadow: none !important;
 }
 
@@ -6625,8 +6636,17 @@ html[data-theme="light"] .category-row__more:hover {
   box-shadow: var(--c-shadow-card-hover);
 }
 
-.movie-card .card-copy {
+.card-copy,
+.movie-card .card-copy,
+html[data-theme="light"] .card-copy,
+html[data-theme="light"] .movie-card .card-copy,
+html[data-theme="dark"] .card-copy,
+html[data-theme="dark"] .movie-card .card-copy {
   background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-radius: 0 !important;
@@ -7175,8 +7195,14 @@ html[data-theme="light"] .modal-content h1 {
   color: var(--c-text);
 }
 
-html[data-theme="light"] .card-copy {
-  background: transparent;
+html[data-theme="light"] .card-copy,
+.movie-card .card-copy {
+  background: transparent !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 html[data-theme="light"] .card-copy h2 {
@@ -7197,16 +7223,20 @@ html[data-theme="light"] .rating span {
 }
 
 html[data-theme="light"] .movie-card,
+html[data-theme="light"] .category-row__list .movie-card,
 html[data-theme="light"] .movie-card::before,
 html[data-theme="light"] .movie-card::after {
   background: transparent !important;
-  display: revert;
-  content: none;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 html[data-theme="light"] .movie-card::before,
 html[data-theme="light"] .movie-card::after {
   display: none !important;
+  content: none !important;
 }
 
 html[data-theme="light"] .glass-panel {
@@ -8672,11 +8702,11 @@ html[data-theme="light"] .profile-modal::before {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-/* Movie card — yuqori ichki yorug'lik (poster ustida nozik nur) */
+/* Movie card — poster ustida nozik nur (agar poster bo'lsa) */
 .movie-card {
   position: relative;
 }
-.movie-card::after {
+.movie-card .poster::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -8686,8 +8716,8 @@ html[data-theme="light"] .profile-modal::before {
   z-index: 2;
   mix-blend-mode: overlay;
 }
-html[data-theme="light"] .movie-card::after {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 18%);
+html[data-theme="light"] .movie-card .poster::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent 18%);
   mix-blend-mode: soft-light;
 }
 
@@ -10109,12 +10139,39 @@ html[data-theme="light"] .bottom-bar__pill {
 }
 .bottom-bar__pill.is-visible { opacity: 1; }
 
-/* Tugmalar pill ustida tursin */
-.bottom-bar__inner > .bottom-bar__button {
+/* Tugmalar pill ustida tursin — toza shaffof, chiziqsiz va ramkasiz */
+.bottom-bar__button,
+.bottom-bar__inner > .bottom-bar__button,
+html[data-theme="light"] .bottom-bar__button,
+html[data-theme="light"] .bottom-bar__inner > .bottom-bar__button,
+html[data-theme="dark"] .bottom-bar__button,
+html[data-theme="dark"] .bottom-bar__inner > .bottom-bar__button {
   position: relative;
   z-index: 1;
   min-width: 0;
   overflow: hidden;
+  background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 9999px !important;
+}
+
+.bottom-bar__button:hover,
+.bottom-bar__button:active,
+.bottom-bar__button.is-active,
+html[data-theme="light"] .bottom-bar__button:hover,
+html[data-theme="light"] .bottom-bar__button:active,
+html[data-theme="light"] .bottom-bar__button.is-active,
+html[data-theme="dark"] .bottom-bar__button:hover,
+html[data-theme="dark"] .bottom-bar__button:active,
+html[data-theme="dark"] .bottom-bar__button.is-active {
+  background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Label pill ichidan chiqib ketmasin — uzun so'zlar qisqartiriladi */
