@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: dark;
 
   /* === SURFACES === */
@@ -7650,7 +7650,7 @@ body.is-categories .search-panel { display: none !important; }
 
 /* ===== Category detail page ===== */
 .category-detail-view {
-  padding: 8px 16px 120px;
+  padding: 14px 16px 120px;
   min-height: 100vh;
 }
 .category-detail-view__head {
@@ -9047,7 +9047,7 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
 
 /* --- FIFA view --- */
 .fifa-view {
-  padding: 0 16px 24px;
+  padding: 14px 16px 24px;
   color: var(--text, #fff);
 }
 body.is-fifa .fifa-view { display: block; }
@@ -10391,3 +10391,50 @@ html[data-theme="light"] .fifa-date-nav__today { background: #f5f6fa; border-col
   .fifa-date-nav__label strong { font-size: 11px; }
   .fifa-date-nav__button { min-width: 30px; width: 30px; padding: 0; }
 }
+
+/* ============================================================
+   TOPBAR & BO'LIMLAR BO'SHLIQLARI (tepasi va pastidan ochiq joy)
+   Barcha bo'limlarda tepadagi navbarni tepasidan ham, pastidan ham
+   keng va chiroyli masofa bilan ko'rsatish
+   ============================================================ */
+.topbar {
+  height: auto !important;
+  min-height: 48px !important;
+  padding-top: max(calc(env(safe-area-inset-top, 0px) + 8px), 16px) !important;
+  padding-bottom: 14px !important;
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+  box-sizing: border-box !important;
+}
+
+/* Barcha bo'limlar navbardan keyin chiroyli oraliq bilan boshlansin */
+.hero {
+  margin-top: 12px !important;
+}
+
+.hero[hidden] + .movie-grid,
+.topbar-search__panel--inline + .hero,
+.topbar-search__panel--inline:not([hidden]) + .hero,
+.topbar-search__panel--inline:not([hidden]) + .movie-grid {
+  margin-top: 12px !important;
+  padding-top: 8px !important;
+}
+
+.topbar-search__panel--inline {
+  margin-top: 10px !important;
+  margin-bottom: 8px !important;
+}
+
+.categories-view,
+.category-detail-view {
+  padding-top: 14px !important;
+}
+
+.music-view,
+.podcasts-view,
+.fifa-view,
+.tv-view,
+.esport-view {
+  padding-top: 14px !important;
+}
+

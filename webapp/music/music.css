@@ -6,7 +6,7 @@
 .music-view {
   background: #0a0a10;
   color: #f5f6fa;
-  padding: 0 0 24px;
+  padding: 14px 0 24px;
   font-family: inherit;
   border-radius: 24px;
   margin: 6px 0 12px;
@@ -27,7 +27,7 @@ body.is-music .bottom-bar--music { display: block !important; }
 .podcasts-view {
   background: transparent;
   color: var(--text);
-  padding: 0 0 110px;
+  padding: 14px 0 110px;
   border-radius: 0;
   margin: 0;
   font-family: inherit;

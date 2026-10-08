@@ -6779,15 +6779,16 @@ document.addEventListener("keydown", (event) => {
 
 // ===== Movie cache (localStorage) — kinolar darrov ko'rinishi uchun =====
 const MOVIE_CACHE_KEY = "kp_movie_cache_v1";
-const MOVIE_CACHE_TTL = 30 * 60 * 1000; // 30 daqiqa
 
 function readMovieCache() {
   try {
     const raw = localStorage.getItem(MOVIE_CACHE_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (!data || !Array.isArray(data.movies) || !data.ts) return null;
-    if (Date.now() - data.ts > MOVIE_CACHE_TTL) return null;
+    if (!data || !Array.isArray(data.movies) || !data.movies.length) return null;
+    // Stale-While-Revalidate: kesh mavjud bo'lsa, qachon yozilganidan qat'i nazar
+    // darhol (0ms) ko'rsatamiz. Fon yangilash (refreshMoviesSilently) esa
+    // yangi o'zgarishlarni fonda yuklab, keshni yangilab qo'yadi.
     return data.movies;
   } catch {
     return null;
@@ -6795,9 +6796,39 @@ function readMovieCache() {
 }
 
 function writeMovieCache(rawPayload) {
+  if (!Array.isArray(rawPayload) || !rawPayload.length) return;
   try {
     localStorage.setItem(MOVIE_CACHE_KEY, JSON.stringify({ movies: rawPayload, ts: Date.now() }));
-  } catch { /* quota exceeded — jim o'tkazamiz */ }
+  } catch {
+    // Agar to'liq payload localStorage kvotasidan oshsa (ayniqsa mobil Telegram WebView'da),
+    // faqat kartochkalar va katalog uchun zarur ixcham shaklni saqlaymiz.
+    try {
+      const compact = rawPayload.map((m) => ({
+        id: m.id, code: m.code, title: m.title, description: m.description,
+        year: m.year, genre: m.genre, rating: m.rating, quality: m.quality,
+        hd: m.hd, posterImage: m.posterImage, headerImage: m.headerImage,
+        showInHeader: m.showInHeader, isPremium: m.isPremium,
+        likes: m.likes, dislikes: m.dislikes, streamUrl: m.streamUrl,
+        cdnUrl: m.cdnUrl, sourceType: m.sourceType, size: m.size,
+        createdTime: m.createdTime, modifiedTime: m.modifiedTime
+      }));
+      localStorage.setItem(MOVIE_CACHE_KEY, JSON.stringify({ movies: compact, ts: Date.now() }));
+    } catch {
+      try {
+        const ultraCompact = rawPayload.map((m) => ({
+          id: m.id, code: m.code, title: m.title, description: m.description,
+          year: m.year, genre: m.genre, rating: m.rating, quality: m.quality,
+          hd: m.hd,
+          posterImage: String(m.posterImage || "").startsWith("data:") ? "" : m.posterImage,
+          headerImage: String(m.headerImage || "").startsWith("data:") ? "" : m.headerImage,
+          showInHeader: m.showInHeader, isPremium: m.isPremium,
+          likes: m.likes, dislikes: m.dislikes, streamUrl: m.streamUrl,
+          cdnUrl: m.cdnUrl, sourceType: m.sourceType
+        }));
+        localStorage.setItem(MOVIE_CACHE_KEY, JSON.stringify({ movies: ultraCompact, ts: Date.now() }));
+      } catch { /* quota exceeded — jim o'tkazamiz */ }
+    }
+  }
 }
 
 // Poster preload: faqat birinchi N ta — "above the fold" rasmlari.
@@ -7111,7 +7142,6 @@ async function loadMovies() {
   try {
     const response = await fetch(buildApiUrl("/api/movies"), {
       headers: { Accept: "application/json" },
-      cache: "no-store",
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
@@ -7155,8 +7185,11 @@ async function refreshMoviesSilently(wishlistSyncPromise) {
   try {
     const response = await fetch(buildApiUrl("/api/movies"), {
       headers: { Accept: "application/json" },
-      cache: "no-store",
     });
+    if (response.status === 304) {
+      // Server ma'lumotlar o'zgarmaganini bildirdi (304 Not Modified) — qayta yuklash shart emas
+      return;
+    }
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
       // Fon yangilashda 401 chiqsa, foydalanuvchini "Kirish taqiqlangan" ekraniga
@@ -7189,8 +7222,8 @@ async function silentReloadMovies() {
   try {
     const response = await fetch(buildApiUrl("/api/movies"), {
       headers: { Accept: "application/json" },
-      cache: "no-store",
     });
+    if (response.status === 304) return;
     const payload = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(payload)) {
       // Silent polling refresh — 401 bo'lsa ham foydalanuvchini bezovta qilmaymiz.
@@ -7250,7 +7283,6 @@ async function loadAppSettings() {
     timeoutId = window.setTimeout(() => controller.abort(), 3500);
     const response = await fetch(buildApiUrl("/api/settings"), {
       headers: { Accept: "application/json" },
-      cache: "no-store",
       signal: controller.signal,
     });
     if (response.ok) {
@@ -7278,7 +7310,6 @@ async function loadAppSettings() {
       try {
         const liveRes = await fetch(buildApiUrl("/api/categories?type=fifa-live"), {
           headers: { Accept: "application/json" },
-          cache: "no-store",
         });
         if (liveRes.ok) {
           const liveJson = await liveRes.json();
@@ -7543,7 +7574,7 @@ function hideSplashNow() {
 // kerak emas. Faqat MAX_MS keshda hech nima bo'lmasa fallback uchun.
 function initSplashScreen() {
   const MIN_MS = 0;
-  const MAX_MS = 900;
+  const MAX_MS = 3500;
   const startedAt = Date.now();
 
   const tryHide = () => {
@@ -7623,10 +7654,10 @@ function tryHandleFifaDeepLink() {
 }
 
 async function initApp() {
-  await loadAppSettings();
   const splash = initSplashScreen();
-  // Movies tayyor bo'lishi bilanoq splash yopiladi (min 800ms cheklov bilan).
-  // Birinchi ekrandagi poster'lar decode bo'lguncha kutamiz (cap: 1200ms) —
+  loadAppSettings().catch(() => {});
+  // Movies tayyor bo'lishi bilanoq splash yopiladi.
+  // Birinchi ekrandagi poster'lar decode bo'lguncha kutamiz (cap: 250ms) —
   // shunda splash yopilganda bo'sh kartochkalar yoki oq hero ko'rinmaydi.
   loadMovies().finally(async () => {
     try { await awaitFirstPostersReady(movies); } catch (_) {}

@@ -25,8 +25,8 @@ let accessTokenCache = {
   expiresAt: 0,
 };
 
-// Memory cache (per warm Lambda instance). 15 soniya TTL — Drive API yukini kamaytiradi, yangilanishlar tez yetib boradi.
-const LIST_CACHE_TTL_MS = 15_000;
+// Memory cache (per warm Lambda instance). 60 soniya TTL — Drive API yukini kamaytiradi, yangilanishlar tez yetib boradi.
+const LIST_CACHE_TTL_MS = 60_000;
 const listCache = {
   movies: { value: null, expiresAt: 0, inflight: null },
   series: { value: null, expiresAt: 0, inflight: null },
@@ -677,10 +677,10 @@ function toDriveMovie(file, index, metadataMap = {}) {
     posterImage: finalPosterImage,
     headerImage,
     showInHeader,
-    poster: finalPosterImage,
-    heroPoster: headerImage,
+    poster: finalPosterImage.startsWith("data:") ? "" : finalPosterImage,
+    heroPoster: headerImage.startsWith("data:") ? "" : headerImage,
     heroFeatured: showInHeader,
-    thumbnail: finalPosterImage,
+    thumbnail: finalPosterImage.startsWith("data:") ? "" : finalPosterImage,
     headerCrop: sanitizeHeaderCrop(override?.headerCrop),
     likes: reactionCounts.likes,
     dislikes: reactionCounts.dislikes,

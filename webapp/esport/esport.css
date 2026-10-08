@@ -49,7 +49,7 @@
 }
 
 .esport-view {
-  padding: 0 0 24px;
+  padding: 14px 0 24px;
   color: var(--c-text);
 }
 .esport-view[hidden] { display: none !important; }
