@@ -1223,56 +1223,386 @@ function writeWishlist(ids) {
   try {
     localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids));
   } catch {}
-  // Telegram CloudStorage'ga ham yozamiz — sessiyalar va qurilmalar orasida saqlanadi.
-  // Telegram WebView ba'zi holatlarda localStorage'ni tozalab yuboradi, shuning uchun
-  // bu nusxa wishlist'ni qaytib ochilganda ham yo'qotmaslik uchun zarur.
   pushWishlistToCloud(ids);
 }
 
-function pushWishlistToCloud(ids) {
+// ===== Cross-Device CloudStorage Synchronization Engine (Phone / PC / Tablet) =====
+const KINO_WISHLIST_CLOUD_KEY = "kino_wishlist_ids_v1";
+const KINO_WISHLIST_META_KEY = "kino_wishlist_meta_v1";
+const KINO_WATCHED_CLOUD_KEY = "kino_watched_v2";
+const PODCAST_HISTORY_CLOUD_KEY = "podcast_history_v2";
+const PODCAST_FAVORITES_CLOUD_KEY = "podcast_favs_v2";
+
+function getCloudStorage() {
   try {
-    if (tg && tg.CloudStorage && typeof tg.CloudStorage.setItem === "function") {
-      tg.CloudStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids), () => {});
+    const cs = window.Telegram?.WebApp?.CloudStorage;
+    if (cs && typeof cs.getItem === "function" && typeof cs.setItem === "function") {
+      return cs;
     }
-  } catch {}
+  } catch (_) {}
+  return null;
 }
 
-function syncWishlistFromCloud() {
+function cloudGet(key) {
   return new Promise((resolve) => {
+    const cs = getCloudStorage();
+    if (!cs) return resolve(null);
     try {
-      if (!tg || !tg.CloudStorage || typeof tg.CloudStorage.getItem !== "function") {
-        resolve(false);
-        return;
-      }
-      tg.CloudStorage.getItem(WISHLIST_STORAGE_KEY, (err, value) => {
-        if (err || !value) {
-          // Cloud bo'sh — lokaldagi (agar bor bo'lsa) ni cloud'ga itarib qo'yamiz
-          const localIds = readWishlist();
-          if (localIds.length) pushWishlistToCloud(localIds);
-          resolve(false);
-          return;
-        }
-        try {
-          const cloudIds = JSON.parse(value);
-          if (Array.isArray(cloudIds)) {
-            const localIds = readWishlist();
-            const merged = Array.from(new Set([...localIds.map(String), ...cloudIds.map(String)]));
-            localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(merged));
-            // Cloud bilan farq bo'lsa, yangilab qo'yamiz
-            if (merged.length !== cloudIds.length) {
-              pushWishlistToCloud(merged);
-            }
-            resolve(true);
-            return;
-          }
-        } catch {}
-        resolve(false);
+      cs.getItem(key, (err, val) => {
+        if (err || val == null || val === "") return resolve(null);
+        resolve(val);
       });
-    } catch {
+    } catch (_) {
+      resolve(null);
+    }
+  });
+}
+
+function cloudSet(key, value) {
+  return new Promise((resolve) => {
+    const cs = getCloudStorage();
+    if (!cs) return resolve(false);
+    try {
+      cs.setItem(key, String(value), (err, ok) => {
+        resolve(!err && !!ok);
+      });
+    } catch (_) {
       resolve(false);
     }
   });
 }
+
+function cloudRemove(key) {
+  return new Promise((resolve) => {
+    const cs = getCloudStorage();
+    if (!cs) return resolve(false);
+    try {
+      cs.removeItem(key, (err, ok) => {
+        resolve(!err && !!ok);
+      });
+    } catch (_) {
+      resolve(false);
+    }
+  });
+}
+
+let _wishlistPushDebounce = null;
+function pushWishlistToCloud(ids) {
+  clearTimeout(_wishlistPushDebounce);
+  _wishlistPushDebounce = setTimeout(() => {
+    try {
+      const cleanIds = Array.isArray(ids) ? Array.from(new Set(ids.map(String).filter(Boolean))) : [];
+      const payload = {
+        ids: cleanIds,
+        updatedAt: Date.now(),
+      };
+      localStorage.setItem(KINO_WISHLIST_META_KEY, JSON.stringify(payload));
+      cloudSet(KINO_WISHLIST_CLOUD_KEY, JSON.stringify(payload));
+    } catch (_) {}
+  }, 100);
+}
+
+async function syncWishlistFromCloud() {
+  try {
+    const raw = await cloudGet(KINO_WISHLIST_CLOUD_KEY);
+    if (!raw) {
+      const localIds = readWishlist();
+      if (localIds.length) pushWishlistToCloud(localIds);
+      return false;
+    }
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch (_) { return false; }
+
+    let cloudIds = [];
+    let cloudUpdated = 0;
+    if (Array.isArray(parsed)) {
+      cloudIds = parsed.map(String).filter(Boolean);
+    } else if (parsed && typeof parsed === "object") {
+      cloudIds = Array.isArray(parsed.ids) ? parsed.ids.map(String).filter(Boolean) : [];
+      cloudUpdated = Number(parsed.updatedAt || 0);
+    }
+
+    let localMeta = {};
+    try { localMeta = JSON.parse(localStorage.getItem(KINO_WISHLIST_META_KEY) || "{}"); } catch (_) {}
+    const localUpdated = Number(localMeta.updatedAt || 0);
+    const localIds = readWishlist();
+
+    if (!localUpdated || cloudUpdated >= localUpdated) {
+      localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(cloudIds));
+      localStorage.setItem(KINO_WISHLIST_META_KEY, JSON.stringify({ ids: cloudIds, updatedAt: cloudUpdated || Date.now() }));
+      return true;
+    } else if (localUpdated > cloudUpdated) {
+      pushWishlistToCloud(localIds);
+      return false;
+    }
+  } catch (_) {}
+  return false;
+}
+
+let _watchedPushDebounce = null;
+function pushWatchedMoviesToCloud(store) {
+  clearTimeout(_watchedPushDebounce);
+  _watchedPushDebounce = setTimeout(() => {
+    try {
+      if (!store || typeof store !== "object") return;
+      const entries = Object.values(store)
+        .filter((e) => e && e.id)
+        .sort((a, b) => Number(b.watchedAt || 0) - Number(a.watchedAt || 0))
+        .slice(0, 35);
+      const compact = entries.map((e) => ({
+        id: String(e.id),
+        p: Math.max(0, Math.floor(Number(e.progress) || 0)),
+        w: Number(e.watchedAt || 0),
+        t: String(e.title || "").slice(0, 50),
+        y: String(e.year || "").slice(0, 8),
+        g: String(e.genre || "").slice(0, 30),
+        pos: String(e.poster || "").slice(0, 150),
+      }));
+      cloudSet(KINO_WATCHED_CLOUD_KEY, JSON.stringify({ items: compact, updatedAt: Date.now() }));
+    } catch (_) {}
+  }, 300);
+}
+
+async function syncWatchedMoviesFromCloud() {
+  try {
+    const raw = await cloudGet(KINO_WATCHED_CLOUD_KEY);
+    if (!raw) {
+      const localStore = readWatchedMoviesStore();
+      if (Object.keys(localStore).length) pushWatchedMoviesToCloud(localStore);
+      return false;
+    }
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch (_) { return false; }
+    const cloudItems = Array.isArray(parsed?.items) ? parsed.items : (Array.isArray(parsed) ? parsed : []);
+    if (!cloudItems.length) return false;
+
+    const localStore = readWatchedMoviesStore();
+    let hasChanges = false;
+
+    for (const item of cloudItems) {
+      if (!item || !item.id) continue;
+      const key = String(item.id);
+      const existing = localStore[key];
+      const cloudW = Number(item.w || 0);
+      const localW = Number(existing?.watchedAt || 0);
+
+      if (!existing || cloudW > localW) {
+        localStore[key] = {
+          id: key,
+          title: existing?.title || item.t || "Kino",
+          poster: existing?.poster || item.pos || "",
+          year: existing?.year || item.y || "",
+          genre: existing?.genre || item.g || "Kino",
+          progress: Math.max(0, Math.floor(Number(item.p) || 0)),
+          watchedAt: cloudW || Date.now(),
+        };
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      localStorage.setItem(WATCHED_MOVIES_KEY, JSON.stringify(localStore));
+      syncWatchedCount();
+      try { renderProfileHistory?.(); } catch (_) {}
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+function clearWatchedMoviesCloud() {
+  cloudRemove(KINO_WATCHED_CLOUD_KEY);
+}
+
+let _podHistoryDebounce = null;
+function pushPodcastHistoryToCloud(history) {
+  clearTimeout(_podHistoryDebounce);
+  _podHistoryDebounce = setTimeout(() => {
+    try {
+      if (!Array.isArray(history)) return;
+      const compact = history.slice(0, 30).map((h) => ({
+        id: String(h.videoId || ""),
+        t: String(h.title || "").slice(0, 60),
+        th: String(h.thumb || "").slice(0, 150),
+        d: Math.max(0, Math.floor(Number(h.durationSec) || 0)),
+        ch: String(h.channelTitle || "").slice(0, 40),
+        ci: String(h.channelId || "").slice(0, 40),
+        w: h.watchedAt ? new Date(h.watchedAt).getTime() : Date.now(),
+      }));
+      cloudSet(PODCAST_HISTORY_CLOUD_KEY, JSON.stringify({ items: compact, updatedAt: Date.now() }));
+    } catch (_) {}
+  }, 300);
+}
+
+async function syncPodcastHistoryFromCloud() {
+  try {
+    const raw = await cloudGet(PODCAST_HISTORY_CLOUD_KEY);
+    if (!raw) {
+      const local = getPodcastHistory();
+      if (local.length) pushPodcastHistoryToCloud(local);
+      return false;
+    }
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch (_) { return false; }
+    const cloudItems = Array.isArray(parsed?.items) ? parsed.items : [];
+    if (!cloudItems.length) return false;
+
+    const localList = getPodcastHistory();
+    const map = new Map();
+
+    for (const item of localList) {
+      if (item && item.videoId) {
+        const time = item.watchedAt ? new Date(item.watchedAt).getTime() : 0;
+        map.set(String(item.videoId), { ...item, _time: time });
+      }
+    }
+
+    let hasChanges = false;
+    for (const c of cloudItems) {
+      if (!c || !c.id) continue;
+      const key = String(c.id);
+      const existing = map.get(key);
+      const cTime = Number(c.w || 0);
+
+      if (!existing || cTime > Number(existing._time || 0)) {
+        map.set(key, {
+          videoId: key,
+          title: existing?.title || c.t || "",
+          thumb: existing?.thumb || c.th || "",
+          durationSec: existing?.durationSec || c.d || 0,
+          channelTitle: existing?.channelTitle || c.ch || "",
+          channelId: existing?.channelId || c.ci || "",
+          watchedAt: new Date(cTime || Date.now()).toISOString(),
+          _time: cTime,
+        });
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      const merged = Array.from(map.values())
+        .sort((a, b) => Number(b._time || 0) - Number(a._time || 0))
+        .map(({ _time, ...rest }) => rest)
+        .slice(0, 50);
+      localStorage.setItem("podcastHistory", JSON.stringify(merged));
+      try {
+        if (profileModal?.open && document.body.classList.contains("is-podcast-profile")) {
+          renderPodcastProfileModal();
+        }
+      } catch (_) {}
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+function clearPodcastHistoryCloud() {
+  cloudRemove(PODCAST_HISTORY_CLOUD_KEY);
+}
+
+let _podFavsDebounce = null;
+function pushPodcastFavoritesToCloud(store) {
+  clearTimeout(_podFavsDebounce);
+  _podFavsDebounce = setTimeout(() => {
+    try {
+      if (!store || typeof store !== "object") return;
+      const values = Object.values(store)
+        .filter((e) => e && (e.videoId || e.id))
+        .sort((a, b) => Number(b.savedAt || 0) - Number(a.savedAt || 0))
+        .slice(0, 40);
+      const compact = values.map((e) => ({
+        id: String(e.videoId || e.id),
+        t: String(e.title || "").slice(0, 60),
+        th: String(e.thumb || "").slice(0, 150),
+        d: Math.max(0, Math.floor(Number(e.durationSec) || 0)),
+        ch: String(e.channelTitle || "").slice(0, 40),
+        ci: String(e.channelId || "").slice(0, 40),
+        s: Number(e.savedAt || Date.now()),
+      }));
+      cloudSet(PODCAST_FAVORITES_CLOUD_KEY, JSON.stringify({ items: compact, updatedAt: Date.now() }));
+    } catch (_) {}
+  }, 300);
+}
+
+async function syncPodcastFavoritesFromCloud() {
+  try {
+    const raw = await cloudGet(PODCAST_FAVORITES_CLOUD_KEY);
+    if (!raw) {
+      let localStore = {};
+      try { localStore = JSON.parse(localStorage.getItem("podcastFavorites") || "{}"); } catch (_) {}
+      if (Object.keys(localStore).length) pushPodcastFavoritesToCloud(localStore);
+      return false;
+    }
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch (_) { return false; }
+    const cloudItems = Array.isArray(parsed?.items) ? parsed.items : [];
+    if (!cloudItems.length) return false;
+
+    let localStore = {};
+    try { localStore = JSON.parse(localStorage.getItem("podcastFavorites") || "{}"); } catch (_) {}
+    let hasChanges = false;
+
+    for (const item of cloudItems) {
+      if (!item || !item.id) continue;
+      const key = String(item.id);
+      const existing = localStore[key];
+      const sTime = Number(item.s || 0);
+
+      if (!existing) {
+        localStore[key] = {
+          videoId: key,
+          title: item.t || "",
+          thumb: item.th || "",
+          durationSec: item.d || 0,
+          channelTitle: item.ch || "",
+          channelId: item.ci || "",
+          savedAt: sTime || Date.now(),
+        };
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      localStorage.setItem("podcastFavorites", JSON.stringify(localStore));
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+async function syncAllFromCloud() {
+  try {
+    await Promise.allSettled([
+      syncWishlistFromCloud(),
+      syncWatchedMoviesFromCloud(),
+      syncPodcastHistoryFromCloud(),
+      syncPodcastFavoritesFromCloud(),
+    ]);
+  } catch (_) {}
+}
+
+window.__cloudSync = {
+  syncAllFromCloud,
+  syncWishlistFromCloud,
+  syncWatchedMoviesFromCloud,
+  syncPodcastHistoryFromCloud,
+  syncPodcastFavoritesFromCloud,
+  pushWishlistToCloud,
+  pushWatchedMoviesToCloud,
+  pushPodcastHistoryToCloud,
+  pushPodcastFavoritesToCloud,
+  clearWatchedMoviesCloud,
+  clearPodcastHistoryCloud,
+};
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    syncAllFromCloud().catch(() => {});
+  }
+});
+window.addEventListener("focus", () => {
+  syncAllFromCloud().catch(() => {});
+});
 
 function isInWishlist(id) {
   return readWishlist().includes(String(id));
@@ -2116,6 +2446,7 @@ function readWatchedMoviesStore() {
 
 function writeWatchedMoviesStore(store) {
   localStorage.setItem(WATCHED_MOVIES_KEY, JSON.stringify(store));
+  pushWatchedMoviesToCloud(store);
 }
 
 function syncWatchedCount() {
@@ -2175,6 +2506,7 @@ function removeWatchedMovie(movieId) {
 function clearWatchedHistory() {
   localStorage.removeItem(WATCHED_MOVIES_KEY);
   localStorage.removeItem(WATCH_PROGRESS_KEY);
+  clearWatchedMoviesCloud();
   queueProgressClearAll();
 }
 
@@ -3023,6 +3355,12 @@ function renderProfileModal() {
   renderProfileStats();
   renderProfileHistory();
   renderMusicHistory();
+  syncWatchedMoviesFromCloud().then((ch) => {
+    if (ch && profileModal?.open) {
+      renderProfileStats();
+      renderProfileHistory();
+    }
+  }).catch(() => {});
 }
 
 const REACTION_CLIENT_ID_KEY = "mykino:clientId";
@@ -5408,6 +5746,7 @@ function getPodcastHistory() {
 function clearPodcastHistory() {
   try { localStorage.removeItem("podcastHistory"); } catch (_) {}
   try { localStorage.removeItem(PODCAST_PROGRESS_KEY); } catch (_) {}
+  clearPodcastHistoryCloud();
 }
 
 // ===== Potkast tomosha progressi (resume — kinolardagidek) =====
@@ -5454,6 +5793,11 @@ function clearPodcastProgress(videoId) {
 
 function renderPodcastProfileModal() {
   if (!profileModal) return;
+  syncPodcastHistoryFromCloud().then((ch) => {
+    if (ch && profileModal?.open && document.body.classList.contains("is-podcast-profile")) {
+      renderPodcastProfileModal();
+    }
+  }).catch(() => {});
   const entries = getPodcastHistory();
 
   // Sarlavha va label'larni podcast uchun o'zgartirish
@@ -5534,6 +5878,7 @@ function renderPodcastProfileModal() {
       const vid = btn.dataset.podHistoryRemove;
       let h = getPodcastHistory().filter((x) => x.videoId !== vid);
       try { localStorage.setItem("podcastHistory", JSON.stringify(h)); } catch (_) {}
+      pushPodcastHistoryToCloud(h);
       clearPodcastProgress(vid);
       renderPodcastProfileModal();
     });
@@ -5608,7 +5953,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20260708-pill-state";
+    script.src = "/static/potcasts/potcasts.js?v=20261009-cross-device-sync";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -7752,6 +8097,7 @@ function tryHandleFifaDeepLink() {
 async function initApp() {
   const splash = initSplashScreen();
   loadAppSettings().catch(() => {});
+  syncAllFromCloud().catch(() => {});
   // Movies tayyor bo'lishi bilanoq splash yopiladi.
   // Birinchi ekrandagi poster'lar decode bo'lguncha kutamiz (cap: 250ms) —
   // shunda splash yopilganda bo'sh kartochkalar yoki oq hero ko'rinmaydi.

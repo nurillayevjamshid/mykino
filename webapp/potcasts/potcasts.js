@@ -774,6 +774,7 @@
   }
   function writeSavedStore(store) {
     try { localStorage.setItem("podcastFavorites", JSON.stringify(store)); } catch (_) {}
+    try { window.__cloudSync?.pushPodcastFavoritesToCloud?.(store); } catch (_) {}
   }
   function getPodcastFavorites() {
     return new Set(Object.keys(readSavedStore()));
@@ -985,6 +986,7 @@
     // Maksimal 50 ta
     if (history.length > 50) history = history.slice(0, 50);
     try { localStorage.setItem("podcastHistory", JSON.stringify(history)); } catch (_) {}
+    try { window.__cloudSync?.pushPodcastHistoryToCloud?.(history); } catch (_) {}
   }
 
   function closePlayer() {
@@ -997,6 +999,15 @@
     currentView = "list";
     currentChannelId = null;
     currentChannelData = null;
+    try {
+      window.__cloudSync?.syncPodcastFavoritesFromCloud?.().then((ch) => {
+        if (ch && currentView === "list") {
+          podcastsRoot.innerHTML = buildList();
+          wireListEvents();
+        }
+      }).catch(() => {});
+      window.__cloudSync?.syncPodcastHistoryFromCloud?.().catch(() => {});
+    } catch (_) {}
     podcastsRoot.innerHTML = buildList();
     wireListEvents();
   }
@@ -1297,6 +1308,13 @@
     currentView = "saved";
     currentChannelId = null;
     currentChannelData = null;
+    try {
+      window.__cloudSync?.syncPodcastFavoritesFromCloud?.().then((ch) => {
+        if (ch && currentView === "saved") {
+          renderSavedView();
+        }
+      }).catch(() => {});
+    } catch (_) {}
     const savedAll = getSavedPodcastVideos();
     const saved = currentQuery ? savedAll.filter((v) => matchesQuery(v.title) || matchesQuery(v.channelTitle)) : savedAll;
     const body = saved.length
