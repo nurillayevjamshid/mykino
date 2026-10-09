@@ -10495,3 +10495,85 @@ html[data-theme="light"] .fifa-date-nav__today { background: #f5f6fa; border-col
   padding-top: 14px !important;
 }
 
+/* ============================================================
+   Section Switch Splash Screen (Sidebar navigation)
+   ============================================================ */
+.section-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.24s cubic-bezier(0.2, 0, 0, 1), visibility 0.24s;
+}
+.section-splash[hidden] {
+  display: none !important;
+}
+.section-splash.is-hiding {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.section-splash__spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(20, 18, 34, 0.1);
+  border-top-color: #e50914;
+  animation: musicSpin 0.8s linear infinite;
+}
+.section-splash__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #11121a;
+}
+.section-splash__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+}
+.section-splash__logo svg {
+  width: 46px;
+  height: 46px;
+  display: block;
+}
+.section-splash__logo img {
+  width: 44px;
+  height: 44px;
+  display: block;
+  object-fit: contain;
+}
+.section-splash__name {
+  display: flex;
+  align-items: center;
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+.section-splash__name span {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  opacity: 1;
+}
+html[data-theme="dark"] .section-splash {
+  background: #0a0a10;
+}
+html[data-theme="dark"] .section-splash__brand {
+  color: #ffffff;
+}
+html[data-theme="dark"] .section-splash__spinner {
+  border-color: rgba(255, 255, 255, 0.15);
+  border-top-color: #e50914;
+}
+

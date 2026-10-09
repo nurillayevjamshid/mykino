@@ -5573,7 +5573,7 @@ function ensureMusicModule() {
 }
 
 // Stub'lar: musiqa moduli yuklanmasdan oldin ham nomi bilan chaqirsa bo'ladi.
-function openMusicView() { ensureMusicModule().then((m) => m?.openMusicView?.()).catch(() => {}); }
+function openMusicView() { return ensureMusicModule().then((m) => m?.openMusicView?.()).catch(() => {}); }
 function closeMusicView() {
   const mv = document.getElementById("musicView");
   if (mv) mv.hidden = true;
@@ -5616,7 +5616,7 @@ function ensurePotcastsModule() {
   __potcastsModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__potcasts);
   return __potcastsModulePromise;
 }
-function openPodcastsView() { ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
+function openPodcastsView() { return ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
 function closePodcastsView() {
   const pv = document.getElementById("podcastsView");
   if (pv) pv.hidden = true;
@@ -5653,7 +5653,7 @@ function ensureTvModule() {
   __tvModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__tv);
   return __tvModulePromise;
 }
-function openTvView() { ensureTvModule().then((m) => m?.openTvView?.()).catch(() => {}); }
+function openTvView() { return ensureTvModule().then((m) => m?.openTvView?.()).catch(() => {}); }
 function closeTvView() { window.__tv?.closeTvView?.(); }
 
 // ===== Categories view (bottom-bar) =====
@@ -6394,79 +6394,212 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && appSidebar?.classList.contains("is-open")) setSidebarOpen(false);
 });
 
+// ============================================================
+// Bo'limlar orasida o'tish yuklash ekrani (Sidebar navigation splash)
+// ============================================================
+const SECTION_SPLASH_ICONS = {
+  kino: `<svg viewBox="0 0 32 32" class="brand-logo__svg" aria-hidden="true"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg>`,
+  music: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
+  podcasts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>`,
+  fifa: `<img src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44" style="object-fit:contain;display:block;">`,
+  esport: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M7 12h3"></path><path d="M8.5 10.5v3"></path><circle cx="16" cy="11" r="1"></circle><circle cx="18" cy="13.5" r="1"></circle></svg>`,
+  tv: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="m8 2 4 4 4-4"></path></svg>`,
+};
+
+const SECTION_SPLASH_COLORS = {
+  kino: "#e50914",
+  music: "#8b5cff",
+  podcasts: "#ff9800",
+  fifa: "#00b894",
+  esport: "#00cec9",
+  tv: "#e50914",
+};
+
+let sectionSplashTimer = null;
+let sectionSplashHideTimer = null;
+
+function ensureSectionSplash() {
+  let el = document.getElementById("sectionSplash");
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = "sectionSplash";
+  el.className = "section-splash";
+  el.hidden = true;
+  el.setAttribute("aria-hidden", "true");
+  el.innerHTML = `
+    <div class="section-splash__spinner" id="sectionSplashSpinner" aria-hidden="true"></div>
+    <div class="section-splash__brand">
+      <span class="section-splash__logo" id="sectionSplashLogo" aria-hidden="true"></span>
+      <span class="section-splash__name"><span>NTV</span></span>
+    </div>
+  `;
+  document.body.appendChild(el);
+  return el;
+}
+
+function showSectionSplash(sectionKey) {
+  const el = ensureSectionSplash();
+  const key = sectionKey === "kino-back" ? "kino" : (sectionKey || "kino");
+  const logoEl = document.getElementById("sectionSplashLogo");
+  const spinnerEl = document.getElementById("sectionSplashSpinner");
+  if (logoEl) logoEl.innerHTML = SECTION_SPLASH_ICONS[key] || SECTION_SPLASH_ICONS.kino;
+  if (spinnerEl) spinnerEl.style.borderTopColor = SECTION_SPLASH_COLORS[key] || "#e50914";
+  clearTimeout(sectionSplashTimer);
+  clearTimeout(sectionSplashHideTimer);
+  el.classList.remove("is-hiding");
+  el.hidden = false;
+}
+
+function hideSectionSplash(immediate = false) {
+  const el = document.getElementById("sectionSplash");
+  if (!el || el.hidden) return;
+  clearTimeout(sectionSplashTimer);
+  clearTimeout(sectionSplashHideTimer);
+  if (immediate) {
+    el.hidden = true;
+    el.classList.remove("is-hiding");
+    return;
+  }
+  el.classList.add("is-hiding");
+  sectionSplashHideTimer = setTimeout(() => {
+    el.hidden = true;
+    el.classList.remove("is-hiding");
+  }, 230);
+}
+
+window.showSectionSplash = showSectionSplash;
+window.hideSectionSplash = hideSectionSplash;
+
+function getCurrentAppSection() {
+  return document.body.classList.contains("is-fifa") ? "fifa"
+    : document.body.classList.contains("is-tv") ? "tv"
+    : document.body.classList.contains("is-esport") ? "esport"
+    : document.body.classList.contains("is-music") ? "music"
+    : document.body.classList.contains("is-podcasts") ? "podcasts"
+    : "kino";
+}
+
+function navigateSidebarSection(action, switchFn) {
+  setSidebarOpen(false);
+  const current = getCurrentAppSection();
+  const targetKey = action === "kino-back" ? "kino" : action;
+  if (current === targetKey) {
+    return;
+  }
+
+  showSectionSplash(targetKey);
+
+  const startTime = Date.now();
+  let switchResult = null;
+  try {
+    switchResult = switchFn();
+  } catch (_) {}
+
+  const finish = () => {
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, 800 - elapsed);
+    sectionSplashTimer = setTimeout(() => {
+      hideSectionSplash();
+    }, remaining);
+  };
+
+  if (switchResult && typeof switchResult.then === "function") {
+    switchResult.then(finish).catch(finish);
+  } else {
+    finish();
+  }
+}
+
 document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
   el.addEventListener("click", (e) => {
     const action = el.dataset.sidebarAction;
     e.preventDefault();
     if (action === "music") {
-      closePodcastsView();
-      closeFifaView();
-      closeTvView();
-      closeEsportView();
-      openMusicView();
-      setSidebarOpen(false);
+      navigateSidebarSection("music", () => {
+        closePodcastsView();
+        closeFifaView();
+        closeTvView();
+        closeEsportView();
+        return openMusicView();
+      });
       return;
     }
     if (action === "podcasts") {
-      closeMusicView();
-      closeFifaView();
-      closeTvView();
-      closeEsportView();
-      openPodcastsView();
-      setSidebarOpen(false);
+      navigateSidebarSection("podcasts", () => {
+        closeMusicView();
+        closeFifaView();
+        closeTvView();
+        closeEsportView();
+        return openPodcastsView();
+      });
       return;
     }
     if (action === "fifa") {
-      closeMusicView();
-      closePodcastsView();
-      closeTvView();
-      closeEsportView();
-      openFifaView();
-      setSidebarOpen(false);
+      navigateSidebarSection("fifa", () => {
+        closeMusicView();
+        closePodcastsView();
+        closeTvView();
+        closeEsportView();
+        return openFifaView();
+      });
       return;
     }
     if (action === "esport") {
-      closeMusicView();
-      closePodcastsView();
-      closeFifaView();
-      closeTvView();
-      openEsportView();
-      setSidebarOpen(false);
+      navigateSidebarSection("esport", () => {
+        closeMusicView();
+        closePodcastsView();
+        closeFifaView();
+        closeTvView();
+        return openEsportView();
+      });
       return;
     }
     if (action === "tv") {
-      closeMusicView();
-      closePodcastsView();
-      closeFifaView();
-      closeEsportView();
-      openTvView();
-      setSidebarOpen(false);
+      navigateSidebarSection("tv", () => {
+        closeMusicView();
+        closePodcastsView();
+        closeFifaView();
+        closeEsportView();
+        return openTvView();
+      });
       return;
     }
     if (action === "esports") {
-      setSidebarOpen(false);
-      window.location.href = "/kibersport";
+      navigateSidebarSection("esport", () => {
+        window.location.href = "/kibersport";
+      });
       return;
     }
     if (action === "kino-back") {
-      closeMusicView();
-      closePodcastsView();
-      closeFifaView();
-      closeTvView();
-      closeEsportView();
-      setFilter("all");
-      document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
-      setSidebarOpen(false);
+      navigateSidebarSection("kino-back", () => {
+        closeMusicView();
+        closePodcastsView();
+        closeFifaView();
+        closeTvView();
+        closeEsportView();
+        setFilter("all");
+        document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+      });
       return;
     }
     if (action === "favorites") {
-      closeMusicView();
-      closePodcastsView();
-      closeFifaView();
-      closeTvView();
-      closeEsportView();
-      setFilter("favorites");
-      document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+      const current = getCurrentAppSection();
+      if (current !== "kino") {
+        navigateSidebarSection("kino", () => {
+          closeMusicView();
+          closePodcastsView();
+          closeFifaView();
+          closeTvView();
+          closeEsportView();
+          setFilter("favorites");
+          document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      } else {
+        setFilter("favorites");
+        document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+        setSidebarOpen(false);
+      }
+      return;
     } else if (action === "profile") {
       renderProfileModal();
       profileModal.showModal();
@@ -8285,7 +8418,7 @@ function ensureFifaModule() {
 // Stub'lar (music/potcasts bilan bir naqsh). Modul yuklanmagan paytda
 // chaqiruvchilar (sidebar, banner click) shu nomlarni ishlatadi — funksiya
 // modulni yuklab, keyin haqiqiy openFifaView ni chaqiradi.
-function openFifaView() { ensureFifaModule().then((m) => m?.openFifaView?.()).catch(() => {}); }
+function openFifaView() { return ensureFifaModule().then((m) => m?.openFifaView?.()).catch(() => {}); }
 function closeFifaView() {
   const fv = document.getElementById("fifaView");
   if (fv) fv.hidden = true;
@@ -8326,7 +8459,7 @@ function ensureEsportModule() {
   __esportModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__esport);
   return __esportModulePromise;
 }
-function openEsportView() { ensureEsportModule().then((m) => m?.openEsportView?.()).catch(() => {}); }
+function openEsportView() { return ensureEsportModule().then((m) => m?.openEsportView?.()).catch(() => {}); }
 function closeEsportView() { window.__esport?.closeEsportView?.(); }
 
 

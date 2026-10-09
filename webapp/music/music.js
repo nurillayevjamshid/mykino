@@ -226,9 +226,10 @@
       <div class="music-splash__spinner" aria-hidden="true"></div>
       <div class="music-splash__brand">
         <span class="music-splash__logo" aria-hidden="true">
-          <svg viewBox="0 0 32 32">
-            <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
-            <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"></path>
+            <circle cx="6" cy="18" r="3" fill="currentColor"></circle>
+            <circle cx="18" cy="16" r="3" fill="currentColor"></circle>
           </svg>
         </span>
         <span class="music-splash__name">
@@ -239,8 +240,17 @@
     document.body.appendChild(el);
     return el;
   }
-  function showMusicSplash() { ensureMusicSplash().hidden = false; }
+  function showMusicSplash() {
+    if (window.showSectionSplash) {
+      window.showSectionSplash("music");
+    } else {
+      ensureMusicSplash().hidden = false;
+    }
+  }
   function hideMusicSplash() {
+    if (window.hideSectionSplash) {
+      window.hideSectionSplash();
+    }
     const el = document.getElementById("musicSplash");
     if (el) el.hidden = true;
   }

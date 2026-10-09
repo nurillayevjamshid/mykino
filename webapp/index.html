@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261008-ui-fixes" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261009-section-splash" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Bot username'i yagona joydan boshqariladi: botni almashtirganda faqat shu
        qatorni o'zgartiring (kino.js, fifa.js, potcasts.js shu qiymatni o'qiydi). -->
@@ -42,6 +42,16 @@
       <span class="splash-screen__tagline-eyebrow">biz bilan vaqtingiz</span>
       <span class="splash-screen__tagline-hero">maroqli</span>
       <span class="splash-screen__tagline-foot">bo'ladi</span>
+    </div>
+  </div>
+  <!-- Bo'limlar orasida o'tish yuklash ekrani (sidebar navigatsiya) -->
+  <div id="sectionSplash" class="section-splash" hidden aria-hidden="true">
+    <div class="section-splash__spinner" id="sectionSplashSpinner" aria-hidden="true"></div>
+    <div class="section-splash__brand">
+      <span class="section-splash__logo" id="sectionSplashLogo" aria-hidden="true"></span>
+      <span class="section-splash__name">
+        <span>NTV</span>
+      </span>
     </div>
   </div>
   <div class="ad-modal" id="adModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="adModalTitle">
@@ -1066,7 +1076,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261008-no-section-loading"></script>
+  <script src="/static/kino/kino.js?v=20261009-section-splash"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
