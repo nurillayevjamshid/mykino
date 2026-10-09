@@ -1,12 +1,15 @@
 const crypto = require("crypto");
 
 // CORS uchun zaxira manzil. WEBAPP_URL env o'zgaruvchisi asosiy manba.
-const DEFAULT_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
+const DEFAULT_WEBAPP_URL = "https://myplaylist.uz";
 
 // Clean and normalize URLs to get origins
 const ALLOWED_ORIGINS = [
   process.env.WEBAPP_URL,
-  DEFAULT_WEBAPP_URL
+  DEFAULT_WEBAPP_URL,
+  "https://myplaylist.uz",
+  "https://www.myplaylist.uz",
+  "https://kino-telegram-mini-app.vercel.app"
 ].map(url => {
   if (!url) return null;
   try {

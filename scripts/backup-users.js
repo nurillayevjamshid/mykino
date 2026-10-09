@@ -7,7 +7,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const API_URL = process.env.USERS_API_URL || "https://kino-telegram-mini-app.vercel.app/api/users";
+const API_URL = process.env.USERS_API_URL || "https://myplaylist.uz/api/users";
 const OUT_PATH = path.join(__dirname, "..", "data", "users-backup.json");
 
 function normalize(record) {

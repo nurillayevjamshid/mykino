@@ -8,7 +8,7 @@ const R2_USERS_KEY = "settings/bot-users.json";
 
 // Webapp manzili uchun yagona standart. WEBAPP_URL env o'zgaruvchisi
 // production domenga o'rnatilishi shart — bu yerga faqat zaxira qiymat yoziladi.
-const DEFAULT_WEBAPP_URL = "https://kino-telegram-mini-app.vercel.app";
+const DEFAULT_WEBAPP_URL = "https://myplaylist.uz";
 
 function getBotToken() {
   return String(process.env.BOT_TOKEN || "").trim();
