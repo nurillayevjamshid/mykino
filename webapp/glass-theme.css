@@ -137,7 +137,6 @@ html[data-theme="light"] .topbar.is-scrolled {
 .admin-layout .btn-primary, .admin-layout .btn-success { background: linear-gradient(135deg, #baf2ff, #82d3e8) !important; color: #092331 !important; }
 
 @media (max-width: 640px) {
-  .topbar { margin: 8px 8px 0; width: calc(100% - 16px) !important; border-radius: 20px !important; }
   .bottom-bar { margin: 0 7px 7px; width: calc(100% - 14px) !important; }
   .movie-card { border-radius: 18px !important; }
   .admin-layout .sidebar { border-radius: 0 26px 26px 0 !important; }
@@ -174,7 +173,6 @@ html[data-theme="light"]:has(.esport-page) body::before {
   background: linear-gradient(120deg, transparent 15%, rgba(255,255,255,.52) 48%, transparent 72%);
   opacity: .95;
 }
-html[data-theme="light"] .topbar,
 html[data-theme="light"] .bottom-bar,
 html[data-theme="light"] .sidebar,
 html[data-theme="light"] .search-box,
