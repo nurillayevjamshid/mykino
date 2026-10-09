@@ -114,7 +114,7 @@ Vercel deploy mini app domeni uchun tayyorlangan:
 - `/api/stream/:fileId` Telegram faylini backend orqali stream/proxy qiladi.
 - `/api/video-stream/:fileId` Telegram faylini backend orqali stream/proxy qiladi.
 - `.env` Vercelga yuborilmaydi.
-- Production domen: `https://myplaylist.uz` (shuningdek `https://kino-telegram-mini-app.vercel.app`)
+- Production domen: `https://www.myplaylist.uz` (shuningdek `https://kino-telegram-mini-app.vercel.app`)
 
 Eslatma: kanal public bo'lsa, Vercel `/api/movies` yangi video postlarni taxminan 15 soniya ichida ko'rsatadi, lekin `file_id` faqat bot kanal postini update sifatida olganda saqlanadi. Agar bot ishlamay turganda eski post qo'shilgan bo'lsa, u post qayta yuborilishi yoki keyingi bosqichda database orqali to'ldirilishi kerak. Agar kanal private qilinsa, keyingi bosqichda Supabase yoki Vercel KV kabi umumiy database ulash kerak bo'ladi.
 

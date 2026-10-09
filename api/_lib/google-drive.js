@@ -17,7 +17,7 @@ const EMBEDDED_META_END = "[/MY_KINO_META]";
 const DRIVE_DESCRIPTION_MAX_LENGTH = 28000;
 const MOVIE_DESCRIPTION_MAX_LENGTH = 4000;
 // CORS uchun zaxira manzil (asosiysi — WEBAPP_URL env o'zgaruvchisi).
-const DEFAULT_WEBAPP_URL = "https://myplaylist.uz";
+const DEFAULT_WEBAPP_URL = "https://www.myplaylist.uz";
 const NATURAL_SORT_COLLATOR = new Intl.Collator("uz", { numeric: true, sensitivity: "base" });
 
 let accessTokenCache = {

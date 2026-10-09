@@ -83,7 +83,7 @@ window.ensureAdminSession = async function ensureAdminSession(promptMsg) {
 };
 
 const HERO_ROTATE_INTERVAL_MS = 6500;
-const PROD_API_BASE = window.location.protocol === "file:" ? "https://myplaylist.uz" : "";
+const PROD_API_BASE = window.location.protocol === "file:" ? "https://www.myplaylist.uz" : "";
 const API_BASE_STORAGE_KEY = "kino_api_base_v1";
 const DEBUG_USER_STORAGE_KEY = "kino_debug_user_v1";
 const CACHED_USER_STORAGE_KEY = "kino_tg_user_v1";

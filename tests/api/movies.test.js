@@ -81,7 +81,7 @@ describe("api/movies.js", () => {
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    process.env = { ...process.env, BOT_TOKEN: "fake-token", WEBAPP_URL: "https://kino-telegram-mini-app.vercel.app" };
+    process.env = { ...process.env, BOT_TOKEN: "fake-token", WEBAPP_URL: "https://www.myplaylist.uz" };
   });
 
   afterEach(() => {
@@ -160,7 +160,7 @@ describe("api/movies.js", () => {
     await handler(req, res);
 
     assert.equal(res.statusCode, 204);
-    assert.equal(res.headers["Access-Control-Allow-Origin"], "https://kino-telegram-mini-app.vercel.app");
+    assert.equal(res.headers["Access-Control-Allow-Origin"], "https://www.myplaylist.uz");
     assert.match(res.headers["Access-Control-Allow-Methods"], /GET/);
   });
 
@@ -185,7 +185,7 @@ describe("api/movies.js", () => {
     const req = createMockReq({
       method: "GET",
       url: "/api/movies?_share=1&movie=UNKNOWN",
-      headers: { host: "kino-telegram-mini-app.vercel.app" },
+      headers: { host: "www.myplaylist.uz" },
     });
     const res = createMockRes();
     await handler(req, res);

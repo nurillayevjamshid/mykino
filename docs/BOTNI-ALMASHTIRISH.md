@@ -83,7 +83,7 @@ Uch muhit uchun ham xuddi shu tokenni bering.
 
 ## 5. WEBAPP_URL ni tekshirish
 
-Agar domen **o'zgarmagan** bo'lsa (ya'ni `https://kino-telegram-mini-app.vercel.app`
+Agar domen **o'zgarmagan** bo'lsa (ya'ni `https://www.myplaylist.uz`
 bo'lib qolsa) — bu qadamni o'tkazib yuboring.
 
 Domen o'zgargan bo'lsa:
@@ -91,7 +91,7 @@ Domen o'zgargan bo'lsa:
 ```bash
 npx vercel env rm WEBAPP_URL production
 npx vercel env add WEBAPP_URL production
-# qiymat: https://yangi-domen.vercel.app  (oxirida "/" yo'q!)
+# qiymat: https://www.myplaylist.uz  (oxirida "/" yo'q!)
 ```
 
 Preview va Development uchun ham takrorlang.
@@ -123,7 +123,7 @@ npx vercel --prod
 Yangi bot uchun webhook o'rnatish (agar webhook ishlatilsa):
 
 ```bash
-curl "https://api.telegram.org/bot<YANGI_TOKEN>/setWebhook?url=https://kino-telegram-mini-app.vercel.app/api/telegram-webhook"
+curl "https://api.telegram.org/bot<YANGI_TOKEN>/setWebhook?url=https://www.myplaylist.uz/api/telegram-webhook"
 ```
 
 Javobda `"ok":true` bo'lishi kerak.

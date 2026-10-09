@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 
 // CORS uchun zaxira manzil. WEBAPP_URL env o'zgaruvchisi asosiy manba.
-const DEFAULT_WEBAPP_URL = "https://myplaylist.uz";
+const DEFAULT_WEBAPP_URL = "https://www.myplaylist.uz";
 
 // Clean and normalize URLs to get origins
 const ALLOWED_ORIGINS = [

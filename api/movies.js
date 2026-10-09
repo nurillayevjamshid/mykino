@@ -81,7 +81,7 @@ function escapeHtml(value) {
 
 // Ulashish sahifasi uchun manzil. WEBAPP_URL bo'lsa — o'sha; bo'lmasa so'rovni
 // kelgan host ishlatiladi (eski hardcoded domen o'rniga), oxirgi chora standart.
-const DEFAULT_WEBAPP_URL = "https://myplaylist.uz";
+const DEFAULT_WEBAPP_URL = "https://www.myplaylist.uz";
 
 function webappBaseUrl(request) {
   const fromEnv = String(process.env.WEBAPP_URL || "").trim().replace(/\/+$/, "");
@@ -98,7 +98,7 @@ function absoluteUrl(request, value) {
   const url = String(value || "").trim();
   if (!url) return "";
   if (/^https?:\/\//i.test(url)) return url;
-  const host = request.headers?.["x-forwarded-host"] || request.headers?.host || "myplaylist.uz";
+  const host = request.headers?.["x-forwarded-host"] || request.headers?.host || "www.myplaylist.uz";
   const proto = request.headers?.["x-forwarded-proto"] || "https";
   return `${proto}://${host}${url.startsWith("/") ? "" : "/"}${url}`;
 }
