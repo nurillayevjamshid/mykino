@@ -5595,7 +5595,7 @@ function ensurePotcastsCss() {
   __potcastsCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/potcasts/potcasts.css?v=20260707-soft-ui";
+    link.href = "/static/potcasts/potcasts.css?v=20261009-clean-icons";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);

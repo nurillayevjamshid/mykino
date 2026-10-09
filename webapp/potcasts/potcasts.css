@@ -856,3 +856,51 @@ html[data-theme="light"] .podcasts-view .pod-ch-sub {
 html[data-theme="light"] .podcasts-view .pod-topbar__back:hover { background: rgba(0,0,0,.06); }
 html[data-theme="light"] .podcasts-view .pod-loading__spinner { border-color: rgba(0,0,0,.1); border-top-color: var(--accent, #ffc73a); }
 
+/* Podcast icon buttons & video player transparency */
+.podcasts-view .pod-topbar,
+.podcasts-view .pod-topbar--channel {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.podcasts-view .pod-topbar__back,
+.podcasts-view .pod-topbar__share {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #fff !important;
+}
+
+html[data-theme="light"] .podcasts-view .pod-topbar__back,
+html[data-theme="light"] .podcasts-view .pod-topbar__share {
+  color: #1a1d2e !important;
+}
+
+body.is-podcast-context .video-player,
+body.is-podcast-context .player-top,
+body.is-podcast-context .player-bottom,
+body.is-podcast-context .player-controls {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.is-podcast-context .video-player {
+  background: #000 !important;
+}
+
+body.is-podcast-context .player-back-btn,
+body.is-podcast-context .player-icon-btn,
+body.is-podcast-context .player-pip-btn,
+body.is-podcast-context .player-volume-btn,
+body.is-podcast-context .player-fullscreen-btn,
+body.is-podcast-context .player-skip-btn,
+body.is-podcast-context .player-play-btn,
+body.is-podcast-context .video-player button {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
