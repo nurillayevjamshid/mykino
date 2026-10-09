@@ -42,8 +42,7 @@ html:has(.esport-page) body::before {
 .search-box, .search-recents, .category-panel, .category-detail-view,
 .modal-content, .modal-dialog, .toast,
 .fifa-banner, .fifa-match-league, .fifa-standings-card,
-.music-view, .podcasts-view, .tv-view, .esport-view,
-.player-controls, .player-top, .player-bottom {
+.music-view, .podcasts-view, .tv-view, .esport-view {
   background: linear-gradient(145deg, rgba(255,255,255,.15), rgba(255,255,255,.055)) !important;
   border: 1px solid var(--glass-border-soft) !important;
   box-shadow: var(--glass-shadow) !important;
@@ -67,7 +66,7 @@ html[data-theme="light"] .topbar.is-scrolled {
 }
 .icon-button, .category-detail-view__back,
 .category-row__more, .hero__info, .modal-close, .modal-share,
-.player-icon-btn, .player-back-btn, .tv-head__back, .fifa-date-nav__button,
+.tv-head__back, .fifa-date-nav__button,
 .fifa-date-nav__today { background: var(--glass-surface-soft) !important; border: 1px solid var(--glass-border-soft) !important; color: var(--glass-text) !important; }
 .category-row__more { border-radius: 50% !important; aspect-ratio: 1 / 1; }
 .icon-button:hover, .category-row__more:hover,
@@ -156,6 +155,69 @@ html[data-theme="dark"] .bottom-bar {
 .modal-backdrop, .ad-modal__backdrop { background: rgba(3,8,16,.58) !important; backdrop-filter: blur(12px); }
 .modal-content, .ad-modal__dialog { border-radius: 30px !important; background: linear-gradient(145deg, rgba(33,50,74,.88), rgba(12,21,36,.86)) !important; }
 .player-overlay { background: linear-gradient(180deg, rgba(4,10,18,.58), transparent 30%, transparent 70%, rgba(4,10,18,.7)) !important; }
+
+/* Movie player overlay clean transparent controls (no boxed cards/borders) */
+.video-player,
+html[data-theme="light"] .video-player {
+  background: #000 !important;
+}
+
+.video-player .player-top,
+.video-player .player-bottom,
+.video-player .player-controls,
+.player-top,
+.player-bottom,
+.player-controls {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.video-player button,
+.player-back-btn,
+.player-icon-btn,
+.player-pip-btn,
+.player-volume-btn,
+.player-fullscreen-btn,
+.player-skip-btn,
+.player-play-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+.player-back-btn svg,
+.player-icon-btn svg,
+.player-play-btn svg,
+.player-skip-btn svg {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75));
+}
+
+.player-back-btn span,
+.player-title,
+.player-time,
+.player-skip-btn__num {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
+
+html[data-theme="light"] .player-top,
+html[data-theme="light"] .player-bottom,
+html[data-theme="light"] .player-controls,
+html[data-theme="light"] .player-back-btn,
+html[data-theme="light"] .player-icon-btn,
+html[data-theme="light"] .player-pip-btn,
+html[data-theme="light"] .player-volume-btn,
+html[data-theme="light"] .player-fullscreen-btn,
+html[data-theme="light"] .player-skip-btn,
+html[data-theme="light"] .player-play-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
 
 /* Music, podcasts and TV */
 .music-view, .podcasts-view, .tv-view { background: transparent !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none; }
@@ -295,8 +357,6 @@ html[data-theme="light"] .category-row__more,
 html[data-theme="light"] .hero__info,
 html[data-theme="light"] .modal-close,
 html[data-theme="light"] .modal-share,
-html[data-theme="light"] .player-icon-btn,
-html[data-theme="light"] .player-back-btn,
 html[data-theme="light"] .tv-head__back,
 html[data-theme="light"] .fifa-date-nav__button,
 html[data-theme="light"] .fifa-date-nav__today { color: #1a2a3e !important; background: rgba(255,255,255,.52) !important; border-color: rgba(104, 135, 164, .22) !important; }
