@@ -6172,9 +6172,9 @@ html[data-theme="dark"] .soon-badge {
 }
 
 .lang-pill.is-active {
-  background: linear-gradient(135deg, var(--c-accent) 0%, var(--c-accent-strong) 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: #ffffff;
-  box-shadow: 0 6px 14px -4px rgba(229, 9, 20, 0.45);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.28);
 }
 
 .sidebar__foot {
