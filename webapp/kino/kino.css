@@ -9157,11 +9157,11 @@ body.is-favorites .fifa-banner { display: none !important; }
   border: 1px solid rgba(255,255,255,.06);
   box-shadow: 0 12px 28px -18px rgba(13,40,110,.7);
 }
-html[data-theme="light"] .fifa-view__promo {
+html[data-theme="light"] .fifa-view__promo:not(.fifa-view__promo--live) {
   background: #f0f1f6;
   border-color: rgba(13,40,110,.08);
 }
-.fifa-view__promo[hidden] { display: none; }
+.fifa-view__promo[hidden] { display: none !important; }
 
 /* Jonli efir (yopiq kanal) promo kartasi — bosiladigan */
 .fifa-view__promo--live {
@@ -9169,7 +9169,7 @@ html[data-theme="light"] .fifa-view__promo {
   overflow: hidden;
   cursor: pointer;
   border-color: rgba(255,255,255,.10);
-  background: linear-gradient(135deg, #16264f 0%, #0d2a6e 55%, #c81e3a 140%);
+  background: linear-gradient(135deg, #16264f 0%, #0d2a6e 55%, #c81e3a 140%) !important;
   -webkit-tap-highlight-color: transparent;
   transition: transform .14s ease, box-shadow .14s ease;
 }

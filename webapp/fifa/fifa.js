@@ -537,40 +537,36 @@
     b.addEventListener("click", () => setActiveTab(b.dataset.fifaTab));
   });
 
-  // --- Jonli efir promo kartasi (Telegram jonli efir / HLS translatsiya) ---
-  // Admin konfiguratsiyasida jonli kanal bo'lmasa ham futbol bo'limida
-  // doimiy kanal cardi ko'rinadi. HLS oqimi mavjud player modalida ochiladi.
-  const DEFAULT_FIFA_STREAM = {
-    channelUrl: "https://example.com/live/channel.m3u8",
-    title: "Futbol jonli efiri",
-    subtitle: "Futbol uchrashuvlarini jonli tomosha qiling",
-    buttonText: "Tomosha qilish",
-  };
+  // --- Jonli efir promo kartasi (faqat admin paneldan yoqilganda ko'rinadi) ---
   function renderFifaLivePromo() {
-    const promo = fifaView.querySelector(".fifa-view__promo");
+    const promo = fifaView ? fifaView.querySelector(".fifa-view__promo") : null;
     if (!promo) return;
     const cfg = (typeof fifaLiveConfig !== "undefined" && fifaLiveConfig)
-      || DEFAULT_FIFA_STREAM;
-    if (!cfg || !cfg.channelUrl) {
-      // Config yo'q — bo'sh placeholder holatiga qaytamiz
+      || (typeof window.fifaLiveConfig !== "undefined" && window.fifaLiveConfig)
+      || null;
+    if (!cfg || !cfg.enabled || !cfg.channelUrl) {
+      // Admin paneldan yoqilmagan bo'lsa card butunlay yashirin bo'ladi
       promo.hidden = true;
+      promo.style.display = "none";
       promo.classList.remove("fifa-view__promo--live");
       promo.innerHTML = "";
       promo.removeAttribute("role");
       promo.removeAttribute("tabindex");
       if (fifaPromoShare) {
         fifaPromoShare.hidden = true;
+        fifaPromoShare.style.display = "none";
         fifaPromoShare.onclick = null;
       }
       return;
     }
-    const title = esc(cfg.title || F("liveTitleDefault"));
-    const subtitle = esc(cfg.subtitle || "JCH 2026 o'yinlarini jonli tomosha qiling");
-    const buttonText = esc(cfg.buttonText || F("joinChannel"));
+    const title = esc(cfg.title || "Futbol jonli efiri");
+    const subtitle = esc(cfg.subtitle || "Futbol uchrashuvlarini jonli tomosha qiling");
+    const buttonText = esc(cfg.buttonText || "Tomosha qilish");
     const bg = cfg.imageUrl
       ? `style="background-image:linear-gradient(180deg,rgba(8,12,22,.25),rgba(8,12,22,.85)),url('${esc(cfg.imageUrl)}')"`
       : "";
     promo.hidden = false;
+    promo.style.display = "";
     promo.classList.add("fifa-view__promo--live");
     promo.setAttribute("role", "button");
     promo.setAttribute("tabindex", "0");
@@ -595,12 +591,43 @@
     if (fifaPromoShare) {
       if (fifaPromoShareLabel) fifaPromoShareLabel.textContent = F("shareLive");
       fifaPromoShare.hidden = false;
+      fifaPromoShare.style.display = "";
       fifaPromoShare.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         shareFifaLive(cfg);
       };
     }
+  }
+
+  async function syncFifaLiveConfig() {
+    try {
+      const res = await fetch("/api/categories?type=fifa-live", {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const m = json && json.match;
+        if (m && m.isLive && m.telegramUrl) {
+          window.fifaLiveConfig = {
+            enabled: true,
+            channelUrl: m.telegramUrl,
+            imageUrl: m.coverUrl || "",
+            title: m.title || "Futbol jonli efiri",
+            subtitle: "Futbol uchrashuvlarini jonli tomosha qiling",
+            buttonText: "Tomosha qilish",
+          };
+        } else {
+          window.fifaLiveConfig = null;
+        }
+      } else {
+        window.fifaLiveConfig = null;
+      }
+    } catch (_) {
+      // Xato bo'lsa null
+    }
+    renderFifaLivePromo();
   }
 
   // === Jonli translatsiyani do'stlarga yuborish ===
@@ -1359,6 +1386,8 @@
   }
 
   window.renderFifaLivePromo = renderFifaLivePromo;
+  window.syncFifaLiveConfig = syncFifaLiveConfig;
+  syncFifaLiveConfig();
 
   // --- Open / close ---
   let fifaPollTimer = null;
@@ -1386,6 +1415,7 @@
     fifaView.hidden = false;
     document.body.classList.add("is-fifa");
     renderFifaLivePromo();
+    syncFifaLiveConfig();
     // Loading placeholder darhol ko'rinsin
     renderMatches();
     renderGroups();

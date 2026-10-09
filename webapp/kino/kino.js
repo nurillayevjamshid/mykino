@@ -7411,18 +7411,22 @@ async function loadAppSettings() {
               enabled: true,
               channelUrl: m.telegramUrl,
               imageUrl: m.coverUrl || "",
-              title: m.title || "Jonli efir",
-              subtitle: "",
-              buttonText: plainLabel(t("adFallbackButton")),
+              title: m.title || "Futbol jonli efiri",
+              subtitle: "Futbol uchrashuvlarini jonli tomosha qiling",
+              buttonText: "Tomosha qilish",
             };
+            window.fifaLiveConfig = fifaLiveConfig;
           } else {
             fifaLiveConfig = null;
+            window.fifaLiveConfig = null;
           }
         } else {
           fifaLiveConfig = null;
+          window.fifaLiveConfig = null;
         }
       } catch (_) {
         fifaLiveConfig = null;
+        window.fifaLiveConfig = null;
       }
       try { window.renderFifaLivePromo?.(); } catch (_) {}
     }
@@ -8407,7 +8411,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20260902-football-dates";
+    script.src = "/static/fifa/fifa.js?v=20261009-live-conditional";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
