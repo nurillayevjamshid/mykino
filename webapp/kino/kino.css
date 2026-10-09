@@ -1947,9 +1947,9 @@ html[data-theme="light"] .bottom-bar__button.is-active {
 }
 
 html[data-theme="light"] .bottom-bar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.1);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 @media (max-width: 520px) {
@@ -3501,9 +3501,9 @@ html[data-theme="light"] .ghost-button {
 }
 
 html[data-theme="light"] .bottom-bar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.1);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 html[data-theme="light"] body {
