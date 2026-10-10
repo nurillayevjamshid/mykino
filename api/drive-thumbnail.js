@@ -8,9 +8,8 @@ function getFileId(request) {
 // Ruxsat etilgan R2 host'lari (ochiq proxy bo'lib qolmasligi uchun).
 function allowedR2Hosts() {
   const hosts = new Set();
-  // Custom R2 domeni — frontend eski r2.dev URL'larni shu hostga almashtiradi,
-  // shuning uchun R2_PUBLIC_URL'dan qat'i nazar ruxsat etilgan bo'lishi kerak.
   hosts.add("r2.myplaylist.uz");
+  hosts.add("pub-42c7619e0f49402bb099364c0b589eca.r2.dev");
   const pub = String(process.env.R2_PUBLIC_URL || "").trim();
   if (pub) {
     try { hosts.add(new URL(pub).host); } catch (_) { /* ignore */ }
@@ -27,6 +26,10 @@ async function proxyR2Image(request, response, rawUrl) {
   } catch (_) {
     response.status(400).end("bad url");
     return;
+  }
+  // r2.myplaylist.uz uchun DNS ulanmagan bo'lsa, ishlaydigan r2.dev hostiga yo'naltiramiz
+  if (target.host === "r2.myplaylist.uz") {
+    target.host = "pub-42c7619e0f49402bb099364c0b589eca.r2.dev";
   }
   const allowed = allowedR2Hosts();
   // R2_PUBLIC_URL sozlanmagan bo'lsa ham, faqat *.r2.dev domenlariga ruxsat.

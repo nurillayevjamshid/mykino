@@ -1698,21 +1698,22 @@ function resolveAppUrl(value) {
   return raw;
 }
 
-// Eski Cloudflare R2 bepul domeni (pub-xxx.r2.dev) qattiq throttle qilingan.
-// Endi custom domen r2.myplaylist.uz ulangan — bazadagi cdnUrl'lar hali eski
-// hostga ishora qilsa ham, mijoz tomonda darrov yangi tezroq hostga
-// almashtirib yuboramiz. Shu bilan migratsiyani kutmasdan tezlikka erishamiz.
-const R2_OLD_HOST = "pub-42c7619e0f49402bb099364c0b589eca.r2.dev";
-const R2_NEW_HOST = "r2.myplaylist.uz";
+// Cloudflare R2 domeni:
+// Diqqat: r2.myplaylist.uz domenida DNS sozlanmagan (ENOTFOUND qaytaradi).
+// Shuning uchun bazada r2.myplaylist.uz deb yozilgan yoki pub-xxx deb yozilgan
+// barcha R2 posterlari va cdnUrl'lar ishlab turgan haqiqiy pub-42c7619e0f49402bb099364c0b589eca.r2.dev
+// domeniga yo'naltiriladi.
+const R2_LIVE_HOST = "pub-42c7619e0f49402bb099364c0b589eca.r2.dev";
+const R2_BROKEN_HOST = "r2.myplaylist.uz";
 function rewriteR2Host(value) {
-  const url = String(value || "");
-  if (!url || !url.includes(R2_OLD_HOST)) return url;
-  return url.split(R2_OLD_HOST).join(R2_NEW_HOST);
+  const url = String(value || "").trim();
+  if (!url) return "";
+  if (url.includes(R2_BROKEN_HOST)) {
+    return url.split(R2_BROKEN_HOST).join(R2_LIVE_HOST);
+  }
+  return url;
 }
 
-// Rasmlar uchun: eski r2.dev'ni custom domenga to'g'ridan-to'g'ri almashtiramiz.
-// Proxy (drive-thumbnail) endi kerak emas — custom domen Cloudflare edge'da
-// keshlaydi, throttling yo'q.
 function proxyPosterUrl(value) {
   return rewriteR2Host(String(value || "").trim());
 }

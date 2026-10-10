@@ -5,7 +5,10 @@ function getR2Config() {
   const bucket = String(process.env.R2_BUCKET || "").trim();
   const accessKeyId = String(process.env.R2_ACCESS_KEY_ID || "").trim();
   const secretAccessKey = String(process.env.R2_SECRET_ACCESS_KEY || "").trim();
-  const publicUrl = String(process.env.R2_PUBLIC_URL || "").trim().replace(/\/+$/, "");
+  let publicUrl = String(process.env.R2_PUBLIC_URL || "").trim().replace(/\/+$/, "");
+  if (!publicUrl || publicUrl.includes("r2.myplaylist.uz")) {
+    publicUrl = "https://pub-42c7619e0f49402bb099364c0b589eca.r2.dev";
+  }
 
   if (!endpoint || !bucket || !accessKeyId || !secretAccessKey || !publicUrl) {
     const error = new Error(

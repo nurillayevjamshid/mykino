@@ -183,16 +183,17 @@ function cachedRequestHeaders(cached, force) {
 }
 const POSTER_PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70"><rect width="50" height="70" fill="#1a1f2e"/><text x="25" y="38" text-anchor="middle" font-family="Arial" font-size="9" fill="#ffc73a">No Image</text></svg>');
 
-// Eski r2.dev bepul domeni ko'p so'rovda 403 (throttle) qaytaradi va Vercel
-// proxy ham r2.dev'ni o'qiydi -> admin'da ko'p rasm ko'rinmay qolardi.
-// Endi custom Cloudflare domen (r2.myplaylist.uz) ulangan — DNS faqat o'zgaradi,
-// rasm o'sha R2 ob'ekti, lekin Cloudflare edge keshlaydi va throttle yo'q.
-const R2_OLD_HOST = 'pub-42c7619e0f49402bb099364c0b589eca.r2.dev';
-const R2_NEW_HOST = 'r2.myplaylist.uz';
+// Cloudflare R2 domeni:
+// Diqqat: r2.myplaylist.uz domenida DNS sozlanmagan (ENOTFOUND qaytaradi).
+// Shuning uchun bazada r2.myplaylist.uz deb yozilgan yoki pub-xxx deb yozilgan
+// barcha R2 posterlari va cdnUrl'lar ishlab turgan haqiqiy pub-42c7619e0f49402bb099364c0b589eca.r2.dev
+// domeniga yo'naltiriladi.
+const R2_LIVE_HOST = 'pub-42c7619e0f49402bb099364c0b589eca.r2.dev';
+const R2_BROKEN_HOST = 'r2.myplaylist.uz';
 function proxiedPoster(url) {
   const u = String(url || '').trim();
   if (!u) return u;
-  if (u.includes(R2_OLD_HOST)) return u.split(R2_OLD_HOST).join(R2_NEW_HOST);
+  if (u.includes(R2_BROKEN_HOST)) return u.split(R2_BROKEN_HOST).join(R2_LIVE_HOST);
   return u;
 }
 

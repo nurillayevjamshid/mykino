@@ -390,8 +390,14 @@ function isFallbackPosterUrl(value) {
     || url.includes("/api/drive-thumbnail");
 }
 
-function usablePosterValue(value) {
+function normalizeR2Url(value) {
   const url = trimString(value);
+  if (!url) return "";
+  return url.replace(/https?:\/\/r2\.myplaylist\.uz/gi, "https://pub-42c7619e0f49402bb099364c0b589eca.r2.dev");
+}
+
+function usablePosterValue(value) {
+  const url = normalizeR2Url(value);
   return isFallbackPosterUrl(url) ? "" : url;
 }
 
@@ -402,7 +408,14 @@ const OVERRIDE_IMAGE_KEYS = new Set([
 
 function overrideFieldValue(object, key) {
   const raw = object ? object[key] : "";
-  return OVERRIDE_IMAGE_KEYS.has(key) ? usablePosterValue(raw) : trimString(raw);
+  if (OVERRIDE_IMAGE_KEYS.has(key)) {
+    return usablePosterValue(raw);
+  }
+  const trimmed = trimString(raw);
+  if (key === "cdnUrl") {
+    return normalizeR2Url(trimmed);
+  }
+  return trimmed;
 }
 
 // JSON override (top) fayl descriptionidagi embedded override (base) ustidan
@@ -1890,7 +1903,7 @@ function toDriveSeries(folder, episodeFiles) {
   const folderName = trimString(folder.name);
   const title = trimString(override.title) || folderName || "Serial";
   const description = trimString(override.description);
-  const posterImage = trimString(override.posterImage);
+  const posterImage = usablePosterValue(override.posterImage);
   const orderedEpisodeFiles = [...episodeFiles].sort(compareSeriesEpisodes);
   const episodes = orderedEpisodeFiles.map((file, index) => {
     const defaultTitle = stripExtension(file.name).replace(/[._]+/g, " ").trim() || `Qism ${index + 1}`;
@@ -1904,7 +1917,7 @@ function toDriveSeries(folder, episodeFiles) {
       mimeType: file.mimeType || "video/mp4",
       streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
       videoUrl: `/api/drive-stream/${encodeURIComponent(file.id)}`,
-      cdnUrl: trimString(episodeCdn[file.id]),
+      cdnUrl: normalizeR2Url(episodeCdn[file.id]),
       season: Number.isFinite(rawSeason) && rawSeason > 0 ? rawSeason : 1,
       size: Number(file.size || 0) || 0,
       createdTime: file.createdTime || "",

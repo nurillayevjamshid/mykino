@@ -47,6 +47,39 @@ function sendJsonWithEtag(request, response, payload) {
   response.status(200).send(body);
 }
 
+const WORKING_R2_DOMAIN = "pub-42c7619e0f49402bb099364c0b589eca.r2.dev";
+
+function fixR2(str) {
+  if (typeof str !== "string" || !str) return str;
+  return str.replace(/https?:\/\/r2\.myplaylist\.uz/gi, `https://${WORKING_R2_DOMAIN}`);
+}
+
+function sanitizeMovieR2(movie) {
+  if (!movie || typeof movie !== "object") return movie;
+  const clone = { ...movie };
+  if (clone.posterImage) clone.posterImage = fixR2(clone.posterImage);
+  if (clone.poster) clone.poster = fixR2(clone.poster);
+  if (clone.headerImage) clone.headerImage = fixR2(clone.headerImage);
+  if (clone.heroPoster) clone.heroPoster = fixR2(clone.heroPoster);
+  if (clone.thumbnail) clone.thumbnail = fixR2(clone.thumbnail);
+  if (clone.cdnUrl) clone.cdnUrl = fixR2(clone.cdnUrl);
+  return clone;
+}
+
+function sanitizeSeriesR2(series) {
+  if (!series || typeof series !== "object") return series;
+  const clone = { ...series };
+  if (clone.posterImage) clone.posterImage = fixR2(clone.posterImage);
+  if (clone.poster) clone.poster = fixR2(clone.poster);
+  if (Array.isArray(clone.episodes)) {
+    clone.episodes = clone.episodes.map((ep) => {
+      if (!ep || typeof ep !== "object") return ep;
+      return { ...ep, cdnUrl: fixR2(ep.cdnUrl) };
+    });
+  }
+  return clone;
+}
+
 async function handleMoviesList(request, response) {
   let movies = [];
   try {
@@ -62,12 +95,14 @@ async function handleMoviesList(request, response) {
       throw driveError;
     }
   }
-  sendJsonWithEtag(request, response, movies);
+  const cleanMovies = Array.isArray(movies) ? movies.map(sanitizeMovieR2) : movies;
+  sendJsonWithEtag(request, response, cleanMovies);
 }
 
 async function handleSeriesList(request, response) {
   const series = await listDriveSeries();
-  sendJsonWithEtag(request, response, series);
+  const cleanSeries = Array.isArray(series) ? series.map(sanitizeSeriesR2) : series;
+  sendJsonWithEtag(request, response, cleanSeries);
 }
 
 function escapeHtml(value) {
@@ -112,7 +147,8 @@ async function handleSharePage(request, response) {
   if (code) {
     try {
       const movies = await listDriveMovies();
-      movie = movies.find((m) => String(m.code || "").toUpperCase() === code) || null;
+      const found = movies.find((m) => String(m.code || "").toUpperCase() === code) || null;
+      movie = found ? sanitizeMovieR2(found) : null;
     } catch (_) {
       movie = null;
     }
