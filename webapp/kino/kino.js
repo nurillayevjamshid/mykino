@@ -6450,23 +6450,28 @@ function syncSearchClearBtn() {
   searchClearBtn.hidden = !(searchInput && searchInput.value.length > 0);
 }
 
+let searchDebounceTimer = null;
 searchInput?.addEventListener("input", (event) => {
-  query = event.target.value.trim();
-  renderMovies();
-  if (document.body.classList.contains("is-music")) {
-    // is-music klassi qo'shilgan bo'lsa, music moduli allaqachon yuklangan.
-    window.__music?.setQuery?.(query);
-  }
-  if (document.body.classList.contains("is-podcasts")) {
-    window.__potcasts?.setQuery?.(query);
-  }
-  renderRecentSearches();
+  const val = event.target.value.trim();
   syncSearchClearBtn();
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    query = val;
+    renderMovies();
+    if (document.body.classList.contains("is-music")) {
+      window.__music?.setQuery?.(query);
+    }
+    if (document.body.classList.contains("is-podcasts")) {
+      window.__potcasts?.setQuery?.(query);
+    }
+    renderRecentSearches();
+  }, 160);
 });
 
 searchClearBtn?.addEventListener("click", (event) => {
   event.preventDefault();
   if (!searchInput) return;
+  clearTimeout(searchDebounceTimer);
   searchInput.value = "";
   query = "";
   renderMovies();

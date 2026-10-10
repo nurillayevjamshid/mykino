@@ -11,7 +11,11 @@
   --glass-cyan: #9deaff;
   --glass-violet: #c7b6ff;
   --glass-shadow: 0 24px 70px rgba(0, 0, 0, .28), inset 0 1px rgba(255, 255, 255, .22);
-  --glass-blur: blur(28px) saturate(145%);
+  --glass-blur: blur(14px) saturate(125%);
+}
+
+html.is-android {
+  --glass-blur: blur(8px) saturate(115%);
 }
 
 /* Shared spatial canvas */
@@ -524,3 +528,49 @@ html[data-theme="dark"] .bottom-bar__button.is-active {
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* ==========================================================================
+   PERFORMANCE & 60 FPS OPTIMIZATIONS
+   ========================================================================== */
+
+/* 1. Content Visibility (DOM Virtualization for 60fps scrolling) */
+.movie-card,
+.category-row,
+.match-card,
+.highlight-card,
+.music-card,
+.podcast-card,
+.profile-history__item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+/* 2. Hardware-accelerated composite layers (avoids repaint during scroll/animations) */
+.bottom-bar,
+.sidebar,
+.mini-player,
+.modal-dialog,
+.ad-modal__dialog,
+.toast,
+.section-splash {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 3. Smooth touch momentum & scroll containment */
+.app-shell {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.category-row__list,
+.music-card-row,
+.music-carousel,
+.comments-sheet__scroll,
+.modal-content {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
