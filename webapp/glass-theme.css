@@ -553,8 +553,7 @@ html[data-theme="dark"] .bottom-bar__button.is-active {
 .ad-modal__dialog,
 .toast,
 .section-splash {
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  will-change: transform, opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
