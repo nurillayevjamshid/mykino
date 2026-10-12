@@ -559,8 +559,13 @@ html[data-theme="dark"] .bottom-bar__button.is-active {
 }
 
 /* 3. Smooth touch momentum & scroll containment */
-.app-shell {
-  -webkit-overflow-scrolling: touch;
+html,
+body,
+.app-shell,
+.movie-modal,
+.comments-sheet,
+.comments-sheet__panel,
+.comments-sheet__scroll {
   overscroll-behavior-y: contain;
 }
 
@@ -572,4 +577,367 @@ html[data-theme="dark"] .bottom-bar__button.is-active {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
 }
+
+/* ============================================================
+   Telegram Native Draggable Bottom Sheet (movieModal)
+   ============================================================ */
+.movie-modal {
+  position: fixed !important;
+  inset: auto 0 0 0 !important;
+  margin: 0 auto !important;
+  width: 100vw !important;
+  max-width: 600px !important;
+  height: 90dvh !important;
+  max-height: 90dvh !important;
+  border-radius: 28px 28px 0 0 !important;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.18)) !important;
+  border-bottom: none !important;
+  background: linear-gradient(175deg, rgba(16, 27, 44, 0.96) 0%, rgba(9, 17, 31, 0.98) 100%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+  backdrop-filter: blur(28px) saturate(160%) !important;
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain !important;
+  z-index: 1000;
+}
+
+.movie-modal[open] {
+  display: flex !important;
+}
+
+.movie-modal.is-sheet-open {
+  transform: translateY(0) !important;
+}
+
+.movie-modal.is-dragging {
+  transition: none !important;
+}
+
+.movie-modal.is-closing {
+  transform: translateY(100%) !important;
+  transition: transform 0.26s cubic-bezier(0.32, 0, 0.67, 0) !important;
+}
+
+.movie-modal::backdrop {
+  background: rgba(4, 9, 18, 0.65) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.movie-modal.is-sheet-open::backdrop {
+  opacity: 1;
+}
+
+.movie-modal__grabber-zone {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  cursor: grab;
+  touch-action: none;
+}
+
+.movie-modal__grabber {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+.movie-modal__grabber-zone:active .movie-modal__grabber,
+.movie-modal.is-dragging .movie-modal__grabber {
+  width: 60px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.movie-modal .modal-poster {
+  width: 100%;
+  flex: 0 0 46% !important;
+  max-height: 400px;
+  min-height: 220px;
+  position: relative;
+  background-size: cover;
+  background-position: center top;
+}
+
+.movie-modal .modal-poster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(9, 17, 31, 0.4) 0%, transparent 40%, rgba(9, 17, 31, 0.95) 100%);
+  pointer-events: none;
+}
+
+.movie-modal .modal-content {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain !important;
+  padding: 12px 20px 28px !important;
+  background: transparent !important;
+}
+
+/* ==========================================================================
+   ANDROID WEBVIEW 60 FPS OPTIMIZATION (Item 6)
+   - Eliminates scroll stutter and dropped frames by disabling backdrop-filter
+     on all repetitive feed, list, and grid cards.
+   - Replaces live GPU blur shaders on cards with hardware-accelerated,
+     semi-transparent acrylic gradients and subtle 1px borders.
+   - Preserves frosted glass blur strictly on key shell elements:
+     .bottom-bar__inner, .movie-modal, and .topbar.is-scrolled.
+   - Promotes scroll containers and cards to isolated GPU composite layers
+     (transform: translateZ(0); contain: content;) to prevent layout thrashing.
+   ========================================================================== */
+
+/* 1. Android: Remove heavy live backdrop-filter blur from moving cards & list elements */
+html.is-android .card,
+html.is-android .stream-card,
+html.is-android .match-card,
+html.is-android .highlight-card,
+html.is-android .music-card,
+html.is-android .podcast-card,
+html.is-android .music-chart,
+html.is-android .music-genre,
+html.is-android .music-artist,
+html.is-android .music-topbar,
+html.is-android .music-hero,
+html.is-android .pod-hero,
+html.is-android .pod-hero-card-scroll,
+html.is-android .pod-featured-card,
+html.is-android .pod-stat-card,
+html.is-android .tv-card,
+html.is-android .tv-chip,
+html.is-android .tv-head,
+html.is-android .tv-player,
+html.is-android .fifa-banner,
+html.is-android .fifa-match-league,
+html.is-android .fifa-standings-card,
+html.is-android .search-box,
+html.is-android .search-recents,
+html.is-android .category-panel,
+html.is-android .category-detail-view,
+html.is-android .category-chip,
+html.is-android .tab,
+html.is-android .meta-pill,
+html.is-android .badge,
+html.is-android .profile-card,
+html.is-android .profile-stat,
+html.is-android .profile-history__item,
+html.is-android .feedback-card,
+html.is-android .comments-sheet__item,
+html.is-android .comment-bubble,
+html.is-android .comments-trigger,
+html.is-android .content-section,
+html.is-android .card-block,
+html.is-android .table-container,
+html.is-android .admin-header,
+html.is-android .admin-layout .sidebar,
+html.is-android .section-head,
+html.is-android .esport-header,
+html.is-android .esport-tabs,
+html.is-android .esport-tab,
+html.is-android .esport-bottom-nav,
+html.is-android .hero-indicator,
+html.is-android .glass-panel {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: linear-gradient(145deg, rgba(22, 33, 54, 0.88), rgba(11, 18, 32, 0.92)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32) !important;
+}
+
+/* Light mode variant for Android list cards */
+html.is-android[data-theme="light"] .card,
+html.is-android[data-theme="light"] .stream-card,
+html.is-android[data-theme="light"] .match-card,
+html.is-android[data-theme="light"] .highlight-card,
+html.is-android[data-theme="light"] .music-card,
+html.is-android[data-theme="light"] .podcast-card,
+html.is-android[data-theme="light"] .music-chart,
+html.is-android[data-theme="light"] .music-genre,
+html.is-android[data-theme="light"] .music-artist,
+html.is-android[data-theme="light"] .music-topbar,
+html.is-android[data-theme="light"] .music-hero,
+html.is-android[data-theme="light"] .pod-hero,
+html.is-android[data-theme="light"] .pod-hero-card-scroll,
+html.is-android[data-theme="light"] .pod-featured-card,
+html.is-android[data-theme="light"] .pod-stat-card,
+html.is-android[data-theme="light"] .tv-card,
+html.is-android[data-theme="light"] .tv-chip,
+html.is-android[data-theme="light"] .tv-head,
+html.is-android[data-theme="light"] .tv-player,
+html.is-android[data-theme="light"] .fifa-banner,
+html.is-android[data-theme="light"] .fifa-match-league,
+html.is-android[data-theme="light"] .fifa-standings-card,
+html.is-android[data-theme="light"] .search-box,
+html.is-android[data-theme="light"] .search-recents,
+html.is-android[data-theme="light"] .category-panel,
+html.is-android[data-theme="light"] .category-detail-view,
+html.is-android[data-theme="light"] .category-chip,
+html.is-android[data-theme="light"] .tab,
+html.is-android[data-theme="light"] .meta-pill,
+html.is-android[data-theme="light"] .badge,
+html.is-android[data-theme="light"] .profile-card,
+html.is-android[data-theme="light"] .profile-stat,
+html.is-android[data-theme="light"] .profile-history__item,
+html.is-android[data-theme="light"] .feedback-card,
+html.is-android[data-theme="light"] .comments-sheet__item,
+html.is-android[data-theme="light"] .comment-bubble,
+html.is-android[data-theme="light"] .comments-trigger,
+html.is-android[data-theme="light"] .content-section,
+html.is-android[data-theme="light"] .card-block,
+html.is-android[data-theme="light"] .table-container,
+html.is-android[data-theme="light"] .admin-header,
+html.is-android[data-theme="light"] .admin-layout .sidebar,
+html.is-android[data-theme="light"] .section-head,
+html.is-android[data-theme="light"] .esport-header,
+html.is-android[data-theme="light"] .esport-tabs,
+html.is-android[data-theme="light"] .esport-tab,
+html.is-android[data-theme="light"] .esport-bottom-nav,
+html.is-android[data-theme="light"] .hero-indicator,
+html.is-android[data-theme="light"] .glass-panel {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(238, 245, 252, 0.92)) !important;
+  border: 1px solid rgba(116, 145, 174, 0.22) !important;
+  box-shadow: 0 8px 22px rgba(65, 91, 120, 0.12) !important;
+}
+
+/* 2. Movie cards & movie card copy: maintain clean transparent look without heavy blur */
+html.is-android .movie-card,
+html.is-android .movie-card .card-copy,
+html.is-android .category-row__list .movie-card,
+html.is-android .category-row__list .movie-card .card-copy,
+html.is-android[data-theme="light"] .movie-card,
+html.is-android[data-theme="light"] .movie-card .card-copy,
+html.is-android[data-theme="light"] .category-row__list .movie-card,
+html.is-android[data-theme="light"] .category-row__list .movie-card .card-copy {
+  background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 3. Retain frosted glass blur strictly on key shell elements */
+/* Bottom navigation bar: lightweight, high-performance frosted acrylic dock */
+html.is-android .bottom-bar__inner {
+  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  backdrop-filter: blur(16px) saturate(140%) !important;
+  background: rgba(18, 25, 38, 0.84) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+  will-change: transform !important;
+}
+
+html.is-android[data-theme="light"] .bottom-bar__inner {
+  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  backdrop-filter: blur(16px) saturate(140%) !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(225, 237, 247, 0.74)) !important;
+  border: 1px solid rgba(112, 144, 174, 0.28) !important;
+  box-shadow: 0 16px 38px rgba(48, 78, 105, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+  will-change: transform !important;
+}
+
+/* Draggable Movie Sheet Modal: keep luxurious frosted blur with hardware acceleration */
+html.is-android .movie-modal {
+  -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+  backdrop-filter: blur(20px) saturate(140%) !important;
+  background: linear-gradient(175deg, rgba(16, 27, 44, 0.96) 0%, rgba(9, 17, 31, 0.98) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-bottom: none !important;
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  transform: translateY(100%) translateZ(0) !important;
+  -webkit-transform: translateY(100%) translateZ(0) !important;
+  will-change: transform !important;
+}
+
+html.is-android .movie-modal.is-sheet-open {
+  transform: translateY(0) translateZ(0) !important;
+  -webkit-transform: translateY(0) translateZ(0) !important;
+}
+
+/* Modal backdrops on Android: opaque tint instead of expensive live full-screen blur */
+html.is-android dialog::backdrop,
+html.is-android .modal-backdrop,
+html.is-android .ad-modal__backdrop,
+html.is-android .movie-modal::backdrop,
+html.is-android .profile-modal::backdrop {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: rgba(4, 9, 18, 0.78) !important;
+}
+
+/* Topbar: clean glass blur when scrolled, minimal GPU load */
+html.is-android .topbar.is-scrolled {
+  -webkit-backdrop-filter: blur(14px) saturate(130%) !important;
+  backdrop-filter: blur(14px) saturate(130%) !important;
+  background: rgba(9, 17, 31, 0.82) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+}
+
+html.is-android[data-theme="light"] .topbar.is-scrolled {
+  -webkit-backdrop-filter: blur(14px) saturate(130%) !important;
+  backdrop-filter: blur(14px) saturate(130%) !important;
+  background: rgba(245, 248, 252, 0.88) !important;
+  border-bottom: 1px solid rgba(116, 145, 174, 0.18) !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+}
+
+/* 4. GPU composite layer promotion and scroll containment for 60 FPS performance */
+html.is-android .movie-card,
+html.is-android .category-card,
+html.is-android .stream-card,
+html.is-android .match-card,
+html.is-android .highlight-card,
+html.is-android .music-card,
+html.is-android .podcast-card,
+html.is-android .tv-card,
+html.is-android .fifa-match-league,
+html.is-android .fifa-standings-card,
+html.is-android .category-chip,
+html.is-android .tab {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  contain: layout paint style;
+}
+
+/* Scroll containers layout containment: eliminates repaint loops and reflow thrashing */
+html.is-android .category-row__list,
+html.is-android .movie-grid,
+html.is-android .music-card-row,
+html.is-android .music-carousel,
+html.is-android .card-list,
+html.is-android .comments-sheet__scroll,
+html.is-android .modal-content {
+  contain: content;
+  will-change: scroll-position;
+  -webkit-overflow-scrolling: touch;
+}
+
 

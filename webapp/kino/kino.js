@@ -119,12 +119,13 @@ let lang = savedLang;
 const pageParams = new URLSearchParams(window.location.search);
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 
-// Android: backdrop-filter sticky/fixed pill-larda har scroll frame'da qayta
-// blur qilinib juda sekin ishlaydi. UA aniqlangach <html>'ga is-android klassi
-// qo'yiladi va CSS'da og'ir blur'lar solid background bilan almashtiriladi.
+// Android: backdrop-filter harakatlanuvchi kartochkalarda har scroll frame'da qayta
+// blur qilinib 15-20 FPS drop beradi. UA yoki Telegram platform aniqlangach <html>'ga
+// is-android klassi qo'yiladi va kartochkalarda blur o'rniga yengil solid glass qo'llaniladi.
 try {
   const ua = navigator.userAgent || "";
-  if (/Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua)) {
+  const tgPlat = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform) || "";
+  if (tgPlat === "android" || (/Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua))) {
     document.documentElement.classList.add("is-android");
   }
 } catch (_) {}
@@ -3223,8 +3224,23 @@ function renderMovies() {
       grid.append(renderFavoritesPageHeader());
     }
     const list = movieLoadState === "ready" ? filteredMovies() : [];
-    for (const movie of list) {
-      grid.append(createMovieCard(movie));
+    if (list.length === 0 && movieLoadState === "ready") {
+      const emptyState = document.createElement("div");
+      emptyState.className = "empty-state";
+      emptyState.innerHTML = `
+        <div class="empty-state__icon" aria-hidden="true" style="font-size: 40px; margin-bottom: 10px;">🎬</div>
+        <h3 class="empty-state__title" style="font-size: 18px; margin-bottom: 6px; font-weight: 700;">${plainLabel(t("emptyTitle"))}</h3>
+        <p class="empty-state__text" style="font-size: 14px; opacity: 0.72; max-width: 320px; margin: 0 auto;">${plainLabel(t("emptyText"))}</p>
+      `;
+      emptyState.style.cssText = "grid-column: 1 / -1; text-align: center; padding: 48px 16px; width: 100%;";
+      grid.append(emptyState);
+      if (query) {
+        try { haptic.error(); } catch (_) {}
+      }
+    } else {
+      for (const movie of list) {
+        grid.append(createMovieCard(movie));
+      }
     }
   }
 
@@ -3897,12 +3913,26 @@ function openMovie(movie) {
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });
   document.body.classList.add("is-modal-open");
+  requestAnimationFrame(() => {
+    movieModal.classList.add("is-sheet-open");
+  });
   if (!history.state || !history.state.movieDetail) {
     history.pushState({ movieDetail: true }, "");
   }
   loadComments(movie);
   startMoviePreload(movie);
-  tgBackRegister("movie-modal", () => { try { movieModal.close(); } catch (_) {} });
+  tgBackRegister("movie-modal", () => { closeMovieModalAnimated(); });
+}
+
+function closeMovieModalAnimated() {
+  if (!movieModal || !movieModal.open) return;
+  movieModal.classList.remove("is-sheet-open");
+  movieModal.classList.add("is-closing");
+  setTimeout(() => {
+    try { movieModal.close(); } catch (_) {}
+    movieModal.classList.remove("is-closing");
+    movieModal.style.transform = "";
+  }, 260);
 }
 
 function setVideoLoading(isLoading) {
@@ -4159,8 +4189,9 @@ function handleTapZone(side, event) {
   lastTapTime = now;
   lastTapSide = side;
   if (isDoubleTap) {
-    playerCore.seekBy(side === "left" ? -15 : 15);
+    playerCore.seekBy(side === "left" ? -10 : 10);
     showSkipFeedback(side);
+    try { haptic.medium(); } catch (_) {}
     setControlsVisible(true);
     return;
   }
@@ -5137,6 +5168,12 @@ async function openVideoPlayer(movie, options = {}) {
   if (videoVolume) { videoVolume.value = "100"; setVolume(100); }
   updateVolumeButtonState();
   setupPipButton();
+  document.querySelectorAll(".player-speed-btn").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.speed === "1");
+  });
+  if (localStorage.getItem("kino_auto_landscape") !== "0" && window.innerWidth > window.innerHeight) {
+    setTimeout(enterFullscreenAndLandscape, 250);
+  }
   setControlsVisible(true);
 
   if (activePreRollAd && !options?.skipPreRoll) {
@@ -5230,6 +5267,8 @@ function closeVideoPlayer() {
   releaseWakeLock();
   setPlayerLocked(false);
   if (playerToast) playerToast.hidden = true;
+  const pSettingsPanel = document.querySelector("#playerSettingsPanel");
+  if (pSettingsPanel) pSettingsPanel.hidden = true;
   if (document.pictureInPictureElement) document.exitPictureInPicture?.().catch(() => {});
   if (getFullscreenElement()) exitDocFullscreen();
   destroyYouTubePlayer();
@@ -7048,7 +7087,13 @@ document.getElementById("musicHistoryList")?.addEventListener("click", (event) =
 });
 
 document.querySelectorAll("[data-close]").forEach((button) => {
-  button.addEventListener("click", () => movieModal.close());
+  button.addEventListener("click", () => closeMovieModalAnimated());
+});
+
+movieModal?.addEventListener("click", (e) => {
+  if (e.target === movieModal) {
+    closeMovieModalAnimated();
+  }
 });
 
 modalDescriptionToggle?.addEventListener("click", () => {
@@ -7065,6 +7110,8 @@ movieModal?.addEventListener("close", () => {
   stopMoviePreload();
   closeCommentsSheet();
   document.body.classList.remove("is-modal-open");
+  movieModal.classList.remove("is-sheet-open", "is-closing", "is-dragging");
+  movieModal.style.transform = "";
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });
   if (history.state && history.state.movieDetail) {
@@ -7078,11 +7125,79 @@ window.addEventListener("popstate", () => {
 
 document.querySelector("[data-close-profile]").addEventListener("click", () => profileModal.close());
 videoToggleButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.togglePlay(); setControlsVisible(true); });
-videoBackButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(-15); showSkipFeedback("left"); setControlsVisible(true); });
-videoForwardButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(15); showSkipFeedback("right"); setControlsVisible(true); });
-videoFullscreenButton.addEventListener("click", (e) => { e.stopPropagation(); toggleVideoFullscreen(); setControlsVisible(true); });
+videoBackButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(-10); showSkipFeedback("left"); try { haptic.medium(); } catch (_) {} setControlsVisible(true); });
+videoForwardButton.addEventListener("click", (e) => { e.stopPropagation(); playerCore.seekBy(10); showSkipFeedback("right"); try { haptic.medium(); } catch (_) {} setControlsVisible(true); });
+videoFullscreenButton.addEventListener("click", (e) => { e.stopPropagation(); toggleVideoFullscreen(); try { haptic.medium(); } catch (_) {} setControlsVisible(true); });
 videoVolumeButton?.addEventListener("click", (e) => { e.stopPropagation(); toggleMute(); setControlsVisible(true); });
 videoPipButton?.addEventListener("click", (e) => { e.stopPropagation(); togglePip(); setControlsVisible(true); });
+
+// Settings button & popup panel
+const videoSettingsButton = document.querySelector("#videoSettingsButton");
+const playerSettingsPanel = document.querySelector("#playerSettingsPanel");
+const playerSettingsClose = document.querySelector("#playerSettingsClose");
+const autoLandscapeToggle = document.querySelector("#autoLandscapeToggle");
+
+videoSettingsButton?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!playerSettingsPanel) return;
+  const isHidden = playerSettingsPanel.hidden;
+  playerSettingsPanel.hidden = !isHidden;
+  if (!isHidden) setControlsVisible(true);
+  try { haptic.tap(); } catch (_) {}
+});
+
+playerSettingsClose?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (playerSettingsPanel) playerSettingsPanel.hidden = true;
+  try { haptic.tap(); } catch (_) {}
+});
+
+playerOverlay?.addEventListener("click", (e) => {
+  if (playerSettingsPanel && !playerSettingsPanel.hidden && !e.target.closest("#playerSettingsPanel") && !e.target.closest("#videoSettingsButton")) {
+    playerSettingsPanel.hidden = true;
+  }
+});
+
+// Speed selector
+document.querySelectorAll(".player-speed-btn").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const speed = Number(btn.dataset.speed || 1);
+    const v = getActiveVideoEl();
+    if (v) { try { v.playbackRate = speed; } catch (_) {} }
+    if (activeYouTubePlayer && typeof activeYouTubePlayer.setPlaybackRate === "function") {
+      try { activeYouTubePlayer.setPlaybackRate(speed); } catch (_) {}
+    }
+    document.querySelectorAll(".player-speed-btn").forEach((b) => b.classList.toggle("is-active", b === btn));
+    showToast(`Tezlik: ${speed}x`);
+    try { haptic.select(); } catch (_) {}
+  });
+});
+
+// Quality selector
+document.querySelectorAll(".player-quality-btn").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const q = btn.dataset.quality || "auto";
+    document.querySelectorAll(".player-quality-btn").forEach((b) => b.classList.toggle("is-active", b === btn));
+    try { localStorage.setItem("kino_player_quality", q); } catch (_) {}
+    const label = q === "auto" ? "Avtomatik" : q;
+    showToast(`Sifat: ${label}`);
+    try { haptic.select(); } catch (_) {}
+  });
+});
+
+// Auto-Landscape switch
+if (autoLandscapeToggle) {
+  const savedLs = localStorage.getItem("kino_auto_landscape");
+  autoLandscapeToggle.checked = savedLs !== "0";
+  autoLandscapeToggle.addEventListener("change", (e) => {
+    e.stopPropagation();
+    try { localStorage.setItem("kino_auto_landscape", autoLandscapeToggle.checked ? "1" : "0"); } catch (_) {}
+    try { haptic.select(); } catch (_) {}
+    showToast(autoLandscapeToggle.checked ? "Avto-Landscape yoqildi" : "Avto-Landscape o'chirildi");
+  });
+}
 videoVolume?.addEventListener("input", () => {
   setVolume(videoVolume.value);
   setControlsVisible(true);
@@ -7133,13 +7248,29 @@ window.addEventListener("resize", () => { if (intendedFullscreen) { refreshLands
 
 try {
   const portraitMQ = window.matchMedia("(orientation: portrait)");
-  const onOrientChange = () => { refreshLandscapeView(); evaluateFsRotate(); syncFullscreenButton(); };
+  const onOrientChange = () => {
+    refreshLandscapeView();
+    evaluateFsRotate();
+    syncFullscreenButton();
+    // Auto-Landscape: Agar yoqilgan bo'lsa va video ochiq bo'lsa
+    if (localStorage.getItem("kino_auto_landscape") !== "0" && videoPlayer && !videoPlayer.hidden) {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      if (isLandscape && !isAnyFullscreen()) {
+        enterFullscreenAndLandscape();
+      } else if (!isLandscape && isAnyFullscreen()) {
+        exitFullscreenAndLandscape();
+      }
+    }
+  };
   if (typeof portraitMQ.addEventListener === "function") {
     portraitMQ.addEventListener("change", onOrientChange);
   } else if (typeof portraitMQ.addListener === "function") {
     portraitMQ.addListener(onOrientChange);
   }
   window.addEventListener("orientationchange", onOrientChange);
+  if (window.screen?.orientation) {
+    window.screen.orientation.addEventListener("change", onOrientChange);
+  }
 } catch {}
 
 document.addEventListener("click", (event) => {
@@ -8155,48 +8286,229 @@ initApp();
 
 // === haptic for key interactions ===
 (function attachHapticHooks() {
-  // Movie kartochka bosilganda — yengil tap.
-  // Wishlist (yurak) — soft. Modal play tugmasi — medium.
-  // Lang pill — selection.
+  // Telegram Native UX Haptics:
+  // 1. Karta yoki tab almashtirilganda: window.Telegram.WebApp.HapticFeedback.selectionChanged()
+  // 2. "Sevimlilar"ga qo‘shganda yoki "Play" bosilganda: window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
+  // 3. Yengil bosishlar (boshqa tugmalar): haptic.tap() (light)
+
   const TAP_SELECTORS = [
-    '.movie-card',
-    '.hero__play',
     '.hero__info',
     '.modal-close',
-    '.watch-button',
     '.player-back-btn',
     '.player-icon-btn',
     '.player-skip-btn',
-    '.player-play-btn',
     '.music-fullplayer__ctl',
     '.music-fullplayer__close',
-    '.music-fullplayer__like',
     '.mini-player__btn',
     '.ad-modal__close',
     '.ad-modal__cta',
     '.profile-history__clear',
     '.category-detail-view__back',
-    '[data-music-fp-toggle]',
     '[data-music-fp-prev]',
     '[data-music-fp-next]',
     '[data-music-fp-shuffle]',
     '[data-music-fp-repeat]',
   ].join(', ');
-  const SELECT_SELECTORS = '.lang-pill, .theme-switch, .reaction-btn, [data-reaction]';
-  const MEDIUM_SELECTORS = '.watch-button, .hero__play, [data-music-fp-toggle], .player-play-btn';
-  const SOFT_SELECTORS = '.wishlist-btn, [data-wishlist-toggle], .music-fullplayer__like';
+
+  const SELECT_SELECTORS = [
+    '.movie-card',
+    '.bottom-bar__button',
+    '.sidebar__item',
+    '.fifa-tab',
+    '.esport-tab',
+    '.category-card',
+    '.lang-pill',
+    '.theme-switch',
+    '.reaction-btn',
+    '[data-reaction]',
+    '[data-filter]',
+    '[role="tab"]'
+  ].join(', ');
+
+  const MEDIUM_SELECTORS = [
+    '.watch-button',
+    '.hero__play',
+    '.watch-resume-chip',
+    '.stream-preview',
+    '.player-play-btn',
+    '[data-music-fp-toggle]',
+    '.wishlist-btn',
+    '[data-wishlist-toggle]',
+    '.music-fullplayer__like'
+  ].join(', ');
 
   document.addEventListener('pointerdown', (e) => {
     const t = e.target;
     if (!t || t.nodeType !== 1) return;
-    // Modal/overlay sirtidagi bo'sh joy bosilganda haptic kerak emas.
-    if (t.matches?.(SOFT_SELECTORS) || t.closest?.(SOFT_SELECTORS)) { haptic.soft(); return; }
     if (t.matches?.(MEDIUM_SELECTORS) || t.closest?.(MEDIUM_SELECTORS)) { haptic.medium(); return; }
     if (t.matches?.(SELECT_SELECTORS) || t.closest?.(SELECT_SELECTORS)) { haptic.select(); return; }
     if (t.matches?.(TAP_SELECTORS) || t.closest?.(TAP_SELECTORS)) { haptic.tap(); return; }
   }, { passive: true, capture: true });
+
+  window.addEventListener('offline', () => {
+    try { haptic.error(); } catch (_) {}
+    showToast(t("checkNetwork") || "Internet bilan aloqa uzildi");
+  });
 })();
 // === /haptic for key interactions ===
+
+// === Draggable Bottom Sheet for movieModal ===
+(function attachMovieModalDrag() {
+  if (!movieModal) return;
+
+  let startY = 0;
+  let startX = 0;
+  let currentY = 0;
+  let isDragging = false;
+  let canDrag = false;
+  let startTime = 0;
+
+  const onTouchStart = (e) => {
+    if (!movieModal.open) return;
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    startY = touch.clientY;
+    startX = touch.clientX;
+    currentY = startY;
+    startTime = Date.now();
+    isDragging = false;
+
+    const target = e.target;
+    const isGrabber = Boolean(target && (target.closest("#movieModalGrabberZone") || target.closest(".modal-poster")));
+    const content = movieModal.querySelector(".modal-content");
+    const isAtTop = !content || content.scrollTop <= 0;
+    canDrag = isGrabber || isAtTop;
+  };
+
+  const onTouchMove = (e) => {
+    if (!canDrag || !movieModal.open) return;
+    const touch = e.touches[0];
+    const dy = touch.clientY - startY;
+    const dx = touch.clientX - startX;
+
+    if (!isDragging) {
+      if (dy > 6 && Math.abs(dy) > Math.abs(dx)) {
+        isDragging = true;
+        movieModal.classList.add("is-dragging");
+      } else if (dy < 0) {
+        canDrag = false;
+        return;
+      }
+    }
+
+    if (isDragging) {
+      if (e.cancelable) e.preventDefault();
+      const clampedDy = Math.max(0, dy);
+      movieModal.style.transform = `translateY(${clampedDy}px)`;
+    }
+  };
+
+  const onTouchEnd = (e) => {
+    if (!isDragging) {
+      canDrag = false;
+      return;
+    }
+    isDragging = false;
+    canDrag = false;
+    movieModal.classList.remove("is-dragging");
+
+    const touch = e.changedTouches ? e.changedTouches[0] : null;
+    const endY = touch ? touch.clientY : currentY;
+    const dy = Math.max(0, endY - startY);
+    const dt = Math.max(1, Date.now() - startTime);
+    const velocity = dy / dt;
+
+    if (dy > 95 || (velocity > 0.4 && dy > 30)) {
+      try { haptic.soft(); } catch (_) {}
+      closeMovieModalAnimated();
+    } else {
+      movieModal.style.transform = "";
+    }
+  };
+
+  movieModal.addEventListener("touchstart", onTouchStart, { passive: true });
+  movieModal.addEventListener("touchmove", onTouchMove, { passive: false });
+  movieModal.addEventListener("touchend", onTouchEnd, { passive: true });
+  movieModal.addEventListener("touchcancel", onTouchEnd, { passive: true });
+})();
+
+// === Draggable Bottom Sheet for commentsSheet ===
+(function attachCommentsSheetDrag() {
+  if (!commentsSheet || !commentsSheetPanel) return;
+
+  let startY = 0;
+  let startX = 0;
+  let isDragging = false;
+  let canDrag = false;
+  let startTime = 0;
+  const scrollEl = commentsSheet.querySelector(".comments-sheet__scroll");
+
+  const onTouchStart = (e) => {
+    if (commentsSheet.hidden || !commentsSheet.classList.contains("is-open")) return;
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    startY = touch.clientY;
+    startX = touch.clientX;
+    startTime = Date.now();
+    isDragging = false;
+
+    const target = e.target;
+    const isGrabber = Boolean(target && (target.closest(".comments-sheet__grabber") || target.closest(".comments-sheet__head")));
+    const isAtTop = !scrollEl || scrollEl.scrollTop <= 0;
+    canDrag = isGrabber || isAtTop;
+  };
+
+  const onTouchMove = (e) => {
+    if (!canDrag || commentsSheet.hidden) return;
+    const touch = e.touches[0];
+    const dy = touch.clientY - startY;
+    const dx = touch.clientX - startX;
+
+    if (!isDragging) {
+      if (dy > 6 && Math.abs(dy) > Math.abs(dx)) {
+        isDragging = true;
+        commentsSheetPanel.style.transition = "none";
+      } else if (dy < 0) {
+        canDrag = false;
+        return;
+      }
+    }
+
+    if (isDragging) {
+      if (e.cancelable) e.preventDefault();
+      const clampedDy = Math.max(0, dy);
+      commentsSheetPanel.style.transform = `translateY(${clampedDy}px)`;
+    }
+  };
+
+  const onTouchEnd = (e) => {
+    if (!isDragging) {
+      canDrag = false;
+      return;
+    }
+    isDragging = false;
+    canDrag = false;
+    commentsSheetPanel.style.transition = "";
+
+    const touch = e.changedTouches ? e.changedTouches[0] : null;
+    const endY = touch ? touch.clientY : startY;
+    const dy = Math.max(0, endY - startY);
+    const dt = Math.max(1, Date.now() - startTime);
+    const velocity = dy / dt;
+
+    if (dy > 90 || (velocity > 0.4 && dy > 30)) {
+      try { haptic.soft(); } catch (_) {}
+      closeCommentsSheet();
+    } else {
+      commentsSheetPanel.style.transform = "";
+    }
+  };
+
+  commentsSheetPanel.addEventListener("touchstart", onTouchStart, { passive: true });
+  commentsSheetPanel.addEventListener("touchmove", onTouchMove, { passive: false });
+  commentsSheetPanel.addEventListener("touchend", onTouchEnd, { passive: true });
+  commentsSheetPanel.addEventListener("touchcancel", onTouchEnd, { passive: true });
+})();
 
 // === Pull-to-refresh ===
 // Foydalanuvchi sahifa tepasida pastga tortsa, kinolarni yangilash.
