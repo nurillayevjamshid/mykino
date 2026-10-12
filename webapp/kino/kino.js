@@ -1621,15 +1621,33 @@ function toggleWishlist(id) {
 
 function filteredMovies() {
   const wishlistIds = activeFilter === "favorites" ? new Set(readWishlist()) : null;
+  const q = query.trim().toLowerCase();
+  const activeCat = activeCategory !== "all" ? activeCategory : "";
+
   return getViewerMovies().filter((movie) => {
     const matchesFilter =
       activeFilter === "all" ||
       (activeFilter === "top" && movie.isTop) ||
       (activeFilter === "premium" && movie.isPremium) ||
       (activeFilter === "favorites" && wishlistIds.has(String(movie.id)));
-    const matchesCategory = activeCategory === "all" || getMovieCategoryValues(movie).includes(activeCategory);
-    const haystack = `${movie.title} ${movie.genre || ""} ${movie.year || ""} ${movie.code || ""}`.toLowerCase();
-    return matchesFilter && matchesCategory && haystack.includes(query.toLowerCase());
+
+    let matchesCategory = true;
+    if (activeCat) {
+      const catValues = getMovieCategoryValues(movie);
+      matchesCategory = catValues.includes(activeCat) ||
+        splitMovieGenres(movie?.genre).some((g) => {
+          const nv = normalizeCategoryValue(g);
+          return nv === activeCat || nv.includes(activeCat) || activeCat.includes(nv);
+        });
+    }
+
+    let matchesQuery = true;
+    if (q) {
+      const haystack = `${movie?.title || ""} ${movie?.genre || ""} ${movie?.year || ""} ${movie?.code || ""}`.toLowerCase();
+      matchesQuery = haystack.includes(q);
+    }
+
+    return matchesFilter && matchesCategory && matchesQuery;
   });
 }
 
@@ -5793,6 +5811,12 @@ function setSearchPanelOpen(nextState) {
   if (nextState) {
     updateRecentSearchLabels();
     renderRecentSearches();
+    if (typeof renderSearchCategoryChips === "function") {
+      renderSearchCategoryChips();
+    }
+    if (typeof loadCategoriesCatalog === "function" && !categoriesLoaded) {
+      loadCategoriesCatalog();
+    }
   } else if (searchRecents) {
     searchRecents.hidden = true;
   }
@@ -6491,6 +6515,9 @@ async function loadCategoriesCatalog() {
   }
   renderCategoriesGrid();
   categoriesLoaded = true;
+  if (typeof renderSearchCategoryChips === "function") {
+    renderSearchCategoryChips();
+  }
 }
 
 function escapeAttr(value) {
@@ -6919,10 +6946,143 @@ document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-ac
 document.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
 
 const searchGenresEl = document.getElementById("searchGenres");
+const searchGenresList = document.getElementById("searchGenresList");
+
+function getCategoryEmoji(name) {
+  const norm = normalizeCategoryValue(name);
+  if (/jangari|action|boevik/.test(norm)) return "💥";
+  if (/komediya|comedy/.test(norm)) return "😂";
+  if (/fantastika|sci-fi|fantasy/.test(norm)) return "🚀";
+  if (/ujas|horror|qorqincli/.test(norm)) return "👻";
+  if (/multfilm|animation|kartun/.test(norm)) return "🎨";
+  if (/drama/.test(norm)) return "🎭";
+  if (/triller|thriller/.test(norm)) return "🔍";
+  if (/tarix|history|historical/.test(norm)) return "👑";
+  if (/melodrama|romance|sevgi/.test(norm)) return "❤️";
+  if (/sarguzasht|adventure/.test(norm)) return "🗺️";
+  if (/hujjatli|documentary/.test(norm)) return "📽️";
+  if (/detektiv|detective/.test(norm)) return "🕵️‍♂️";
+  if (/serial/.test(norm)) return "📺";
+  if (/oila|family/.test(norm)) return "👨‍👩‍👧‍👦";
+  if (/sport/.test(norm)) return "⚽";
+  if (/harbiy|war/.test(norm)) return "🪖";
+  if (/musiq|music/.test(norm)) return "🎵";
+  if (/anime/.test(norm)) return "⛩️";
+  return "🎬";
+}
+
+function getAvailableCategories() {
+  const map = new Map(); // value -> { value, label, count }
+
+  // 1. From categoriesData (/api/categories)
+  if (Array.isArray(categoriesData)) {
+    for (const cat of categoriesData) {
+      const label = String(cat?.name || "").trim();
+      if (!label || label.toLowerCase() === "seriallar") continue;
+      const value = normalizeCategoryValue(label);
+      if (value && value !== "kino" && !map.has(value)) {
+        map.set(value, { value, label, count: 0 });
+      }
+    }
+  }
+
+  // 2. From all loaded movies in viewer catalog
+  const viewerMovies = (typeof getViewerMovies === "function" ? getViewerMovies() : (Array.isArray(movies) ? movies : []));
+  for (const movie of viewerMovies) {
+    const parts = splitMovieGenres(movie?.genre);
+    for (const rawGenre of parts) {
+      const label = String(rawGenre || "").trim();
+      if (!label) continue;
+      const value = normalizeCategoryValue(label);
+      if (!value || value === "kino") continue;
+      if (map.has(value)) {
+        map.get(value).count += 1;
+        if (!map.get(value).label || map.get(value).label.length < label.length) {
+          map.get(value).label = label;
+        }
+      } else {
+        map.set(value, { value, label, count: 1 });
+      }
+    }
+  }
+
+  // Convert to array and sort by count descending (most popular categories first)
+  const list = Array.from(map.values());
+  list.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+  if (!list.length) {
+    const defaults = ["Jangari", "Komediya", "Fantastika", "Drama", "Ujas", "Multfilm", "Triller", "Melodrama", "Tarixiy", "Sarguzasht"];
+    return defaults.map((d) => ({ value: normalizeCategoryValue(d), label: d, count: 0 }));
+  }
+
+  return list;
+}
+
+function renderSearchCategoryChips() {
+  if (!searchGenresList) return;
+  const categories = getAvailableCategories();
+  if (!categories.length) return;
+
+  const activeNorm = activeCategory !== "all" ? activeCategory : "";
+
+  searchGenresList.innerHTML = categories.map((cat) => {
+    const emoji = getCategoryEmoji(cat.label);
+    const isActive = activeNorm === cat.value;
+    return `<button class="search-genre-chip${isActive ? " is-active" : ""}" type="button" data-category="${escapeAttr(cat.label)}" data-value="${escapeAttr(cat.value)}" aria-pressed="${isActive ? "true" : "false"}">${emoji} ${escapeHtml(cat.label)}</button>`;
+  }).join("");
+}
+
+function selectSearchCategory(categoryLabel, categoryValue) {
+  const val = categoryValue || normalizeCategoryValue(categoryLabel);
+  if (!val) return;
+
+  try { haptic.tap?.(); } catch (_) {}
+
+  // If already active, toggle it off back to all
+  if (activeCategory === val) {
+    activeCategory = "all";
+    if (searchInput) searchInput.value = "";
+    query = "";
+  } else {
+    activeCategory = val;
+    if (searchInput) {
+      searchInput.value = categoryLabel || val;
+      searchInput.blur();
+    }
+    query = "";
+  }
+
+  activeFilter = "all";
+  document.body.classList.remove("is-favorites");
+
+  syncSearchClearBtn();
+  renderSearchCategoryChips();
+  renderMovies();
+
+  if (document.body.classList.contains("is-music")) {
+    window.__music?.setQuery?.(query);
+  }
+  if (document.body.classList.contains("is-podcasts")) {
+    window.__potcasts?.setQuery?.(query);
+  }
+
+  if (categoryLabel) {
+    pushRecentSearch(categoryLabel);
+  }
+}
+
+searchGenresList?.addEventListener("click", (e) => {
+  const chip = e.target.closest(".search-genre-chip");
+  if (!chip) return;
+  e.preventDefault();
+  const label = chip.getAttribute("data-category") || chip.getAttribute("data-genre") || chip.textContent.replace(/[^\p{L}\p{N}]/gu, " ").trim();
+  const value = chip.getAttribute("data-value") || normalizeCategoryValue(label);
+  selectSearchCategory(label, value);
+});
+
 function syncSearchGenresVisibility() {
   if (!searchGenresEl) return;
-  const hasQuery = Boolean(searchInput && searchInput.value.trim().length > 0);
-  searchGenresEl.hidden = hasQuery;
+  searchGenresEl.hidden = false;
 }
 
 function syncSearchClearBtn() {
@@ -6930,35 +7090,24 @@ function syncSearchClearBtn() {
   searchClearBtn.hidden = !(searchInput && searchInput.value.length > 0);
 }
 
-document.querySelectorAll(".search-genre-chip").forEach((chip) => {
-  chip.addEventListener("click", (e) => {
-    e.preventDefault();
-    const genre = chip.getAttribute("data-genre") || chip.textContent.replace(/[^\p{L}\p{N}]/gu, "").trim();
-    if (!genre || !searchInput) return;
-    try { haptic.tap?.(); } catch (_) {}
-    searchInput.value = genre;
-    query = genre;
-    syncSearchClearBtn();
-    syncSearchGenresVisibility();
-    renderMovies();
-    if (document.body.classList.contains("is-music")) {
-      window.__music?.setQuery?.(query);
-    }
-    if (document.body.classList.contains("is-podcasts")) {
-      window.__potcasts?.setQuery?.(query);
-    }
-    pushRecentSearch(genre);
-  });
-});
-
 let searchDebounceTimer = null;
 searchInput?.addEventListener("input", (event) => {
   const val = event.target.value.trim();
   syncSearchClearBtn();
-  syncSearchGenresVisibility();
   clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(() => {
     query = val;
+    if (!val) {
+      activeCategory = "all";
+    } else {
+      const matchingCat = getAvailableCategories().find(c => c.label.toLowerCase() === val.toLowerCase() || c.value === normalizeCategoryValue(val));
+      if (matchingCat) {
+        activeCategory = matchingCat.value;
+      } else {
+        activeCategory = "all";
+      }
+    }
+    renderSearchCategoryChips();
     renderMovies();
     if (document.body.classList.contains("is-music")) {
       window.__music?.setQuery?.(query);
@@ -6976,6 +7125,8 @@ searchClearBtn?.addEventListener("click", (event) => {
   clearTimeout(searchDebounceTimer);
   searchInput.value = "";
   query = "";
+  activeCategory = "all";
+  renderSearchCategoryChips();
   renderMovies();
   if (document.body.classList.contains("is-music")) {
     window.__music?.setQuery?.("");
@@ -6985,12 +7136,11 @@ searchClearBtn?.addEventListener("click", (event) => {
   }
   renderRecentSearches();
   syncSearchClearBtn();
-  syncSearchGenresVisibility();
   searchInput.focus();
 });
 
 searchInput?.addEventListener("focus", () => {
-  syncSearchGenresVisibility();
+  renderSearchCategoryChips();
   updateRecentSearchLabels();
   renderRecentSearches();
 });

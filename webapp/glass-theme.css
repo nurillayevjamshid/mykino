@@ -1204,6 +1204,13 @@ html.is-android .modal-poster__zoom-badge {
   transform: scale(0.95);
 }
 
+.search-genre-chip.is-active {
+  background: linear-gradient(135deg, #0284c7, #0ea5e9) !important;
+  border-color: rgba(157, 234, 255, 0.6) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45);
+}
+
 html[data-theme="light"] .search-genres {
   background: rgba(255, 255, 255, 0.94);
   border-color: rgba(116, 145, 174, 0.24);
