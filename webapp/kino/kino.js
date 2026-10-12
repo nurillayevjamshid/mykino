@@ -4217,7 +4217,18 @@ watchResumeChip?.addEventListener("click", (event) => {
   openVideoPlayer(activeMovie);
 });
 
+let movieModalCloseTimer = null;
+let isClosingFromPopstate = false;
+
 function openMovie(movie) {
+  if (movieModalCloseTimer) {
+    clearTimeout(movieModalCloseTimer);
+    movieModalCloseTimer = null;
+  }
+  if (movieModal) {
+    movieModal.classList.remove("is-closing", "is-dragging");
+    movieModal.style.transform = "";
+  }
   const posterImage = getPosterImage(movie);
   modalPoster.style.backgroundImage = posterImage
     ? `url('${posterImage.replaceAll("'", "%27")}'), linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)`
@@ -4246,7 +4257,11 @@ function openMovie(movie) {
   // — "X:XX dan davom" badge'i va "Boshidan" tugmasi paydo bo'ladi.
   syncResumeUiForMovie(movie);
   syncDescriptionToggle();
-  movieModal.showModal();
+  try {
+    if (!movieModal.open) movieModal.showModal();
+  } catch (_) {
+    movieModal.setAttribute("open", "");
+  }
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });
   document.body.classList.add("is-modal-open");
@@ -4262,16 +4277,42 @@ function openMovie(movie) {
 }
 
 function closeMovieModalAnimated() {
-  if (!movieModal || !movieModal.open) return;
+  if (movieModalCloseTimer) {
+    clearTimeout(movieModalCloseTimer);
+    movieModalCloseTimer = null;
+  }
+  // Immediately restore body scroll and unblock interactions
+  document.body.classList.remove("is-modal-open");
+  tgBackUnregister("movie-modal");
+
   if (typeof closePosterLightbox === "function") {
     try { closePosterLightbox(); } catch (_) {}
   }
+  if (typeof closeCommentsSheet === "function") {
+    try { closeCommentsSheet(); } catch (_) {}
+  }
+
+  if (!movieModal || !movieModal.open) {
+    if (movieModal) {
+      movieModal.classList.remove("is-sheet-open", "is-closing", "is-dragging");
+      movieModal.style.transform = "";
+    }
+    return;
+  }
+
   movieModal.classList.remove("is-sheet-open");
   movieModal.classList.add("is-closing");
-  setTimeout(() => {
-    try { movieModal.close(); } catch (_) {}
-    movieModal.classList.remove("is-closing");
+  movieModalCloseTimer = setTimeout(() => {
+    movieModalCloseTimer = null;
+    try {
+      if (movieModal.open) movieModal.close();
+      else movieModal.removeAttribute("open");
+    } catch (_) {
+      try { movieModal.removeAttribute("open"); } catch (__) {}
+    }
+    movieModal.classList.remove("is-closing", "is-sheet-open", "is-dragging");
     movieModal.style.transform = "";
+    document.body.classList.remove("is-modal-open");
   }, 260);
 }
 
@@ -5676,7 +5717,7 @@ function closeVideoPlayer() {
   videoExternalLink.textContent = t("openSource");
   setVideoLoading(false);
   videoPlayer.hidden = true;
-  document.body.classList.remove("is-player-open");
+  document.body.classList.remove("is-player-open", "is-modal-open", "has-sheet-open", "is-lightbox-open");
   document.body.classList.remove("is-podcast-context");
   if (videoPipButton) videoPipButton.classList.remove("is-active");
   exitPipIfActive();
@@ -7530,6 +7571,10 @@ modalDescriptionToggle?.addEventListener("click", () => {
 });
 
 movieModal?.addEventListener("close", () => {
+  if (movieModalCloseTimer) {
+    clearTimeout(movieModalCloseTimer);
+    movieModalCloseTimer = null;
+  }
   stopMoviePreload();
   closeCommentsSheet();
   document.body.classList.remove("is-modal-open");
@@ -7537,13 +7582,27 @@ movieModal?.addEventListener("close", () => {
   movieModal.style.transform = "";
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });
-  if (history.state && history.state.movieDetail) {
-    history.back();
+  tgBackUnregister("movie-modal");
+  if (!isClosingFromPopstate && history.state && history.state.movieDetail) {
+    try { history.back(); } catch (_) {}
   }
+  isClosingFromPopstate = false;
 });
 
 window.addEventListener("popstate", () => {
-  if (movieModal?.open) movieModal.close();
+  if (movieModal?.open) {
+    isClosingFromPopstate = true;
+    closeMovieModalAnimated();
+  }
+  if (videoPlayer && !videoPlayer.hidden) {
+    closeVideoPlayer();
+  }
+  if (typeof closeMovieContextMenu === "function") {
+    try { closeMovieContextMenu(); } catch (_) {}
+  }
+  if (typeof closeShareSheet === "function") {
+    try { closeShareSheet(); } catch (_) {}
+  }
 });
 
 document.querySelector("[data-close-profile]").addEventListener("click", () => profileModal.close());
@@ -8787,7 +8846,7 @@ initApp();
   let startTime = 0;
 
   const onTouchStart = (e) => {
-    if (!movieModal.open) return;
+    if (!movieModal.open || movieModal.classList.contains("is-closing")) return;
     if (e.touches.length !== 1) return;
     const touch = e.touches[0];
     startY = touch.clientY;
@@ -8804,7 +8863,7 @@ initApp();
   };
 
   const onTouchMove = (e) => {
-    if (!canDrag || !movieModal.open) return;
+    if (!canDrag || !movieModal.open || movieModal.classList.contains("is-closing")) return;
     const touch = e.touches[0];
     const dy = touch.clientY - startY;
     const dx = touch.clientX - startX;
@@ -9002,9 +9061,11 @@ initApp();
     // So'nggi scroll faolligi yaqin bo'lsa (momentum/inertia) — kuting.
     if (Date.now() - lastScrollAt < SCROLL_QUIET_MS) return;
     // Modal/dialog/video player ochiq bo'lsa — bekor.
-    if (document.body.classList.contains("is-modal-open")
-      || document.body.classList.contains("is-player-open")
-      || document.body.classList.contains("ad-modal-open")) return;
+    const isOverlayActive = Boolean(movieModal && movieModal.open)
+      || Boolean(videoPlayer && !videoPlayer.hidden)
+      || document.body.classList.contains("ad-modal-open")
+      || Boolean(commentsSheet && !commentsSheet.hidden && commentsSheet.classList.contains("is-open"));
+    if (isOverlayActive) return;
     // Touch ichki scroll konteyner ustida bo'lsa (modal-content, music-list,
     // category-row__list va h.k.) — PTR ishga tushmasin.
     const target = e.target;
@@ -9152,10 +9213,12 @@ initApp();
     // Gorizontal niyat (touchpad'da yon swipe) — tegmaymiz.
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     if (e.ctrlKey) return; // Ctrl+wheel = zoom
-    const b = document.body.classList;
     // Modal/player/sheet ochiq bo'lsa — ularning o'z ichki scroll'i native ishlasin.
-    if (b.contains("is-modal-open") || b.contains("is-player-open")
-      || b.contains("ad-modal-open") || b.contains("has-sheet-open")) return;
+    const isOverlayActive = Boolean(movieModal && movieModal.open)
+      || Boolean(videoPlayer && !videoPlayer.hidden)
+      || document.body.classList.contains("ad-modal-open")
+      || Boolean(commentsSheet && !commentsSheet.hidden && commentsSheet.classList.contains("is-open"));
+    if (isOverlayActive) return;
     const dir = e.deltaY < 0 ? -1 : 1;
     if (hasInnerScroller(e.target, dir)) return;
     const max = maxScroll();
@@ -9221,9 +9284,14 @@ initApp();
   const maxScroll = () => scroller.scrollHeight - scroller.clientHeight;
 
   function isBlockedByOverlay() {
-    const b = document.body.classList;
-    return b.contains("is-modal-open") || b.contains("is-player-open")
-        || b.contains("ad-modal-open") || b.contains("has-sheet-open");
+    const isModalOpen = Boolean(movieModal && movieModal.open);
+    const isPlayerOpen = Boolean(videoPlayer && !videoPlayer.hidden);
+    const isAdOpen = document.body.classList.contains("ad-modal-open");
+    const isSheetOpen = Boolean(commentsSheet && !commentsSheet.hidden && commentsSheet.classList.contains("is-open"));
+    if (!isModalOpen && document.body.classList.contains("is-modal-open")) {
+      document.body.classList.remove("is-modal-open");
+    }
+    return isModalOpen || isPlayerOpen || isAdOpen || isSheetOpen;
   }
 
   function shouldBypass(target) {
