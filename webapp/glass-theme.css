@@ -1,13 +1,13 @@
 /* NTV Glass Theme — shared VisionOS-inspired acrylic layer for every surface. */
 :root {
-  --glass-ink: #09111f;
+  --glass-ink: #0b0e14;
   --glass-surface: rgba(255, 255, 255, .105);
   --glass-surface-strong: rgba(255, 255, 255, .17);
   --glass-surface-soft: rgba(255, 255, 255, .065);
   --glass-border: rgba(255, 255, 255, .22);
   --glass-border-soft: rgba(255, 255, 255, .12);
-  --glass-text: #f5f9ff;
-  --glass-muted: rgba(221, 232, 246, .68);
+  --glass-text: #ffffff;
+  --glass-muted: #94a3b8;
   --glass-cyan: #9deaff;
   --glass-violet: #c7b6ff;
   --glass-shadow: 0 24px 70px rgba(0, 0, 0, .28), inset 0 1px rgba(255, 255, 255, .22);
@@ -18,18 +18,18 @@ html.is-android {
   --glass-blur: blur(8px) saturate(115%);
 }
 
-/* Shared spatial canvas */
+/* Shared spatial canvas — OLED Cinema True Black (#0b0e14) */
 html:has(.app-shell),
 html:has(.admin-layout),
-html:has(.esport-page) { background: #07111d; }
+html:has(.esport-page) { background: #0b0e14; }
 html:has(.app-shell) body,
 html:has(.admin-layout) body,
 html:has(.esport-page) body {
   background:
-    radial-gradient(70vw 46vw at 8% 4%, rgba(109, 168, 255, .19), transparent 64%),
-    radial-gradient(55vw 42vw at 93% 14%, rgba(199, 159, 255, .14), transparent 64%),
-    radial-gradient(70vw 50vw at 50% 110%, rgba(57, 196, 185, .12), transparent 68%),
-    #07111d !important;
+    radial-gradient(70vw 46vw at 8% 4%, rgba(56, 189, 248, .10), transparent 64%),
+    radial-gradient(55vw 42vw at 93% 14%, rgba(168, 85, 247, .08), transparent 64%),
+    radial-gradient(70vw 50vw at 50% 110%, rgba(20, 184, 166, .06), transparent 68%),
+    #0b0e14 !important;
   color: var(--glass-text);
 }
 html:has(.app-shell) body::before,
@@ -1180,35 +1180,209 @@ html.is-android .modal-poster__zoom-badge {
 
 .search-genre-chip {
   flex: 0 0 auto;
-  padding: 6px 13px;
+  padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease;
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   user-select: none;
   -webkit-user-select: none;
 }
 
 .search-genre-chip:hover {
-  border-color: rgba(157, 234, 255, 0.45);
+  border-color: rgba(157, 234, 255, 0.5);
   background: rgba(157, 234, 255, 0.14);
   color: var(--glass-cyan);
 }
 
 .search-genre-chip:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 
 .search-genre-chip.is-active {
+  transform: scale(1.05) translateZ(0) !important;
   background: linear-gradient(135deg, #0284c7, #0ea5e9) !important;
-  border-color: rgba(157, 234, 255, 0.6) !important;
+  border-color: rgba(186, 230, 253, 0.8) !important;
   color: #fff !important;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45);
+  font-weight: 700 !important;
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  filter: brightness(1.1);
+}
+
+/* ============================================================
+   Search Recents — Oxirgi qidiruvlar mini-teglari
+   ============================================================ */
+.search-recents {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: rgba(18, 26, 40, 0.75);
+  border: 1px solid var(--glass-border-soft);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--glass-shadow);
+  animation: recentsFadeIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes recentsFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-recents__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+
+.search-recents__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--glass-muted);
+}
+
+.search-recents__clear {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--glass-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2.5px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.search-recents__clear:hover {
+  color: #f43f5e;
+  border-color: rgba(244, 63, 94, 0.4);
+  background: rgba(244, 63, 94, 0.12);
+}
+
+.search-recents__clear:active {
+  transform: scale(0.94);
+}
+
+.search-recents__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.search-recents__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.07);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.search-recents__chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+}
+
+.search-recents__chip:active {
+  transform: scale(0.94);
+}
+
+.search-recents__chip-icon {
+  font-size: 11px;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.search-recents__chip-label {
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-recents__chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.1);
+  margin-left: 2px;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.search-recents__chip-remove:hover {
+  background: rgba(239, 68, 68, 0.45);
+  color: #ffffff;
+  transform: scale(1.18);
+}
+
+/* ============================================================
+   "Yurakcha" (Like) Pop-animatsiyasi (Instagram / TikTok Style)
+   ============================================================ */
+@keyframes heartPop {
+  0% {
+    transform: scale(1);
+  }
+  28% {
+    transform: scale(1.42);
+    filter: brightness(1.3);
+  }
+  50% {
+    transform: scale(0.88);
+  }
+  72% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.wishlist-toggle {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.wishlist-toggle:active {
+  transform: scale(0.86);
+}
+
+.wishlist-toggle.is-active,
+.movie-card .wishlist-toggle.is-active {
+  animation: heartPop 0.48s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 18px rgba(225, 29, 72, 0.6), 0 0 12px rgba(244, 63, 94, 0.45) !important;
+}
+
+.wishlist-toggle.is-active svg,
+.movie-card .wishlist-toggle.is-active svg {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
 }
 
 html[data-theme="light"] .search-genres {
@@ -1831,6 +2005,30 @@ html.is-android .search-genres {
   -webkit-backdrop-filter: none !important;
   background: rgba(18, 25, 38, 0.92) !important;
 }
+
+/* ============================================================
+   OLED Cinema Tipografika va Kontrast (#FFFFFF / #94A3B8 / #0B0E14)
+   ============================================================ */
+h1, h2, h3, h4, h5, h6,
+.brand-text, .brand-text__top, .section-title,
+.movie-card__title, .modal-title, .hero__title,
+.category-page__title, .category-row__title {
+  color: #ffffff !important;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+p, .movie-card__meta, .modal-meta,
+.section-subtitle, .modal-description,
+.brand-text__sub, .hero__description,
+.category-row__meta, .search-box__input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.search-box__input {
+  color: #ffffff !important;
+}
+
 
 
 

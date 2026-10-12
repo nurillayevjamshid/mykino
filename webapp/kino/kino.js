@@ -755,26 +755,39 @@ function renderRecentSearches() {
     chip.type = "button";
     chip.className = "search-recents__chip";
     chip.dataset.value = value;
+
+    const icon = document.createElement("span");
+    icon.className = "search-recents__chip-icon";
+    icon.textContent = "🕒";
+    icon.setAttribute("aria-hidden", "true");
+
     const label = document.createElement("span");
     label.className = "search-recents__chip-label";
     label.textContent = value;
+
     const remove = document.createElement("span");
     remove.className = "search-recents__chip-remove";
-    remove.textContent = "×";
+    remove.textContent = "✕";
     remove.setAttribute("role", "button");
     remove.setAttribute("aria-label", plainLabel(t("removeHistoryItem")) || "Remove");
-    chip.append(label, remove);
+
+    chip.append(icon, label, remove);
+
     chip.addEventListener("click", (event) => {
       if (event.target === remove) {
         event.stopPropagation();
-        removeRecentSearch(value);
+        try { haptic.tap?.(); } catch (_) {}
+        chip.style.transform = "scale(0.85)";
+        chip.style.opacity = "0";
+        setTimeout(() => removeRecentSearch(value), 140);
         return;
       }
+      try { haptic.tap?.(); } catch (_) {}
       if (!searchInput) return;
       searchInput.value = value;
       searchInput.dispatchEvent(new Event("input", { bubbles: true }));
       pushRecentSearch(value);
-      searchInput.focus();
+      searchInput.blur();
     });
     searchRecentsList.appendChild(chip);
   });
@@ -2989,6 +3002,14 @@ function createMovieCard(movie) {
     const isActive = toggleWishlist(movie.id);
     wishlistBtn.classList.toggle("is-active", isActive);
     wishlistBtn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    if (isActive) {
+      try { haptic.success?.() || haptic.medium?.(); } catch (_) {}
+      wishlistBtn.style.animation = "none";
+      void wishlistBtn.offsetWidth;
+      wishlistBtn.style.animation = "";
+    } else {
+      try { haptic.tap?.(); } catch (_) {}
+    }
     if (activeFilter === "favorites") {
       renderMovies();
     }
@@ -4023,8 +4044,12 @@ document.getElementById("movieContextPlay")?.addEventListener("click", () => {
 document.getElementById("movieContextFav")?.addEventListener("click", () => {
   const movie = activeContextMenuMovie;
   if (!movie) return;
-  try { haptic.tap(); } catch (_) {}
   const isActive = toggleWishlist(movie.id);
+  if (isActive) {
+    try { haptic.success?.() || haptic.medium?.(); } catch (_) {}
+  } else {
+    try { haptic.tap?.(); } catch (_) {}
+  }
   showToast(isActive ? "Sevimlilarga qo'shildi ⭐" : "Sevimlilardan olib tashlandi");
   if (activeFilter === "favorites") {
     renderMovies();
