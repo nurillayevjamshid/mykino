@@ -1598,6 +1598,9 @@
     modal.addEventListener("click", (e) => {
       if (e.target.closest("[data-close]")) closeLineupModal();
     });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !modal.hidden) closeLineupModal();
+    });
     return modal;
   }
 
@@ -1653,8 +1656,15 @@
         </div>
       `;
 
-      const homeGoals = goals.filter((g) => !g.teamId || String(g.teamId) === String(home.id) || (homeUz && g.team && g.team.toLowerCase().includes(homeUz.toLowerCase())));
-      const awayGoals = goals.filter((g) => (g.teamId && String(g.teamId) === String(away.id)) || (awayUz && g.team && g.team.toLowerCase().includes(awayUz.toLowerCase())));
+      const isHomeGoal = (g) => {
+        if (g.teamId && home.id && String(g.teamId) === String(home.id)) return true;
+        if (g.teamId && away.id && String(g.teamId) === String(away.id)) return false;
+        if (homeUz && g.team && g.team.toLowerCase().includes(homeUz.toLowerCase())) return true;
+        if (awayUz && g.team && g.team.toLowerCase().includes(awayUz.toLowerCase())) return false;
+        return true;
+      };
+      const homeGoals = goals.filter(isHomeGoal);
+      const awayGoals = goals.filter((g) => !isHomeGoal(g));
 
       goalsHtml = `
         <div class="fifa-goals-card">
@@ -1841,7 +1851,9 @@
     `;
   }
 
+  let activeLineupRequestId = 0;
   async function openLineupModal({ matchId, leagueId, homeEn, awayEn, homeUz, awayUz, homeFlag, awayFlag, score, status, minute, date }) {
+    const reqId = ++activeLineupRequestId;
     const modal = ensureLineupModal();
     modal.hidden = false;
     document.body.classList.add("fifa-lineup-open");
@@ -1853,12 +1865,15 @@
     try { tgBackRegister?.("fifa-lineup", () => closeLineupModal()); } catch (_) {}
     try {
       const data = await fetchLineup(homeEn, awayEn, date, matchId, leagueId);
+      if (reqId !== activeLineupRequestId) return;
       if (data && (data.score || data.minute || data.status)) {
+        const updatedHomeFlag = (data.home?.logo ? teamLogoHtml(data.home.logo, data.home.name || homeUz) : homeFlag);
+        const updatedAwayFlag = (data.away?.logo ? teamLogoHtml(data.away.logo, data.away.name || awayUz) : awayFlag);
         head.innerHTML = renderLineupHead(
           data.home?.name || homeUz,
           data.away?.name || awayUz,
-          homeFlag,
-          awayFlag,
+          updatedHomeFlag,
+          updatedAwayFlag,
           data.score || score,
           data.status || status,
           data.minute || minute
@@ -1876,11 +1891,14 @@
         });
       });
     } catch (err) {
-      body.innerHTML = lineupEmptyHtml(F("lineupLoadFailed"));
+      if (reqId === activeLineupRequestId) {
+        body.innerHTML = lineupEmptyHtml(F("lineupLoadFailed"));
+      }
     }
   }
 
   function closeLineupModal() {
+    activeLineupRequestId += 1;
     const modal = document.getElementById("fifaLineupModal");
     if (!modal) return;
     modal.classList.remove("is-open");
@@ -1907,6 +1925,16 @@
       minute: row.dataset.minute || "",
       date: row.dataset.date || "",
     });
+  });
+
+  fifaView.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      const row = e.target.closest?.("[data-fifa-open-lineup]");
+      if (row) {
+        e.preventDefault();
+        row.click();
+      }
+    }
   });
 
   // Til o'zgarganda — joriy ko'rinmoqda bo'lgan panelni qayta render qilamiz.

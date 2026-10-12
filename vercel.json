@@ -68,6 +68,7 @@
     { "src": "api/drive-stream.js", "use": "@vercel/node" },
     { "src": "api/drive-resolve.js", "use": "@vercel/node" },
     { "src": "api/drive-thumbnail.js", "use": "@vercel/node" },
+    { "src": "api/story-card.js", "use": "@vercel/node" },
     { "src": "webapp/**", "use": "@vercel/static" }
   ],
   "routes": [
@@ -83,7 +84,7 @@
     { "src": "/api/podcasts", "dest": "/api/music.js?_podcasts=1" },
     { "src": "/api/music-playlists", "dest": "/api/music.js?_playlists=1" },
     { "src": "/api/categories", "dest": "/api/categories.js" },
-    { "src": "/api/upload-image", "dest": "/api/upload-image.js" },
+    { "src": "/api/story-card", "dest": "/api/story-card.js" },
     { "src": "/api/settings", "dest": "/api/settings.js" },
     { "src": "/api/users", "dest": "/api/users.js" },
     { "src": "/api/user-photo", "dest": "/api/users.js?_photo=1" },

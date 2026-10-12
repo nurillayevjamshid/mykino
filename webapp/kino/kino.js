@@ -1133,9 +1133,11 @@ function applyTelegramUser() {
   if (user.photo_url) candidatePhotos.push(String(user.photo_url));
   if (candidatePhotos.length) {
     const applyPhoto = (src) => {
-      avatarPhoto.src = src;
-      avatarPhoto.hidden = false;
-      avatar.hidden = true;
+      if (avatarPhoto) {
+        avatarPhoto.src = src;
+        avatarPhoto.hidden = false;
+      }
+      if (avatar) avatar.hidden = true;
       if (headerAvatarPhoto) {
         headerAvatarPhoto.src = src;
         headerAvatarPhoto.hidden = false;
@@ -1149,9 +1151,11 @@ function applyTelegramUser() {
       try { localStorage.setItem(CACHED_USER_PHOTO_KEY, src); } catch (_) {}
     };
     const revertToInitials = () => {
-      avatarPhoto.hidden = true;
-      avatarPhoto.removeAttribute("src");
-      avatar.hidden = false;
+      if (avatarPhoto) {
+        avatarPhoto.hidden = true;
+        avatarPhoto.removeAttribute("src");
+      }
+      if (avatar) avatar.hidden = false;
       if (headerAvatarPhoto) {
         headerAvatarPhoto.hidden = true;
         headerAvatarPhoto.removeAttribute("src");

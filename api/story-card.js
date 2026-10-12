@@ -67,12 +67,18 @@ module.exports = async function handler(request, response) {
   // 1. GET /api/story-card?proxy=<url> (Brauzer canvas CORS cheklovini aylanib o'tish uchun)
   const proxyUrl = String(request.query?.proxy || "").trim();
   if (proxyUrl && request.method === "GET") {
+    let parsed;
     try {
-      const parsed = new URL(proxyUrl);
-      if (!["http:", "https:"].includes(parsed.protocol)) {
-        response.status(400).end("Invalid protocol");
-        return;
-      }
+      parsed = new URL(proxyUrl);
+    } catch (_) {
+      response.status(400).end("Invalid URL");
+      return;
+    }
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      response.status(400).end("Invalid protocol");
+      return;
+    }
+    try {
       const upstream = await fetch(parsed.toString(), {
         headers: {
           "User-Agent":
@@ -105,7 +111,7 @@ module.exports = async function handler(request, response) {
     // 2a. Xotiradan tekshirish
     const cachedMem = memoryStoryCache.get(storyId);
     if (cachedMem && cachedMem.buffer) {
-      response.setHeader("Content-Type", "image/jpeg");
+      response.setHeader("Content-Type", cachedMem.contentType || "image/jpeg");
       response.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
       response.status(200).end(cachedMem.buffer);
       return;
@@ -158,6 +164,8 @@ module.exports = async function handler(request, response) {
     }
 
     // 3b. R2 yo'q bo'lsa yoki xato bersa — Redis / Xotira orqali public URL taqdim etish
+    const mimeMatch = dataUrl.match(/^data:(image\/[\w.+-]+);base64,/);
+    const contentType = mimeMatch ? mimeMatch[1] : "image/jpeg";
     const base64Data = dataUrl.replace(/^data:image\/[\w.+-]+;base64,/, "");
     const buffer = Buffer.from(base64Data, "base64");
     const uniqueId = `sc_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
@@ -165,6 +173,7 @@ module.exports = async function handler(request, response) {
     // Xotiraga 2 soatga saqlash
     memoryStoryCache.set(uniqueId, {
       buffer,
+      contentType,
       expiresAt: Date.now() + 2 * 60 * 60 * 1000,
     });
 
