@@ -4074,22 +4074,22 @@ function buildWatchLinkName(rawTitle) {
 }
 
 function loadImageForCanvas(src) {
-  return new Promise((resolve, reject) => {
-    if (!src) return reject(new Error("No image src"));
+  return new Promise((resolve) => {
+    if (!src) return resolve(null);
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = () => {
-      // Agar CORS tufayli to'g'ridan-to'g'ri ochilmasa, backend proxy orqali urinib ko'rish
+      // Agar CORS tufayli xato bersa, proxy orqali yuklashga urinib ko'rish
       if ((src.startsWith("http://") || src.startsWith("https://")) && !src.includes("/api/story-card?proxy=")) {
         const proxySrc = `/api/story-card?proxy=${encodeURIComponent(src)}`;
         const pImg = new Image();
         pImg.crossOrigin = "anonymous";
         pImg.onload = () => resolve(pImg);
-        pImg.onerror = (e) => reject(e);
+        pImg.onerror = () => resolve(null);
         pImg.src = proxySrc;
       } else {
-        reject(new Error("Image load failed"));
+        resolve(null);
       }
     };
     img.src = src;
@@ -4097,11 +4097,12 @@ function loadImageForCanvas(src) {
 }
 
 async function generateStoryCardDataUrl(movie) {
+  // Telegram Story uchun optimal 9:16 o'lcham (720x1280) — tez generatsiya va kichik fayl hajmi (~90KB)
   const canvas = document.createElement("canvas");
-  canvas.width = 1080;
-  canvas.height = 1920;
+  canvas.width = 720;
+  canvas.height = 1280;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas context error");
+  if (!ctx) return "";
 
   const posterSrc = getPosterImage(movie);
   let posterImg = null;
@@ -4115,40 +4116,40 @@ async function generateStoryCardDataUrl(movie) {
 
   // 1. Asosiy to'q fon
   ctx.fillStyle = "#0c1017";
-  ctx.fillRect(0, 0, 1080, 1920);
+  ctx.fillRect(0, 0, 720, 1280);
 
   // 2. Poster'dan olingan xiralashgan fon (ambient blur)
   if (posterImg) {
     try {
       ctx.save();
-      ctx.filter = "blur(54px) brightness(0.38) saturate(1.4)";
-      ctx.drawImage(posterImg, -80, -80, 1240, 2080);
+      ctx.filter = "blur(40px) brightness(0.36) saturate(1.35)";
+      ctx.drawImage(posterImg, -50, -50, 820, 1380);
       ctx.restore();
     } catch (_) {}
   }
 
   // 3. Vertikal gradientlar (vignette)
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, 1920);
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, 1280);
   bgGrad.addColorStop(0, "rgba(0, 0, 0, 0.65)");
   bgGrad.addColorStop(0.28, "rgba(0, 0, 0, 0.12)");
   bgGrad.addColorStop(0.64, "rgba(0, 0, 0, 0.45)");
   bgGrad.addColorStop(1, "rgba(0, 0, 0, 0.88)");
   ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, 1080, 1920);
+  ctx.fillRect(0, 0, 720, 1280);
 
-  // 4. Markazdagi suzuvchi poster kartasi (540 x 780, X=270, Y=280)
-  const cardW = 540;
-  const cardH = 780;
-  const cardX = (1080 - cardW) / 2;
-  const cardY = 280;
-  const cardRadius = 36;
+  // 4. Markazdagi suzuvchi poster kartasi (360 x 520, X=180, Y=180)
+  const cardW = 360;
+  const cardH = 520;
+  const cardX = (720 - cardW) / 2; // 180
+  const cardY = 180;
+  const cardRadius = 24;
 
   if (posterImg) {
     // Soya
     ctx.save();
-    ctx.shadowColor = "rgba(0, 0, 0, 0.78)";
-    ctx.shadowBlur = 54;
-    ctx.shadowOffsetY = 24;
+    ctx.shadowColor = "rgba(0, 0, 0, 0.76)";
+    ctx.shadowBlur = 38;
+    ctx.shadowOffsetY = 16;
     ctx.fillStyle = "#000000";
     ctx.beginPath();
     if (typeof ctx.roundRect === "function") {
@@ -4179,19 +4180,19 @@ async function generateStoryCardDataUrl(movie) {
     } else {
       ctx.rect(cardX, cardY, cardW, cardH);
     }
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.26)";
     ctx.stroke();
     ctx.restore();
 
     // Poster yuqori o'ng burchagidagi reyting nishoni (⭐ 9.9)
     const ratingNum = Number(movie?.rating);
     if (Number.isFinite(ratingNum) && ratingNum > 0) {
-      const badgeW = 160;
-      const badgeH = 68;
-      const badgeX = cardX + cardW - badgeW - 20;
-      const badgeY = cardY + 20;
-      const badgeR = 20;
+      const badgeW = 108;
+      const badgeH = 46;
+      const badgeX = cardX + cardW - badgeW - 14;
+      const badgeY = cardY + 14;
+      const badgeR = 14;
 
       ctx.save();
       ctx.fillStyle = "rgba(10, 15, 26, 0.88)";
@@ -4203,38 +4204,57 @@ async function generateStoryCardDataUrl(movie) {
       }
       ctx.fill();
 
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = "rgba(251, 191, 36, 0.4)";
       ctx.stroke();
 
       ctx.fillStyle = "#fbbf24";
-      ctx.font = "bold 32px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(`⭐ ${formatRating(ratingNum)}`, badgeX + badgeW / 2, badgeY + badgeH / 2);
       ctx.restore();
     }
+  } else {
+    // Agar rasm mavjud bo'lmasa — zamonaviy zaxira kartochkasi
+    ctx.save();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
+    } else {
+      ctx.rect(cardX, cardY, cardW, cardH);
+    }
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.stroke();
+    ctx.font = "72px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🎬", cardX + cardW / 2, cardY + cardH / 2);
+    ctx.restore();
   }
 
   // 5. Kino nomi (qalin, markazda)
   const titleText = String(movie?.title || "Kino").trim();
   ctx.save();
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 58px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.font = "800 40px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-  ctx.shadowBlur = 24;
-  ctx.shadowOffsetY = 4;
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 3;
 
   let displayTitle = titleText;
-  if (ctx.measureText(displayTitle).width > 960) {
-    while (displayTitle.length > 3 && ctx.measureText(displayTitle + "...").width > 960) {
+  if (ctx.measureText(displayTitle).width > 640) {
+    while (displayTitle.length > 3 && ctx.measureText(displayTitle + "...").width > 640) {
       displayTitle = displayTitle.slice(0, -1);
     }
     displayTitle += "...";
   }
-  ctx.fillText(displayTitle, 540, 1170);
+  ctx.fillText(displayTitle, 360, 770);
   ctx.restore();
 
   // 6. Yil va Janr (masalan: 2026 • Komediya)
@@ -4246,18 +4266,22 @@ async function generateStoryCardDataUrl(movie) {
   if (metaText) {
     ctx.save();
     ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
-    ctx.font = "600 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.font = "600 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-    ctx.shadowBlur = 16;
-    ctx.fillText(metaText, 540, 1235);
+    ctx.shadowBlur = 12;
+    ctx.fillText(metaText, 360, 816);
     ctx.restore();
   }
 
-  // Pastki qism (Y=1260 dan 1920 gacha) toza qoldirilgan — Telegram u yerga
+  // Pastki qism (Y=850 dan 1280 gacha) toza qoldirilgan — Telegram u yerga
   // o'zining "Charli Chaplinni ko'rish ▶️" havola stikerini va izohini joylashtiradi.
-  return canvas.toDataURL("image/jpeg", 0.92);
+  try {
+    return canvas.toDataURL("image/jpeg", 0.86);
+  } catch (_) {
+    return "";
+  }
 }
 
 function openShareSheet(movie) {

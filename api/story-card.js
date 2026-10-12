@@ -38,6 +38,23 @@ function setCors(response) {
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
+async function readRequestBody(request) {
+  if (request.body && Buffer.isBuffer(request.body)) {
+    return JSON.parse(request.body.toString("utf8"));
+  }
+  if (request.body && typeof request.body === "string") {
+    return JSON.parse(request.body);
+  }
+  if (request.body && typeof request.body === "object") {
+    return request.body;
+  }
+  let raw = "";
+  for await (const chunk of request) {
+    raw += chunk;
+  }
+  return raw ? JSON.parse(raw) : {};
+}
+
 module.exports = async function handler(request, response) {
   setCors(response);
 
@@ -108,9 +125,11 @@ module.exports = async function handler(request, response) {
 
   // 3. POST /api/story-card (Canvas orqali chizilgan rasmni qabul qilish va URL qaytarish)
   if (request.method === "POST") {
-    let body = request.body;
-    if (typeof body === "string") {
-      try { body = JSON.parse(body); } catch (_) { body = {}; }
+    let body = {};
+    try {
+      body = await readRequestBody(request);
+    } catch (_) {
+      body = {};
     }
     const dataUrl = String(body?.image || "").trim();
     if (!dataUrl || !dataUrl.startsWith("data:image/")) {
@@ -159,4 +178,12 @@ module.exports = async function handler(request, response) {
   }
 
   response.status(405).json({ ok: false, error: "Method not allowed" });
+};
+
+module.exports.config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "10mb",
+    },
+  },
 };
