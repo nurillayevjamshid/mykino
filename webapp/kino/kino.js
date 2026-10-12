@@ -1101,12 +1101,13 @@ function applyTelegramUser() {
     return;
   }
 
-  const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+  const rawUsername = String(user.username || "").trim();
+  const formattedUsername = rawUsername ? (rawUsername.startsWith("@") ? rawUsername : `@${rawUsername}`) : "";
+  const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim() || formattedUsername || t("profile");
   const initials = getUserInitials(user);
   if (profileName) profileName.textContent = displayName || t("profile");
-  const username = String(user.username || "").trim();
   if (profileUsername) {
-    profileUsername.textContent = username ? `@${username}` : t("noUsername");
+    profileUsername.textContent = formattedUsername || t("noUsername");
     profileUsername.hidden = false;
   }
   if (profileUserId) {
@@ -1688,7 +1689,16 @@ function toBooleanFlag(value) {
 }
 
 function getPosterImage(movie) {
-  const candidates = [movie?.posterImage, movie?.poster, movie?.headerImage, movie?.heroPoster];
+  const candidates = [
+    movie?.posterImage,
+    movie?.poster,
+    movie?.headerImage,
+    movie?.heroPoster,
+    movie?.thumbnail,
+    movie?.cover,
+    movie?.image,
+    movie?.banner,
+  ];
   for (const c of candidates) {
     const s = String(c || "").trim();
     if (s && !s.startsWith("blob:")) return s;
@@ -2493,12 +2503,14 @@ function syncWatchedCount() {
 function markMovieWatched(movie, progress = 0) {
   if (!movie?.id) return;
   const store = readWatchedMoviesStore();
+  const existing = store[String(movie.id)];
+  const posterUrl = getPosterImage(movie) || movie?.thumbnail || movie?.cover || existing?.poster || "";
   store[String(movie.id)] = {
     id: String(movie.id),
-    title: movie.title || "Kino",
-    poster: getPosterImage(movie),
-    year: movie.year || "",
-    genre: movie.genre || "Kino",
+    title: movie.title || existing?.title || "Kino",
+    poster: posterUrl,
+    year: movie.year || existing?.year || "",
+    genre: movie.genre || existing?.genre || "Kino",
     progress: Math.max(0, Math.floor(Number(progress) || 0)),
     watchedAt: Date.now(),
   };
@@ -2594,7 +2606,9 @@ function renderMusicHistory() {
   if (clearBtn) clearBtn.hidden = entries.length === 0;
   listEl.innerHTML = entries.map((e) => `
     <article class="profile-history__item" role="button" tabindex="0" data-music-history="${escapeHtml(e.youtubeId)}">
-      <div class="profile-history__poster" style="--poster-image: url('https://i.ytimg.com/vi/${escapeHtml(e.youtubeId)}/mqdefault.jpg')"></div>
+      <div class="profile-history__poster" style="--poster-image: url('https://i.ytimg.com/vi/${escapeHtml(e.youtubeId)}/mqdefault.jpg')">
+        <img class="profile-history__poster-img" src="https://i.ytimg.com/vi/${escapeHtml(e.youtubeId)}/mqdefault.jpg" alt="${escapeHtml(e.title || 'Music')}" loading="lazy" decoding="async" onerror="this.style.display='none';" />
+      </div>
       <div class="profile-history__copy">
         <strong>${escapeHtml(e.title)}</strong>
         <span>${escapeHtml(e.artist)}</span>
@@ -3344,8 +3358,41 @@ function renderProfileHistory() {
   watchedMovieCount.textContent = String(entries.length);
   watchedMovieEmpty.hidden = entries.length > 0;
 
+  const catalogMovies = Array.isArray(movies) && movies.length
+    ? movies
+    : (typeof getViewerMovies === "function" ? getViewerMovies() : []);
+
   for (const entry of entries) {
-    const movie = movies.find((item) => String(item.id) === String(entry.id));
+    const movie = catalogMovies.find((item) =>
+      String(item?.id) === String(entry.id) ||
+      (item?.code && String(item.code) === String(entry.id)) ||
+      (item?.fileId && String(item.fileId) === String(entry.id)) ||
+      (item?.driveFileId && String(item.driveFileId) === String(entry.id)) ||
+      (item?.title && entry?.title && String(item.title).trim().toLowerCase() === String(entry.title).trim().toLowerCase())
+    );
+
+    const fallbackPoster = buildGeneratedPosterDataUrl(movie || { title: entry.title, year: entry.year, quality: "HD" });
+    const resolvedPoster = (movie ? getPosterImage(movie) : "") ||
+      entry.poster ||
+      (movie?.posterImage || movie?.poster || movie?.headerImage || movie?.heroPoster || movie?.thumbnail || movie?.cover || "") ||
+      fallbackPoster;
+
+    if (resolvedPoster && !entry.poster && !resolvedPoster.startsWith("data:")) {
+      try {
+        const store = readWatchedMoviesStore();
+        if (store && store[String(entry.id)]) {
+          store[String(entry.id)].poster = resolvedPoster;
+          writeWatchedMoviesStore(store);
+        }
+      } catch (_) {}
+    }
+
+    const safeCssPoster = String(resolvedPoster)
+      .replaceAll("'", "%27")
+      .replaceAll(")", "%29")
+      .replaceAll("(", "%28")
+      .replaceAll('"', "%22");
+
     const card = document.createElement("article");
     card.className = "profile-history__item";
     card.tabIndex = movie ? 0 : -1;
@@ -3354,7 +3401,14 @@ function renderProfileHistory() {
       card.setAttribute("aria-label", `${entry.title || "Kino"} ${plainLabel(t("watch"))}`);
     }
     card.innerHTML = `
-      <div class="profile-history__poster" style="--poster-image: url('${String(entry.poster || buildGeneratedPosterDataUrl({ title: entry.title, year: entry.year, quality: "HD" })).replaceAll("'", "%27").replaceAll(")", "%29")}')"></div>
+      <div class="profile-history__poster" style="--poster-image: url('${escapeHtml(safeCssPoster)}')">
+        <img class="profile-history__poster-img"
+             src="${escapeHtml(resolvedPoster)}"
+             alt="${escapeHtml(entry.title || 'Kino')}"
+             loading="lazy"
+             decoding="async"
+             onerror="this.onerror=null;this.src='${escapeHtml(fallbackPoster)}';" />
+      </div>
       <div class="profile-history__copy">
         <strong>${escapeHtml(entry.title || "Kino")}</strong>
         <span>${escapeHtml([entry.year || "", entry.genre || ""].filter(Boolean).join(" - ") || "Kino")}</span>
@@ -6229,8 +6283,13 @@ function applyCopy() {
   const footerTagline = document.querySelector("#footerTagline");
   if (footerTagline) footerTagline.textContent = plainLabel(t("footerTagline"));
   const footerCopy = document.querySelector("#footerCopy");
-  if (footerCopy) footerCopy.textContent = plainLabel(t("footerCopy"));
-  profileName.textContent = plainLabel(t("profile"));
+  const currentUser = getTelegramUser();
+  const currentDisplayName = currentUser
+    ? ([currentUser.first_name, currentUser.last_name].filter(Boolean).join(" ").trim() || (currentUser.username ? (currentUser.username.startsWith("@") ? currentUser.username : `@${currentUser.username}`) : ""))
+    : "";
+  if (profileName) {
+    profileName.textContent = currentDisplayName || plainLabel(t("profile"));
+  }
   document.documentElement.lang = lang;
   setRangeFill(videoSeek, Number(videoSeek.value || 0), 1000);
 
@@ -6677,7 +6736,9 @@ function renderPodcastProfileModal() {
       ? `${t("continueAt")} ${formatPlaybackTime(resumeSec)}`
       : (item.durationSec ? fmtDur(item.durationSec) : "Podcast");
     card.innerHTML = `
-      <div class="profile-history__poster" style="--poster-image: url('${esc(item.thumb || "").replaceAll("'", "%27")}')"></div>
+      <div class="profile-history__poster" style="--poster-image: url('${esc(item.thumb || "").replaceAll("'", "%27")}')">
+        <img class="profile-history__poster-img" src="${esc(item.thumb || "")}" alt="${esc(item.title || "Podcast")}" loading="lazy" decoding="async" onerror="this.style.display='none';" />
+      </div>
       <div class="profile-history__copy">
         <strong>${esc(item.title || "Podcast")}</strong>
         <span>${esc(item.channelTitle || "")}</span>

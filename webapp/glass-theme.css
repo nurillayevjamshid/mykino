@@ -2008,25 +2008,160 @@ html.is-android .search-genres {
 
 /* ============================================================
    OLED Cinema Tipografika va Kontrast (#FFFFFF / #94A3B8 / #0B0E14)
+   Faqat Dark mode uchun. Light mode'da matnlar ko'rinishi buzilmaydi.
    ============================================================ */
-h1, h2, h3, h4, h5, h6,
-.brand-text, .brand-text__top, .section-title,
-.movie-card__title, .modal-title, .hero__title,
-.category-page__title, .category-row__title {
+html:not([data-theme="light"]) h1,
+html:not([data-theme="light"]) h2,
+html:not([data-theme="light"]) h3,
+html:not([data-theme="light"]) h4,
+html:not([data-theme="light"]) h5,
+html:not([data-theme="light"]) h6,
+html:not([data-theme="light"]) .brand-text,
+html:not([data-theme="light"]) .brand-text__top,
+html:not([data-theme="light"]) .section-title,
+html:not([data-theme="light"]) .movie-card__title,
+html:not([data-theme="light"]) .modal-title,
+html:not([data-theme="light"]) .hero__title,
+html:not([data-theme="light"]) .category-page__title,
+html:not([data-theme="light"]) .category-row__title {
   color: #ffffff !important;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
-p, .movie-card__meta, .modal-meta,
-.section-subtitle, .modal-description,
-.brand-text__sub, .hero__description,
-.category-row__meta, .search-box__input::placeholder {
+html:not([data-theme="light"]) p,
+html:not([data-theme="light"]) .movie-card__meta,
+html:not([data-theme="light"]) .modal-meta,
+html:not([data-theme="light"]) .section-subtitle,
+html:not([data-theme="light"]) .modal-description,
+html:not([data-theme="light"]) .brand-text__sub,
+html:not([data-theme="light"]) .hero__description,
+html:not([data-theme="light"]) .category-row__meta,
+html:not([data-theme="light"]) .search-box__input::placeholder {
   color: #94a3b8 !important;
 }
 
-.search-box__input {
+html:not([data-theme="light"]) .search-box__input {
   color: #ffffff !important;
+}
+
+/* ============================================================
+   Light Mode & Profil Tipografiyasi va Kontrasti
+   ============================================================ */
+html[data-theme="light"] h1,
+html[data-theme="light"] h2,
+html[data-theme="light"] h3,
+html[data-theme="light"] h4,
+html[data-theme="light"] h5,
+html[data-theme="light"] h6,
+html[data-theme="light"] .brand-text,
+html[data-theme="light"] .brand-text__top,
+html[data-theme="light"] .section-title,
+html[data-theme="light"] .movie-card__title,
+html[data-theme="light"] .modal-title,
+html[data-theme="light"] .hero__title,
+html[data-theme="light"] .category-page__title,
+html[data-theme="light"] .category-row__title {
+  color: #0f172a !important;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Profil modali foydalanuvchi ma'lumotlari (Light rejimda to'liq ko'rinishi) */
+html[data-theme="light"] #profileName,
+html[data-theme="light"] .profile-card h2,
+html[data-theme="light"] .profile-copy h2 {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="light"] .profile-username {
+  color: #0284c7 !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="light"] .profile-userid {
+  color: #64748b !important;
+  font-size: 12px;
+  opacity: 1 !important;
+}
+
+html[data-theme="light"] .profile-stat b {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .profile-stat span {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .profile-history__head strong {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .profile-history__head span {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .profile-history__copy strong {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .profile-history__copy span {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .profile-history__copy small {
+  color: #d97706 !important;
+}
+
+/* Dark mode profil nomlari */
+html:not([data-theme="light"]) #profileName,
+html:not([data-theme="light"]) .profile-card h2,
+html:not([data-theme="light"]) .profile-copy h2 {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+html:not([data-theme="light"]) .profile-username {
+  color: #38bdf8 !important;
+  font-weight: 600 !important;
+}
+
+html:not([data-theme="light"]) .profile-userid {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* Tarix kartochkasi posteri (Light & Dark) */
+.profile-history__poster {
+  position: relative !important;
+  width: 60px !important;
+  height: 76px !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  background-color: #1e293b !important;
+  background-size: cover !important;
+  background-position: center !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html[data-theme="light"] .profile-history__poster {
+  background-color: #e2e8f0 !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+}
+
+.profile-history__poster-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  border-radius: inherit !important;
 }
 
 
