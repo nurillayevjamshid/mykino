@@ -29,7 +29,7 @@
   </script>
   <!-- Bot username'i yagona joydan boshqariladi (index.html bilan bir xil). -->
   <script>window.MYKINO_BOT_USERNAME = "myntv_bot";</script>
-  <link rel="stylesheet" href="/static/glass-theme.css?v=20261012-android-perf" />
+  <link rel="stylesheet" href="/static/glass-theme.css?v=20261012-poster-fix" />
 </head>
 
 <body>
@@ -325,7 +325,17 @@
         <path d="m6 6 12 12"></path>
       </svg>
     </button>
-    <div class="modal-poster" id="modalPoster"></div>
+    <div class="modal-poster" id="modalPoster" role="button" tabindex="0" aria-label="Ablojkani to'liq ko'rish">
+      <div class="modal-poster__zoom-badge" id="modalPosterZoomBadge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+        <span>To'liq ablojka</span>
+      </div>
+    </div>
     <div class="modal-content">
       <div class="modal-info-row">
         <div class="modal-meta" id="modalMeta"></div>
@@ -349,6 +359,19 @@
         <button class="watch-button" id="watchButton" type="button">Tomosha qilish</button>
         <button class="ghost-button" type="button" data-close>Keyinroq</button>
       </div>
+    </div>
+  </dialog>
+
+  <!-- Telegram-style uncropped Photo Viewer Lightbox for movie posters -->
+  <dialog class="poster-lightbox" id="posterLightbox" aria-label="To'liq ablojka" aria-modal="true">
+    <div class="poster-lightbox__backdrop" id="posterLightboxBackdrop"></div>
+    <div class="poster-lightbox__container" id="posterLightboxContainer">
+      <button class="poster-lightbox__close" id="posterLightboxClose" type="button" aria-label="Yopish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+      <img class="poster-lightbox__img" id="posterLightboxImg" src="" alt="To'liq ablojka" />
     </div>
   </dialog>
 

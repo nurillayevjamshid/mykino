@@ -3926,6 +3926,9 @@ function openMovie(movie) {
 
 function closeMovieModalAnimated() {
   if (!movieModal || !movieModal.open) return;
+  if (typeof closePosterLightbox === "function") {
+    try { closePosterLightbox(); } catch (_) {}
+  }
   movieModal.classList.remove("is-sheet-open");
   movieModal.classList.add("is-closing");
   setTimeout(() => {
@@ -3934,6 +3937,55 @@ function closeMovieModalAnimated() {
     movieModal.style.transform = "";
   }, 260);
 }
+
+// === Poster Lightbox (To'liq uncropped ablojkani ochish) ===
+const posterLightbox = document.querySelector("#posterLightbox");
+const posterLightboxImg = document.querySelector("#posterLightboxImg");
+const posterLightboxClose = document.querySelector("#posterLightboxClose");
+const posterLightboxBackdrop = document.querySelector("#posterLightboxBackdrop");
+
+function openPosterLightbox() {
+  if (!activeMovie) return;
+  const posterUrl = getPosterImage(activeMovie);
+  if (!posterUrl || !posterLightbox || !posterLightboxImg) return;
+  posterLightboxImg.src = posterUrl;
+  try { posterLightbox.showModal(); } catch (_) {}
+  posterLightbox.classList.add("is-open");
+  document.body.classList.add("is-lightbox-open");
+  try { haptic.light(); } catch (_) {}
+  tgBackRegister("poster-lightbox", closePosterLightbox);
+}
+
+function closePosterLightbox() {
+  if (!posterLightbox || !posterLightbox.open) return;
+  posterLightbox.classList.remove("is-open");
+  document.body.classList.remove("is-lightbox-open");
+  try { haptic.selection(); } catch (_) {}
+  setTimeout(() => {
+    try { posterLightbox.close(); } catch (_) {}
+    tgBackUnregister("poster-lightbox");
+  }, 220);
+}
+
+modalPoster?.addEventListener("click", (e) => {
+  if (e.target.closest(".modal-close") || e.target.closest(".modal-share")) return;
+  openPosterLightbox();
+});
+
+modalPoster?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    openPosterLightbox();
+  }
+});
+
+posterLightboxClose?.addEventListener("click", closePosterLightbox);
+posterLightboxBackdrop?.addEventListener("click", closePosterLightbox);
+posterLightbox?.addEventListener("click", (e) => {
+  if (e.target === posterLightbox || e.target.classList.contains("poster-lightbox__container")) {
+    closePosterLightbox();
+  }
+});
 
 function setVideoLoading(isLoading) {
   if (videoLoading) videoLoading.hidden = !isLoading;
