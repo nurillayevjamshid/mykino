@@ -1126,4 +1126,321 @@ html.is-android .modal-poster__zoom-badge {
   -webkit-backdrop-filter: none !important;
 }
 
+/* ============================================================
+   Search Popular Genres Horizontal Scroll
+   ============================================================ */
+.search-genres {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: rgba(18, 26, 40, 0.75);
+  border: 1px solid var(--glass-border-soft);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--glass-shadow);
+}
+
+.search-genres__title {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--glass-muted);
+  margin-bottom: 8px;
+}
+
+.search-genres__list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+
+.search-genres__list::-webkit-scrollbar {
+  display: none;
+}
+
+.search-genre-chip {
+  flex: 0 0 auto;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.search-genre-chip:hover {
+  border-color: rgba(157, 234, 255, 0.45);
+  background: rgba(157, 234, 255, 0.14);
+  color: var(--glass-cyan);
+}
+
+.search-genre-chip:active {
+  transform: scale(0.95);
+}
+
+html[data-theme="light"] .search-genres {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(116, 145, 174, 0.24);
+  box-shadow: 0 14px 32px rgba(15, 19, 26, 0.08);
+}
+
+html[data-theme="light"] .search-genres__title {
+  color: rgba(15, 23, 42, 0.55);
+}
+
+html[data-theme="light"] .search-genre-chip {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(116, 145, 174, 0.2);
+  color: #152235;
+}
+
+html[data-theme="light"] .search-genre-chip:hover {
+  background: rgba(2, 132, 199, 0.08);
+  border-color: rgba(2, 132, 199, 0.35);
+  color: #0284c7;
+}
+
+/* ============================================================
+   Movie Long-Press Context Menu & Share Sheets
+   ============================================================ */
+.movie-context-sheet,
+.share-sheet {
+  position: fixed !important;
+  inset: auto 0 0 0 !important;
+  margin: 0 auto !important;
+  width: 100vw !important;
+  max-width: 540px !important;
+  max-height: 85dvh !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 1500 !important;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+}
+
+.movie-context-sheet[open],
+.share-sheet[open] {
+  display: flex !important;
+}
+
+.movie-context-sheet.is-open,
+.share-sheet.is-open {
+  transform: translateY(0) !important;
+}
+
+.movie-context-sheet::backdrop,
+.share-sheet::backdrop {
+  background: rgba(4, 9, 18, 0.65) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  opacity: 0;
+  transition: opacity 0.26s ease;
+}
+
+.movie-context-sheet.is-open::backdrop,
+.share-sheet.is-open::backdrop {
+  opacity: 1;
+}
+
+.movie-context-sheet__panel,
+.share-sheet__panel {
+  width: 100%;
+  border-radius: 28px 28px 0 0;
+  background: linear-gradient(180deg, rgba(20, 31, 50, 0.97) 0%, rgba(10, 16, 28, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: none;
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  padding: 12px 18px max(24px, env(safe-area-inset-bottom, 24px));
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] .movie-context-sheet__panel,
+html[data-theme="light"] .share-sheet__panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(240, 245, 252, 0.98) 100%);
+  border-color: rgba(116, 145, 174, 0.28);
+  box-shadow: 0 -18px 60px rgba(45, 65, 90, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.movie-context-sheet__grabber,
+.share-sheet__grabber {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  margin: 0 auto 14px;
+}
+
+html[data-theme="light"] .movie-context-sheet__grabber,
+html[data-theme="light"] .share-sheet__grabber {
+  background: rgba(15, 23, 42, 0.22);
+}
+
+.movie-context-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 14px;
+}
+
+html[data-theme="light"] .movie-context-header {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.movie-context-header__poster {
+  width: 52px;
+  height: 74px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  background: #000;
+  flex: 0 0 52px;
+}
+
+.movie-context-header__info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.movie-context-header__title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-theme="light"] .movie-context-header__title {
+  color: #111;
+}
+
+.movie-context-header__meta {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-theme="light"] .movie-context-header__meta {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.movie-context-actions,
+.share-sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.movie-context-btn,
+.share-sheet-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.14s ease, background 0.14s ease;
+  text-align: left;
+}
+
+.movie-context-btn svg,
+.share-sheet-btn svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+
+.movie-context-btn:active,
+.share-sheet-btn:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.movie-context-btn--play {
+  background: linear-gradient(135deg, #0284c7, #0ea5e9) !important;
+  border-color: rgba(157, 234, 255, 0.4) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.35);
+}
+
+.movie-context-btn--play:active {
+  background: linear-gradient(135deg, #0369a1, #0284c7) !important;
+}
+
+.share-sheet-btn--story {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);
+}
+
+.share-sheet-btn--chat {
+  background: linear-gradient(135deg, #0284c7, #2563eb) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+}
+
+html[data-theme="light"] .movie-context-btn,
+html[data-theme="light"] .share-sheet-btn {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #111;
+}
+
+html[data-theme="light"] .movie-context-btn:active,
+html[data-theme="light"] .share-sheet-btn:active {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+/* Android 60 FPS performance optimizations for context & share sheets */
+html.is-android .movie-context-sheet__panel,
+html.is-android .share-sheet__panel {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(15, 23, 42, 0.98) !important;
+}
+
+html.is-android[data-theme="light"] .movie-context-sheet__panel,
+html.is-android[data-theme="light"] .share-sheet__panel {
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+html.is-android .search-genres {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(18, 25, 38, 0.92) !important;
+}
+
+
 

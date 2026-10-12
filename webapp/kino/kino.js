@@ -2975,7 +2975,57 @@ function createMovieCard(movie) {
       renderMovies();
     }
   });
-  card.addEventListener("click", () => openMovie(movie));
+
+  let pressTimer = null;
+  let isLongPress = false;
+  let startX = 0;
+  let startY = 0;
+
+  card.addEventListener("touchstart", (e) => {
+    if (e.target.closest(".wishlist-toggle")) return;
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    isLongPress = false;
+    pressTimer = setTimeout(() => {
+      isLongPress = true;
+      openMovieContextMenu(movie);
+    }, 450);
+  }, { passive: true });
+
+  card.addEventListener("touchmove", (e) => {
+    if (!pressTimer) return;
+    const touch = e.touches[0];
+    if (Math.abs(touch.clientX - startX) > 8 || Math.abs(touch.clientY - startY) > 8) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+  }, { passive: true });
+
+  card.addEventListener("touchend", () => {
+    clearTimeout(pressTimer);
+    pressTimer = null;
+  }, { passive: true });
+
+  card.addEventListener("touchcancel", () => {
+    clearTimeout(pressTimer);
+    pressTimer = null;
+  }, { passive: true });
+
+  card.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    openMovieContextMenu(movie);
+  });
+
+  card.addEventListener("click", (event) => {
+    if (isLongPress) {
+      isLongPress = false;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    openMovie(movie);
+  });
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -3815,17 +3865,304 @@ function buildShareUrl(movie) {
   return `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(text)}`;
 }
 
+function getAbsolutePosterUrl(movie) {
+  const p = getPosterImage(movie);
+  if (!p) return "";
+  if (p.startsWith("http://") || p.startsWith("https://")) return p;
+  try {
+    return new URL(p, window.location.href).href;
+  } catch (_) {
+    return p;
+  }
+}
+
+let appToastTimer = null;
+function showToast(message) {
+  let toast = document.getElementById("appGlobalToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "appGlobalToast";
+    toast.style.cssText = "position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(8px);background:rgba(15,23,42,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.18);pointer-events:none;transition:opacity 0.2s cubic-bezier(0.2,0.8,0.2,1),transform 0.2s cubic-bezier(0.2,0.8,0.2,1);opacity:0;";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.opacity = "1";
+  toast.style.transform = "translateX(-50%) translateY(0)";
+  if (appToastTimer) clearTimeout(appToastTimer);
+  appToastTimer = setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(-50%) translateY(8px)";
+  }, 2200);
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast("Havola nusxalandi! 📋"))
+      .catch(() => fallbackCopyExec(text));
+  } else {
+    fallbackCopyExec(text);
+  }
+}
+
+function fallbackCopyExec(text) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast("Havola nusxalandi! 📋");
+  } catch (_) {
+    showToast("Nusxalab bo'lmadi");
+  }
+}
+
+// === Long-press Movie Context Menu ===
+let activeContextMenuMovie = null;
+
+function openMovieContextMenu(movie) {
+  if (!movie) return;
+  activeContextMenuMovie = movie;
+  try { haptic.medium(); } catch (_) {}
+
+  const sheet = document.getElementById("movieContextSheet");
+  if (!sheet) return;
+
+  const posterEl = document.getElementById("movieContextPoster");
+  const titleEl = document.getElementById("movieContextTitle");
+  const metaEl = document.getElementById("movieContextMeta");
+  const favLabel = document.getElementById("movieContextFavLabel");
+
+  if (titleEl) titleEl.textContent = movie.title || "Kino";
+  if (posterEl) {
+    posterEl.src = getPosterImage(movie) || "";
+    posterEl.alt = movie.title || "";
+  }
+  if (metaEl) {
+    const parts = [movie.year, movie.genre, movie.quality].filter(Boolean);
+    metaEl.textContent = parts.join(" • ") || "Kino";
+  }
+  if (favLabel) {
+    const isFav = readWishlist().includes(String(movie.id));
+    favLabel.textContent = isFav ? "Sevimlilardan olib tashlash" : "Sevimlilarga saqlash";
+  }
+
+  if (typeof sheet.showModal === "function") {
+    try {
+      if (!sheet.open) sheet.showModal();
+    } catch (_) {
+      sheet.setAttribute("open", "");
+    }
+  } else {
+    sheet.setAttribute("open", "");
+  }
+
+  requestAnimationFrame(() => {
+    sheet.classList.add("is-open");
+  });
+
+  tgBackRegister("movie-context", closeMovieContextMenu);
+}
+
+function closeMovieContextMenu() {
+  const sheet = document.getElementById("movieContextSheet");
+  if (!sheet) return;
+  sheet.classList.remove("is-open");
+  tgBackUnregister("movie-context");
+  setTimeout(() => {
+    if (!sheet.classList.contains("is-open")) {
+      try {
+        if (typeof sheet.close === "function" && sheet.open) sheet.close();
+        else sheet.removeAttribute("open");
+      } catch (_) {
+        sheet.removeAttribute("open");
+      }
+    }
+  }, 260);
+}
+
+document.getElementById("movieContextBackdrop")?.addEventListener("click", closeMovieContextMenu);
+document.getElementById("movieContextSheet")?.addEventListener("click", (e) => {
+  if (e.target === document.getElementById("movieContextSheet")) {
+    closeMovieContextMenu();
+  }
+});
+
+document.getElementById("movieContextPlay")?.addEventListener("click", () => {
+  const movie = activeContextMenuMovie;
+  closeMovieContextMenu();
+  if (movie) {
+    try { haptic.tap(); } catch (_) {}
+    openVideoPlayer(movie);
+  }
+});
+
+document.getElementById("movieContextFav")?.addEventListener("click", () => {
+  const movie = activeContextMenuMovie;
+  if (!movie) return;
+  try { haptic.tap(); } catch (_) {}
+  const isActive = toggleWishlist(movie.id);
+  showToast(isActive ? "Sevimlilarga qo'shildi ⭐" : "Sevimlilardan olib tashlandi");
+  if (activeFilter === "favorites") {
+    renderMovies();
+  }
+  closeMovieContextMenu();
+});
+
+document.getElementById("movieContextShare")?.addEventListener("click", () => {
+  const movie = activeContextMenuMovie;
+  closeMovieContextMenu();
+  if (movie) {
+    try { haptic.tap(); } catch (_) {}
+    openShareSheet(movie);
+  }
+});
+
+document.getElementById("movieContextInfo")?.addEventListener("click", () => {
+  const movie = activeContextMenuMovie;
+  closeMovieContextMenu();
+  if (movie) {
+    try { haptic.tap(); } catch (_) {}
+    openMovie(movie);
+  }
+});
+
+// === Telegram Native Share & Story Sheet ===
+let activeShareSheetMovie = null;
+
+function openShareSheet(movie) {
+  if (!movie) return;
+  activeShareSheetMovie = movie;
+  try { haptic.medium(); } catch (_) {}
+
+  const sheet = document.getElementById("shareSheet");
+  if (!sheet) return;
+
+  const posterEl = document.getElementById("shareSheetPoster");
+  const titleEl = document.getElementById("shareSheetTitle");
+  const metaEl = document.getElementById("shareSheetMeta");
+
+  if (titleEl) titleEl.textContent = movie.title || "Kino";
+  if (posterEl) {
+    posterEl.src = getPosterImage(movie) || "";
+    posterEl.alt = movie.title || "";
+  }
+  if (metaEl) {
+    const parts = [movie.year, movie.genre].filter(Boolean);
+    metaEl.textContent = parts.join(" • ") || "Do'stlaringizga ulashing";
+  }
+
+  if (typeof sheet.showModal === "function") {
+    try {
+      if (!sheet.open) sheet.showModal();
+    } catch (_) {
+      sheet.setAttribute("open", "");
+    }
+  } else {
+    sheet.setAttribute("open", "");
+  }
+
+  requestAnimationFrame(() => {
+    sheet.classList.add("is-open");
+  });
+
+  tgBackRegister("share-sheet", closeShareSheet);
+}
+
+function closeShareSheet() {
+  const sheet = document.getElementById("shareSheet");
+  if (!sheet) return;
+  sheet.classList.remove("is-open");
+  tgBackUnregister("share-sheet");
+  setTimeout(() => {
+    if (!sheet.classList.contains("is-open")) {
+      try {
+        if (typeof sheet.close === "function" && sheet.open) sheet.close();
+        else sheet.removeAttribute("open");
+      } catch (_) {
+        sheet.removeAttribute("open");
+      }
+    }
+  }, 260);
+}
+
+document.getElementById("shareSheetBackdrop")?.addEventListener("click", closeShareSheet);
+document.getElementById("shareSheet")?.addEventListener("click", (e) => {
+  if (e.target === document.getElementById("shareSheet")) {
+    closeShareSheet();
+  }
+});
+
+document.getElementById("shareStoryBtn")?.addEventListener("click", () => {
+  const movie = activeShareSheetMovie;
+  if (!movie) return;
+  try { haptic.tap(); } catch (_) {}
+
+  const posterUrl = getAbsolutePosterUrl(movie);
+  const code = String(movie?.code || movie?.id || "").trim();
+  const deepLink = code ? `${BOT_URL}?startapp=${encodeURIComponent(code)}` : BOT_URL;
+
+  if (tg && typeof tg.shareToStory === "function" && posterUrl) {
+    try {
+      tg.shareToStory(posterUrl, {
+        text: `🎬 ${movie.title || "Kino"}\n🍿 NTV botida tomosha qiling`,
+        widget_link: {
+          url: deepLink,
+          name: "Tomosha qilish ▶️"
+        }
+      });
+      closeShareSheet();
+      return;
+    } catch (err) {
+      console.warn("shareToStory error:", err);
+    }
+  }
+
+  // Fallback to chat share
+  const shareUrl = buildShareUrl(movie);
+  try {
+    if (tg?.openTelegramLink) tg.openTelegramLink(shareUrl);
+    else window.open(shareUrl, "_blank", "noopener");
+  } catch (_) {
+    window.open(shareUrl, "_blank", "noopener");
+  }
+  closeShareSheet();
+  showToast("Do'stlarga ulashish ochildi 🚀");
+});
+
+document.getElementById("shareChatBtn")?.addEventListener("click", () => {
+  const movie = activeShareSheetMovie;
+  if (!movie) return;
+  try { haptic.tap(); } catch (_) {}
+  const shareUrl = buildShareUrl(movie);
+  try {
+    if (tg?.openTelegramLink) tg.openTelegramLink(shareUrl);
+    else window.open(shareUrl, "_blank", "noopener");
+  } catch (_) {
+    window.open(shareUrl, "_blank", "noopener");
+  }
+  closeShareSheet();
+});
+
+document.getElementById("shareCopyBtn")?.addEventListener("click", () => {
+  const movie = activeShareSheetMovie;
+  if (!movie) return;
+  try { haptic.tap(); } catch (_) {}
+  const code = String(movie?.code || movie?.id || "").trim();
+  const deepLink = code ? `${BOT_URL}?startapp=${encodeURIComponent(code)}` : BOT_URL;
+  copyTextToClipboard(deepLink);
+  closeShareSheet();
+});
+
 function shareActiveMovie() {
   const movie = activeMovie;
   if (!movie) return;
-  try { haptic.medium(); } catch (_) {}
-  const url = buildShareUrl(movie);
-  try {
-    if (tg?.openTelegramLink) tg.openTelegramLink(url);
-    else window.open(url, "_blank", "noopener");
-  } catch (_) {
-    window.open(url, "_blank", "noopener");
-  }
+  openShareSheet(movie);
 }
 
 document.getElementById("modalShareButton")?.addEventListener("click", (e) => {
@@ -5421,6 +5758,9 @@ function setSearchPanelOpen(nextState) {
   if (searchClearBtn) {
     searchClearBtn.hidden = !(nextState && searchInput && searchInput.value.length > 0);
   }
+  if (typeof syncSearchGenresVisibility === "function") {
+    syncSearchGenresVisibility();
+  }
 }
 
 function toggleSearchPanel(forceOpen) {
@@ -6537,15 +6877,44 @@ document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-ac
 
 document.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
 
+const searchGenresEl = document.getElementById("searchGenres");
+function syncSearchGenresVisibility() {
+  if (!searchGenresEl) return;
+  const hasQuery = Boolean(searchInput && searchInput.value.trim().length > 0);
+  searchGenresEl.hidden = hasQuery;
+}
+
 function syncSearchClearBtn() {
   if (!searchClearBtn) return;
   searchClearBtn.hidden = !(searchInput && searchInput.value.length > 0);
 }
 
+document.querySelectorAll(".search-genre-chip").forEach((chip) => {
+  chip.addEventListener("click", (e) => {
+    e.preventDefault();
+    const genre = chip.getAttribute("data-genre") || chip.textContent.replace(/[^\p{L}\p{N}]/gu, "").trim();
+    if (!genre || !searchInput) return;
+    try { haptic.tap?.(); } catch (_) {}
+    searchInput.value = genre;
+    query = genre;
+    syncSearchClearBtn();
+    syncSearchGenresVisibility();
+    renderMovies();
+    if (document.body.classList.contains("is-music")) {
+      window.__music?.setQuery?.(query);
+    }
+    if (document.body.classList.contains("is-podcasts")) {
+      window.__potcasts?.setQuery?.(query);
+    }
+    pushRecentSearch(genre);
+  });
+});
+
 let searchDebounceTimer = null;
 searchInput?.addEventListener("input", (event) => {
   const val = event.target.value.trim();
   syncSearchClearBtn();
+  syncSearchGenresVisibility();
   clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(() => {
     query = val;
@@ -6575,10 +6944,12 @@ searchClearBtn?.addEventListener("click", (event) => {
   }
   renderRecentSearches();
   syncSearchClearBtn();
+  syncSearchGenresVisibility();
   searchInput.focus();
 });
 
 searchInput?.addEventListener("focus", () => {
+  syncSearchGenresVisibility();
   updateRecentSearchLabels();
   renderRecentSearches();
 });
