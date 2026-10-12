@@ -4061,19 +4061,51 @@ function openShareSheet(movie) {
   const sheet = document.getElementById("shareSheet");
   if (!sheet) return;
 
+  const poster = getPosterImage(movie) || "";
+  const title = movie.title || "Kino";
+  const rating = formatRating(movie.rating);
+  const year = movie.year || "";
+  const genreParts = (typeof splitMovieGenres === "function" ? splitMovieGenres(movie.genre) : String(movie.genre || "").split(/[,/|]/)).map(s => s.trim()).filter(Boolean);
+  const genres = genreParts.slice(0, 2).join(", ");
+  const metaText = [year, genres].filter(Boolean).join(" • ") || "NTV CINEMA";
+
+  // Story Card Preview elements
+  const storyBg = document.getElementById("shareStoryBg");
+  const storyPoster = document.getElementById("shareStoryPoster");
+  const storyTitle = document.getElementById("shareStoryTitle");
+  const storyMeta = document.getElementById("shareStoryMeta");
+  const storyRating = document.getElementById("shareStoryRating");
+
+  if (storyBg) {
+    storyBg.style.backgroundImage = poster ? `url("${poster.replaceAll('"', '\\"')}")` : "none";
+  }
+  if (storyPoster) {
+    storyPoster.src = poster;
+    storyPoster.alt = title;
+  }
+  if (storyTitle) storyTitle.textContent = title;
+  if (storyMeta) storyMeta.textContent = metaText;
+  if (storyRating) {
+    const num = Number(movie.rating);
+    if (num > 0) {
+      storyRating.textContent = `⭐ ${rating}`;
+      storyRating.hidden = false;
+    } else {
+      storyRating.hidden = true;
+    }
+  }
+
+  // Fallback / legacy elements
   const posterEl = document.getElementById("shareSheetPoster");
   const titleEl = document.getElementById("shareSheetTitle");
   const metaEl = document.getElementById("shareSheetMeta");
 
-  if (titleEl) titleEl.textContent = movie.title || "Kino";
+  if (titleEl) titleEl.textContent = title;
   if (posterEl) {
-    posterEl.src = getPosterImage(movie) || "";
-    posterEl.alt = movie.title || "";
+    posterEl.src = poster;
+    posterEl.alt = title;
   }
-  if (metaEl) {
-    const parts = [movie.year, movie.genre].filter(Boolean);
-    metaEl.textContent = parts.join(" • ") || "Do'stlaringizga ulashing";
-  }
+  if (metaEl) metaEl.textContent = metaText;
 
   if (typeof sheet.showModal === "function") {
     try {
@@ -4116,6 +4148,10 @@ document.getElementById("shareSheet")?.addEventListener("click", (e) => {
   }
 });
 
+document.getElementById("shareStoryCard")?.addEventListener("click", () => {
+  document.getElementById("shareStoryBtn")?.click();
+});
+
 document.getElementById("shareStoryBtn")?.addEventListener("click", () => {
   const movie = activeShareSheetMovie;
   if (!movie) return;
@@ -4124,17 +4160,20 @@ document.getElementById("shareStoryBtn")?.addEventListener("click", () => {
   const posterUrl = getAbsolutePosterUrl(movie);
   const code = String(movie?.code || movie?.id || "").trim();
   const deepLink = code ? `${BOT_URL}?startapp=${encodeURIComponent(code)}` : BOT_URL;
+  const ratingStr = Number(movie.rating) > 0 ? ` ⭐ ${formatRating(movie.rating)}` : "";
+  const yearStr = movie.year ? ` (${movie.year})` : "";
 
   if (tg && typeof tg.shareToStory === "function" && posterUrl) {
     try {
       tg.shareToStory(posterUrl, {
-        text: `🎬 ${movie.title || "Kino"}\n🍿 NTV botida tomosha qiling`,
+        text: `🎬 ${movie.title || "Kino"}${yearStr}${ratingStr}\n🍿 NTV Cinema botida tomosha qiling!`,
         widget_link: {
           url: deepLink,
           name: "Tomosha qilish ▶️"
         }
       });
       closeShareSheet();
+      showToast("Story'ga yuborildi 🌟");
       return;
     } catch (err) {
       console.warn("shareToStory error:", err);

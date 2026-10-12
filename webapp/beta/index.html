@@ -345,6 +345,13 @@
         <path d="m6 6 12 12"></path>
       </svg>
     </button>
+    <button class="modal-share" id="modalShareButton" type="button" aria-label="Do'stga ulashish" data-i18n-aria-label="share">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
+        <polyline points="16 6 12 2 8 6"></polyline>
+        <line x1="12" y1="2" x2="12" y2="15"></line>
+      </svg>
+    </button>
     <div class="modal-poster" id="modalPoster" role="button" tabindex="0" aria-label="Ablojkani to'liq ko'rish">
       <div class="modal-poster__zoom-badge" id="modalPosterZoomBadge" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -416,9 +423,9 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
           <span id="movieContextFavLabel">Sevimlilarga saqlash</span>
         </button>
-        <button class="movie-context-btn" id="movieContextShare" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          <span>Do'stga ulashish</span>
+        <button class="movie-context-btn movie-context-btn--story" id="movieContextShare" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M8 10l4-3 4 3"/></svg>
+          <span>Story'ga qo'yish / Ulashish</span>
         </button>
         <button class="movie-context-btn" id="movieContextInfo" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
@@ -433,26 +440,88 @@
     <div class="share-sheet__backdrop" id="shareSheetBackdrop"></div>
     <div class="share-sheet__panel" id="shareSheetPanel">
       <div class="share-sheet__grabber"></div>
-      <div class="movie-context-header">
-        <img class="movie-context-header__poster" id="shareSheetPoster" src="" alt="" />
-        <div class="movie-context-header__info">
-          <h3 class="movie-context-header__title" id="shareSheetTitle"></h3>
-          <p class="movie-context-header__meta" id="shareSheetMeta">Do'stlaringizga ulashing</p>
+
+      <div class="share-sheet__header">
+        <span class="share-sheet__badge">
+          <span class="share-sheet__badge-dot"></span>
+          Telegram Story
+        </span>
+        <h3 class="share-sheet__heading">Story'ga ulashish</h3>
+      </div>
+
+      <!-- Realistic Telegram Story Preview Card -->
+      <div class="share-story-card" id="shareStoryCard" role="button" tabindex="0" aria-label="Story prevyusi — bosib ulashish">
+        <div class="share-story-card__bg" id="shareStoryBg"></div>
+        <div class="share-story-card__overlay"></div>
+
+        <div class="share-story-card__top">
+          <div class="share-story-card__progress">
+            <div class="share-story-card__progress-bar"></div>
+          </div>
+          <div class="share-story-card__author">
+            <div class="share-story-card__avatar">🎬</div>
+            <div class="share-story-card__author-info">
+              <span class="share-story-card__author-name">NTV CINEMA</span>
+              <svg class="share-story-card__verified" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+            </div>
+            <span class="share-story-card__time">hozir</span>
+          </div>
+        </div>
+
+        <div class="share-story-card__center">
+          <div class="share-story-card__poster-frame">
+            <img class="share-story-card__poster" id="shareStoryPoster" src="" alt="" />
+            <div class="share-story-card__rating-badge" id="shareStoryRating">⭐ 8.5</div>
+          </div>
+        </div>
+
+        <div class="share-story-card__bottom">
+          <h4 class="share-story-card__title" id="shareStoryTitle">Kino nomi</h4>
+          <p class="share-story-card__meta" id="shareStoryMeta">2024 • Jangari</p>
+
+          <div class="share-story-sticker">
+            <span class="share-story-sticker__icon">▶️</span>
+            <span class="share-story-sticker__text">Tomosha qilish</span>
+            <svg class="share-story-sticker__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M7 17L17 7M17 7H7M17 7V17"/>
+            </svg>
+          </div>
         </div>
       </div>
+
+      <!-- Action buttons -->
       <div class="share-sheet-actions">
         <button class="share-sheet-btn share-sheet-btn--story" id="shareStoryBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-          <span>Telegram Story'ga chiqarish</span>
+          <div class="share-sheet-btn__icon-ring">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7v10M8 10l4-3 4 3"/>
+            </svg>
+          </div>
+          <div class="share-sheet-btn__copy">
+            <span class="share-sheet-btn__title">Telegram Story'ga qo'yish</span>
+            <span class="share-sheet-btn__desc">1 ta bosishda storisingizga chiqariladi</span>
+          </div>
+          <span class="share-sheet-btn__sparkle" aria-hidden="true">✨</span>
         </button>
-        <button class="share-sheet-btn share-sheet-btn--chat" id="shareChatBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-          <span>Telegram do'stlarga yuborish</span>
-        </button>
-        <button class="share-sheet-btn" id="shareCopyBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          <span>Havolani nusxalash</span>
-        </button>
+
+        <div class="share-sheet-secondary">
+          <button class="share-sheet-btn share-sheet-btn--chat" id="shareChatBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+            <span>Do'stlarga yuborish</span>
+          </button>
+          <button class="share-sheet-btn share-sheet-btn--copy" id="shareCopyBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span>Nusxalash</span>
+          </button>
+        </div>
       </div>
     </div>
   </dialog>
