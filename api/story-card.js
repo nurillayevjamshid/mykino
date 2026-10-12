@@ -36,6 +36,7 @@ function setCors(response) {
   response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  response.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 }
 
 async function readRequestBody(request) {
@@ -73,7 +74,13 @@ module.exports = async function handler(request, response) {
         return;
       }
       const upstream = await fetch(parsed.toString(), {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; NTVCinema/1.0)" },
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+          Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+          Referer: parsed.origin,
+        },
+        redirect: "follow",
       });
       if (!upstream.ok) {
         response.status(upstream.status).end("Upstream fetch failed");
