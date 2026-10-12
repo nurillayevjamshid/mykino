@@ -61,6 +61,97 @@ function standingsPayload(slug) {
   };
 }
 
+function summaryPayload(eventId, isLive = false) {
+  return {
+    header: {
+      competitions: [{
+        status: {
+          type: {
+            state: isLive ? "in" : "post",
+            completed: !isLive,
+            name: isLive ? "STATUS_IN_PROGRESS" : "STATUS_FULL_TIME",
+            description: isLive ? "In Progress" : "Full Time",
+          },
+          displayClock: isLive ? "68'" : "90'",
+        },
+        competitors: [
+          { id: "101", homeAway: "home", score: "2", team: { displayName: "Real Madrid", logo: "https://cdn.example.com/real.png" } },
+          { id: "102", homeAway: "away", score: "1", team: { displayName: "Barcelona", logo: "https://cdn.example.com/barca.png" } },
+        ],
+      }],
+    },
+    keyEvents: [
+      {
+        id: "goal-1",
+        type: { type: "goal", text: "Goal" },
+        clock: { displayValue: "24'" },
+        scoringPlay: true,
+        team: { id: "101", displayName: "Real Madrid" },
+        participants: [
+          { athlete: { displayName: "Vinícius Júnior" } },
+          { athlete: { displayName: "Jude Bellingham" } },
+        ],
+        text: "Goal! Real Madrid 1, Barcelona 0. Vinícius Júnior.",
+      },
+      {
+        id: "card-1",
+        type: { type: "yellow-card", text: "Yellow Card" },
+        clock: { displayValue: "41'" },
+        team: { id: "102", displayName: "Barcelona" },
+        participants: [
+          { athlete: { displayName: "Gavi" } },
+        ],
+      },
+    ],
+    boxscore: {
+      teams: [
+        {
+          homeAway: "home",
+          team: { displayName: "Real Madrid" },
+          statistics: [
+            { name: "possession", displayValue: "54%" },
+            { name: "shots", displayValue: "14" },
+            { name: "shotsOnTarget", displayValue: "6" },
+            { name: "corners", displayValue: "5" },
+            { name: "fouls", displayValue: "9" },
+          ],
+        },
+        {
+          homeAway: "away",
+          team: { displayName: "Barcelona" },
+          statistics: [
+            { name: "possession", displayValue: "46%" },
+            { name: "shots", displayValue: "10" },
+            { name: "shotsOnTarget", displayValue: "3" },
+            { name: "corners", displayValue: "3" },
+            { name: "fouls", displayValue: "12" },
+          ],
+        },
+      ],
+    },
+    rosters: [
+      {
+        team: { id: "101" },
+        formation: "4-3-3",
+        roster: [
+          { athlete: { displayName: "Courtois" }, position: { abbreviation: "GK" }, starter: true, jersey: 1 },
+          { athlete: { displayName: "Carvajal" }, position: { abbreviation: "RB" }, starter: true, jersey: 2 },
+          { athlete: { displayName: "Modric" }, position: { abbreviation: "CM" }, starter: false, jersey: 10 },
+        ],
+      },
+      {
+        team: { id: "102" },
+        formation: "4-3-3",
+        roster: [
+          { athlete: { displayName: "Ter Stegen" }, position: { abbreviation: "GK" }, starter: true, jersey: 1 },
+          { athlete: { displayName: "Koundé" }, position: { abbreviation: "RB" }, starter: true, jersey: 23 },
+          { athlete: { displayName: "Pedri" }, position: { abbreviation: "CM" }, starter: false, jersey: 8 },
+        ],
+      },
+    ],
+  };
+}
+
 describe("api/categories.js football leagues", () => {
   let originalFetch;
   let handler;
@@ -77,6 +168,10 @@ describe("api/categories.js football leagues", () => {
         return jsonResponse(scoreboardPayload(slug, name));
       }
       if (value.includes("/standings")) return jsonResponse(standingsPayload(slug));
+      if (value.includes("/summary?event=")) {
+        const isLive = value.includes("event=live-");
+        return jsonResponse(summaryPayload("event-1", isLive));
+      }
       throw new Error(`Unexpected URL: ${value}`);
     };
   });
@@ -101,5 +196,46 @@ describe("api/categories.js football leagues", () => {
     assert.equal(res.body.standings.rows[0].team, "Real Madrid");
     assert.equal(res.body.standings.rows[0].pts, 6);
     assert.equal(res.body.standings.rows[0].logo, "https://cdn.example.com/real.png");
+  });
+
+  test("returns match details with events, statistics, and rosters via fifa-lineup endpoint", async () => {
+    const req = createMockReq({ method: "GET", url: "/api/categories?type=fifa-lineup&eventId=match-101&league=esp.1" });
+    const res = createMockRes();
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.found, true);
+    assert.equal(res.body.status, "finished");
+    assert.equal(res.body.score, "2 : 1");
+    assert.equal(res.body.events.length, 2);
+    assert.equal(res.body.events[0].type, "goal");
+    assert.equal(res.body.events[0].minute, "24'");
+    assert.equal(res.body.events[0].player, "Vinícius Júnior");
+    assert.equal(res.body.events[0].assist, "Jude Bellingham");
+    assert.equal(res.body.events[1].type, "yellow-card");
+    assert.equal(res.body.events[1].player, "Gavi");
+    assert.equal(res.body.statistics.length, 5);
+    assert.equal(res.body.statistics[0].key, "possession");
+    assert.equal(res.body.statistics[0].home, "54%");
+    assert.equal(res.body.statistics[0].away, "46%");
+    assert.equal(res.body.home.name, "Real Madrid");
+    assert.equal(res.body.home.starting.length, 2);
+    assert.equal(res.body.home.subs.length, 1);
+    assert.equal(res.body.away.name, "Barcelona");
+    assert.equal(res.body.away.starting.length, 2);
+    assert.equal(res.body.away.subs.length, 1);
+  });
+
+  test("returns live match state and minute when game is ongoing", async () => {
+    const req = createMockReq({ method: "GET", url: "/api/categories?type=fifa-lineup&eventId=live-999&league=esp.1" });
+    const res = createMockRes();
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.status, "live");
+    assert.equal(res.body.minute, "68'");
+    assert.equal(res.body.score, "2 : 1");
   });
 });

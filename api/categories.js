@@ -637,7 +637,7 @@ function canonTeam(name) {
   return TEAM_ALIASES[n] || n;
 }
 
-async function findEspnEventId(home, away, dateUtc) {
+async function findEspnEventId(home, away, dateUtc, preferredLeagueId = "") {
   const base = dateUtc ? new Date(`${dateUtc}T12:00:00Z`) : new Date();
   const days = [-1, 0, 1].map((off) => {
     const d = new Date(base.getTime() + off * 86400000);
@@ -645,19 +645,28 @@ async function findEspnEventId(home, away, dateUtc) {
   });
   const hC = canonTeam(home);
   const aC = canonTeam(away);
-  for (const d of days) {
-    const json = await fetchJson(`${ESPN_BASE}/scoreboard?dates=${d}`, 8000).catch(() => null);
-    if (!json) continue;
-    const events = Array.isArray(json.events) ? json.events : [];
-    for (const ev of events) {
-      const comp = (ev.competitions && ev.competitions[0]) || {};
-      const competitors = comp.competitors || [];
-      const h = competitors.find((c) => c.homeAway === "home") || competitors[0];
-      const a = competitors.find((c) => c.homeAway === "away") || competitors[1];
-      const hN = canonTeam(h?.team?.displayName || h?.team?.name);
-      const aN = canonTeam(a?.team?.displayName || a?.team?.name);
-      if (hN === hC && aN === aC) return ev.id;
-      if (hN === aC && aN === hC) return ev.id;
+  const candidateLeagues = [
+    preferredLeagueId,
+    ...FOOTBALL_LEAGUES.map((l) => l.id).filter((id) => id !== preferredLeagueId),
+    "fifa.world",
+  ].filter(Boolean);
+
+  for (const lid of candidateLeagues) {
+    for (const d of days) {
+      const json = await fetchJson(`${ESPN_SCOREBOARD_BASE}/${lid}/scoreboard?dates=${d}`, 7000).catch(() => null);
+      if (!json) continue;
+      const events = Array.isArray(json.events) ? json.events : [];
+      for (const ev of events) {
+        const comp = (ev.competitions && ev.competitions[0]) || {};
+        const competitors = comp.competitors || [];
+        const h = competitors.find((c) => c.homeAway === "home") || competitors[0];
+        const a = competitors.find((c) => c.homeAway === "away") || competitors[1];
+        const hN = canonTeam(h?.team?.displayName || h?.team?.name);
+        const aN = canonTeam(a?.team?.displayName || a?.team?.name);
+        if ((hN === hC && aN === aC) || (hN === aC && aN === hC)) {
+          return { eventId: ev.id, leagueId: lid };
+        }
+      }
     }
   }
   return null;
@@ -754,31 +763,189 @@ function espnMapRoster(roster) {
   return { formation, starting, subs, coach: null, rating: null };
 }
 
-async function buildFifaLineupPayload(home, away, dateUtc) {
-  const eventId = await findEspnEventId(home, away, dateUtc).catch(() => null);
-  if (!eventId) {
-    return { ok: true, found: false, home: { starting: [], subs: [] }, away: { starting: [], subs: [] } };
+function espnMapKeyEvents(keyEvents) {
+  if (!Array.isArray(keyEvents)) return [];
+  return keyEvents.map((ev) => {
+    const type = String(ev?.type?.type || ev?.type?.text || "").toLowerCase();
+    const isGoal = type === "goal" || type === "penalty" || ev?.scoringPlay === true;
+    const isYellow = type.includes("yellow");
+    const isRed = type.includes("red");
+    const isSub = type.includes("substitution");
+    if (!isGoal && !isYellow && !isRed && !isSub) return null;
+
+    const clock = String(ev?.clock?.displayValue || (ev?.clock?.value != null ? Math.floor(ev.clock.value / 60) + "'" : "") || "").trim();
+    const teamId = ev?.team?.id ? String(ev.team.id) : null;
+    const teamName = String(ev?.team?.displayName || ev?.team?.name || "").trim();
+    const player = String(ev?.participants?.[0]?.athlete?.displayName || ev?.participants?.[0]?.athlete?.name || "").trim();
+    const assist = String(ev?.participants?.[1]?.athlete?.displayName || "").trim();
+
+    let kind = "event";
+    if (isGoal) kind = "goal";
+    else if (isRed) kind = "red-card";
+    else if (isYellow) kind = "yellow-card";
+    else if (isSub) kind = "substitution";
+
+    return {
+      id: String(ev.id || `${kind}-${clock}-${player}`),
+      type: kind,
+      minute: clock,
+      teamId,
+      team: teamName,
+      player,
+      assist: isGoal ? assist : "",
+      text: String(ev.text || ev.shortText || "").trim(),
+    };
+  }).filter(Boolean);
+}
+
+function espnMapStatistics(boxscoreTeams) {
+  if (!Array.isArray(boxscoreTeams) || boxscoreTeams.length < 2) return [];
+  const homeTeam = boxscoreTeams.find((t) => t.homeAway === "home") || boxscoreTeams[0];
+  const awayTeam = boxscoreTeams.find((t) => t.homeAway === "away") || boxscoreTeams[1];
+  const homeStats = homeTeam?.statistics || [];
+  const awayStats = awayTeam?.statistics || [];
+
+  const findVal = (list, names) => {
+    for (const n of names) {
+      const found = list.find((s) => s.name?.toLowerCase() === n.toLowerCase() || s.label?.toLowerCase() === n.toLowerCase());
+      if (found) return String(found.displayValue != null ? found.displayValue : (found.value != null ? found.value : ""));
+    }
+    return "";
+  };
+
+  const METRICS = [
+    { label: "To'p nazorati", key: "possession", names: ["possession", "possessionPct", "possessionPercentage"], unit: "%" },
+    { label: "Zarbalar", key: "shots", names: ["shots", "totalShots"] },
+    { label: "Aniq zarbalar", key: "shotsOnTarget", names: ["shotsOnTarget", "onGoal", "shotsOnGoal"] },
+    { label: "Burchak to'plari", key: "corners", names: ["corners", "cornerKicks"] },
+    { label: "Qoidabuzarliklar", key: "fouls", names: ["fouls", "foulsCommitted"] },
+    { label: "Sariq kartochkalar", key: "yellowCards", names: ["yellowCards"] },
+    { label: "Qizil kartochkalar", key: "redCards", names: ["redCards"] },
+    { label: "Ofsaydlar", key: "offsides", names: ["offsides"] },
+    { label: "Seyvlar", key: "saves", names: ["saves"] },
+  ];
+
+  return METRICS.map((m) => {
+    const homeVal = findVal(homeStats, m.names);
+    const awayVal = findVal(awayStats, m.names);
+    if (!homeVal && !awayVal) return null;
+    return {
+      label: m.label,
+      key: m.key,
+      unit: m.unit || "",
+      home: homeVal || "0",
+      away: awayVal || "0",
+    };
+  }).filter(Boolean);
+}
+
+async function fetchSummaryForEvent(eventId, preferredLeagueId = "") {
+  const candidateLeagues = [
+    preferredLeagueId,
+    ...FOOTBALL_LEAGUES.map((l) => l.id).filter((id) => id !== preferredLeagueId),
+    "fifa.world",
+  ].filter(Boolean);
+
+  for (const lid of candidateLeagues) {
+    const summary = await fetchJson(`${ESPN_SCOREBOARD_BASE}/${lid}/summary?event=${eventId}`, 8000).catch(() => null);
+    if (summary && (summary.header || summary.rosters || summary.boxscore)) {
+      return { summary, leagueId: lid };
+    }
   }
-  const summary = await fetchJson(`${ESPN_BASE}/summary?event=${eventId}`, 9000).catch(() => null);
+  return null;
+}
+
+async function buildFifaLineupPayload(optsOrHome, maybeAway, maybeDateUtc) {
+  let home = "", away = "", dateUtc = "", eventId = "", leagueId = "";
+  if (typeof optsOrHome === "object" && optsOrHome !== null) {
+    home = String(optsOrHome.home || "").trim();
+    away = String(optsOrHome.away || "").trim();
+    dateUtc = String(optsOrHome.dateUtc || optsOrHome.date || "").trim();
+    eventId = String(optsOrHome.eventId || optsOrHome.matchId || optsOrHome.id || "").trim();
+    leagueId = String(optsOrHome.leagueId || optsOrHome.league || "").trim();
+  } else {
+    home = String(optsOrHome || "").trim();
+    away = String(maybeAway || "").trim();
+    dateUtc = String(maybeDateUtc || "").trim();
+  }
+
+  let summaryResult = null;
+  let targetEventId = eventId;
+  let targetLeagueId = leagueId;
+
+  if (targetEventId) {
+    summaryResult = await fetchSummaryForEvent(targetEventId, targetLeagueId);
+    if (summaryResult) {
+      targetLeagueId = summaryResult.leagueId;
+    }
+  }
+
+  if (!summaryResult && home && away) {
+    const found = await findEspnEventId(home, away, dateUtc, targetLeagueId).catch(() => null);
+    if (found) {
+      targetEventId = found.eventId;
+      targetLeagueId = found.leagueId;
+      summaryResult = await fetchSummaryForEvent(targetEventId, targetLeagueId);
+    }
+  }
+
+  const summary = summaryResult?.summary;
+  if (!summary) {
+    return {
+      ok: true,
+      found: false,
+      home: { starting: [], subs: [] },
+      away: { starting: [], subs: [] },
+      events: [],
+      statistics: [],
+    };
+  }
+
+  const comp = summary?.header?.competitions?.[0];
+  const statusType = comp?.status?.type || {};
+  const state = String(statusType.state || "").toLowerCase();
+  const isLive = state === "in" || state === "live" || /in.progress|halftime/i.test(statusType.name || "");
+  const isFinished = Boolean(statusType.completed) || state === "post" || /final|full time/i.test(statusType.name || "");
+  const minute = isLive ? String(comp?.status?.displayClock || "LIVE") : (isFinished ? "Tugadi" : "");
+  const competitors = Array.isArray(comp?.competitors) ? comp.competitors : [];
+  const homeComp = competitors.find((c) => c.homeAway === "home") || competitors[0];
+  const awayComp = competitors.find((c) => c.homeAway === "away") || competitors[1];
+  const homeScore = homeComp?.score != null ? String(homeComp.score) : "";
+  const awayScore = awayComp?.score != null ? String(awayComp.score) : "";
+  const score = (homeScore !== "" && awayScore !== "") ? `${homeScore} : ${awayScore}` : null;
+
   const rosters = Array.isArray(summary?.rosters) ? summary.rosters : [];
-  if (!rosters.length) {
-    return { ok: true, found: false, matchId: eventId, home: { starting: [], subs: [] }, away: { starting: [], subs: [] } };
-  }
-  // ESPN bizga homeAway pamyali bermasligi mumkin — header'dan olamiz
-  let homeId = null, awayId = null;
-  try {
-    const comps = summary?.header?.competitions?.[0]?.competitors || [];
-    homeId = comps.find((c) => c.homeAway === "home")?.id;
-    awayId = comps.find((c) => c.homeAway === "away")?.id;
-  } catch (_) {}
+  let homeId = homeComp?.id, awayId = awayComp?.id;
   const homeRoster = rosters.find((r) => String(r?.team?.id) === String(homeId)) || rosters[0];
   const awayRoster = rosters.find((r) => String(r?.team?.id) === String(awayId)) || rosters[1];
+
+  const mappedHome = espnMapRoster(homeRoster);
+  const mappedAway = espnMapRoster(awayRoster);
+
   return {
     ok: true,
     found: true,
-    matchId: eventId,
-    home: espnMapRoster(homeRoster),
-    away: espnMapRoster(awayRoster),
+    matchId: targetEventId,
+    leagueId: targetLeagueId,
+    status: isLive ? "live" : (isFinished ? "finished" : "upcoming"),
+    minute,
+    score,
+    events: espnMapKeyEvents(summary?.keyEvents),
+    statistics: espnMapStatistics(summary?.boxscore?.teams),
+    home: {
+      id: homeId,
+      name: homeComp?.team?.displayName || home || "",
+      logo: espnTeamLogo(homeComp?.team),
+      score: homeScore,
+      ...mappedHome,
+    },
+    away: {
+      id: awayId,
+      name: awayComp?.team?.displayName || away || "",
+      logo: espnTeamLogo(awayComp?.team),
+      score: awayScore,
+      ...mappedAway,
+    },
   };
 }
 
@@ -787,24 +954,28 @@ async function handleFifaLineup(request, response) {
   const home = String(url.searchParams.get("home") || "").trim();
   const away = String(url.searchParams.get("away") || "").trim();
   const date = String(url.searchParams.get("date") || "").trim();
-  if (!home || !away) {
-    response.status(400).json({ ok: false, error: "home va away kerak" });
+  const eventId = String(url.searchParams.get("eventId") || url.searchParams.get("matchId") || url.searchParams.get("id") || "").trim();
+  const leagueId = String(url.searchParams.get("league") || url.searchParams.get("leagueId") || "").trim();
+
+  if (!eventId && (!home || !away)) {
+    response.status(400).json({ ok: false, error: "eventId yoki home va away kerak" });
     return;
   }
-  const key = `${home.toLowerCase()}|${away.toLowerCase()}|${date}`;
+  const key = `${eventId}|${leagueId}|${home.toLowerCase()}|${away.toLowerCase()}|${date}`;
   const now = Date.now();
   const cached = FIFA_LINEUP_CACHE.get(key);
-  if (cached && now - cached.at < FIFA_LINEUP_TTL_MS) {
+  const ttl = (cached?.data?.status === "live") ? 15000 : FIFA_LINEUP_TTL_MS;
+  if (cached && now - cached.at < ttl) {
     response.setHeader("X-Fifa-Lineup-Cache", "HIT");
-    response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    response.setHeader("Cache-Control", "public, max-age=15, s-maxage=30, stale-while-revalidate=120");
     response.status(200).json(cached.data);
     return;
   }
   try {
-    const data = await buildFifaLineupPayload(home, away, date);
+    const data = await buildFifaLineupPayload({ home, away, dateUtc: date, eventId, leagueId });
     FIFA_LINEUP_CACHE.set(key, { data, at: now });
     response.setHeader("X-Fifa-Lineup-Cache", "MISS");
-    response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    response.setHeader("Cache-Control", "public, max-age=15, s-maxage=30, stale-while-revalidate=120");
     response.status(200).json(data);
   } catch (err) {
     if (cached) {
@@ -812,7 +983,7 @@ async function handleFifaLineup(request, response) {
       response.status(200).json(cached.data);
       return;
     }
-    response.status(502).json({ ok: false, error: err.message || "Lineup manbasi javob bermadi." });
+    response.status(502).json({ ok: false, error: err.message || "Match ma'lumotlari manbasi javob bermadi." });
   }
 }
 
