@@ -218,6 +218,8 @@ function normalizeAd(raw) {
     linkUrl: telegramUrl || websiteUrl,
     buttonText: trimString(source.buttonText).slice(0, 40),
   };
+}
+
 function normalizeTicker(raw) {
   const source = raw && typeof raw === "object" ? raw : {};
   const speedRaw = Number(source.speed);

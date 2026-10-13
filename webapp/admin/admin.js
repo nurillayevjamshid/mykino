@@ -1432,9 +1432,15 @@ function bindEvents() {
     tab.addEventListener('click', () => switchMovieTab(tab.dataset.movieTab));
   });
 
-  // Ad tabs (Mini app reklama / Pre-roll video)
+  // Ad tabs (Mini app reklama / Pre-roll video / Ticker / Broadcast)
   document.querySelectorAll('.ad-tab').forEach(tab => {
     tab.addEventListener('click', () => switchAdTab(tab.dataset.adTab));
+  });
+  document.querySelectorAll('.ad-tab-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.ad-visibility-toggle')) return;
+      switchAdTab(item.dataset.adTabItem);
+    });
   });
 
   // Series search + refresh
@@ -4447,7 +4453,11 @@ async function loadTickerSettings(force = false) {
     lastSavedTickerEnabled = Boolean(ticker.enabled);
 
     const textEl = document.getElementById('tickerText');
-    if (textEl && ticker.text !== undefined) textEl.value = ticker.text || '';
+    if (textEl && ticker.text !== undefined && ticker.text !== '') {
+      textEl.value = ticker.text;
+    } else if (textEl && !textEl.value.trim()) {
+      textEl.value = "🚀 Premyeralar faqat NTV da tomosha qiling!";
+    }
 
     const linkEl = document.getElementById('tickerLinkUrl');
     if (linkEl && ticker.linkUrl !== undefined) linkEl.value = ticker.linkUrl || '';
@@ -4493,7 +4503,12 @@ async function loadTickerSettings(force = false) {
 async function saveTickerSettings(options = {}) {
   const enabledEl = document.getElementById('tickerEnabled');
   const enabled = Boolean(enabledEl?.checked);
-  const text = (document.getElementById('tickerText')?.value || '').trim();
+  let text = (document.getElementById('tickerText')?.value || '').trim();
+  if (enabled && !text) {
+    text = "🚀 Premyeralar faqat NTV da tomosha qiling!";
+    const textEl = document.getElementById('tickerText');
+    if (textEl) textEl.value = text;
+  }
   const linkUrl = (document.getElementById('tickerLinkUrl')?.value || '').trim();
   const bgColor = (document.getElementById('tickerBgColor')?.value || 'linear-gradient(135deg, #e50914, #990000)').trim();
   const textColor = (document.getElementById('tickerTextColor')?.value || '#ffffff').trim();
@@ -4501,13 +4516,6 @@ async function saveTickerSettings(options = {}) {
   const fontSize = parseInt(document.getElementById('tickerFontSize')?.value || '14', 10) || 14;
   const fontWeight = (document.getElementById('tickerFontWeight')?.value || '600').trim();
   const speed = parseInt(document.getElementById('tickerSpeed')?.value || '20', 10) || 20;
-
-  if (enabled && !text) {
-    if (options.revertOnFail && enabledEl) enabledEl.checked = lastSavedTickerEnabled;
-    setTickerStatus("E'lon matnini kiriting yoki ON tugmasini o'chiring.", 'error');
-    updateTickerLivePreview();
-    return false;
-  }
 
   setTickerStatus('Saqlanmoqda...');
   try {
@@ -4646,6 +4654,9 @@ document.getElementById('tickerFontFamily')?.addEventListener('change', () => {
     updateTickerLivePreview();
     setTickerStatus("Standart sozlamalar tiklandi. Saqlash uchun 'Saqlash' tugmasini bosing.", 'ok');
   });
+
+  populateTickerFonts();
+  updateTickerLivePreview();
 })();
 
 // ===== Pre-roll video reklama (kino oldidan) =====
