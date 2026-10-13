@@ -5,6 +5,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$env:NODE_NO_WARNINGS = "1"
 
 function Find-Repo {
   $candidates = @()

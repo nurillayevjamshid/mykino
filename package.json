@@ -11,7 +11,7 @@
     "check": "node scripts/check-syntax.js",
     "test": "node scripts/run-tests.js --reporter=spec",
     "test:ci": "node scripts/run-tests.js --reporter=tap",
-    "migrate:r2": "node scripts/migrate-to-r2.js",
+    "migrate:r2": "node --no-warnings scripts/migrate-to-r2.js",
     "faststart": "node scripts/faststart-drive.js",
     "faststart:apply": "node scripts/faststart-drive.js --apply"
   }
