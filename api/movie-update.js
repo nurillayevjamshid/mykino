@@ -9,6 +9,7 @@ const {
   restoreCatalogMovieOverrides,
 } = require("./_lib/google-drive");
 const { listR2Objects } = require("./_lib/r2-store");
+const movieReactionHandler = require("./movie-reaction");
 
 function isAdminRequest(request, body) {
   const expected = getRequiredAdminPassword();
@@ -54,6 +55,10 @@ function safeRating(value) {
 }
 
 module.exports = async function handler(request, response) {
+  if (request.query?._reaction === "1" || request.url?.includes("/api/movie-reaction")) {
+    return movieReactionHandler(request, response);
+  }
+
   if (!(await authorizeRequest(request, response))) {
     return;
   }

@@ -3,6 +3,7 @@ const { verifySignedToken, setCorsHeaders, isValidDriveFileId } = require("./_li
 const { getDriveMediaResponse, getAccessToken } = require("./_lib/google-drive");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
+const driveResolveHandler = require("./drive-resolve");
 
 function getFileId(request) {
   return String(request.query?.fileId || request.query?.id || "").trim();
@@ -33,6 +34,9 @@ async function resolveDriveDirectUrl(fileId) {
 }
 
 module.exports = async function handler(request, response) {
+  if (request.query?._resolve === "1" || request.url?.includes("/api/drive-resolve")) {
+    return driveResolveHandler(request, response);
+  }
   setCorsHeaders(request, response);
   if (request.method === "OPTIONS") {
     response.status(204).end();

@@ -58,7 +58,6 @@
   "builds": [
     { "src": "api/movies.js", "use": "@vercel/node" },
     { "src": "api/movie-update.js", "use": "@vercel/node" },
-    { "src": "api/movie-reaction.js", "use": "@vercel/node" },
     { "src": "api/music.js", "use": "@vercel/node" },
     { "src": "api/categories.js", "use": "@vercel/node" },
     { "src": "api/settings.js", "use": "@vercel/node" },
@@ -66,7 +65,6 @@
     { "src": "api/broadcast.js", "use": "@vercel/node" },
     { "src": "api/telegram-webhook.js", "use": "@vercel/node" },
     { "src": "api/drive-stream.js", "use": "@vercel/node" },
-    { "src": "api/drive-resolve.js", "use": "@vercel/node" },
     { "src": "api/drive-thumbnail.js", "use": "@vercel/node" },
     { "src": "api/story-card.js", "use": "@vercel/node" },
     { "src": "webapp/**", "use": "@vercel/static" }
@@ -74,7 +72,7 @@
   "routes": [
     { "src": "/api/movies", "dest": "/api/movies.js" },
     { "src": "/api/movie-update", "dest": "/api/movie-update.js" },
-    { "src": "/api/movie-reaction", "dest": "/api/movie-reaction.js" },
+    { "src": "/api/movie-reaction", "dest": "/api/movie-update.js?_reaction=1" },
     { "src": "/s/([^/]+)", "dest": "/api/movies.js?_share=1&movie=$1" },
     { "src": "/api/share", "dest": "/api/movies.js?_share=1" },
     { "src": "/api/series", "dest": "/api/movies.js?_series=1" },
@@ -91,7 +89,7 @@
     { "src": "/api/broadcast", "dest": "/api/broadcast.js" },
     { "src": "/api/telegram-webhook", "dest": "/api/telegram-webhook.js" },
     { "src": "/api/drive-stream/(.*)", "dest": "/api/drive-stream.js?fileId=$1" },
-    { "src": "/api/drive-resolve/(.*)", "dest": "/api/drive-resolve.js?fileId=$1" },
+    { "src": "/api/drive-resolve/(.*)", "dest": "/api/drive-stream.js?_resolve=1&fileId=$1" },
     { "src": "/api/drive-thumbnail", "dest": "/api/drive-thumbnail.js" },
     { "src": "/api/drive-thumbnail/(.*)", "dest": "/api/drive-thumbnail.js?fileId=$1" },
     { "src": "/admin", "dest": "/webapp/admin/index.html" },
