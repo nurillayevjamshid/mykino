@@ -686,15 +686,14 @@ body,
 }
 
 .movie-modal .modal-poster::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(9, 17, 31, 0.35) 0%, transparent 42%, rgba(9, 17, 31, 0.94) 100%);
-  pointer-events: none;
+  content: none !important;
+  display: none !important;
 }
 
 html[data-theme="light"] .movie-modal .modal-poster::after {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 42%, rgba(244, 247, 252, 0.95) 100%);
+  content: none !important;
+  display: none !important;
+  background: none !important;
 }
 
 /* Subtle "To'liq ablojka" zoom badge on bottom right of the poster */
