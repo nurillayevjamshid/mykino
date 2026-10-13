@@ -1268,6 +1268,11 @@
     // "Podcastlar" tugmasi active bo'lib, pill indikator uning ustida tursin.
     try { window.setActiveBottomTab?.("podcasts-tab"); } catch (_) {}
     document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    try {
+      window.tgBackRegister?.("podcasts-view", () => {
+        try { closePodcastsView(); window.setFilter?.("all"); } catch (_) {}
+      });
+    } catch (_) {}
     if (!loaded) {
       podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>${escapeHtml(T("loading"))}</div></div>`;
       await loadChannels();
@@ -1282,6 +1287,7 @@
     podcastsView.hidden = true;
     document.body.classList.remove("is-podcasts");
     closePlayer();
+    try { window.tgBackUnregister?.("podcasts-view"); } catch (_) {}
   }
 
   // ---------- Saqlangan videolar view ----------

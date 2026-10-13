@@ -2646,6 +2646,8 @@ function renderMusicHistory() {
   const countEl = document.getElementById("musicHistoryCount");
   const emptyEl = document.getElementById("musicHistoryEmpty");
   const clearBtn = document.getElementById("clearMusicHistoryButton");
+  const musicSection = profileModal?.querySelector(".profile-history--music");
+  if (musicSection && document.body.classList.contains("is-music")) musicSection.hidden = false;
   const entries = getMusicHistoryEntries();
   if (countEl) countEl.textContent = `${entries.length} ta`;
   if (emptyEl) emptyEl.hidden = entries.length > 0;
@@ -3594,10 +3596,39 @@ function renderProfileStats() {
   }
 }
 
+function renderMusicProfileModal() {
+  if (!profileModal) return;
+  const user = getTelegramUser();
+  applyTelegramUser();
+  if (profileName) {
+    if (user?.first_name) {
+      profileName.textContent = [user.first_name, user.last_name].filter(Boolean).join(" ");
+    } else {
+      profileName.textContent = "Musiqa ixlosmandi";
+    }
+  }
+  // Podcast bo'limidan keyin hidden bo'lib qolmasligi uchun music bo'limini unhide qilamiz:
+  const musicSection = profileModal.querySelector(".profile-history--music");
+  if (musicSection) musicSection.hidden = false;
+
+  // Kino tarixi bo'limini yashiramiz:
+  const movieSection = profileModal.querySelector(".profile-history:not(.profile-history--music)");
+  if (movieSection) movieSection.hidden = true;
+
+  if (watchedMovieList) watchedMovieList.innerHTML = "";
+  if (watchedMovieEmpty) watchedMovieEmpty.hidden = true;
+
+  renderMusicHistory();
+}
+
 function renderProfileModal() {
-  // Bo'lim bo'yicha tegishli renderga yo'naltirish (podcast ichida — podcast tarixi).
+  // Bo'lim bo'yicha tegishli renderga yo'naltirish (podcast ichida — podcast tarixi, musiqa ichida — musiqa tarixi).
   if (document.body.classList.contains("is-podcasts")) {
     renderPodcastProfileModal();
+    return;
+  }
+  if (document.body.classList.contains("is-music")) {
+    renderMusicProfileModal();
     return;
   }
   const user = getTelegramUser();
@@ -3612,17 +3643,24 @@ function renderProfileModal() {
   if (watchedMovieEmpty) {
     watchedMovieEmpty.textContent = t("historyEmpty");
   }
+  if (statGenreLabel?.parentElement) {
+    statGenreLabel.parentElement.style.display = "";
+  }
+  const musicSection = profileModal?.querySelector(".profile-history--music");
+  if (musicSection) musicSection.hidden = true;
+  const movieSection = profileModal?.querySelector(".profile-history:not(.profile-history--music)");
+  if (movieSection) movieSection.hidden = false;
+
   renderProfileStats();
   renderProfileHistory();
-  renderMusicHistory();
   loadProgressFromBackend({ force: true }).then(() => {
-    if (profileModal?.open) {
+    if (profileModal?.open && !document.body.classList.contains("is-podcasts") && !document.body.classList.contains("is-music")) {
       renderProfileStats();
       renderProfileHistory();
     }
   }).catch(() => {});
   syncWatchedMoviesFromCloud().then((ch) => {
-    if (ch && profileModal?.open) {
+    if (ch && profileModal?.open && !document.body.classList.contains("is-podcasts") && !document.body.classList.contains("is-music")) {
       renderProfileStats();
       renderProfileHistory();
     }
@@ -7860,6 +7898,61 @@ function syncSidebarSectionItems() {
     el.classList.toggle("sidebar__item--fifa", !!cfg.fifaClass);
   });
 
+  // Lower items (Sevimlilar / Playlist / Saqlangan va Profil)
+  const lower1 = document.getElementById("sidebarLowerItem1") || document.querySelector(".sidebar__nav [data-sidebar-action='favorites'], .sidebar__nav [data-sidebar-action='music-playlists'], .sidebar__nav [data-sidebar-action='podcast-saved']");
+  const lower2 = document.getElementById("sidebarLowerItem2") || document.querySelector(".sidebar__nav [data-sidebar-action='profile'], .sidebar__nav [data-sidebar-action='music-profile'], .sidebar__nav [data-sidebar-action='podcast-profile']");
+  if (lower1 && lower2) {
+    if (section === "music") {
+      lower1.dataset.sidebarAction = "music-playlists";
+      lower1.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="3" y1="6" x2="14" y2="6"></line>
+        <line x1="3" y1="12" x2="14" y2="12"></line>
+        <line x1="3" y1="18" x2="10" y2="18"></line>
+        <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
+      </svg>
+      <span data-i18n="playlistNav">${plainLabel(t("playlistNav"))}</span>`;
+
+      lower2.dataset.sidebarAction = "music-profile";
+      lower2.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 21a8 8 0 0 1 16 0"></path>
+      </svg>
+      <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
+    } else if (section === "podcasts") {
+      lower1.dataset.sidebarAction = "podcast-saved";
+      lower1.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+      </svg>
+      <span data-i18n="savedNav">${plainLabel(t("savedNav"))}</span>`;
+
+      lower2.dataset.sidebarAction = "podcast-profile";
+      lower2.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 21a8 8 0 0 1 16 0"></path>
+      </svg>
+      <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
+    } else {
+      lower1.dataset.sidebarAction = "favorites";
+      lower1.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+      </svg>
+      <span data-i18n="favoritesNav">${plainLabel(t("favoritesNav"))}</span>`;
+
+      lower2.dataset.sidebarAction = "profile";
+      lower2.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 21a8 8 0 0 1 16 0"></path>
+      </svg>
+      <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
+    }
+  }
+
   // TV item (4-slot, statik) — TV bo'limida turganda "Kino"ga aylanadi,
   // aks holda "TV" bo'lib qoladi.
   const tvItem = document.getElementById("sidebarTvItem");
@@ -7883,7 +7976,11 @@ function syncSidebarSectionItems() {
   syncTopbarSection();
 }
 syncTopbarSection();
-new MutationObserver(() => syncTopbarSection()).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+syncSidebarSectionItems();
+new MutationObserver(() => {
+  syncTopbarSection();
+  syncSidebarSectionItems();
+}).observe(document.body, { attributes: true, attributeFilter: ["class"] });
 
 function setSidebarOpen(open) {
   if (!appSidebar || !sidebarBackdrop) return;
@@ -8109,6 +8206,61 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         setFilter("all");
         document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
       });
+      return;
+    }
+    if (action === "music-playlists") {
+      setSidebarOpen(false);
+      const current = getCurrentAppSection();
+      if (current !== "music") {
+        navigateSidebarSection("music", async () => {
+          closePodcastsView();
+          closeFifaView();
+          closeTvView();
+          closeEsportView();
+          await openMusicView();
+          const m = await ensureMusicModule();
+          m?.openPlaylistsView?.();
+        });
+      } else {
+        ensureMusicModule().then((m) => {
+          m?.openPlaylistsView?.();
+        }).catch(() => {});
+      }
+      return;
+    }
+    if (action === "music-profile") {
+      setSidebarOpen(false);
+      renderProfileModal();
+      profileModal.showModal();
+      return;
+    }
+    if (action === "podcast-saved") {
+      setSidebarOpen(false);
+      const current = getCurrentAppSection();
+      if (current !== "podcasts") {
+        navigateSidebarSection("podcasts", async () => {
+          closeMusicView();
+          closeFifaView();
+          closeTvView();
+          closeEsportView();
+          await openPodcastsView();
+          try { window.__potcasts?.openSavedView?.(); } catch (_) {
+            const favComing = document.getElementById("favoritesComingSoon");
+            if (favComing) favComing.hidden = false;
+          }
+        });
+      } else {
+        try { window.__potcasts?.openSavedView?.(); } catch (_) {
+          const favComing = document.getElementById("favoritesComingSoon");
+          if (favComing) favComing.hidden = false;
+        }
+      }
+      return;
+    }
+    if (action === "podcast-profile") {
+      setSidebarOpen(false);
+      renderPodcastProfileModal();
+      profileModal.showModal();
       return;
     }
     if (action === "favorites") {
