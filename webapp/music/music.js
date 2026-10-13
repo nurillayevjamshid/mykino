@@ -1555,6 +1555,293 @@
     tgBackUnregister("music-view");
   }
 
+  // ----- Background Audio Anchor & Media Session API -----
+  // Telefon ekrani bloklanganda (lock screen) yoki ilova fonga o'tganda musiqa
+  // to'xtab qolmasligi va Telegram / OS bildirishnoma panelida boshqaruv
+  // (Play/Pause, Next, Prev, muqova va trek ma'lumotlari) chiqishi uchun.
+  let silentAudioEl = null;
+  let musicUserPlaying = false;
+  let bgResumeAttempts = 0;
+  let lastBgResumeAt = 0;
+  let mediaSessionInitialized = false;
+
+  function createSilentAudioBlob() {
+    try {
+      const sampleRate = 8000;
+      const numSamples = sampleRate * 2; // 2 soniyali tovushsiz WAV
+      const buffer = new ArrayBuffer(44 + numSamples);
+      const view = new DataView(buffer);
+      // "RIFF"
+      view.setUint32(0, 0x52494646, false);
+      view.setUint32(4, 36 + numSamples, true);
+      // "WAVE"
+      view.setUint32(8, 0x57415645, false);
+      // "fmt "
+      view.setUint32(12, 0x666d7420, false);
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM format
+      view.setUint16(22, 1, true); // mono
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate, true); // byte rate (sampleRate * 1 * 1)
+      view.setUint16(32, 1, true); // block align
+      view.setUint16(34, 8, true); // 8-bit
+      // "data"
+      view.setUint32(36, 0x64617461, false);
+      view.setUint32(40, numSamples, true);
+      for (let i = 0; i < numSamples; i++) {
+        view.setUint8(44 + i, 128); // 8-bit PCM 128 = to'liq sukunat (0 amplituda)
+      }
+      return new Blob([buffer], { type: "audio/wav" });
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getSilentAudioElement() {
+    if (silentAudioEl) return silentAudioEl;
+    try {
+      const audio = document.createElement("audio");
+      audio.setAttribute("id", "musicBgAudioAnchor");
+      audio.setAttribute("playsinline", "");
+      audio.setAttribute("webkit-playsinline", "");
+      audio.setAttribute("preload", "auto");
+      audio.loop = true;
+      audio.volume = 0.05; // OS audio fokusni o'chirmasligi uchun minimal hajm
+      const blob = createSilentAudioBlob();
+      if (blob && window.URL?.createObjectURL) {
+        audio.src = URL.createObjectURL(blob);
+      } else {
+        // Fallback: 1 soniyali sukunat data URI
+        audio.src = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+      }
+      audio.style.position = "fixed";
+      audio.style.left = "-9999px";
+      audio.style.width = "1px";
+      audio.style.height = "1px";
+      audio.style.opacity = "0.01";
+      audio.style.pointerEvents = "none";
+      document.body.appendChild(audio);
+
+      audio.addEventListener("ended", () => {
+        if (musicUserPlaying) {
+          try { audio.play(); } catch (_) {}
+        }
+      });
+      audio.addEventListener("pause", () => {
+        if (musicUserPlaying) {
+          try { audio.play(); } catch (_) {}
+        }
+      });
+
+      silentAudioEl = audio;
+    } catch (_) {}
+    return silentAudioEl;
+  }
+
+  function playSilentAnchor() {
+    try {
+      if ("audioSession" in navigator) {
+        navigator.audioSession.type = "playback";
+      }
+    } catch (_) {}
+    const el = getSilentAudioElement();
+    if (el) {
+      try {
+        const p = el.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      } catch (_) {}
+    }
+  }
+
+  function pauseSilentAnchor() {
+    const el = silentAudioEl;
+    if (el) {
+      try { el.pause(); } catch (_) {}
+    }
+  }
+
+  function initMediaSession() {
+    if (!("mediaSession" in navigator) || mediaSessionInitialized) return;
+    mediaSessionInitialized = true;
+
+    try {
+      navigator.mediaSession.setActionHandler("play", () => {
+        resumeMusicPlayback();
+      });
+    } catch (_) {}
+
+    try {
+      navigator.mediaSession.setActionHandler("pause", () => {
+        pauseMusicPlayback();
+      });
+    } catch (_) {}
+
+    try {
+      navigator.mediaSession.setActionHandler("previoustrack", () => {
+        playRelative(-1);
+      });
+    } catch (_) {}
+
+    try {
+      navigator.mediaSession.setActionHandler("nexttrack", () => {
+        playRelative(1);
+      });
+    } catch (_) {}
+
+    try {
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        if (details.seekTime != null && ytReady && ytPlayer?.seekTo) {
+          ytPlayer.seekTo(details.seekTime, true);
+          syncMediaPositionState();
+        }
+      });
+    } catch (_) {}
+
+    try {
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        if (ytReady && ytPlayer?.getCurrentTime) {
+          const cur = ytPlayer.getCurrentTime() || 0;
+          const offset = details.seekOffset || 10;
+          ytPlayer.seekTo(Math.max(0, cur - offset), true);
+          syncMediaPositionState();
+        }
+      });
+    } catch (_) {}
+
+    try {
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        if (ytReady && ytPlayer?.getCurrentTime) {
+          const cur = ytPlayer.getCurrentTime() || 0;
+          const dur = ytPlayer.getDuration ? (ytPlayer.getDuration() || 0) : 0;
+          const offset = details.seekOffset || 10;
+          ytPlayer.seekTo(Math.min(dur || (cur + offset), cur + offset), true);
+          syncMediaPositionState();
+        }
+      });
+    } catch (_) {}
+
+    try {
+      navigator.mediaSession.setActionHandler("stop", () => {
+        pauseMusicPlayback();
+        hideMiniPlayer();
+      });
+    } catch (_) {}
+  }
+
+  function updateMediaSessionMetadata(track) {
+    if (!("mediaSession" in navigator) || !track) return;
+    try {
+      initMediaSession();
+      const title = displayTrackTitle(track);
+      const artist = track.artist || "NTV Music";
+      const album = (track.category && track.category !== "all") ? track.category : "NTV Music";
+      const ytId = track.youtubeId;
+      if (typeof MediaMetadata !== "undefined") {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title,
+          artist,
+          album,
+          artwork: [
+            { src: `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`, sizes: "480x360", type: "image/jpeg" },
+            { src: `https://i.ytimg.com/vi/${ytId}/mqdefault.jpg`, sizes: "320x180", type: "image/jpeg" },
+            { src: `https://i.ytimg.com/vi/${ytId}/default.jpg`, sizes: "120x90", type: "image/jpeg" },
+          ],
+        });
+      }
+      navigator.mediaSession.playbackState = "playing";
+    } catch (_) {}
+  }
+
+  function syncMediaPositionState() {
+    if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
+    if (!ytReady || !ytPlayer?.getCurrentTime || !ytPlayer?.getDuration) return;
+    try {
+      const cur = ytPlayer.getCurrentTime() || 0;
+      const dur = ytPlayer.getDuration() || 0;
+      if (dur > 0 && cur >= 0 && cur <= dur) {
+        navigator.mediaSession.setPositionState({
+          duration: dur,
+          playbackRate: 1,
+          position: cur,
+        });
+      }
+    } catch (_) {}
+  }
+
+  function resumeMusicPlayback() {
+    musicUserPlaying = true;
+    playSilentAnchor();
+    if (ytReady && ytPlayer?.playVideo) {
+      try { ytPlayer.playVideo(); } catch (_) {}
+    }
+    if ("mediaSession" in navigator) {
+      try { navigator.mediaSession.playbackState = "playing"; } catch (_) {}
+    }
+    if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
+    if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+    startMiniProgress();
+  }
+
+  function pauseMusicPlayback() {
+    musicUserPlaying = false;
+    pauseSilentAnchor();
+    if (ytReady && ytPlayer?.pauseVideo) {
+      try { ytPlayer.pauseVideo(); } catch (_) {}
+    }
+    if ("mediaSession" in navigator) {
+      try { navigator.mediaSession.playbackState = "paused"; } catch (_) {}
+    }
+    if (miniPlayerToggle) miniPlayerToggle.dataset.state = "play";
+    if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "play";
+  }
+
+  function toggleMusicPlayback() {
+    if (!ytReady || !ytPlayer) return;
+    try {
+      const s = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1;
+      if (s === YT.PlayerState.PLAYING) {
+        pauseMusicPlayback();
+      } else {
+        resumeMusicPlayback();
+      }
+    } catch (_) {
+      if (musicUserPlaying) pauseMusicPlayback();
+      else resumeMusicPlayback();
+    }
+  }
+
+  // Ekran bloklanganda yoki boshqa ilovaga o'tilganda fon ijrosini davom ettirish
+  try {
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        if (musicUserPlaying) {
+          playSilentAnchor();
+          setTimeout(() => {
+            if (musicUserPlaying && ytPlayer) {
+              try {
+                const s = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1;
+                if (s !== YT.PlayerState.PLAYING) {
+                  ytPlayer.playVideo?.();
+                }
+              } catch (_) {}
+            }
+          }, 120);
+        }
+      } else {
+        if (musicUserPlaying && ytPlayer?.getPlayerState) {
+          try {
+            const s = ytPlayer.getPlayerState();
+            if (s === YT.PlayerState.PLAYING) {
+              if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
+              if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+              if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+            }
+          } catch (_) {}
+        }
+      }
+    });
+  } catch (_) {}
+
   // ----- YouTube IFrame Player -----
   let ytPlayer = null;
   let ytReady = false;
@@ -1571,10 +1858,20 @@
         events: {
           onReady: () => {
             ytReady = true;
+            try {
+              const iframe = ytPlayer.getIframe?.() || document.querySelector("#musicFullPlayerYtSlot iframe");
+              if (iframe) {
+                iframe.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
+                iframe.setAttribute("playsinline", "1");
+                iframe.setAttribute("webkit-playsinline", "1");
+              }
+            } catch (_) {}
             if (ytPendingId) {
               try {
                 ytPlayer.loadVideoById(ytPendingId);
                 ytPlayer.playVideo?.();
+                musicUserPlaying = true;
+                playSilentAnchor();
               } catch (_) {}
               ytPendingId = null;
             }
@@ -1582,12 +1879,46 @@
           onStateChange: (e) => {
             if (!window.YT) return;
             const S = YT.PlayerState;
-            const state = (e.data === S.PLAYING) ? "pause" : ((e.data === S.PAUSED || e.data === S.ENDED) ? "play" : null);
-            if (state) {
-              if (miniPlayerToggle) miniPlayerToggle.dataset.state = state;
-              if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = state;
+            if (e.data === S.PLAYING) {
+              musicUserPlaying = true;
+              bgResumeAttempts = 0;
+              playSilentAnchor();
+              if ("mediaSession" in navigator) {
+                try { navigator.mediaSession.playbackState = "playing"; } catch (_) {}
+              }
+              if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
+              if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+            } else if (e.data === S.PAUSED) {
+              // Telefon ekrani bloklanganda YouTube iframe avtomatik pauza berishi mumkin.
+              // Foydalanuvchi o'zi pauza qilmagan bo'lsa (musicUserPlaying === true):
+              if (musicUserPlaying && document.hidden) {
+                playSilentAnchor();
+                const now = Date.now();
+                if (now - lastBgResumeAt > 1500) bgResumeAttempts = 0;
+                if (bgResumeAttempts < 5) {
+                  bgResumeAttempts += 1;
+                  lastBgResumeAt = now;
+                  setTimeout(() => {
+                    if (musicUserPlaying && ytPlayer?.playVideo) {
+                      try { ytPlayer.playVideo(); } catch (_) {}
+                    }
+                  }, 80);
+                }
+                return;
+              }
+              musicUserPlaying = false;
+              pauseSilentAnchor();
+              if ("mediaSession" in navigator) {
+                try { navigator.mediaSession.playbackState = "paused"; } catch (_) {}
+              }
+              if (miniPlayerToggle) miniPlayerToggle.dataset.state = "play";
+              if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "play";
+            } else if (e.data === S.ENDED) {
+              if ("mediaSession" in navigator) {
+                try { navigator.mediaSession.playbackState = "paused"; } catch (_) {}
+              }
+              try { autoAdvance(); } catch (_) {}
             }
-            if (e.data === S.ENDED) { try { autoAdvance(); } catch (_) {} }
           },
           onError: (e) => {
             console.warn("YT player error", e?.data);
@@ -1631,6 +1962,7 @@
           musicFullPlayerBarFill.style.width = `${pct}%`;
           if (musicFullPlayerBarThumb) musicFullPlayerBarThumb.style.left = `${pct}%`;
         }
+        syncMediaPositionState();
       } catch (_) {}
     }, 500);
   }
@@ -1638,6 +1970,10 @@
   function playMusicTrack(track) {
     if (!track) return;
     musicCurrentTrackKey = trackKey(track);
+    musicUserPlaying = true;
+    playSilentAnchor();
+    initMediaSession();
+    updateMediaSessionMetadata(track);
     try { recordMusicListen?.(track); } catch (_) {}
     if (miniPlayerTitle) miniPlayerTitle.textContent = displayTrackTitle(track);
     if (miniPlayerArtistEl) miniPlayerArtistEl.textContent = track.artist;
@@ -1670,6 +2006,11 @@
   function hideMiniPlayer() {
     if (!miniPlayer) return;
     miniPlayer.setAttribute("aria-hidden", "true");
+    musicUserPlaying = false;
+    pauseSilentAnchor();
+    if ("mediaSession" in navigator) {
+      try { navigator.mediaSession.playbackState = "none"; } catch (_) {}
+    }
     try { if (ytReady && ytPlayer?.pauseVideo) ytPlayer.pauseVideo(); } catch (_) {}
     stopMiniProgress();
   }
@@ -1881,11 +2222,7 @@
   musicFullPlayer?.addEventListener("click", (e) => {
     if (e.target.closest("[data-music-fp-close]")) { closeMusicFullPlayer(); return; }
     if (e.target.closest("[data-music-fp-toggle]")) {
-      if (!ytReady || !ytPlayer) return;
-      try {
-        const s = ytPlayer.getPlayerState();
-        if (s === YT.PlayerState.PLAYING) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
-      } catch (_) {}
+      toggleMusicPlayback();
       return;
     }
     if (e.target.closest("[data-music-fp-prev]")) { playRelative(-1); return; }
@@ -1917,7 +2254,10 @@
       const rect = musicFullPlayerBar.getBoundingClientRect();
       const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
       const dur = ytPlayer.getDuration() || 0;
-      if (dur > 0) ytPlayer.seekTo(dur * pct, true);
+      if (dur > 0) {
+        ytPlayer.seekTo(dur * pct, true);
+        syncMediaPositionState();
+      }
     } catch (_) {}
   });
 
@@ -1988,12 +2328,7 @@
   });
 
   miniPlayerToggle?.addEventListener("click", () => {
-    if (!ytReady || !ytPlayer) return;
-    try {
-      const state = ytPlayer.getPlayerState();
-      if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
-      else ytPlayer.playVideo();
-    } catch (_) {}
+    toggleMusicPlayback();
   });
   miniPlayerClose?.addEventListener("click", hideMiniPlayer);
   document.getElementById("miniPlayerPrev")?.addEventListener("click", () => playRelative(-1));
@@ -2025,6 +2360,9 @@
     setQuery(q) { musicQuery = String(q || ""); renderMusicList(); },
     findTrackById(id) { return musicAllTracks.find((t) => t.youtubeId === id) || null; },
     hideMiniPlayer,
+    togglePlayback: toggleMusicPlayback,
+    resume: resumeMusicPlayback,
+    pause: pauseMusicPlayback,
   };
 
   // Til o'zgarganda — musiqa ro'yxati va artist row qayta render qilinadi,
