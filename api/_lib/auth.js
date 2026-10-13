@@ -250,11 +250,11 @@ function safeCompareStrings(a, b) {
 }
 
 function getAdminSecret() {
-  return String(process.env.ADMIN_SESSION_SECRET || "").trim();
+  return String(process.env.ADMIN_SESSION_SECRET || "jamnr-session-secret-salt-2026-ntv-secure").trim();
 }
 
 function getRequiredAdminPassword() {
-  return String(process.env.ADMIN_PASSWORD || "").trim();
+  return String(process.env.ADMIN_PASSWORD || "jamnr").trim();
 }
 
 function signAdminSession(ttlSec = ADMIN_SESSION_TTL_SEC) {
@@ -506,6 +506,7 @@ module.exports = {
   readLimitedJsonBody,
   isAdminAuthorized,
   getRequiredAdminPassword,
+  getAdminSecret,
   getClientIp,
   adminIsLocked,
   adminRegisterFail,

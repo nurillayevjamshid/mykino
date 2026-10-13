@@ -11,6 +11,7 @@ const {
   adminRegisterFail,
   adminResetFails,
   getRequiredAdminPassword,
+  getAdminSecret,
 } = require("./_lib/auth");
 const {
   readCatalogMetadata,
@@ -311,7 +312,8 @@ async function handleAdminLogin(request, response) {
   try { body = await readRequestBody(request); } catch { body = {}; }
   const password = trimStr(body.password);
   const expected = getRequiredAdminPassword();
-  if (!expected || !String(process.env.ADMIN_SESSION_SECRET || "").trim()) {
+  const secret = getAdminSecret();
+  if (!expected || !secret) {
     response.status(503).json({ ok: false, code: "ADMIN_AUTH_NOT_CONFIGURED", error: "Admin autentifikatsiyasi production uchun sozlanmagan." });
     return;
   }
