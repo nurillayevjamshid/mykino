@@ -1198,7 +1198,7 @@ html[data-theme="light"] .category-page__back:focus-visible {
 }
 
 .category-row {
-  margin: 0 -16px 24px;
+  margin: 0 0 24px;
 }
 
 .category-row + .category-row {
@@ -5457,7 +5457,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30px 14px;
+  padding: 0 20px 10px;
 }
 
 .category-row__title {
@@ -5523,13 +5523,30 @@ html[data-theme="light"] .category-row__more:focus-visible {
 
 .category-row__list {
   display: flex;
-  gap: 16px;
+  gap: 14px;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
+  scroll-padding-left: 20px;
+  scroll-padding-right: 20px;
+  scroll-padding-inline: 20px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 4px 30px 14px;
+  padding: 6px 20px 16px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 20px, black calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black 20px, black calc(100% - 24px), transparent 100%);
+}
+
+.category-row__list::before {
+  content: "";
+  flex: 0 0 2px;
+  pointer-events: none;
+}
+
+.category-row__list::after {
+  content: "";
+  flex: 0 0 6px;
+  pointer-events: none;
 }
 
 .category-row__list::-webkit-scrollbar {
@@ -5584,8 +5601,14 @@ html[data-theme="light"] .category-row__more:focus-visible {
   background-image: var(--poster-image), linear-gradient(135deg, #1f1f1f, #0d0d0d);
   background-size: cover;
   background-position: center top;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: transform 0.3s ease;
+}
+
+html[data-theme="light"] .movie-card .poster {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .movie-card:hover .poster {
@@ -7489,10 +7512,13 @@ html[data-theme="light"] .icon-button--top {
   color: var(--c-text);
 }
 
-/* Movies row scrollbar in dark mode left edge fix */
+/* Movies row scrollbar left edge fix */
 .category-row__list {
-  padding-left: 30px;
-  padding-right: 30px;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  scroll-padding-left: 20px !important;
+  scroll-padding-right: 20px !important;
+  scroll-padding-inline: 20px !important;
 }
 
 /* ============================================================
