@@ -6511,8 +6511,10 @@ async function submitFeedback() {
     else alert(msg);
   } catch (err) {
     if (feedbackError) {
-      const detail = err?.message ? ` (${err.message})` : "";
-      feedbackError.textContent = plainLabel(t("feedbackError")) + detail;
+      const msg = err?.message && err.message !== "Failed to fetch"
+        ? err.message
+        : plainLabel(t("feedbackError"));
+      feedbackError.textContent = msg;
       feedbackError.hidden = false;
     }
   } finally {

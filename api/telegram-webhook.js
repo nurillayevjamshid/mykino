@@ -39,15 +39,98 @@ function escapeHtml(s) {
   return String(s || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 }
 
+function formatTelegramError(rawError) {
+  const msg = String(rawError || "").trim();
+  if (/chat not found/i.test(msg)) {
+    return "Telegram guruhi topilmadi yoki bot guruhga qo'shilmagan (chat not found). Botni (@myntv_bot) guruhingizga a'zo qilib, admin huquqini bering.";
+  }
+  if (/bot.*not a member/i.test(msg) || /bot was kicked/i.test(msg)) {
+    return "Bot guruh a'zosi emas. Botni (@myntv_bot) guruhingizga qo'shing va xabar yozish ruxsatini bering.";
+  }
+  if (/have no rights to send/i.test(msg) || /not enough rights/i.test(msg)) {
+    return "Botda guruhga xabar yuborish huquqi yo'q. Guruh sozlamalarida botga xabar yozish ruxsatini bering.";
+  }
+  if (/migrate_to_chat_id/i.test(msg)) {
+    const match = msg.match(/migrate_to_chat_id[:\s]+(-?\d+)/);
+    const newId = match ? match[1] : "";
+    return `Guruh superguruhga aylangan. Yangi FEEDBACK_GROUP_ID: ${newId || "yangi guruh ID si"}`;
+  }
+  return msg || "Yuborib bo'lmadi.";
+}
+
+async function saveFeedbackToStorage(record) {
+  // 1. Google Drive Metadata (Kafolatli zaxira)
+  try {
+    const { readCatalogMetadataStrict, writeCatalogMetadata } = require("./_lib/google-drive");
+    const metadataState = await readCatalogMetadataStrict();
+    if (metadataState?.file && metadataState?.data) {
+      const data = metadataState.data;
+      if (!Array.isArray(data.feedbacks)) data.feedbacks = [];
+      data.feedbacks.unshift(record);
+      if (data.feedbacks.length > 500) data.feedbacks.length = 500;
+      await writeCatalogMetadata(data, metadataState.file);
+    }
+  } catch (driveErr) {
+    console.error("Save feedback to Drive metadata error:", driveErr.message);
+  }
+
+  // 2. Cloudflare R2 backup
+  try {
+    const existing = (await getJsonFromR2SignedStrict("settings/feedbacks.json", [])) || [];
+    const list = Array.isArray(existing) ? existing : [];
+    list.unshift(record);
+    if (list.length > 500) list.length = 500;
+    await putJsonToR2("settings/feedbacks.json", list);
+  } catch (r2Err) {
+    // Blob fallback
+    try {
+      const existingBlob = (await readBlobJsonStrict("settings/feedbacks.json", [])) || [];
+      const listBlob = Array.isArray(existingBlob) ? existingBlob : [];
+      listBlob.unshift(record);
+      if (listBlob.length > 500) listBlob.length = 500;
+      await writeBlobJson("settings/feedbacks.json", listBlob);
+    } catch (_) {}
+  }
+}
+
+async function getFeedbacksFromStorage() {
+  try {
+    const { readCatalogMetadataStrict } = require("./_lib/google-drive");
+    const metadataState = await readCatalogMetadataStrict();
+    if (Array.isArray(metadataState?.data?.feedbacks)) {
+      return metadataState.data.feedbacks;
+    }
+  } catch (_) {}
+
+  try {
+    const r2List = await getJsonFromR2SignedStrict("settings/feedbacks.json", []);
+    if (Array.isArray(r2List)) return r2List;
+  } catch (_) {}
+
+  return [];
+}
+
 async function handleWebappFeedback(request, response) {
   setCorsHeaders(request, response);
   if (request.method === "OPTIONS") { response.status(204).end(); return; }
+
+  if (request.method === "GET") {
+    const { isAdminAuthorized } = require("./_lib/auth");
+    if (!isAdminAuthorized(request)) {
+      response.status(401).json({ ok: false, error: "Avtorizatsiya talab qilinadi." });
+      return;
+    }
+    const feedbacks = await getFeedbacksFromStorage();
+    response.status(200).json({ ok: true, feedbacks });
+    return;
+  }
+
   if (request.method !== "POST") { response.status(405).json({ ok: false, error: "POST kerak" }); return; }
 
   const botToken = getBotToken();
   const groupId = getFeedbackGroupId();
-  if (!botToken || !groupId) {
-    response.status(500).json({ ok: false, error: "Feedback sozlanmagan." });
+  if (!botToken) {
+    response.status(500).json({ ok: false, error: "BOT_TOKEN sozlanmagan." });
     return;
   }
 
@@ -76,19 +159,55 @@ async function handleWebappFeedback(request, response) {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ") || "—";
   const username = user.username ? `@${user.username}` : "—";
 
+  const feedbackRecord = {
+    id: `fb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    created_at: new Date().toISOString(),
+    telegram_id: userId,
+    name,
+    username,
+    text,
+    delivered: false,
+    delivery_error: null,
+  };
+
   const formatted =
     `📨 <b>Yangi murojaat</b>\n` +
     `<b>Kim:</b> ${escapeHtml(name)} (${escapeHtml(username)})\n` +
     `<b>ID:</b> <code>${escapeHtml(userId)}</code>\n` +
     `\n${escapeHtml(text)}`;
 
+  if (!groupId) {
+    // Guruh ID sozlanmagan bo'lsa ham xabarni zaxiraga saqlab qolamiz
+    await saveFeedbackToStorage(feedbackRecord).catch(() => {});
+    response.status(500).json({
+      ok: false,
+      error: "FEEDBACK_GROUP_ID sozlanmagan. Vercel Environment Variables orqali guruh ID sini kiriting.",
+    });
+    return;
+  }
+
+  let sendError = null;
   try {
     await sendMessage(groupId, formatted);
-    response.status(200).json({ ok: true });
+    feedbackRecord.delivered = true;
   } catch (err) {
-    console.error("Feedback send error:", err.message);
-    response.status(500).json({ ok: false, error: "Yuborib bo'lmadi." });
+    sendError = err?.message || String(err);
+    feedbackRecord.delivery_error = sendError;
+    console.error("Feedback telegram send error:", sendError);
   }
+
+  // Xabarni hech qachon yo'qotmaslik uchun doim Drive/R2 zaxirasiga saqlaymiz:
+  await saveFeedbackToStorage(feedbackRecord).catch((e) => {
+    console.error("Feedback backup error:", e.message);
+  });
+
+  if (sendError) {
+    const errorMsg = formatTelegramError(sendError);
+    response.status(500).json({ ok: false, error: errorMsg });
+    return;
+  }
+
+  response.status(200).json({ ok: true });
 }
 
 function bust(url, anchor = "") {
