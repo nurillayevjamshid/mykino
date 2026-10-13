@@ -7,6 +7,40 @@
 (function () {
   "use strict";
 
+  // Fon va lock screen rejimida YouTube pleer to'xtab qolmasligi uchun
+  // document.hidden va document.visibilityState ni doimiy 'visible' qilib mocklaymiz
+  try {
+    Object.defineProperty(document, "hidden", {
+      get: () => false,
+      configurable: true,
+    });
+    Object.defineProperty(document, "visibilityState", {
+      get: () => "visible",
+      configurable: true,
+    });
+    Object.defineProperty(document, "webkitHidden", {
+      get: () => false,
+      configurable: true,
+    });
+    Object.defineProperty(document, "webkitVisibilityState", {
+      get: () => "visible",
+      configurable: true,
+    });
+  } catch (_) {}
+
+  // YouTube iframe ga 'visibilitychange' va 'pagehide' voqealari borib, pleerni to'xtatib
+  // qo'ymasligi uchun capture bosqichida to'xtatamiz (foydalanuvchi o'zi pauza bosmagan paytda).
+  try {
+    const suppressVisibility = (e) => {
+      if (musicUserPlaying && !userManuallyPaused) {
+        e.stopImmediatePropagation();
+      }
+    };
+    window.addEventListener("visibilitychange", suppressVisibility, true);
+    document.addEventListener("visibilitychange", suppressVisibility, true);
+    window.addEventListener("pagehide", suppressVisibility, true);
+  } catch (_) {}
+
   // ===== i18n (musiqa moduli uchun mahalliy tarjima jadvali) =====
   // kino.js dagi __i18n.lang ga ergashadi. Yangi til qo'shish uchun shu
   // ob'ektga til kodi va kalit-qiymat juftlarini qo'shish kifoya.
@@ -1659,6 +1693,7 @@
     return silentAudioEl;
   }
 
+  let bgAudioContext = null;
   function playSilentAnchor() {
     try {
       if ("audioSession" in navigator) {
@@ -1672,12 +1707,36 @@
         if (p && typeof p.catch === "function") p.catch(() => {});
       } catch (_) {}
     }
+    // Web Audio API AudioContext anchor (inson qulog'iga eshitilmas, lekin OS audio DAC ni faol tutadi)
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        if (!bgAudioContext || bgAudioContext.state === "closed") {
+          bgAudioContext = new AudioCtx();
+        }
+        if (bgAudioContext.state === "suspended") {
+          bgAudioContext.resume().catch(() => {});
+        }
+        if (!bgAudioContext.__activeSource) {
+          const osc = bgAudioContext.createOscillator();
+          const gain = bgAudioContext.createGain();
+          gain.gain.value = 0.0001;
+          osc.connect(gain);
+          gain.connect(bgAudioContext.destination);
+          osc.start();
+          bgAudioContext.__activeSource = osc;
+        }
+      }
+    } catch (_) {}
   }
 
   function pauseSilentAnchor() {
     const el = silentAudioEl;
     if (el) {
       try { el.pause(); } catch (_) {}
+    }
+    if (bgAudioContext && bgAudioContext.state === "running") {
+      try { bgAudioContext.suspend().catch(() => {}); } catch (_) {}
     }
   }
 
@@ -2011,10 +2070,14 @@
               }
               startMiniProgress();
             } else if (e.data === S.PAUSED) {
-              // Agar foydalanuvchi O'ZI pauza bosmagan bo'lsa (telefon ekrani o'chirilgan holatda):
-              // musicUserPlaying = true holatida qoldiramiz, shunda ekran ochilishi yoki
-              // lock screendan buyruq kelishi bilan zudlik bilan qayta yangraydi!
-              if (!userManuallyPaused) {
+              // Agar foydalanuvchi O'ZI pauza bosmagan bo'lsa (telefon ekrani o'chirilgan yoki qulflangan holatda):
+              // musicUserPlaying = true holatida qoladi va pleer zudlik bilan qayta yangraydi!
+              if (!userManuallyPaused && musicUserPlaying) {
+                setTimeout(() => {
+                  if (musicUserPlaying && !userManuallyPaused && ytPlayer?.playVideo) {
+                    try { ytPlayer.playVideo(); } catch (_) {}
+                  }
+                }, 100);
                 return;
               }
               musicUserPlaying = false;
@@ -2100,6 +2163,16 @@
         }
         syncMediaPositionState();
       } catch (_) {}
+
+      // Watchdog: Agar telefon qulflanganda YouTube o'zicha pauza holatiga tushib qolsa, avtomatik uyg'otamiz:
+      if (musicUserPlaying && !userManuallyPaused && currentPlayingType === "youtube" && ytReady && ytPlayer) {
+        try {
+          const s = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1;
+          if (s === 2) { // 2 = PAUSED
+            ytPlayer.playVideo();
+          }
+        } catch (_) {}
+      }
     }, 500);
   }
 
