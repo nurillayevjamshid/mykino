@@ -927,17 +927,18 @@ function renderUsers() {
 
 // Create sidebar overlay for mobile
 function createSidebarOverlay() {
-  if (document.getElementById('sidebarOverlay')) return;
-
-  const overlay = document.createElement('div');
-  overlay.className = 'sidebar-overlay';
-  overlay.id = 'sidebarOverlay';
-  overlay.addEventListener('click', () => {
+  let overlay = document.getElementById('sidebarOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    overlay.id = 'sidebarOverlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.onclick = () => {
     sidebar?.classList.remove('open');
     menuToggle?.classList.remove('active');
     overlay.classList.remove('active');
-  });
-  document.body.appendChild(overlay);
+  };
 }
 
 function commandPaletteItems(query = '') {

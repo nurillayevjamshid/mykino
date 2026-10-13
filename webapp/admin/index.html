@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#3d4adf">
   <title>NTV - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20261013-ticker">
+  <link rel="stylesheet" href="/admin/admin.css?v=20261014-mobile-first">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/glass-theme.css?v=20261007-glass-cleanup2" />
@@ -123,6 +123,9 @@
         </button>
       </div>
     </aside>
+
+    <!-- Sidebar Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -840,7 +843,7 @@
                   <small style="color:#888;">Agar rasm bo'lsa, matn caption sifatida ketadi (1024 belgi maks). <strong>Faqat JPG/PNG/WebP</strong> — SVG/GIF qabul qilinmaydi.</small>
                 </div>
 
-                <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group broadcast-buttons-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                   <div>
                     <label>Tugma matni (ixtiyoriy)</label>
                     <input type="text" id="broadcastButtonText" class="form-input" placeholder="Masalan: Kinoga o'tish">
@@ -899,7 +902,7 @@
               </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,0.8fr);gap:24px;align-items:start;">
+            <div class="ticker-editor-grid" style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,0.8fr);gap:24px;align-items:start;">
               <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
                 <div class="form-group">
                   <label for="tickerText">E'lon matni <span style="color:#ef4444;">*</span></label>
@@ -970,7 +973,7 @@
                 </div>
 
                 <!-- Matn o'lchami, qalinligi va tezligi -->
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div class="ticker-controls-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                   <div class="form-group">
                     <label for="tickerFontSize">O'lcham (px)</label>
                     <select id="tickerFontSize" class="form-input">
