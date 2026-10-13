@@ -4729,6 +4729,7 @@ watchResumeChip?.addEventListener("click", (event) => {
 
 let movieModalCloseTimer = null;
 let isClosingFromPopstate = false;
+let isOpeningPlayerFromModal = false;
 
 function openMovie(movie) {
   if (movieModalCloseTimer) {
@@ -6096,7 +6097,26 @@ async function openVideoPlayer(movie, options = {}) {
     markMovieWatched(movie, pendingResumeTime);
     syncWatchedCount();
   }
-  if (movieModal.open) movieModal.close();
+  if (movieModal && movieModal.open) {
+    isOpeningPlayerFromModal = true;
+    try {
+      if (history.state && history.state.movieDetail) {
+        history.replaceState({ videoPlayer: true }, "");
+      }
+    } catch (_) {}
+    try {
+      movieModal.close();
+    } catch (_) {
+      try { movieModal.removeAttribute("open"); } catch (__) {}
+    }
+    isOpeningPlayerFromModal = false;
+  } else {
+    try {
+      if (!history.state || !history.state.videoPlayer) {
+        history.pushState({ videoPlayer: true }, "");
+      }
+    } catch (_) {}
+  }
   videoTitle.textContent = movie.title || "Kino";
   videoPlayer.hidden = false;
   document.body.classList.add("is-player-open");
@@ -6184,7 +6204,8 @@ async function openVideoPlayer(movie, options = {}) {
   renderVideoSource(videoUrl, movie, { requestId });
 }
 
-function closeVideoPlayer() {
+function closeVideoPlayer(options = {}) {
+  const fromPopstate = Boolean(options?.fromPopstate);
   // Pleyer yopilishidan oldin pending progressni darhol server'ga jo'natamiz —
   // foydalanuvchi keyingi kinoga o'tsa yoki appni minimallashtirsa pozitsiya
   // yo'qolmasin. Beacon flush pagehide/visibilitychange'da ham ishlaydi.
@@ -6233,6 +6254,9 @@ function closeVideoPlayer() {
   exitPipIfActive();
   if (isAnyFullscreen()) exitFullscreenAndLandscape();
   tgBackUnregister("video-player");
+  if (!fromPopstate && history.state && (history.state.videoPlayer || history.state.movieDetail)) {
+    try { history.back(); } catch (_) {}
+  }
 }
 
 // Tashqi modullar (masalan, potcasts.js) uchun kino pleyerini standalone YouTube
@@ -8226,7 +8250,9 @@ movieModal?.addEventListener("close", () => {
     clearTimeout(movieModalCloseTimer);
     movieModalCloseTimer = null;
   }
-  stopMoviePreload();
+  if (!isOpeningPlayerFromModal) {
+    stopMoviePreload();
+  }
   closeCommentsSheet();
   document.body.classList.remove("is-modal-open");
   movieModal.classList.remove("is-sheet-open", "is-closing", "is-dragging");
@@ -8234,19 +8260,21 @@ movieModal?.addEventListener("close", () => {
   movieModal.scrollTop = 0;
   movieModal.querySelector(".modal-content")?.scrollTo?.({ top: 0, left: 0 });
   tgBackUnregister("movie-modal");
-  if (!isClosingFromPopstate && history.state && history.state.movieDetail) {
+  if (!isClosingFromPopstate && !isOpeningPlayerFromModal && history.state && history.state.movieDetail) {
     try { history.back(); } catch (_) {}
   }
   isClosingFromPopstate = false;
 });
 
 window.addEventListener("popstate", () => {
+  if (videoPlayer && !videoPlayer.hidden) {
+    closeVideoPlayer({ fromPopstate: true });
+    return;
+  }
   if (movieModal?.open) {
     isClosingFromPopstate = true;
     closeMovieModalAnimated();
-  }
-  if (videoPlayer && !videoPlayer.hidden) {
-    closeVideoPlayer();
+    return;
   }
   if (typeof closeMovieContextMenu === "function") {
     try { closeMovieContextMenu(); } catch (_) {}
@@ -8409,6 +8437,9 @@ try {
 document.addEventListener("click", (event) => {
   const watchTarget = event.target.closest("#watchButton");
   if (watchTarget) {
+    event.preventDefault();
+    event.stopPropagation();
+    try { haptic.medium(); } catch (_) {}
     const movieId = watchTarget.dataset.movieId || "";
     const movie = movies.find((item) => String(item.id) === movieId) || activeMovie;
     openVideoPlayer(movie, { startFromBeginning: true });
@@ -8416,6 +8447,7 @@ document.addEventListener("click", (event) => {
   }
 
   if (event.target.closest("[data-video-close]")) {
+    event.preventDefault();
     closeVideoPlayer();
   }
 });
