@@ -747,11 +747,27 @@ html[data-theme="light"] .modal-poster__zoom-badge {
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   overscroll-behavior-y: contain !important;
-  padding: 6px 18px 28px !important;
-  background: transparent !important;
+  padding: 20px 20px 32px !important;
   margin-top: -28px !important;
   position: relative;
   z-index: 5;
+  border-radius: 28px 28px 0 0 !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+  backdrop-filter: blur(28px) saturate(160%) !important;
+}
+
+html[data-theme="light"] .movie-modal .modal-content {
+  background: linear-gradient(165deg, rgba(246, 248, 252, 0.96) 0%, rgba(232, 238, 246, 0.94) 100%) !important;
+  border: 1px solid rgba(116, 145, 174, 0.28) !important;
+  border-bottom: none !important;
+  box-shadow: 0 -12px 36px rgba(45, 65, 90, 0.14) !important;
+}
+
+html[data-theme="dark"] .movie-modal .modal-content {
+  background: linear-gradient(175deg, rgba(16, 27, 44, 0.96) 0%, rgba(9, 17, 31, 0.98) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-bottom: none !important;
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.55) !important;
 }
 
 .movie-modal .modal-info-card {
@@ -760,21 +776,20 @@ html[data-theme="light"] .modal-poster__zoom-badge {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  border-radius: 28px;
-  padding: 18px 16px 20px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 4px 0 10px !important;
 }
 
-html[data-theme="dark"] .movie-modal .modal-info-card {
-  background: rgba(14, 23, 38, 0.84);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-}
-
+html[data-theme="dark"] .movie-modal .modal-info-card,
 html[data-theme="light"] .movie-modal .modal-info-card {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 0 12px 36px rgba(45, 65, 90, 0.12);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
+
 
 /* ============================================================
    Telegram Photo Viewer Lightbox for Movie Posters
