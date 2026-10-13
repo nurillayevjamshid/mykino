@@ -6858,8 +6858,12 @@ function renderPodcastProfileModal() {
   }).catch(() => {});
   const entries = getPodcastHistory();
 
-  // Sarlavha va label'larni podcast uchun o'zgartirish
-  if (profileName) profileName.textContent = plainLabel(t("podcastUserLabel"));
+  // Telegram foydalanuvchi ma'lumotlarini (ism, nickname, avatar, ID) o'rnatish
+  const user = getTelegramUser();
+  applyTelegramUser();
+  if (!user && profileName) {
+    profileName.textContent = plainLabel(t("podcastUserLabel"));
+  }
   if (watchedHistoryTitle) watchedHistoryTitle.textContent = plainLabel(t("podcastWatchedTitle"));
   if (watchedMovieEmpty) watchedMovieEmpty.textContent = plainLabel(t("podcastHistoryEmpty"));
   if (statWatchedLabel) statWatchedLabel.textContent = plainLabel(t("podcastViewLabel"));
@@ -7899,57 +7903,68 @@ function syncSidebarSectionItems() {
   });
 
   // Lower items (Sevimlilar / Playlist / Saqlangan va Profil)
+  const lowerDivider = document.getElementById("sidebarLowerDivider");
   const lower1 = document.getElementById("sidebarLowerItem1") || document.querySelector(".sidebar__nav [data-sidebar-action='favorites'], .sidebar__nav [data-sidebar-action='music-playlists'], .sidebar__nav [data-sidebar-action='podcast-saved']");
   const lower2 = document.getElementById("sidebarLowerItem2") || document.querySelector(".sidebar__nav [data-sidebar-action='profile'], .sidebar__nav [data-sidebar-action='music-profile'], .sidebar__nav [data-sidebar-action='podcast-profile']");
   if (lower1 && lower2) {
-    if (section === "music") {
-      lower1.dataset.sidebarAction = "music-playlists";
-      lower1.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="3" y1="6" x2="14" y2="6"></line>
-        <line x1="3" y1="12" x2="14" y2="12"></line>
-        <line x1="3" y1="18" x2="10" y2="18"></line>
-        <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
-      </svg>
-      <span data-i18n="playlistNav">${plainLabel(t("playlistNav"))}</span>`;
-
-      lower2.dataset.sidebarAction = "music-profile";
-      lower2.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="8" r="4"></circle>
-        <path d="M4 21a8 8 0 0 1 16 0"></path>
-      </svg>
-      <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
-    } else if (section === "podcasts") {
-      lower1.dataset.sidebarAction = "podcast-saved";
-      lower1.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
-      </svg>
-      <span data-i18n="savedNav">${plainLabel(t("savedNav"))}</span>`;
-
-      lower2.dataset.sidebarAction = "podcast-profile";
-      lower2.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="8" r="4"></circle>
-        <path d="M4 21a8 8 0 0 1 16 0"></path>
-      </svg>
-      <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
+    if (section === "fifa") {
+      if (lowerDivider) lowerDivider.hidden = true;
+      lower1.hidden = true;
+      lower2.hidden = true;
     } else {
-      lower1.dataset.sidebarAction = "favorites";
-      lower1.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
-      </svg>
-      <span data-i18n="favoritesNav">${plainLabel(t("favoritesNav"))}</span>`;
+      if (lowerDivider) lowerDivider.hidden = false;
+      lower1.hidden = false;
+      lower2.hidden = false;
 
-      lower2.dataset.sidebarAction = "profile";
-      lower2.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="8" r="4"></circle>
-        <path d="M4 21a8 8 0 0 1 16 0"></path>
-      </svg>
-      <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
+      if (section === "music") {
+        lower1.dataset.sidebarAction = "music-playlists";
+        lower1.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="14" y2="6"></line>
+          <line x1="3" y1="12" x2="14" y2="12"></line>
+          <line x1="3" y1="18" x2="10" y2="18"></line>
+          <polygon points="17 14 17 22 22 18" fill="currentColor" stroke="none"></polygon>
+        </svg>
+        <span data-i18n="playlistNav">${plainLabel(t("playlistNav"))}</span>`;
+
+        lower2.dataset.sidebarAction = "music-profile";
+        lower2.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4 21a8 8 0 0 1 16 0"></path>
+        </svg>
+        <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
+      } else if (section === "podcasts") {
+        lower1.dataset.sidebarAction = "podcast-saved";
+        lower1.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+        </svg>
+        <span data-i18n="savedNav">${plainLabel(t("savedNav"))}</span>`;
+
+        lower2.dataset.sidebarAction = "podcast-profile";
+        lower2.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4 21a8 8 0 0 1 16 0"></path>
+        </svg>
+        <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
+      } else {
+        lower1.dataset.sidebarAction = "favorites";
+        lower1.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+        </svg>
+        <span data-i18n="favoritesNav">${plainLabel(t("favoritesNav"))}</span>`;
+
+        lower2.dataset.sidebarAction = "profile";
+        lower2.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4 21a8 8 0 0 1 16 0"></path>
+        </svg>
+        <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
+      }
     }
   }
 
