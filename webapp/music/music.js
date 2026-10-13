@@ -1866,7 +1866,7 @@
     requestMusicWakeLock();
     playSilentAnchor();
 
-    if (nativeAudioPlayer) {
+    if (currentPlayingType === "audio" && nativeAudioPlayer) {
       try { nativeAudioPlayer.play(); } catch (_) {}
     } else if (ytReady && ytPlayer?.playVideo) {
       try { ytPlayer.playVideo(); } catch (_) {}
@@ -1890,7 +1890,7 @@
     releaseMusicWakeLock();
     pauseSilentAnchor();
 
-    if (nativeAudioPlayer) {
+    if (currentPlayingType === "audio" && nativeAudioPlayer) {
       try { nativeAudioPlayer.pause(); } catch (_) {}
     } else if (ytReady && ytPlayer?.pauseVideo) {
       try { ytPlayer.pauseVideo(); } catch (_) {}
@@ -1907,15 +1907,20 @@
   }
 
   function toggleMusicPlayback() {
-    if (nativeAudioPlayer) {
+    if (currentPlayingType === "audio" && nativeAudioPlayer) {
       if (nativeAudioPlayer.paused) resumeMusicPlayback();
       else pauseMusicPlayback();
       return;
     }
-    if (!ytReady || !ytPlayer) return;
+    if (!ytReady || !ytPlayer) {
+      if (musicUserPlaying) pauseMusicPlayback();
+      else resumeMusicPlayback();
+      return;
+    }
     try {
       const s = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1;
-      if (s === YT.PlayerState.PLAYING) pauseMusicPlayback();
+      const isPlaying = (window.YT?.PlayerState && s === window.YT.PlayerState.PLAYING) || s === 1;
+      if (isPlaying) pauseMusicPlayback();
       else resumeMusicPlayback();
     } catch (_) {
       if (musicUserPlaying) pauseMusicPlayback();
@@ -1963,7 +1968,7 @@
     try {
       ytPlayer = new YT.Player("ytPlayer", {
         height: "100%", width: "100%",
-        playerVars: { playsinline: 1, controls: 0, autoplay: 0, modestbranding: 1, rel: 0, iv_load_policy: 3 },
+        playerVars: { playsinline: 1, controls: 0, autoplay: 1, modestbranding: 1, rel: 0, iv_load_policy: 3 },
         events: {
           onReady: () => {
             ytReady = true;
@@ -2000,6 +2005,11 @@
               }
               if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
               if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+              if (musicFullPlayerArt) {
+                musicFullPlayerArt.classList.add("is-playing");
+                musicFullPlayerArt.classList.remove("has-video");
+              }
+              startMiniProgress();
             } else if (e.data === S.PAUSED) {
               // Agar foydalanuvchi O'ZI pauza bosmagan bo'lsa (telefon ekrani o'chirilgan holatda):
               // musicUserPlaying = true holatida qoldiramiz, shunda ekran ochilishi yoki
@@ -2015,6 +2025,9 @@
               }
               if (miniPlayerToggle) miniPlayerToggle.dataset.state = "play";
               if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "play";
+              if (musicFullPlayerArt) {
+                musicFullPlayerArt.classList.remove("is-playing");
+              }
             } else if (e.data === S.ENDED) {
               releaseMusicWakeLock();
               if ("mediaSession" in navigator) {
@@ -2026,6 +2039,11 @@
           onError: (e) => {
             console.warn("YT player error", e?.data);
             if (musicErrorText) musicErrorText.textContent = M("embedRestricted");
+            setTimeout(() => {
+              if (musicUserPlaying && !userManuallyPaused) {
+                try { autoAdvance(); } catch (_) {}
+              }
+            }, 1200);
           },
         },
       });
@@ -2040,6 +2058,11 @@
       initYtPlayerForMusic();
     };
     if (window.YT?.Player) initYtPlayerForMusic();
+    try {
+      if (typeof ensureYouTubeApi === "function") {
+        ensureYouTubeApi().then(() => initYtPlayerForMusic()).catch(() => {});
+      }
+    } catch (_) {}
   })();
 
   function stopMiniProgress() {
@@ -2102,20 +2125,36 @@
     showMiniPlayer();
     openMusicFullPlayer(track);
 
-    currentPlayingType = "audio";
-    try { ytPlayer?.pauseVideo?.(); } catch (_) {}
-    const audio = getNativeAudioPlayer();
-    if (audio) {
-      const audioUrl = track.audioUrl || (track.url && /\.(mp3|m4a|aac|ogg|wav)(\?.*)?$/i.test(track.url) ? track.url : null);
-      const streamSrc = audioUrl || (track.youtubeId ? `/api/music-stream?id=${encodeURIComponent(track.youtubeId)}` : "");
-      if (streamSrc) {
-        if (audio.src !== streamSrc && !audio.src.endsWith(streamSrc)) {
-          audio.src = streamSrc;
+    const directAudioUrl = track.audioUrl || (track.url && /\.(mp3|m4a|aac|ogg|wav)(\?.*)?$/i.test(track.url) ? track.url : null);
+    if (directAudioUrl) {
+      currentPlayingType = "audio";
+      try { ytPlayer?.pauseVideo?.(); } catch (_) {}
+      const audio = getNativeAudioPlayer();
+      if (audio) {
+        if (audio.src !== directAudioUrl && !audio.src.endsWith(directAudioUrl)) {
+          audio.src = directAudioUrl;
         }
         const p = audio.play();
         if (p && typeof p.catch === "function") {
           p.catch((err) => console.warn("audio play catch:", err));
         }
+      }
+    } else {
+      currentPlayingType = "youtube";
+      if (nativeAudioPlayer) {
+        try { nativeAudioPlayer.pause(); } catch (_) {}
+      }
+      if (ytReady && ytPlayer && typeof ytPlayer.loadVideoById === "function") {
+        try {
+          ytPlayer.loadVideoById(track.youtubeId);
+          if (ytPlayer.playVideo) ytPlayer.playVideo();
+        } catch (_) {
+          ytPendingId = track.youtubeId;
+          try { ensureYouTubeApi?.().then(() => initYtPlayerForMusic()); } catch (_) {}
+        }
+      } else {
+        ytPendingId = track.youtubeId;
+        try { ensureYouTubeApi?.().then(() => initYtPlayerForMusic()); } catch (_) {}
       }
     }
 
