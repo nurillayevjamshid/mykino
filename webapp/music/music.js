@@ -7,40 +7,6 @@
 (function () {
   "use strict";
 
-  // Fon va lock screen rejimida YouTube pleer to'xtab qolmasligi uchun
-  // document.hidden va document.visibilityState ni doimiy 'visible' qilib mocklaymiz
-  try {
-    Object.defineProperty(document, "hidden", {
-      get: () => false,
-      configurable: true,
-    });
-    Object.defineProperty(document, "visibilityState", {
-      get: () => "visible",
-      configurable: true,
-    });
-    Object.defineProperty(document, "webkitHidden", {
-      get: () => false,
-      configurable: true,
-    });
-    Object.defineProperty(document, "webkitVisibilityState", {
-      get: () => "visible",
-      configurable: true,
-    });
-  } catch (_) {}
-
-  // YouTube iframe ga 'visibilitychange' va 'pagehide' voqealari borib, pleerni to'xtatib
-  // qo'ymasligi uchun capture bosqichida to'xtatamiz (foydalanuvchi o'zi pauza bosmagan paytda).
-  try {
-    const suppressVisibility = (e) => {
-      if (musicUserPlaying && !userManuallyPaused) {
-        e.stopImmediatePropagation();
-      }
-    };
-    window.addEventListener("visibilitychange", suppressVisibility, true);
-    document.addEventListener("visibilitychange", suppressVisibility, true);
-    window.addEventListener("pagehide", suppressVisibility, true);
-  } catch (_) {}
-
   // ===== i18n (musiqa moduli uchun mahalliy tarjima jadvali) =====
   // kino.js dagi __i18n.lang ga ergashadi. Yangi til qo'shish uchun shu
   // ob'ektga til kodi va kalit-qiymat juftlarini qo'shish kifoya.
@@ -1593,7 +1559,6 @@
   // Telefon ekrani bloklanganda yoki fonda musiqa to'xtab qolmasligi,
   // tinglash paytida ekran o'z-o'zidan o'chib qolmasligi (Screen Wake Lock)
   // hamda Telegram / OS bildirishnoma panelida to'liq boshqaruv uchun.
-  let silentAudioEl = null;
   let nativeAudioPlayer = null;
   let currentPlayingType = "youtube"; // "youtube" | "audio"
   let musicUserPlaying = false;
@@ -1621,123 +1586,22 @@
     } catch (_) {}
   }
 
-  function createSilentAudioBlob() {
-    try {
-      const sampleRate = 8000;
-      const numSamples = sampleRate * 2; // 2 soniyali tovushsiz WAV
-      const buffer = new ArrayBuffer(44 + numSamples);
-      const view = new DataView(buffer);
-      // "RIFF"
-      view.setUint32(0, 0x52494646, false);
-      view.setUint32(4, 36 + numSamples, true);
-      // "WAVE"
-      view.setUint32(8, 0x57415645, false);
-      // "fmt "
-      view.setUint32(12, 0x666d7420, false);
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true); // PCM format
-      view.setUint16(22, 1, true); // mono
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate, true); // byte rate
-      view.setUint16(32, 1, true); // block align
-      view.setUint16(34, 8, true); // 8-bit
-      // "data"
-      view.setUint32(36, 0x64617461, false);
-      view.setUint32(40, numSamples, true);
-      for (let i = 0; i < numSamples; i++) {
-        view.setUint8(44 + i, 128); // 8-bit PCM 128 = to'liq sukunat
-      }
-      return new Blob([buffer], { type: "audio/wav" });
-    } catch (_) {
-      return null;
-    }
-  }
-
-  function getSilentAudioElement() {
-    if (silentAudioEl) return silentAudioEl;
-    try {
-      const audio = document.createElement("audio");
-      audio.setAttribute("id", "musicBgAudioAnchor");
-      audio.setAttribute("playsinline", "");
-      audio.setAttribute("webkit-playsinline", "");
-      audio.setAttribute("preload", "auto");
-      audio.loop = true;
-      audio.volume = 0.05; // OS audio fokusni yo'qotmasligi uchun
-      const blob = createSilentAudioBlob();
-      if (blob && window.URL?.createObjectURL) {
-        audio.src = URL.createObjectURL(blob);
-      } else {
-        audio.src = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
-      }
-      audio.style.position = "fixed";
-      audio.style.left = "-9999px";
-      audio.style.width = "1px";
-      audio.style.height = "1px";
-      audio.style.opacity = "0.01";
-      audio.style.pointerEvents = "none";
-      document.body.appendChild(audio);
-
-      audio.addEventListener("ended", () => {
-        if (musicUserPlaying && !userManuallyPaused) {
-          try { audio.play(); } catch (_) {}
-        }
-      });
-      audio.addEventListener("pause", () => {
-        if (musicUserPlaying && !userManuallyPaused) {
-          try { audio.play(); } catch (_) {}
-        }
-      });
-
-      silentAudioEl = audio;
-    } catch (_) {}
-    return silentAudioEl;
-  }
-
-  let bgAudioContext = null;
   function playSilentAnchor() {
     try {
       if ("audioSession" in navigator) {
         navigator.audioSession.type = "playback";
       }
     } catch (_) {}
-    const el = getSilentAudioElement();
-    if (el) {
-      try {
-        const p = el.play();
-        if (p && typeof p.catch === "function") p.catch(() => {});
-      } catch (_) {}
-    }
-    // Web Audio API AudioContext anchor (inson qulog'iga eshitilmas, lekin OS audio DAC ni faol tutadi)
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        if (!bgAudioContext || bgAudioContext.state === "closed") {
-          bgAudioContext = new AudioCtx();
-        }
-        if (bgAudioContext.state === "suspended") {
-          bgAudioContext.resume().catch(() => {});
-        }
-        if (!bgAudioContext.__activeSource) {
-          const osc = bgAudioContext.createOscillator();
-          const gain = bgAudioContext.createGain();
-          gain.gain.value = 0.0001;
-          osc.connect(gain);
-          gain.connect(bgAudioContext.destination);
-          osc.start();
-          bgAudioContext.__activeSource = osc;
-        }
-      }
-    } catch (_) {}
   }
 
-  function pauseSilentAnchor() {
-    const el = silentAudioEl;
-    if (el) {
-      try { el.pause(); } catch (_) {}
-    }
-    if (bgAudioContext && bgAudioContext.state === "running") {
-      try { bgAudioContext.suspend().catch(() => {}); } catch (_) {}
-    }
+  function pauseSilentAnchor() {}
+
+  function ensureYtAudio() {
+    if (!ytReady || !ytPlayer) return;
+    try {
+      if (typeof ytPlayer.unMute === "function") ytPlayer.unMute();
+      if (typeof ytPlayer.setVolume === "function") ytPlayer.setVolume(100);
+    } catch (_) {}
   }
 
   function getNativeAudioPlayer() {
@@ -1928,7 +1792,10 @@
     if (currentPlayingType === "audio" && nativeAudioPlayer) {
       try { nativeAudioPlayer.play(); } catch (_) {}
     } else if (ytReady && ytPlayer?.playVideo) {
-      try { ytPlayer.playVideo(); } catch (_) {}
+      try {
+        ensureYtAudio();
+        ytPlayer.playVideo();
+      } catch (_) {}
     }
 
     if ("mediaSession" in navigator) {
@@ -1989,30 +1856,42 @@
 
   // Ekran bloklanganda yoki boshqa ilovaga o'tilganda fon ijrosini davom ettirish
   try {
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        if (musicUserPlaying && !userManuallyPaused) {
-          playSilentAnchor();
+    const handleForegroundReturn = () => {
+      if (musicUserPlaying && !userManuallyPaused) {
+        requestMusicWakeLock();
+        playSilentAnchor();
+        if (currentPlayingType === "audio" && nativeAudioPlayer) {
+          try { nativeAudioPlayer.play(); } catch (_) {}
+        } else if (currentPlayingType === "youtube" && ytPlayer) {
+          try {
+            ensureYtAudio();
+            const s = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1;
+            if (s !== 1) ytPlayer.playVideo?.();
+          } catch (_) {}
         }
-      } else {
-        // Foydalanuvchi ekranni qayta yoqqanda yoki Telegram mini appga qaytganda:
-        // Agar foydalanuvchi o'zi pauza qilmagan bo'lsa, zudlik bilan avtomatik davom ettiramiz!
-        if (musicUserPlaying && !userManuallyPaused) {
-          requestMusicWakeLock();
-          playSilentAnchor();
-          if (currentPlayingType === "audio" && nativeAudioPlayer) {
-            try { nativeAudioPlayer.play(); } catch (_) {}
-          } else if (currentPlayingType === "youtube" && ytPlayer?.playVideo) {
-            try { ytPlayer.playVideo(); } catch (_) {}
-          }
-          if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
-          if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
-          if ("mediaSession" in navigator) {
-            try { navigator.mediaSession.playbackState = "playing"; } catch (_) {}
-          }
+        if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
+        if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+        if ("mediaSession" in navigator) {
+          try { navigator.mediaSession.playbackState = "playing"; } catch (_) {}
         }
       }
+    };
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) handleForegroundReturn();
     });
+    window.addEventListener("focus", handleForegroundReturn);
+  } catch (_) {}
+
+  // Har qanday ekran bosilganda YouTube ovozini majburiy yoqish (unMute gesture)
+  try {
+    const unlockAudioOnTouch = () => {
+      if (musicUserPlaying && !userManuallyPaused && currentPlayingType === "youtube") {
+        ensureYtAudio();
+      }
+    };
+    window.addEventListener("pointerdown", unlockAudioOnTouch, { passive: true });
+    window.addEventListener("touchend", unlockAudioOnTouch, { passive: true });
+    window.addEventListener("click", unlockAudioOnTouch, { passive: true });
   } catch (_) {}
 
   // ----- YouTube IFrame Player -----
@@ -2031,6 +1910,7 @@
         events: {
           onReady: () => {
             ytReady = true;
+            ensureYtAudio();
             try {
               const iframe = ytPlayer.getIframe?.() || document.querySelector("#musicFullPlayerYtSlot iframe");
               if (iframe) {
@@ -2042,6 +1922,7 @@
             if (ytPendingId) {
               try {
                 ytPlayer.loadVideoById(ytPendingId);
+                ensureYtAudio();
                 ytPlayer.playVideo?.();
                 musicUserPlaying = true;
                 userManuallyPaused = false;
@@ -2057,6 +1938,7 @@
             if (e.data === S.PLAYING) {
               musicUserPlaying = true;
               userManuallyPaused = false;
+              ensureYtAudio();
               requestMusicWakeLock();
               playSilentAnchor();
               if ("mediaSession" in navigator) {
@@ -2075,7 +1957,10 @@
               if (!userManuallyPaused && musicUserPlaying) {
                 setTimeout(() => {
                   if (musicUserPlaying && !userManuallyPaused && ytPlayer?.playVideo) {
-                    try { ytPlayer.playVideo(); } catch (_) {}
+                    try {
+                      ensureYtAudio();
+                      ytPlayer.playVideo();
+                    } catch (_) {}
                   }
                 }, 100);
                 return;
@@ -2164,11 +2049,15 @@
         syncMediaPositionState();
       } catch (_) {}
 
-      // Watchdog: Agar telefon qulflanganda YouTube o'zicha pauza holatiga tushib qolsa, avtomatik uyg'otamiz:
+      // Agar YouTube tasodifan muted holatga tushib qolsa, ovozini majburiy tiklaymiz:
       if (musicUserPlaying && !userManuallyPaused && currentPlayingType === "youtube" && ytReady && ytPlayer) {
         try {
+          if (typeof ytPlayer.isMuted === "function" && ytPlayer.isMuted()) {
+            ensureYtAudio();
+          }
           const s = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1;
           if (s === 2) { // 2 = PAUSED
+            ensureYtAudio();
             ytPlayer.playVideo();
           }
         } catch (_) {}
@@ -2220,6 +2109,7 @@
       if (ytReady && ytPlayer && typeof ytPlayer.loadVideoById === "function") {
         try {
           ytPlayer.loadVideoById(track.youtubeId);
+          ensureYtAudio();
           if (ytPlayer.playVideo) ytPlayer.playVideo();
         } catch (_) {
           ytPendingId = track.youtubeId;

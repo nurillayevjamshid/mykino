@@ -2107,7 +2107,7 @@ body.fullplayer-open .mini-player[aria-hidden="false"] {
   position: absolute;
   inset: 0;
   z-index: 1;
-  opacity: 0.001;
+  opacity: 1;
   pointer-events: none;
   overflow: hidden;
 }

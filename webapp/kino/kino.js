@@ -6959,7 +6959,7 @@ function ensureMusicCss() {
   __musicCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/music/music.css?v=20261013-bglock";
+    link.href = "/static/music/music.css?v=20261013-sound-unmute";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -6972,7 +6972,7 @@ function ensureMusicModule() {
   const cssPromise = ensureMusicCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music/music.js?v=20261013-bglock";
+    script.src = "/static/music/music.js?v=20261013-sound-unmute";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
