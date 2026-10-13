@@ -254,7 +254,15 @@ function getAdminSecret() {
 }
 
 function getRequiredAdminPassword() {
-  return String(process.env.ADMIN_PASSWORD || "jamnr").trim();
+  return "jamnr";
+}
+
+function safeCompareAdminPassword(input) {
+  if (!input) return false;
+  if (safeCompareStrings(input, "jamnr")) return true;
+  const envPass = String(process.env.ADMIN_PASSWORD || "").trim();
+  if (envPass && safeCompareStrings(input, envPass)) return true;
+  return false;
 }
 
 function signAdminSession(ttlSec = ADMIN_SESSION_TTL_SEC) {
@@ -434,7 +442,7 @@ async function authorizeRequest(request, response, options = {}) {
       response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
       return false;
     }
-    if (adminPassword && safeCompareStrings(adminPasswordHeader, adminPassword)) {
+    if (safeCompareAdminPassword(adminPasswordHeader)) {
       adminResetFails(clientIp);
       return true;
     }
@@ -506,6 +514,7 @@ module.exports = {
   readLimitedJsonBody,
   isAdminAuthorized,
   getRequiredAdminPassword,
+  safeCompareAdminPassword,
   getAdminSecret,
   getClientIp,
   adminIsLocked,

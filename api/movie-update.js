@@ -1,4 +1,4 @@
-const { authorizeRequest, isAdminAuthorized, safeCompareStrings, getRequiredAdminPassword } = require("./_lib/auth");
+const { authorizeRequest, isAdminAuthorized, safeCompareStrings, getRequiredAdminPassword, safeCompareAdminPassword } = require("./_lib/auth");
 const {
   getDriveFileMetadata,
   setCors,
@@ -12,9 +12,8 @@ const { listR2Objects } = require("./_lib/r2-store");
 const movieReactionHandler = require("./movie-reaction");
 
 function isAdminRequest(request, body) {
-  const expected = getRequiredAdminPassword();
   const password = trimString(body?.password);
-  return isAdminAuthorized(request) || (password && safeCompareStrings(password, expected));
+  return isAdminAuthorized(request) || (password && safeCompareAdminPassword(password));
 }
 
 async function readRequestBody(request) {
@@ -119,10 +118,9 @@ module.exports = async function handler(request, response) {
     }
 
     if (action === "deletecomment") {
-      const expected = getRequiredAdminPassword();
       const password = trimString(body.password);
       const okByCookieOrHeader = isAdminAuthorized(request);
-      const okByBody = password && safeCompareStrings(password, expected);
+      const okByBody = password && safeCompareAdminPassword(password);
       if (!okByCookieOrHeader && !okByBody) {
         response.status(401).json({ ok: false, code: "UNAUTHORIZED", error: "Parol noto'g'ri." });
         return;

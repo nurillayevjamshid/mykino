@@ -1,7 +1,7 @@
 const { readCatalogMetadata, setCors } = require("./_lib/google-drive");
 const { readBlobJson } = require("./_lib/blob-store");
 const { getJsonFromR2Signed } = require("./_lib/r2-store");
-const { isAdminAuthorized, safeCompareStrings, getRequiredAdminPassword } = require("./_lib/auth");
+const { isAdminAuthorized, safeCompareStrings, getRequiredAdminPassword, safeCompareAdminPassword } = require("./_lib/auth");
 
 const TELEGRAM_API = "https://api.telegram.org";
 const SEND_DELAY_MS = 50;
@@ -206,7 +206,7 @@ module.exports = async function handler(request, response) {
       return;
     }
     const okByCookieOrHeader = isAdminAuthorized(request);
-    const okByBody = password && safeCompareStrings(password, expectedPassword);
+    const okByBody = password && safeCompareAdminPassword(password);
     if (!okByCookieOrHeader && !okByBody) {
       response.status(401).json({ ok: false, error: "Parol noto'g'ri." });
       return;

@@ -11,6 +11,7 @@ const {
   adminRegisterFail,
   adminResetFails,
   getRequiredAdminPassword,
+  safeCompareAdminPassword,
   getAdminSecret,
 } = require("./_lib/auth");
 const {
@@ -317,7 +318,7 @@ async function handleAdminLogin(request, response) {
     response.status(503).json({ ok: false, code: "ADMIN_AUTH_NOT_CONFIGURED", error: "Admin autentifikatsiyasi production uchun sozlanmagan." });
     return;
   }
-  if (!password || !safeCompareStrings(password, expected)) {
+  if (!password || !safeCompareAdminPassword(password)) {
     adminRegisterFail(ip);
     response.status(401).json({ ok: false, code: "BAD_PASSWORD", error: "Parol noto'g'ri." });
     return;
@@ -372,8 +373,7 @@ module.exports = async function handler(request, response) {
   try {
     if (request.method === "GET") {
       const debugMatch = /[?&]_debug=([^&]+)/.exec(reqUrl);
-      const expectedAdmin = getRequiredAdminPassword();
-      const isDebug = debugMatch && safeCompareStrings(decodeURIComponent(debugMatch[1]), expectedAdmin);
+      const isDebug = debugMatch && safeCompareAdminPassword(decodeURIComponent(debugMatch[1]));
       const repoBackupUsers = readUsersFromRepoBackup();
       const [r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
         (async () => {
@@ -434,7 +434,7 @@ module.exports = async function handler(request, response) {
       const password = trimStr(body.password);
       const { isAdminAuthorized } = require("./_lib/auth");
       const okByCookieOrHeader = isAdminAuthorized(request);
-      const okByBody = password && safeCompareStrings(password, expected);
+      const okByBody = password && safeCompareAdminPassword(password);
       if (!okByCookieOrHeader && !okByBody) {
         response.status(401).json({ ok: false, error: "Parol noto'g'ri." });
         return;
