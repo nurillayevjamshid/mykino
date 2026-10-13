@@ -5278,7 +5278,7 @@ body::before {
   position: relative;
   width: 100%;
   height: 480px;
-  background: #0a0a0a;
+  background: #0b0c10 !important;
   overflow: hidden;
   border-radius: 0;
   margin: 0;
@@ -5293,23 +5293,22 @@ body::before {
   inset: 0;
   background-size: cover;
   background-position: center;
-  /* MUHIM: opacity:0 default ishlatmaymiz — PC Chromium-da JS keshlangan
-     bo'lsa ham, ba'zi holatda is-loaded klassi qo'shilmas yoki kechikadi va
-     hero opacity:0 da bo'sh-kulrang qotib qolardi. Endi background-image
-     darrov ko'rinadi, JS hech narsaga ta'sir qilmaydi. */
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 360ms cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: opacity;
+  pointer-events: none;
+  transform: scale(1.02);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.hero__bg.is-active {
+  opacity: 1;
 }
 
 .hero__shimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-  background-size: 200% 100%;
-  animation: muviShimmer 1.6s linear infinite;
-  pointer-events: none;
-}
-
-.hero__bg.is-loaded ~ .hero__shimmer {
-  display: none;
+  display: none !important;
 }
 
 @keyframes muviShimmer {
@@ -7339,7 +7338,7 @@ html[data-theme="dark"] .modal-content h1 {
    ============================================================ */
 
 .hero {
-  background: var(--c-surface-2);
+  background: #0b0c10 !important;
 }
 
 .hero__title {
@@ -7352,14 +7351,6 @@ html[data-theme="dark"] .modal-content h1 {
 
 .hero__gradient {
   background: linear-gradient(0deg, var(--c-bg) 0%, rgba(0, 0, 0, 0.55) 50%, transparent 100%);
-}
-
-.hero__bg {
-  transition: opacity 700ms ease;
-}
-
-.hero__bg.is-fade {
-  opacity: 0;
 }
 
 .hero__play {
@@ -7774,6 +7765,7 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   width: calc(100% - 24px) !important;
   border-radius: 18px !important;
   overflow: hidden;
+  background: #0b0c10 !important;
 }
 .hero__gradient { display: none !important; }
 .hero__title,
@@ -7786,21 +7778,23 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   bottom: 8px;
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 6px;
-  z-index: 3;
+  z-index: 10;
   pointer-events: none;
 }
 .hero__dot {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.45);
-  transition: width 0.25s ease, background 0.2s ease;
+  background: rgba(255, 255, 255, 0.4);
+  transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.3s ease, opacity 0.3s ease;
 }
 .hero__dot.is-active {
   width: 18px;
   background: #fff;
   border-radius: 999px;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
 }
 
 .hero__inner {
@@ -7812,6 +7806,7 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   bottom: 10px !important;
   left: 12px !important;
   right: auto !important;
+  z-index: 12 !important;
 }
 .hero__actions {
   gap: 0 !important;
@@ -9045,15 +9040,16 @@ html[data-theme="light"] .mini-player {
   100% { transform: scale(1.18) translate3d(1.5%, 1.5%, 0); }
 }
 .hero__bg {
-  transform: scale(1.08);
-  will-change: transform, opacity;
+  transform: scale(1.02);
+  will-change: opacity;
 }
 .hero__bg.is-loaded {
-  animation: heroKenBurns 16s ease-in-out infinite alternate;
+  animation: none !important;
+  transform: scale(1.02);
 }
 html.is-android .hero__bg.is-loaded {
-  animation: none;
-  transform: scale(1.04);
+  animation: none !important;
+  transform: scale(1.02);
 }
 
 /* Yangi ko'p qatlamli gradient — pastda chuqurroq, yuqorida nozik */

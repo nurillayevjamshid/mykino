@@ -886,17 +886,43 @@ function renderUsers() {
   const start = (usersCurrentPage - 1) * USERS_PAGE_SIZE;
   const pageSlice = list.slice(start, start + USERS_PAGE_SIZE);
   renderListPagination('users', list.length, usersCurrentPage, USERS_PAGE_SIZE);
-  tbody.innerHTML = pageSlice.map((user, index) => `
-    <tr class="user-row" data-user-row data-user-id="${escapeHtml(String(user.telegram_id))}" tabindex="0" aria-expanded="false">
-      <td>${start + index + 1}</td>
-      <td class="user-row__name"><strong>${escapeHtml(userFullName(user) || '-')}</strong></td>
-      <td class="user-row__username">${user.username ? '@' + escapeHtml(user.username) : '-'}</td>
-      <td class="user-row__detail"><code>${escapeHtml(String(user.telegram_id || '-'))}</code></td>
-      <td class="user-row__detail">${escapeHtml(user.started_at || '-')}</td>
-      <td class="user-row__detail">${formatLastActive(user.last_active)}</td>
-      <td><span class="${userStatusClass(getUserStatus(user))}">${userStatusLabel(getUserStatus(user))}</span></td>
+  tbody.innerHTML = pageSlice.map((user, index) => {
+    const fullName = userFullName(user) || 'Nomsiz foydalanuvchi';
+    const initial = (fullName.trim()[0] || 'U').toUpperCase();
+    const status = getUserStatus(user);
+    return `
+    <tr class="user-row user-card-row" data-user-row data-user-id="${escapeHtml(String(user.telegram_id))}" tabindex="0" aria-expanded="false">
+      <td class="col-user-idx desktop-only">${start + index + 1}</td>
+      <td class="col-user-avatar mobile-only">
+        <div class="user-avatar-circle status-${status}">
+          <span>${escapeHtml(initial)}</span>
+        </div>
+      </td>
+      <td class="user-row__name col-user-info">
+        <div class="user-info-wrap">
+          <div class="user-top-line">
+            <strong class="user-name">${escapeHtml(fullName)}</strong>
+            <span class="${userStatusClass(status)} mobile-only">${userStatusLabel(status)}</span>
+          </div>
+          <div class="user-meta-line mobile-only">
+            ${user.username ? `<span class="user-username">@${escapeHtml(user.username)}</span>` : ''}
+            <span class="user-id-chip">ID: ${escapeHtml(String(user.telegram_id || '-'))}</span>
+          </div>
+          <div class="user-dates-line mobile-only">
+            <span>📅 ${escapeHtml(user.started_at || '-')}</span>
+            <span>⏱️ ${formatLastActive(user.last_active)}</span>
+          </div>
+        </div>
+      </td>
+      <td class="user-row__username col-user-username desktop-only">${user.username ? '@' + escapeHtml(user.username) : '-'}</td>
+      <td class="user-row__detail col-user-id desktop-only"><code>${escapeHtml(String(user.telegram_id || '-'))}</code></td>
+      <td class="user-row__detail col-user-started desktop-only">${escapeHtml(user.started_at || '-')}</td>
+      <td class="user-row__detail col-user-active desktop-only">${formatLastActive(user.last_active)}</td>
+      <td class="col-user-status desktop-only"><span class="${userStatusClass(status)}">${userStatusLabel(status)}</span></td>
+      <td class="col-user-expand mobile-only"><span class="user-expand-arrow">›</span></td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // Create sidebar overlay for mobile
@@ -1613,29 +1639,43 @@ function renderMovies() {
   const pageSlice = moviesToRender.slice(startIdx, startIdx + MOVIES_PAGE_SIZE);
 
   tbody.innerHTML = pageSlice.map(movie => `
-    <tr data-id="${escapeHtml(movie.id)}">
-      <td class="bulk-select-col"><input type="checkbox" data-movie-select value="${escapeHtml(movie.id)}" ${selectedMovieIds.has(String(movie.id)) ? 'checked' : ''} aria-label="${escapeHtml(movie.name)} tanlash"></td>
-      <td>
+    <tr data-id="${escapeHtml(movie.id)}" class="movie-card-row">
+      <td class="col-select bulk-select-col">
+        <input type="checkbox" data-movie-select value="${escapeHtml(movie.id)}" ${selectedMovieIds.has(String(movie.id)) ? 'checked' : ''} aria-label="${escapeHtml(movie.name)} tanlash">
+      </td>
+      <td class="col-poster">
         <img src="${escapeHtml(movie.poster ? proxiedPoster(movie.poster) : POSTER_PLACEHOLDER)}"
              alt="${escapeHtml(movie.name)}" class="movie-poster" loading="lazy" decoding="async" onerror="retryPoster(this)">
       </td>
-      <td>
+      <td class="col-header desktop-only">
         ${movie.headerImage ? `
           <img src="${escapeHtml(proxiedPoster(movie.headerImage))}" alt="Header" class="movie-header-preview" loading="lazy" decoding="async" style="width: 80px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);" onerror="this.style.display='none'">
         ` : '<span style="color:var(--text-muted); font-size: 11px;">Yo\'q</span>'}
       </td>
-      <td><strong>${escapeHtml(movie.name)}</strong><br><small style="color:var(--text-muted)">${escapeHtml(movie.code || '')}</small></td>
-      <td>${escapeHtml(movie.year || '-')}</td>
-      <td>${escapeHtml(movie.category || '-')}</td>
-      <td>
+      <td class="col-title">
+        <div class="movie-title-wrap">
+          <strong class="movie-name">${escapeHtml(movie.name)}</strong>
+          <small class="movie-code-sub">${escapeHtml(movie.code || '')}</small>
+          <div class="movie-meta-chips">
+            ${movie.code ? `<span class="movie-chip code-chip">#${escapeHtml(movie.code)}</span>` : ''}
+            ${movie.year ? `<span class="movie-chip">${escapeHtml(movie.year)}</span>` : ''}
+            ${movie.category ? `<span class="movie-chip cat-chip">${escapeHtml(movie.category)}</span>` : ''}
+            <span class="movie-chip rating-chip">⭐ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>
+            <span class="badge ${movie.hd ? 'badge-hd' : 'badge-sd'}">${movie.hd ? 'HD' : 'SD'}</span>
+          </div>
+        </div>
+      </td>
+      <td class="col-year desktop-only">${escapeHtml(movie.year || '-')}</td>
+      <td class="col-category desktop-only">${escapeHtml(movie.category || '-')}</td>
+      <td class="col-rating desktop-only">
         <span class="rating">⭐ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>
       </td>
-      <td>
+      <td class="col-badge desktop-only">
         <span class="badge ${movie.hd ? 'badge-hd' : 'badge-sd'}">
           ${movie.hd ? 'HD' : 'SD'}
         </span>
       </td>
-      <td>
+      <td class="col-actions">
         <div class="actions">
           <button class="btn-icon edit" data-action="edit" data-movie-id="${escapeHtml(movie.id)}" title="Tahrirlash">✏️</button>
         </div>
@@ -3016,15 +3056,25 @@ function renderMusicTable() {
   const pageSlice = list.slice(start, start + MUSIC_PAGE_SIZE);
   renderListPagination('music', list.length, musicCurrentPage, MUSIC_PAGE_SIZE);
   tbody.innerHTML = pageSlice.map(t => `
-    <tr>
-      <td><img src="https://i.ytimg.com/vi/${escapeHtml(t.youtubeId)}/mqdefault.jpg" alt="" style="width:60px;height:34px;object-fit:cover;border-radius:6px;"></td>
-      <td><strong>${escapeHtml(t.title)}</strong></td>
-      <td>${escapeHtml(t.artist)}</td>
-      <td>${musicCatCellHtml(t)}</td>
-      <td><code>${escapeHtml(t.youtubeId)}</code></td>
-      <td>
-        <a class="btn btn-secondary" href="https://www.youtube.com/watch?v=${escapeHtml(t.youtubeId)}" target="_blank" rel="noopener">Ochish</a>
-        <button class="btn btn-danger" data-music-delete="${escapeHtml(t.youtubeId)}|${escapeHtml(t.title)}|${escapeHtml(t.artist)}">O'chirish</button>
+    <tr class="music-card-row">
+      <td class="col-cover">
+        <img src="https://i.ytimg.com/vi/${escapeHtml(t.youtubeId)}/mqdefault.jpg" alt="" class="music-cover-img" loading="lazy">
+      </td>
+      <td class="col-title">
+        <div class="music-info-wrap">
+          <strong class="music-title">${escapeHtml(t.title)}</strong>
+          <div class="music-artist-name">${escapeHtml(t.artist)}</div>
+          <div class="music-mobile-cats mobile-only">${musicCatCellHtml(t)}</div>
+        </div>
+      </td>
+      <td class="col-artist desktop-only">${escapeHtml(t.artist)}</td>
+      <td class="col-cat desktop-only">${musicCatCellHtml(t)}</td>
+      <td class="col-ytid desktop-only"><code>${escapeHtml(t.youtubeId)}</code></td>
+      <td class="col-actions">
+        <div class="actions">
+          <a class="btn-icon view" href="https://www.youtube.com/watch?v=${escapeHtml(t.youtubeId)}" target="_blank" rel="noopener" title="YouTube'da ochish">▶️</a>
+          <button class="btn-icon delete" data-music-delete="${escapeHtml(t.youtubeId)}|${escapeHtml(t.title)}|${escapeHtml(t.artist)}" title="O'chirish">🗑️</button>
+        </div>
       </td>
     </tr>
   `).join('');
@@ -3867,28 +3917,38 @@ function renderCategoriesTable() {
   }
   tbody.innerHTML = rows.map((c) => {
     const imageCell = c.image
-      ? `<img src="${escapeHtml(c.image)}" alt="" style="width:60px;height:42px;object-fit:cover;border-radius:6px;">`
-      : '<span style="color:var(--text-muted);font-size:11px;">Rasm yo\'q</span>';
+      ? `<img src="${escapeHtml(c.image)}" alt="" class="cat-cover-img" loading="lazy">`
+      : '<span class="cat-no-image">Rasm yo\'q</span>';
     const statusBadge = c.source === 'movie'
-      ? '<span class="badge" style="background:#fff3cd;color:#856404;">Kinolarda</span>'
+      ? '<span class="badge badge-cat badge-cat-movie" style="background:#fff3cd;color:#856404;">Kinolarda</span>'
       : c.source === 'saved'
-        ? '<span class="badge" style="background:#d1e7dd;color:#0f5132;">Saqlangan</span>'
+        ? '<span class="badge badge-cat badge-cat-saved" style="background:#d1e7dd;color:#0f5132;">Saqlangan</span>'
         : c.source === 'series'
-          ? '<span class="badge" style="background:#e7d6ff;color:#5a2a99;">Seriallar</span>'
-          : '<span class="badge" style="background:#cfe2ff;color:#084298;">Ikkalasi</span>';
+          ? '<span class="badge badge-cat badge-cat-series" style="background:#e7d6ff;color:#5a2a99;">Seriallar</span>'
+          : '<span class="badge badge-cat badge-cat-both" style="background:#cfe2ff;color:#084298;">Ikkalasi</span>';
     const editKey = c.id ? `data-cat-edit="${escapeHtml(c.id)}"` : `data-cat-attach="${escapeHtml(c.name)}"`;
     const editLabel = c.image ? 'Tahrirlash' : 'Rasm yuklash';
     const deleteBtn = c.id
       ? `<button class="btn btn-danger" data-cat-delete="${escapeHtml(c.id)}">O'chirish</button>`
       : '';
     return `
-      <tr>
-        <td>${imageCell}</td>
-        <td><strong>${escapeHtml(c.name)}</strong> ${statusBadge}</td>
-        <td><code>${escapeHtml(c.id || '—')}</code></td>
-        <td>
-          <button class="btn btn-secondary" ${editKey}>${editLabel}</button>
-          ${deleteBtn}
+      <tr class="category-card-row">
+        <td class="col-cat-img">${imageCell}</td>
+        <td class="col-cat-info">
+          <div class="cat-info-wrap">
+            <div class="cat-title-line">
+              <strong class="cat-name">${escapeHtml(c.name)}</strong>
+              ${statusBadge}
+            </div>
+            ${c.id ? `<small class="cat-id-chip">ID: ${escapeHtml(c.id)}</small>` : ''}
+          </div>
+        </td>
+        <td class="col-cat-id desktop-only"><code>${escapeHtml(c.id || '—')}</code></td>
+        <td class="col-cat-actions">
+          <div class="actions">
+            <button class="btn btn-secondary" ${editKey}>${editLabel}</button>
+            ${deleteBtn}
+          </div>
         </td>
       </tr>
     `;

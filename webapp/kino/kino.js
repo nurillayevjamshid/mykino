@@ -2714,59 +2714,106 @@ function syncNavButtons() {
 
 let heroFeaturedMovie = null;
 let heroSlides = [];
+let heroActiveLayer = "primary"; // "primary" (#heroBackdrop) yoki "secondary" (#heroBackdropNext)
+let heroTransitionTimer = null;
+const preloadedHeroUrls = new Set();
 
 function pickHeroSlides() {
   return movies.filter((m) => m && m.showInHeader && (m.headerImage || getPosterImage(m)));
 }
 
-function renderHeroSlide(movie) {
+// Barcha slaydlar rasmlarini oldindan keshga yuklab oladi — slayd almashganda
+// tarmoq kutish, kechikish yoki oq/bo'sh kadr umuman bo'lmaydi.
+function preloadHeroImages() {
+  if (!heroSlides || !heroSlides.length) return;
+  heroSlides.forEach((movie) => {
+    const url = String(movie.headerImage || getPosterImage(movie) || "").trim();
+    if (url && !preloadedHeroUrls.has(url)) {
+      preloadedHeroUrls.add(url);
+      const img = new Image();
+      img.src = url;
+    }
+  });
+}
+
+function renderHeroSlide(movie, immediate = false) {
   if (!movie) return;
   heroFeaturedMovie = movie;
 
-  const heroBackdrop = document.getElementById("heroBackdrop");
+  const primaryEl = document.getElementById("heroBackdrop");
+  const secondaryEl = document.getElementById("heroBackdropNext");
   const heroShimmer = document.getElementById("heroShimmer");
   const heroTitle = document.getElementById("heroTitle");
   const heroDescription = document.getElementById("heroDescription");
   const heroPlayLabel = document.getElementById("heroPlayLabel");
 
+  if (heroShimmer) heroShimmer.hidden = true;
+
   const imageUrl = String(movie.headerImage || getPosterImage(movie) || "").trim();
-  if (heroBackdrop) {
-    if (imageUrl) {
-      const safeUrlValue = imageUrl.replaceAll("'", "%27");
-      // MUHIM: probe.decode() ga tayanmaymiz — PC Chromium-da birinchi
-      // kirishda promise resolve bo'lmay, hero opacity:0 da qotib qolardi.
-      // Endi background-image darrov tayinlanadi va is-loaded sinxron
-      // qo'shiladi; rasm yuklanishi bilan brauzer o'zi ko'rsatadi.
-      heroBackdrop.style.backgroundImage = `url('${safeUrlValue}')`;
-      heroBackdrop.classList.add("is-loaded");
-      // Rasm o'lik URL bo'lsa (masalan eski Blob), zaxira manbalarga o'tamiz.
-      const heroFallbacks = buildPosterFallbackList(movie, imageUrl);
-      const probe = new Image();
-      probe.onerror = () => {
-        const tryNextHero = () => {
-          if (heroFeaturedMovie !== movie) return; // slayd almashib ketgan
-          const next = heroFallbacks.shift();
-          if (!next) {
-            heroBackdrop.style.backgroundImage = "linear-gradient(135deg, #1f1f1f, #050505)";
-            return;
-          }
-          const retry = new Image();
-          retry.onload = () => {
-            if (heroFeaturedMovie !== movie) return;
-            heroBackdrop.style.backgroundImage = `url('${next.replaceAll("'", "%27")}')`;
-          };
-          retry.onerror = tryNextHero;
-          retry.src = next;
-        };
-        tryNextHero();
-      };
-      probe.src = imageUrl;
+  const safeUrl = imageUrl
+    ? `url('${imageUrl.replaceAll("'", "%27")}')`
+    : "linear-gradient(135deg, #1f1f1f, #050505)";
+
+  if (primaryEl) {
+    if (immediate || !secondaryEl) {
+      primaryEl.style.backgroundImage = safeUrl;
+      primaryEl.classList.add("is-active");
+      primaryEl.style.zIndex = "2";
+      if (secondaryEl) {
+        secondaryEl.classList.remove("is-active");
+        secondaryEl.style.zIndex = "1";
+      }
+      heroActiveLayer = "primary";
     } else {
-      heroBackdrop.style.backgroundImage = "linear-gradient(135deg, #1f1f1f, #050505)";
-      heroBackdrop.classList.add("is-loaded");
+      if (heroTransitionTimer) {
+        clearTimeout(heroTransitionTimer);
+        heroTransitionTimer = null;
+      }
+
+      const incoming = heroActiveLayer === "primary" ? secondaryEl : primaryEl;
+      const outgoing = heroActiveLayer === "primary" ? primaryEl : secondaryEl;
+
+      incoming.style.backgroundImage = safeUrl;
+      incoming.style.zIndex = "3";
+      outgoing.style.zIndex = "2";
+
+      // Yangi qatlamni silliq kiritish (crossfade)
+      void incoming.offsetWidth;
+      incoming.classList.add("is-active");
+
+      heroActiveLayer = heroActiveLayer === "primary" ? "secondary" : "primary";
+
+      // 360ms dan so'ng eski qatlamni pastga tushirib faolsizlantirish
+      heroTransitionTimer = setTimeout(() => {
+        outgoing.classList.remove("is-active");
+        outgoing.style.zIndex = "1";
+        heroTransitionTimer = null;
+      }, 380);
+
+      // Zaxira URL'lar (agar rasm ochilmasa)
+      if (imageUrl) {
+        const heroFallbacks = buildPosterFallbackList(movie, imageUrl);
+        const probe = new Image();
+        probe.onerror = () => {
+          const tryNextHero = () => {
+            if (heroFeaturedMovie !== movie) return;
+            const next = heroFallbacks.shift();
+            if (!next) return;
+            const retry = new Image();
+            retry.onload = () => {
+              if (heroFeaturedMovie !== movie) return;
+              incoming.style.backgroundImage = `url('${next.replaceAll("'", "%27")}')`;
+            };
+            retry.onerror = tryNextHero;
+            retry.src = next;
+          };
+          tryNextHero();
+        };
+        probe.src = imageUrl;
+      }
     }
   }
-  if (heroShimmer) heroShimmer.hidden = false;
+
   if (heroTitle) heroTitle.textContent = movie.title || "";
   if (heroDescription) {
     const desc = String(movie.description || "").trim();
@@ -2791,9 +2838,16 @@ function renderHeroDots() {
     dots.className = "hero__dots";
     heroSection.append(dots);
   }
-  dots.innerHTML = heroSlides
-    .map((_, idx) => `<span class="hero__dot${idx === heroActiveIndex ? " is-active" : ""}"></span>`)
-    .join("");
+  const existingDots = dots.querySelectorAll(".hero__dot");
+  if (existingDots.length === heroSlides.length) {
+    existingDots.forEach((dot, idx) => {
+      dot.classList.toggle("is-active", idx === heroActiveIndex);
+    });
+  } else {
+    dots.innerHTML = heroSlides
+      .map((_, idx) => `<span class="hero__dot${idx === heroActiveIndex ? " is-active" : ""}"></span>`)
+      .join("");
+  }
 }
 
 // Hero rotate'ni scroll/visibility holatlariga bog'lash uchun yordamchi flag'lar.
@@ -2841,7 +2895,7 @@ function startHeroAutoRotate() {
     // Scroll yoki tab fonida bo'lsa — bu tick'ni o'tkazib yuboramiz.
     if (__heroIsScrolling || !__heroIsVisible || document.hidden) return;
     heroActiveIndex = (heroActiveIndex + 1) % heroSlides.length;
-    renderHeroSlide(heroSlides[heroActiveIndex]);
+    renderHeroSlide(heroSlides[heroActiveIndex], false);
   }, HERO_ROTATE_INTERVAL_MS);
 }
 
@@ -2868,9 +2922,10 @@ function renderHeroCarousel() {
   }
 
   heroSlides = slides;
+  preloadHeroImages();
   if (heroActiveIndex >= heroSlides.length) heroActiveIndex = 0;
   heroSection.hidden = false;
-  renderHeroSlide(heroSlides[heroActiveIndex]);
+  renderHeroSlide(heroSlides[heroActiveIndex], true);
   startHeroAutoRotate();
 }
 
