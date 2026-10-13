@@ -1796,6 +1796,16 @@
     } catch (_) {}
   }
 
+  function getTrackArtUrl(track) {
+    if (!track) return "";
+    const artistName = track.artist || "";
+    const artistImg = findArtistImage(artistName) || pickArtistFallbackImage(artistName);
+    if (artistImg) return artistImg;
+    if (track.cover || track.poster) return track.cover || track.poster;
+    if (track.youtubeId) return `https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg`;
+    return "";
+  }
+
   function updateMediaSessionMetadata(track) {
     if (!("mediaSession" in navigator) || !track) return;
     try {
@@ -1803,16 +1813,14 @@
       const title = displayTrackTitle(track);
       const artist = track.artist || "NTV Music";
       const album = (track.category && track.category !== "all") ? track.category : "NTV Music";
-      const ytId = track.youtubeId;
       const artwork = [];
-      if (ytId) {
+      const artUrl = getTrackArtUrl(track);
+      if (artUrl) {
         artwork.push(
-          { src: `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`, sizes: "480x360", type: "image/jpeg" },
-          { src: `https://i.ytimg.com/vi/${ytId}/mqdefault.jpg`, sizes: "320x180", type: "image/jpeg" },
-          { src: `https://i.ytimg.com/vi/${ytId}/default.jpg`, sizes: "120x90", type: "image/jpeg" }
+          { src: artUrl, sizes: "512x512", type: "image/jpeg" },
+          { src: artUrl, sizes: "256x256", type: "image/jpeg" },
+          { src: artUrl, sizes: "128x128", type: "image/jpeg" }
         );
-      } else if (track.cover || track.poster) {
-        artwork.push({ src: track.cover || track.poster, sizes: "512x512", type: "image/jpeg" });
       }
       if (typeof MediaMetadata !== "undefined") {
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -1858,12 +1866,10 @@
     requestMusicWakeLock();
     playSilentAnchor();
 
-    if (currentPlayingType === "audio" && nativeAudioPlayer) {
+    if (nativeAudioPlayer) {
       try { nativeAudioPlayer.play(); } catch (_) {}
-    } else {
-      if (ytReady && ytPlayer?.playVideo) {
-        try { ytPlayer.playVideo(); } catch (_) {}
-      }
+    } else if (ytReady && ytPlayer?.playVideo) {
+      try { ytPlayer.playVideo(); } catch (_) {}
     }
 
     if ("mediaSession" in navigator) {
@@ -1871,6 +1877,10 @@
     }
     if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
     if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+    if (musicFullPlayerArt) {
+      musicFullPlayerArt.classList.add("is-playing");
+      musicFullPlayerArt.classList.remove("has-video");
+    }
     startMiniProgress();
   }
 
@@ -1880,12 +1890,10 @@
     releaseMusicWakeLock();
     pauseSilentAnchor();
 
-    if (currentPlayingType === "audio" && nativeAudioPlayer) {
+    if (nativeAudioPlayer) {
       try { nativeAudioPlayer.pause(); } catch (_) {}
-    } else {
-      if (ytReady && ytPlayer?.pauseVideo) {
-        try { ytPlayer.pauseVideo(); } catch (_) {}
-      }
+    } else if (ytReady && ytPlayer?.pauseVideo) {
+      try { ytPlayer.pauseVideo(); } catch (_) {}
     }
 
     if ("mediaSession" in navigator) {
@@ -1893,10 +1901,13 @@
     }
     if (miniPlayerToggle) miniPlayerToggle.dataset.state = "play";
     if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "play";
+    if (musicFullPlayerArt) {
+      musicFullPlayerArt.classList.remove("is-playing");
+    }
   }
 
   function toggleMusicPlayback() {
-    if (currentPlayingType === "audio" && nativeAudioPlayer) {
+    if (nativeAudioPlayer) {
       if (nativeAudioPlayer.paused) resumeMusicPlayback();
       else pauseMusicPlayback();
       return;
@@ -1904,11 +1915,8 @@
     if (!ytReady || !ytPlayer) return;
     try {
       const s = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1;
-      if (s === YT.PlayerState.PLAYING) {
-        pauseMusicPlayback();
-      } else {
-        resumeMusicPlayback();
-      }
+      if (s === YT.PlayerState.PLAYING) pauseMusicPlayback();
+      else resumeMusicPlayback();
     } catch (_) {
       if (musicUserPlaying) pauseMusicPlayback();
       else resumeMusicPlayback();
@@ -2085,39 +2093,29 @@
     if (miniPlayerTitle) miniPlayerTitle.textContent = displayTrackTitle(track);
     if (miniPlayerArtistEl) miniPlayerArtistEl.textContent = track.artist;
     const miniArt = document.getElementById("miniPlayerArt");
-    if (miniArt) {
-      const artUrl = track.youtubeId
-        ? `https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg`
-        : (track.cover || track.poster || "");
-      if (artUrl) miniArt.src = artUrl;
+    const artUrl = getTrackArtUrl(track);
+    if (miniArt && artUrl) {
+      miniArt.src = artUrl;
     }
     if (miniPlayerBarFill) miniPlayerBarFill.style.width = "0%";
     if (miniPlayerTime) miniPlayerTime.textContent = "0:00";
     showMiniPlayer();
     openMusicFullPlayer(track);
 
-    const audioUrl = track.audioUrl || (track.url && /\.(mp3|m4a|aac|ogg|wav)(\?.*)?$/i.test(track.url) ? track.url : null);
-    if (audioUrl) {
-      currentPlayingType = "audio";
-      try { ytPlayer?.pauseVideo?.(); } catch (_) {}
-      const audio = getNativeAudioPlayer();
-      if (audio) {
-        try {
-          audio.src = audioUrl;
-          audio.play();
-        } catch (_) {}
-      }
-    } else {
-      currentPlayingType = "youtube";
-      try { nativeAudioPlayer?.pause?.(); } catch (_) {}
-      if (ytReady && ytPlayer?.loadVideoById) {
-        try {
-          ytPlayer.loadVideoById(track.youtubeId);
-          if (ytPlayer.playVideo) ytPlayer.playVideo();
-        } catch (_) {}
-      } else {
-        ytPendingId = track.youtubeId;
-        try { ensureYouTubeApi?.().then(() => initYtPlayerForMusic()); } catch (_) {}
+    currentPlayingType = "audio";
+    try { ytPlayer?.pauseVideo?.(); } catch (_) {}
+    const audio = getNativeAudioPlayer();
+    if (audio) {
+      const audioUrl = track.audioUrl || (track.url && /\.(mp3|m4a|aac|ogg|wav)(\?.*)?$/i.test(track.url) ? track.url : null);
+      const streamSrc = audioUrl || (track.youtubeId ? `/api/music-stream?id=${encodeURIComponent(track.youtubeId)}` : "");
+      if (streamSrc) {
+        if (audio.src !== streamSrc && !audio.src.endsWith(streamSrc)) {
+          audio.src = streamSrc;
+        }
+        const p = audio.play();
+        if (p && typeof p.catch === "function") {
+          p.catch((err) => console.warn("audio play catch:", err));
+        }
       }
     }
 
@@ -2224,7 +2222,7 @@
   function setMusicPlayContext(ctx) { musicPlayContext = ctx && ctx.kind ? ctx : { kind: "list" }; }
 
   function moveYtIntoFullPlayer() {
-    musicFullPlayerArt?.classList.add("has-video");
+    musicFullPlayerArt?.classList.remove("has-video");
   }
   function moveYtBackToMini() {
     // no-op
@@ -2233,7 +2231,10 @@
   function openMusicFullPlayer(track) {
     if (!musicFullPlayer || !track) return;
     document.body.classList.add("fullplayer-open");
-    if (musicFullPlayerArtFallback) musicFullPlayerArtFallback.style.backgroundImage = `url('https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg')`;
+    const artUrl = getTrackArtUrl(track);
+    if (musicFullPlayerArtFallback && artUrl) {
+      musicFullPlayerArtFallback.style.backgroundImage = `url('${artUrl.replaceAll("'", "%27")}')`;
+    }
     if (musicFullPlayerAlbum) musicFullPlayerAlbum.textContent = (track.category && track.category !== "all") ? track.category : M("musicLabel");
     if (musicFullPlayerTitle) musicFullPlayerTitle.textContent = displayTrackTitle(track);
     if (musicFullPlayerArtist) musicFullPlayerArtist.textContent = track.artist;
@@ -2241,7 +2242,12 @@
     if (musicFullPlayerBarThumb) musicFullPlayerBarThumb.style.left = "0%";
     if (musicFullPlayerCur) musicFullPlayerCur.textContent = "0:00";
     if (musicFullPlayerDur) musicFullPlayerDur.textContent = "0:00";
-    if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+    if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = musicUserPlaying ? "pause" : "play";
+    if (musicFullPlayerArt) {
+      if (musicUserPlaying) musicFullPlayerArt.classList.add("is-playing");
+      else musicFullPlayerArt.classList.remove("is-playing");
+      musicFullPlayerArt.classList.remove("has-video");
+    }
     if (musicFullPlayerLike) {
       const inPl = readMusicPlaylist().includes(track.youtubeId);
       musicFullPlayerLike.setAttribute("aria-pressed", inPl ? "true" : "false");
@@ -2249,7 +2255,6 @@
     }
     musicFullPlayer.hidden = false;
     requestAnimationFrame(() => musicFullPlayer.setAttribute("aria-hidden", "false"));
-    moveYtIntoFullPlayer();
     tgBackRegister("music-fullplayer", () => { try { closeMusicFullPlayer(); } catch (_) {} });
   }
 
