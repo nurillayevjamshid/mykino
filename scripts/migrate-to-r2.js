@@ -89,32 +89,79 @@ function isMkvFile(fileName, mimeType) {
   return mime.includes("matroska") || ext === "mkv" || ext === "webm" || ext === "avi";
 }
 
-function downloadOnce(fileId, destPath) {
+function downloadOnce(fileId, destPath, expectedBytes = 0) {
   return getDriveMediaResponse(fileId).then((upstream) => new Promise((resolve, reject) => {
     const ws = fs.createWriteStream(destPath);
     const rs = Readable.fromWeb(upstream.body);
-    // Manba oqimi (Drive) o'rtada uzilsa ("other side closed") 'error' hodisasi
-    // ushlanmasa butun jarayon yiqiladi — shuning uchun uni ham reject qilamiz.
-    rs.on("error", (err) => { ws.destroy(); reject(err); });
-    ws.on("error", reject);
-    ws.on("finish", resolve);
+    const contentLength = Number(upstream.headers.get("content-length")) || expectedBytes || 0;
+
+    let downloaded = 0;
+    let lastPercent = -1;
+    let lastLogTime = Date.now();
+    let stallTimer = null;
+
+    const resetStallTimer = () => {
+      if (stallTimer) clearTimeout(stallTimer);
+      stallTimer = setTimeout(() => {
+        rs.destroy();
+        ws.destroy();
+        reject(new Error("Yuklab olish qotib qoldi (30s timeout)"));
+      }, 30000);
+    };
+
+    resetStallTimer();
+
+    rs.on("data", (chunk) => {
+      downloaded += chunk.length;
+      resetStallTimer();
+
+      const now = Date.now();
+      if (contentLength > 0) {
+        const pct = Math.floor((downloaded / contentLength) * 100);
+        if (pct !== lastPercent && (pct % 10 === 0 || now - lastLogTime >= 8000)) {
+          lastPercent = pct;
+          lastLogTime = now;
+          const mb = (downloaded / 1048576).toFixed(0);
+          const totalMb = (contentLength / 1048576).toFixed(0);
+          log(`    yuklab olish: ${pct}% (${mb}/${totalMb} MB)`);
+        }
+      } else if (now - lastLogTime >= 8000) {
+        lastLogTime = now;
+        const mb = (downloaded / 1048576).toFixed(1);
+        log(`    yuklab olish: ${mb} MB`);
+      }
+    });
+
+    rs.on("error", (err) => {
+      if (stallTimer) clearTimeout(stallTimer);
+      ws.destroy();
+      reject(err);
+    });
+    ws.on("error", (err) => {
+      if (stallTimer) clearTimeout(stallTimer);
+      reject(err);
+    });
+    ws.on("finish", () => {
+      if (stallTimer) clearTimeout(stallTimer);
+      resolve();
+    });
     rs.pipe(ws);
   }));
 }
 
 // Drive yuklab olish vaqtinchalik tarmoq uzilishida (UND_ERR_SOCKET) qayta urinadi.
-async function downloadToFile(fileId, destPath, attempts = 3) {
+async function downloadToFile(fileId, destPath, attempts = 3, expectedBytes = 0) {
   let lastErr;
   for (let i = 1; i <= attempts; i += 1) {
     try {
-      await downloadOnce(fileId, destPath);
+      await downloadOnce(fileId, destPath, expectedBytes);
       return;
     } catch (err) {
       lastErr = err;
       try { fs.unlinkSync(destPath); } catch (_) {}
       if (i < attempts) {
         log(`    yuklab olish uzildi (urinish ${i}/${attempts}): ${err.message} — qayta urinilmoqda...`);
-        await new Promise((r) => setTimeout(r, 3000 * i));
+        await new Promise((r) => setTimeout(r, 2000 * i));
       }
     }
   }
@@ -163,7 +210,19 @@ function convertToMp4(inputPath, outputPath) {
         outputPath,
       ], { stdio: ["ignore", "ignore", "pipe"] });
       let stderr = "";
-      proc.stderr.on("data", (c) => { stderr += c.toString(); });
+      let lastReport = Date.now();
+      proc.stderr.on("data", (c) => {
+        const chunk = c.toString();
+        stderr += chunk;
+        const now = Date.now();
+        if (now - lastReport >= 10000) {
+          lastReport = now;
+          const match = chunk.match(/time=([0-9:.]+)/);
+          if (match) {
+            log(`    ffmpeg jarayoni: vaqt = ${match[1]}`);
+          }
+        }
+      });
       proc.on("error", reject);
       proc.on("exit", (code) => {
         if (code === 0) { resolve(label); return; }
@@ -224,7 +283,7 @@ async function migrateVideo(task) {
   const outputPath = path.join(tmpDir, "output.mp4");
   try {
     log(`  → yuklab olinmoqda (${Math.round((task.size || 0) / 1048576)} MB)...`);
-    await downloadToFile(task.driveFileId, inputPath);
+    await downloadToFile(task.driveFileId, inputPath, 3, task.size);
     log(`  → MP4'ga aylantirilmoqda...`);
     const method = await convertToMp4(inputPath, outputPath);
     const outSize = fs.statSync(outputPath).size;
