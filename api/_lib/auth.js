@@ -438,13 +438,13 @@ async function authorizeRequest(request, response, options = {}) {
 
   // Check 2b: Admin Password header (legacy fallback) — constant-time + per-IP lockout
   if (adminPasswordHeader) {
-    if (adminIsLocked(clientIp)) {
-      response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
-      return false;
-    }
     if (safeCompareAdminPassword(adminPasswordHeader)) {
       adminResetFails(clientIp);
       return true;
+    }
+    if (adminIsLocked(clientIp)) {
+      response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
+      return false;
     }
     adminRegisterFail(clientIp);
   }

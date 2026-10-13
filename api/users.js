@@ -305,10 +305,6 @@ async function handleAdminLogin(request, response) {
   if (request.method === "OPTIONS") { response.status(204).end(); return; }
   if (request.method !== "POST") { response.status(405).json({ ok: false, error: "POST kerak" }); return; }
   const ip = getClientIp(request);
-  if (adminIsLocked(ip)) {
-    response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
-    return;
-  }
   let body = {};
   try { body = await readRequestBody(request); } catch { body = {}; }
   const password = trimStr(body.password);
@@ -319,6 +315,10 @@ async function handleAdminLogin(request, response) {
     return;
   }
   if (!password || !safeCompareAdminPassword(password)) {
+    if (adminIsLocked(ip)) {
+      response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
+      return;
+    }
     adminRegisterFail(ip);
     response.status(401).json({ ok: false, code: "BAD_PASSWORD", error: "Parol noto'g'ri." });
     return;
