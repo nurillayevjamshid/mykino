@@ -363,7 +363,7 @@ module.exports = async function handler(request, response) {
   const isWatchProgressRequest = /\/watch-progress(?:\?|$|\.)/i.test(reqUrl) || /[?&]_watch=1/.test(reqUrl);
   if (isWatchProgressRequest) {
     const verifiedUser = getVerifiedInitDataUser(request);
-    request.requireVerifiedUser = true;
+    request.requireVerifiedUser = false;
     request.verifiedTelegramUserId = verifiedUser?.id ? String(verifiedUser.id) : "";
     return handleWatchProgress(request, response);
   }

@@ -30,15 +30,19 @@ function sanitizeEntry(raw) {
   const time = Math.max(0, Math.floor(Number(raw.time) || 0));
   const duration = Math.max(0, Math.floor(Number(raw.duration) || 0));
   const updatedAt = Math.max(0, Math.floor(Number(raw.updatedAt) || Date.now()));
-  if (time <= 0 || duration <= 0) return null;
+  const title = trim(raw.title).slice(0, 200);
+  const poster = trim(raw.poster).slice(0, 600);
+  const year = trim(raw.year).slice(0, 16);
+  const genre = trim(raw.genre).slice(0, 120);
+  if (!title && !poster && time <= 0 && duration <= 0) return null;
   return {
     time,
     duration,
     updatedAt,
-    title: trim(raw.title).slice(0, 200),
-    poster: trim(raw.poster).slice(0, 600),
-    year: trim(raw.year).slice(0, 16),
-    genre: trim(raw.genre).slice(0, 120),
+    title,
+    poster,
+    year,
+    genre,
   };
 }
 
@@ -112,10 +116,7 @@ async function handleWatchProgress(request, response) {
           const id = trim(rawId);
           if (!id) continue;
           const cleaned = sanitizeEntry(rawEntry);
-          if (!cleaned) {
-            delete nextUserMap[id];
-            continue;
-          }
+          if (!cleaned) continue;
           const prev = nextUserMap[id];
           if (prev && Number(prev.updatedAt || 0) > cleaned.updatedAt) continue;
           nextUserMap[id] = cleaned;

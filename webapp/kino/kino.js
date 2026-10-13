@@ -645,7 +645,7 @@ const WATCHED_MOVIES_KEY = "kino_watched_movies_v1";
 const WATCH_PROGRESS_MIN_SECONDS = 15;
 const WATCH_PROGRESS_END_GAP = 12;
 const WATCH_PROGRESS_SYNC_ENDPOINT = "/api/watch-progress";
-const WATCH_PROGRESS_SYNC_DELAY_MS = 25000;
+const WATCH_PROGRESS_SYNC_DELAY_MS = 3000;
 // Stream xatosi uchun alohida fallback oynasi ko'rsatilmaydi.
 // Video playerning o'zi loading/error holatini boshqaradi.
 const getStreamErrorMessage = () => "";
@@ -1594,6 +1594,7 @@ async function syncAllFromCloud() {
     await Promise.allSettled([
       syncWishlistFromCloud(),
       syncWatchedMoviesFromCloud(),
+      loadProgressFromBackend({ force: true }),
       syncPodcastHistoryFromCloud(),
       syncPodcastFavoritesFromCloud(),
     ]);
@@ -2348,10 +2349,11 @@ function flushProgressSyncBeacon() {
   pendingProgressSync.clearAll = false;
 }
 
-async function loadProgressFromBackend() {
+async function loadProgressFromBackend(options = {}) {
+  const force = Boolean(options && options.force);
   const userId = getProgressUserId();
   if (!isRealUser(userId)) return;
-  if (progressBackendLoaded) return;
+  if (progressBackendLoaded && !force) return;
   let remote = {};
   try {
     const resp = await fetch(`${WATCH_PROGRESS_SYNC_ENDPOINT}?userId=${encodeURIComponent(userId)}`, {
@@ -2361,6 +2363,7 @@ async function loadProgressFromBackend() {
     const data = await resp.json();
     if (!data?.ok || !data.items || typeof data.items !== "object") return;
     remote = data.items;
+    progressBackendLoaded = true;
   } catch {
     return;
   }
@@ -2386,13 +2389,19 @@ async function loadProgressFromBackend() {
     }
 
     const watchedEntry = localWatched[id];
+    const catalogMovie = Array.isArray(movies) ? movies.find((m) => String(m?.id) === String(id) || String(m?.code) === String(id)) : null;
+    const resolvedPoster = String(rawEntry.poster || (catalogMovie ? getPosterImage(catalogMovie) : "") || "");
+    const resolvedTitle = String(rawEntry.title || catalogMovie?.title || "Kino");
+    const resolvedYear = String(rawEntry.year || catalogMovie?.year || "");
+    const resolvedGenre = String(rawEntry.genre || catalogMovie?.genre || "Kino");
+
     if (!watchedEntry) {
       localWatched[id] = {
         id: String(id),
-        title: String(rawEntry.title || "Kino"),
-        poster: String(rawEntry.poster || ""),
-        year: String(rawEntry.year || ""),
-        genre: String(rawEntry.genre || "Kino"),
+        title: resolvedTitle,
+        poster: resolvedPoster,
+        year: resolvedYear,
+        genre: resolvedGenre,
         progress: Math.max(0, Math.floor(Number(rawEntry.time) || 0)),
         watchedAt: remoteUpdated || Date.now(),
       };
@@ -2400,6 +2409,10 @@ async function loadProgressFromBackend() {
     } else if (remoteUpdated > Number(watchedEntry.watchedAt || 0)) {
       localWatched[id] = {
         ...watchedEntry,
+        title: watchedEntry.title || resolvedTitle,
+        poster: watchedEntry.poster || resolvedPoster,
+        year: watchedEntry.year || resolvedYear,
+        genre: watchedEntry.genre || resolvedGenre,
         progress: Math.max(0, Math.floor(Number(rawEntry.time) || 0)),
         watchedAt: remoteUpdated,
       };
@@ -2414,8 +2427,7 @@ async function loadProgressFromBackend() {
     try { renderProfileHistory?.(); } catch {}
   }
 
-  // #1 BOOT RECONCILIATION: lokal'da bor lekin server'da yo'q yoki eskirgan entrylarni server'ga jo'natish.
-  // Bu oldingi sessiyada flushBeacon ishlamay qolgan progresslarni tiklaydi.
+  // #1 BOOT / RECONCILIATION: lokal'da bor lekin server'da yo'q yoki eskirgan entrylarni server'ga jo'natish.
   let reconciledCount = 0;
   for (const [id, localEntry] of Object.entries(localProgress)) {
     if (!localEntry || typeof localEntry !== "object") continue;
@@ -2426,8 +2438,7 @@ async function loadProgressFromBackend() {
     const remoteUpdated = Number(remoteEntry?.updatedAt || 0);
     const localUpdated = Number(localEntry.updatedAt || 0);
     if (localUpdated <= remoteUpdated) continue;
-    // poster/year/genre lokal store'da yo'q — movies katalogidan olishga harakat.
-    const movie = Array.isArray(movies) ? movies.find((m) => String(m?.id) === String(id)) : null;
+    const movie = Array.isArray(movies) ? movies.find((m) => String(m?.id) === String(id) || String(m?.code) === String(id)) : null;
     queueProgressUpsert(id, {
       time: localTime,
       duration: localDuration,
@@ -2439,12 +2450,30 @@ async function loadProgressFromBackend() {
     });
     reconciledCount += 1;
   }
-  if (reconciledCount > 0) {
-    // Darrov flush — boot vaqtidagi tiklash kechiktirilmasin.
-    scheduleProgressSync(0);
+
+  for (const [id, watchedEntry] of Object.entries(localWatched)) {
+    if (!watchedEntry || typeof watchedEntry !== "object") continue;
+    const remoteEntry = remote[id];
+    const remoteUpdated = Number(remoteEntry?.updatedAt || 0);
+    const localWatchedAt = Number(watchedEntry.watchedAt || 0);
+    if (localWatchedAt > remoteUpdated) {
+      const movie = Array.isArray(movies) ? movies.find((m) => String(m?.id) === String(id) || String(m?.code) === String(id)) : null;
+      queueProgressUpsert(id, {
+        time: Math.max(0, Math.floor(Number(watchedEntry.progress) || 0)),
+        duration: Math.max(0, Math.floor(Number(localProgress[id]?.duration) || 0)),
+        updatedAt: localWatchedAt,
+        title: String(watchedEntry.title || movie?.title || ""),
+        poster: String(watchedEntry.poster || (movie ? getPosterImage(movie) : "") || ""),
+        year: String(watchedEntry.year || movie?.year || ""),
+        genre: String(watchedEntry.genre || movie?.genre || ""),
+      });
+      reconciledCount += 1;
+    }
   }
 
-  progressBackendLoaded = true;
+  if (reconciledCount > 0) {
+    scheduleProgressSync(0);
+  }
 }
 
 window.addEventListener("pagehide", flushProgressSyncBeacon);
@@ -2509,16 +2538,29 @@ function markMovieWatched(movie, progress = 0) {
   const store = readWatchedMoviesStore();
   const existing = store[String(movie.id)];
   const posterUrl = getPosterImage(movie) || movie?.thumbnail || movie?.cover || existing?.poster || "";
+  const now = Date.now();
+  const safeProgress = Math.max(0, Math.floor(Number(progress) || 0));
   store[String(movie.id)] = {
     id: String(movie.id),
     title: movie.title || existing?.title || "Kino",
     poster: posterUrl,
     year: movie.year || existing?.year || "",
     genre: movie.genre || existing?.genre || "Kino",
-    progress: Math.max(0, Math.floor(Number(progress) || 0)),
-    watchedAt: Date.now(),
+    progress: safeProgress,
+    watchedAt: now,
   };
   writeWatchedMoviesStore(store);
+
+  // Sync to server backend so phone and computer stay in sync immediately!
+  queueProgressUpsert(String(movie.id), {
+    time: safeProgress,
+    duration: Math.max(0, Math.floor(Number(movie.duration) || 0)),
+    updatedAt: now,
+    title: movie.title || existing?.title || "Kino",
+    poster: posterUrl,
+    year: movie.year || existing?.year || "",
+    genre: movie.genre || existing?.genre || "Kino",
+  });
 }
 
 function updateWatchedMovieProgress(movie, progress = 0) {
@@ -2653,7 +2695,6 @@ function saveMovieProgress(movie, currentTime, duration) {
     delete store[key];
     writeWatchProgressStore(store);
     updateWatchedMovieProgress(movie, 0);
-    queueProgressRemove(key);
     return;
   }
 
@@ -3574,6 +3615,12 @@ function renderProfileModal() {
   renderProfileStats();
   renderProfileHistory();
   renderMusicHistory();
+  loadProgressFromBackend({ force: true }).then(() => {
+    if (profileModal?.open) {
+      renderProfileStats();
+      renderProfileHistory();
+    }
+  }).catch(() => {});
   syncWatchedMoviesFromCloud().then((ch) => {
     if (ch && profileModal?.open) {
       renderProfileStats();
