@@ -159,11 +159,7 @@ function normalizeAdLinkUrl(value) {
 
   // `tg://...` o'z holicha qabul qilinadi
   if (/^tg:\/\//i.test(raw)) {
-    try {
-      return new URL(raw).href;
-    } catch {
-      return "";
-    }
+    return raw;
   }
 
   // Protokolsiz yozilgan bo'lsa, https qo'shamiz (`t.me/...`, `example.com`)

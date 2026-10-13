@@ -9232,35 +9232,58 @@ function renderAdTicker(ticker) {
     content.style.animationDuration = `${speed}s`;
   }
 
-  // Havola
+  // Havola (link) biriktirish
   const linkUrl = (ticker.linkUrl || "").trim();
+  const badge = document.getElementById("adTickerBadge");
   if (linkUrl) {
+    card.classList.add("has-link");
     card.style.cursor = "pointer";
     card.setAttribute("role", "button");
     card.setAttribute("tabindex", "0");
-    card.onclick = () => {
-      if (/^(?:https?:\/\/(?:t|telegram)\.me\/|tg:\/\/)/i.test(linkUrl)) {
-        if (window.Telegram?.WebApp?.openTelegramLink) {
-          window.Telegram.WebApp.openTelegramLink(linkUrl);
+    card.setAttribute("aria-label", `${text}. Havolaga o'tish uchun bosing.`);
+    if (badge) badge.hidden = false;
+
+    const navigateToLink = (e) => {
+      if (e) {
+        e.stopPropagation();
+      }
+      try {
+        const tg = window.Telegram?.WebApp;
+        if (tg?.HapticFeedback?.impactOccurred) {
+          try { tg.HapticFeedback.impactOccurred("light"); } catch (_) {}
+        }
+        const isTg = /^(?:https?:\/\/(?:t|telegram)\.me\/|tg:\/\/)/i.test(linkUrl);
+        if (isTg && tg?.openTelegramLink) {
+          tg.openTelegramLink(linkUrl);
           return;
         }
+        if (tg?.openLink) {
+          tg.openLink(linkUrl);
+          return;
+        }
+        const win = window.open(linkUrl, "_blank", "noopener,noreferrer");
+        if (!win) {
+          window.location.assign(linkUrl);
+        }
+      } catch (_) {
+        try { window.location.assign(linkUrl); } catch (_) {}
       }
-      if (window.Telegram?.WebApp?.openLink) {
-        window.Telegram.WebApp.openLink(linkUrl);
-        return;
-      }
-      window.open(linkUrl, "_blank", "noopener,noreferrer");
     };
+
+    card.onclick = navigateToLink;
     card.onkeydown = (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        card.click();
+        navigateToLink(e);
       }
     };
   } else {
+    card.classList.remove("has-link");
     card.style.cursor = "default";
     card.removeAttribute("role");
     card.removeAttribute("tabindex");
+    card.setAttribute("aria-label", text);
+    if (badge) badge.hidden = true;
     card.onclick = null;
     card.onkeydown = null;
   }

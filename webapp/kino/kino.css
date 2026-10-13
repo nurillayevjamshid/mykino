@@ -11179,6 +11179,45 @@ html[data-theme="dark"] .section-splash__spinner {
   }
 }
 
+.ad-ticker-card.has-link {
+  cursor: pointer;
+}
+
+.ad-ticker-card.has-link:active {
+  transform: scale(0.975);
+  filter: brightness(0.92);
+}
+
+.ad-ticker-card__badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  text-transform: uppercase;
+  color: inherit;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.15s, transform 0.15s;
+}
+
+.ad-ticker-card:active .ad-ticker-card__badge {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.ad-ticker-card__badge[hidden] {
+  display: none !important;
+}
+
 body.is-fifa .ad-ticker-card,
 body.is-music .ad-ticker-card,
 body.is-tv .ad-ticker-card,

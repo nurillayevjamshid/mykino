@@ -4415,7 +4415,16 @@ function updateTickerLivePreview() {
 
   const linkLabel = document.getElementById('tickerLinkLabel');
   if (linkLabel) {
-    linkLabel.textContent = linkUrl || 'Mavjud emas';
+    if (linkUrl) {
+      linkLabel.innerHTML = `<span style="color:#2563eb;word-break:break-all;">${linkUrl}</span> (faol)`;
+    } else {
+      linkLabel.textContent = "Mavjud emas (bosganda havola ochilmaydi)";
+    }
+  }
+
+  const liveBadge = document.getElementById('tickerLivePreviewBadge');
+  if (liveBadge) {
+    liveBadge.style.display = linkUrl ? 'inline-flex' : 'none';
   }
 
   const fontHint = document.getElementById('tickerFontPreviewHint');
@@ -4524,6 +4533,8 @@ async function saveTickerSettings(options = {}) {
     const savedTicker = json.ticker || {};
     lastSavedTickerEnabled = Boolean(savedTicker.enabled);
     if (enabledEl) enabledEl.checked = lastSavedTickerEnabled;
+    const linkEl = document.getElementById('tickerLinkUrl');
+    if (linkEl && savedTicker.linkUrl) linkEl.value = savedTicker.linkUrl;
     setTickerStatus(lastSavedTickerEnabled ? "Saqlandi. Yuruvchi matn ON — mini appda ko'rinadi." : "Saqlandi. Yuruvchi matn OFF — mini appda ko'rinmaydi.", 'ok');
     updateTickerLivePreview();
     return true;
@@ -4534,8 +4545,25 @@ async function saveTickerSettings(options = {}) {
   }
 }
 
+function testOpenTickerLink() {
+  const raw = (document.getElementById('tickerLinkUrl')?.value || '').trim();
+  if (!raw) {
+    alert("Havola kiritilmagan. Avval 'Havola' maydoniga havola kiriting (masalan: https://t.me/kanal_nomi yoki @kanal_nomi).");
+    return;
+  }
+  let target = raw;
+  if (/^@[a-z0-9_]{3,}$/i.test(target)) {
+    target = `https://t.me/${target.slice(1)}`;
+  } else if (!/^[a-z][a-z0-9+.\-]*:\/\//i.test(target)) {
+    target = `https://${target}`;
+  }
+  window.open(target, '_blank', 'noopener,noreferrer');
+}
+
 // Ticker event listeners
 document.getElementById('tickerSaveBtn')?.addEventListener('click', () => saveTickerSettings());
+document.getElementById('tickerTestLinkBtn')?.addEventListener('click', testOpenTickerLink);
+document.getElementById('tickerLivePreviewCard')?.addEventListener('click', testOpenTickerLink);
 document.getElementById('tickerEnabled')?.addEventListener('change', () => {
   updateTickerLivePreview();
   saveTickerSettings({ revertOnFail: true });

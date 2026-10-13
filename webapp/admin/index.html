@@ -908,9 +908,12 @@
                 </div>
 
                 <div class="form-group">
-                  <label for="tickerLinkUrl">Havola (Telegram kanal / guruh yoki Sayt URL) - ixtiyoriy</label>
-                  <input type="url" id="tickerLinkUrl" class="form-input" placeholder="https://t.me/kanal_nomi yoki https://example.com">
-                  <small class="form-hint">Foydalanuvchi kartochkani bosganda shu havola ochiladi. Bo'sh qoldirilsa havola bo'lmaydi.</small>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <label for="tickerLinkUrl" style="margin:0;font-weight:600;">🔗 Bosilganda ochiladigan havola (Link)</label>
+                    <button type="button" id="tickerTestLinkBtn" class="btn btn-secondary" style="padding:4px 10px;font-size:12px;height:auto;cursor:pointer;" title="Kiritilgan havolani ochib tekshirib ko'rish">Havolani sinash ↗</button>
+                  </div>
+                  <input type="text" id="tickerLinkUrl" class="form-input" placeholder="https://t.me/kanal_nomi yoki @kanal_nomi yoki https://sayt.uz">
+                  <small class="form-hint">Foydalanuvchi mini appda kartani bosganda to'g'ridan-to'g'ri shu havola ochiladi. Telegram kanal/guruh (@kanal yoki https://t.me/kanal) yoki tashqi veb-sayt havolasi kiritish mumkin.</small>
                 </div>
 
                 <!-- Orqa fon rangi -->
@@ -1028,7 +1031,7 @@
                   </div>
 
                   <!-- Ticker Preview Card -->
-                  <div id="tickerLivePreviewCard" style="margin:12px 0;padding:8px 12px;border-radius:12px;overflow:hidden;position:relative;display:flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.3);background:linear-gradient(135deg, #e50914, #990000);color:#fff;">
+                  <div id="tickerLivePreviewCard" style="margin:12px 0;padding:8px 12px;border-radius:12px;overflow:hidden;position:relative;display:flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.3);background:linear-gradient(135deg, #e50914, #990000);color:#fff;cursor:pointer;" title="Sinab ko'rish uchun bosing">
                     <span id="tickerLivePreviewIcon" style="flex-shrink:0;">📢</span>
                     <div style="flex:1;overflow:hidden;display:flex;mask-image:linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent);-webkit-mask-image:linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent);">
                       <div id="tickerLivePreviewTrack" style="display:inline-flex;white-space:nowrap;will-change:transform;animation:adTickerMarquee 20s linear infinite;">
@@ -1036,6 +1039,7 @@
                         <span id="tickerLivePreviewText2" style="padding-right:36px;">🚀 Premyeralar faqat NTV da tomosha qiling!</span>
                       </div>
                     </div>
+                    <span id="tickerLivePreviewBadge" style="flex-shrink:0;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);font-size:10px;font-weight:700;letter-spacing:0.3px;display:none;">O'TISH ↗</span>
                   </div>
 
                   <!-- Mock Hero Banner -->
@@ -1478,6 +1482,6 @@
     }
   </style>
 
-  <script src="/admin/admin.js?v=20261013-ticker"></script>
+  <script src="/admin/admin.js?v=20261013-ticker-link"></script>
 </body>
 </html>
