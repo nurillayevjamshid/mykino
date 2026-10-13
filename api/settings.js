@@ -222,6 +222,23 @@ function normalizeAd(raw) {
     linkUrl: telegramUrl || websiteUrl,
     buttonText: trimString(source.buttonText).slice(0, 40),
   };
+function normalizeTicker(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const speedRaw = Number(source.speed);
+  const speed = Number.isFinite(speedRaw) ? Math.max(5, Math.min(120, Math.round(speedRaw))) : 20;
+  const fontSizeRaw = Number(source.fontSize);
+  const fontSize = Number.isFinite(fontSizeRaw) ? Math.max(10, Math.min(32, Math.round(fontSizeRaw))) : 14;
+  return {
+    enabled: Boolean(source.enabled),
+    text: trimString(source.text).slice(0, 1000),
+    linkUrl: normalizeAdLinkUrl(source.linkUrl),
+    bgColor: trimString(source.bgColor || "linear-gradient(135deg, #e50914, #990000)").slice(0, 160),
+    textColor: trimString(source.textColor || "#ffffff").slice(0, 40),
+    fontFamily: trimString(source.fontFamily || "Montserrat").slice(0, 80),
+    speed,
+    fontSize,
+    fontWeight: trimString(source.fontWeight || "600").slice(0, 20),
+  };
 }
 
 function normalizePreRollVideoUrl(value) {
@@ -338,6 +355,7 @@ async function readPersistedSettings(settings) {
   if (
     hasOwn(settings, "splashImageUrl") ||
     hasOwn(settings, "ad") ||
+    hasOwn(settings, "ticker") ||
     hasOwn(settings, "preRollAd") ||
     hasOwn(settings, "fifaLive") ||
     hasOwn(settings, "esportsStreams")
@@ -345,6 +363,7 @@ async function readPersistedSettings(settings) {
     return {
       splashImageUrl: readStoredPublicImageUrl(settings.splashImageUrl),
       ad: normalizeAd(settings.ad),
+      ticker: normalizeTicker(settings.ticker),
       preRollAd: normalizePreRollAd(settings.preRollAd, settings.adCdn),
       fifaLive: normalizeFifaLive(settings.fifaLive),
       esportsStreams: normalizeEsportsStreams(settings.esportsStreams),
@@ -356,6 +375,7 @@ async function readPersistedSettings(settings) {
     return {
       splashImageUrl: readStoredPublicImageUrl(folderSettings.splashImageUrl),
       ad: normalizeAd(folderSettings.ad),
+      ticker: normalizeTicker(folderSettings.ticker),
       preRollAd: normalizePreRollAd(folderSettings.preRollAd, folderSettings.adCdn),
       fifaLive: normalizeFifaLive(folderSettings.fifaLive),
       esportsStreams: normalizeEsportsStreams(folderSettings.esportsStreams),
@@ -364,6 +384,7 @@ async function readPersistedSettings(settings) {
     return {
       splashImageUrl: "",
       ad: normalizeAd(null),
+      ticker: normalizeTicker(null),
       preRollAd: normalizePreRollAd(null),
       fifaLive: normalizeFifaLive(null),
       esportsStreams: normalizeEsportsStreams(null),
@@ -460,6 +481,10 @@ module.exports = async function handler(request, response) {
         };
       }
 
+      if (hasOwn(body, "ticker")) {
+        nextSettings.ticker = normalizeTicker(body.ticker);
+      }
+
       if (hasOwn(body, "preRollAd")) {
         nextSettings.preRollAd = normalizePreRollAd(body.preRollAd);
       }
@@ -497,6 +522,7 @@ module.exports = async function handler(request, response) {
         ok: true,
         splashImageUrl: nextSettings.splashImageUrl || "",
         ad: normalizeAd(nextSettings.ad),
+        ticker: normalizeTicker(nextSettings.ticker),
         preRollAd: normalizePreRollAd(nextSettings.preRollAd),
         fifaLive: normalizeFifaLive(nextSettings.fifaLive),
         esportsStreams: normalizeEsportsStreams(nextSettings.esportsStreams),

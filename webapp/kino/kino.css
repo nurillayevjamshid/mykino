@@ -11103,3 +11103,87 @@ html[data-theme="dark"] .section-splash__spinner {
   border-top-color: #e50914;
 }
 
+/* ============================================================
+   Yuruvchi matnli e'lon kartochkasi (Marquee Ticker Card)
+   ============================================================ */
+.ad-ticker-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 12px 10px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  transition: transform 0.15s ease, opacity 0.2s ease;
+  z-index: 10;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ad-ticker-card:active {
+  transform: scale(0.985);
+}
+
+.ad-ticker-card[hidden] {
+  display: none !important;
+}
+
+.ad-ticker-card__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.ad-ticker-card__track {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+}
+
+.ad-ticker-card__content {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+  animation: adTickerMarquee 20s linear infinite;
+}
+
+.ad-ticker-card__content:hover,
+.ad-ticker-card__content:active {
+  animation-play-state: paused;
+}
+
+.ad-ticker-card__text {
+  display: inline-block;
+  padding-right: 48px;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+@keyframes adTickerMarquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+body.is-fifa .ad-ticker-card,
+body.is-music .ad-ticker-card,
+body.is-tv .ad-ticker-card,
+body.is-esport .ad-ticker-card,
+body.is-podcasts .ad-ticker-card {
+  display: none !important;
+}
+

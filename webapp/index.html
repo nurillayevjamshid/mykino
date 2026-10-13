@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261010-perf-opt" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261013-ticker" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Early Android detection: eliminates FOUC and avoids heavy blur calculation on first paint -->
   <script>
@@ -269,6 +269,17 @@
         <div class="search-recents__list" id="searchRecentsList"></div>
       </div>
     </section>
+
+    <!-- Yuruvchi matnli e'lon kartochkasi (Marquee Ticker) -->
+    <div class="ad-ticker-card" id="adTickerCard" hidden role="region" aria-label="E'lon">
+      <span class="ad-ticker-card__icon" id="adTickerIcon" aria-hidden="true">📢</span>
+      <div class="ad-ticker-card__track">
+        <div class="ad-ticker-card__content" id="adTickerContent">
+          <span class="ad-ticker-card__text" id="adTickerText1"></span>
+          <span class="ad-ticker-card__text" id="adTickerText2" aria-hidden="true"></span>
+        </div>
+      </div>
+    </div>
 
     <section class="hero" id="heroSection" hidden>
       <div class="hero__bg is-active" id="heroBackdrop"></div>
@@ -1316,7 +1327,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261013-sound-unmute"></script>
+  <script src="/static/kino/kino.js?v=20261013-ticker"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });

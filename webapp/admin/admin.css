@@ -2161,7 +2161,7 @@ body { background: radial-gradient(circle at 72% -10%, #f9fbff 0, var(--page-bg)
   .user-dates-line,
   .user-meta-line.mobile-only { display: none !important; }
   .movie-code-sub { display: block !important; }
-  .ad-tabs { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ad-tabs { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
   .ad-tab-item { display: flex; align-items: center; justify-content: space-between; min-height: 54px; }
   .ad-tab-item .ad-tab { flex: 1; text-align: left; }
   .users-toolbar { gap: 10px; }
@@ -2354,4 +2354,17 @@ body { background: radial-gradient(circle at 72% -10%, #f9fbff 0, var(--page-bg)
   [data-theme="dark"] #usersTableBody tr.user-row.is-expanded { background: #1b2340; border-color: var(--primary); }
   [data-theme="dark"] .modal-actions .btn,
   [data-theme="dark"] .form-actions .btn { box-shadow: 0 5px 14px rgba(0,0,0,.2); }
+}
+
+@keyframes adTickerMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-color-preset, .ticker-text-color-preset {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ticker-color-preset:hover, .ticker-text-color-preset:hover {
+  transform: scale(1.18);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
 }

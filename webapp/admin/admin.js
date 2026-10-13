@@ -600,7 +600,7 @@ function switchSection(name) {
   if (name === 'users') fetchUsers();
   if (name === 'music') fetchMusic();
   if (name === 'podcasts') { fetchPodcasts(); fetchPodLangs(); }
-  if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); }
+  if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); loadTickerSettings(); }
   if (name === 'fifaLive') { loadFifaLiveMatch(); }
   if (name === 'esportsStreams') { loadEsportsStreams(); }
   if (name === 'tv') { loadTvChannelsAdmin(); }
@@ -2319,6 +2319,7 @@ function switchAdTab(name) {
   });
   if (name === 'broadcast') initBroadcastSection();
   if (name === 'fifalive') loadFifaLiveSettings();
+  if (name === 'ticker') loadTickerSettings();
 }
 
 function normalizeSeriesFromApi(item) {
@@ -4263,6 +4264,361 @@ document.getElementById('adClearBtn')?.addEventListener('click', () => {
   setAdStatus('');
   updateAdLivePreview();
 });
+
+// ===== Yuruvchi matn (Marquee Ticker) sozlamalari =====
+const TICKER_FONT_GROUPS = [
+  {
+    category: "Sans-Serif (Zamonaviy & Aniq)",
+    fonts: [
+      "Montserrat", "Roboto", "Open Sans", "Lato", "Poppins", "Inter", "Oswald",
+      "Raleway", "Nunito", "Rubik", "Work Sans", "DM Sans", "Quicksand", "Manrope",
+      "Plus Jakarta Sans", "Outfit", "Space Grotesk", "Cabin", "Ubuntu", "Kanit",
+      "Barlow", "Heebo", "Fira Sans", "Mukta", "PT Sans", "Overpass", "Urbanist",
+      "Syne", "Jost", "Sora", "Lexend", "Karla", "Exo 2", "Titillium Web", "Maven Pro"
+    ]
+  },
+  {
+    category: "Display & Bold (E'lon & Sarlavhalar)",
+    fonts: [
+      "Bebas Neue", "Anton", "Righteous", "Permanent Marker", "Russo One", "Bangers",
+      "Bungee", "Audiowide", "Orbitron", "Faster One", "Black Han Sans", "Alfa Slab One",
+      "Abril Fatface", "Concert One", "Monoton", "Press Start 2P", "Silkscreen",
+      "Rubik Glitch", "Creepster", "Shrikhand", "Fredoka", "Comfortaa", "Carter One",
+      "Passion One", "Changa One", "Fugaz One", "Ultra", "Titan One", "Archivo Black", "Racing Sans One"
+    ]
+  },
+  {
+    category: "Serif (Klassik & Elegant)",
+    fonts: [
+      "Playfair Display", "Merriweather", "Lora", "PT Serif", "Cinzel",
+      "Cormorant Garamond", "Bodoni Moda", "EB Garamond", "Libre Baskerville", "Spectral",
+      "Bitter", "Prata", "DM Serif Display", "Frank Ruhl Libre", "Cardo", "Rozha One",
+      "Castoro", "Vollkorn", "Cinzel Decorative", "Domine", "Alice", "Yeseva One",
+      "Marcellus", "Arvo", "Faustina"
+    ]
+  },
+  {
+    category: "Script & Qo'lyozma (Chiroyli)",
+    fonts: [
+      "Dancing Script", "Pacifico", "Caveat", "Great Vibes", "Satisfy", "Sacramento",
+      "Shadows Into Light", "Lobster", "Lobster Two", "Kaushan Script", "Yellowtail",
+      "Courgette", "Parisienne", "Bad Script", "Marck Script", "Tangerine", "Cookie",
+      "Alex Brush", "Allura", "Reenie Beanie"
+    ]
+  },
+  {
+    category: "Monospace & Retro (Kod & Texnik)",
+    fonts: [
+      "Space Mono", "Fira Code", "JetBrains Mono", "Roboto Mono", "Source Code Pro",
+      "VT323", "Share Tech Mono", "Inconsolata", "Major Mono Display", "Ubuntu Mono"
+    ]
+  }
+];
+
+let tickerFontsPopulated = false;
+const loadedGoogleFontsInAdmin = new Set();
+
+function ensureGoogleFontInAdmin(fontName) {
+  if (!fontName) return;
+  const clean = String(fontName).trim();
+  if (!clean || loadedGoogleFontsInAdmin.has(clean)) return;
+  loadedGoogleFontsInAdmin.add(clean);
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(clean).replace(/%20/g, "+")}:wght@400;600;700;800;900&display=swap`;
+  document.head.appendChild(link);
+}
+
+function populateTickerFonts(selectedFont = "Montserrat") {
+  const select = document.getElementById("tickerFontFamily");
+  if (!select) return;
+  if (!tickerFontsPopulated) {
+    select.innerHTML = "";
+    let totalCount = 0;
+    TICKER_FONT_GROUPS.forEach(group => {
+      const optgroup = document.createElement("optgroup");
+      optgroup.label = group.category;
+      group.fonts.forEach(font => {
+        totalCount++;
+        const opt = document.createElement("option");
+        opt.value = font;
+        opt.textContent = font;
+        optgroup.appendChild(opt);
+      });
+      select.appendChild(optgroup);
+    });
+    const countBadge = document.getElementById("tickerFontCountBadge");
+    if (countBadge) countBadge.textContent = `${totalCount}+ shrift`;
+    tickerFontsPopulated = true;
+  }
+  if (selectedFont) {
+    select.value = selectedFont;
+  }
+}
+
+let tickerSettingsLoaded = false;
+let lastSavedTickerEnabled = false;
+
+function setTickerStatus(msg, kind = 'info') {
+  const el = document.getElementById('tickerSaveStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = kind === 'error' ? '#ef4444' : (kind === 'ok' ? '#22c55e' : '#6b7280');
+}
+
+function updateTickerLivePreview() {
+  const enabledEl = document.getElementById('tickerEnabled');
+  const enabled = Boolean(enabledEl?.checked);
+  const textRaw = document.getElementById('tickerText')?.value || '';
+  const text = textRaw.trim() || "🚀 Premyeralar faqat NTV da tomosha qiling!";
+  const linkUrl = (document.getElementById('tickerLinkUrl')?.value || '').trim();
+  const bgColor = (document.getElementById('tickerBgColor')?.value || 'linear-gradient(135deg, #e50914, #990000)').trim();
+  const textColor = (document.getElementById('tickerTextColor')?.value || '#ffffff').trim();
+  const fontFamily = (document.getElementById('tickerFontFamily')?.value || 'Montserrat').trim();
+  const fontSize = parseInt(document.getElementById('tickerFontSize')?.value || '14', 10) || 14;
+  const fontWeight = (document.getElementById('tickerFontWeight')?.value || '600').trim();
+  const speed = parseInt(document.getElementById('tickerSpeed')?.value || '20', 10) || 20;
+
+  ensureGoogleFontInAdmin(fontFamily);
+
+  const card = document.getElementById('tickerLivePreviewCard');
+  if (card) {
+    card.style.background = bgColor;
+    card.style.color = textColor;
+    card.style.opacity = enabled ? '1' : '0.4';
+  }
+
+  const track = document.getElementById('tickerLivePreviewTrack');
+  if (track) {
+    track.style.fontFamily = `"${fontFamily}", sans-serif`;
+    track.style.fontSize = `${fontSize}px`;
+    track.style.fontWeight = fontWeight;
+    track.style.animationDuration = `${speed}s`;
+  }
+
+  const t1 = document.getElementById('tickerLivePreviewText1');
+  const t2 = document.getElementById('tickerLivePreviewText2');
+  if (t1) t1.textContent = text;
+  if (t2) t2.textContent = text;
+
+  const statusLabel = document.getElementById('tickerStatusLabel');
+  if (statusLabel) {
+    statusLabel.textContent = enabled ? 'ON · faol' : "OFF · o'chirilgan";
+    statusLabel.style.color = enabled ? '#22c55e' : '#ef4444';
+  }
+
+  const fontLabel = document.getElementById('tickerFontLabel');
+  if (fontLabel) {
+    fontLabel.textContent = fontFamily;
+    fontLabel.style.fontFamily = `"${fontFamily}", sans-serif`;
+  }
+
+  const linkLabel = document.getElementById('tickerLinkLabel');
+  if (linkLabel) {
+    linkLabel.textContent = linkUrl || 'Mavjud emas';
+  }
+
+  const fontHint = document.getElementById('tickerFontPreviewHint');
+  if (fontHint) {
+    fontHint.innerHTML = `Tanlangan shrift: <strong style="font-family:'${fontFamily}', sans-serif;">${fontFamily}</strong>`;
+  }
+}
+
+async function loadTickerSettings(force = false) {
+  if (tickerSettingsLoaded && !force) return;
+  populateTickerFonts();
+  try {
+    const res = await fetch('/api/settings', { cache: 'no-store' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    const ticker = json.ticker || {};
+
+    const enabledEl = document.getElementById('tickerEnabled');
+    if (enabledEl) enabledEl.checked = Boolean(ticker.enabled);
+    lastSavedTickerEnabled = Boolean(ticker.enabled);
+
+    const textEl = document.getElementById('tickerText');
+    if (textEl && ticker.text !== undefined) textEl.value = ticker.text || '';
+
+    const linkEl = document.getElementById('tickerLinkUrl');
+    if (linkEl && ticker.linkUrl !== undefined) linkEl.value = ticker.linkUrl || '';
+
+    const bgEl = document.getElementById('tickerBgColor');
+    if (bgEl && ticker.bgColor) bgEl.value = ticker.bgColor;
+
+    const bgPicker = document.getElementById('tickerBgColorPicker');
+    if (bgPicker && (ticker.bgColor || '').startsWith('#')) {
+      bgPicker.value = ticker.bgColor;
+    }
+
+    const textColEl = document.getElementById('tickerTextColor');
+    if (textColEl && ticker.textColor) textColEl.value = ticker.textColor;
+
+    const textPicker = document.getElementById('tickerTextColorPicker');
+    if (textPicker && (ticker.textColor || '').startsWith('#')) {
+      textPicker.value = ticker.textColor;
+    }
+
+    const fontEl = document.getElementById('tickerFontFamily');
+    if (fontEl && ticker.fontFamily) {
+      populateTickerFonts(ticker.fontFamily);
+      fontEl.value = ticker.fontFamily;
+    }
+
+    const sizeEl = document.getElementById('tickerFontSize');
+    if (sizeEl && ticker.fontSize) sizeEl.value = String(ticker.fontSize);
+
+    const weightEl = document.getElementById('tickerFontWeight');
+    if (weightEl && ticker.fontWeight) weightEl.value = String(ticker.fontWeight);
+
+    const speedEl = document.getElementById('tickerSpeed');
+    if (speedEl && ticker.speed) speedEl.value = String(ticker.speed);
+
+    tickerSettingsLoaded = true;
+    updateTickerLivePreview();
+  } catch (err) {
+    setTickerStatus(`Yuklashda xato: ${err.message}`, 'error');
+  }
+}
+
+async function saveTickerSettings(options = {}) {
+  const enabledEl = document.getElementById('tickerEnabled');
+  const enabled = Boolean(enabledEl?.checked);
+  const text = (document.getElementById('tickerText')?.value || '').trim();
+  const linkUrl = (document.getElementById('tickerLinkUrl')?.value || '').trim();
+  const bgColor = (document.getElementById('tickerBgColor')?.value || 'linear-gradient(135deg, #e50914, #990000)').trim();
+  const textColor = (document.getElementById('tickerTextColor')?.value || '#ffffff').trim();
+  const fontFamily = (document.getElementById('tickerFontFamily')?.value || 'Montserrat').trim();
+  const fontSize = parseInt(document.getElementById('tickerFontSize')?.value || '14', 10) || 14;
+  const fontWeight = (document.getElementById('tickerFontWeight')?.value || '600').trim();
+  const speed = parseInt(document.getElementById('tickerSpeed')?.value || '20', 10) || 20;
+
+  if (enabled && !text) {
+    if (options.revertOnFail && enabledEl) enabledEl.checked = lastSavedTickerEnabled;
+    setTickerStatus("E'lon matnini kiriting yoki ON tugmasini o'chiring.", 'error');
+    updateTickerLivePreview();
+    return false;
+  }
+
+  setTickerStatus('Saqlanmoqda...');
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticker: {
+          enabled,
+          text,
+          linkUrl,
+          bgColor,
+          textColor,
+          fontFamily,
+          fontSize,
+          fontWeight,
+          speed,
+        }
+      })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    const savedTicker = json.ticker || {};
+    lastSavedTickerEnabled = Boolean(savedTicker.enabled);
+    if (enabledEl) enabledEl.checked = lastSavedTickerEnabled;
+    setTickerStatus(lastSavedTickerEnabled ? "Saqlandi. Yuruvchi matn ON — mini appda ko'rinadi." : "Saqlandi. Yuruvchi matn OFF — mini appda ko'rinmaydi.", 'ok');
+    updateTickerLivePreview();
+    return true;
+  } catch (err) {
+    if (options.revertOnFail && enabledEl) enabledEl.checked = lastSavedTickerEnabled;
+    setTickerStatus(`Xato: ${err.message}`, 'error');
+    return false;
+  }
+}
+
+// Ticker event listeners
+document.getElementById('tickerSaveBtn')?.addEventListener('click', () => saveTickerSettings());
+document.getElementById('tickerEnabled')?.addEventListener('change', () => {
+  updateTickerLivePreview();
+  saveTickerSettings({ revertOnFail: true });
+});
+
+['tickerText', 'tickerLinkUrl', 'tickerBgColor', 'tickerTextColor', 'tickerFontSize', 'tickerFontWeight', 'tickerSpeed'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', updateTickerLivePreview);
+  document.getElementById(id)?.addEventListener('change', updateTickerLivePreview);
+});
+
+document.getElementById('tickerFontFamily')?.addEventListener('change', () => {
+  const font = document.getElementById('tickerFontFamily')?.value;
+  ensureGoogleFontInAdmin(font);
+  updateTickerLivePreview();
+});
+
+(() => {
+  const bgPicker = document.getElementById('tickerBgColorPicker');
+  const bgInput = document.getElementById('tickerBgColor');
+  if (bgPicker && bgInput) {
+    bgPicker.addEventListener('input', (e) => {
+      bgInput.value = e.target.value;
+      updateTickerLivePreview();
+    });
+    bgInput.addEventListener('input', (e) => {
+      if (/^#[0-9a-f]{6}$/i.test(e.target.value.trim())) {
+        bgPicker.value = e.target.value.trim();
+      }
+    });
+  }
+
+  const textPicker = document.getElementById('tickerTextColorPicker');
+  const textInput = document.getElementById('tickerTextColor');
+  if (textPicker && textInput) {
+    textPicker.addEventListener('input', (e) => {
+      textInput.value = e.target.value;
+      updateTickerLivePreview();
+    });
+    textInput.addEventListener('input', (e) => {
+      if (/^#[0-9a-f]{6}$/i.test(e.target.value.trim())) {
+        textPicker.value = e.target.value.trim();
+      }
+    });
+  }
+
+  document.querySelectorAll('.ticker-color-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const bg = btn.dataset.bg;
+      if (bg && bgInput) {
+        bgInput.value = bg;
+        if (bg.startsWith('#') && bgPicker) bgPicker.value = bg;
+        updateTickerLivePreview();
+      }
+    });
+  });
+
+  document.querySelectorAll('.ticker-text-color-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const color = btn.dataset.color;
+      if (color && textInput) {
+        textInput.value = color;
+        if (color.startsWith('#') && textPicker) textPicker.value = color;
+        updateTickerLivePreview();
+      }
+    });
+  });
+
+  document.getElementById('tickerResetBtn')?.addEventListener('click', () => {
+    if (!confirm("Barcha sozlamalar standart (default) holatiga qaytarilsinmi?")) return;
+    const textEl = document.getElementById('tickerText'); if (textEl) textEl.value = "🚀 Premyeralar faqat NTV da tomosha qiling!";
+    const linkEl = document.getElementById('tickerLinkUrl'); if (linkEl) linkEl.value = "";
+    if (bgInput) bgInput.value = "linear-gradient(135deg, #e50914, #990000)";
+    if (bgPicker) bgPicker.value = "#e50914";
+    if (textInput) textInput.value = "#ffffff";
+    if (textPicker) textPicker.value = "#ffffff";
+    const fontEl = document.getElementById('tickerFontFamily'); if (fontEl) fontEl.value = "Montserrat";
+    const sizeEl = document.getElementById('tickerFontSize'); if (sizeEl) sizeEl.value = "14";
+    const weightEl = document.getElementById('tickerFontWeight'); if (weightEl) weightEl.value = "600";
+    const speedEl = document.getElementById('tickerSpeed'); if (speedEl) speedEl.value = "20";
+    updateTickerLivePreview();
+    setTickerStatus("Standart sozlamalar tiklandi. Saqlash uchun 'Saqlash' tugmasini bosing.", 'ok');
+  });
+})();
 
 // ===== Pre-roll video reklama (kino oldidan) =====
 function setPreRollStatus(msg, kind) {
