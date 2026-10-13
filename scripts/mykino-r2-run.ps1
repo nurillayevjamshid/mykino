@@ -49,19 +49,21 @@ $userHome = $env:USERPROFILE
 
 # Asboblarni (Node, ffmpeg) standart va lokal yo'llardan qidirish
 $possibleToolPaths = @(
-  "$userHome\tools\node",
   "$userHome\tools\ffmpeg\bin",
+  "$userHome\tools\node",
   "$userHome\tools\ffmpeg",
   "C:\Program Files\nodejs",
   "C:\ffmpeg\bin",
   "C:\ffmpeg",
   "$env:LOCALAPPDATA\Programs\node"
 )
+$currentPaths = ($env:PATH -split ';') | Where-Object { $_ -and (Test-Path $_) }
 foreach ($tp in $possibleToolPaths) {
-  if ((Test-Path $tp) -and ($env:PATH -notlike "*$tp*")) {
-    $env:PATH = "$tp;$env:PATH"
+  if ((Test-Path $tp) -and ($currentPaths -notcontains $tp)) {
+    $currentPaths = @($tp) + $currentPaths
   }
 }
+$env:PATH = ($currentPaths -join ';')
 
 # Repo .env birinchi, alohida lokal R2 fayli esa uning ustidan keladi.
 Import-EnvFile (Join-Path $repo '.env')
