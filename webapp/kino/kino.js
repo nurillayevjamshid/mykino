@@ -873,6 +873,10 @@ const videoSpeedLabel = null;
 const videoLockRelease = null;
 const videoVolumeButton = document.querySelector("#videoVolumeButton");
 const videoPipButton = document.querySelector("#videoPipButton");
+const playerMiniControls = document.querySelector("#playerMiniControls");
+const playerMiniExpand = document.querySelector("#playerMiniExpand");
+const playerMiniToggle = document.querySelector("#playerMiniToggle");
+const playerMiniClose = document.querySelector("#playerMiniClose");
 const playerOverlay = document.querySelector("#playerOverlay");
 const videoTapZoneLeft = document.querySelector("#videoTapZoneLeft");
 const videoTapZoneRight = document.querySelector("#videoTapZoneRight");
@@ -5259,7 +5263,70 @@ function toggleMute() {
   if (videoVolume) setRangeFill(videoVolume, Number(videoVolume.value || 0), 100);
 }
 
-/* ====== Picture-in-Picture ====== */
+/* ====== Picture-in-Picture & Floating Mini-Screen ====== */
+function isMiniScreenActive() {
+  return Boolean(videoPlayer && videoPlayer.classList.contains("is-mini-screen"));
+}
+
+function updateMiniScreenControlsState() {
+  if (!playerMiniToggle) return;
+  let isPlaying = false;
+  if (activeYouTubePlayer && window.YT?.PlayerState) {
+    try {
+      isPlaying = activeYouTubePlayer.getPlayerState() === window.YT.PlayerState.PLAYING;
+    } catch (_) {}
+  } else {
+    const v = getActiveVideoEl();
+    if (v) isPlaying = !v.paused;
+  }
+  playerMiniToggle.classList.toggle("is-playing", isPlaying);
+  playerMiniToggle.setAttribute("aria-label", isPlaying ? "Pauza" : "Play");
+}
+
+function enterMiniScreen() {
+  if (!videoPlayer || videoPlayer.hidden || isMiniScreenActive()) return;
+  if (isAnyFullscreen()) {
+    try { exitFullscreenAndLandscape(); } catch (_) {}
+  }
+  videoPlayer.classList.add("is-mini-screen");
+  videoPlayer.style.transform = "";
+  document.body.classList.remove("is-player-open");
+  document.body.classList.add("has-video-mini-screen");
+  if (playerMiniControls) {
+    playerMiniControls.hidden = false;
+    playerMiniControls.setAttribute("aria-hidden", "false");
+  }
+  updateMiniScreenControlsState();
+  setupPipButton();
+  tgBackUnregister("video-player");
+  try {
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light");
+  } catch (_) {}
+}
+
+function expandVideoPlayer() {
+  if (!videoPlayer || !isMiniScreenActive()) return;
+  videoPlayer.classList.remove("is-mini-screen");
+  videoPlayer.style.transform = "";
+  document.body.classList.add("is-player-open");
+  document.body.classList.remove("has-video-mini-screen");
+  if (playerMiniControls) {
+    playerMiniControls.hidden = true;
+    playerMiniControls.setAttribute("aria-hidden", "true");
+  }
+  setupPipButton();
+  tgBackRegister("video-player", () => { try { closeVideoPlayer(); } catch (_) {} });
+  setControlsVisible(true);
+  try {
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light");
+  } catch (_) {}
+}
+
+function toggleMiniScreen() {
+  if (isMiniScreenActive()) expandVideoPlayer();
+  else enterMiniScreen();
+}
+
 function isPipSupported() {
   if (document.pictureInPictureEnabled) return true;
   const probe = document.createElement("video");
@@ -5269,6 +5336,12 @@ function isPipSupported() {
 
 function setupPipButton() {
   if (!videoPipButton) return;
+  if (activeMovie?._podcast) {
+    videoPipButton.hidden = false;
+    videoPipButton.classList.toggle("is-active", isMiniScreenActive());
+    videoPipButton.setAttribute("aria-label", isMiniScreenActive() ? "Kengaytirish" : "Mini ekran");
+    return;
+  }
   if (!isPipSupported()) {
     videoPipButton.hidden = true;
     return;
@@ -5277,8 +5350,15 @@ function setupPipButton() {
 }
 
 async function togglePip() {
+  if (activeMovie?._podcast) {
+    toggleMiniScreen();
+    return;
+  }
   const v = getActiveVideoEl();
-  if (!v) return;
+  if (!v) {
+    toggleMiniScreen();
+    return;
+  }
   try {
     if (document.pictureInPictureElement === v) {
       await document.exitPictureInPicture();
@@ -5293,7 +5373,8 @@ async function togglePip() {
       v.webkitSetPresentationMode(mode);
     }
   } catch (err) {
-    console.warn("PiP failed:", err);
+    console.warn("PiP failed, using mini-screen fallback:", err);
+    toggleMiniScreen();
   }
 }
 
@@ -5307,6 +5388,9 @@ function exitPipIfActive() {
       v.webkitSetPresentationMode("inline");
     }
   } catch {}
+  if (isMiniScreenActive()) {
+    expandVideoPlayer();
+  }
 }
 
 async function requestWakeLock() {
@@ -5374,6 +5458,7 @@ function updateYouTubeControls() {
     updateSpeedLabel();
   }
   syncActiveMovieProgress();
+  updateMiniScreenControlsState();
 }
 
 function startYouTubeProgressTimer() {
@@ -5393,6 +5478,15 @@ function destroyYouTubePlayer() {
   activeYouTubePlayer = null;
   lastSavedProgressSecond = -1;
   setCustomVideoMode(false);
+  if (videoPlayer) {
+    videoPlayer.classList.remove("is-mini-screen");
+    videoPlayer.style.transform = "";
+  }
+  document.body.classList.remove("has-video-mini-screen");
+  if (playerMiniControls) {
+    playerMiniControls.hidden = true;
+    playerMiniControls.setAttribute("aria-hidden", "true");
+  }
 }
 
 function ensureYouTubeApi() {
@@ -5424,11 +5518,18 @@ function ensureYouTubeApi() {
   return youtubeApiPromise;
 }
 
+let isUserVideoPaused = false;
+
 function toggleYouTubePlayback() {
   if (!activeYouTubePlayer || !window.YT?.PlayerState) return;
   const state = activeYouTubePlayer.getPlayerState();
-  if (state === window.YT.PlayerState.PLAYING) activeYouTubePlayer.pauseVideo();
-  else activeYouTubePlayer.playVideo();
+  if (state === window.YT.PlayerState.PLAYING) {
+    isUserVideoPaused = true;
+    activeYouTubePlayer.pauseVideo();
+  } else {
+    isUserVideoPaused = false;
+    activeYouTubePlayer.playVideo();
+  }
   window.setTimeout(updateYouTubeControls, 50);
 }
 
@@ -5840,10 +5941,11 @@ async function mountYouTubePlayer(videoUrl, movie, options = {}) {
         onStateChange: () => {
           if (requestId !== activeVideoRequest || videoPlayer.hidden) return;
           clearYouTubeAutoAdvanceTimer();
-          if (activeYouTubePlayer.getPlayerState?.() === window.YT.PlayerState.ENDED) {
+          const state = activeYouTubePlayer.getPlayerState?.();
+          if (state === window.YT.PlayerState.ENDED) {
             if (activeMovie?._podcast) {
               youtubeAutoAdvanceTimer = window.setTimeout(() => {
-                try { closeVideoPlayer(); } catch (_) {}
+                try { closeVideoPlayer({ forceClose: true }); } catch (_) {}
               }, 350);
             } else {
               clearMovieProgress(activeMovie);
@@ -5851,8 +5953,18 @@ async function mountYouTubePlayer(videoUrl, movie, options = {}) {
                 if (!playNextMovie()) updateYouTubeControls();
               }, 350);
             }
+          } else if (state === window.YT.PlayerState.PAUSED) {
+            // Agar foydalanuvchi O'ZI pauza bosmagan bo'lsa (mini app pastga surilgan yoki fonda):
+            if (activeMovie?._podcast && !isUserVideoPaused) {
+              setTimeout(() => {
+                if (activeMovie?._podcast && !isUserVideoPaused && activeYouTubePlayer?.playVideo) {
+                  try { activeYouTubePlayer.playVideo(); } catch (_) {}
+                }
+              }, 120);
+            }
           }
           updateYouTubeControls();
+          updateMiniScreenControlsState();
         },
         onPlaybackRateChange: () => {
           if (requestId !== activeVideoRequest || videoPlayer.hidden) return;
@@ -6152,6 +6264,25 @@ function getInlineSourceLabel(movie) {
 
 async function openVideoPlayer(movie, options = {}) {
   if (!movie) return;
+  // Agar mini-ekran ochiq bo'lsa va aynan shu video qayta ochilayotgan bo'lsa — kengaytiramiz
+  if (isMiniScreenActive()) {
+    if (activeMovie && String(activeMovie.id) === String(movie.id)) {
+      expandVideoPlayer();
+      return;
+    }
+    videoPlayer.classList.remove("is-mini-screen");
+    videoPlayer.style.transform = "";
+    document.body.classList.remove("has-video-mini-screen");
+    if (playerMiniControls) {
+      playerMiniControls.hidden = true;
+      playerMiniControls.setAttribute("aria-hidden", "true");
+    }
+  }
+  isUserVideoPaused = false;
+  try {
+    if (window.__music?.pause) window.__music.pause();
+  } catch (_) {}
+
   // Preload elementini bu yerda o'chirmaymiz — createVideoElement src mos kelsa
   // o'shani qaytadan ishlatadi, mos kelmasa o'zi to'xtatadi.
   const requestId = ++activeVideoRequest;
@@ -6237,9 +6368,6 @@ async function openVideoPlayer(movie, options = {}) {
   if (cdnUrl || driveFileId || (serverVideoUrl && /token=/.test(serverVideoUrl))) {
     let playbackUrl = cdnUrl;
     if (!playbackUrl && driveFileId) {
-      // Gesture'ni saqlash uchun resolve so'rovini KUTMAYMIZ. Cache tayyor bo'lsa,
-      // direct URL'ni ishlatamiz; aks holda — server bergan token-li videoUrl
-      // (drive-stream proxy uchun majburiy) yoki uning yetishmasligida fallback.
       const cached = driveDirectUrlCache.get(driveFileId);
       if (cached && cached.expiresAt > Date.now()) {
         playbackUrl = cached.url;
@@ -6247,7 +6375,6 @@ async function openVideoPlayer(movie, options = {}) {
         playbackUrl = serverVideoUrl;
         resolveDriveDirectVideoUrl(driveFileId).catch(() => {});
       } else {
-        // Eski yo'l — token siz, drive-stream 403 qaytarishi mumkin
         playbackUrl = buildDriveStreamUrl(driveFileId);
         resolveDriveDirectVideoUrl(driveFileId).catch(() => {});
       }
@@ -6280,6 +6407,14 @@ async function openVideoPlayer(movie, options = {}) {
 
 function closeVideoPlayer(options = {}) {
   const fromPopstate = Boolean(options?.fromPopstate);
+  const forceClose = Boolean(options?.forceClose);
+
+  // Podkast ko'rilayotganda foydalanuvchi orqaga yoki yopish bosgan bo'lsa (forceClose bo'lmasa):
+  // pleyer butunlay yopilmaydi, balki suzuvchi mini-ekran (floating PiP) bo'lib davom etadi!
+  if (!forceClose && activeMovie?._podcast && !isMiniScreenActive()) {
+    enterMiniScreen();
+    return;
+  }
   // Pleyer yopilishidan oldin pending progressni darhol server'ga jo'natamiz —
   // foydalanuvchi keyingi kinoga o'tsa yoki appni minimallashtirsa pozitsiya
   // yo'qolmasin. Beacon flush pagehide/visibilitychange'da ham ishlaydi.
@@ -6322,8 +6457,14 @@ function closeVideoPlayer(options = {}) {
   videoExternalLink.textContent = t("openSource");
   setVideoLoading(false);
   videoPlayer.hidden = true;
-  document.body.classList.remove("is-player-open", "is-modal-open", "has-sheet-open", "is-lightbox-open");
+  videoPlayer.classList.remove("is-mini-screen");
+  videoPlayer.style.transform = "";
+  document.body.classList.remove("is-player-open", "is-modal-open", "has-sheet-open", "is-lightbox-open", "has-video-mini-screen");
   document.body.classList.remove("is-podcast-context");
+  if (playerMiniControls) {
+    playerMiniControls.hidden = true;
+    playerMiniControls.setAttribute("aria-hidden", "true");
+  }
   if (videoPipButton) videoPipButton.classList.remove("is-active");
   exitPipIfActive();
   if (isAnyFullscreen()) exitFullscreenAndLandscape();
@@ -6346,6 +6487,15 @@ window.__playYouTubeStandalone = function (videoId, opts = {}) {
   };
   // startFromBeginning bermasak — kinolardagidek saqlangan joydan davom etadi.
   return openVideoPlayer(pseudoMovie, { _podcast: true, startFromBeginning: Boolean(opts.startFromBeginning) });
+};
+
+window.__kinoVideo = {
+  openVideoPlayer,
+  closeVideoPlayer,
+  enterMiniScreen,
+  expandVideoPlayer,
+  toggleMiniScreen,
+  isMiniScreenActive,
 };
 
 function setFilter(filter) {
@@ -7027,7 +7177,7 @@ function ensureMusicModule() {
   const cssPromise = ensureMusicCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music/music.js?v=20261014-nav-sync";
+    script.src = "/static/music/music.js?v=20261014-mini-screen-bg-audio";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -8598,6 +8748,146 @@ playerOverlay?.addEventListener("click", (e) => {
   }
 });
 
+// Mini player (floating mini-screen) boshqaruv tugmalari
+playerMiniClose?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  closeVideoPlayer({ forceClose: true });
+});
+
+playerMiniExpand?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  expandVideoPlayer();
+});
+
+playerMiniToggle?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleYouTubePlayback();
+  setTimeout(updateMiniScreenControlsState, 50);
+});
+
+videoPlayer?.addEventListener("click", (e) => {
+  if (isMiniScreenActive()) {
+    if (e.target.closest(".player-mini-btn")) return;
+    expandVideoPlayer();
+  }
+});
+
+// Swipe-down gesture: to'liq ekranli pleyerdan pastga surilganda mini-ekranga o'tish
+(function setupVideoPlayerSwipeDown() {
+  if (!videoPlayer) return;
+  let startY = 0;
+  let startX = 0;
+  let isDragging = false;
+
+  videoPlayer.addEventListener("touchstart", (e) => {
+    if (isMiniScreenActive()) return;
+    if (e.touches.length !== 1) return;
+    if (e.target.closest("button, input, #playerSettingsPanel, .player-bottom, .player-center")) return;
+    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+    isDragging = true;
+  }, { passive: true });
+
+  videoPlayer.addEventListener("touchmove", (e) => {
+    if (!isDragging || isMiniScreenActive() || e.touches.length !== 1) return;
+    const dy = e.touches[0].clientY - startY;
+    const dx = e.touches[0].clientX - startX;
+    if (dy > 12 && Math.abs(dy) > Math.abs(dx)) {
+      const scale = Math.max(0.72, 1 - dy / 900);
+      videoPlayer.style.transform = `translateY(${Math.min(dy, 320)}px) scale(${scale})`;
+      videoPlayer.style.borderRadius = `${Math.min(16, dy / 12)}px`;
+    }
+  }, { passive: true });
+
+  const onEnd = (e) => {
+    if (!isDragging || isMiniScreenActive()) return;
+    isDragging = false;
+    const touch = e.changedTouches ? e.changedTouches[0] : null;
+    const dy = touch ? touch.clientY - startY : 0;
+    if (dy > 65) {
+      videoPlayer.style.transition = "transform 200ms ease, opacity 200ms ease";
+      videoPlayer.style.transform = "translateY(140px) scale(0.7)";
+      videoPlayer.style.opacity = "0.7";
+      setTimeout(() => {
+        videoPlayer.style.transition = "";
+        videoPlayer.style.transform = "";
+        videoPlayer.style.opacity = "";
+        videoPlayer.style.borderRadius = "";
+        if (activeMovie?._podcast) {
+          enterMiniScreen();
+        } else {
+          closeVideoPlayer();
+        }
+      }, 200);
+    } else {
+      videoPlayer.style.transition = "transform 180ms ease, border-radius 180ms ease";
+      videoPlayer.style.transform = "";
+      videoPlayer.style.borderRadius = "";
+      setTimeout(() => { videoPlayer.style.transition = ""; }, 180);
+    }
+  };
+
+  videoPlayer.addEventListener("touchend", onEnd, { passive: true });
+  videoPlayer.addEventListener("touchcancel", onEnd, { passive: true });
+})();
+
+// Mini-ekranni ekranda erkin surish va chetga surib yopish
+(function setupMiniScreenDrag() {
+  if (!videoPlayer) return;
+  let startX = 0;
+  let startY = 0;
+  let isDragging = false;
+  let hasMoved = false;
+
+  videoPlayer.addEventListener("touchstart", (e) => {
+    if (!isMiniScreenActive() || e.touches.length !== 1) return;
+    if (e.target.closest(".player-mini-btn")) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isDragging = true;
+    hasMoved = false;
+    videoPlayer.classList.add("is-dragging");
+  }, { passive: true });
+
+  videoPlayer.addEventListener("touchmove", (e) => {
+    if (!isDragging || !isMiniScreenActive()) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) hasMoved = true;
+    videoPlayer.style.transform = `translate(${dx}px, ${dy}px)`;
+  }, { passive: true });
+
+  const finishDrag = (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    videoPlayer.classList.remove("is-dragging");
+    const touch = e.changedTouches ? e.changedTouches[0] : null;
+    const dx = touch ? touch.clientX - startX : 0;
+    if (Math.abs(dx) > 130) {
+      // Flick / chetga surib yopish
+      videoPlayer.style.transition = "transform 180ms ease, opacity 180ms ease";
+      videoPlayer.style.transform = `translateX(${dx > 0 ? 320 : -320}px)`;
+      videoPlayer.style.opacity = "0";
+      setTimeout(() => {
+        videoPlayer.style.transition = "";
+        videoPlayer.style.transform = "";
+        videoPlayer.style.opacity = "";
+        closeVideoPlayer({ forceClose: true });
+      }, 180);
+    } else {
+      videoPlayer.style.transition = "transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1)";
+      videoPlayer.style.transform = "";
+      setTimeout(() => { videoPlayer.style.transition = ""; }, 220);
+      if (!hasMoved && !e.target.closest(".player-mini-btn")) {
+        expandVideoPlayer();
+      }
+    }
+  };
+
+  videoPlayer.addEventListener("touchend", finishDrag, { passive: true });
+  videoPlayer.addEventListener("touchcancel", finishDrag, { passive: true });
+})();
+
 // Speed selector
 document.querySelectorAll(".player-speed-btn").forEach((btn) => {
   btn.addEventListener("click", (e) => {
@@ -8676,11 +8966,35 @@ try {
       showPlayerToast("Fullscreen qo'llab-quvvatlanmaydi");
       syncFullscreenButton();
     });
-    tgWebApp.onEvent("viewportChanged", () => { refreshLandscapeView(); });
+    tgWebApp.onEvent("viewportChanged", () => {
+      refreshLandscapeView();
+      // Podkast ko'rilayotganda mini app pastga surilsa/minimallashtirilsa mini-ekran bo'lib davom etishi:
+      if (activeMovie?._podcast && videoPlayer && !videoPlayer.hidden && !isMiniScreenActive()) {
+        if (tgWebApp.isExpanded === false || (tgWebApp.viewportHeight && tgWebApp.viewportHeight < 420)) {
+          enterMiniScreen();
+        }
+      }
+      // Agar podkast ijro etilayotgan bo'lsa va orqa fonga tushsa, to'xtab qolmasin:
+      if (activeMovie?._podcast && activeYouTubePlayer && !isUserVideoPaused) {
+        try {
+          const s = activeYouTubePlayer.getPlayerState ? activeYouTubePlayer.getPlayerState() : -1;
+          if (s !== 1) activeYouTubePlayer.playVideo?.();
+        } catch (_) {}
+      }
+    });
     // Re-measure when Telegram reports its safe-area / fullscreen-controls insets so the
     // rotated video sits exactly below the controls.
     tgWebApp.onEvent("safeAreaChanged", () => { refreshLandscapeView(); });
     tgWebApp.onEvent("contentSafeAreaChanged", () => { refreshLandscapeView(); });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && activeMovie?._podcast && activeYouTubePlayer && !isUserVideoPaused) {
+        try {
+          const s = activeYouTubePlayer.getPlayerState ? activeYouTubePlayer.getPlayerState() : -1;
+          if (s !== 1) activeYouTubePlayer.playVideo?.();
+        } catch (_) {}
+      }
+    });
   }
 } catch {}
 

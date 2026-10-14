@@ -1601,15 +1601,65 @@
     } catch (_) {}
   }
 
+  let silentAudioEl = null;
+  let silentAudioCtx = null;
+  let silentAudioSource = null;
+
+  function initSilentAudioContext() {
+    try {
+      if (!silentAudioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) silentAudioCtx = new AudioCtx();
+      }
+      if (silentAudioCtx && silentAudioCtx.state === "suspended") {
+        silentAudioCtx.resume().catch(() => {});
+      }
+      if (silentAudioCtx && !silentAudioSource) {
+        const buffer = silentAudioCtx.createBuffer(1, silentAudioCtx.sampleRate, silentAudioCtx.sampleRate);
+        silentAudioSource = silentAudioCtx.createBufferSource();
+        silentAudioSource.buffer = buffer;
+        silentAudioSource.loop = true;
+        const gain = silentAudioCtx.createGain();
+        gain.gain.value = 0.0001;
+        silentAudioSource.connect(gain);
+        gain.connect(silentAudioCtx.destination);
+        silentAudioSource.start(0);
+      }
+    } catch (_) {}
+  }
+
   function playSilentAnchor() {
     try {
       if ("audioSession" in navigator) {
         navigator.audioSession.type = "playback";
       }
     } catch (_) {}
+    initSilentAudioContext();
+    try {
+      if (!silentAudioEl) {
+        silentAudioEl = new Audio();
+        // 1-second 44.1kHz silent WAV data URI
+        silentAudioEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+        silentAudioEl.loop = true;
+        silentAudioEl.setAttribute("playsinline", "");
+        silentAudioEl.setAttribute("webkit-playsinline", "");
+        silentAudioEl.volume = 0.01;
+      }
+      const p = silentAudioEl.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch (_) {}
   }
 
-  function pauseSilentAnchor() {}
+  function pauseSilentAnchor() {
+    try {
+      if (silentAudioEl) silentAudioEl.pause();
+    } catch (_) {}
+    try {
+      if (silentAudioCtx && silentAudioCtx.state === "running") {
+        silentAudioCtx.suspend().catch(() => {});
+      }
+    } catch (_) {}
+  }
 
   function ensureYtAudio() {
     if (!ytReady || !ytPlayer) return;
@@ -1869,7 +1919,7 @@
     }
   }
 
-  // Ekran bloklanganda yoki boshqa ilovaga o'tilganda fon ijrosini davom ettirish
+  // Ekran bloklanganda, mini app pastga tushirilganda yoki boshqa ilovaga o'tilganda fon ijrosini davom ettirish
   try {
     const handleForegroundReturn = () => {
       if (musicUserPlaying && !userManuallyPaused) {
@@ -1892,9 +1942,33 @@
       }
     };
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) handleForegroundReturn();
+      if (!document.hidden) {
+        handleForegroundReturn();
+      } else if (musicUserPlaying && !userManuallyPaused) {
+        playSilentAnchor();
+      }
     });
     window.addEventListener("focus", handleForegroundReturn);
+    window.addEventListener("blur", () => {
+      if (musicUserPlaying && !userManuallyPaused) playSilentAnchor();
+    });
+
+    // Telegram Mini App minimallashtirilganda yoki pastga surilganda fon ijrosi to'xtamasligi:
+    const tg = window.Telegram?.WebApp;
+    if (tg && typeof tg.onEvent === "function") {
+      tg.onEvent("viewportChanged", () => {
+        if (musicUserPlaying && !userManuallyPaused) {
+          playSilentAnchor();
+          if (currentPlayingType === "audio" && nativeAudioPlayer?.paused) {
+            nativeAudioPlayer.play().catch(() => {});
+          } else if (currentPlayingType === "youtube" && ytReady && ytPlayer) {
+            ensureYtAudio();
+            const s = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1;
+            if (s !== 1) ytPlayer.playVideo?.();
+          }
+        }
+      });
+    }
   } catch (_) {}
 
   // Har qanday ekran bosilganda YouTube ovozini majburiy yoqish (unMute gesture)
@@ -1967,17 +2041,21 @@
               }
               startMiniProgress();
             } else if (e.data === S.PAUSED) {
-              // Agar foydalanuvchi O'ZI pauza bosmagan bo'lsa (telefon ekrani o'chirilgan yoki qulflangan holatda):
+              // Agar foydalanuvchi O'ZI pauza bosmagan bo'lsa (mini app pastga tushirilgan, ekran o'chirilgan yoki qulflangan):
               // musicUserPlaying = true holatida qoladi va pleer zudlik bilan qayta yangraydi!
               if (!userManuallyPaused && musicUserPlaying) {
-                setTimeout(() => {
+                playSilentAnchor();
+                const tryResume = () => {
                   if (musicUserPlaying && !userManuallyPaused && ytPlayer?.playVideo) {
                     try {
                       ensureYtAudio();
                       ytPlayer.playVideo();
                     } catch (_) {}
                   }
-                }, 100);
+                };
+                setTimeout(tryResume, 80);
+                setTimeout(tryResume, 250);
+                setTimeout(tryResume, 650);
                 return;
               }
               musicUserPlaying = false;
@@ -2281,6 +2359,58 @@
     document.body.classList.remove("fullplayer-open");
     tgBackUnregister("music-fullplayer");
   }
+
+  (function setupMusicFullPlayerSwipe() {
+    if (!musicFullPlayer) return;
+    let startY = 0;
+    let startX = 0;
+    let dragging = false;
+
+    musicFullPlayer.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return;
+      if (e.target.closest("button, input, [data-music-fp-toggle], .music-fullplayer__bar")) return;
+      startY = e.touches[0].clientY;
+      startX = e.touches[0].clientX;
+      dragging = true;
+    }, { passive: true });
+
+    musicFullPlayer.addEventListener("touchmove", (e) => {
+      if (!dragging || e.touches.length !== 1) return;
+      const dy = e.touches[0].clientY - startY;
+      const dx = e.touches[0].clientX - startX;
+      if (dy > 0 && Math.abs(dy) > Math.abs(dx)) {
+        musicFullPlayer.style.transform = `translateY(${Math.min(dy, 280)}px)`;
+        musicFullPlayer.style.opacity = `${Math.max(0.4, 1 - dy / 400)}`;
+      }
+    }, { passive: true });
+
+    const finishSwipe = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      const touch = e.changedTouches ? e.changedTouches[0] : null;
+      const dy = touch ? touch.clientY - startY : 0;
+      musicFullPlayer.style.transition = "transform 220ms ease, opacity 220ms ease";
+      if (dy > 70) {
+        musicFullPlayer.style.transform = "translateY(100%)";
+        musicFullPlayer.style.opacity = "0";
+        setTimeout(() => {
+          musicFullPlayer.style.transition = "";
+          musicFullPlayer.style.transform = "";
+          musicFullPlayer.style.opacity = "";
+          closeMusicFullPlayer();
+        }, 220);
+      } else {
+        musicFullPlayer.style.transform = "";
+        musicFullPlayer.style.opacity = "";
+        setTimeout(() => {
+          musicFullPlayer.style.transition = "";
+        }, 220);
+      }
+    };
+
+    musicFullPlayer.addEventListener("touchend", finishSwipe, { passive: true });
+    musicFullPlayer.addEventListener("touchcancel", finishSwipe, { passive: true });
+  })();
 
   function playlistTracks(plId) {
     const pl = getPlaylists().find((p) => p.id === plId);
