@@ -9235,13 +9235,13 @@ function renderAdTicker(ticker) {
   // Havola (link) biriktirish
   const linkUrl = (ticker.linkUrl || "").trim();
   const badge = document.getElementById("adTickerBadge");
+  if (badge) badge.hidden = true;
   if (linkUrl) {
     card.classList.add("has-link");
     card.style.cursor = "pointer";
     card.setAttribute("role", "button");
     card.setAttribute("tabindex", "0");
     card.setAttribute("aria-label", `${text}. Havolaga o'tish uchun bosing.`);
-    if (badge) badge.hidden = false;
 
     const navigateToLink = (e) => {
       if (e) {
@@ -9283,7 +9283,6 @@ function renderAdTicker(ticker) {
     card.removeAttribute("role");
     card.removeAttribute("tabindex");
     card.setAttribute("aria-label", text);
-    if (badge) badge.hidden = true;
     card.onclick = null;
     card.onkeydown = null;
   }

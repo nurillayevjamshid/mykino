@@ -921,23 +921,75 @@
 
                 <!-- Orqa fon rangi -->
                 <div class="form-group">
-                  <label>Karta foni rangi (Background)</label>
-                  <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
-                    <input type="color" id="tickerBgColorPicker" value="#e50914" style="width:44px;height:38px;padding:2px;border:1px solid var(--border,#ddd);border-radius:8px;cursor:pointer;">
-                    <input type="text" id="tickerBgColor" class="form-input" style="flex:1;" value="linear-gradient(135deg, #e50914, #990000)" placeholder="Hex (#e50914) yoki linear-gradient(...)">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+                    <label style="margin:0;font-weight:600;">Karta foni rangi (Background)</label>
+                    <div class="ticker-bg-tabs" role="tablist" style="display:inline-flex;background:var(--bg-subtle,#eef2f6);padding:3px;border-radius:8px;gap:2px;">
+                      <button type="button" class="ticker-bg-tab-btn is-active" id="tickerBgTabSolid" data-mode="solid" style="padding:4px 12px;border:0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:#fff;color:var(--text,#111);box-shadow:0 1px 3px rgba(0,0,0,0.1);">🎨 Color Solid</button>
+                      <button type="button" class="ticker-bg-tab-btn" id="tickerBgTabGradient" data-mode="gradient" style="padding:4px 12px;border:0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-muted,#666);">🌈 Gradient</button>
+                    </div>
                   </div>
-                  <!-- Rang palitrasi / Presets -->
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
-                    <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #e50914, #990000)" style="background:linear-gradient(135deg, #e50914, #990000);width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Qizil / Netflix"></button>
-                    <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #2563eb, #1d4ed8)" style="background:linear-gradient(135deg, #2563eb, #1d4ed8);width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Moviy / Telegram"></button>
-                    <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #7c3aed, #4f46e5)" style="background:linear-gradient(135deg, #7c3aed, #4f46e5);width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Binafsha / Neon"></button>
-                    <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #059669, #047857)" style="background:linear-gradient(135deg, #059669, #047857);width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Zumrad / Yashil"></button>
-                    <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #d97706, #b45309)" style="background:linear-gradient(135deg, #d97706, #b45309);width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Oltin / Amber"></button>
-                    <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #ec4899, #f43f5e)" style="background:linear-gradient(135deg, #ec4899, #f43f5e);width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Pushti / Sunset"></button>
-                    <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #06b6d4, #3b82f6)" style="background:linear-gradient(135deg, #06b6d4, #3b82f6);width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Kiber / Cyan"></button>
-                    <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #18181b, #09090b)" style="background:linear-gradient(135deg, #18181b, #09090b);width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.2);cursor:pointer;" title="To'q Shisha / Black Glass"></button>
-                    <button type="button" class="ticker-color-preset" data-bg="#111827" style="background:#111827;width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.2);cursor:pointer;" title="Qora / Dark"></button>
-                    <button type="button" class="ticker-color-preset" data-bg="#ffffff" style="background:#ffffff;width:28px;height:28px;border-radius:6px;border:1px solid #ccc;cursor:pointer;" title="Oq / White"></button>
+
+                  <!-- 1. SOLID RANG TANLASH BO'LIMI -->
+                  <div id="tickerBgSolidPanel" style="display:block;">
+                    <!-- Color Picker blok -->
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card-hover,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:10px;margin-bottom:10px;">
+                      <input type="color" id="tickerBgColorPicker" value="#2563eb" style="width:48px;height:40px;padding:2px;border:1px solid var(--border,#cbd5e1);border-radius:8px;cursor:pointer;background:#fff;">
+                      <div style="flex:1;">
+                        <div style="font-size:13px;font-weight:600;color:var(--text,#1e293b);">O'zingizga mos solid rangni tanlang (Palitra)</div>
+                        <small style="color:var(--text-muted,#64748b);font-size:11px;">Palitrani bosing va istalgan rangni erkin tanlang</small>
+                      </div>
+                      <span id="tickerSolidHexDisplay" style="font-family:monospace;font-size:13px;font-weight:700;padding:5px 10px;background:#fff;border:1px solid var(--border,#cbd5e1);border-radius:6px;color:var(--text,#1e293b);">#2563eb</span>
+                    </div>
+
+                    <!-- Solid Ranglar Palitrasi -->
+                    <div style="font-size:12px;color:var(--text-muted,#666);margin-bottom:6px;font-weight:600;">Ommabop solid ranglar:</div>
+                    <div style="display:flex;gap:7px;flex-wrap:wrap;">
+                      <button type="button" class="ticker-color-preset" data-bg="#0088cc" style="background:#0088cc;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Telegram Blue (#0088cc)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#2563eb" style="background:#2563eb;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Brand Blue (#2563eb)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#1d4ed8" style="background:#1d4ed8;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Royal Blue (#1d4ed8)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#0284c7" style="background:#0284c7;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Sky Blue (#0284c7)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#06b6d4" style="background:#06b6d4;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Cyan (#06b6d4)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#e50914" style="background:#e50914;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Netflix Red (#e50914)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#dc2626" style="background:#dc2626;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Crimson Red (#dc2626)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#ea580c" style="background:#ea580c;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Orange (#ea580c)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#f59e0b" style="background:#f59e0b;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Amber (#f59e0b)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#eab308" style="background:#eab308;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Yellow (#eab308)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#10b981" style="background:#10b981;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Emerald (#10b981)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#16a34a" style="background:#16a34a;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Green (#16a34a)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#7c3aed" style="background:#7c3aed;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Violet (#7c3aed)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#9333ea" style="background:#9333ea;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Purple (#9333ea)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#ec4899" style="background:#ec4899;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Pink (#ec4899)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#f43f5e" style="background:#f43f5e;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Rose (#f43f5e)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#4f46e5" style="background:#4f46e5;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Indigo (#4f46e5)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#475569" style="background:#475569;width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Slate (#475569)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#111827" style="background:#111827;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.2);cursor:pointer;" title="Dark (#111827)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#000000" style="background:#000000;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.2);cursor:pointer;" title="Black (#000000)"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="#ffffff" style="background:#ffffff;width:32px;height:32px;border-radius:8px;border:1px solid #ccc;cursor:pointer;" title="White (#ffffff)"></button>
+                    </div>
+                  </div>
+
+                  <!-- 2. GRADIENT RANG TANLASH BO'LIMI -->
+                  <div id="tickerBgGradientPanel" style="display:none;">
+                    <div style="font-size:12px;color:var(--text-muted,#666);margin-bottom:6px;font-weight:600;">Tayyor gradient ranglar:</div>
+                    <div style="display:flex;gap:7px;flex-wrap:wrap;">
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #e50914, #990000)" style="background:linear-gradient(135deg, #e50914, #990000);width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Qizil / Netflix"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #2563eb, #1d4ed8)" style="background:linear-gradient(135deg, #2563eb, #1d4ed8);width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Moviy / Telegram"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #7c3aed, #4f46e5)" style="background:linear-gradient(135deg, #7c3aed, #4f46e5);width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Binafsha / Neon"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #059669, #047857)" style="background:linear-gradient(135deg, #059669, #047857);width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Zumrad / Yashil"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #d97706, #b45309)" style="background:linear-gradient(135deg, #d97706, #b45309);width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Oltin / Amber"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #ec4899, #f43f5e)" style="background:linear-gradient(135deg, #ec4899, #f43f5e);width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Pushti / Sunset"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #06b6d4, #3b82f6)" style="background:linear-gradient(135deg, #06b6d4, #3b82f6);width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Kiber / Cyan"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #18181b, #09090b)" style="background:linear-gradient(135deg, #18181b, #09090b);width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.2);cursor:pointer;" title="To'q Shisha / Black Glass"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #0f172a, #1e293b)" style="background:linear-gradient(135deg, #0f172a, #1e293b);width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.2);cursor:pointer;" title="Midnight Slate"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #0d9488, #059669)" style="background:linear-gradient(135deg, #0d9488, #059669);width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Teal Ocean"></button>
+                      <button type="button" class="ticker-color-preset" data-bg="linear-gradient(135deg, #f97316, #ef4444)" style="background:linear-gradient(135deg, #f97316, #ef4444);width:32px;height:32px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;" title="Fire Sunset"></button>
+                    </div>
+                  </div>
+
+                  <!-- CSS Qiymat Maydoni -->
+                  <div style="margin-top:10px;">
+                    <input type="text" id="tickerBgColor" class="form-input" value="linear-gradient(135deg, #e50914, #990000)" placeholder="Hex (#2563eb) yoki linear-gradient(...)">
+                    <small class="form-hint">Tanlangan rang kodi (CSS qiymati). Buni istasangiz bevosita o'zingiz ham yozishingiz mumkin.</small>
                   </div>
                 </div>
 
@@ -1034,15 +1086,13 @@
                   </div>
 
                   <!-- Ticker Preview Card -->
-                  <div id="tickerLivePreviewCard" style="margin:12px 0;padding:8px 12px;border-radius:12px;overflow:hidden;position:relative;display:flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.3);background:linear-gradient(135deg, #e50914, #990000);color:#fff;cursor:pointer;" title="Sinab ko'rish uchun bosing">
-                    <span id="tickerLivePreviewIcon" style="flex-shrink:0;">📢</span>
-                    <div style="flex:1;overflow:hidden;display:flex;mask-image:linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent);-webkit-mask-image:linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent);">
+                  <div id="tickerLivePreviewCard" style="margin:10px -12px;padding:8px 14px;border-radius:0;overflow:hidden;position:relative;display:flex;align-items:center;gap:0;box-shadow:0 2px 10px rgba(0,0,0,0.25);background:linear-gradient(135deg, #e50914, #990000);color:#fff;cursor:pointer;" title="Sinab ko'rish uchun bosing">
+                    <div style="flex:1;overflow:hidden;display:flex;mask-image:linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);-webkit-mask-image:linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);">
                       <div id="tickerLivePreviewTrack" style="display:inline-flex;white-space:nowrap;will-change:transform;animation:adTickerMarquee 20s linear infinite;">
-                        <span id="tickerLivePreviewText1" style="padding-right:36px;">🚀 Premyeralar faqat NTV da tomosha qiling!</span>
-                        <span id="tickerLivePreviewText2" style="padding-right:36px;">🚀 Premyeralar faqat NTV da tomosha qiling!</span>
+                        <span id="tickerLivePreviewText1" style="padding-right:48px;">🚀 Premyeralar faqat NTV da tomosha qiling!</span>
+                        <span id="tickerLivePreviewText2" style="padding-right:48px;">🚀 Premyeralar faqat NTV da tomosha qiling!</span>
                       </div>
                     </div>
-                    <span id="tickerLivePreviewBadge" style="flex-shrink:0;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);font-size:10px;font-weight:700;letter-spacing:0.3px;display:none;">O'TISH ↗</span>
                   </div>
 
                   <!-- Mock Hero Banner -->
@@ -1485,6 +1535,6 @@
     }
   </style>
 
-  <script src="/admin/admin.js?v=20261013-ticker-fix"></script>
+  <script src="/admin/admin.js?v=20261014-solid-color-fix"></script>
 </body>
 </html>

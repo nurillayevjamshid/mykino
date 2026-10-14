@@ -4429,14 +4429,32 @@ function updateTickerLivePreview() {
     }
   }
 
-  const liveBadge = document.getElementById('tickerLivePreviewBadge');
-  if (liveBadge) {
-    liveBadge.style.display = linkUrl ? 'inline-flex' : 'none';
-  }
-
   const fontHint = document.getElementById('tickerFontPreviewHint');
   if (fontHint) {
     fontHint.innerHTML = `Tanlangan shrift: <strong style="font-family:'${fontFamily}', sans-serif;">${fontFamily}</strong>`;
+  }
+}
+
+function setTickerBgMode(mode) {
+  const solidTab = document.getElementById('tickerBgTabSolid');
+  const gradTab = document.getElementById('tickerBgTabGradient');
+  const solidPanel = document.getElementById('tickerBgSolidPanel');
+  const gradPanel = document.getElementById('tickerBgGradientPanel');
+
+  if (mode === 'solid') {
+    solidTab?.classList.add('is-active');
+    gradTab?.classList.remove('is-active');
+    if (solidTab) { solidTab.style.background = '#fff'; solidTab.style.color = 'var(--text, #111)'; solidTab.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }
+    if (gradTab) { gradTab.style.background = 'transparent'; gradTab.style.color = 'var(--text-muted, #666)'; gradTab.style.boxShadow = 'none'; }
+    if (solidPanel) solidPanel.style.display = 'block';
+    if (gradPanel) gradPanel.style.display = 'none';
+  } else {
+    gradTab?.classList.add('is-active');
+    solidTab?.classList.remove('is-active');
+    if (gradTab) { gradTab.style.background = '#fff'; gradTab.style.color = 'var(--text, #111)'; gradTab.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }
+    if (solidTab) { solidTab.style.background = 'transparent'; solidTab.style.color = 'var(--text-muted, #666)'; solidTab.style.boxShadow = 'none'; }
+    if (gradPanel) gradPanel.style.display = 'block';
+    if (solidPanel) solidPanel.style.display = 'none';
   }
 }
 
@@ -4467,9 +4485,15 @@ async function loadTickerSettings(force = false) {
     if (bgEl && ticker.bgColor) bgEl.value = ticker.bgColor;
 
     const bgPicker = document.getElementById('tickerBgColorPicker');
-    if (bgPicker && (ticker.bgColor || '').startsWith('#')) {
-      bgPicker.value = ticker.bgColor;
+    const hexDisplay = document.getElementById('tickerSolidHexDisplay');
+    const isSolid = (ticker.bgColor || '').trim().startsWith('#');
+    if (bgPicker && isSolid) {
+      bgPicker.value = ticker.bgColor.trim();
     }
+    if (hexDisplay && isSolid) {
+      hexDisplay.textContent = ticker.bgColor.trim();
+    }
+    setTickerBgMode(isSolid ? 'solid' : 'gradient');
 
     const textColEl = document.getElementById('tickerTextColor');
     if (textColEl && ticker.textColor) textColEl.value = ticker.textColor;
@@ -4592,14 +4616,41 @@ document.getElementById('tickerFontFamily')?.addEventListener('change', () => {
 (() => {
   const bgPicker = document.getElementById('tickerBgColorPicker');
   const bgInput = document.getElementById('tickerBgColor');
+  const hexDisplay = document.getElementById('tickerSolidHexDisplay');
+
+  document.getElementById('tickerBgTabSolid')?.addEventListener('click', () => {
+    setTickerBgMode('solid');
+    if (bgInput && !bgInput.value.trim().startsWith('#')) {
+      const solidVal = bgPicker?.value || '#2563eb';
+      bgInput.value = solidVal;
+      if (hexDisplay) hexDisplay.textContent = solidVal;
+      updateTickerLivePreview();
+    }
+  });
+
+  document.getElementById('tickerBgTabGradient')?.addEventListener('click', () => {
+    setTickerBgMode('gradient');
+    if (bgInput && bgInput.value.trim().startsWith('#')) {
+      bgInput.value = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+      updateTickerLivePreview();
+    }
+  });
+
   if (bgPicker && bgInput) {
     bgPicker.addEventListener('input', (e) => {
       bgInput.value = e.target.value;
+      if (hexDisplay) hexDisplay.textContent = e.target.value;
+      setTickerBgMode('solid');
       updateTickerLivePreview();
     });
     bgInput.addEventListener('input', (e) => {
-      if (/^#[0-9a-f]{6}$/i.test(e.target.value.trim())) {
-        bgPicker.value = e.target.value.trim();
+      const val = e.target.value.trim();
+      if (/^#[0-9a-f]{6}$/i.test(val)) {
+        bgPicker.value = val;
+        if (hexDisplay) hexDisplay.textContent = val;
+        setTickerBgMode('solid');
+      } else if (val.includes('gradient')) {
+        setTickerBgMode('gradient');
       }
     });
   }
@@ -4623,7 +4674,13 @@ document.getElementById('tickerFontFamily')?.addEventListener('change', () => {
       const bg = btn.dataset.bg;
       if (bg && bgInput) {
         bgInput.value = bg;
-        if (bg.startsWith('#') && bgPicker) bgPicker.value = bg;
+        if (bg.startsWith('#')) {
+          if (bgPicker) bgPicker.value = bg;
+          if (hexDisplay) hexDisplay.textContent = bg;
+          setTickerBgMode('solid');
+        } else {
+          setTickerBgMode('gradient');
+        }
         updateTickerLivePreview();
       }
     });
@@ -4646,6 +4703,8 @@ document.getElementById('tickerFontFamily')?.addEventListener('change', () => {
     const linkEl = document.getElementById('tickerLinkUrl'); if (linkEl) linkEl.value = "";
     if (bgInput) bgInput.value = "linear-gradient(135deg, #e50914, #990000)";
     if (bgPicker) bgPicker.value = "#e50914";
+    if (hexDisplay) hexDisplay.textContent = "#e50914";
+    setTickerBgMode('gradient');
     if (textInput) textInput.value = "#ffffff";
     if (textPicker) textPicker.value = "#ffffff";
     const fontEl = document.getElementById('tickerFontFamily'); if (fontEl) fontEl.value = "Montserrat";
