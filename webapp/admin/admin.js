@@ -413,12 +413,15 @@ function applyTelegramTheme() {
   const tp = tg.themeParams;
   const root = document.documentElement;
   const set = (cssVar, val) => { if (val) root.style.setProperty(cssVar, val); };
-  set('--page-bg', tp.secondary_bg_color || tp.bg_color);
-  set('--bg-dark', tp.secondary_bg_color || tp.bg_color);
-  set('--bg-card', tp.bg_color);
-  set('--bg-sidebar', tp.bg_color);
-  set('--bg-shell', tp.bg_color);
-  set('--bg-elevated', tp.secondary_bg_color || tp.bg_color);
+  const pageBg = tp.secondary_bg_color || tp.bg_color || '#eef0f5';
+  set('--page-bg', pageBg);
+  set('--bg-dark', pageBg);
+  set('--bg-card', tp.bg_color || '#ffffff');
+  set('--card-bg', tp.bg_color || '#ffffff');
+  set('--bg-sidebar', tp.bg_color || '#ffffff');
+  set('--bg-shell', tp.bg_color || '#ffffff');
+  set('--bg-elevated', tp.secondary_bg_color || '#f1f3f9');
+  set('--surface-bg', tp.secondary_bg_color || '#f1f3f9');
   set('--text', tp.text_color);
   set('--text-secondary', tp.text_color);
   set('--text-muted', tp.hint_color);
@@ -430,6 +433,10 @@ function applyTelegramTheme() {
   }
   const scheme = tg.colorScheme || (tp.bg_color && isDarkColor(tp.bg_color) ? 'dark' : 'light');
   root.setAttribute('data-theme', scheme);
+
+  try { tg.setHeaderColor?.(tp.bg_color || pageBg); } catch (_) {}
+  try { tg.setBackgroundColor?.(pageBg); } catch (_) {}
+  try { tg.setBottomBarColor?.(pageBg); } catch (_) {}
 }
 
 function hexToRgba(hex, alpha) {
@@ -481,6 +488,14 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   const toggle = document.getElementById('themeToggle');
   if (toggle) toggle.setAttribute('data-theme', theme);
+  if (tg) {
+    const isDark = theme === 'dark';
+    const bg = isDark ? '#0b1020' : '#eef0f5';
+    const headerBg = isDark ? '#11172a' : '#ffffff';
+    try { tg.setHeaderColor?.(headerBg); } catch (_) {}
+    try { tg.setBackgroundColor?.(bg); } catch (_) {}
+    try { tg.setBottomBarColor?.(bg); } catch (_) {}
+  }
 }
 
 function toggleTheme() {
