@@ -1459,10 +1459,14 @@
     startFifaPolling();
   }
   function closeFifaView() {
+    closeLineupModal();
     fifaView.hidden = true;
     document.body.classList.remove("is-fifa");
     stopFifaPolling();
-    try { tgBackUnregister?.("fifa"); } catch (_) {}
+    try { window.tgBackUnregister?.("fifa-lineup"); } catch (_) {}
+    try { window.tgBackUnregister?.("fifa"); } catch (_) {}
+    try { window.setFilter?.("all"); } catch (_) {}
+    try { window.syncNavButtons?.(); } catch (_) {}
   }
   window.openFifaView = openFifaView;
   window.closeFifaView = closeFifaView;

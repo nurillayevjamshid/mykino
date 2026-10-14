@@ -109,7 +109,7 @@
       <div class="tv-grid">${cards}</div>
       <div class="tv-spacer"></div>
     `;
-    tvView.querySelector("[data-tv-back]")?.addEventListener("click", () => closeTvView());
+    tvView.querySelector("[data-tv-back]")?.addEventListener("click", () => closeTvViewAndGoHome());
     tvView.querySelectorAll("[data-tv-group]").forEach((b) => {
       b.addEventListener("click", () => {
         activeGroup = b.dataset.tvGroup;
@@ -351,6 +351,7 @@
   function closeTvViewAndGoHome() {
     closeTvView();
     try { window.setFilter?.("all"); } catch (_) {}
+    try { window.syncNavButtons?.(); } catch (_) {}
   }
 
   window.__tv = { openTvView, closeTvView };

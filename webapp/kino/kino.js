@@ -2730,8 +2730,19 @@ function clearMovieProgress(movie) {
 }
 
 function syncNavButtons() {
+  const categoriesViewEl = document.getElementById("categoriesView");
+  const categoryDetailViewEl = document.getElementById("categoryDetailView");
+  const seriesListViewEl = document.getElementById("seriesListView");
+  const seriesDetailViewEl = document.getElementById("seriesDetailView");
+  const inCategoriesSection = Boolean(
+    (categoriesViewEl && !categoriesViewEl.hidden) ||
+    (categoryDetailViewEl && !categoryDetailViewEl.hidden) ||
+    (seriesListViewEl && !seriesListViewEl.hidden) ||
+    (seriesDetailViewEl && !seriesDetailViewEl.hidden)
+  );
+
   document.querySelectorAll('[data-filter="all"]').forEach((button) => {
-    button.classList.toggle("is-active", activeFilter === "all" && activeCategory === "all" && !query);
+    button.classList.toggle("is-active", activeFilter === "all" && activeCategory === "all" && !query && !inCategoriesSection);
   });
 
   document.querySelectorAll('[data-action="search"]').forEach((button) => {
@@ -2743,15 +2754,12 @@ function syncNavButtons() {
   });
 
   document.querySelectorAll('[data-action="favorites"]').forEach((button) => {
-    button.classList.toggle("is-active", activeFilter === "favorites");
+    button.classList.toggle("is-active", activeFilter === "favorites" && !inCategoriesSection);
   });
 
-  // Kategoriya tugmasi (kino bar) — kategoriya view yopilganda active holati
-  // ham tozalanishi shart, aks holda ikkita tugma is-active bo'lib qoladi
-  // va pill indikator noto'g'ri tugmada qolib ketadi.
-  const categoriesViewEl = document.getElementById("categoriesView");
+  // Kategoriya tugmasi (kino bar) — kategoriyalar yoki uning ichki sahifalari ochiq bo'lganda faol
   document.querySelectorAll('.bottom-bar [data-action="categories-view"]').forEach((button) => {
-    button.classList.toggle("is-active", Boolean(categoriesViewEl && !categoriesViewEl.hidden));
+    button.classList.toggle("is-active", inCategoriesSection);
   });
 }
 
@@ -4062,6 +4070,14 @@ function tgBackUnregister(id) {
     tgBackButtonSync();
   }
 }
+function tgBackClearExcept(allowedIds = []) {
+  for (let i = tgBackStack.length - 1; i >= 0; i--) {
+    if (!allowedIds.includes(tgBackStack[i].id)) {
+      tgBackStack.splice(i, 1);
+    }
+  }
+  tgBackButtonSync();
+}
 function tgBackButtonSync() {
   const bb = tg?.BackButton;
   if (!bb) return;
@@ -4070,14 +4086,34 @@ function tgBackButtonSync() {
     else bb.hide?.();
   } catch (_) {}
 }
+// Tashqi modullar (music, potcasts, tv, fifa, esport) uchun global ko'prik
+window.tgBackStack = tgBackStack;
+window.tgBackRegister = tgBackRegister;
+window.tgBackUnregister = tgBackUnregister;
+window.tgBackButtonSync = tgBackButtonSync;
+window.tgBackClearExcept = tgBackClearExcept;
+
 (function ensureTgBackClickHandler() {
   if (!tg?.BackButton?.onClick) return;
   try {
     tg.BackButton.onClick(() => {
       const last = tgBackStack[tgBackStack.length - 1];
-      if (!last) return;
-      try { haptic.tap(); } catch (_) {}
-      try { last.closeFn(); } catch (_) {}
+      if (!last) {
+        tgBackButtonSync();
+        return;
+      }
+      try { haptic.tap?.(); } catch (_) {}
+      try {
+        last.closeFn();
+      } catch (err) {
+        console.error("Back handler error for", last.id, err);
+      }
+      // Agar closeFn stack'dan o'zini o'chirmagan bo'lsa, stack tiqilib
+      // qolmasligi uchun xavfsiz avtomatik pop qilamiz:
+      if (tgBackStack.length > 0 && tgBackStack[tgBackStack.length - 1] === last) {
+        tgBackStack.pop();
+        tgBackButtonSync();
+      }
     });
   } catch (_) {}
 })();
@@ -6322,13 +6358,22 @@ function setFilter(filter) {
     if (categoryPanel) categoryPanel.hidden = true;
   }
   document.body.classList.toggle("is-favorites", filter === "favorites");
+  if (filter === "favorites") {
+    tgBackRegister("favorites", () => {
+      setFilter("all");
+    });
+  } else {
+    tgBackUnregister("favorites");
+  }
   renderMovies();
+  syncNavButtons();
 }
 
 function setCategory(category) {
   activeCategory = category;
   activeFilter = "all";
   renderMovies();
+  syncNavButtons();
 }
 
 function toggleTheme() {
@@ -6371,8 +6416,12 @@ function setSearchPanelOpen(nextState) {
     if (typeof loadCategoriesCatalog === "function" && !categoriesLoaded) {
       loadCategoriesCatalog();
     }
-  } else if (searchRecents) {
-    searchRecents.hidden = true;
+    tgBackRegister("search-panel", () => setSearchPanelOpen(false));
+  } else {
+    tgBackUnregister("search-panel");
+    if (searchRecents) {
+      searchRecents.hidden = true;
+    }
   }
   if (searchClearBtn) {
     searchClearBtn.hidden = !(nextState && searchInput && searchInput.value.length > 0);
@@ -6380,6 +6429,7 @@ function setSearchPanelOpen(nextState) {
   if (typeof syncSearchGenresVisibility === "function") {
     syncSearchGenresVisibility();
   }
+  syncNavButtons();
 }
 
 function toggleSearchPanel(forceOpen) {
@@ -6733,16 +6783,21 @@ function hideAllCustomViews() {
   closeMusicView();
   closePodcastsView();
   closeTvView();
+  closeFifaView();
+  closeEsportView();
+  closeCategoryDetailView({ goHome: true });
   closeCategoriesView();
-  if (seriesListView) seriesListView.hidden = true;
-  if (seriesDetailView) seriesDetailView.hidden = true;
-  document.body.classList.remove("is-series-list", "is-series-detail");
+  closeSeriesDetailView();
+  closeSeriesListView();
+  setSearchPanelOpen(false);
+  if (categoryPanel) categoryPanel.hidden = true;
   const catComing = document.getElementById("categoryComingSoon");
   const favComing = document.getElementById("favoritesComingSoon");
   const histView = document.getElementById("podHistoryView");
   if (catComing) catComing.hidden = true;
   if (favComing) favComing.hidden = true;
   if (histView) histView.hidden = true;
+  syncNavButtons();
 }
 
 document.querySelectorAll("[data-action='podcasts-tab']").forEach((btn) => {
@@ -6972,7 +7027,7 @@ function ensureMusicModule() {
   const cssPromise = ensureMusicCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music/music.js?v=20261013-sound-unmute";
+    script.src = "/static/music/music.js?v=20261014-nav-sync";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -6988,6 +7043,7 @@ function closeMusicView() {
   if (mv) mv.hidden = true;
   document.body.classList.remove("is-music");
   window.__music?.closeMusicView?.();
+  syncNavButtons();
 }
 function openAllArtists() { ensureMusicModule().then((m) => m?.openAllArtists?.()).catch(() => {}); }
 function closeAllArtists() { window.__music?.closeAllArtists?.(); }
@@ -7017,7 +7073,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20261009-cross-device-sync";
+    script.src = "/static/potcasts/potcasts.js?v=20261014-nav-hierarchy";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -7031,6 +7087,7 @@ function closePodcastsView() {
   if (pv) pv.hidden = true;
   document.body.classList.remove("is-podcasts");
   window.__potcasts?.closePodcastsView?.();
+  syncNavButtons();
 }
 
 // TV moduli — alohida webapp/tv/tv.{js,css}, lazy-load (potcasts naqshi).
@@ -7054,7 +7111,7 @@ function ensureTvModule() {
   const cssPromise = ensureTvCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/tv/tv.js?v=20260710-tv-sport-cleanup";
+    script.src = "/static/tv/tv.js?v=20261014-nav-back";
     script.onload = () => resolve(window.__tv);
     script.onerror = (err) => { __tvModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -7063,7 +7120,10 @@ function ensureTvModule() {
   return __tvModulePromise;
 }
 function openTvView() { return ensureTvModule().then((m) => m?.openTvView?.()).catch(() => {}); }
-function closeTvView() { window.__tv?.closeTvView?.(); }
+function closeTvView() {
+  window.__tv?.closeTvView?.();
+  syncNavButtons();
+}
 
 // ===== Categories view (bottom-bar) =====
 const categoriesView = document.getElementById("categoriesView");
@@ -7116,15 +7176,25 @@ function openCategoriesView() {
   if (!categoriesView) return;
   closeMusicView();
   closePodcastsView();
+  closeFifaView();
+  closeTvView();
+  closeEsportView();
+  setSearchPanelOpen(false);
+  if (categoryPanel) categoryPanel.hidden = true;
   if (seriesListView) seriesListView.hidden = true;
   if (seriesDetailView) seriesDetailView.hidden = true;
   document.body.classList.remove("is-series-list", "is-series-detail");
   categoriesView.hidden = false;
   document.body.classList.add("is-categories");
   window.scrollTo({ top: 0, behavior: "smooth" });
-  setActiveBottomTab("categories-view");
   if (!categoriesLoaded) loadCategoriesCatalog();
-  tgBackRegister("categories-view", () => { try { closeCategoriesView(); setFilter("all"); } catch (_) {} });
+  tgBackRegister("categories-view", () => {
+    try {
+      closeCategoriesView();
+      setFilter("all");
+    } catch (_) {}
+  });
+  syncNavButtons();
 }
 
 function closeCategoriesView() {
@@ -7132,6 +7202,7 @@ function closeCategoriesView() {
   categoriesView.hidden = true;
   document.body.classList.remove("is-categories");
   tgBackUnregister("categories-view");
+  syncNavButtons();
 }
 
 document.querySelectorAll("[data-action='categories-view']").forEach((btn) => {
@@ -7194,6 +7265,7 @@ function openCategoryDetailView(name) {
   document.body.classList.remove("is-categories");
   window.scrollTo({ top: 0, behavior: "smooth" });
   tgBackRegister("category-detail", () => { try { closeCategoryDetailView(); } catch (_) {} });
+  syncNavButtons();
 }
 
 function closeCategoryDetailView({ goHome = false } = {}) {
@@ -7201,11 +7273,16 @@ function closeCategoryDetailView({ goHome = false } = {}) {
   categoryDetailView.hidden = true;
   document.body.classList.remove("is-category-detail");
   tgBackUnregister("category-detail");
-  if (goHome) return;
+  if (goHome) {
+    closeCategoriesView();
+    syncNavButtons();
+    return;
+  }
   if (categoriesView) {
     categoriesView.hidden = false;
     document.body.classList.add("is-categories");
   }
+  syncNavButtons();
 }
 
 categoryDetailBack?.addEventListener("click", () => closeCategoryDetailView());
@@ -7346,6 +7423,12 @@ function renderSeriesListGrid() {
 let seriesListOpenedFromCategories = false;
 function openSeriesListView() {
   if (!seriesListView) return;
+  closeMusicView();
+  closePodcastsView();
+  closeFifaView();
+  closeTvView();
+  closeEsportView();
+  setSearchPanelOpen(false);
   seriesListOpenedFromCategories = !!(categoriesView && !categoriesView.hidden);
   if (categoriesView) categoriesView.hidden = true;
   if (seriesDetailView) seriesDetailView.hidden = true;
@@ -7369,9 +7452,13 @@ function openSeriesListView() {
       if (seriesListOpenedFromCategories && categoriesView) {
         categoriesView.hidden = false;
         document.body.classList.add("is-categories");
+      } else {
+        setFilter("all");
       }
+      syncNavButtons();
     } catch (_) {}
   });
+  syncNavButtons();
 }
 
 function closeSeriesListView() {
@@ -7379,6 +7466,7 @@ function closeSeriesListView() {
   seriesListView.hidden = true;
   document.body.classList.remove("is-series-list");
   tgBackUnregister("series-list");
+  syncNavButtons();
 }
 
 function openSeriesDetailView(series) {
@@ -7439,6 +7527,7 @@ function openSeriesDetailView(series) {
   document.body.classList.remove("is-series-list");
   window.scrollTo({ top: 0, behavior: "smooth" });
   tgBackRegister("series-detail", () => { try { closeSeriesDetailView(); } catch (_) {} });
+  syncNavButtons();
 }
 
 function closeSeriesDetailView() {
@@ -7450,6 +7539,7 @@ function closeSeriesDetailView() {
     seriesListView.hidden = false;
     document.body.classList.add("is-series-list");
   }
+  syncNavButtons();
 }
 
 function playSeriesEpisode(series, episode, index) {
@@ -7494,7 +7584,10 @@ document.getElementById("seriesListBack")?.addEventListener("click", () => {
   if (seriesListOpenedFromCategories && categoriesView) {
     categoriesView.hidden = false;
     document.body.classList.add("is-categories");
+  } else {
+    setFilter("all");
   }
+  syncNavButtons();
 });
 
 document.getElementById("seriesDetailBack")?.addEventListener("click", () => closeSeriesDetailView());
@@ -7503,6 +7596,7 @@ document.querySelectorAll(".bottom-bar [data-filter='all'], .bottom-bar [data-ac
   b.addEventListener("click", () => {
     closeSeriesDetailView();
     closeSeriesListView();
+    syncNavButtons();
   });
 });
 
@@ -8120,6 +8214,17 @@ function getCurrentAppSection() {
     : "kino";
 }
 
+function dismissKinoSubviews() {
+  try { closeMovieModalAnimated(); } catch (_) {}
+  try { closeVideoPlayer(); } catch (_) {}
+  try { closeCategoryDetailView({ goHome: true }); } catch (_) {}
+  try { closeCategoriesView(); } catch (_) {}
+  try { closeSeriesDetailView(); } catch (_) {}
+  try { closeSeriesListView(); } catch (_) {}
+  try { setSearchPanelOpen(false); } catch (_) {}
+  if (categoryPanel) categoryPanel.hidden = true;
+}
+
 function navigateSidebarSection(action, switchFn) {
   setSidebarOpen(false);
   const current = getCurrentAppSection();
@@ -8128,6 +8233,7 @@ function navigateSidebarSection(action, switchFn) {
     return;
   }
 
+  dismissKinoSubviews();
   showSectionSplash(targetKey);
 
   const startTime = Date.now();
@@ -8219,7 +8325,9 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         closeTvView();
         closeEsportView();
         setFilter("all");
+        tgBackClearExcept([]);
         document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+        syncNavButtons();
       });
       return;
     }
@@ -8338,6 +8446,10 @@ applyTheme = function (t) {
 
 document.querySelectorAll("[data-action='favorites']").forEach((button) => {
   button.addEventListener("click", () => {
+    closeCategoriesView();
+    closeCategoryDetailView({ goHome: true });
+    closeSeriesDetailView();
+    closeSeriesListView();
     setFilter("favorites");
     setSearchPanelOpen(false);
     if (categoryPanel) categoryPanel.hidden = true;
@@ -10532,7 +10644,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261009-live-conditional";
+    script.src = "/static/fifa/fifa.js?v=20261014-nav-cleanup";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -10549,6 +10661,7 @@ function closeFifaView() {
   if (fv) fv.hidden = true;
   document.body.classList.remove("is-fifa");
   window.__fifa?.closeFifaView?.();
+  syncNavButtons();
 }
 
 // ============================================================
@@ -10576,7 +10689,7 @@ function ensureEsportModule() {
   const cssPromise = ensureEsportCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/esport/esport.js?v=20260912-esport-preview";
+    script.src = "/static/esport/esport.js?v=20261014-nav-sync";
     script.onload = () => resolve(window.__esport);
     script.onerror = (err) => { __esportModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -10585,7 +10698,10 @@ function ensureEsportModule() {
   return __esportModulePromise;
 }
 function openEsportView() { return ensureEsportModule().then((m) => m?.openEsportView?.()).catch(() => {}); }
-function closeEsportView() { window.__esport?.closeEsportView?.(); }
+function closeEsportView() {
+  window.__esport?.closeEsportView?.();
+  syncNavButtons();
+}
 
 
 // Kino-home FIFA banner click — modul yuklanmagan bo'lsa lazy-load qiladi.

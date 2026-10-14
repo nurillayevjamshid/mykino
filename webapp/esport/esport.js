@@ -629,6 +629,8 @@
       el.streamHost.dataset.currentId = "";
     }
     if (el.preview) el.preview.hidden = true;
+    try { window.setFilter?.("all"); } catch (_) {}
+    try { window.syncNavButtons?.(); } catch (_) {}
   }
 
   window.__esport = { openEsportView: openEsportView, closeEsportView: closeEsportView };

@@ -612,6 +612,7 @@
     if (panel) panel.hidden = true;
     document.body.classList.remove("is-music-all-songs");
     tgBackUnregister("music-all-songs");
+    setMusicNavActive("categories");
   }
 
   // ----- Barcha qo'shiqchilar (all artists page) -----
@@ -680,6 +681,7 @@
     if (panel) panel.hidden = true;
     document.body.classList.remove("is-music-all-artists");
     tgBackUnregister("music-all-artists");
+    setMusicNavActive("categories");
   }
 
   // ----- Musiqa beta eslatma modali -----
@@ -1276,6 +1278,7 @@
     playlistsViewOpenedId = null;
     document.body.classList.remove("is-music-playlists");
     tgBackUnregister?.("music-playlists");
+    setMusicNavActive("categories");
   }
 
   const musicCarouselTrack = document.getElementById("musicCarouselTrack");
@@ -1501,10 +1504,14 @@
       const allArtists = document.getElementById("musicAllArtists");
       if (allArtists) { allArtists.hidden = false; document.body.classList.add("is-music-all-artists"); }
       if (origin.scrollTop) restoreAppScrollTop(origin.scrollTop);
+      setMusicNavActive("artists");
     } else if (origin?.view === "all-songs") {
       const allSongs = document.getElementById("musicAllSongs");
       if (allSongs) { allSongs.hidden = false; document.body.classList.add("is-music-all-songs"); }
       if (origin.scrollTop) restoreAppScrollTop(origin.scrollTop);
+      setMusicNavActive("categories");
+    } else {
+      setMusicNavActive("categories");
     }
     tgBackUnregister("music-artist-detail");
   }
@@ -1552,7 +1559,15 @@
     try { closePlaylistsView(); } catch (_) {}
     stopMusicCarouselTimer();
     closeMusicFullPlayer();
-    tgBackUnregister("music-view");
+    try {
+      tgBackUnregister?.("music-artist-detail");
+      tgBackUnregister?.("music-all-songs");
+      tgBackUnregister?.("music-all-artists");
+      tgBackUnregister?.("music-playlists");
+      tgBackUnregister?.("music-savesheet");
+      tgBackUnregister?.("music-fullplayer");
+      tgBackUnregister?.("music-view");
+    } catch (_) {}
   }
 
   // ----- Background Audio, Wake Lock & Media Session API -----

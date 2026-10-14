@@ -995,10 +995,33 @@
 
   // ---------- Rendering & events ----------
 
+  let channelOriginView = "list";
+
+  function backFromChannel() {
+    try { window.tgBackUnregister?.("podcasts-channel"); } catch (_) {}
+    if (channelOriginView === "lang-list" && currentLang) {
+      renderLanguageList(currentLang);
+    } else if (channelOriginView === "saved") {
+      renderSavedView();
+    } else if (channelOriginView === "categories") {
+      renderCategoriesView();
+    } else {
+      renderList();
+    }
+  }
+
   function renderList() {
     currentView = "list";
     currentChannelId = null;
     currentChannelData = null;
+    channelOriginView = "list";
+    try {
+      window.tgBackUnregister?.("podcasts-channel");
+      window.tgBackUnregister?.("podcasts-lang");
+      window.tgBackUnregister?.("podcasts-categories");
+      window.tgBackUnregister?.("podcasts-saved");
+      window.setActiveBottomTab?.("podcasts-tab");
+    } catch (_) {}
     try {
       window.__cloudSync?.syncPodcastFavoritesFromCloud?.().then((ch) => {
         if (ch && currentView === "list") {
@@ -1013,12 +1036,16 @@
   }
 
   async function renderChannel(channelId) {
+    if (currentView !== "channel") {
+      channelOriginView = currentView;
+    }
     currentView = "channel";
     currentChannelId = channelId;
     currentTab = "home";
     visibleVideos = RENDER_BATCH;
     visibleShorts = RENDER_BATCH;
     if (loadMoreObserver) { try { loadMoreObserver.disconnect(); } catch (_) {} loadMoreObserver = null; }
+    try { window.tgBackRegister?.("podcasts-channel", backFromChannel); } catch (_) {}
     podcastsRoot.innerHTML = `<div class="pod-loading"><div class="pod-loading__spinner"></div><div>${escapeHtml(T("loadingPodcast"))}</div></div>`;
     try {
       const data = await loadChannelView(channelId);
@@ -1027,7 +1054,7 @@
       wireChannelEvents();
     } catch (err) {
       podcastsRoot.innerHTML = `<div class="pod-empty"><div class="pod-empty__title">${escapeHtml(T("errorTitle"))}</div><div class="pod-empty__hint">${escapeHtml(err.message)}</div><button class="pod-ch-sub" type="button" data-pod-back-to-list style="margin-top:14px;">${escapeHtml(T("back"))}</button></div>`;
-      podcastsRoot.querySelector("[data-pod-back-to-list]")?.addEventListener("click", renderList);
+      podcastsRoot.querySelector("[data-pod-back-to-list]")?.addEventListener("click", backFromChannel);
     }
   }
 
@@ -1054,7 +1081,7 @@
   function wireChannelEvents() {
     podcastsRoot.querySelector("[data-pod-back-to-list]")?.addEventListener("click", () => {
       haptic("light");
-      renderList();
+      backFromChannel();
     });
     podcastsRoot.querySelectorAll("[data-pod-ch-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1287,7 +1314,13 @@
     podcastsView.hidden = true;
     document.body.classList.remove("is-podcasts");
     closePlayer();
-    try { window.tgBackUnregister?.("podcasts-view"); } catch (_) {}
+    try {
+      window.tgBackUnregister?.("podcasts-channel");
+      window.tgBackUnregister?.("podcasts-lang");
+      window.tgBackUnregister?.("podcasts-categories");
+      window.tgBackUnregister?.("podcasts-saved");
+      window.tgBackUnregister?.("podcasts-view");
+    } catch (_) {}
   }
 
   // ---------- Saqlangan videolar view ----------
@@ -1314,6 +1347,13 @@
     currentView = "saved";
     currentChannelId = null;
     currentChannelData = null;
+    try { window.setActiveBottomTab?.("podcast-saved"); } catch (_) {}
+    try {
+      window.tgBackUnregister?.("podcasts-channel");
+      window.tgBackUnregister?.("podcasts-lang");
+      window.tgBackUnregister?.("podcasts-categories");
+      window.tgBackRegister?.("podcasts-saved", () => renderList());
+    } catch (_) {}
     try {
       window.__cloudSync?.syncPodcastFavoritesFromCloud?.().then((ch) => {
         if (ch && currentView === "saved") {
@@ -1445,6 +1485,13 @@
     currentView = "categories";
     currentChannelId = null;
     currentChannelData = null;
+    try { window.setActiveBottomTab?.("podcast-discover"); } catch (_) {}
+    try {
+      window.tgBackUnregister?.("podcasts-channel");
+      window.tgBackUnregister?.("podcasts-lang");
+      window.tgBackUnregister?.("podcasts-saved");
+      window.tgBackRegister?.("podcasts-categories", () => renderList());
+    } catch (_) {}
     const counts = { uz: 0, ru: 0, en: 0 };
     channels.forEach((c) => { counts[detectChannelLang(c)]++; });
     podcastsRoot.innerHTML = `
@@ -1465,6 +1512,11 @@
   function renderLanguageList(lang) {
     currentView = "lang-list";
     currentLang = lang;
+    try { window.setActiveBottomTab?.("podcast-discover"); } catch (_) {}
+    try {
+      window.tgBackUnregister?.("podcasts-channel");
+      window.tgBackRegister?.("podcasts-lang", () => renderCategoriesView());
+    } catch (_) {}
     const meta = LANG_META[lang] || LANG_META.uz;
     const langChannels = channels.filter((c) => detectChannelLang(c) === lang);
     const filtered = shuffleArray(filterChannels(langChannels));
