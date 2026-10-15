@@ -135,6 +135,39 @@ if (tg) {
   tg.expand();
   tg.disableVerticalSwipes?.();
   try { tg.enableClosingConfirmation?.(); } catch (_) {}
+
+  const applyTelegramSafeArea = () => {
+    try {
+      const isFs = Boolean(tg.isFullscreen);
+      const contentTop = Number(tg.contentSafeAreaInset?.top) || 0;
+      const safeTop = Number(tg.safeAreaInset?.top) || 0;
+
+      let effTop = contentTop;
+      if (!effTop && isFs) {
+        effTop = safeTop ? safeTop + 48 : 98;
+      } else if (!effTop && safeTop) {
+        effTop = safeTop + (isFs ? 48 : 0);
+      }
+
+      if (effTop > 0) {
+        document.documentElement.style.setProperty("--tg-content-safe-area-inset-top", `${effTop}px`);
+        document.documentElement.style.setProperty("--app-safe-top", `${effTop}px`);
+        document.documentElement.classList.add("has-tg-fullscreen");
+      } else {
+        document.documentElement.style.setProperty("--app-safe-top", "0px");
+        document.documentElement.classList.remove("has-tg-fullscreen");
+      }
+    } catch (_) {}
+  };
+
+  applyTelegramSafeArea();
+  try {
+    tg.onEvent?.("safeAreaChanged", applyTelegramSafeArea);
+    tg.onEvent?.("contentSafeAreaChanged", applyTelegramSafeArea);
+    tg.onEvent?.("fullscreenChanged", applyTelegramSafeArea);
+    tg.onEvent?.("viewportChanged", applyTelegramSafeArea);
+  } catch (_) {}
+
   // Telegram theme almashganda — agar foydalanuvchi qo'lda toggle bosmagan bo'lsa — ergashish.
   try {
     tg.onEvent?.("themeChanged", () => {

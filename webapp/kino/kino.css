@@ -6283,7 +6283,15 @@ html[data-theme="light"] .sidebar-backdrop {
   transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  padding-top: max(
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 12px),
+    calc(var(--app-safe-top, 0px) + 12px),
+    calc(env(safe-area-inset-top, 0px) + 52px),
+    24px
+  );
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+  padding-left: 0;
+  padding-right: 0;
   box-shadow: 24px 0 60px rgba(0, 0, 0, 0.35);
   overflow-y: auto;
   font-feature-settings: "ss01", "cv11";
@@ -11183,16 +11191,30 @@ html[data-theme="light"] .fifa-date-nav__today { background: #f5f6fa; border-col
 /* ============================================================
    TOPBAR & BO'LIMLAR BO'SHLIQLARI (tepasi va pastidan ochiq joy)
    Barcha bo'limlarda tepadagi navbarni tepasidan ham, pastidan ham
-   keng va chiroyli masofa bilan ko'rsatish
+   keng va chiroyli masofa bilan ko'rsatish.
+   Telegram Fullscreen'da (Bot API 8.0+) X va uch nuqta kabi
+   native boshqaruv tugmalari ostida qolib ketmasligi uchun
+   navbar tepasidan xavfsiz masofa qoldirish.
    ============================================================ */
 .topbar {
   height: auto !important;
   min-height: 48px !important;
-  padding-top: max(calc(env(safe-area-inset-top, 0px) + 8px), 16px) !important;
+  padding-top: max(
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 12px),
+    calc(var(--app-safe-top, 0px) + 12px),
+    calc(env(safe-area-inset-top, 0px) + 52px),
+    54px
+  ) !important;
   padding-bottom: 14px !important;
   margin-top: 0 !important;
   margin-bottom: 8px !important;
   box-sizing: border-box !important;
+}
+
+@media (min-width: 768px) {
+  .topbar {
+    padding-top: 18px !important;
+  }
 }
 
 /* Barcha bo'limlar navbardan keyin chiroyli oraliq bilan boshlansin */
@@ -11532,7 +11554,12 @@ body.is-podcasts .continue-watching-card {
 /* === Offline Network Status Banner === */
 .offline-banner {
   position: fixed;
-  top: max(10px, env(safe-area-inset-top));
+  top: max(
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 10px),
+    calc(var(--app-safe-top, 0px) + 10px),
+    calc(env(safe-area-inset-top, 0px) + 52px),
+    14px
+  );
   left: 12px;
   right: 12px;
   z-index: 140;

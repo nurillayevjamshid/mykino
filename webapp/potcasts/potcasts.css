@@ -29,6 +29,12 @@
   background: var(--bg-0, #fff);
   border-bottom: 1px solid rgba(0,0,0,.06);
   padding: 10px 12px;
+  padding-top: max(
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 12px),
+    calc(var(--app-safe-top, 0px) + 12px),
+    calc(env(safe-area-inset-top, 0px) + 52px),
+    10px
+  );
 }
 .podcasts-view .pod-topbar__title--ch {
   font-size: 16px;

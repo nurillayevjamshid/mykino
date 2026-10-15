@@ -22,9 +22,33 @@
   <script>
     try {
       var ua = navigator.userAgent || "";
-      var tgPlat = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform) || "";
+      var tgApp = window.Telegram && window.Telegram.WebApp;
+      var tgPlat = (tgApp && tgApp.platform) || "";
       if (tgPlat === "android" || (/Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua))) {
         document.documentElement.classList.add("is-android");
+      }
+      var applyTgInsets = function() {
+        if (!tgApp) return;
+        var isFs = Boolean(tgApp.isFullscreen);
+        var cTop = Number(tgApp.contentSafeAreaInset && tgApp.contentSafeAreaInset.top) || 0;
+        var sTop = Number(tgApp.safeAreaInset && tgApp.safeAreaInset.top) || 0;
+        var effTop = cTop;
+        if (!effTop && isFs) {
+          effTop = sTop ? (sTop + 48) : 98;
+        } else if (!effTop && sTop) {
+          effTop = sTop + (isFs ? 48 : 0);
+        }
+        if (effTop > 0) {
+          document.documentElement.style.setProperty("--tg-content-safe-area-inset-top", effTop + "px");
+          document.documentElement.style.setProperty("--app-safe-top", effTop + "px");
+          document.documentElement.classList.add("has-tg-fullscreen");
+        }
+      };
+      applyTgInsets();
+      if (tgApp && tgApp.onEvent) {
+        tgApp.onEvent("safeAreaChanged", applyTgInsets);
+        tgApp.onEvent("contentSafeAreaChanged", applyTgInsets);
+        tgApp.onEvent("fullscreenChanged", applyTgInsets);
       }
     } catch (_) {}
   </script>
