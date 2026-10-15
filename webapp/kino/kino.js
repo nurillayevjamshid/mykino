@@ -8945,6 +8945,78 @@ videoVolume?.addEventListener("input", () => {
 });
 videoTapZoneLeft?.addEventListener("click", (e) => handleTapZone("left", e));
 videoTapZoneRight?.addEventListener("click", (e) => handleTapZone("right", e));
+
+// === Player Swipe Gestures (Vertical Swipe for Brightness & Volume HUD) ===
+let playerTouchStartY = 0;
+let playerBrightnessVal = 100;
+let playerGestureTimer = null;
+
+function showGestureHud(type, value) {
+  const isBright = type === "brightness";
+  const hud = isBright ? document.getElementById("playerBrightnessHud") : document.getElementById("playerVolumeHud");
+  const fill = isBright ? document.getElementById("playerBrightnessHudFill") : document.getElementById("playerVolumeHudFill");
+  const text = isBright ? document.getElementById("playerBrightnessHudText") : document.getElementById("playerVolumeHudText");
+  if (!hud || !fill || !text) return;
+  const pct = Math.round(Math.max(0, Math.min(100, value)));
+  fill.style.width = `${pct}%`;
+  text.textContent = `${pct}%`;
+  hud.classList.add("is-active");
+  if (playerGestureTimer) window.clearTimeout(playerGestureTimer);
+  playerGestureTimer = window.setTimeout(() => {
+    document.getElementById("playerBrightnessHud")?.classList.remove("is-active");
+    document.getElementById("playerVolumeHud")?.classList.remove("is-active");
+  }, 900);
+}
+
+videoTapZoneLeft?.addEventListener("touchstart", (e) => {
+  if (e.touches.length === 1) playerTouchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+videoTapZoneLeft?.addEventListener("touchmove", (e) => {
+  if (e.touches.length !== 1 || !playerTouchStartY) return;
+  const delta = playerTouchStartY - e.touches[0].clientY;
+  if (Math.abs(delta) > 8) {
+    playerBrightnessVal = Math.max(30, Math.min(130, playerBrightnessVal + (delta > 0 ? 3 : -3)));
+    playerTouchStartY = e.touches[0].clientY;
+    const factor = (playerBrightnessVal / 100).toFixed(2);
+    videoPlayer?.style.setProperty("--player-brightness", factor);
+    const displayPct = Math.round((playerBrightnessVal / 130) * 100);
+    showGestureHud("brightness", displayPct);
+    try { haptic.soft(); } catch (_) {}
+  }
+}, { passive: true });
+
+videoTapZoneRight?.addEventListener("touchstart", (e) => {
+  if (e.touches.length === 1) playerTouchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+videoTapZoneRight?.addEventListener("touchmove", (e) => {
+  if (e.touches.length !== 1 || !playerTouchStartY) return;
+  const delta = playerTouchStartY - e.touches[0].clientY;
+  if (Math.abs(delta) > 8) {
+    const cur = Math.round(currentVolume * 100);
+    const next = Math.max(0, Math.min(100, cur + (delta > 0 ? 4 : -4)));
+    playerTouchStartY = e.touches[0].clientY;
+    setVolume(next);
+    showGestureHud("volume", next);
+    try { haptic.soft(); } catch (_) {}
+  }
+}, { passive: true });
+
+// Data Saver toggle listener
+const videoDataSaverBtn = document.getElementById("videoDataSaverBtn");
+let isPlayerDataSaver = false;
+videoDataSaverBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  isPlayerDataSaver = !isPlayerDataSaver;
+  try { haptic.medium(); } catch (_) {}
+  videoDataSaverBtn.classList.toggle("is-active", isPlayerDataSaver);
+  if (isPlayerDataSaver) {
+    showToast("🔋 Trafikni tejash rejimi faollashdi (kamaytirilgan bitrate)");
+  } else {
+    showToast("Standart sifatga qaytildi");
+  }
+});
 videoSeek.addEventListener("input", () => {
   setRangeFill(videoSeek, Number(videoSeek.value || 0), 1000);
   setControlsVisible(true);

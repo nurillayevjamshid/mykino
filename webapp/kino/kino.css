@@ -3165,6 +3165,61 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
+/* Player Gesture HUD (Yorug'lik va Ovoz foiz ko'rsatkichi) */
+.player-gesture-hud {
+  position: absolute;
+  top: 72px;
+  z-index: 6;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.player-gesture-hud.is-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+.player-gesture-hud--left {
+  left: 20px;
+}
+.player-gesture-hud--right {
+  right: 20px;
+}
+.player-gesture-hud__bar {
+  width: 48px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.player-gesture-hud__fill {
+  height: 100%;
+  background: #facc15;
+  border-radius: 2px;
+  transition: width 80ms linear;
+}
+.player-gesture-hud--right .player-gesture-hud__fill {
+  background: #38bdf8;
+}
+.player-datasaver-btn.is-active {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
 /* Player Top Actions (PiP + Settings) */
 .player-top-actions {
   display: flex;
