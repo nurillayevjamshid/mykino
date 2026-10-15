@@ -2785,43 +2785,10 @@ function clearMovieProgress(movie) {
 
 function renderContinueWatchingCard() {
   const card = document.getElementById("continueWatchingCard");
-  if (!card) return;
-  const watched = readWatchedMoviesStore();
-  const progressStore = readWatchProgressStore();
-  const entries = Object.values(watched || {}).filter((e) => e && e.id);
-  if (!entries.length) {
-    card.hidden = true;
-    return;
+  if (card) card.hidden = true;
+  if (profileModal && profileModal.open) {
+    try { renderProfileHistory(); } catch (_) {}
   }
-  entries.sort((a, b) => (b.watchedAt || 0) - (a.watchedAt || 0));
-  const latest = entries[0];
-  const prog = progressStore[String(latest.id)];
-  const currentTime = prog?.time || latest.progress || 0;
-  const duration = prog?.duration || 0;
-  if (currentTime < 15) {
-    card.hidden = true;
-    return;
-  }
-
-  const titleEl = document.getElementById("continueWatchingTitle");
-  const posterEl = document.getElementById("continueWatchingPoster");
-  const timeEl = document.getElementById("continueWatchingTime");
-  const percentEl = document.getElementById("continueWatchingPercent");
-  const barEl = document.getElementById("continueWatchingBar");
-  const pct = duration > 0 ? Math.min(100, Math.round((currentTime / duration) * 100)) : 30;
-
-  if (titleEl) titleEl.textContent = latest.title || "Kino";
-  if (posterEl) posterEl.src = latest.poster || fallbackPoster;
-  if (timeEl) timeEl.textContent = `${formatPlaybackTime(currentTime)}${duration ? " / " + formatPlaybackTime(duration) : ""}`;
-  if (percentEl) percentEl.textContent = `${pct}% ko'rildi`;
-  if (barEl) barEl.style.width = `${pct}%`;
-
-  card.hidden = false;
-  card.onclick = () => {
-    try { haptic.medium(); } catch (_) {}
-    const movie = (typeof findMovieById === "function" ? findMovieById(latest.id) : null) || latest;
-    if (movie) openVideoPlayer(movie, { initialTime: currentTime });
-  };
 }
 
 function syncNavButtons() {
@@ -3576,12 +3543,14 @@ function renderProfileHistory() {
   if (!watchedMovieList || !watchedMovieCount || !watchedMovieEmpty) return;
   const entries = getWatchedMovieEntries();
   watchedMovieList.innerHTML = "";
-  watchedMovieCount.textContent = String(entries.length);
+  watchedMovieCount.textContent = `${entries.length} ta`;
   watchedMovieEmpty.hidden = entries.length > 0;
 
   const catalogMovies = Array.isArray(movies) && movies.length
     ? movies
     : (typeof getViewerMovies === "function" ? getViewerMovies() : []);
+
+  const progressStore = readWatchProgressStore();
 
   for (const entry of entries) {
     const movie = catalogMovies.find((item) =>
@@ -3608,58 +3577,89 @@ function renderProfileHistory() {
       } catch (_) {}
     }
 
-    const safeCssPoster = String(resolvedPoster)
-      .replaceAll("'", "%27")
-      .replaceAll(")", "%29")
-      .replaceAll("(", "%28")
-      .replaceAll('"', "%22");
+    const prog = progressStore[String(entry.id)];
+    const currentTime = prog?.time || entry.progress || 0;
+    const duration = prog?.duration || Number(movie?.duration) || 0;
+    const pct = duration > 0 ? Math.min(100, Math.round((currentTime / duration) * 100)) : (currentTime >= 15 ? 30 : 0);
+
+    const isDone = pct >= 90;
+    const isContinuing = currentTime >= 15 && !isDone;
+
+    const badgeText = isDone
+      ? (t("completed") || "Ko'rib bo'lingan")
+      : isContinuing
+      ? "Ko'rishda davom eting"
+      : (entry.genre || "Kino");
+
+    const timeText = currentTime >= 15
+      ? `${formatPlaybackTime(currentTime)}${duration ? " / " + formatPlaybackTime(duration) : ""}`
+      : (entry.year ? `${entry.year}-yil` : "");
+
+    const percentText = pct > 0 ? `${pct}% ko'rildi` : "";
 
     const card = document.createElement("article");
     card.className = "profile-history__item";
-    card.tabIndex = movie ? 0 : -1;
-    card.setAttribute("role", movie ? "button" : "article");
-    if (movie) {
-      card.setAttribute("aria-label", `${entry.title || "Kino"} ${plainLabel(t("watch"))}`);
-    }
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `${entry.title || "Kino"} ${plainLabel(t("watch"))}`);
+
     card.innerHTML = `
-      <div class="profile-history__poster" style="--poster-image: url('${escapeHtml(safeCssPoster)}')">
-        <img class="profile-history__poster-img"
-             src="${escapeHtml(resolvedPoster)}"
-             alt="${escapeHtml(entry.title || 'Kino')}"
-             loading="lazy"
-             decoding="async"
-             onerror="this.onerror=null;this.src='${escapeHtml(fallbackPoster)}';" />
+      <div class="continue-watching-card__inner">
+        <div class="continue-watching-card__thumb">
+          <img src="${escapeHtml(resolvedPoster)}"
+               alt="${escapeHtml(entry.title || 'Kino')}"
+               loading="lazy"
+               decoding="async"
+               onerror="this.onerror=null;this.src='${escapeHtml(fallbackPoster)}';" />
+          <div class="continue-watching-card__play">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+          </div>
+        </div>
+        <div class="continue-watching-card__info">
+          <div class="continue-watching-card__badge">
+            <span class="continue-watching-card__dot${isDone ? " continue-watching-card__dot--done" : ""}"></span>
+            <span>${escapeHtml(badgeText)}</span>
+          </div>
+          <strong class="continue-watching-card__title">${escapeHtml(entry.title || "Kino")}</strong>
+          <div class="continue-watching-card__meta">
+            <span>${escapeHtml(timeText || (entry.year ? `${entry.year}-yil` : "Kino"))}</span>
+            <span>${escapeHtml(percentText)}</span>
+          </div>
+          <div class="continue-watching-card__bar">
+            <div class="continue-watching-card__fill${isDone ? " continue-watching-card__fill--done" : ""}" style="width: ${isDone ? 100 : Math.max(pct, isContinuing ? 8 : 0)}%;"></div>
+          </div>
+        </div>
+        <div class="continue-watching-card__actions">
+          <button class="continue-watching-card__btn" type="button" aria-label="Ko'rish" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+          </button>
+          <button class="profile-history__remove" type="button" data-history-remove="${escapeHtml(entry.id)}" aria-label="${escapeHtml(t("removeHistoryItem"))}" title="${escapeHtml(t("removeHistoryItem"))}">
+            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+          </button>
+        </div>
       </div>
-      <div class="profile-history__copy">
-        <strong>${escapeHtml(entry.title || "Kino")}</strong>
-        <span>${escapeHtml([entry.year || "", entry.genre || ""].filter(Boolean).join(" - ") || "Kino")}</span>
-        <small>${entry.progress >= WATCH_PROGRESS_MIN_SECONDS ? `${t("continueAt")} ${formatPlaybackTime(entry.progress)}` : plainLabel(t("watch"))}</small>
-      </div>
-      <button class="profile-history__remove" type="button" data-history-remove="${escapeHtml(entry.id)}" aria-label="${escapeHtml(t("removeHistoryItem"))}" title="${escapeHtml(t("removeHistoryItem"))}">
-        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M18 6 6 18"></path>
-          <path d="m6 6 12 12"></path>
-        </svg>
-      </button>
     `;
 
-    if (movie) {
-      const reopenMovie = () => {
-        profileModal.close();
-        openVideoPlayer(movie);
-      };
-      card.addEventListener("click", (event) => {
-        if (event.target.closest("[data-history-remove]")) return;
+    const targetMovie = movie || entry;
+    const reopenMovie = () => {
+      try { profileModal.close(); } catch (_) { try { profileModal.removeAttribute("open"); } catch (__) {} }
+      openVideoPlayer(targetMovie, { initialTime: currentTime });
+    };
+
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("[data-history-remove]")) return;
+      reopenMovie();
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.target.closest("[data-history-remove]")) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
         reopenMovie();
-      });
-      card.addEventListener("keydown", (event) => {
-        if (event.target.closest("[data-history-remove]")) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          reopenMovie();
-        }
-      });
-    }
+      }
+    });
 
     watchedMovieList.append(card);
   }
@@ -6405,6 +6405,8 @@ async function openVideoPlayer(movie, options = {}) {
     pendingResumeTime = 0;
   } else if (isPodcastCtx) {
     pendingResumeTime = getPodcastProgressSeconds(movie?.youtubeVideoId);
+  } else if (typeof options?.initialTime === "number") {
+    pendingResumeTime = options.initialTime;
   } else {
     pendingResumeTime = getMovieProgressSeconds(movie);
   }
