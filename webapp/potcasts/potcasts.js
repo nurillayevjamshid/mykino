@@ -557,6 +557,7 @@
     if (!host) return;
     host.outerHTML = buildFreshSection();
     wireFreshEvents();
+    updatePodHeroCoverIfBetter();
   }
 
   function wireFreshEvents() {
@@ -572,9 +573,39 @@
 
   // ---------- Featured kanallar (header section uchun — hero style) ----------
 
+  function getChannelHeroImage(c) {
+    if (!c) return "";
+    const s = c.snapshot || {};
+    if (s.banner) return s.banner;
+    const view = channelViewCache.get(c.channelId);
+    if (view?.channel?.banner) return view.channel.banner;
+    if (view?.videos?.[0]?.thumb) return view.videos[0].thumb;
+    const fresh = collectFreshVideos().find((v) => v.channelId === c.channelId);
+    if (fresh?.thumb) return fresh.thumb;
+    return s.avatar || "";
+  }
+
+  function getChannelHeroFallbacks(c, currentUrl) {
+    if (!c) return [];
+    const s = c.snapshot || {};
+    const list = [];
+    const view = channelViewCache.get(c.channelId);
+    if (view?.channel?.banner) list.push(view.channel.banner);
+    if (view?.videos?.[0]?.thumb) list.push(view.videos[0].thumb);
+    const fresh = collectFreshVideos().find((v) => v.channelId === c.channelId);
+    if (fresh?.thumb) list.push(fresh.thumb);
+    if (s.avatar) list.push(s.avatar);
+    return list.filter((u) => u && u !== currentUrl);
+  }
+
+  function safeBgUrl(url) {
+    if (!url) return "linear-gradient(135deg, #181d29 0%, #0d1017 100%)";
+    return `url('${url.replaceAll("'", "%27")}')`;
+  }
+
   // Featured kanallarni kino bo'limidagi hero (#heroSection) bilan bir xil
-  // ko'rinish va xulq-atvorda chiqaramiz: full-width rounded backdrop, gradient,
-  // sarlavha + tavsif, Ko'rish/Info tugmalari, pastda dots, 5s da avto-aylanish.
+  // ko'rinish va xulq-atvorda chiqaramiz: dual-layer crossfade backdrop, gradient,
+  // sarlavha + tavsif, pastda dots morphing indicator, 5s da silliq avto-aylanish.
   function buildFeaturedChannels() {
     const featured = channels.filter((c) => c.featured);
     if (!featured.length) return "";
@@ -582,20 +613,20 @@
     if (podHeroIndex >= featured.length) podHeroIndex = 0;
     const c = featured[podHeroIndex];
     const s = c.snapshot || {};
-    const banner = s.banner || s.avatar || "";
-    const bgStyle = banner ? `background-image:url('${escapeHtml(banner)}')` : "";
-    const bgLoaded = banner ? " is-loaded" : "";
+    const banner = getChannelHeroImage(c);
+    const bgStyle = `background-image:${safeBgUrl(banner)};`;
     const desc = String(s.description || "").trim();
     const dots = featured.length > 1
       ? `<div class="hero__dots">${featured.map((_, i) => `<span class="hero__dot${i === podHeroIndex ? " is-active" : ""}" data-pod-hero-dot="${i}"></span>`).join("")}</div>`
       : "";
+    podHeroActiveLayer = "primary";
     return `
       <section class="hero pod-hero-kino" data-pod-hero>
-        <div class="hero__bg${bgLoaded}" data-pod-hero-bg style="${bgStyle}"></div>
-        <div class="hero__shimmer"></div>
+        <div class="hero__bg is-active" data-pod-hero-bg="primary" style="${bgStyle}; z-index:2;"></div>
+        <div class="hero__bg" data-pod-hero-bg="secondary" style="z-index:1;"></div>
         <div class="hero__gradient"></div>
         <div class="pod-hero-kino__name" data-pod-hero-name>${escapeHtml(s.title || c.channelId)}</div>
-        <div class="hero__inner">
+        <div class="hero__inner" data-pod-hero-inner>
           <h1 class="hero__title" data-pod-hero-title>${escapeHtml(s.title || c.channelId)}</h1>
           <p class="hero__desc" data-pod-hero-desc>${escapeHtml(desc)}</p>
         </div>
@@ -604,15 +635,29 @@
     `;
   }
 
-  // Pod hero carousel holati
+  // Pod hero carousel holati — kino #heroSection kabi 2 qatlamli crossfade
   let podHeroList = [];
   let podHeroIndex = 0;
+  let podHeroActiveLayer = "primary";
+  let podHeroTransitionTimer = null;
   let podHeroRotateTimer = null;
   const POD_HERO_ROTATE_MS = 5000;
+
+  function preloadPodHeroImages() {
+    if (!podHeroList.length) return;
+    podHeroList.forEach((c) => {
+      const u = getChannelHeroImage(c);
+      if (u) {
+        const img = new Image();
+        img.src = u;
+      }
+    });
+  }
 
   function wirePodHero() {
     const hero = podcastsRoot.querySelector("[data-pod-hero]");
     if (!hero || !podHeroList.length) return;
+    preloadPodHeroImages();
     const openCurrent = () => {
       const c = podHeroList[podHeroIndex];
       if (c) renderChannel(c.channelId);
@@ -628,7 +673,7 @@
       d.addEventListener("click", (e) => {
         e.stopPropagation();
         haptic("light");
-        switchPodHero(Number(d.dataset.podHeroDot));
+        switchPodHero(Number(d.dataset.podHeroDot), false);
         restartPodHeroRotation();
       });
     });
@@ -653,10 +698,10 @@
         active = false;
         const t = e.changedTouches && e.changedTouches[0];
         const dx = t ? t.clientX - sx : 0;
-        if (Math.abs(dx) > 40) {
+        if (Math.abs(dx) > 36) {
           swiped = true;
           const dir = dx < 0 ? 1 : -1;
-          switchPodHero(podHeroIndex + dir);
+          switchPodHero(podHeroIndex + dir, false);
         }
         restartPodHeroRotation();
       };
@@ -666,28 +711,107 @@
     }
   }
 
-  function switchPodHero(idx) {
+  function switchPodHero(idx, immediate = false) {
     if (!podHeroList.length) return;
     podHeroIndex = ((idx % podHeroList.length) + podHeroList.length) % podHeroList.length;
     const c = podHeroList[podHeroIndex];
+    if (!c) return;
     const s = c.snapshot || {};
     const hero = podcastsRoot.querySelector("[data-pod-hero]");
     if (!hero) return;
-    const bg = hero.querySelector("[data-pod-hero-bg]");
+
+    const primaryEl = hero.querySelector('[data-pod-hero-bg="primary"]');
+    const secondaryEl = hero.querySelector('[data-pod-hero-bg="secondary"]');
     const title = hero.querySelector("[data-pod-hero-title]");
     const desc = hero.querySelector("[data-pod-hero-desc]");
-    const banner = s.banner || s.avatar || "";
-    if (bg) {
-      bg.style.backgroundImage = banner ? `url('${banner.replaceAll("'", "%27")}')` : "";
-      bg.classList.toggle("is-loaded", Boolean(banner));
+    const nameEl = hero.querySelector("[data-pod-hero-name]");
+    const inner = hero.querySelector("[data-pod-hero-inner]");
+
+    const banner = getChannelHeroImage(c);
+    const bgVal = safeBgUrl(banner);
+
+    if (primaryEl) {
+      if (immediate || !secondaryEl) {
+        primaryEl.style.backgroundImage = bgVal;
+        primaryEl.classList.add("is-active");
+        primaryEl.style.zIndex = "2";
+        if (secondaryEl) {
+          secondaryEl.classList.remove("is-active");
+          secondaryEl.style.zIndex = "1";
+        }
+        podHeroActiveLayer = "primary";
+      } else {
+        if (podHeroTransitionTimer) {
+          clearTimeout(podHeroTransitionTimer);
+          podHeroTransitionTimer = null;
+        }
+
+        const incoming = podHeroActiveLayer === "primary" ? secondaryEl : primaryEl;
+        const outgoing = podHeroActiveLayer === "primary" ? primaryEl : secondaryEl;
+
+        incoming.style.backgroundImage = bgVal;
+        incoming.style.zIndex = "3";
+        outgoing.style.zIndex = "2";
+
+        void incoming.offsetWidth;
+        incoming.classList.add("is-active");
+
+        podHeroActiveLayer = podHeroActiveLayer === "primary" ? "secondary" : "primary";
+
+        podHeroTransitionTimer = setTimeout(() => {
+          outgoing.classList.remove("is-active");
+          outgoing.style.zIndex = "1";
+          podHeroTransitionTimer = null;
+        }, 380);
+
+        if (banner) {
+          const probe = new Image();
+          probe.onerror = () => {
+            const fallbacks = getChannelHeroFallbacks(c, banner);
+            const tryNext = () => {
+              if (podHeroList[podHeroIndex] !== c) return;
+              const next = fallbacks.shift();
+              if (!next) return;
+              const retry = new Image();
+              retry.onload = () => {
+                if (podHeroList[podHeroIndex] !== c) return;
+                incoming.style.backgroundImage = safeBgUrl(next);
+              };
+              retry.onerror = tryNext;
+              retry.src = next;
+            };
+            tryNext();
+          };
+          probe.src = banner;
+        }
+      }
     }
+
     if (title) title.textContent = s.title || c.channelId;
     if (desc) desc.textContent = String(s.description || "").trim();
-    const nameEl = hero.querySelector("[data-pod-hero-name]");
     if (nameEl) nameEl.textContent = s.title || c.channelId;
+    if (inner) {
+      inner.classList.remove("is-animating");
+      void inner.offsetWidth;
+      inner.classList.add("is-animating");
+    }
+
     hero.querySelectorAll("[data-pod-hero-dot]").forEach((d, i) => {
       d.classList.toggle("is-active", i === podHeroIndex);
     });
+  }
+
+  function updatePodHeroCoverIfBetter() {
+    const hero = podcastsRoot.querySelector("[data-pod-hero]");
+    if (!hero || !podHeroList.length) return;
+    const c = podHeroList[podHeroIndex];
+    if (!c) return;
+    const currentLayerEl = hero.querySelector(podHeroActiveLayer === "primary" ? '[data-pod-hero-bg="primary"]' : '[data-pod-hero-bg="secondary"]');
+    if (!currentLayerEl) return;
+    const img = getChannelHeroImage(c);
+    if (img && (!currentLayerEl.style.backgroundImage || currentLayerEl.style.backgroundImage.includes("linear-gradient"))) {
+      currentLayerEl.style.backgroundImage = safeBgUrl(img);
+    }
   }
 
   function startPodHeroRotation() {
@@ -700,6 +824,7 @@
   }
   function stopPodHeroRotation() {
     if (podHeroRotateTimer) { clearInterval(podHeroRotateTimer); podHeroRotateTimer = null; }
+    if (podHeroTransitionTimer) { clearTimeout(podHeroTransitionTimer); podHeroTransitionTimer = null; }
   }
   function restartPodHeroRotation() {
     if (podHeroList.length > 1) startPodHeroRotation();
@@ -880,7 +1005,8 @@
 
   function buildChannelView(data) {
     const ch = data.channel || {};
-    const banner = ch.banner ? `<div class="pod-ch-banner" style="background-image:url('${escapeHtml(ch.banner)}')"></div>` : `<div class="pod-ch-banner pod-ch-banner--fallback"></div>`;
+    const bannerUrl = ch.banner || data.videos?.[0]?.thumb || ch.avatar || "";
+    const banner = bannerUrl ? `<div class="pod-ch-banner" style="background-image:${safeBgUrl(bannerUrl)};"></div>` : `<div class="pod-ch-banner pod-ch-banner--fallback"></div>`;
     const tabs = [
       { id: "home", label: T("tabHome") },
       { id: "videos", label: T("tabVideos") },
@@ -1314,6 +1440,7 @@
     podcastsView.hidden = true;
     document.body.classList.remove("is-podcasts");
     closePlayer();
+    stopPodHeroRotation();
     try {
       window.tgBackUnregister?.("podcasts-channel");
       window.tgBackUnregister?.("podcasts-lang");

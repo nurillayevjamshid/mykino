@@ -8678,6 +8678,7 @@ body.ad-modal-open { overflow: hidden; }
 #seriesListView:not([hidden]),
 #seriesDetailView:not([hidden]),
 #musicView:not([hidden]),
+#podcastsView:not([hidden]),
 #searchPanel:not([hidden]) {
   animation: view-fade-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -8693,6 +8694,7 @@ body.ad-modal-open { overflow: hidden; }
   #seriesListView:not([hidden]),
   #seriesDetailView:not([hidden]),
   #musicView:not([hidden]),
+  #podcastsView:not([hidden]),
   #searchPanel:not([hidden]) {
     animation: none;
   }

@@ -904,3 +904,173 @@ body.is-podcast-context .video-player button {
   box-shadow: none !important;
   color: #ffffff !important;
 }
+
+/* ================ Potkast hero carousel (kino bo'limi uslubidagi crossfade) ================ */
+.pod-hero-kino {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  min-height: 200px;
+  max-height: 220px;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  margin-bottom: 12px;
+  touch-action: pan-y;
+  cursor: pointer;
+  background: #0b0c10 !important;
+  box-shadow: 0 14px 36px -12px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.pod-hero-kino .hero__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 380ms cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: opacity, transform;
+  pointer-events: none;
+  transform: scale(1.02);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.pod-hero-kino .hero__bg.is-active {
+  opacity: 1 !important;
+}
+
+.pod-hero-kino .hero__gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.06) 35%, rgba(0, 0, 0, 0.6) 72%, rgba(10, 11, 16, 0.96) 100%),
+    radial-gradient(120% 80% at 50% 100%, rgba(0, 0, 0, 0.65) 0%, transparent 60%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pod-hero-kino::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(140% 100% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.45) 100%);
+}
+
+.pod-hero-kino .hero__inner {
+  position: relative;
+  z-index: 2;
+  bottom: 0;
+  padding: 0 16px 20px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.pod-hero-kino .hero__inner.is-animating {
+  animation: podHeroFadeUp 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes podHeroFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pod-hero-kino .hero__title {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.22;
+  color: #ffffff;
+  margin: 0 0 3px;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  max-width: 95%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod-hero-kino .hero__desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.76);
+  margin: 0 0 10px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  max-width: 92%;
+}
+
+.pod-hero-kino .hero__dots {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  z-index: 3;
+}
+
+.pod-hero-kino .hero__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+  transition: width 320ms cubic-bezier(0.25, 1, 0.5, 1),
+              background-color 320ms ease,
+              opacity 320ms ease;
+  cursor: pointer;
+}
+
+.pod-hero-kino .hero__dot.is-active {
+  width: 22px;
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* ================ Potkastlar bo'limida sahifalar orasida silliq o'tish (kino uslubida) ================ */
+@keyframes view-fade-in {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.podcasts-view .pod-list,
+.podcasts-view .pod-ch,
+.podcasts-view .pod-categories,
+.podcasts-view .pod-lang-list,
+.podcasts-view .pod-saved,
+.podcasts-view .pod-search-results,
+.podcasts-view .pod-ch-content {
+  animation: view-fade-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .podcasts-view .pod-list,
+  .podcasts-view .pod-ch,
+  .podcasts-view .pod-categories,
+  .podcasts-view .pod-lang-list,
+  .podcasts-view .pod-saved,
+  .podcasts-view .pod-search-results,
+  .podcasts-view .pod-ch-content,
+  .pod-hero-kino .hero__inner.is-animating {
+    animation: none;
+  }
+}
+
