@@ -1021,7 +1021,7 @@
       #fifaHlsModal { position:fixed; inset:0; z-index:9999; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
       #fifaHlsModal[hidden] { display:none !important; }
       #fifaHlsModal #fifaHlsVideo { width:100%; height:100%; object-fit:contain; background:#000; display:block; }
-      #fifaHlsModal .fifa-player__top { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:14px 16px calc(14px + env(safe-area-inset-top, 0px)); padding-top:calc(14px + env(safe-area-inset-top, 0px)); background:linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,0)); transition:opacity .2s; }
+      #fifaHlsModal .fifa-player__top { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:14px 16px; padding-top:max(calc(var(--tg-content-safe-area-inset-top, 0px) + 12px), calc(var(--app-safe-top, 0px) + 12px), calc(env(safe-area-inset-top, 0px) + 52px), 54px); background:linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,0)); transition:opacity .2s; }
       #fifaHlsModal .fifa-player__bottom { position:absolute; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background:linear-gradient(0deg, rgba(0,0,0,.6), rgba(0,0,0,0)); transition:opacity .2s; }
       #fifaHlsModal.controls-hidden .fifa-player__top,
       #fifaHlsModal.controls-hidden .fifa-player__bottom { opacity:0; pointer-events:none; }
@@ -1120,8 +1120,8 @@
       try { (doc.exitFullscreen || doc.webkitExitFullscreen)?.call(doc); } catch (_) {}
       return;
     }
-    if (inTgFs && typeof tg?.exitFullscreen === "function") {
-      try { tg.exitFullscreen(); } catch (_) {}
+    if (inTgFs) {
+      // Telegram mini app fullscreenini saqlaymiz — faqat BackButton holatini yangilaymiz
       try { tg.BackButton?.show?.(); } catch (_) {}
       return;
     }
@@ -1644,8 +1644,10 @@
     } catch (_) {}
     try {
       const tg = window.Telegram?.WebApp;
-      if (tg?.isFullscreen && typeof tg.exitFullscreen === "function") tg.exitFullscreen();
-      // BackButton fullscreen vaqtida yashirilgan edi — qaytaramiz
+      if (tg && typeof tg.requestFullscreen === "function" && !tg.isFullscreen) {
+        try { tg.requestFullscreen(); } catch (_) {}
+      }
+      // BackButton qaytaramiz
       try { tg?.BackButton?.show?.(); } catch (_) {}
     } catch (_) {}
 

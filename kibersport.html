@@ -386,6 +386,9 @@
     if (telegram) {
       telegram.ready();
       telegram.expand();
+      if (typeof telegram.requestFullscreen === "function" && !telegram.isFullscreen) {
+        try { telegram.requestFullscreen(); } catch (_) {}
+      }
     }
 
     const games = {

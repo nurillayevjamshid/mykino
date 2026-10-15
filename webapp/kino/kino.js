@@ -130,9 +130,20 @@ try {
   }
 } catch (_) {}
 
+function ensureTelegramFullscreen() {
+  try {
+    const tgApp = window.Telegram?.WebApp;
+    if (tgApp && typeof tgApp.requestFullscreen === "function" && !tgApp.isFullscreen) {
+      tgApp.requestFullscreen();
+    }
+  } catch (_) {}
+}
+window.ensureTelegramFullscreen = ensureTelegramFullscreen;
+
 if (tg) {
   tg.ready();
   tg.expand();
+  ensureTelegramFullscreen();
   tg.disableVerticalSwipes?.();
   try { tg.enableClosingConfirmation?.(); } catch (_) {}
 
@@ -5855,8 +5866,12 @@ function evaluateFsRotate() {
   applyFsRotate(isPortraitOrientation());
 }
 
+function isPlayerFullscreen() {
+  return Boolean(getFullscreenElement()) || isIOSVideoFullscreen() || intendedFullscreen;
+}
+
 function isAnyFullscreen() {
-  return Boolean(getFullscreenElement()) || isTelegramFullscreen() || isIOSVideoFullscreen() || intendedFullscreen;
+  return isPlayerFullscreen();
 }
 
 async function tryLockLandscape() {
@@ -5948,16 +5963,14 @@ function exitFullscreenAndLandscape() {
     v.controls = false;
   }
 
-  const tg = getTelegramWebApp();
-  if (tg && tg.isFullscreen && typeof tg.exitFullscreen === "function") {
-    try { tg.exitFullscreen(); } catch {}
-  }
   if (getFullscreenElement()) {
     exitDocFullscreen();
   }
   unlockOrientation();
   applyForceLandscape(false);
   applyFsRotate(false);
+  // Telegram mini app har doim fullscreen holatda qolishi kerak — tg.exitFullscreen() chaqirilmaydi!
+  ensureTelegramFullscreen();
   // Restore the Telegram BackButton we hid on entering fullscreen.
   try { tgBackButtonSync(); } catch {}
   syncFullscreenButton();
@@ -6563,6 +6576,7 @@ function closeVideoPlayer(options = {}) {
   exitPipIfActive();
   if (isAnyFullscreen()) exitFullscreenAndLandscape();
   tgBackUnregister("video-player");
+  ensureTelegramFullscreen();
   if (!fromPopstate && history.state && (history.state.videoPlayer || history.state.movieDetail)) {
     try { history.back(); } catch (_) {}
   }
@@ -7281,13 +7295,14 @@ function ensureMusicModule() {
 }
 
 // Stub'lar: musiqa moduli yuklanmasdan oldin ham nomi bilan chaqirsa bo'ladi.
-function openMusicView() { return ensureMusicModule().then((m) => m?.openMusicView?.()).catch(() => {}); }
+function openMusicView() { ensureTelegramFullscreen(); return ensureMusicModule().then((m) => m?.openMusicView?.()).catch(() => {}); }
 function closeMusicView() {
   const mv = document.getElementById("musicView");
   if (mv) mv.hidden = true;
   document.body.classList.remove("is-music");
   window.__music?.closeMusicView?.();
   syncNavButtons();
+  ensureTelegramFullscreen();
 }
 function openAllArtists() { ensureMusicModule().then((m) => m?.openAllArtists?.()).catch(() => {}); }
 function closeAllArtists() { window.__music?.closeAllArtists?.(); }
@@ -7325,13 +7340,14 @@ function ensurePotcastsModule() {
   __potcastsModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__potcasts);
   return __potcastsModulePromise;
 }
-function openPodcastsView() { return ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
+function openPodcastsView() { ensureTelegramFullscreen(); return ensurePotcastsModule().then((m) => m?.openPodcastsView?.()).catch(() => {}); }
 function closePodcastsView() {
   const pv = document.getElementById("podcastsView");
   if (pv) pv.hidden = true;
   document.body.classList.remove("is-podcasts");
   window.__potcasts?.closePodcastsView?.();
   syncNavButtons();
+  ensureTelegramFullscreen();
 }
 
 // TV moduli — alohida webapp/tv/tv.{js,css}, lazy-load (potcasts naqshi).
@@ -7342,7 +7358,7 @@ function ensureTvCss() {
   __tvCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/tv/tv.css?v=20260710-tv-sport-cleanup";
+    link.href = "/static/tv/tv.css?v=20261015-fullscreen-clearance";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -7363,10 +7379,11 @@ function ensureTvModule() {
   __tvModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__tv);
   return __tvModulePromise;
 }
-function openTvView() { return ensureTvModule().then((m) => m?.openTvView?.()).catch(() => {}); }
+function openTvView() { ensureTelegramFullscreen(); return ensureTvModule().then((m) => m?.openTvView?.()).catch(() => {}); }
 function closeTvView() {
   window.__tv?.closeTvView?.();
   syncNavButtons();
+  ensureTelegramFullscreen();
 }
 
 // ===== Categories view (bottom-bar) =====
@@ -8347,6 +8364,7 @@ new MutationObserver(() => {
 
 function setSidebarOpen(open) {
   if (!appSidebar || !sidebarBackdrop) return;
+  ensureTelegramFullscreen();
   if (open) {
     syncSidebarSectionItems();
     sidebarBackdrop.hidden = false;
@@ -8481,6 +8499,7 @@ function dismissKinoSubviews() {
 
 function navigateSidebarSection(action, switchFn) {
   setSidebarOpen(false);
+  ensureTelegramFullscreen();
   const current = getCurrentAppSection();
   const targetKey = action === "kino-back" ? "kino" : action;
   if (current === targetKey) {
@@ -8497,10 +8516,12 @@ function navigateSidebarSection(action, switchFn) {
   } catch (_) {}
 
   const finish = () => {
+    ensureTelegramFullscreen();
     const elapsed = Date.now() - startTime;
     const remaining = Math.max(0, 800 - elapsed);
     sectionSplashTimer = setTimeout(() => {
       hideSectionSplash();
+      ensureTelegramFullscreen();
     }, remaining);
   };
 
@@ -8545,7 +8566,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       });
       return;
     }
-    if (action === "esport") {
+    if (action === "esport" || action === "esports") {
       navigateSidebarSection("esport", () => {
         closeMusicView();
         closePodcastsView();
@@ -8562,12 +8583,6 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         closeFifaView();
         closeEsportView();
         return openTvView();
-      });
-      return;
-    }
-    if (action === "esports") {
-      navigateSidebarSection("esport", () => {
-        window.location.href = "/kibersport";
       });
       return;
     }
@@ -9139,7 +9154,9 @@ try {
   if (tgWebApp && typeof tgWebApp.onEvent === "function") {
     tgWebApp.onEvent("fullscreenChanged", () => { syncFullscreenButton(); refreshLandscapeView(); });
     tgWebApp.onEvent("fullscreenFailed", () => {
-      showPlayerToast("Fullscreen qo'llab-quvvatlanmaydi");
+      if (intendedFullscreen && videoPlayer && !videoPlayer.hidden) {
+        showPlayerToast("Fullscreen qo'llab-quvvatlanmaydi");
+      }
       syncFullscreenButton();
     });
     tgWebApp.onEvent("viewportChanged", () => {
@@ -10282,6 +10299,7 @@ function tryHandleFifaDeepLink() {
 }
 
 async function initApp() {
+  ensureTelegramFullscreen();
   const splash = initSplashScreen();
   loadAppSettings().catch(() => {});
   syncAllFromCloud().catch(() => {});
@@ -11188,7 +11206,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261014-nav-cleanup";
+    script.src = "/static/fifa/fifa.js?v=20261015-fullscreen-clearance";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -11199,13 +11217,14 @@ function ensureFifaModule() {
 // Stub'lar (music/potcasts bilan bir naqsh). Modul yuklanmagan paytda
 // chaqiruvchilar (sidebar, banner click) shu nomlarni ishlatadi — funksiya
 // modulni yuklab, keyin haqiqiy openFifaView ni chaqiradi.
-function openFifaView() { return ensureFifaModule().then((m) => m?.openFifaView?.()).catch(() => {}); }
+function openFifaView() { ensureTelegramFullscreen(); return ensureFifaModule().then((m) => m?.openFifaView?.()).catch(() => {}); }
 function closeFifaView() {
   const fv = document.getElementById("fifaView");
   if (fv) fv.hidden = true;
   document.body.classList.remove("is-fifa");
   window.__fifa?.closeFifaView?.();
   syncNavButtons();
+  ensureTelegramFullscreen();
 }
 
 // ============================================================
@@ -11241,10 +11260,11 @@ function ensureEsportModule() {
   __esportModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__esport);
   return __esportModulePromise;
 }
-function openEsportView() { return ensureEsportModule().then((m) => m?.openEsportView?.()).catch(() => {}); }
+function openEsportView() { ensureTelegramFullscreen(); return ensureEsportModule().then((m) => m?.openEsportView?.()).catch(() => {}); }
 function closeEsportView() {
   window.__esport?.closeEsportView?.();
   syncNavButtons();
+  ensureTelegramFullscreen();
 }
 
 
