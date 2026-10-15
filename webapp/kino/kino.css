@@ -11712,15 +11712,63 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
    ============================================================ */
 .fifa-match {
   position: relative !important;
-  padding-right: 48px !important;
+  display: grid !important;
+  grid-template-columns: 28px 1fr auto 1fr 28px !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px 10px !important;
+  padding-right: 10px !important;
 }
+
+@media (max-width: 480px) {
+  .fifa-match {
+    grid-template-columns: 24px 1fr auto 1fr 24px !important;
+    gap: 6px !important;
+    padding: 10px 8px !important;
+  }
+}
+
+.fifa-team-fav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.3);
+  padding: 0;
+  transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), color 0.18s ease;
+  z-index: 5;
+  flex: 0 0 auto;
+}
+.fifa-team-fav-btn:active {
+  transform: scale(0.85);
+}
+.fifa-team-fav-btn.is-active {
+  color: #f59e0b;
+}
+.fifa-team-fav-star {
+  width: 17px;
+  height: 17px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fifa-team-fav-btn.is-active .fifa-team-fav-star {
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.7));
+}
+html[data-theme="light"] .fifa-team-fav-btn {
+  color: rgba(0, 0, 0, 0.22);
+}
+html[data-theme="light"] .fifa-team-fav-btn.is-active {
+  color: #d97706;
+}
+
+/* Match bookmark button (eski moslik uchun) */
 .fifa-match__fav-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 0;
   background: transparent;
@@ -11732,25 +11780,97 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   z-index: 5;
 }
 .fifa-match__fav-btn:active {
-  transform: translateY(-50%) scale(0.85);
+  transform: scale(0.85);
 }
 .fifa-match__fav-btn.is-active {
   color: #f59e0b;
 }
 .fifa-match__fav-star {
-  width: 19px;
-  height: 19px;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 17px;
+  height: 17px;
 }
 .fifa-match__fav-btn.is-active .fifa-match__fav-star {
   transform: scale(1.15);
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.6));
 }
-html[data-theme="light"] .fifa-match__fav-btn {
-  color: rgba(0, 0, 0, 0.24);
+
+/* Sevimli jamoalar gorizontal chip ro'yxati */
+.fifa-fav-teams-section {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
-html[data-theme="light"] .fifa-match__fav-btn.is-active {
-  color: #d97706;
+.fifa-fav-teams-heading {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #f59e0b;
+  margin-bottom: 8px;
+}
+.fifa-fav-teams-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fifa-fav-team-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 20px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text, #fff);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.fifa-fav-team-badge:hover {
+  border-color: #f59e0b;
+}
+.fifa-fav-team-badge.is-filtered {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #f59e0b;
+  color: #f59e0b;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+}
+.fifa-fav-team-badge__logo .fifa-flag--img {
+  width: 18px;
+  height: 18px;
+}
+.fifa-fav-team-badge__remove {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+.fifa-fav-team-badge__remove:hover {
+  opacity: 1;
+  color: #ef4444;
+}
+html[data-theme="light"] .fifa-fav-teams-section {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(217, 119, 6, 0.25);
+}
+html[data-theme="light"] .fifa-fav-team-badge {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1a1d2e;
+}
+html[data-theme="light"] .fifa-fav-team-badge.is-filtered {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #d97706;
+  color: #b45309;
 }
 
 /* Live match card ichidagi star */

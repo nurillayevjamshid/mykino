@@ -346,6 +346,7 @@ const copy = {
     fifaSub: "Kunlik o'yinlar va turnir jadvallari",
     fifaTabMatches: "Kunlik o'yinlar",
     fifaTabGroups: "Turnir jadvali",
+    fifaTabFavorites: "Sevimlilar",
     fifaBannerAria: "Futbol ligalari bo'limi",
     adLabel: "REKLAMA",
     adSkip: "Reklamani o'tkazib yuborish",
@@ -487,6 +488,7 @@ const copy = {
     fifaSub: "Ежедневные матчи и таблицы",
     fifaTabMatches: "Матчи дня",
     fifaTabGroups: "Турнирная таблица",
+    fifaTabFavorites: "Избранное",
     fifaBannerAria: "Раздел футбольных лиг",
     adLabel: "РЕКЛАМА",
     adSkip: "Пропустить рекламу",
@@ -628,6 +630,7 @@ const copy = {
     fifaSub: "Daily matches and league tables",
     fifaTabMatches: "Daily matches",
     fifaTabGroups: "League table",
+    fifaTabFavorites: "Favorites",
     fifaBannerAria: "Football leagues section",
     adLabel: "AD",
     adSkip: "Skip ad",
@@ -11206,7 +11209,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261015-fullscreen-clearance";
+    script.src = "/static/fifa/fifa.js?v=20261015-two-sided-favorites";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
