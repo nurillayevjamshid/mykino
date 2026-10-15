@@ -35,6 +35,33 @@
 </head>
 
 <body>
+  <!-- OFFLINE STATUS BANNER -->
+  <div class="offline-banner" id="offlineBanner" hidden role="alert" aria-live="assertive">
+    <div class="offline-banner__inner">
+      <div class="offline-banner__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+          <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+      </div>
+      <div class="offline-banner__info">
+        <strong class="offline-banner__title">Internet aloqasi uzildi</strong>
+        <span class="offline-banner__desc">Keshdagi ma'lumotlar ko'rsatilmoqda</span>
+      </div>
+      <button class="offline-banner__btn" type="button" id="offlineRetryBtn" aria-label="Qayta tekshirish">
+        <svg class="offline-banner__btn-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"></path>
+        </svg>
+        <span class="offline-banner__btn-label">Tekshirish</span>
+      </button>
+    </div>
+  </div>
+
   <div id="splashScreen" class="splash-screen">
     <div class="splash-screen__brand">
       <span class="splash-screen__logo" aria-hidden="true">

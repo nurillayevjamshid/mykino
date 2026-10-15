@@ -3477,6 +3477,22 @@ function renderMovies() {
       }
       grid.append(frag);
     }
+  } else if (movieLoadState === "error") {
+    grid.classList.remove("is-home");
+    const errState = document.createElement("div");
+    errState.className = "empty-state empty-state--network-error";
+    errState.innerHTML = `
+      <div class="empty-state__icon" aria-hidden="true" style="font-size: 40px; margin-bottom: 10px;">📡</div>
+      <h3 class="empty-state__title" style="font-size: 18px; margin-bottom: 6px; font-weight: 700;">Aloqa uzildi</h3>
+      <p class="empty-state__text" style="font-size: 14px; opacity: 0.72; max-width: 320px; margin: 0 auto 16px;">${plainLabel(movieLoadError || t("loadErrorText") || "Internetga ulanishni tekshiring va qayta urinib ko'ring.")}</p>
+      <button class="empty-state__retry-btn" type="button" style="padding: 10px 22px; border-radius: 999px; background: #e50914; color: #fff; border: 0; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(229, 9, 20, 0.4);">Qayta yuklash</button>
+    `;
+    errState.style.cssText = "grid-column: 1 / -1; text-align: center; padding: 48px 16px; width: 100%;";
+    errState.querySelector(".empty-state__retry-btn")?.addEventListener("click", () => {
+      try { haptic.tap(); } catch (_) {}
+      loadMovies();
+    });
+    grid.append(errState);
   } else {
     grid.classList.remove("is-home");
     if (isCategoryPage && movieLoadState === "ready") {
@@ -10348,9 +10364,60 @@ initApp();
     if (t.matches?.(TAP_SELECTORS) || t.closest?.(TAP_SELECTORS)) { haptic.tap(); return; }
   }, { passive: true, capture: true });
 
-  window.addEventListener('offline', () => {
+  const offlineBanner = document.getElementById("offlineBanner");
+  const offlineRetryBtn = document.getElementById("offlineRetryBtn");
+  let isRetryingNetwork = false;
+
+  const showOfflineBanner = () => {
+    if (offlineBanner) offlineBanner.hidden = false;
+  };
+  const hideOfflineBanner = () => {
+    if (offlineBanner) offlineBanner.hidden = true;
+  };
+
+  const handleOffline = () => {
     try { haptic.error(); } catch (_) {}
+    showOfflineBanner();
     showToast(t("checkNetwork") || "Internet bilan aloqa uzildi");
+  };
+
+  const handleOnline = () => {
+    hideOfflineBanner();
+    try { haptic.success(); } catch (_) {}
+    showToast("Internet aloqasi tiklandi");
+    try { loadMovies(); } catch (_) {}
+  };
+
+  window.addEventListener('offline', handleOffline);
+  window.addEventListener('online', handleOnline);
+
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    showOfflineBanner();
+  }
+
+  offlineRetryBtn?.addEventListener('click', async () => {
+    if (isRetryingNetwork) return;
+    isRetryingNetwork = true;
+    offlineRetryBtn.classList.add('is-loading');
+    try { haptic.tap(); } catch (_) {}
+
+    let isConnected = false;
+    try {
+      const res = await fetch(`/webapp/kino/kino.css?_t=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
+      isConnected = res.ok || res.status < 500;
+    } catch (_) {
+      isConnected = Boolean(navigator.onLine);
+    }
+
+    offlineRetryBtn.classList.remove('is-loading');
+    isRetryingNetwork = false;
+
+    if (isConnected) {
+      handleOnline();
+    } else {
+      try { haptic.error(); } catch (_) {}
+      showToast("Hali ham internet mavjud emas");
+    }
   });
 })();
 // === /haptic for key interactions ===
