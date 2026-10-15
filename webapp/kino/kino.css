@@ -2899,6 +2899,18 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   background: #000;
   display: grid;
   place-items: center;
+  filter: brightness(var(--player-brightness, 1));
+  will-change: filter;
+}
+
+.player-brightness-dimmer {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  pointer-events: none;
+  opacity: var(--player-dim-opacity, 0);
+  z-index: 1;
+  transition: opacity 50ms linear;
 }
 
 .video-mount video,
@@ -3074,38 +3086,43 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   z-index: 5;
   pointer-events: none;
   opacity: 1;
-  transition: opacity 220ms ease;
+  transition: opacity 260ms cubic-bezier(0.2, 0.9, 0.3, 1);
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 18%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.75) 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0) 22%, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, 0.8) 100%);
 }
 
 .player-overlay[data-visible="false"] {
   opacity: 0;
-  pointer-events: none !important;
+  pointer-events: none;
 }
 
-/* Tap zones for show/hide controls + double-tap seek */
-.player-overlay__tap {
+/* Dedicated gesture layer for taps and swipes */
+.player-gesture-layer {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 1;
+  inset: 0;
+  z-index: 3;
   pointer-events: auto;
+  touch-action: none;
+  display: flex;
+}
+
+.player-gesture-zone {
+  flex: 1;
+  height: 100%;
   background: transparent;
   border: 0;
   padding: 0;
+  margin: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
-
-.player-overlay__tap--left { left: 0; right: 50%; }
-.player-overlay__tap--right { left: 50%; right: 0; }
 
 /* Double-tap skip ripple feedback */
 .player-skip-feedback {
   position: absolute;
   top: 50%;
-  z-index: 5;
+  z-index: 6;
   width: 120px;
   height: 120px;
   display: flex;
@@ -3175,8 +3192,118 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
-/* Player Gesture HUD (Yorug'lik va Ovoz foiz ko'rsatkichi) */
+/* Player Gesture HUD (Yorug'lik, Ovoz va Seek ko'rsatkichlari) */
 .player-gesture-hud {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) scale(0.92);
+  z-index: 12;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.player-gesture-hud.is-active {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+.player-gesture-hud--left {
+  left: 24px;
+}
+.player-gesture-hud--right {
+  right: 24px;
+}
+.player-gesture-hud--center {
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.92);
+}
+.player-gesture-hud--center.is-active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.player-gesture-hud__bar {
+  width: 56px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.player-gesture-hud__fill {
+  height: 100%;
+  background: #facc15;
+  border-radius: 999px;
+}
+.player-gesture-hud--right .player-gesture-hud__fill {
+  background: #38bdf8;
+}
+.player-gesture-hud__seek-time {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.player-gesture-hud__seek-diff {
+  color: #38bdf8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.player-datasaver-btn.is-active {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+/* Player Top Actions (Quality + PiP + Settings) */
+.player-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+/* Quality Button on Top Bar */
+.player-quality-btn-top {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: all 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.player-quality-btn-top:active {
+  transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.22);
+}
+.player-quality-badge {
+  text-transform: uppercase;
+}
+
+/* Direct Quality Selector Popover */
+.player-quality-menu {
   position: absolute;
   top: calc(
     max(
@@ -3186,63 +3313,91 @@ html[data-theme="light"] .watch-button.watch-button--pill {
       54px
     ) + 48px
   );
-  z-index: 6;
-  padding: 8px 14px;
-  border-radius: 20px;
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #fff;
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 15;
+  width: 230px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  padding: 10px;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 180ms ease, transform 180ms ease;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-.player-gesture-hud.is-active {
-  opacity: 1;
-  transform: translateY(0);
-}
-.player-gesture-hud--left {
-  left: 20px;
-}
-.player-gesture-hud--right {
-  right: 20px;
-}
-.player-gesture-hud__bar {
-  width: 48px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.player-gesture-hud__fill {
-  height: 100%;
-  background: #facc15;
-  border-radius: 2px;
-  transition: width 80ms linear;
-}
-.player-gesture-hud--right .player-gesture-hud__fill {
-  background: #38bdf8;
-}
-.player-datasaver-btn.is-active {
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.18);
-  border-color: rgba(56, 189, 248, 0.4);
-}
-
-/* Player Top Actions (PiP + Settings) */
-.player-top-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
   pointer-events: auto;
+  animation: qualityMenuIn 200ms cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+.player-quality-menu[hidden] {
+  display: none !important;
+}
+@keyframes qualityMenuIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.player-quality-menu__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.player-quality-menu__close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.player-quality-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.player-quality-menu__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: all 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.player-quality-menu__item:hover,
+.player-quality-menu__item:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+.player-quality-menu__item.is-active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+}
+.player-quality-menu__name {
+  font-size: 13px;
+  font-weight: 700;
+}
+.player-quality-menu__desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.player-quality-menu__item.is-active .player-quality-menu__desc {
+  color: rgba(56, 189, 248, 0.85);
 }
 
 /* Player Settings Glass Panel */
@@ -3459,6 +3614,15 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   padding-bottom: 12px;
   padding-left: max(16px, env(safe-area-inset-left));
   box-sizing: border-box;
+  transition: transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 260ms ease;
+}
+
+.player-overlay[data-visible="false"] .player-top {
+  transform: translateY(-16px);
+  pointer-events: none !important;
+}
+.player-overlay[data-visible="false"] .player-top > * {
+  pointer-events: none !important;
 }
 
 .player-top > * { pointer-events: auto; }
@@ -3517,6 +3681,15 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   flex-direction: column;
   gap: 4px;
   padding: 0 max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  transition: transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 260ms ease;
+}
+
+.player-overlay[data-visible="false"] .player-bottom {
+  transform: translateY(16px);
+  pointer-events: none !important;
+}
+.player-overlay[data-visible="false"] .player-bottom > * {
+  pointer-events: none !important;
 }
 
 .player-bottom > * { pointer-events: auto; }
@@ -3649,7 +3822,17 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   display: flex;
   align-items: center;
   gap: clamp(48px, 14vw, 110px);
+  transition: transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 240ms ease;
 }
+
+.player-overlay[data-visible="false"] .player-center {
+  transform: translate(-50%, -50%) scale(0.92);
+  pointer-events: none !important;
+}
+.player-overlay[data-visible="false"] .player-center > * {
+  pointer-events: none !important;
+}
+
 .player-center > * { pointer-events: auto; }
 
 .player-skip-btn {

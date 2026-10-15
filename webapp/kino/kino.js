@@ -2172,8 +2172,9 @@ function isLaunchReadyMovie(movie) {
     return true;
   }
 
-  if (movie?.driveFileId || movie?.fileId) {
-    return false;
+  // Google Drive fayllari va server translatsiya havolalari mobil brauzerda ochiladi
+  if (movie?.driveFileId || movie?.fileId || movie?.streamUrl || movie?.videoUrl) {
+    return true;
   }
 
   return canBrowserPlayMovie(movie);
@@ -5277,7 +5278,15 @@ function setPlayerLocked(locked) {
 function setControlsVisible(visible) {
   if (!playerOverlay) return;
   playerOverlay.dataset.visible = visible ? "true" : "false";
-  if (visible) scheduleControlsHide();
+  if (!visible) {
+    if (controlsHideTimer) window.clearTimeout(controlsHideTimer);
+    const settingsPanel = document.getElementById("playerSettingsPanel");
+    if (settingsPanel) settingsPanel.hidden = true;
+    const qualityMenu = document.getElementById("playerQualityMenu");
+    if (qualityMenu) qualityMenu.hidden = true;
+  } else {
+    scheduleControlsHide();
+  }
 }
 
 function scheduleControlsHide() {
@@ -5308,22 +5317,46 @@ function showSkipFeedback(side) {
   }, 500);
 }
 
-function handleTapZone(side, event) {
+let playerSingleTapTimeout = null;
+let playerLastTapTime = 0;
+let playerLastTapSide = "";
+
+function handlePlayerTapAction(side) {
   if (isPlayerLocked) return;
-  event.stopPropagation();
   const now = Date.now();
-  const isDoubleTap = now - lastTapTime < 320 && lastTapSide === side;
-  lastTapTime = now;
-  lastTapSide = side;
+  const isDoubleTap = (now - playerLastTapTime < 280) && (playerLastTapSide === side);
+
   if (isDoubleTap) {
+    if (playerSingleTapTimeout) {
+      clearTimeout(playerSingleTapTimeout);
+      playerSingleTapTimeout = null;
+    }
+    playerLastTapTime = 0;
+    playerLastTapSide = "";
     playerCore.seekBy(side === "left" ? -10 : 10);
     showSkipFeedback(side);
     try { haptic.medium(); } catch (_) {}
-    setControlsVisible(true);
     return;
   }
-  const visible = playerOverlay.dataset.visible !== "false";
-  setControlsVisible(!visible);
+
+  playerLastTapTime = now;
+  playerLastTapSide = side;
+
+  if (playerSingleTapTimeout) clearTimeout(playerSingleTapTimeout);
+  playerSingleTapTimeout = setTimeout(() => {
+    playerSingleTapTimeout = null;
+    playerLastTapTime = 0;
+    playerLastTapSide = "";
+    if (isPlayerLocked) return;
+    const isVisible = playerOverlay && playerOverlay.dataset.visible !== "false";
+    setControlsVisible(!isVisible);
+    try { haptic.soft(); } catch (_) {}
+  }, 240);
+}
+
+function handleTapZone(side, event) {
+  if (event) event.stopPropagation();
+  handlePlayerTapAction(side);
 }
 
 function showBuffering(show) {
@@ -6551,6 +6584,11 @@ function closeVideoPlayer(options = {}) {
   if (playerToast) playerToast.hidden = true;
   const pSettingsPanel = document.querySelector("#playerSettingsPanel");
   if (pSettingsPanel) pSettingsPanel.hidden = true;
+  const pQualityMenu = document.querySelector("#playerQualityMenu");
+  if (pQualityMenu) pQualityMenu.hidden = true;
+  const seekHud = document.querySelector("#playerSeekHud");
+  if (seekHud) seekHud.classList.remove("is-active");
+  if (playerSingleTapTimeout) { window.clearTimeout(playerSingleTapTimeout); playerSingleTapTimeout = null; }
   if (document.pictureInPictureElement) document.exitPictureInPicture?.().catch(() => {});
   if (getFullscreenElement()) exitDocFullscreen();
   destroyYouTubePlayer();
@@ -8906,7 +8944,11 @@ videoPlayer?.addEventListener("click", (e) => {
   videoPlayer.addEventListener("touchstart", (e) => {
     if (isMiniScreenActive()) return;
     if (e.touches.length !== 1) return;
-    if (e.target.closest("button, input, #playerSettingsPanel, .player-bottom, .player-center")) return;
+    if (e.target.closest("button, input, #playerSettingsPanel, .player-bottom, .player-center, .player-quality-menu")) return;
+    // Yorug'lik va ovoz surishlari bilan to'qnashmasligi uchun faqat yuqoridan yoki boshqaruv ko'ringanda ishlaydi
+    const isTopArea = e.touches[0].clientY < 90;
+    const isControlsVisible = playerOverlay?.dataset.visible !== "false";
+    if (!isTopArea && !isControlsVisible) return;
     startY = e.touches[0].clientY;
     startX = e.touches[0].clientX;
     isDragging = true;
@@ -9028,18 +9070,82 @@ document.querySelectorAll(".player-speed-btn").forEach((btn) => {
   });
 });
 
-// Quality selector
+// === Player Quality Selection (Top Button, Popover & Settings Pills) ===
+const videoQualityTopBtn = document.getElementById("videoQualityTopBtn");
+const playerQualityMenu = document.getElementById("playerQualityMenu");
+const playerQualityMenuClose = document.getElementById("playerQualityMenuClose");
+const videoQualityBadge = document.getElementById("videoQualityBadge");
+
+function setPlayerQuality(q) {
+  const quality = q || "auto";
+  try { localStorage.setItem("kino_player_quality", quality); } catch (_) {}
+
+  if (videoQualityBadge) {
+    videoQualityBadge.textContent = quality === "auto" ? "Avto" : quality;
+  }
+
+  document.querySelectorAll(".player-quality-menu__item").forEach((item) => {
+    item.classList.toggle("is-active", item.dataset.quality === quality);
+  });
+
+  document.querySelectorAll(".player-quality-btn").forEach((pill) => {
+    pill.classList.toggle("is-active", pill.dataset.quality === quality);
+  });
+
+  if (activeYouTubePlayer && typeof activeYouTubePlayer.setPlaybackQuality === "function") {
+    const ytQuality = quality === "1080p" ? "hd1080" : quality === "720p" ? "hd720" : quality === "480p" ? "large" : "default";
+    try { activeYouTubePlayer.setPlaybackQuality(ytQuality); } catch (_) {}
+  }
+
+  const label = quality === "auto" ? "Avtomatik" : quality;
+  showToast(`Sifat: ${label}`);
+  try { haptic.select(); } catch (_) {}
+}
+
+videoQualityTopBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (playerQualityMenu) {
+    const isHidden = playerQualityMenu.hidden;
+    playerQualityMenu.hidden = !isHidden;
+    const settingsPanel = document.getElementById("playerSettingsPanel");
+    if (settingsPanel) settingsPanel.hidden = true;
+  }
+});
+
+playerQualityMenuClose?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (playerQualityMenu) playerQualityMenu.hidden = true;
+});
+
+document.querySelectorAll(".player-quality-menu__item").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const q = btn.dataset.quality || "auto";
+    setPlayerQuality(q);
+    if (playerQualityMenu) playerQualityMenu.hidden = true;
+  });
+});
+
 document.querySelectorAll(".player-quality-btn").forEach((btn) => {
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
     const q = btn.dataset.quality || "auto";
-    document.querySelectorAll(".player-quality-btn").forEach((b) => b.classList.toggle("is-active", b === btn));
-    try { localStorage.setItem("kino_player_quality", q); } catch (_) {}
-    const label = q === "auto" ? "Avtomatik" : q;
-    showToast(`Sifat: ${label}`);
-    try { haptic.select(); } catch (_) {}
+    setPlayerQuality(q);
   });
 });
+
+(function initQualityState() {
+  const savedQuality = localStorage.getItem("kino_player_quality") || "auto";
+  if (videoQualityBadge) {
+    videoQualityBadge.textContent = savedQuality === "auto" ? "Avto" : savedQuality;
+  }
+  document.querySelectorAll(".player-quality-menu__item").forEach((item) => {
+    item.classList.toggle("is-active", item.dataset.quality === savedQuality);
+  });
+  document.querySelectorAll(".player-quality-btn").forEach((pill) => {
+    pill.classList.toggle("is-active", pill.dataset.quality === savedQuality);
+  });
+})();
 
 // Auto-Landscape switch
 if (autoLandscapeToggle) {
@@ -9052,17 +9158,27 @@ if (autoLandscapeToggle) {
     showToast(autoLandscapeToggle.checked ? "Avto-Landscape yoqildi" : "Avto-Landscape o'chirildi");
   });
 }
+
 videoVolume?.addEventListener("input", () => {
   setVolume(videoVolume.value);
   setControlsVisible(true);
 });
-videoTapZoneLeft?.addEventListener("click", (e) => handleTapZone("left", e));
-videoTapZoneRight?.addEventListener("click", (e) => handleTapZone("right", e));
 
-// === Player Swipe Gestures (Vertical Swipe for Brightness & Volume HUD) ===
-let playerTouchStartY = 0;
+// === Player Gestures: Vertical (Brightness/Volume), Horizontal (Seek), Single/Double Tap ===
 let playerBrightnessVal = 100;
 let playerGestureTimer = null;
+
+function applyPlayerBrightness(val) {
+  playerBrightnessVal = Math.max(15, Math.min(130, val));
+  const factor = (playerBrightnessVal / 100).toFixed(2);
+  videoPlayer?.style.setProperty("--player-brightness", factor);
+  if (playerBrightnessVal < 100) {
+    const dim = (((100 - playerBrightnessVal) / 100) * 0.75).toFixed(2);
+    videoPlayer?.style.setProperty("--player-dim-opacity", dim);
+  } else {
+    videoPlayer?.style.setProperty("--player-dim-opacity", "0");
+  }
+}
 
 function showGestureHud(type, value) {
   const isBright = type === "brightness";
@@ -9078,43 +9194,136 @@ function showGestureHud(type, value) {
   playerGestureTimer = window.setTimeout(() => {
     document.getElementById("playerBrightnessHud")?.classList.remove("is-active");
     document.getElementById("playerVolumeHud")?.classList.remove("is-active");
-  }, 900);
+  }, 850);
 }
 
-videoTapZoneLeft?.addEventListener("touchstart", (e) => {
-  if (e.touches.length === 1) playerTouchStartY = e.touches[0].clientY;
-}, { passive: true });
+function showGestureSeekHud(targetTime, diffSec) {
+  const hud = document.getElementById("playerSeekHud");
+  const timeEl = document.getElementById("playerSeekHudTime");
+  const diffEl = document.getElementById("playerSeekHudDiff");
+  if (!hud || !timeEl || !diffEl) return;
+  timeEl.textContent = formatPlaybackTime(targetTime);
+  const sign = diffSec >= 0 ? "+" : "-";
+  const absSec = Math.abs(diffSec);
+  diffEl.textContent = `${sign}${formatPlaybackTime(absSec)}`;
+  hud.classList.add("is-active");
+  if (playerGestureTimer) window.clearTimeout(playerGestureTimer);
+  playerGestureTimer = window.setTimeout(() => {
+    hud.classList.remove("is-active");
+  }, 850);
+}
 
-videoTapZoneLeft?.addEventListener("touchmove", (e) => {
-  if (e.touches.length !== 1 || !playerTouchStartY) return;
-  const delta = playerTouchStartY - e.touches[0].clientY;
-  if (Math.abs(delta) > 8) {
-    playerBrightnessVal = Math.max(30, Math.min(130, playerBrightnessVal + (delta > 0 ? 3 : -3)));
-    playerTouchStartY = e.touches[0].clientY;
-    const factor = (playerBrightnessVal / 100).toFixed(2);
-    videoPlayer?.style.setProperty("--player-brightness", factor);
-    const displayPct = Math.round((playerBrightnessVal / 130) * 100);
-    showGestureHud("brightness", displayPct);
-    try { haptic.soft(); } catch (_) {}
-  }
-}, { passive: true });
+// Unified Gesture Manager on playerGestureLayer
+(function initPlayerGestureManager() {
+  const gestureLayer = document.getElementById("playerGestureLayer") || videoPlayer;
+  if (!gestureLayer) return;
 
-videoTapZoneRight?.addEventListener("touchstart", (e) => {
-  if (e.touches.length === 1) playerTouchStartY = e.touches[0].clientY;
-}, { passive: true });
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartBrightness = 100;
+  let touchStartVolume = 100;
+  let touchStartVideoTime = 0;
+  let touchMode = null; // null | "brightness" | "volume" | "seek"
+  let isDragging = false;
+  let targetSeekTime = null;
+  let preventClickUntil = 0;
 
-videoTapZoneRight?.addEventListener("touchmove", (e) => {
-  if (e.touches.length !== 1 || !playerTouchStartY) return;
-  const delta = playerTouchStartY - e.touches[0].clientY;
-  if (Math.abs(delta) > 8) {
-    const cur = Math.round(currentVolume * 100);
-    const next = Math.max(0, Math.min(100, cur + (delta > 0 ? 4 : -4)));
-    playerTouchStartY = e.touches[0].clientY;
-    setVolume(next);
-    showGestureHud("volume", next);
-    try { haptic.soft(); } catch (_) {}
-  }
-}, { passive: true });
+  gestureLayer.addEventListener("touchstart", (e) => {
+    if (isPlayerLocked || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchStartBrightness = playerBrightnessVal;
+    touchStartVolume = Math.round(currentVolume * 100);
+    touchStartVideoTime = playerCore.getCurrentTime() || 0;
+    touchMode = null;
+    isDragging = false;
+    targetSeekTime = null;
+  }, { passive: true });
+
+  gestureLayer.addEventListener("touchmove", (e) => {
+    if (isPlayerLocked || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    const dist = Math.hypot(dx, dy);
+
+    if (!isDragging && dist > 10) {
+      isDragging = true;
+      if (playerSingleTapTimeout) {
+        clearTimeout(playerSingleTapTimeout);
+        playerSingleTapTimeout = null;
+      }
+      const rect = gestureLayer.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        touchMode = touchStartX < midX ? "brightness" : "volume";
+      } else {
+        touchMode = "seek";
+      }
+    }
+
+    if (!isDragging) return;
+
+    if (touchMode === "brightness") {
+      const deltaPct = (-dy / 200) * 100;
+      const nextBright = Math.max(15, Math.min(130, Math.round(touchStartBrightness + deltaPct)));
+      applyPlayerBrightness(nextBright);
+      const displayPct = Math.round((nextBright / 130) * 100);
+      showGestureHud("brightness", displayPct);
+      try { haptic.soft(); } catch (_) {}
+    } else if (touchMode === "volume") {
+      const deltaPct = (-dy / 200) * 100;
+      const nextVol = Math.max(0, Math.min(100, Math.round(touchStartVolume + deltaPct)));
+      setVolume(nextVol);
+      showGestureHud("volume", nextVol);
+      try { haptic.soft(); } catch (_) {}
+    } else if (touchMode === "seek") {
+      const duration = playerCore.getDuration() || 0;
+      if (duration > 0) {
+        const seekWindow = Math.min(180, Math.max(60, duration * 0.15));
+        const diffSec = Math.round((dx / window.innerWidth) * seekWindow);
+        targetSeekTime = Math.max(0, Math.min(duration, touchStartVideoTime + diffSec));
+        showGestureSeekHud(targetSeekTime, diffSec);
+      }
+    }
+  }, { passive: true });
+
+  const onTouchEnd = (e) => {
+    if (isDragging) {
+      preventClickUntil = Date.now() + 350;
+      isDragging = false;
+      if (touchMode === "seek" && targetSeekTime !== null) {
+        playerCore.seekTo(targetSeekTime);
+        try { haptic.medium(); } catch (_) {}
+      }
+      touchMode = null;
+      targetSeekTime = null;
+      return;
+    }
+
+    const touch = e.changedTouches ? e.changedTouches[0] : null;
+    const clientX = touch ? touch.clientX : touchStartX;
+    const rect = gestureLayer.getBoundingClientRect();
+    const side = clientX < (rect.left + rect.width / 2) ? "left" : "right";
+    handlePlayerTapAction(side);
+  };
+
+  gestureLayer.addEventListener("touchend", onTouchEnd, { passive: true });
+  gestureLayer.addEventListener("touchcancel", () => {
+    isDragging = false;
+    touchMode = null;
+    targetSeekTime = null;
+  }, { passive: true });
+
+  gestureLayer.addEventListener("click", (e) => {
+    if (Date.now() < preventClickUntil) return;
+    if (e.target.closest("button, input, #playerSettingsPanel, .player-quality-menu, .player-top, .player-bottom, .player-center")) return;
+    const rect = gestureLayer.getBoundingClientRect();
+    const side = e.clientX < (rect.left + rect.width / 2) ? "left" : "right";
+    handlePlayerTapAction(side);
+  });
+})();
 
 // Data Saver toggle listener
 const videoDataSaverBtn = document.getElementById("videoDataSaverBtn");
