@@ -11666,4 +11666,200 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   display: none !important;
 }
 
+/* ============================================================
+   FUTBOL SEVIMLILAR (FIFA FAVORITES / BOOKMARKS)
+   ============================================================ */
+.fifa-match {
+  position: relative !important;
+  padding-right: 48px !important;
+}
+.fifa-match__fav-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.3);
+  transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), color 0.18s ease;
+  z-index: 5;
+}
+.fifa-match__fav-btn:active {
+  transform: translateY(-50%) scale(0.85);
+}
+.fifa-match__fav-btn.is-active {
+  color: #f59e0b;
+}
+.fifa-match__fav-star {
+  width: 19px;
+  height: 19px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fifa-match__fav-btn.is-active .fifa-match__fav-star {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+}
+html[data-theme="light"] .fifa-match__fav-btn {
+  color: rgba(0, 0, 0, 0.24);
+}
+html[data-theme="light"] .fifa-match__fav-btn.is-active {
+  color: #d97706;
+}
+
+/* Live match card ichidagi star */
+.fifa-live-card .fifa-match__fav-btn {
+  top: 20px;
+  right: 14px;
+  transform: none;
+  background: rgba(0, 0, 0, 0.2);
+}
+.fifa-live-card .fifa-match__fav-btn:active {
+  transform: scale(0.88);
+}
+
+/* Modal ichidagi ⭐ Saqlash tugmasi */
+.fifa-lineup-modal__fav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.2s ease;
+}
+.fifa-lineup-modal__fav-btn:active {
+  transform: scale(0.96);
+}
+.fifa-lineup-modal__fav-btn.is-active {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+html[data-theme="light"] .fifa-lineup-modal__fav-btn {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.14);
+  color: #1a1d2e;
+}
+html[data-theme="light"] .fifa-lineup-modal__fav-btn.is-active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(217, 119, 6, 0.4);
+  color: #b45309;
+}
+
+/* Sevimlilar paneli */
+.fifa-favorites-wrap {
+  padding-top: 4px;
+}
+.fifa-favorites-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+.fifa-favorites-badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #f59e0b;
+  margin-bottom: 2px;
+  display: block;
+}
+.fifa-favorites-heading {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--c-text, #fff);
+  margin: 0;
+}
+.fifa-favorites-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+}
+.fifa-fav-filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+  scrollbar-width: none;
+}
+.fifa-fav-filters::-webkit-scrollbar {
+  display: none;
+}
+.fifa-fav-filter-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  color: var(--text-muted, rgba(255, 255, 255, 0.7));
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+.fifa-fav-filter-chip.is-active {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+}
+.fifa-favorites-empty {
+  text-align: center;
+  padding: 44px 16px;
+  border-radius: 18px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.03));
+  border: 1px dashed var(--border, rgba(255, 255, 255, 0.12));
+  margin-top: 10px;
+}
+.fifa-favorites-empty__icon {
+  font-size: 42px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 4px 14px rgba(245, 158, 11, 0.4));
+}
+.fifa-favorites-empty__title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--c-text, #fff);
+  margin-bottom: 6px;
+}
+.fifa-favorites-empty__text {
+  font-size: 13px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.65));
+  max-width: 320px;
+  margin: 0 auto 16px;
+  line-height: 1.45;
+}
+.fifa-favorites-empty__btn {
+  padding: 9px 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #1f56b8, #15327a);
+  color: #fff;
+  border: 0;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(31, 86, 184, 0.4);
+  transition: transform 0.15s ease;
+}
+.fifa-favorites-empty__btn:active {
+  transform: scale(0.96);
+}
+
+
 

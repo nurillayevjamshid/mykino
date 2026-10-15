@@ -4264,6 +4264,7 @@ function showToast(message) {
     toast.style.transform = "translateX(-50%) translateY(8px)";
   }, 2200);
 }
+window.showToast = showToast;
 
 function copyTextToClipboard(text) {
   if (navigator.clipboard?.writeText) {

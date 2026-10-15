@@ -58,6 +58,16 @@
       timeline: "Voqealar xronologiyasi",
       noStatsYet: "O'yin statistikasi tez orada yangilanadi.",
       matchDetailsUnavailable: "O'yin ma'lumotlari hali mavjud emas.",
+      favoritesTab: "⭐ Sevimlilar",
+      favoritesTitle: "Saqlangan matchlar va gollar",
+      noFavoritesTitle: "Sevimli o'yinlar hali yo'q",
+      noFavoritesText: "O'zingiz yoqtirgan jamoalar (Real Madrid, Arsenal, Paxtakor...) o'yinlarini va gollarini bitta joyga yig'ish uchun matchlardagi ⭐ belgisini bosing.",
+      exploreMatches: "O'yinlar ro'yxatini ko'rish",
+      shareMatch: "Ulashish",
+      shareMatchText: "Ushbu qiziqarli o'yin va gollarni ko'ring:",
+      allTeams: "Barchasi",
+      saved: "Saqlangan",
+      saveMatch: "Saqlash",
     },
     ru: {
       finished: "Завершён",
@@ -103,6 +113,16 @@
       timeline: "Хронология событий",
       noStatsYet: "Статистика матча скоро обновится.",
       matchDetailsUnavailable: "Информация о матче пока недоступна.",
+      favoritesTab: "⭐ Избранное",
+      favoritesTitle: "Сохранённые матчи и голы",
+      noFavoritesTitle: "Нет избранных матчей",
+      noFavoritesText: "Нажмите на ⭐ в карточке матча, чтобы сохранить любимые игры и голы в одном месте.",
+      exploreMatches: "Смотреть матчи",
+      shareMatch: "Поделиться",
+      shareMatchText: "Посмотри этот интересный матч и голы:",
+      allTeams: "Все",
+      saved: "Сохранено",
+      saveMatch: "Сохранить",
     },
     en: {
       finished: "Finished",
@@ -148,6 +168,16 @@
       timeline: "Timeline",
       noStatsYet: "Match statistics will be available soon.",
       matchDetailsUnavailable: "Match information is not available yet.",
+      favoritesTab: "⭐ Favorites",
+      favoritesTitle: "Saved matches & goals",
+      noFavoritesTitle: "No favorite matches yet",
+      noFavoritesText: "Tap the ⭐ on any match card to save your favorite games and goals in one place.",
+      exploreMatches: "Explore matches",
+      shareMatch: "Share",
+      shareMatchText: "Check out this exciting match and goals:",
+      allTeams: "All",
+      saved: "Saved",
+      saveMatch: "Save",
     },
   };
   function curLang() {
@@ -289,6 +319,153 @@
   let activeLeagueId = "eng.1";
   let selectedDateKey = "";
 
+  // === Futbol Sevimlilar (FIFA Favorites & Bookmarks) ===
+  const FIFA_FAVORITES_KEY = "fifa_favorites_v1";
+
+  const haptic = {
+    tap() { try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light"); } catch (_) {} },
+    select() { try { window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.(); } catch (_) {} },
+    success() { try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success"); } catch (_) {} }
+  };
+
+  function showFifaToast(msg) {
+    if (typeof window.showToast === "function") {
+      window.showToast(msg);
+      return;
+    }
+    let toast = document.getElementById("appGlobalToast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "appGlobalToast";
+      toast.style.cssText = "position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(8px);background:rgba(15,23,42,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.18);pointer-events:none;transition:opacity 0.2s,transform 0.2s;opacity:0;";
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = "1";
+    toast.style.transform = "translateX(-50%) translateY(0)";
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(-50%) translateY(8px)";
+    }, 2200);
+  }
+
+  function readFifaFavorites() {
+    try {
+      const raw = localStorage.getItem(FIFA_FAVORITES_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function writeFifaFavorites(store) {
+    try {
+      localStorage.setItem(FIFA_FAVORITES_KEY, JSON.stringify(store || {}));
+      syncFifaFavoritesToCloud(store);
+    } catch (_) {}
+  }
+
+  function syncFifaFavoritesToCloud(store) {
+    try {
+      const cs = window.Telegram?.WebApp?.CloudStorage;
+      if (cs && typeof cs.setItem === "function") {
+        cs.setItem(FIFA_FAVORITES_KEY, JSON.stringify(store || {}), () => {});
+      }
+    } catch (_) {}
+  }
+
+  function syncFifaFavoritesFromCloud() {
+    try {
+      const cs = window.Telegram?.WebApp?.CloudStorage;
+      if (cs && typeof cs.getItem === "function") {
+        cs.getItem(FIFA_FAVORITES_KEY, (err, val) => {
+          if (!err && val) {
+            try {
+              const cloudStore = JSON.parse(val);
+              if (cloudStore && typeof cloudStore === "object") {
+                const localStore = readFifaFavorites();
+                const merged = Object.assign({}, localStore, cloudStore);
+                localStorage.setItem(FIFA_FAVORITES_KEY, JSON.stringify(merged));
+                const favPanel = document.getElementById("fifaPanelFavorites");
+                if (favPanel && !favPanel.hidden) renderFifaFavorites();
+              }
+            } catch (_) {}
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  try { syncFifaFavoritesFromCloud(); } catch (_) {}
+
+  function isFifaFavorite(id) {
+    if (!id) return false;
+    const store = readFifaFavorites();
+    return Boolean(store[String(id)]);
+  }
+
+  function findFifaMatchById(id) {
+    if (!id) return null;
+    const safeId = String(id);
+    const fromLoaded = (FIFA_DATA.matches || []).find((m) => String(m.id) === safeId);
+    if (fromLoaded) return fromLoaded;
+    const store = readFifaFavorites();
+    return store[safeId] || null;
+  }
+
+  function toggleFifaFavorite(match) {
+    if (!match || !match.id) return false;
+    const store = readFifaFavorites();
+    const id = String(match.id);
+    let isNowFav = false;
+    if (store[id]) {
+      delete store[id];
+      isNowFav = false;
+    } else {
+      store[id] = {
+        id,
+        leagueId: match.leagueId || "",
+        leagueName: match.leagueName || match.leagueFullName || "Liga",
+        leagueLogo: match.leagueLogo || "",
+        home: match.home || "",
+        away: match.away || "",
+        homeEn: match.homeEn || match.home || "",
+        awayEn: match.awayEn || match.away || "",
+        homeLogo: match.homeLogo || "",
+        awayLogo: match.awayLogo || "",
+        score: match.score || "",
+        status: match.status || "upcoming",
+        minute: match.minute || "",
+        time: match.time || "",
+        kickoff: match.kickoff || "",
+        savedAt: Date.now(),
+      };
+      isNowFav = true;
+    }
+    writeFifaFavorites(store);
+    return isNowFav;
+  }
+
+  function updateAllFavButtons(id, isFav) {
+    if (!id) return;
+    const safeId = String(id);
+    document.querySelectorAll(`[data-fifa-fav-id="${safeId}"]`).forEach((btn) => {
+      btn.classList.toggle("is-active", isFav);
+      btn.setAttribute("aria-label", isFav ? "Sevimlilardan o'chirish" : "Sevimlilarga saqlash");
+      const star = btn.querySelector(".fifa-match__fav-star");
+      if (star) {
+        star.setAttribute("fill", isFav ? "#f59e0b" : "none");
+        star.setAttribute("stroke", isFav ? "#f59e0b" : "currentColor");
+      }
+    });
+    const modalFavBtn = document.querySelector(`[data-fifa-modal-fav-id="${safeId}"]`);
+    if (modalFavBtn) {
+      modalFavBtn.classList.toggle("is-active", isFav);
+      const textEl = modalFavBtn.querySelector(".fifa-modal-fav-text");
+      if (textEl) textEl.textContent = isFav ? (F("saved") || "Saqlangan") : (F("saveMatch") || "Saqlash");
+    }
+  }
+
   function getTashkentDateKey(date = new Date()) {
     const parts = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Asia/Tashkent", year: "numeric", month: "2-digit", day: "2-digit",
@@ -425,6 +602,14 @@
     const dataAttr = clickable
       ? ` data-fifa-open-lineup="1" data-match-id="${esc(m.id)}" data-league-id="${esc(m.leagueId || '')}" data-home-en="${esc(m.homeEn || m.home)}" data-away-en="${esc(m.awayEn || m.away)}" data-home-uz="${esc(m.home)}" data-away-uz="${esc(m.away)}" data-home-logo="${esc(m.homeLogo || '')}" data-away-logo="${esc(m.awayLogo || '')}" data-score="${esc(m.score || '')}" data-status="${esc(m.status || '')}" data-minute="${esc(m.minute || '')}" data-date="${esc(dateIso)}" role="button" tabindex="0"`
       : "";
+    const isFav = isFifaFavorite(m.id);
+    const favBtn = `
+      <button class="fifa-match__fav-btn${isFav ? " is-active" : ""}" type="button" data-fifa-fav-id="${esc(m.id)}" aria-label="${isFav ? "Sevimlilardan o'chirish" : "Sevimlilarga saqlash"}">
+        <svg class="fifa-match__fav-star" viewBox="0 0 24 24" fill="${isFav ? "#f59e0b" : "none"}" stroke="${isFav ? "#f59e0b" : "currentColor"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+      </button>
+    `;
     return `
       <div class="fifa-match${isLive ? " fifa-match--live" : isFinished ? " fifa-match--finished" : ""}${clickable ? " fifa-match--clickable" : ""}"${dataAttr}>
         <div class="fifa-match__team fifa-match__team--home">
@@ -436,6 +621,7 @@
           <span class="fifa-match__flag">${teamLogoHtml(m.awayLogo, m.away)}</span>
           <span class="fifa-match__name">${esc(m.away)}</span>
         </div>
+        ${favBtn}
       </div>
     `;
   }
@@ -502,11 +688,20 @@
     const liveHtml = live.length
       ? live.map((m) => {
           const dateIso = m.kickoff ? String(m.kickoff).slice(0, 10) : "";
+          const isFav = isFifaFavorite(m.id);
+          const favBtn = `
+            <button class="fifa-match__fav-btn${isFav ? " is-active" : ""}" type="button" data-fifa-fav-id="${esc(m.id)}" aria-label="${isFav ? "Sevimlilardan o'chirish" : "Sevimlilarga saqlash"}">
+              <svg class="fifa-match__fav-star" viewBox="0 0 24 24" fill="${isFav ? "#f59e0b" : "none"}" stroke="${isFav ? "#f59e0b" : "currentColor"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </button>
+          `;
           return `
             <div class="fifa-live-card fifa-match--clickable" data-fifa-open-lineup="1" data-match-id="${esc(m.id)}" data-league-id="${esc(m.leagueId || '')}" data-home-en="${esc(m.homeEn || m.home)}" data-away-en="${esc(m.awayEn || m.away)}" data-home-uz="${esc(m.home)}" data-away-uz="${esc(m.away)}" data-home-logo="${esc(m.homeLogo || '')}" data-away-logo="${esc(m.awayLogo || '')}" data-score="${esc(m.score || '')}" data-status="live" data-minute="${esc(m.minute || 'LIVE')}" data-date="${esc(dateIso)}" role="button" tabindex="0">
               <span class="fifa-live-card__label"><span class="fifa-banner__live-dot"></span>HOZIR LIVE</span>
               <div class="fifa-live-card__teams">${teamLogoHtml(m.homeLogo, m.home)} ${esc(m.home)} ${esc(m.score || "-")} ${esc(m.away)} ${teamLogoHtml(m.awayLogo, m.away)}</div>
               <div class="fifa-live-card__meta">${esc(m.minute || "")} · ${esc(m.time)}</div>
+              ${favBtn}
             </div>`;
         }).join("")
       : `<div class="fifa-live-empty"><div class="fifa-live-empty__icon">📺</div><div class="fifa-live-empty__title">${F("noLiveTitle")}</div><div>${F("noLiveHint")}</div></div>`;
@@ -548,6 +743,78 @@
     });
   }
 
+  let activeFavTeamFilter = "all";
+
+  function renderFifaFavorites() {
+    const panel = document.getElementById("fifaPanelFavorites");
+    if (!panel) return;
+    const store = readFifaFavorites();
+    const list = Object.values(store || {}).filter((m) => m && m.id);
+
+    if (!list.length) {
+      panel.innerHTML = `
+        <div class="fifa-favorites-empty">
+          <div class="fifa-favorites-empty__icon">⭐</div>
+          <h3 class="fifa-favorites-empty__title">${esc(F("noFavoritesTitle") || "Sevimli o'yinlar hali yo'q")}</h3>
+          <p class="fifa-favorites-empty__text">${esc(F("noFavoritesText") || "O'zingiz yoqtirgan jamoalar (Real Madrid, Arsenal, Paxtakor...) o'yinlarini va gollarini bitta joyga yig'ish uchun matchlardagi ⭐ belgisini bosing.")}</p>
+          <button class="fifa-favorites-empty__btn" type="button" data-fifa-go-matches="1">
+            ${esc(F("exploreMatches") || "O'yinlar ro'yxatini ko'rish")}
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    // Sort: newest saved first
+    list.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+
+    // Get unique team names for filter pills
+    const teamsSet = new Set();
+    list.forEach((m) => {
+      if (m.home) teamsSet.add(m.home);
+      if (m.away) teamsSet.add(m.away);
+    });
+    const uniqueTeams = Array.from(teamsSet);
+
+    // Filter by active team
+    const filtered = activeFavTeamFilter === "all"
+      ? list
+      : list.filter((m) => m.home === activeFavTeamFilter || m.away === activeFavTeamFilter);
+
+    // Build filter chips HTML
+    let filterChipsHtml = "";
+    if (uniqueTeams.length > 1) {
+      const allActive = activeFavTeamFilter === "all";
+      filterChipsHtml = `
+        <div class="fifa-fav-filters" role="tablist">
+          <button class="fifa-fav-filter-chip${allActive ? " is-active" : ""}" type="button" data-fifa-team-filter="all">
+            ${esc(F("allTeams") || "Barchasi")} (${list.length})
+          </button>
+          ${uniqueTeams.map((t) => {
+            const isAct = activeFavTeamFilter === t;
+            return `<button class="fifa-fav-filter-chip${isAct ? " is-active" : ""}" type="button" data-fifa-team-filter="${esc(t)}">${esc(t)}</button>`;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    panel.innerHTML = `
+      <div class="fifa-favorites-wrap">
+        <div class="fifa-favorites-header">
+          <div class="fifa-favorites-title-wrap">
+            <span class="fifa-favorites-badge">⭐ SEVIMLILAR</span>
+            <h2 class="fifa-favorites-heading">${esc(F("favoritesTitle") || "Saqlangan matchlar va gollar")}</h2>
+          </div>
+          <span class="fifa-favorites-count">${filtered.length} ta o'yin</span>
+        </div>
+        ${filterChipsHtml}
+        <div class="fifa-favorites-list">
+          ${filtered.map(renderMatchCard).join("")}
+        </div>
+      </div>
+    `;
+  }
+
   // --- Tab switching ---
   function setActiveTab(tab) {
     fifaView.querySelectorAll(".fifa-tab").forEach((b) => {
@@ -560,6 +827,9 @@
       p.classList.toggle("is-active", isOn);
       p.hidden = !isOn;
     });
+    if (tab === "favorites") {
+      renderFifaFavorites();
+    }
   }
 
   fifaView.querySelectorAll(".fifa-tab").forEach((b) => {
@@ -1600,6 +1870,28 @@
     `;
     document.body.appendChild(modal);
     modal.addEventListener("click", (e) => {
+      const favBtn = e.target.closest("[data-fifa-modal-fav-id]");
+      if (favBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        const mId = favBtn.dataset.fifaModalFavId;
+        const match = findFifaMatchById(mId) || {
+          id: mId,
+          home: modal.dataset.homeUz || "",
+          away: modal.dataset.awayUz || "",
+          score: modal.dataset.score || "",
+          leagueId: modal.dataset.leagueId || "",
+        };
+        const isNowFav = toggleFifaFavorite(match);
+        try { haptic.tap(); } catch (_) {}
+        updateAllFavButtons(mId, isNowFav);
+        showFifaToast(isNowFav ? "Sevimlilarga saqlandi ⭐" : "Sevimlilardan olib tashlandi");
+        const favPanel = document.getElementById("fifaPanelFavorites");
+        if (favPanel && !favPanel.hidden) {
+          renderFifaFavorites();
+        }
+        return;
+      }
       if (e.target.closest("[data-close]")) closeLineupModal();
     });
     document.addEventListener("keydown", (e) => {
@@ -1615,11 +1907,18 @@
     return `<div class="fifa-lineup-empty"><div class="fifa-live-empty__icon">⚽</div><div>${esc(msg)}</div></div>`;
   }
 
-  function renderLineupHead(home, away, homeFlag, awayFlag, score, status, minute) {
+  function renderLineupHead(home, away, homeFlag, awayFlag, score, status, minute, matchId) {
     const isLive = status === "live";
     const statusText = isLive
       ? `<span class="fifa-modal-status-badge fifa-modal-status-badge--live"><span class="fifa-match__status-dot"></span>${esc(minute || "LIVE")}</span>`
       : `<span class="fifa-modal-status-badge">${esc(F("finished"))}</span>`;
+    const isFav = isFifaFavorite(matchId);
+    const favBtn = matchId
+      ? `<button class="fifa-lineup-modal__fav-btn${isFav ? " is-active" : ""}" type="button" data-fifa-modal-fav-id="${esc(matchId)}" aria-label="${isFav ? "Sevimlilardan o'chirish" : "Sevimlilarga saqlash"}">
+          <span class="fifa-modal-fav-star">⭐</span>
+          <span class="fifa-modal-fav-text">${isFav ? (F("saved") || "Saqlangan") : (F("saveMatch") || "Saqlash")}</span>
+        </button>`
+      : "";
     return `
       <div class="fifa-lineup-team fifa-lineup-team--home">
         <span class="fifa-lineup-team__flag">${homeFlag || ""}</span>
@@ -1628,6 +1927,7 @@
       <div class="fifa-lineup-score-wrap">
         <div class="fifa-lineup-score">${esc(score || "—")}</div>
         ${statusText}
+        ${favBtn}
       </div>
       <div class="fifa-lineup-team fifa-lineup-team--away">
         <span class="fifa-lineup-team__name">${esc(away)}</span>
@@ -1860,10 +2160,15 @@
     const reqId = ++activeLineupRequestId;
     const modal = ensureLineupModal();
     modal.hidden = false;
+    modal.dataset.matchId = matchId || "";
+    modal.dataset.homeUz = homeUz || "";
+    modal.dataset.awayUz = awayUz || "";
+    modal.dataset.score = score || "";
+    modal.dataset.leagueId = leagueId || "";
     document.body.classList.add("fifa-lineup-open");
     const head = modal.querySelector("#fifaLineupHead");
     const body = modal.querySelector("#fifaLineupBody");
-    head.innerHTML = renderLineupHead(homeUz, awayUz, homeFlag, awayFlag, score, status, minute);
+    head.innerHTML = renderLineupHead(homeUz, awayUz, homeFlag, awayFlag, score, status, minute, matchId);
     body.innerHTML = lineupLoadingHtml();
     requestAnimationFrame(() => modal.classList.add("is-open"));
     try { tgBackRegister?.("fifa-lineup", () => closeLineupModal()); } catch (_) {}
@@ -1880,7 +2185,8 @@
           updatedAwayFlag,
           data.score || score,
           data.status || status,
-          data.minute || minute
+          data.minute || minute,
+          matchId
         );
       }
       body.innerHTML = renderLineupBody(data, homeUz, awayUz, homeFlag, awayFlag);
@@ -1911,8 +2217,45 @@
     setTimeout(() => { modal.hidden = true; }, 260);
   }
 
-  // Delegate click on matches panel
+  // Delegate click on matches and favorites panel
   fifaView.addEventListener("click", (e) => {
+    // 1) Sevimlilar yulduzcha tugmasi (kartochka ichida)
+    const favBtn = e.target.closest?.(".fifa-match__fav-btn");
+    if (favBtn) {
+      e.stopPropagation();
+      e.preventDefault();
+      const matchId = favBtn.dataset.fifaFavId;
+      if (!matchId) return;
+      const match = findFifaMatchById(matchId);
+      if (match) {
+        const isNowFav = toggleFifaFavorite(match);
+        try { haptic.tap(); } catch (_) {}
+        updateAllFavButtons(matchId, isNowFav);
+        showFifaToast(isNowFav ? "Sevimlilarga saqlandi ⭐" : "Sevimlilardan olib tashlandi");
+        const favPanel = document.getElementById("fifaPanelFavorites");
+        if (favPanel && !favPanel.hidden) {
+          renderFifaFavorites();
+        }
+      }
+      return;
+    }
+
+    // 2) Sevimlilar filtri (klublar chipi)
+    const filterBtn = e.target.closest?.("[data-fifa-team-filter]");
+    if (filterBtn) {
+      activeFavTeamFilter = filterBtn.dataset.fifaTeamFilter || "all";
+      try { haptic.select(); } catch (_) {}
+      renderFifaFavorites();
+      return;
+    }
+
+    // 3) Sevimlilar bo'sh holatdagi "O'yinlar ro'yxatini ko'rish" tugmasi
+    if (e.target.closest?.("[data-fifa-go-matches]")) {
+      try { haptic.tap(); } catch (_) {}
+      setActiveTab("matches");
+      return;
+    }
+
     const row = e.target.closest?.("[data-fifa-open-lineup]");
     if (!row) return;
     openLineupModal({
