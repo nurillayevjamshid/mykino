@@ -604,6 +604,125 @@ async function handleFifa(request, response) {
   }
 }
 
+function normalizeEspnUpcomingMatch(event, league) {
+  const competition = event?.competitions?.[0] || {};
+  const competitors = Array.isArray(competition.competitors) ? competition.competitors : [];
+  const home = competitors.find((item) => item.homeAway === "home") || competitors[0];
+  const away = competitors.find((item) => item.homeAway === "away") || competitors[1];
+  const start = event?.date || competition?.startDate;
+  if (!home?.team || !away?.team || !start) return null;
+  const date = new Date(start);
+  if (Number.isNaN(date.getTime())) return null;
+  const dateInTashkent = dateKeyInTimeZone(date);
+  const statusType = competition?.status?.type || {};
+  const state = String(statusType.state || "").toLowerCase();
+  const isLive = state === "in" || state === "live" || /in.progress|in progress|halftime|delayed/i.test(String(statusType.name || statusType.description || ""));
+  const isFinished = Boolean(statusType.completed) || state === "post" || /final|full time|ended|finished/i.test(String(statusType.name || statusType.description || ""));
+  const status = isLive ? "live" : isFinished ? "finished" : "upcoming";
+  const localTime = new Intl.DateTimeFormat("en-GB", {
+    timeZone: FOOTBALL_TIME_ZONE, hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(date);
+  const homeScore = home.score != null && home.score !== "" ? String(home.score) : null;
+  const awayScore = away.score != null && away.score !== "" ? String(away.score) : null;
+  const score = (status !== "upcoming" && homeScore != null && awayScore != null)
+    ? `${homeScore} : ${awayScore}`
+    : null;
+  const venue = competition?.venue?.fullName || competition?.venue?.address?.city || "";
+  const round = competition?.notes?.[0]?.headline || event?.seasonType?.name || "";
+  return {
+    id: String(event.id || `${league.id}-${start}-${home.team.id}-${away.team.id}`),
+    leagueId: league.id,
+    leagueName: league.name,
+    leagueFullName: league.fullName,
+    leagueLogo: league.logo || "",
+    kickoffUtc: date.toISOString(),
+    kickoffDate: dateInTashkent,
+    time: localTime,
+    venue,
+    round,
+    status,
+    minute: isLive ? String(competition?.status?.displayClock || competition?.status?.clock || "LIVE") : null,
+    score,
+    home: {
+      id: String(home.team.id || ""),
+      name: String(home.team.displayName || home.team.shortDisplayName || home.team.name || "").trim(),
+      logo: espnTeamLogo(home.team),
+    },
+    away: {
+      id: String(away.team.id || ""),
+      name: String(away.team.displayName || away.team.shortDisplayName || away.team.name || "").trim(),
+      logo: espnTeamLogo(away.team),
+    },
+  };
+}
+
+async function handleFifaUpcoming(request, response) {
+  const url = new URL(request.url || "/", "http://localhost");
+  const requestedLeagueId = String(url.searchParams.get("league") || "").trim();
+  const daysCount = Math.min(10, Math.max(3, Number(url.searchParams.get("days")) || 7));
+  const now = Date.now();
+  const todayKey = dateKeyInTimeZone();
+  const cacheKey = `fifa-upcoming:${requestedLeagueId || "all"}:${daysCount}:${todayKey}`;
+  const cached = FOOTBALL_SCOREBOARD_CACHE.get(cacheKey);
+  if (cached && now - cached.at < 2 * 60 * 1000) {
+    response.setHeader("X-Football-Cache", "HIT");
+    response.status(200).json(cached.data);
+    return;
+  }
+
+  const dateKeys = [];
+  const base = new Date();
+  for (let i = 0; i < daysCount; i++) {
+    const d = new Date(base.getTime() + i * 86400000);
+    dateKeys.push(d.toISOString().slice(0, 10).replaceAll("-", ""));
+  }
+
+  const leaguesToFetch = requestedLeagueId && FOOTBALL_LEAGUES.some((l) => l.id === requestedLeagueId)
+    ? FOOTBALL_LEAGUES.filter((l) => l.id === requestedLeagueId)
+    : FOOTBALL_LEAGUES;
+
+  const tasks = [];
+  leaguesToFetch.forEach((league) => {
+    dateKeys.forEach((dStr) => {
+      tasks.push(
+        fetchJson(`${ESPN_SCOREBOARD_BASE}/${league.id}/scoreboard?dates=${dStr}`, 8000)
+          .then((payload) => ({ league, payload }))
+          .catch(() => null)
+      );
+    });
+  });
+
+  const results = await Promise.allSettled(tasks);
+  const uniqueMatches = new Map();
+
+  results.forEach((r) => {
+    if (r.status !== "fulfilled" || !r.value || !r.value.payload) return;
+    const { league, payload } = r.value;
+    const events = Array.isArray(payload?.events) ? payload.events : [];
+    events.forEach((ev) => {
+      const normalized = normalizeEspnUpcomingMatch(ev, league);
+      if (normalized && !uniqueMatches.has(normalized.id)) {
+        uniqueMatches.set(normalized.id, normalized);
+      }
+    });
+  });
+
+  const allMatches = Array.from(uniqueMatches.values()).sort((a, b) =>
+    a.kickoffUtc.localeCompare(b.kickoffUtc)
+  );
+
+  const payload = {
+    ok: true,
+    count: allMatches.length,
+    updatedAt: new Date().toISOString(),
+    matches: allMatches,
+  };
+
+  FOOTBALL_SCOREBOARD_CACHE.set(cacheKey, { data: payload, at: now });
+  response.setHeader("X-Football-Cache", cached ? "REVALIDATED" : "MISS");
+  response.status(200).json(payload);
+}
+
 // =========================================================================
 // FIFA Lineup (ESPN public API) — Vercel'dan ochiq, to'liq 11+15 tarkib.
 // /scoreboard?dates=YYYYMMDD → topic eventId by team names
@@ -995,6 +1114,12 @@ module.exports = async function handler(request, response) {
     response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
     response.setHeader("Vary", "Accept-Encoding");
     await handleFifa(request, response);
+    return;
+  }
+  if (earlyType === "fifa-upcoming") {
+    response.setHeader("Cache-Control", "public, max-age=120, s-maxage=300, stale-while-revalidate=600");
+    response.setHeader("Vary", "Accept-Encoding");
+    await handleFifaUpcoming(request, response);
     return;
   }
   if (earlyType === "fifa-live") {
