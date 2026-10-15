@@ -756,6 +756,20 @@ function canonTeam(name) {
   return TEAM_ALIASES[n] || n;
 }
 
+function espnTeamsMatch(nameA, nameB) {
+  if (!nameA || !nameB) return false;
+  const clean = (s) => String(s || "")
+    .toLowerCase()
+    .replace(/\b(fc|cf|sc|afc|fk|ac|as|ss|rcd|rc|ud|cd|spvgg|vfb)\b/g, "")
+    .replace(/[^a-z0-9]/g, "");
+  const c1 = clean(nameA);
+  const c2 = clean(nameB);
+  if (!c1 || !c2) return false;
+  if (c1 === c2) return true;
+  if (c1.includes(c2) || c2.includes(c1)) return true;
+  return false;
+}
+
 async function findEspnEventId(home, away, dateUtc, preferredLeagueId = "") {
   const base = dateUtc ? new Date(`${dateUtc}T12:00:00Z`) : new Date();
   const days = [-1, 0, 1].map((off) => {
@@ -782,7 +796,8 @@ async function findEspnEventId(home, away, dateUtc, preferredLeagueId = "") {
         const a = competitors.find((c) => c.homeAway === "away") || competitors[1];
         const hN = canonTeam(h?.team?.displayName || h?.team?.name);
         const aN = canonTeam(a?.team?.displayName || a?.team?.name);
-        if ((hN === hC && aN === aC) || (hN === aC && aN === hC)) {
+        if ((espnTeamsMatch(hN, hC) && espnTeamsMatch(aN, aC)) ||
+            (espnTeamsMatch(hN, aC) && espnTeamsMatch(aN, hC))) {
           return { eventId: ev.id, leagueId: lid };
         }
       }
@@ -882,39 +897,76 @@ function espnMapRoster(roster) {
   return { formation, starting, subs, coach: null, rating: null };
 }
 
-function espnMapKeyEvents(keyEvents) {
-  if (!Array.isArray(keyEvents)) return [];
-  return keyEvents.map((ev) => {
-    const type = String(ev?.type?.type || ev?.type?.text || "").toLowerCase();
-    const isGoal = type === "goal" || type === "penalty" || ev?.scoringPlay === true;
-    const isYellow = type.includes("yellow");
-    const isRed = type.includes("red");
-    const isSub = type.includes("substitution");
-    if (!isGoal && !isYellow && !isRed && !isSub) return null;
+function espnMapKeyEvents(keyEvents, headerDetails = []) {
+  const events = [];
+  if (Array.isArray(keyEvents)) {
+    keyEvents.forEach((ev) => {
+      const type = String(ev?.type?.type || ev?.type?.text || "").toLowerCase();
+      const isGoal = type === "goal" || type === "penalty" || ev?.scoringPlay === true;
+      const isYellow = type.includes("yellow");
+      const isRed = type.includes("red");
+      const isSub = type.includes("substitution");
+      if (!isGoal && !isYellow && !isRed && !isSub) return;
 
-    const clock = String(ev?.clock?.displayValue || (ev?.clock?.value != null ? Math.floor(ev.clock.value / 60) + "'" : "") || "").trim();
-    const teamId = ev?.team?.id ? String(ev.team.id) : null;
-    const teamName = String(ev?.team?.displayName || ev?.team?.name || "").trim();
-    const player = String(ev?.participants?.[0]?.athlete?.displayName || ev?.participants?.[0]?.athlete?.name || "").trim();
-    const assist = String(ev?.participants?.[1]?.athlete?.displayName || "").trim();
+      const clock = String(ev?.clock?.displayValue || (ev?.clock?.value != null ? Math.floor(ev.clock.value / 60) + "'" : "") || "").trim();
+      const clockSec = Number(ev?.clock?.value) || 0;
+      const teamId = ev?.team?.id ? String(ev.team.id) : null;
+      const teamName = String(ev?.team?.displayName || ev?.team?.name || "").trim();
+      const p1 = String(ev?.participants?.[0]?.athlete?.displayName || ev?.participants?.[0]?.athlete?.name || "").trim();
+      const p2 = String(ev?.participants?.[1]?.athlete?.displayName || "").trim();
 
-    let kind = "event";
-    if (isGoal) kind = "goal";
-    else if (isRed) kind = "red-card";
-    else if (isYellow) kind = "yellow-card";
-    else if (isSub) kind = "substitution";
+      let kind = "event";
+      if (isGoal) kind = ev?.ownGoal ? "own-goal" : (ev?.penaltyKick ? "penalty" : "goal");
+      else if (isRed) kind = "red-card";
+      else if (isYellow) kind = "yellow-card";
+      else if (isSub) kind = "substitution";
 
-    return {
-      id: String(ev.id || `${kind}-${clock}-${player}`),
-      type: kind,
-      minute: clock,
-      teamId,
-      team: teamName,
-      player,
-      assist: isGoal ? assist : "",
-      text: String(ev.text || ev.shortText || "").trim(),
-    };
-  }).filter(Boolean);
+      events.push({
+        id: String(ev.id || `${kind}-${clock}-${p1}`),
+        type: kind,
+        minute: clock,
+        clockSec,
+        period: ev?.period?.number || 1,
+        teamId,
+        team: teamName,
+        player: p1,
+        assist: isGoal ? p2 : "",
+        playerIn: isSub ? p1 : "",
+        playerOut: isSub ? p2 : "",
+        text: String(ev.text || ev.shortText || "").trim(),
+      });
+    });
+  }
+
+  // Header details fallback (masalan keyEvents bo'lmasa gollar comp.details dan olinadi)
+  if (Array.isArray(headerDetails) && (!events.length || !events.some((e) => e.type.includes("goal")))) {
+    headerDetails.forEach((d) => {
+      const type = String(d?.type?.type || d?.type?.text || "").toLowerCase();
+      const isGoal = type.includes("goal") || d?.scoringPlay === true;
+      if (!isGoal) return;
+      const clock = String(d?.clock?.displayValue || "").trim();
+      const clockSec = Number(d?.clock?.value) || 0;
+      const player = String(d?.athletesInvolved?.[0]?.displayName || "").trim();
+      if (!player) return;
+      events.push({
+        id: String(d.id || `goal-${clock}-${player}`),
+        type: d.ownGoal ? "own-goal" : (d.penaltyKick ? "penalty" : "goal"),
+        minute: clock,
+        clockSec,
+        period: 1,
+        teamId: d?.team?.id ? String(d.team.id) : null,
+        team: String(d?.team?.displayName || "").trim(),
+        player,
+        assist: String(d?.athletesInvolved?.[1]?.displayName || "").trim(),
+        playerIn: "",
+        playerOut: "",
+        text: String(d.text || "").trim(),
+      });
+    });
+  }
+
+  events.sort((a, b) => (a.clockSec || 0) - (b.clockSec || 0));
+  return events;
 }
 
 function espnMapStatistics(boxscoreTeams) {
@@ -1049,7 +1101,9 @@ async function buildFifaLineupPayload(optsOrHome, maybeAway, maybeDateUtc) {
     status: isLive ? "live" : (isFinished ? "finished" : "upcoming"),
     minute,
     score,
-    events: espnMapKeyEvents(summary?.keyEvents),
+    venue: summary?.gameInfo?.venue?.fullName || comp?.venue?.fullName || "",
+    leagueName: summary?.header?.league?.name || "",
+    events: espnMapKeyEvents(summary?.keyEvents, comp?.details),
     statistics: espnMapStatistics(summary?.boxscore?.teams),
     home: {
       id: homeId,
