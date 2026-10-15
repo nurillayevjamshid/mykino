@@ -3086,7 +3086,7 @@ function renderMusicTable() {
       <td class="col-title">
         <div class="music-info-wrap">
           <strong class="music-title">${escapeHtml(t.title)}</strong>
-          <div class="music-artist-name">${escapeHtml(t.artist)}</div>
+          <div class="music-artist-name mobile-only">${escapeHtml(t.artist)}</div>
           <div class="music-mobile-cats mobile-only">${musicCatCellHtml(t)}</div>
         </div>
       </td>
