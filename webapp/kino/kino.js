@@ -8151,14 +8151,24 @@ function syncSidebarSectionItems() {
   const lower1 = document.getElementById("sidebarLowerItem1") || document.querySelector(".sidebar__nav [data-sidebar-action='favorites'], .sidebar__nav [data-sidebar-action='music-playlists'], .sidebar__nav [data-sidebar-action='podcast-saved']");
   const lower2 = document.getElementById("sidebarLowerItem2") || document.querySelector(".sidebar__nav [data-sidebar-action='profile'], .sidebar__nav [data-sidebar-action='music-profile'], .sidebar__nav [data-sidebar-action='podcast-profile']");
   if (lower1 && lower2) {
-    if (section === "fifa") {
-      if (lowerDivider) lowerDivider.hidden = true;
+    if (section === "fifa" || section === "esport") {
+      if (lowerDivider) {
+        lowerDivider.hidden = true;
+        lowerDivider.style.display = "none";
+      }
       lower1.hidden = true;
+      lower1.style.display = "none";
       lower2.hidden = true;
+      lower2.style.display = "none";
     } else {
-      if (lowerDivider) lowerDivider.hidden = false;
+      if (lowerDivider) {
+        lowerDivider.hidden = false;
+        lowerDivider.style.display = "";
+      }
       lower1.hidden = false;
+      lower1.style.display = "";
       lower2.hidden = false;
+      lower2.style.display = "";
 
       if (section === "music") {
         lower1.dataset.sidebarAction = "music-playlists";

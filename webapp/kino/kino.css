@@ -6311,10 +6311,21 @@ html[data-theme="light"] .sidebar {
   position: relative;
 }
 
-/* Vaqtincha o'chirilgan bo'limlar: umumiy display qoidasi [hidden] atributini
-   bosib ketmasligi uchun !important ishlatiladi. Kod va bo'limlar saqlanadi. */
+/* Sidebar items va dividerlar: umumiy display qoidasi [hidden] atributini
+   bosib ketmasligi uchun !important ishlatiladi. */
+.sidebar__item[hidden],
+.sidebar__divider[hidden],
 .sidebar__item#sidebarTvItem[hidden],
 .sidebar__item#sidebarEsportsItem[hidden] {
+  display: none !important;
+}
+
+body.is-fifa #sidebarLowerDivider,
+body.is-fifa #sidebarLowerItem1,
+body.is-fifa #sidebarLowerItem2,
+body.is-esport #sidebarLowerDivider,
+body.is-esport #sidebarLowerItem1,
+body.is-esport #sidebarLowerItem2 {
   display: none !important;
 }
 
