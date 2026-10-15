@@ -5342,16 +5342,25 @@ function handlePlayerTapAction(side) {
   playerLastTapTime = now;
   playerLastTapSide = side;
 
+  const isVisible = playerOverlay && playerOverlay.dataset.visible !== "false";
+
+  // Controls yashirin bo'lsa — foydalanuvchi bitta bosgandayoq DARHOL (0ms kechikishsiz) ochiladi
+  if (!isVisible) {
+    setControlsVisible(true);
+    try { haptic.soft(); } catch (_) {}
+    return;
+  }
+
+  // Controls ko'rinib turgan bo'lsa — double-tap tekshirishi uchun kichik kutishdan so'ng yopiladi
   if (playerSingleTapTimeout) clearTimeout(playerSingleTapTimeout);
   playerSingleTapTimeout = setTimeout(() => {
     playerSingleTapTimeout = null;
     playerLastTapTime = 0;
     playerLastTapSide = "";
     if (isPlayerLocked) return;
-    const isVisible = playerOverlay && playerOverlay.dataset.visible !== "false";
-    setControlsVisible(!isVisible);
+    setControlsVisible(false);
     try { haptic.soft(); } catch (_) {}
-  }, 240);
+  }, 220);
 }
 
 function handleTapZone(side, event) {
@@ -5378,6 +5387,7 @@ function setVolume(value) {
     else activeYouTubePlayer.unMute();
   }
   if (videoVolume) {
+    videoVolume.value = String(Math.round(normalized * 100));
     setRangeFill(videoVolume, Math.round(normalized * 100), 100);
   }
   updateVolumeButtonState();
@@ -6153,7 +6163,7 @@ function createVideoElement(src, movie, options = {}) {
   // Modal ochilganda yashirin preload qilingan element bo'lsa — qaytadan yuklamasdan
   // o'shani ko'tarib chiqamiz. Aks holda preload behuda ketardi va kino qaytadan
   // 0-baytdan yuklab boshlanardi (kech ochilish sababi).
-  if (preloadVideoEl && preloadVideoUrl === src) {
+  if (preloadVideoEl && (preloadVideoUrl === src || preloadVideoEl.src === src || preloadVideoEl.currentSrc === src)) {
     video = preloadVideoEl;
     video.removeAttribute("aria-hidden");
     video.style.cssText = "";
@@ -6264,6 +6274,15 @@ function createVideoElement(src, movie, options = {}) {
   if (playAttempt && typeof playAttempt.catch === "function") {
     playAttempt.catch(() => {
       setVideoLoading(false);
+      // Brauzer autoplay siyosati bloklagan bo'lsa (ovozli autoplay cheklovi),
+      // avval muted qilib boshlaymiz — kino darhol qotmasdan kadr bera boshlaydi
+      video.muted = true;
+      video.play().then(() => {
+        showPlayerToast("Ovozni yoqish uchun ekranga bosing 🔊");
+      }).catch(() => {
+        setStateLabel(videoToggleButton, "play", plainLabel(t("play")));
+        setControlsVisible(true);
+      });
     });
   }
 }
@@ -8908,6 +8927,9 @@ playerOverlay?.addEventListener("click", (e) => {
   if (playerSettingsPanel && !playerSettingsPanel.hidden && !e.target.closest("#playerSettingsPanel") && !e.target.closest("#videoSettingsButton")) {
     playerSettingsPanel.hidden = true;
   }
+  if (playerQualityMenu && !playerQualityMenu.hidden && !e.target.closest("#playerQualityMenu") && !e.target.closest("#videoQualityTopBtn")) {
+    playerQualityMenu.hidden = true;
+  }
 });
 
 // Mini player (floating mini-screen) boshqaruv tugmalari
@@ -8945,10 +8967,9 @@ videoPlayer?.addEventListener("click", (e) => {
     if (isMiniScreenActive()) return;
     if (e.touches.length !== 1) return;
     if (e.target.closest("button, input, #playerSettingsPanel, .player-bottom, .player-center, .player-quality-menu")) return;
-    // Yorug'lik va ovoz surishlari bilan to'qnashmasligi uchun faqat yuqoridan yoki boshqaruv ko'ringanda ishlaydi
-    const isTopArea = e.touches[0].clientY < 90;
-    const isControlsVisible = playerOverlay?.dataset.visible !== "false";
-    if (!isTopArea && !isControlsVisible) return;
+    // Faqat yuqori paneldan (header hududidan clientY < 80) pastga tortilganda ishlaydi
+    const isTopArea = e.touches[0].clientY < 80;
+    if (!isTopArea) return;
     startY = e.touches[0].clientY;
     startX = e.touches[0].clientX;
     isDragging = true;
@@ -9169,14 +9190,32 @@ let playerBrightnessVal = 100;
 let playerGestureTimer = null;
 
 function applyPlayerBrightness(val) {
-  playerBrightnessVal = Math.max(15, Math.min(130, val));
+  playerBrightnessVal = Math.max(10, Math.min(130, val));
   const factor = (playerBrightnessVal / 100).toFixed(2);
   videoPlayer?.style.setProperty("--player-brightness", factor);
-  if (playerBrightnessVal < 100) {
-    const dim = (((100 - playerBrightnessVal) / 100) * 0.75).toFixed(2);
-    videoPlayer?.style.setProperty("--player-dim-opacity", dim);
-  } else {
-    videoPlayer?.style.setProperty("--player-dim-opacity", "0");
+
+  const dimmer = document.getElementById("playerBrightnessDimmer");
+  if (dimmer) {
+    if (playerBrightnessVal < 100) {
+      // Qoraytirish: 100 da 0% dan to 10 da 88% gacha qorayadi
+      const dimOpacity = (((100 - playerBrightnessVal) / 90) * 0.88).toFixed(2);
+      dimmer.style.background = "#000";
+      dimmer.style.opacity = dimOpacity;
+      dimmer.style.mixBlendMode = "normal";
+    } else if (playerBrightnessVal > 100) {
+      // Yorug'likni oshirish: oq screen blend qatlami
+      const boostOpacity = (((playerBrightnessVal - 100) / 30) * 0.35).toFixed(2);
+      dimmer.style.background = "#fff";
+      dimmer.style.opacity = boostOpacity;
+      dimmer.style.mixBlendMode = "screen";
+    } else {
+      dimmer.style.opacity = "0";
+    }
+  }
+
+  const v = getActiveVideoEl();
+  if (v) {
+    v.style.filter = `brightness(${factor})`;
   }
 }
 
@@ -9189,12 +9228,26 @@ function showGestureHud(type, value) {
   const pct = Math.round(Math.max(0, Math.min(100, value)));
   fill.style.width = `${pct}%`;
   text.textContent = `${pct}%`;
+
+  if (type === "volume") {
+    const iconEl = document.getElementById("playerVolumeHudIcon");
+    if (iconEl) {
+      if (pct === 0) {
+        iconEl.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+      } else if (pct < 50) {
+        iconEl.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>';
+      } else {
+        iconEl.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>';
+      }
+    }
+  }
+
   hud.classList.add("is-active");
   if (playerGestureTimer) window.clearTimeout(playerGestureTimer);
   playerGestureTimer = window.setTimeout(() => {
     document.getElementById("playerBrightnessHud")?.classList.remove("is-active");
     document.getElementById("playerVolumeHud")?.classList.remove("is-active");
-  }, 850);
+  }, 900);
 }
 
 function showGestureSeekHud(targetTime, diffSec) {
@@ -9227,6 +9280,7 @@ function showGestureSeekHud(targetTime, diffSec) {
   let isDragging = false;
   let targetSeekTime = null;
   let preventClickUntil = 0;
+  let lastHapticStep = -1;
 
   gestureLayer.addEventListener("touchstart", (e) => {
     if (isPlayerLocked || e.touches.length !== 1) return;
@@ -9239,6 +9293,7 @@ function showGestureSeekHud(targetTime, diffSec) {
     touchMode = null;
     isDragging = false;
     targetSeekTime = null;
+    lastHapticStep = -1;
   }, { passive: true });
 
   gestureLayer.addEventListener("touchmove", (e) => {
@@ -9256,7 +9311,7 @@ function showGestureSeekHud(targetTime, diffSec) {
       }
       const rect = gestureLayer.getBoundingClientRect();
       const midX = rect.left + rect.width / 2;
-      if (Math.abs(dy) >= Math.abs(dx)) {
+      if (Math.abs(dy) >= Math.abs(dx) * 0.8) {
         touchMode = touchStartX < midX ? "brightness" : "volume";
       } else {
         touchMode = "seek";
@@ -9265,19 +9320,29 @@ function showGestureSeekHud(targetTime, diffSec) {
 
     if (!isDragging) return;
 
+    const swipeRange = Math.max(220, window.innerHeight * 0.45);
+
     if (touchMode === "brightness") {
-      const deltaPct = (-dy / 200) * 100;
-      const nextBright = Math.max(15, Math.min(130, Math.round(touchStartBrightness + deltaPct)));
+      const deltaPct = (-dy / swipeRange) * 100;
+      const nextBright = Math.max(10, Math.min(130, Math.round(touchStartBrightness + deltaPct)));
       applyPlayerBrightness(nextBright);
       const displayPct = Math.round((nextBright / 130) * 100);
       showGestureHud("brightness", displayPct);
-      try { haptic.soft(); } catch (_) {}
+      const step = Math.floor(displayPct / 15);
+      if (step !== lastHapticStep) {
+        lastHapticStep = step;
+        try { haptic.soft(); } catch (_) {}
+      }
     } else if (touchMode === "volume") {
-      const deltaPct = (-dy / 200) * 100;
+      const deltaPct = (-dy / swipeRange) * 100;
       const nextVol = Math.max(0, Math.min(100, Math.round(touchStartVolume + deltaPct)));
       setVolume(nextVol);
       showGestureHud("volume", nextVol);
-      try { haptic.soft(); } catch (_) {}
+      const step = Math.floor(nextVol / 15);
+      if (step !== lastHapticStep) {
+        lastHapticStep = step;
+        try { haptic.soft(); } catch (_) {}
+      }
     } else if (touchMode === "seek") {
       const duration = playerCore.getDuration() || 0;
       if (duration > 0) {
@@ -9290,8 +9355,8 @@ function showGestureSeekHud(targetTime, diffSec) {
   }, { passive: true });
 
   const onTouchEnd = (e) => {
+    preventClickUntil = Date.now() + 450;
     if (isDragging) {
-      preventClickUntil = Date.now() + 350;
       isDragging = false;
       if (touchMode === "seek" && targetSeekTime !== null) {
         playerCore.seekTo(targetSeekTime);
@@ -9311,6 +9376,7 @@ function showGestureSeekHud(targetTime, diffSec) {
 
   gestureLayer.addEventListener("touchend", onTouchEnd, { passive: true });
   gestureLayer.addEventListener("touchcancel", () => {
+    preventClickUntil = Date.now() + 450;
     isDragging = false;
     touchMode = null;
     targetSeekTime = null;
@@ -9442,7 +9508,7 @@ document.addEventListener("click", (event) => {
     try { haptic.medium(); } catch (_) {}
     const movieId = watchTarget.dataset.movieId || "";
     const movie = movies.find((item) => String(item.id) === movieId) || activeMovie;
-    openVideoPlayer(movie, { startFromBeginning: true });
+    openVideoPlayer(movie);
     return;
   }
 
