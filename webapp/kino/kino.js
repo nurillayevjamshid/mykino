@@ -134,6 +134,7 @@ if (tg) {
   tg.ready();
   tg.expand();
   tg.disableVerticalSwipes?.();
+  try { tg.enableClosingConfirmation?.(); } catch (_) {}
   // Telegram theme almashganda — agar foydalanuvchi qo'lda toggle bosmagan bo'lsa — ergashish.
   try {
     tg.onEvent?.("themeChanged", () => {

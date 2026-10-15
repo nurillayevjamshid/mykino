@@ -272,6 +272,7 @@
     document.body.classList.add("tv-player-open");
     setStatus("Yuklanmoqda…");
     try { window.tgBackRegister?.("tv-player", () => closeTvPlayer()); } catch (_) {}
+    try { window.Telegram?.WebApp?.enableClosingConfirmation?.(); } catch (_) {}
 
     const src = channel.url;
     const tryNative = () => {
