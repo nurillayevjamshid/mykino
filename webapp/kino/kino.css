@@ -11401,3 +11401,131 @@ body.is-podcasts .ad-ticker-card {
   display: none !important;
 }
 
+/* === Ko'rishda Davom Eting (Continue Watching Card) === */
+.continue-watching-card {
+  margin: 10px 16px 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(229, 9, 20, 0.14) 0%, rgba(15, 23, 42, 0.65) 100%);
+  border: 1px solid rgba(229, 9, 20, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.continue-watching-card:active {
+  transform: scale(0.98);
+}
+.continue-watching-card[hidden] {
+  display: none !important;
+}
+.continue-watching-card__inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+.continue-watching-card__thumb {
+  position: relative;
+  width: 64px;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f172a;
+  flex-shrink: 0;
+}
+.continue-watching-card__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.continue-watching-card__play {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+}
+.continue-watching-card__play svg {
+  width: 18px;
+  height: 18px;
+  fill: #fff;
+}
+.continue-watching-card__info {
+  flex: 1;
+  min-width: 0;
+}
+.continue-watching-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #ef4444;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.continue-watching-card__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+.continue-watching-card__title {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.continue-watching-card__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 3px;
+  margin-bottom: 4px;
+}
+.continue-watching-card__bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.continue-watching-card__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e50914, #f97316);
+  border-radius: 2px;
+}
+.continue-watching-card__btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e50914;
+  border: 0;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(229, 9, 20, 0.45);
+}
+.continue-watching-card__btn svg {
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+}
+body.is-fifa .continue-watching-card,
+body.is-music .continue-watching-card,
+body.is-tv .continue-watching-card,
+body.is-esport .continue-watching-card,
+body.is-podcasts .continue-watching-card {
+  display: none !important;
+}
+

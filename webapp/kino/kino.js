@@ -2723,6 +2723,7 @@ function saveMovieProgress(movie, currentTime, duration) {
     year: movie.year || "",
     genre: movie.genre || "",
   });
+  try { renderContinueWatchingCard(); } catch (_) {}
 }
 
 function clearMovieProgress(movie) {
@@ -2732,6 +2733,48 @@ function clearMovieProgress(movie) {
   writeWatchProgressStore(store);
   updateWatchedMovieProgress(movie, 0);
   queueProgressRemove(String(movie.id));
+  try { renderContinueWatchingCard(); } catch (_) {}
+}
+
+function renderContinueWatchingCard() {
+  const card = document.getElementById("continueWatchingCard");
+  if (!card) return;
+  const watched = readWatchedMoviesStore();
+  const progressStore = readWatchProgressStore();
+  const entries = Object.values(watched || {}).filter((e) => e && e.id);
+  if (!entries.length) {
+    card.hidden = true;
+    return;
+  }
+  entries.sort((a, b) => (b.watchedAt || 0) - (a.watchedAt || 0));
+  const latest = entries[0];
+  const prog = progressStore[String(latest.id)];
+  const currentTime = prog?.time || latest.progress || 0;
+  const duration = prog?.duration || 0;
+  if (currentTime < 15) {
+    card.hidden = true;
+    return;
+  }
+
+  const titleEl = document.getElementById("continueWatchingTitle");
+  const posterEl = document.getElementById("continueWatchingPoster");
+  const timeEl = document.getElementById("continueWatchingTime");
+  const percentEl = document.getElementById("continueWatchingPercent");
+  const barEl = document.getElementById("continueWatchingBar");
+  const pct = duration > 0 ? Math.min(100, Math.round((currentTime / duration) * 100)) : 30;
+
+  if (titleEl) titleEl.textContent = latest.title || "Kino";
+  if (posterEl) posterEl.src = latest.poster || fallbackPoster;
+  if (timeEl) timeEl.textContent = `${formatPlaybackTime(currentTime)}${duration ? " / " + formatPlaybackTime(duration) : ""}`;
+  if (percentEl) percentEl.textContent = `${pct}% ko'rildi`;
+  if (barEl) barEl.style.width = `${pct}%`;
+
+  card.hidden = false;
+  card.onclick = () => {
+    try { haptic.medium(); } catch (_) {}
+    const movie = (typeof findMovieById === "function" ? findMovieById(latest.id) : null) || latest;
+    if (movie) openVideoPlayer(movie, { initialTime: currentTime });
+  };
 }
 
 function syncNavButtons() {
@@ -10200,9 +10243,12 @@ async function initApp() {
     try { splash?.tryHide?.(); } catch (_) {}
     try { tryHandleDeepLink(); } catch (_) {}
     try { tryHandleFifaDeepLink(); } catch (_) {}
+    try { renderContinueWatchingCard(); } catch (_) {}
   });
   startMoviesPolling();
-  loadProgressFromBackend().catch(() => {});
+  loadProgressFromBackend().catch(() => {}).then(() => {
+    try { renderContinueWatchingCard(); } catch (_) {}
+  });
   // Musiqa modulini idle paytda fonda yuklab qo'yamiz — foydalanuvchi
   // birinchi marta musiqa tugmasini bosganda kutmasin.
   const preloadMusic = () => { ensureMusicModule().catch(() => {}); };
