@@ -685,52 +685,59 @@ function normalizeYoutubeChannelUrl(raw) {
   }
 }
 
-async function scrapeYoutubePage(url, debugOut = null) {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "uz,ru;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Cookie": "CONSENT=YES+cb; SOCS=CAESEwgDEgk0ODEzNzk5NDQaAmVuIAEaBgiAo_CLBg; PREF=tz=Asia.Tashkent&hl=ru&gl=UZ",
-      "X-Forwarded-For": "213.230.123.94",
-      "X-Real-IP": "213.230.123.94",
-      "Client-IP": "213.230.123.94",
-      "Cache-Control": "no-cache",
-    },
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!res.ok) return [];
-  const html = await res.text();
+function isShortsVideo(v) {
+  if (/#shorts?\b/i.test(v?.title || "")) return true;
+  if (/^0:[0-5][0-9]$/.test(v?.duration || "")) return true;
+  return false;
+}
 
-  const jsonMatch = html.match(/var ytInitialData\s*=\s*({[\s\S]+?});<\/script>/) ||
-                    html.match(/ytInitialData\s*=\s*({[\s\S]+?});/) ||
-                    html.match(/window\["ytInitialData"\]\s*=\s*({[\s\S]+?});/);
-  if (!jsonMatch) return [];
-
-  let data;
-  try {
-    data = JSON.parse(jsonMatch[1]);
-  } catch {
-    return [];
-  }
-
+function parseYtVideosFromData(data) {
   const extracted = [];
   const seenIds = new Set();
-  const allLockupIds = [];
 
   function scan(obj) {
     if (!obj || typeof obj !== "object") return;
 
+    // 1) Modern lockupViewModel (YouTube playlists and feeds)
     if (obj.lockupViewModel) {
       const lvm = obj.lockupViewModel;
       const videoId = String(lvm.contentId || lvm.videoId || "").trim();
       const title = String(lvm.metadata?.lockupMetadataViewModel?.title?.content || "").trim();
-      allLockupIds.push(videoId);
       if (videoId && !videoId.startsWith("PL") && title && !seenIds.has(videoId)) {
         seenIds.add(videoId);
-        const metaParts = lvm.metadata?.lockupMetadataViewModel?.metadata?.contentMetadataViewModel?.metadataRows?.[0]?.metadataParts || [];
-        const timeAgo = metaParts[1]?.text?.content || metaParts[1]?.accessibilityLabel || metaParts[0]?.text?.content || "";
-        const duration = lvm.contentImage?.thumbnailViewModel?.overlays?.[0]?.thumbnailBottomOverlayViewModel?.badges?.[0]?.thumbnailBadgeViewModel?.text || "";
+
+        // Duration: badges in overlays
+        let duration = "";
+        const overlays = lvm.contentImage?.thumbnailViewModel?.overlays || [];
+        for (const ov of overlays) {
+          const badge = ov.thumbnailBottomOverlayViewModel?.badges || ov.thumbnailOverlayBadgeViewModel?.thumbnailBadges || [];
+          for (const b of badge) {
+            if (b.thumbnailBadgeViewModel?.text) {
+              duration = b.thumbnailBadgeViewModel.text;
+              break;
+            }
+          }
+          if (duration) break;
+        }
+
+        // timeAgo: metadataRows
+        let timeAgo = "";
+        const metadataRows = lvm.metadata?.lockupMetadataViewModel?.metadata?.contentMetadataViewModel?.metadataRows || [];
+        for (const row of metadataRows) {
+          for (const part of (row.metadataParts || [])) {
+            const txt = part.accessibilityLabel || part.text?.content || "";
+            if (/просмотр|view/i.test(txt)) continue;
+            if (/(?:назад|ago|oldin|\b(?:kun|day|days|hour|hours|soat|min|minute|минут|час|часа|часов|дн|дней|дня)\b|\d+\s*ч\b)/i.test(txt)) {
+              timeAgo = part.text?.content || part.accessibilityLabel || "";
+              break;
+            }
+          }
+          if (timeAgo) break;
+        }
+        if (!timeAgo && metadataRows[1]?.metadataParts?.length >= 2) {
+          timeAgo = metadataRows[1].metadataParts[1]?.text?.content || metadataRows[1].metadataParts[1]?.accessibilityLabel || "";
+        }
+
         const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
         extracted.push({
           videoId,
@@ -743,6 +750,28 @@ async function scrapeYoutubePage(url, debugOut = null) {
       }
     }
 
+    // 2) Classic playlistVideoRenderer (YouTube playlists)
+    if (obj.playlistVideoRenderer) {
+      const pvr = obj.playlistVideoRenderer;
+      const videoId = String(pvr.videoId || "").trim();
+      const title = String(pvr.title?.runs?.[0]?.text || pvr.title?.simpleText || "").trim();
+      if (videoId && title && !seenIds.has(videoId)) {
+        seenIds.add(videoId);
+        const timeAgo = pvr.videoInfo?.runs?.[2]?.text || pvr.publishedTimeText?.simpleText || "";
+        const duration = pvr.lengthText?.simpleText || "";
+        const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        extracted.push({
+          videoId,
+          title,
+          timeAgo,
+          duration,
+          thumb,
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+        });
+      }
+    }
+
+    // 3) videoRenderer
     if (obj.videoRenderer) {
       const vr = obj.videoRenderer;
       const videoId = String(vr.videoId || "").trim();
@@ -763,6 +792,7 @@ async function scrapeYoutubePage(url, debugOut = null) {
       }
     }
 
+    // 4) gridVideoRenderer
     if (obj.gridVideoRenderer) {
       const gvr = obj.gridVideoRenderer;
       const videoId = String(gvr.videoId || "").trim();
@@ -789,47 +819,121 @@ async function scrapeYoutubePage(url, debugOut = null) {
   }
 
   scan(data);
-  if (debugOut) {
-    debugOut.allLockupIds = allLockupIds.slice(0, 30);
-  }
   return extracted;
 }
 
-async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
-  const normBase = normalizeYoutubeChannelUrl(channelUrl);
-  if (!normBase) return [];
-
-  if (debugOut) debugOut.normBase = normBase;
-
-  // 1) Asosiy kanal sahifasidan yuklash
-  let extracted = await scrapeYoutubePage(normBase, debugOut).catch((e) => {
-    if (debugOut) debugOut.baseErr = e.message;
-    return [];
+async function scrapeYoutubePage(url) {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "uz,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Cookie": "CONSENT=YES+cb; SOCS=CAESEwgDEgk0ODEzNzk5NDQaAmVuIAEaBgiAo_CLBg; PREF=tz=Asia.Tashkent&hl=ru&gl=UZ",
+      "Cache-Control": "no-cache",
+    },
+    signal: AbortSignal.timeout(12000),
   });
+  if (!res.ok) return { html: "", videos: [] };
+  const html = await res.text();
 
-  // 2) Agar asosiy sahifada bo'sh bo'lsa, /videos sahifasini sinab ko'rish
-  if (!extracted || extracted.length === 0) {
-    const videosUrl = `${normBase.replace(/\/+$/, "")}/videos`;
-    if (debugOut) debugOut.tryVideosUrl = videosUrl;
-    const fromVideos = await scrapeYoutubePage(videosUrl).catch((e) => {
-      if (debugOut) debugOut.videosErr = e.message;
-      return [];
+  const jsonMatch = html.match(/var ytInitialData\s*=\s*({[\s\S]+?});<\/script>/) ||
+                    html.match(/ytInitialData\s*=\s*({[\s\S]+?});/) ||
+                    html.match(/window\["ytInitialData"\]\s*=\s*({[\s\S]+?});/);
+  if (!jsonMatch) return { html, videos: [] };
+
+  try {
+    const data = JSON.parse(jsonMatch[1]);
+    return { html, videos: parseYtVideosFromData(data) };
+  } catch {
+    return { html, videos: [] };
+  }
+}
+
+async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
+  let raw = String(channelUrl || "").trim();
+  if (!raw) return [];
+  if (/^@[\w.-]+$/.test(raw)) raw = `https://www.youtube.com/${raw}`;
+  if (/^UC[\w-]{22}$/.test(raw)) raw = `https://www.youtube.com/channel/${raw}`;
+
+  let channelIdMatch = raw.match(/channel\/(UC[\w-]{22})/);
+  let channelId = channelIdMatch ? channelIdMatch[1] : null;
+
+  let baseVideos = [];
+  const normBase = raw.replace(/\/+(featured|shorts|streams|community|about|playlists|videos)\/?$/i, "").replace(/\/+$/, "");
+
+  if (debugOut) {
+    debugOut.raw = raw;
+    debugOut.normBase = normBase;
+  }
+
+  // 1) Agar to'g'ridan-to'g'ri channelId bo'lmasa, kanal sahifasidan channelId va videolarni aniqlash
+  if (!channelId) {
+    const { html, videos } = await scrapeYoutubePage(normBase).catch((e) => {
+      if (debugOut) debugOut.baseErr = e.message;
+      return { html: "", videos: [] };
     });
-    if (fromVideos && fromVideos.length > 0) {
-      extracted = fromVideos;
+    baseVideos = videos;
+    const m = html.match(/"browseId":\s*"(UC[\w-]{22})"/) ||
+              html.match(/"externalId":\s*"(UC[\w-]{22})"/) ||
+              html.match(/channel\/(UC[\w-]{22})/);
+    if (m) channelId = m[1];
+  }
+
+  if (debugOut) debugOut.channelId = channelId;
+
+  let allVideos = [];
+
+  // 2) Agar channelId aniqlangan bo'lsa, YouTube'ning rasmiy Uploads playlist'ini (UU...) yuklaymiz.
+  // Bu sahifada har qanday datacenter yoki IP orqali 100 tagacha eng yangi SSR videolar to'liq chiqadi!
+  if (channelId) {
+    const uploadsPlaylistId = channelId.replace(/^UC/, "UU");
+    const playlistUrl = `https://www.youtube.com/playlist?list=${uploadsPlaylistId}`;
+    if (debugOut) debugOut.playlistUrl = playlistUrl;
+    const { videos: plVideos } = await scrapeYoutubePage(playlistUrl).catch((e) => {
+      if (debugOut) debugOut.playlistErr = e.message;
+      return { html: "", videos: [] };
+    });
+    if (plVideos && plVideos.length > 0) {
+      allVideos = plVideos;
+    }
+  }
+
+  if (allVideos.length === 0) {
+    allVideos = baseVideos;
+  }
+
+  // 3) Agar hamon bo'sh bo'lsa, /videos sahifasini sinab ko'ramiz
+  if (allVideos.length === 0) {
+    const videosUrl = `${normBase}/videos`;
+    if (debugOut) debugOut.videosUrl = videosUrl;
+    const { videos: vVideos } = await scrapeYoutubePage(videosUrl).catch((e) => {
+      if (debugOut) debugOut.videosErr = e.message;
+      return { html: "", videos: [] };
+    });
+    if (vVideos && vVideos.length > 0) {
+      allVideos = vVideos;
     }
   }
 
   if (debugOut) {
-    debugOut.extractedCount = extracted.length;
-    debugOut.extractedSample = extracted.slice(0, 3).map((x) => ({ title: x.title, timeAgo: x.timeAgo }));
+    debugOut.totalFound = allVideos.length;
   }
 
-  const recent = extracted.filter((v) => isVideoWithin2Days(v.timeAgo, v.title));
+  // Oxirgi 2 kunlik videolarni saralash
+  const recent = allVideos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title));
+  const pool = recent.length > 0 ? recent : allVideos.slice(0, 10);
+
+  // Shorts (<= 60 soniya yoki #shorts) lardan asosiy o'yin sharhlarini afzal ko'rish
+  const regular = pool.filter((v) => !isShortsVideo(v));
+  const finalVideos = regular.length > 0 ? regular : pool;
+
   if (debugOut) {
     debugOut.recentCount = recent.length;
+    debugOut.regularCount = regular.length;
+    debugOut.finalCount = finalVideos.length;
   }
-  return recent.length > 0 ? recent : extracted.slice(0, 6);
+
+  return finalVideos;
 }
 
 async function handleFifaHighlights(request, response) {
