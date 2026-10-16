@@ -685,30 +685,56 @@ function normalizeYoutubeChannelUrl(raw) {
   }
 }
 
-async function fetchYoutubeHighlightsFromChannel(channelUrl) {
+async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
   const norm = normalizeYoutubeChannelUrl(channelUrl);
   if (!norm) return [];
 
   const fetchUrl = norm;
+  if (debugOut) debugOut.fetchUrl = fetchUrl;
 
-  const res = await fetch(fetchUrl, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept-Language": "uz,ru,en-US;q=0.8,en;q=0.6",
-    },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!res.ok) throw new Error(`YouTube javob bermadi (HTTP ${res.status})`);
-  const html = await res.text();
+  let html = "";
+  try {
+    const res = await fetch(fetchUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "uz,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cookie": "CONSENT=YES+cb; SOCS=CAESEwgDEgk0ODEzNzk5NDQaAmVuIAEaBgiAo_CLBg; PREF=tz=Asia.Tashkent&hl=ru",
+        "Cache-Control": "no-cache",
+      },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (debugOut) {
+      debugOut.status = res.status;
+      debugOut.finalUrl = res.url;
+    }
+    if (!res.ok) throw new Error(`YouTube javob bermadi (HTTP ${res.status})`);
+    html = await res.text();
+    if (debugOut) {
+      debugOut.htmlLen = html.length;
+      debugOut.title = html.match(/<title>(.*?)<\/title>/i)?.[1] || "";
+    }
+  } catch (err) {
+    if (debugOut) debugOut.fetchErr = err.message;
+    throw err;
+  }
 
-  const jsonMatch = html.match(/var ytInitialData\s*=\s*({.+?});<\/script>/) ||
-                    html.match(/ytInitialData\s*=\s*({.+?});/);
-  if (!jsonMatch) return [];
+  const jsonMatch = html.match(/var ytInitialData\s*=\s*({[\s\S]+?});<\/script>/) ||
+                    html.match(/ytInitialData\s*=\s*({[\s\S]+?});/) ||
+                    html.match(/window\["ytInitialData"\]\s*=\s*({[\s\S]+?});/);
+  if (!jsonMatch) {
+    if (debugOut) {
+      debugOut.noJsonMatch = true;
+      debugOut.snippet = html.slice(0, 500);
+    }
+    return [];
+  }
 
   let data;
   try {
     data = JSON.parse(jsonMatch[1]);
-  } catch {
+  } catch (parseErr) {
+    if (debugOut) debugOut.parseErr = parseErr.message;
     return [];
   }
 
@@ -786,7 +812,15 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl) {
 
   scan(data);
 
+  if (debugOut) {
+    debugOut.extractedCount = extracted.length;
+    debugOut.extractedSample = extracted.slice(0, 3).map((x) => ({ title: x.title, timeAgo: x.timeAgo }));
+  }
+
   const recent = extracted.filter((v) => isVideoWithin2Days(v.timeAgo, v.title));
+  if (debugOut) {
+    debugOut.recentCount = recent.length;
+  }
   return recent.length > 0 ? recent : extracted.slice(0, 6);
 }
 
@@ -794,6 +828,8 @@ async function handleFifaHighlights(request, response) {
   if (request.method === "GET") {
     try {
       const now = Date.now();
+      const query = request.query || {};
+      const isDebug = query.debug === "1" || query.refresh === "1";
       const cfg = await readFifaHighlightsConfig();
       const channelUrl = cfg?.channelUrl || "";
       if (!channelUrl) {
@@ -803,7 +839,9 @@ async function handleFifaHighlights(request, response) {
       }
 
       if (
+        !isDebug &&
         fifaHighlightsCache.data &&
+        fifaHighlightsCache.data.videos?.length > 0 &&
         now - fifaHighlightsCache.at < FIFA_HIGHLIGHTS_TTL_MS &&
         fifaHighlightsCache.channelUrl === channelUrl
       ) {
@@ -812,14 +850,20 @@ async function handleFifaHighlights(request, response) {
         return;
       }
 
-      const videos = await fetchYoutubeHighlightsFromChannel(channelUrl).catch((err) => {
+      const debugOut = {};
+      const videos = await fetchYoutubeHighlightsFromChannel(channelUrl, debugOut).catch((err) => {
+        debugOut.catchErr = err.message;
         console.warn("fetchYoutubeHighlights error:", err.message);
         return [];
       });
 
       const payload = { ok: true, channelUrl, count: videos.length, videos };
-      fifaHighlightsCache = { data: payload, at: now, channelUrl };
-      response.setHeader("Cache-Control", "public, max-age=60, s-maxage=180, stale-while-revalidate=600");
+      if (isDebug) payload.debug = debugOut;
+
+      if (videos.length > 0) {
+        fifaHighlightsCache = { data: payload, at: now, channelUrl };
+      }
+      response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       response.status(200).json(payload);
     } catch (err) {
       response.status(500).json({ ok: false, error: err.message || "Videolarni yuklab bo'lmadi.", videos: [] });
@@ -845,16 +889,22 @@ async function handleFifaHighlights(request, response) {
       return;
     }
 
+    const debugOut = {};
     let videos = [];
     try {
-      videos = await fetchYoutubeHighlightsFromChannel(channelUrl);
+      videos = await fetchYoutubeHighlightsFromChannel(channelUrl, debugOut);
     } catch (fetchErr) {
+      debugOut.catchErr = fetchErr.message;
       console.warn("Highlights test fetch failed:", fetchErr.message);
     }
 
     await writeFifaHighlightsConfig({ channelUrl, updatedAt: new Date().toISOString() });
-    const payload = { ok: true, channelUrl, count: videos.length, videos };
-    fifaHighlightsCache = { data: payload, at: Date.now(), channelUrl };
+    const payload = { ok: true, channelUrl, count: videos.length, videos, debug: debugOut };
+    if (videos.length > 0) {
+      fifaHighlightsCache = { data: payload, at: Date.now(), channelUrl };
+    } else {
+      fifaHighlightsCache = { data: null, at: 0, channelUrl: "" };
+    }
     response.status(200).json(payload);
   } catch (err) {
     response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
