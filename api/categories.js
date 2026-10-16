@@ -822,30 +822,48 @@ function parseYtVideosFromData(data) {
   return extracted;
 }
 
-async function scrapeYoutubePage(url) {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "uz,ru;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Cookie": "CONSENT=YES+cb; SOCS=CAESEwgDEgk0ODEzNzk5NDQaAmVuIAEaBgiAo_CLBg; PREF=tz=Asia.Tashkent&hl=ru&gl=UZ",
-      "Cache-Control": "no-cache",
-    },
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!res.ok) return { html: "", videos: [] };
-  const html = await res.text();
-
-  const jsonMatch = html.match(/var ytInitialData\s*=\s*({[\s\S]+?});<\/script>/) ||
-                    html.match(/ytInitialData\s*=\s*({[\s\S]+?});/) ||
-                    html.match(/window\["ytInitialData"\]\s*=\s*({[\s\S]+?});/);
-  if (!jsonMatch) return { html, videos: [] };
-
+async function scrapeYoutubePage(url, debugObj = null) {
   try {
-    const data = JSON.parse(jsonMatch[1]);
-    return { html, videos: parseYtVideosFromData(data) };
-  } catch {
-    return { html, videos: [] };
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "uz,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cookie": "CONSENT=YES+cb; SOCS=CAESEwgDEgk0ODEzNzk5NDQaAmVuIAEaBgiAo_CLBg; PREF=tz=Asia.Tashkent&hl=ru&gl=UZ",
+        "Cache-Control": "no-cache",
+      },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (debugObj) debugObj.status = res.status;
+    if (!res.ok) {
+      if (debugObj) debugObj.err = `HTTP ${res.status}`;
+      return { html: "", videos: [] };
+    }
+    const html = await res.text();
+    if (debugObj) debugObj.htmlLen = html.length;
+
+    const jsonMatch = html.match(/var ytInitialData\s*=\s*({[\s\S]+?});<\/script>/) ||
+                      html.match(/ytInitialData\s*=\s*({[\s\S]+?});/) ||
+                      html.match(/window\["ytInitialData"\]\s*=\s*({[\s\S]+?});/);
+    if (!jsonMatch) {
+      if (debugObj) debugObj.err = "no ytInitialData";
+      return { html, videos: [] };
+    }
+
+    let data;
+    try {
+      data = JSON.parse(jsonMatch[1]);
+    } catch (parseErr) {
+      if (debugObj) debugObj.err = `json parse: ${parseErr.message}`;
+      return { html, videos: [] };
+    }
+
+    const videos = parseYtVideosFromData(data);
+    if (debugObj) debugObj.parsedCount = videos.length;
+    return { html, videos };
+  } catch (fetchErr) {
+    if (debugObj) debugObj.err = fetchErr.message;
+    return { html: "", videos: [] };
   }
 }
 
@@ -864,14 +882,13 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
   if (debugOut) {
     debugOut.raw = raw;
     debugOut.normBase = normBase;
+    debugOut.baseDiag = {};
+    debugOut.plDiag = {};
   }
 
   // 1) Agar to'g'ridan-to'g'ri channelId bo'lmasa, kanal sahifasidan channelId va videolarni aniqlash
   if (!channelId) {
-    const { html, videos } = await scrapeYoutubePage(normBase).catch((e) => {
-      if (debugOut) debugOut.baseErr = e.message;
-      return { html: "", videos: [] };
-    });
+    const { html, videos } = await scrapeYoutubePage(normBase, debugOut ? debugOut.baseDiag : null);
     baseVideos = videos;
     const m = html.match(/"browseId":\s*"(UC[\w-]{22})"/) ||
               html.match(/"externalId":\s*"(UC[\w-]{22})"/) ||
@@ -889,10 +906,7 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
     const uploadsPlaylistId = channelId.replace(/^UC/, "UU");
     const playlistUrl = `https://www.youtube.com/playlist?list=${uploadsPlaylistId}`;
     if (debugOut) debugOut.playlistUrl = playlistUrl;
-    const { videos: plVideos } = await scrapeYoutubePage(playlistUrl).catch((e) => {
-      if (debugOut) debugOut.playlistErr = e.message;
-      return { html: "", videos: [] };
-    });
+    const { videos: plVideos } = await scrapeYoutubePage(playlistUrl, debugOut ? debugOut.plDiag : null);
     if (plVideos && plVideos.length > 0) {
       allVideos = plVideos;
     }
@@ -905,11 +919,11 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
   // 3) Agar hamon bo'sh bo'lsa, /videos sahifasini sinab ko'ramiz
   if (allVideos.length === 0) {
     const videosUrl = `${normBase}/videos`;
-    if (debugOut) debugOut.videosUrl = videosUrl;
-    const { videos: vVideos } = await scrapeYoutubePage(videosUrl).catch((e) => {
-      if (debugOut) debugOut.videosErr = e.message;
-      return { html: "", videos: [] };
-    });
+    if (debugOut) {
+      debugOut.videosUrl = videosUrl;
+      debugOut.videosDiag = {};
+    }
+    const { videos: vVideos } = await scrapeYoutubePage(videosUrl, debugOut ? debugOut.videosDiag : null);
     if (vVideos && vVideos.length > 0) {
       allVideos = vVideos;
     }
