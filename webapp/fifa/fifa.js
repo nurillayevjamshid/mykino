@@ -760,7 +760,7 @@
               ${teamLogoHtml(m.homeLogo, m.home)}
             </div>
             <div class="fifa-next-team__name">${esc(m.home)}</div>
-            ${isHomeFav ? '<span class="fifa-next-team__fav-pill">⭐ Sevimli</span>' : ''}
+            ${isHomeFav ? `<button type="button" class="fifa-next-team__fav-pill" data-team-fav="${esc(m.home)}" data-team-logo="${esc(m.homeLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="Sevimlilardan o'chirish">⭐ Sevimli</button>` : ''}
           </div>
 
           <!-- Center VS / Score -->
@@ -779,7 +779,7 @@
               ${teamLogoHtml(m.awayLogo, m.away)}
             </div>
             <div class="fifa-next-team__name">${esc(m.away)}</div>
-            ${isAwayFav ? '<span class="fifa-next-team__fav-pill">⭐ Sevimli</span>' : ''}
+            ${isAwayFav ? `<button type="button" class="fifa-next-team__fav-pill" data-team-fav="${esc(m.away)}" data-team-logo="${esc(m.awayLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="Sevimlilardan o'chirish">⭐ Sevimli</button>` : ''}
           </div>
         </div>
 
@@ -1301,27 +1301,6 @@
       return;
     }
 
-    // Favorite teams horizontal chips
-    let favTeamsHtml = "";
-    if (favTeamsList.length > 0) {
-      favTeamsHtml = `
-        <div class="fifa-fav-teams-section">
-          <div class="fifa-fav-teams-heading">⭐ ${esc(curLang() === "ru" ? "Мои команды" : (curLang() === "en" ? "My teams" : "Sevimli jamoalarim"))}</div>
-          <div class="fifa-fav-teams-chips">
-            ${favTeamsList.map((t) => {
-              const isFiltered = activeFavTeamFilter.toLowerCase() === String(t.name || "").toLowerCase();
-              return `
-                <div class="fifa-fav-team-badge${isFiltered ? " is-filtered" : ""}" data-team-filter="${esc(t.name)}">
-                  ${t.logo ? `<span class="fifa-fav-team-badge__logo">${teamLogoHtml(t.logo, t.name)}</span>` : "⚽"}
-                  <span>${esc(t.name)}</span>
-                  <button type="button" class="fifa-fav-team-badge__remove" data-team-name="${esc(t.name)}" aria-label="${esc(t.name)} ni o'chirish">×</button>
-                </div>
-              `;
-            }).join("")}
-          </div>
-        </div>
-      `;
-    }
 
     // If activeFavTeamFilter is set to a specific team that doesn't exist anymore, reset to all or first team
     if (activeFavTeamFilter !== "all" && !favTeamsList.some((t) => teamNamesMatch(t.name, activeFavTeamFilter))) {
@@ -1471,7 +1450,6 @@
           </div>
           <span class="fifa-favorites-count">${filtered.length} ta o'yin</span>
         </div>
-        ${favTeamsHtml}
         ${filterChipsHtml}
         ${nextMatchHeroHtml}
         ${upcomingListHtml}
@@ -3665,70 +3643,6 @@
       return;
     }
 
-    // 1) Sevimli jamoa yulduzcha tugmasi (kartochka chap va o'ng tomoni)
-    const teamFavBtn = e.target.closest?.(".fifa-team-fav-btn");
-    if (teamFavBtn) {
-      e.stopPropagation();
-      e.preventDefault();
-      const teamName = teamFavBtn.dataset.teamFav;
-      const teamLogo = teamFavBtn.dataset.teamLogo || "";
-      const leagueId = teamFavBtn.dataset.teamLeague || "";
-      const matchId = teamFavBtn.dataset.matchId;
-      if (!teamName) return;
-
-      const isNowFav = toggleFifaFavoriteTeam({ name: teamName, logo: teamLogo, leagueId });
-      try { haptic.tap(); } catch (_) {}
-      updateAllTeamFavButtons(teamName, isNowFav);
-
-      if (isNowFav && matchId) {
-        const match = findFifaMatchById(matchId);
-        if (match) {
-          const favMatches = readFifaFavorites();
-          favMatches[match.id] = { ...match, savedAt: Date.now() };
-          writeFifaFavorites(favMatches);
-        }
-      } else if (!isNowFav) {
-        removeFavoriteTeamMatches(teamName);
-      }
-
-      showFifaToast(isNowFav ? `${teamName} sevimlilarga qo'shildi ⭐` : `${teamName} sevimlilardan olib tashlandi`);
-      updateFifaTabs();
-
-      const favPanel = document.getElementById("fifaPanelFavorites");
-      if (favPanel && !favPanel.hidden) {
-        renderFifaFavorites();
-      }
-      return;
-    }
-
-    // 1b) Tezkor mashhur jamoa tanlash chipi (1-bosishda sevimli qilish va ko'rish)
-    const quickFavBtn = e.target.closest?.("[data-quick-fav-team]");
-    if (quickFavBtn) {
-      e.stopPropagation();
-      e.preventDefault();
-      const teamName = quickFavBtn.dataset.quickFavTeam;
-      const teamLogo = quickFavBtn.dataset.teamLogo || "";
-      const leagueId = quickFavBtn.dataset.teamLeague || "";
-      if (!teamName) return;
-
-      const isNowFav = toggleFifaFavoriteTeam({ name: teamName, logo: teamLogo, leagueId });
-      try { haptic.tap(); } catch (_) {}
-      updateAllTeamFavButtons(teamName, isNowFav);
-      if (isNowFav) {
-        activeFavTeamFilter = teamName;
-        showFifaToast(`${teamName} sevimlilarga qo'shildi ⭐`);
-      } else {
-        removeFavoriteTeamMatches(teamName);
-        showFifaToast(`${teamName} sevimlilardan olib tashlandi`);
-        if (activeFavTeamFilter.toLowerCase() === teamName.toLowerCase()) {
-          activeFavTeamFilter = "all";
-        }
-      }
-      updateFifaTabs();
-      renderFifaFavorites();
-      return;
-    }
-
   function confirmRemoveFavoriteTeam(teamName, onConfirmed) {
     const lang = curLang();
     const copy = {
@@ -3792,15 +3706,21 @@
     }
   }
 
-  // 2) Sevimli jamoani chipdan o'chirish (badge remove tugmasi)
-  const removeBadgeBtn = e.target.closest?.(".fifa-fav-team-badge__remove");
-  if (removeBadgeBtn) {
+  // 1) Sevimli jamoa yulduzcha tugmasi (kartochka chap va o'ng tomoni yoki hero pill)
+  const teamFavBtn = e.target.closest?.(".fifa-team-fav-btn, .fifa-next-team__fav-pill");
+  if (teamFavBtn) {
     e.stopPropagation();
     e.preventDefault();
-    const teamName = removeBadgeBtn.dataset.teamName;
+    const teamName = teamFavBtn.dataset.teamFav;
+    const teamLogo = teamFavBtn.dataset.teamLogo || "";
+    const leagueId = teamFavBtn.dataset.teamLeague || "";
+    const matchId = teamFavBtn.dataset.matchId;
     if (!teamName) return;
-    confirmRemoveFavoriteTeam(teamName, () => {
-      toggleFifaFavoriteTeam({ name: teamName });
+
+    const currentlyFav = isFifaTeamFavorite(teamName);
+
+    const applyRemoval = () => {
+      toggleFifaFavoriteTeam({ name: teamName, logo: teamLogo, leagueId });
       removeFavoriteTeamMatches(teamName);
       try { haptic.tap(); } catch (_) {}
       updateAllTeamFavButtons(teamName, false);
@@ -3809,8 +3729,69 @@
         activeFavTeamFilter = "all";
       }
       updateFifaTabs();
+      const favPanel = document.getElementById("fifaPanelFavorites");
+      if (favPanel && !favPanel.hidden) {
+        renderFifaFavorites();
+      }
+    };
+
+    if (currentlyFav) {
+      confirmRemoveFavoriteTeam(teamName, applyRemoval);
+    } else {
+      const isNowFav = toggleFifaFavoriteTeam({ name: teamName, logo: teamLogo, leagueId });
+      try { haptic.tap(); } catch (_) {}
+      updateAllTeamFavButtons(teamName, isNowFav);
+      if (matchId) {
+        const match = findFifaMatchById(matchId);
+        if (match) {
+          const favMatches = readFifaFavorites();
+          favMatches[match.id] = { ...match, savedAt: Date.now() };
+          writeFifaFavorites(favMatches);
+        }
+      }
+      showFifaToast(`${teamName} sevimlilarga qo'shildi ⭐`);
+      updateFifaTabs();
+      const favPanel = document.getElementById("fifaPanelFavorites");
+      if (favPanel && !favPanel.hidden) {
+        renderFifaFavorites();
+      }
+    }
+    return;
+  }
+
+  // 1b) Tezkor mashhur jamoa tanlash chipi (1-bosishda sevimli qilish va ko'rish)
+  const quickFavBtn = e.target.closest?.("[data-quick-fav-team]");
+  if (quickFavBtn) {
+    e.stopPropagation();
+    e.preventDefault();
+    const teamName = quickFavBtn.dataset.quickFavTeam;
+    const teamLogo = quickFavBtn.dataset.teamLogo || "";
+    const leagueId = quickFavBtn.dataset.teamLeague || "";
+    if (!teamName) return;
+
+    const currentlyFav = isFifaTeamFavorite(teamName);
+    if (currentlyFav) {
+      confirmRemoveFavoriteTeam(teamName, () => {
+        toggleFifaFavoriteTeam({ name: teamName, logo: teamLogo, leagueId });
+        removeFavoriteTeamMatches(teamName);
+        try { haptic.tap(); } catch (_) {}
+        updateAllTeamFavButtons(teamName, false);
+        showFifaToast(`${teamName} sevimlilardan olib tashlandi`);
+        if (activeFavTeamFilter.toLowerCase() === teamName.toLowerCase()) {
+          activeFavTeamFilter = "all";
+        }
+        updateFifaTabs();
+        renderFifaFavorites();
+      });
+    } else {
+      const isNowFav = toggleFifaFavoriteTeam({ name: teamName, logo: teamLogo, leagueId });
+      try { haptic.tap(); } catch (_) {}
+      updateAllTeamFavButtons(teamName, isNowFav);
+      activeFavTeamFilter = teamName;
+      showFifaToast(`${teamName} sevimlilarga qo'shildi ⭐`);
+      updateFifaTabs();
       renderFifaFavorites();
-    });
+    }
     return;
   }
 

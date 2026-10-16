@@ -13172,20 +13172,45 @@ html[data-theme="light"] .fifa-lineup-modal__fav-btn.is-active {
 .fifa-fav-filter-chip {
   padding: 6px 14px;
   border-radius: 999px;
-  background: var(--surface-2, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
-  color: var(--text-muted, rgba(255, 255, 255, 0.7));
+  background: var(--surface-2, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+  color: #cbd5e1;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.18s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.fifa-fav-filter-chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
 }
 .fifa-fav-filter-chip.is-active {
   background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #fff;
+  color: #ffffff !important;
   border-color: transparent;
   box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+}
+
+html[data-theme="light"] .fifa-fav-filter-chip {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+html[data-theme="light"] .fifa-fav-filter-chip:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+html[data-theme="light"] .fifa-fav-filter-chip.is-active {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff !important;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
 }
 .fifa-favorites-empty {
   text-align: center;
@@ -13361,9 +13386,20 @@ html[data-theme="light"] .fifa-lineup-modal__fav-btn.is-active {
   font-weight: 700;
   color: #f59e0b;
   background: rgba(245, 158, 11, 0.14);
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid rgba(245, 158, 11, 0.3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: inherit;
+  transition: transform 0.14s ease, background 0.14s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.fifa-next-team__fav-pill:active {
+  transform: scale(0.92);
+  background: rgba(245, 158, 11, 0.28);
 }
 
 .fifa-next-center {
