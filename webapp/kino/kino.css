@@ -5702,19 +5702,32 @@ body::before {
   background: var(--muvi-accent);
 }
 
-/* HERO */
-.hero {
-  position: relative;
-  width: 100%;
-  height: 480px;
-  background: #0b0c10 !important;
-  overflow: hidden;
-  border-radius: 0;
-  margin: 0;
+/* HERO (disabled/removed) */
+.hero,
+#heroSection {
+  display: none !important;
 }
 
-.hero[hidden] {
-  display: none;
+/* Bottom bar visibility per section (kino, music, podcasts) */
+.bottom-bar--music,
+.bottom-bar--podcast {
+  display: none !important;
+}
+
+body.is-music .bottom-bar--movie,
+body.is-music .bottom-bar--podcast {
+  display: none !important;
+}
+body.is-music .bottom-bar--music {
+  display: grid !important;
+}
+
+body.is-podcasts .bottom-bar--movie,
+body.is-podcasts .bottom-bar--music {
+  display: none !important;
+}
+body.is-podcasts .bottom-bar--podcast {
+  display: grid !important;
 }
 
 .hero__bg {

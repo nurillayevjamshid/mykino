@@ -117,7 +117,7 @@ html[data-theme="light"] .topbar.is-scrolled {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(157, 234, 255, 0.35) !important;
 }
 
-.hero { border-radius: 30px !important; overflow: hidden; box-shadow: 0 28px 80px rgba(0,0,0,.32) !important; }
+.hero, #heroSection { display: none !important; }
 .hero__gradient { background: linear-gradient(90deg, rgba(5,13,25,.88), rgba(5,13,25,.26) 62%, transparent) !important; }
 .hero__play { background: linear-gradient(135deg, #d7f8ff, #93dff1) !important; color: #092331 !important; box-shadow: 0 12px 30px rgba(104,210,235,.25) !important; }
 .movie-grid { gap: 14px !important; }
@@ -141,6 +141,26 @@ html[data-theme="dark"] .bottom-bar {
   width: calc(100% - 28px) !important;
   max-width: 540px !important;
   pointer-events: none !important;
+}
+
+/* Bottom bar section isolation */
+.bottom-bar--music,
+.bottom-bar--podcast {
+  display: none !important;
+}
+body.is-music .bottom-bar--movie,
+body.is-music .bottom-bar--podcast {
+  display: none !important;
+}
+body.is-music .bottom-bar--music {
+  display: grid !important;
+}
+body.is-podcasts .bottom-bar--movie,
+body.is-podcasts .bottom-bar--music {
+  display: none !important;
+}
+body.is-podcasts .bottom-bar--podcast {
+  display: grid !important;
 }
 .bottom-bar__inner {
   width: 100% !important;

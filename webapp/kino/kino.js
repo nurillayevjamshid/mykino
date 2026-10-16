@@ -3075,25 +3075,10 @@ function stopHeroAutoRotate() {
 
 function renderHeroCarousel() {
   const heroSection = document.getElementById("heroSection");
-  if (!heroSection) return;
-
-  const isHomeView = activeFilter === "all" && activeCategory === "all" && !query;
-  const slides = pickHeroSlides();
-
-  if (!slides.length || !isHomeView || movieLoadState !== "ready") {
-    heroSection.hidden = true;
-    heroFeaturedMovie = null;
-    heroSlides = [];
-    stopHeroAutoRotate();
-    return;
-  }
-
-  heroSlides = slides;
-  preloadHeroImages();
-  if (heroActiveIndex >= heroSlides.length) heroActiveIndex = 0;
-  heroSection.hidden = false;
-  renderHeroSlide(heroSlides[heroActiveIndex], true);
-  startHeroAutoRotate();
+  if (heroSection) heroSection.hidden = true;
+  stopHeroAutoRotate();
+  heroFeaturedMovie = null;
+  heroSlides = [];
 }
 
 function attachHeroBindings() {
