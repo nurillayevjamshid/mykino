@@ -748,7 +748,14 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
       const tabs = [];
       const scanTabs = (o) => {
         if (!o || typeof o !== "object") return;
-        if (o.tabRenderer?.title) tabs.push(o.tabRenderer.title);
+        if (o.tabRenderer) {
+          tabs.push({
+            title: o.tabRenderer.title,
+            selected: o.tabRenderer.selected,
+            hasContent: Boolean(o.tabRenderer.content),
+            contentKeys: Object.keys(o.tabRenderer.content || {}),
+          });
+        }
         for (const k of Object.keys(o)) scanTabs(o[k]);
       };
       scanTabs(data);
