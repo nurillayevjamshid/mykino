@@ -685,7 +685,7 @@ function normalizeYoutubeChannelUrl(raw) {
   }
 }
 
-async function scrapeYoutubePage(url) {
+async function scrapeYoutubePage(url, debugOut = null) {
   const res = await fetch(url, {
     headers: {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -713,6 +713,7 @@ async function scrapeYoutubePage(url) {
 
   const extracted = [];
   const seenIds = new Set();
+  const allLockupIds = [];
 
   function scan(obj) {
     if (!obj || typeof obj !== "object") return;
@@ -721,7 +722,8 @@ async function scrapeYoutubePage(url) {
       const lvm = obj.lockupViewModel;
       const videoId = String(lvm.contentId || lvm.videoId || "").trim();
       const title = String(lvm.metadata?.lockupMetadataViewModel?.title?.content || "").trim();
-      if (videoId && title && !seenIds.has(videoId)) {
+      allLockupIds.push(videoId);
+      if (videoId && !videoId.startsWith("PL") && title && !seenIds.has(videoId)) {
         seenIds.add(videoId);
         const metaParts = lvm.metadata?.lockupMetadataViewModel?.metadata?.contentMetadataViewModel?.metadataRows?.[0]?.metadataParts || [];
         const timeAgo = metaParts[1]?.text?.content || metaParts[1]?.accessibilityLabel || metaParts[0]?.text?.content || "";
@@ -784,6 +786,9 @@ async function scrapeYoutubePage(url) {
   }
 
   scan(data);
+  if (debugOut) {
+    debugOut.allLockupIds = allLockupIds.slice(0, 30);
+  }
   return extracted;
 }
 
@@ -793,8 +798,8 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
 
   if (debugOut) debugOut.normBase = normBase;
 
-  // 1) Asosiy kanal sahifasidan yuklash (SSR'da oxirgi videolar shelf'i to'liq mavjud)
-  let extracted = await scrapeYoutubePage(normBase).catch((e) => {
+  // 1) Asosiy kanal sahifasidan yuklash
+  let extracted = await scrapeYoutubePage(normBase, debugOut).catch((e) => {
     if (debugOut) debugOut.baseErr = e.message;
     return [];
   });
