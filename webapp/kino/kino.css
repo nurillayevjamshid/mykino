@@ -10290,6 +10290,7 @@ html[data-theme="light"] .fifa-hl-card {
   background: var(--surface-2, rgba(255,255,255,.04));
   border-radius: 12px;
   width: 100%;
+  touch-action: manipulation !important;
 }
 .fifa-tab {
   flex: 1;
@@ -10302,6 +10303,10 @@ html[data-theme="light"] .fifa-hl-card {
   padding: 9px 4px;
   border-radius: 9px;
   cursor: pointer;
+  touch-action: manipulation !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent !important;
   transition: background .18s ease, color .18s ease;
   white-space: nowrap;
   overflow: hidden;
@@ -11878,6 +11883,7 @@ html[data-theme="dark"] .bottom-bar__button.is-active {
   margin: 0 -2px 10px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x manipulation !important;
 }
 .fifa-league-tabs::-webkit-scrollbar { display: none; }
 .fifa-league-tab {
@@ -11896,6 +11902,10 @@ html[data-theme="dark"] .bottom-bar__button.is-active {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
+  touch-action: manipulation !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent !important;
   transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease;
 }
 .fifa-league-tab:active { transform: scale(.97); }
@@ -11988,12 +11998,13 @@ html[data-theme="light"] .fifa-standings-card__head { background: linear-gradien
 }
 .fifa-date-nav__button,
 .fifa-date-nav__today {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 8px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
   border: 1px solid var(--border, rgba(255,255,255,.08));
   border-radius: 10px;
   background: var(--surface-2, rgba(255,255,255,.04));
@@ -12002,7 +12013,16 @@ html[data-theme="light"] .fifa-standings-card__head { background: linear-gradien
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
+  touch-action: manipulation !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent !important;
   transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+.fifa-date-nav__button::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
 }
 .fifa-date-nav__today {
   min-width: auto;
@@ -12021,7 +12041,7 @@ html[data-theme="light"] .fifa-date-nav__today { background: #f5f6fa; border-col
 
 @media (max-width: 420px) {
   .fifa-date-nav__label strong { font-size: 11px; }
-  .fifa-date-nav__button { min-width: 30px; width: 30px; padding: 0; }
+  .fifa-date-nav__button { min-width: 34px; width: 34px; padding: 0; }
 }
 
 /* ============================================================
@@ -13185,6 +13205,34 @@ html[data-theme="light"] .fifa-popular-team-chip {
   color: #1e293b;
 }
 
+/* ============================================================
+   MOBIL SEZGIRLIK VA TEZKOR BOSILISH (TOUCH RESPONSIVENESS)
+   Barcha tugmalar, tablar, chiplar va interaktiv elementlarda
+   300ms kechikishni va tebranish/surilishda bosish yo'qolishini
+   to'liq yo'qotish.
+   ============================================================ */
+button,
+[role="button"],
+.fifa-tab,
+.fifa-league-tab,
+.fifa-date-nav__button,
+.fifa-date-nav__today,
+.fifa-popular-team-chip,
+.fifa-fav-team-badge,
+.fifa-fav-team-badge__remove,
+.fifa-match__fav-btn,
+.fifa-team-fav-btn,
+.fifa-fav-filter,
+.fifa-match--clickable,
+.bottom-bar__button,
+.sidebar__item,
+.chip,
+.tab {
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
 
-
-
+.fifa-fav-teams-chips,
+.fifa-popular-teams-grid {
+  touch-action: pan-x manipulation !important;
+}

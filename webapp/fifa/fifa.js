@@ -974,23 +974,28 @@
     };
   }
 
+  let fifaRequestId = 0;
+
   async function loadFifaData(force = false, requestedLeagueId = activeLeagueId) {
-    if (loadState === "loading") return;
     if (!force && loadState === "ready") return;
+    const reqId = ++fifaRequestId;
     const wasReady = loadState === "ready";
     loadState = "loading";
     try {
       const date = selectedDateKey || getTashkentDateKey();
-      const params = new URLSearchParams({ type: "fifa", date, league: requestedLeagueId || activeLeagueId });
+      const leagueToFetch = requestedLeagueId || activeLeagueId;
+      const params = new URLSearchParams({ type: "fifa", date, league: leagueToFetch });
       if (force) params.set("_", String(Date.now()));
       const res = await fetch(`/api/categories?${params.toString()}`, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const payload = await res.json();
+      if (reqId !== fifaRequestId) return;
       FIFA_DATA = normalizeFromPayload(payload);
-      activeLeagueId = FIFA_DATA.activeLeagueId || requestedLeagueId || activeLeagueId;
+      activeLeagueId = FIFA_DATA.activeLeagueId || leagueToFetch || activeLeagueId;
       cacheFavoriteTeamMatches(FIFA_DATA.matches);
       loadState = "ready";
     } catch (err) {
+      if (reqId !== fifaRequestId) return;
       console.warn("FIFA fetch xato:", err.message);
       loadState = wasReady ? "ready" : "error";
     }
@@ -1082,13 +1087,20 @@
   function renderMatches() {
     const panel = document.getElementById("fifaPanelMatches");
     if (!panel) return;
-    if (isLoading()) { panel.innerHTML = loadingHtml("Kunlik o'yinlar yuklanmoqda…", F("matchesDate")); return; }
-    const leagues = Array.isArray(FIFA_DATA.leagues) ? FIFA_DATA.leagues : [];
-    const matches = Array.isArray(FIFA_DATA.matches) ? FIFA_DATA.matches : [];
-    if (!leagues.length) { panel.innerHTML = emptyHtml(F("scheduleNotFound"), F("sourceUnavailable")); return; }
-    const day = FIFA_DATA.date || selectedDateKey || getTashkentDateKey();
+    const day = selectedDateKey || FIFA_DATA.date || getTashkentDateKey();
     const previousDay = shiftDateKey(day, -1);
     const nextDay = shiftDateKey(day, 1);
+
+    if (isLoading() && !FIFA_DATA.leagues?.length) {
+      panel.innerHTML = loadingHtml("Kunlik o'yinlar yuklanmoqda…", F("matchesDate"));
+      return;
+    }
+    const leagues = Array.isArray(FIFA_DATA.leagues) ? FIFA_DATA.leagues : [];
+    const matches = Array.isArray(FIFA_DATA.matches) ? FIFA_DATA.matches : [];
+    if (!leagues.length && !isLoading()) {
+      panel.innerHTML = emptyHtml(F("scheduleNotFound"), F("sourceUnavailable"));
+      return;
+    }
     const leaguesWithMatches = leagues
       .map((league) => ({
         league,
@@ -1107,6 +1119,11 @@
         </section>
       `;
     }).join("");
+
+    const contentHtml = (loadState === "loading" && !matches.length)
+      ? loadingHtml("Kunlik o'yinlar yuklanmoqda…", formatFootballDay(day))
+      : (leagueSections || emptyHtml(F("noTopFiveMatches"), F("matchesDate")));
+
     panel.innerHTML = `
       <div class="fifa-day fifa-day--today">
         <button type="button" class="fifa-date-nav__button" data-fifa-date="${esc(previousDay)}" aria-label="${esc(F("previousDay"))}">‹</button>
@@ -1116,14 +1133,13 @@
           <button type="button" class="fifa-date-nav__button" data-fifa-date="${esc(nextDay)}" aria-label="${esc(F("nextDay"))}">›</button>
         </div>
       </div>
-      ${leagueSections || emptyHtml(F("noTopFiveMatches"), F("matchesDate"))}
+      ${contentHtml}
     `;
     panel.querySelectorAll("[data-fifa-date]").forEach((button) => {
       button.addEventListener("click", async () => {
         const requestedDate = String(button.dataset.fifaDate || "");
-        if (!requestedDate || requestedDate === selectedDateKey || loadState === "loading") return;
+        if (!requestedDate || requestedDate === selectedDateKey) return;
         selectedDateKey = requestedDate;
-        loadState = "idle";
         renderMatches();
         await loadFifaData(true, activeLeagueId);
         renderMatches();
@@ -1165,31 +1181,45 @@
   function renderGroups() {
     const panel = document.getElementById("fifaPanelGroups");
     if (!panel) return;
-    if (isLoading()) { panel.innerHTML = loadingHtml(F("standingsLoading"), F("matchesDate")); return; }
     const leagues = Array.isArray(FIFA_DATA.leagues) ? FIFA_DATA.leagues : [];
-    if (!leagues.length) { panel.innerHTML = emptyHtml(F("standingsUnavailable"), F("sourceUnavailable")); return; }
+    if (!leagues.length) {
+      if (isLoading()) {
+        panel.innerHTML = loadingHtml(F("standingsLoading"), F("matchesDate"));
+      } else {
+        panel.innerHTML = emptyHtml(F("standingsUnavailable"), F("sourceUnavailable"));
+      }
+      return;
+    }
     const active = leagues.find((league) => league.id === activeLeagueId) || leagues[0];
     const standings = FIFA_DATA.standings && FIFA_DATA.standings.leagueId === active.id ? FIFA_DATA.standings : null;
     const rows = Array.isArray(standings?.rows) ? standings.rows : [];
     const updated = FIFA_DATA.updatedAt ? new Date(FIFA_DATA.updatedAt) : null;
     const updatedLabel = updated && !Number.isNaN(updated.getTime()) ? updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
-    const table = standings?.error && !rows.length
-      ? emptyHtml(F("standingsUnavailable"), F("sourceUnavailable"))
-      : rows.length
-        ? `<div class="fifa-standings-card">
+
+    const tabsHtml = `<div class="fifa-league-tabs" role="tablist" aria-label="${esc(F("standingsTitle"))}">${leagues.map((league) => `<button class="fifa-league-tab${league.id === active.id ? " is-active" : ""}" type="button" role="tab" aria-selected="${league.id === active.id ? "true" : "false"}" data-fifa-league="${esc(league.id)}"><span class="fifa-league-tab__logo">${leagueLogoHtml(league)}</span><span>${esc(league.name)}</span></button>`).join("")}</div>`;
+
+    let tableHtml = "";
+    if (loadState === "loading" && !rows.length) {
+      tableHtml = loadingHtml(F("standingsLoading"), active.fullName || active.name);
+    } else if (standings?.error && !rows.length) {
+      tableHtml = emptyHtml(F("standingsUnavailable"), F("sourceUnavailable"));
+    } else if (rows.length) {
+      tableHtml = `<div class="fifa-standings-card">
              <div class="fifa-standings-card__head"><strong>${esc(standings.leagueFullName || active.fullName || active.name)}</strong><small>${F("updatedAt")}${updatedLabel ? ` · ${esc(updatedLabel)}` : ""}</small></div>
              <div class="fifa-standings-scroll"><table class="fifa-group__table fifa-standings-table"><thead><tr><th>#</th><th style="text-align:left">${F("teamCol")}</th><th>O</th><th>G</th><th>D</th><th>M</th><th>GD</th><th>Ochko</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.rank}</td><td class="fifa-cell--team"><span class="fifa-standing-team">${teamLogoHtml(row.logo, row.team)}<span>${esc(row.team)}</span></span></td><td>${row.p}</td><td>${row.w}</td><td>${row.d}</td><td>${row.l}</td><td>${row.gd}</td><td class="fifa-cell--pts">${row.pts}</td></tr>`).join("")}</tbody></table></div>
-           </div>`
-        : emptyHtml(F("standingsUnavailable"), F("sourceUnavailable"));
-    panel.innerHTML = `<div class="fifa-league-tabs" role="tablist" aria-label="${esc(F("standingsTitle"))}">${leagues.map((league) => `<button class="fifa-league-tab${league.id === active.id ? " is-active" : ""}" type="button" role="tab" aria-selected="${league.id === active.id ? "true" : "false"}" data-fifa-league="${esc(league.id)}"><span class="fifa-league-tab__logo">${leagueLogoHtml(league)}</span><span>${esc(league.name)}</span></button>`).join("")}</div>${table}`;
+           </div>`;
+    } else {
+      tableHtml = emptyHtml(F("standingsUnavailable"), F("sourceUnavailable"));
+    }
+
+    panel.innerHTML = `${tabsHtml}${tableHtml}`;
     panel.querySelectorAll("[data-fifa-league]").forEach((button) => {
       button.addEventListener("click", async () => {
         const leagueId = String(button.dataset.fifaLeague || "");
-        if (!leagueId || leagueId === activeLeagueId || loadState === "loading") return;
+        if (!leagueId || leagueId === activeLeagueId) return;
         activeLeagueId = leagueId;
-        const pending = loadFifaData(true, leagueId);
         renderGroups();
-        await pending;
+        await loadFifaData(true, leagueId);
         renderGroups();
       });
     });
@@ -1474,7 +1504,16 @@
       p.classList.toggle("is-active", isOn);
       p.hidden = !isOn;
     });
-    if (tab === "favorites") {
+    if (tab === "groups") {
+      renderGroups();
+      if (!FIFA_DATA.standings || FIFA_DATA.standings.leagueId !== activeLeagueId) {
+        loadFifaData(true, activeLeagueId).then(() => renderGroups()).catch(() => {});
+      }
+    } else if (tab === "matches") {
+      renderMatches();
+    } else if (tab === "live") {
+      renderLive();
+    } else if (tab === "favorites") {
       ensureUpcomingMatchesLoaded().catch(() => {});
       renderFifaFavorites();
     }
@@ -3193,7 +3232,44 @@
 
   // Delegate click on matches and favorites panel
   fifaView.addEventListener("click", (e) => {
-    // 0) O'yinlar sharhi (YouTube highlight video) bosilganda
+    // 0a) Asosiy FIFA bo'limlarini tanlash (.fifa-tab: O'yinlar, Jonli efir, Guruhlar, Sevimlilar)
+    const tabBtn = e.target.closest?.(".fifa-tab");
+    if (tabBtn && tabBtn.dataset.fifaTab) {
+      e.preventDefault();
+      try { haptic?.select?.(); } catch (_) {}
+      setActiveTab(tabBtn.dataset.fifaTab);
+      return;
+    }
+
+    // 0b) Turnir jadvalidagi ligani tanlash ([data-fifa-league])
+    const leagueBtn = e.target.closest?.("[data-fifa-league]");
+    if (leagueBtn && leagueBtn.dataset.fifaLeague) {
+      e.preventDefault();
+      const leagueId = String(leagueBtn.dataset.fifaLeague || "");
+      if (leagueId && leagueId !== activeLeagueId) {
+        try { haptic?.select?.(); } catch (_) {}
+        activeLeagueId = leagueId;
+        renderGroups();
+        loadFifaData(true, leagueId).then(() => renderGroups()).catch(() => {});
+      }
+      return;
+    }
+
+    // 0c) Kunlik o'yinlar sana navigatsiyasi ([data-fifa-date])
+    const dateBtn = e.target.closest?.("[data-fifa-date]");
+    if (dateBtn && dateBtn.dataset.fifaDate) {
+      e.preventDefault();
+      const requestedDate = String(dateBtn.dataset.fifaDate || "");
+      if (requestedDate && requestedDate !== selectedDateKey) {
+        try { haptic?.tap?.(); } catch (_) {}
+        selectedDateKey = requestedDate;
+        renderMatches();
+        loadFifaData(true, activeLeagueId).then(() => renderMatches()).catch(() => {});
+      }
+      return;
+    }
+
+    // 0d) O'yinlar sharhi (YouTube highlight video) bosilganda
     const hlCard = e.target.closest?.("[data-fifa-play-highlight]");
     if (hlCard) {
       e.stopPropagation();

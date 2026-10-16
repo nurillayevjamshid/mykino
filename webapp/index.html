@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261016-fifa-highlights-v2" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261016-touch-fix-v1" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Early platform detection and Telegram WebApp Fullscreen initialization -->
   <script>
@@ -79,19 +79,21 @@
         }
 
         // Retry fullscreen on first user interaction if desktop/browser requires user gesture
-        var tryFsOnce = function() {
-          if (tgApp && typeof tgApp.requestFullscreen === "function" && !tgApp.isFullscreen) {
-            try { tgApp.requestFullscreen(); } catch (_) {}
-          }
-        };
-        window.addEventListener("pointerdown", tryFsOnce, { once: true, passive: true });
+        if (isDesktop) {
+          var tryFsOnce = function() {
+            if (tgApp && typeof tgApp.requestFullscreen === "function" && !tgApp.isFullscreen) {
+              try { tgApp.requestFullscreen(); } catch (_) {}
+            }
+          };
+          window.addEventListener("pointerdown", tryFsOnce, { once: true, passive: true });
+        }
       }
     } catch (_) {}
   </script>
   <!-- Bot username'i yagona joydan boshqariladi: botni almashtirganda faqat shu
        qatorni o'zgartiring (kino.js, fifa.js, potcasts.js shu qiymatni o'qiydi). -->
   <script>window.MYKINO_BOT_USERNAME = "myntv_bot";</script>
-  <link rel="stylesheet" href="/static/glass-theme.css?v=20261016-desktop-fullscreen-v2" />
+  <link rel="stylesheet" href="/static/glass-theme.css?v=20261016-touch-fix-v1" />
 </head>
 
 <body>
@@ -1503,7 +1505,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261016-fifa-highlights-v2"></script>
+  <script src="/static/kino/kino.js?v=20261016-touch-fix-v1"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
