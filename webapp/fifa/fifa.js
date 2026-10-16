@@ -68,6 +68,8 @@
       allTeams: "Barchasi",
       saved: "Saqlangan",
       saveMatch: "Saqlash",
+      highlightsTitle: "O'yinlar sharhi",
+      highlightsSub: "Oxirgi 2 kunlik",
     },
     ru: {
       finished: "Завершён",
@@ -123,6 +125,8 @@
       allTeams: "Все",
       saved: "Сохранено",
       saveMatch: "Сохранить",
+      highlightsTitle: "Обзоры матчей",
+      highlightsSub: "За последние 2 дня",
     },
     en: {
       finished: "Finished",
@@ -178,6 +182,8 @@
       allTeams: "All",
       saved: "Saved",
       saveMatch: "Save",
+      highlightsTitle: "Match Highlights",
+      highlightsSub: "Last 2 days",
     },
   };
   function curLang() {
@@ -2394,37 +2400,36 @@
 
     wrap.hidden = false;
     wrap.innerHTML = `
-      <div class="fifa-highlights-box">
-        <div class="fifa-highlights-head">
-          <div class="fifa-highlights-title-wrap">
-            <span class="fifa-highlights-pulse"></span>
-            <span class="fifa-highlights-title">O'YINLAR SHARHI</span>
-          </div>
-          <span class="fifa-highlights-sub">Oxirgi kunlik videolar</span>
+      <div class="fifa-highlights-head">
+        <div class="fifa-highlights-title-wrap">
+          <span class="fifa-highlights-pulse" aria-hidden="true"></span>
+          <span class="fifa-highlights-title">${esc(F("highlightsTitle"))}</span>
+          <span class="fifa-highlights-badge">${videos.length}</span>
         </div>
-        <div class="fifa-highlights-scroll" role="region" aria-label="O'yinlar sharhlari">
-          ${videos.map((v) => {
-            const thumb = v.thumb || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
-            const durationBadge = v.duration ? `<span class="fifa-hl-card__duration">${esc(v.duration)}</span>` : "";
-            const timeBadge = v.timeAgo ? `<span class="fifa-hl-card__time">${esc(v.timeAgo)}</span>` : "";
-            return `
-              <div class="fifa-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(v.title)}" role="button" tabindex="0">
-                <div class="fifa-hl-card__media">
-                  <img src="${esc(thumb)}" alt="" class="fifa-hl-card__img" loading="lazy" decoding="async" onerror="this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
-                  <div class="fifa-hl-card__overlay"></div>
-                  <div class="fifa-hl-card__play" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-                      <path d="M8 5v14l11-7z"></path>
-                    </svg>
-                  </div>
-                  ${durationBadge}
-                  ${timeBadge}
-                  <div class="fifa-hl-card__title" title="${esc(v.title)}">${esc(v.title)}</div>
+        <span class="fifa-highlights-sub">${esc(F("highlightsSub"))}</span>
+      </div>
+      <div class="fifa-highlights-scroll" role="region" aria-label="${esc(F("highlightsTitle"))}">
+        ${videos.map((v) => {
+          const thumb = v.thumb || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
+          const durationBadge = v.duration ? `<span class="fifa-hl-card__duration">${esc(v.duration)}</span>` : "";
+          const timeBadge = v.timeAgo ? `<span class="fifa-hl-card__time">${esc(v.timeAgo)}</span>` : "";
+          return `
+            <div class="fifa-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(v.title)}" role="button" tabindex="0">
+              <div class="fifa-hl-card__media">
+                <img src="${esc(thumb)}" alt="" class="fifa-hl-card__img" loading="lazy" decoding="async" onerror="this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
+                <div class="fifa-hl-card__overlay"></div>
+                <div class="fifa-hl-card__play" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                    <path d="M8 5v14l11-7z"></path>
+                  </svg>
                 </div>
+                ${durationBadge}
+                ${timeBadge}
+                <div class="fifa-hl-card__title" title="${esc(v.title)}">${esc(v.title)}</div>
               </div>
-            `;
-          }).join("")}
-        </div>
+            </div>
+          `;
+        }).join("")}
       </div>
     `;
   }

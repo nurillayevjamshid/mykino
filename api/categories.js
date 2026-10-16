@@ -611,35 +611,85 @@ async function handleFifaLive(request, response) {
 let fifaHighlightsCache = { data: null, at: 0, channelUrl: "" };
 const FIFA_HIGHLIGHTS_TTL_MS = 10 * 60 * 1000;
 
-function isVideoWithin2Days(timeText) {
+function isVideoWithin2Days(timeText, titleText = "") {
   if (!timeText) return true;
   const s = String(timeText).toLowerCase().trim();
-  if (/second|sec|minute|min|hour|h\b|soat|daqiqa|минут|час|moment|bugun|today|сегодня/.test(s)) return true;
-  if (/1\s*day|1d\b|yesterday|kecha|вчера|1\s*kun|1\s*день/.test(s)) return true;
-  if (/2\s*days|2d\b|2\s*kun|2\s*дня/.test(s)) return true;
-  if (/[3-9]\s*days|[3-9]d\b|[0-9]{2,}\s*days|week|hafta|недел|month|oy|месяц|year|yil|год/.test(s)) return false;
+
+  // Hafta, oy, yil, week, month, year, недел, месяц, год -> ALBATTA 2 kundan eski
+  if (/(?:week|hafta|недел|month|oy|месяц|year|yil|год)/i.test(s)) {
+    return false;
+  }
+
+  // Soatlar, daqiqalar, soniyalar yoki bugungi -> ALBATTA 2 kun ichida
+  // Eslatma: Cyrillic 'ч' uchun \b ishlamaydi, shuning uchun ч(?:\s|\.|$|ас) ishlatiladi
+  if (/(?:second|sec|minute|min|hour|soat|daqiqa|минут|час|ч(?:\s|\.|$)|bugun|today|сегодня|hozir|just now|moment)/i.test(s)) {
+    return true;
+  }
+
+  // Kun soni: masalan "1 kun", "2 days", "3 kun", "4 дн", "3 дня", "5 дней"
+  const dayMatch = s.match(/([0-9]+)\s*(?:day|days|kun|день|дня|дней|дн\.?|д\.?)/i);
+  if (dayMatch) {
+    const days = parseInt(dayMatch[1], 10);
+    if (!Number.isNaN(days)) {
+      return days <= 2;
+    }
+  }
+
+  // Kecha / yesterday / вчера -> 1 kun
+  if (/(?:yesterday|kecha|вчера)/i.test(s)) {
+    return true;
+  }
+
+  // Agar sarlavhada sana bo'lsa (masalan "15.10.2026")
+  const fullText = (s + " " + String(titleText || "")).trim();
+  const dateMatch = fullText.match(/\b([0-3]?[0-9])\.([0-1]?[0-9])(?:\.(20\d{2}|\d{2}))?\b/);
+  if (dateMatch) {
+    const day = parseInt(dateMatch[1], 10);
+    const month = parseInt(dateMatch[2], 10) - 1;
+    const now = new Date();
+    const year = dateMatch[3] ? (dateMatch[3].length === 2 ? 2000 + parseInt(dateMatch[3], 10) : parseInt(dateMatch[3], 10)) : now.getFullYear();
+    const videoDate = new Date(year, month, day);
+    if (!Number.isNaN(videoDate.getTime())) {
+      const diffDays = Math.abs(now.getTime() - videoDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays <= 2.5) return true;
+      if (diffDays > 2.5) return false;
+    }
+  }
+
+  // Agar matnda umumiy raqam bo'lsa (masalan "3 d" yoki boshqa)
+  const numMatch = s.match(/([0-9]+)/);
+  if (numMatch) {
+    const n = parseInt(numMatch[1], 10);
+    if (n >= 3) return false;
+    if (n <= 2) return true;
+  }
+
   return true;
 }
 
 function normalizeYoutubeChannelUrl(raw) {
   let s = String(raw || "").trim();
   if (!s) return "";
-  if (/^@[\w.-]+$/.test(s)) return `https://www.youtube.com/${s}`;
-  if (/^UC[\w-]{22}$/.test(s)) return `https://www.youtube.com/channel/${s}`;
+  if (/^@[\w.-]+$/.test(s)) return `https://www.youtube.com/${s}/videos`;
+  if (/^UC[\w-]{22}$/.test(s)) return `https://www.youtube.com/channel/${s}/videos`;
   if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) {
     s = `https://${s.replace(/^\/+/, "")}`;
   }
-  return s;
+  try {
+    const parsed = new URL(s);
+    let path = parsed.pathname.replace(/\/+(featured|shorts|streams|community|about|playlists)\/?$/i, "");
+    path = path.replace(/\/+videos\/?$/i, "").replace(/\/+$/, "");
+    return `https://www.youtube.com${path}/videos`;
+  } catch {
+    return s.replace(/\/+$/, "") + "/videos";
+  }
 }
 
 async function fetchYoutubeHighlightsFromChannel(channelUrl) {
   const norm = normalizeYoutubeChannelUrl(channelUrl);
   if (!norm) return [];
 
-  let fetchUrl = norm;
-  if (!fetchUrl.includes("/videos") && !fetchUrl.includes("videos.xml")) {
-    fetchUrl = fetchUrl.replace(/\/+$/, "") + "/videos";
-  }
+  const fetchUrl = norm;
 
   const res = await fetch(fetchUrl, {
     headers: {
@@ -736,7 +786,7 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl) {
 
   scan(data);
 
-  const recent = extracted.filter((v) => isVideoWithin2Days(v.timeAgo));
+  const recent = extracted.filter((v) => isVideoWithin2Days(v.timeAgo, v.title));
   return recent.length > 0 ? recent : extracted.slice(0, 6);
 }
 
