@@ -8171,39 +8171,9 @@ body {
   transform: translateY(-1px);
 }
 
-.topbar-fullscreen {
-  position: relative;
-  z-index: 3;
-  width: 32px !important;
-  min-width: 32px !important;
-  max-width: 32px !important;
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  padding: 0 !important;
-  border-radius: 999px !important;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  background: var(--c-surface-2) !important;
-  border: 1px solid var(--c-border) !important;
-  color: var(--c-text) !important;
-  box-shadow: none !important;
-  cursor: pointer;
-  flex: 0 0 32px;
-  transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
-}
-
-.topbar-fullscreen:hover {
-  color: var(--c-text) !important;
-  background: var(--c-surface-3) !important;
-  border-color: var(--c-border-strong) !important;
-  transform: translateY(-1px);
-}
-
-.topbar-fullscreen .icon-svg {
-  width: 16px;
-  height: 16px;
+.topbar-fullscreen,
+#topbarFullscreenBtn {
+  display: none !important;
 }
 
 .topbar-search__panel--inline {
@@ -12561,7 +12531,24 @@ html[data-theme="dark"] .section-splash__spinner {
    Yuruvchi matnli e'lon kartochkasi (Marquee Ticker Card)
    ============================================================ */
 .ad-ticker-card {
-  display: none !important;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 0 10px 0 !important;
+  padding: 8px 14px;
+  border-radius: 0 !important;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+  transition: opacity 0.2s ease;
+  z-index: 10;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  box-sizing: border-box;
 }
 
 .ad-ticker-card:active {

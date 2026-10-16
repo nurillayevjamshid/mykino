@@ -14,7 +14,7 @@
   <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261016-hero-remove-v1" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261016-ticker-restore-v11" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Early Android detection: eliminates FOUC and avoids heavy blur calculation on first paint -->
   <script>
@@ -202,9 +202,15 @@
       </div>
     </section>
 
-
-
-
+    <!-- Yuruvchi matnli e'lon kartochkasi (Marquee Ticker) -->
+    <div class="ad-ticker-card" id="adTickerCard" hidden role="region" aria-label="E'lon">
+      <div class="ad-ticker-card__track">
+        <div class="ad-ticker-card__content" id="adTickerContent">
+          <span class="ad-ticker-card__text" id="adTickerText1"></span>
+          <span class="ad-ticker-card__text" id="adTickerText2" aria-hidden="true"></span>
+        </div>
+      </div>
+    </div>
 
     <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
 
@@ -965,7 +971,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261016-hero-remove-v1"></script>
+  <script src="/static/kino/kino.js?v=20261016-ticker-restore-v11"></script>
   <script>
     // BETA: Kino bo'limi yo'q — sahifa ochilishi bilan Musiqa view ochiladi
     (function autoOpenMusic() {

@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261016-fifa-fav-confirm-v10" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261016-ticker-restore-v11" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Early platform detection and Telegram WebApp Fullscreen initialization -->
   <script>
@@ -309,14 +309,6 @@
         </span>
       </div>
       <div class="topbar-controls topbar-controls--minimal">
-        <button class="icon-button icon-button--top topbar-fullscreen" id="topbarFullscreenBtn" type="button" aria-label="Butun ekran" title="Butun ekran" data-i18n-aria-label="fullscreen">
-          <svg class="icon-svg icon-svg--fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-          </svg>
-          <svg class="icon-svg icon-svg--fs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
-            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
-          </svg>
-        </button>
         <div class="topbar-search">
           <button class="icon-button icon-button--top topbar-search__trigger" type="button" data-action="search" aria-label="Qidirish" data-i18n-aria-label="search">
             <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -367,9 +359,15 @@
       </div>
     </section>
 
-
-
-
+    <!-- Yuruvchi matnli e'lon kartochkasi (Marquee Ticker) -->
+    <div class="ad-ticker-card" id="adTickerCard" hidden role="region" aria-label="E'lon">
+      <div class="ad-ticker-card__track">
+        <div class="ad-ticker-card__content" id="adTickerContent">
+          <span class="ad-ticker-card__text" id="adTickerText1"></span>
+          <span class="ad-ticker-card__text" id="adTickerText2" aria-hidden="true"></span>
+        </div>
+      </div>
+    </div>
 
     <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
 
@@ -1474,7 +1472,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261016-fifa-fav-confirm-v10"></script>
+  <script src="/static/kino/kino.js?v=20261016-ticker-restore-v11"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
