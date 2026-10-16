@@ -2439,13 +2439,17 @@
 
     wrap.hidden = false;
     wrap.innerHTML = `
-      <div class="fifa-highlights-head">
+      <div class="fifa-highlights-head" role="button" tabindex="0" data-fifa-open-all-highlights aria-label="${esc(F("highlightsTitle"))}">
         <div class="fifa-highlights-title-wrap">
           <span class="fifa-highlights-pulse" aria-hidden="true"></span>
           <span class="fifa-highlights-title">${esc(F("highlightsTitle"))}</span>
           <span class="fifa-highlights-badge">${videos.length}</span>
         </div>
-        <span class="fifa-highlights-sub">${esc(F("highlightsSub"))}</span>
+        <button type="button" class="fifa-highlights-arrow-btn" data-fifa-open-all-highlights aria-label="${esc(F("highlightsTitle"))}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
       </div>
       <div class="fifa-highlights-scroll" role="region" aria-label="${esc(F("highlightsTitle"))}">
         ${videos.map((v) => {
@@ -2473,6 +2477,147 @@
     `;
   }
 
+  // --- Barcha o'yinlar sharhi (All Highlights Full Page - tepa-past ro'yxati) ---
+  let fifaAllHighlightsPageEl = null;
+
+  function ensureFifaAllHighlightsPage() {
+    if (fifaAllHighlightsPageEl) return fifaAllHighlightsPageEl;
+    let page = document.getElementById("fifaAllHighlightsPage");
+    if (page) {
+      fifaAllHighlightsPageEl = page;
+      return page;
+    }
+    page = document.createElement("div");
+    page.id = "fifaAllHighlightsPage";
+    page.className = "fifa-all-hl-page";
+    page.hidden = true;
+    page.innerHTML = `
+      <div class="fifa-all-hl-page__header">
+        <button type="button" class="fifa-all-hl-page__back-btn" data-fifa-close-all-hl aria-label="Orqaga">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <div class="fifa-all-hl-page__title-box">
+          <div class="fifa-all-hl-page__title-row">
+            <span class="fifa-highlights-pulse" aria-hidden="true"></span>
+            <h2 class="fifa-all-hl-page__title" id="fifaAllHlTitle">${esc(F("highlightsTitle"))}</h2>
+            <span class="fifa-highlights-badge" id="fifaAllHlBadge">0</span>
+          </div>
+        </div>
+      </div>
+      <div class="fifa-all-hl-page__content" id="fifaAllHlContent" role="region" aria-label="${esc(F("highlightsTitle"))}"></div>
+    `;
+    document.body.appendChild(page);
+    fifaAllHighlightsPageEl = page;
+
+    page.addEventListener("click", (e) => {
+      if (e.target.closest("[data-fifa-close-all-hl]")) {
+        e.stopPropagation();
+        closeFifaAllHighlightsPage();
+        return;
+      }
+      const hlCard = e.target.closest("[data-fifa-play-highlight]");
+      if (hlCard) {
+        e.stopPropagation();
+        e.preventDefault();
+        try { haptic?.tap?.(); } catch (_) {}
+        const videoId = hlCard.dataset.fifaPlayHighlight;
+        const title = hlCard.dataset.videoTitle || "O'yin sharhi";
+        if (videoId && typeof window.__playYouTubeStandalone === "function") {
+          window.__playYouTubeStandalone(videoId, { title });
+        } else if (videoId) {
+          window.open(`https://www.youtube.com/watch?v=${videoId}`, "_blank");
+        }
+      }
+    });
+
+    page.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        const hlCard = e.target.closest?.("[data-fifa-play-highlight]");
+        if (hlCard) {
+          e.preventDefault();
+          hlCard.click();
+        }
+      }
+    });
+
+    return page;
+  }
+
+  function openFifaAllHighlightsPage() {
+    const videos = fifaHighlightsCacheData || [];
+    if (!videos.length) return;
+    try { haptic?.tap?.(); } catch (_) {}
+
+    const page = ensureFifaAllHighlightsPage();
+    const titleEl = page.querySelector("#fifaAllHlTitle");
+    const badgeEl = page.querySelector("#fifaAllHlBadge");
+    const contentEl = page.querySelector("#fifaAllHlContent");
+
+    if (titleEl) titleEl.textContent = F("highlightsTitle");
+    if (badgeEl) badgeEl.textContent = String(videos.length);
+
+    if (contentEl) {
+      contentEl.innerHTML = videos.map((v) => {
+        const thumb = v.thumb || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
+        const durationBadge = v.duration ? `<span class="fifa-all-hl-card__duration">${esc(v.duration)}</span>` : "";
+        const timeBadge = v.timeAgo ? `<span class="fifa-all-hl-card__time">${esc(v.timeAgo)}</span>` : "";
+        return `
+          <div class="fifa-all-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(v.title)}" role="button" tabindex="0">
+            <div class="fifa-all-hl-card__media">
+              <img src="${esc(thumb)}" alt="" class="fifa-all-hl-card__img" loading="lazy" decoding="async" onerror="this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
+              <div class="fifa-all-hl-card__overlay"></div>
+              <div class="fifa-all-hl-card__play" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                  <path d="M8 5v14l11-7z"></path>
+                </svg>
+              </div>
+              ${durationBadge}
+              ${timeBadge}
+            </div>
+            <div class="fifa-all-hl-card__body">
+              <div class="fifa-all-hl-card__title">${esc(v.title)}</div>
+              <div class="fifa-all-hl-card__meta">
+                <span class="fifa-all-hl-card__source">Qsport Uzbekistan</span>
+                ${v.timeAgo ? `<span class="fifa-all-hl-card__dot">•</span><span>${esc(v.timeAgo)}</span>` : ""}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    page.hidden = false;
+    document.body.classList.add("fifa-all-hl-open");
+    requestAnimationFrame(() => {
+      page.classList.add("is-open");
+      page.scrollTop = 0;
+    });
+
+    try { tgBackRegister?.("fifa-all-hl", () => closeFifaAllHighlightsPage()); } catch (_) {}
+  }
+
+  function closeFifaAllHighlightsPage() {
+    const page = fifaAllHighlightsPageEl || document.getElementById("fifaAllHighlightsPage");
+    if (!page) return;
+    try { haptic?.tap?.(); } catch (_) {}
+    page.classList.remove("is-open");
+    document.body.classList.remove("fifa-all-hl-open");
+    try { tgBackUnregister?.("fifa-all-hl"); } catch (_) {}
+    setTimeout(() => {
+      if (!page.classList.contains("is-open")) {
+        page.hidden = true;
+      }
+    }, 280);
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && fifaAllHighlightsPageEl && !fifaAllHighlightsPageEl.hidden) {
+      closeFifaAllHighlightsPage();
+    }
+  });
+
   async function openFifaView() {
     fifaView.hidden = false;
     document.body.classList.add("is-fifa");
@@ -2494,6 +2639,7 @@
   }
   function closeFifaView() {
     closeLineupModal();
+    closeFifaAllHighlightsPage();
     fifaView.hidden = true;
     document.body.classList.remove("is-fifa");
     stopFifaPolling();
@@ -3269,6 +3415,15 @@
       return;
     }
 
+    // 0c-2) Barcha o'yinlar sharhi sahifasini ochish (o'ng strelka tugmasi yoki sarlavha)
+    const openAllHl = e.target.closest?.("[data-fifa-open-all-highlights]");
+    if (openAllHl) {
+      e.stopPropagation();
+      e.preventDefault();
+      openFifaAllHighlightsPage();
+      return;
+    }
+
     // 0d) O'yinlar sharhi (YouTube highlight video) bosilganda
     const hlCard = e.target.closest?.("[data-fifa-play-highlight]");
     if (hlCard) {
@@ -3438,6 +3593,12 @@
 
   fifaView.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
+      const openAllHl = e.target.closest?.("[data-fifa-open-all-highlights]");
+      if (openAllHl) {
+        e.preventDefault();
+        openFifaAllHighlightsPage();
+        return;
+      }
       const hlCard = e.target.closest?.("[data-fifa-play-highlight]");
       if (hlCard) {
         e.preventDefault();
