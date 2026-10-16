@@ -1,4 +1,4 @@
-const VERSION = "v20261016-fifa-hl-i18n-v7";
+const VERSION = "v20261016-fifa-fav-tabs-v8";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;

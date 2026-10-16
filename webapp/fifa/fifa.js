@@ -587,20 +587,9 @@
     const favTeamsStore = readFifaFavoriteTeams();
     const teams = Object.values(favTeamsStore || {});
     const myTeamLabel = F("favoritesTab") || "Mening jamoam";
-    if (teams.length === 1) {
-      const team = teams[0];
-      tabBtn.textContent = team.name;
-      tabBtn.removeAttribute("data-i18n");
-      tabBtn.title = team.name;
-    } else if (teams.length > 1) {
-      tabBtn.textContent = `${myTeamLabel} (${teams.length})`;
-      tabBtn.removeAttribute("data-i18n");
-      tabBtn.title = teams.map((t) => t.name).join(", ");
-    } else {
-      tabBtn.setAttribute("data-i18n", "fifaTabFavorites");
-      tabBtn.textContent = myTeamLabel;
-      tabBtn.title = "";
-    }
+    tabBtn.textContent = myTeamLabel;
+    tabBtn.setAttribute("data-i18n", "fifaTabFavorites");
+    tabBtn.title = teams.length ? teams.map((t) => t.name).join(", ") : "";
   }
 
   // --- Upcoming Matches Cache (kelgusi 8-10 kunlik o'yinlar jadvali) ---
@@ -1317,7 +1306,7 @@
     if (favTeamsList.length > 0) {
       favTeamsHtml = `
         <div class="fifa-fav-teams-section">
-          <div class="fifa-fav-teams-heading">⭐ Sevimli jamoalarim (${favTeamsList.length})</div>
+          <div class="fifa-fav-teams-heading">⭐ ${esc(curLang() === "ru" ? "Мои команды" : (curLang() === "en" ? "My teams" : "Sevimli jamoalarim"))}</div>
           <div class="fifa-fav-teams-chips">
             ${favTeamsList.map((t) => {
               const isFiltered = activeFavTeamFilter.toLowerCase() === String(t.name || "").toLowerCase();
@@ -3740,13 +3729,77 @@
       return;
     }
 
-    // 2) Sevimli jamoani chipdan o'chirish (badge remove tugmasi)
-    const removeBadgeBtn = e.target.closest?.(".fifa-fav-team-badge__remove");
-    if (removeBadgeBtn) {
-      e.stopPropagation();
-      e.preventDefault();
-      const teamName = removeBadgeBtn.dataset.teamName;
-      if (!teamName) return;
+  function confirmRemoveFavoriteTeam(teamName, onConfirmed) {
+    const lang = curLang();
+    const copy = {
+      uz: {
+        title: teamName,
+        message: `Haqiqatan ham "${teamName}" jamoasini sevimlilardan o'chirmoqchimisiz?`,
+        confirm: "Tasdiqlash",
+        cancel: "Qaytish",
+      },
+      ru: {
+        title: teamName,
+        message: `Удалить команду "${teamName}" из избранных?`,
+        confirm: "Подтвердить",
+        cancel: "Назад",
+      },
+      en: {
+        title: teamName,
+        message: `Are you sure you want to remove "${teamName}" from favorites?`,
+        confirm: "Confirm",
+        cancel: "Cancel",
+      },
+    }[lang] || {
+      title: teamName,
+      message: `Haqiqatan ham "${teamName}" jamoasini sevimlilardan o'chirmoqchimisiz?`,
+      confirm: "Tasdiqlash",
+      cancel: "Qaytish",
+    };
+
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg && typeof tg.showPopup === "function") {
+      try {
+        tg.showPopup({
+          title: copy.title,
+          message: copy.message,
+          buttons: [
+            { id: "confirm", type: "destructive", text: copy.confirm },
+            { id: "cancel", type: "cancel", text: copy.cancel },
+          ],
+        }, (id) => {
+          if (id === "confirm") {
+            onConfirmed();
+          }
+        });
+        return;
+      } catch (_) {}
+    }
+
+    if (tg && typeof tg.showConfirm === "function") {
+      try {
+        tg.showConfirm(copy.message, (ok) => {
+          if (ok) onConfirmed();
+        });
+        return;
+      } catch (_) {}
+    }
+
+    if (typeof window.confirm === "function") {
+      if (window.confirm(`${copy.title}\n\n${copy.message}`)) {
+        onConfirmed();
+      }
+    }
+  }
+
+  // 2) Sevimli jamoani chipdan o'chirish (badge remove tugmasi)
+  const removeBadgeBtn = e.target.closest?.(".fifa-fav-team-badge__remove");
+  if (removeBadgeBtn) {
+    e.stopPropagation();
+    e.preventDefault();
+    const teamName = removeBadgeBtn.dataset.teamName;
+    if (!teamName) return;
+    confirmRemoveFavoriteTeam(teamName, () => {
       toggleFifaFavoriteTeam({ name: teamName });
       removeFavoriteTeamMatches(teamName);
       try { haptic.tap(); } catch (_) {}
@@ -3757,8 +3810,9 @@
       }
       updateFifaTabs();
       renderFifaFavorites();
-      return;
-    }
+    });
+    return;
+  }
 
     // 3) Sevimli jamoa chipiga bosganda (filtr sifatida qo'llash)
     const badgeBtn = e.target.closest?.(".fifa-fav-team-badge");
