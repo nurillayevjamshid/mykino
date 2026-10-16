@@ -859,7 +859,19 @@ async function scrapeYoutubePage(url, debugObj = null) {
     }
 
     const videos = parseYtVideosFromData(data);
-    if (debugObj) debugObj.parsedCount = videos.length;
+    if (debugObj) {
+      debugObj.parsedCount = videos.length;
+      if (videos.length === 0) {
+        debugObj.alerts = data.alerts;
+        debugObj.contentsKeys = data.contents ? Object.keys(data.contents) : null;
+        const s = JSON.stringify(data);
+        debugObj.hasVideoId = s.includes('"videoId"');
+        debugObj.hasContentId = s.includes('"contentId"');
+        debugObj.hasLockup = s.includes('lockupViewModel');
+        debugObj.hasContinuation = s.includes('continuationItemRenderer');
+        debugObj.slice = s.slice(0, 800);
+      }
+    }
     return { html, videos };
   } catch (fetchErr) {
     if (debugObj) debugObj.err = fetchErr.message;
