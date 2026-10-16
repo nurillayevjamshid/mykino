@@ -133,17 +133,70 @@ try {
 function ensureTelegramFullscreen() {
   try {
     const tgApp = window.Telegram?.WebApp;
-    if (tgApp && typeof tgApp.requestFullscreen === "function" && !tgApp.isFullscreen) {
+    if (!tgApp) return;
+    try { tgApp.ready?.(); } catch (_) {}
+    try { tgApp.expand?.(); } catch (_) {}
+    if (typeof tgApp.requestFullscreen === "function" && !tgApp.isFullscreen) {
       tgApp.requestFullscreen();
     }
   } catch (_) {}
 }
 window.ensureTelegramFullscreen = ensureTelegramFullscreen;
 
+function setupFullscreenToggle() {
+  const fsBtn = document.getElementById("topbarFullscreenBtn");
+  if (!fsBtn) return;
+  const enterIcon = fsBtn.querySelector(".icon-svg--fs-enter");
+  const exitIcon = fsBtn.querySelector(".icon-svg--fs-exit");
+
+  const updateFsState = () => {
+    const tgApp = window.Telegram?.WebApp;
+    const isFs = Boolean((tgApp && tgApp.isFullscreen) || document.fullscreenElement);
+    if (enterIcon) enterIcon.style.display = isFs ? "none" : "";
+    if (exitIcon) exitIcon.style.display = isFs ? "" : "none";
+    fsBtn.setAttribute("aria-label", isFs ? "Kichik ekran" : "Butun ekran");
+    fsBtn.setAttribute("title", isFs ? "Kichik ekran" : "Butun ekran");
+  };
+
+  fsBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const tgApp = window.Telegram?.WebApp;
+    const isFs = Boolean((tgApp && tgApp.isFullscreen) || document.fullscreenElement);
+    if (isFs) {
+      if (tgApp && typeof tgApp.exitFullscreen === "function" && tgApp.isFullscreen) {
+        try { tgApp.exitFullscreen(); } catch (_) {}
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    } else {
+      if (tgApp) {
+        try { tgApp.ready?.(); } catch (_) {}
+        try { tgApp.expand?.(); } catch (_) {}
+        if (typeof tgApp.requestFullscreen === "function") {
+          try { tgApp.requestFullscreen(); } catch (_) {}
+        }
+      }
+      if (!tgApp?.isFullscreen && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+    setTimeout(updateFsState, 150);
+  });
+
+  const tgApp = window.Telegram?.WebApp;
+  if (tgApp?.onEvent) {
+    tgApp.onEvent("fullscreenChanged", updateFsState);
+  }
+  document.addEventListener("fullscreenchange", updateFsState);
+  updateFsState();
+}
+
 if (tg) {
   tg.ready();
   tg.expand();
   ensureTelegramFullscreen();
+  setupFullscreenToggle();
   tg.disableVerticalSwipes?.();
   try { tg.enableClosingConfirmation?.(); } catch (_) {}
 
@@ -11550,6 +11603,7 @@ function closeEsportView() {
 
 // Kino-home FIFA banner click — modul yuklanmagan bo'lsa lazy-load qiladi.
 document.addEventListener("DOMContentLoaded", () => {
+  setupFullscreenToggle();
   const fifaBanner = document.getElementById("fifaHomeBanner");
   if (!fifaBanner) return;
   fifaBanner.addEventListener("click", () => {

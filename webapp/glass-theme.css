@@ -420,6 +420,18 @@ html[data-theme="light"] .admin-layout .bulk-toolbar { background: linear-gradie
   .movie-card:focus-visible,
   .hero button:focus-visible { outline: 2px solid var(--glass-cyan); outline-offset: 3px; }
 }
+
+@media (min-width: 768px) {
+  .app-shell { padding-bottom: 110px !important; }
+  .bottom-bar {
+    bottom: 24px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(calc(100% - 40px), 540px) !important;
+    max-width: 540px !important;
+    margin: 0 !important;
+  }
+}
 html[data-theme="light"] .bottom-bar__inner {
   background: linear-gradient(145deg, rgba(255,255,255,.84), rgba(225,237,247,.68)) !important;
   border-color: rgba(112, 144, 174, .28) !important;
