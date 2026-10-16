@@ -2901,46 +2901,44 @@ html[data-theme="light"] .watch-button.watch-button--pill {
 }
 
 /* ============================================================
-   FLOATING MINI-SCREEN (Mini Ekran) — Podkastlar va videolar
-   uchun suzuvchi PiP / mini pleyer rejimi
+   FLOATING MINI-SCREEN (Mini Ekran) — YouTube uslubidagi
+   kattaroq suzuvchi PiP / mini pleyer rejimi
    ============================================================ */
 .video-player.is-mini-screen {
   position: fixed !important;
   inset: auto 12px calc(max(14px, env(safe-area-inset-bottom)) + 66px + 8px) auto !important;
-  width: min(210px, 54vw) !important;
+  width: min(290px, calc(100vw - 24px)) !important;
   aspect-ratio: 16 / 9 !important;
   height: auto !important;
-  max-width: none !important;
+  max-width: 360px !important;
   max-height: none !important;
-  border-radius: 14px !important;
+  border-radius: 16px !important;
   overflow: hidden !important;
   z-index: 200010 !important;
   box-shadow:
-    0 12px 36px rgba(0, 0, 0, 0.8),
-    0 0 0 1px rgba(255, 255, 255, 0.2) !important;
-  cursor: pointer !important;
+    0 16px 44px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.22) !important;
+  cursor: grab !important;
   touch-action: none;
   animation: miniScreenPopIn 260ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
   transition: transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1),
               box-shadow 220ms ease !important;
+  will-change: transform;
 }
 
-@keyframes miniScreenPopIn {
-  0% {
-    transform: scale(0.85) translateY(20px);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1) translateY(0);
-    opacity: 1;
+@media (min-width: 768px) {
+  .video-player.is-mini-screen {
+    width: 340px !important;
+    inset: auto 24px calc(max(16px, env(safe-area-inset-bottom)) + 74px) auto !important;
   }
 }
 
 .video-player.is-mini-screen.is-dragging {
+  cursor: grabbing !important;
   transition: none !important;
   box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.9),
-    0 0 0 1.5px rgba(255, 255, 255, 0.35) !important;
+    0 22px 54px rgba(0, 0, 0, 0.95),
+    0 0 0 2px rgba(255, 255, 255, 0.4) !important;
 }
 
 /* Fullscreen rotate yoki fake-fullscreen mini-ekranda bo'lmasligi kerak */
@@ -2963,7 +2961,7 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   inset: 0;
   width: 100%;
   height: 100%;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -2972,7 +2970,8 @@ html[data-theme="light"] .watch-button.watch-button--pill {
 .video-player.is-mini-screen .youtube-player-host {
   width: 100% !important;
   height: 100% !important;
-  border-radius: 14px;
+  border-radius: 16px;
+  pointer-events: none !important;
 }
 
 .player-mini-controls {
@@ -2982,12 +2981,12 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
+  padding: 8px 14px;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.1) 40%, rgba(0, 0, 0, 0.65) 100%);
   opacity: 0;
   pointer-events: none;
   transition: opacity 180ms ease;
-  border-radius: 14px;
+  border-radius: 16px;
 }
 
 .video-player.is-mini-screen:hover .player-mini-controls,
@@ -2999,7 +2998,7 @@ html[data-theme="light"] .watch-button.watch-button--pill {
 
 @media (hover: none) {
   .video-player.is-mini-screen .player-mini-controls {
-    opacity: 0.92;
+    opacity: 0.94;
     pointer-events: auto;
   }
 }
@@ -3008,28 +3007,29 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border: 0;
-  background: rgba(0, 0, 0, 0.62);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: #fff;
   cursor: pointer;
   padding: 0;
   transition: transform 140ms ease, background 140ms ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .player-mini-btn:active {
   transform: scale(0.88);
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .player-mini-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   display: block;
 }
 

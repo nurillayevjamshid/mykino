@@ -5493,7 +5493,11 @@ function enterMiniScreen() {
     try { exitFullscreenAndLandscape(); } catch (_) {}
   }
   videoPlayer.classList.add("is-mini-screen");
-  videoPlayer.style.transform = "";
+  if (typeof window.__resetMiniScreenOffset === "function") {
+    window.__resetMiniScreenOffset();
+  } else {
+    videoPlayer.style.transform = "";
+  }
   document.body.classList.remove("is-player-open");
   document.body.classList.add("has-video-mini-screen");
   if (playerMiniControls) {
@@ -5511,7 +5515,11 @@ function enterMiniScreen() {
 function expandVideoPlayer() {
   if (!videoPlayer || !isMiniScreenActive()) return;
   videoPlayer.classList.remove("is-mini-screen");
-  videoPlayer.style.transform = "";
+  if (typeof window.__resetMiniScreenOffset === "function") {
+    window.__resetMiniScreenOffset();
+  } else {
+    videoPlayer.style.transform = "";
+  }
   document.body.classList.add("is-player-open");
   document.body.classList.remove("has-video-mini-screen");
   if (playerMiniControls) {
@@ -5532,54 +5540,20 @@ function toggleMiniScreen() {
 }
 
 function isPipSupported() {
-  if (document.pictureInPictureEnabled) return true;
-  const probe = document.createElement("video");
-  if (typeof probe.webkitSupportsPresentationMode === "function" && probe.webkitSupportsPresentationMode("picture-in-picture")) return true;
-  return false;
+  return true;
 }
 
 function setupPipButton() {
   if (!videoPipButton) return;
-  if (activeMovie?._podcast) {
-    videoPipButton.hidden = false;
-    videoPipButton.classList.toggle("is-active", isMiniScreenActive());
-    videoPipButton.setAttribute("aria-label", isMiniScreenActive() ? "Kengaytirish" : "Mini ekran");
-    return;
-  }
-  if (!isPipSupported()) {
-    videoPipButton.hidden = true;
-    return;
-  }
+  // Barcha videolar (kino, podkast, futbol highlights) uchun mini-ekran tugmasi faol!
   videoPipButton.hidden = false;
+  videoPipButton.classList.toggle("is-active", isMiniScreenActive());
+  videoPipButton.setAttribute("aria-label", isMiniScreenActive() ? "Kengaytirish" : "Mini ekran");
 }
 
 async function togglePip() {
-  if (activeMovie?._podcast) {
-    toggleMiniScreen();
-    return;
-  }
-  const v = getActiveVideoEl();
-  if (!v) {
-    toggleMiniScreen();
-    return;
-  }
-  try {
-    if (document.pictureInPictureElement === v) {
-      await document.exitPictureInPicture();
-      return;
-    }
-    if (document.pictureInPictureEnabled && typeof v.requestPictureInPicture === "function") {
-      await v.requestPictureInPicture();
-      return;
-    }
-    if (typeof v.webkitSupportsPresentationMode === "function" && v.webkitSupportsPresentationMode("picture-in-picture")) {
-      const mode = v.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture";
-      v.webkitSetPresentationMode(mode);
-    }
-  } catch (err) {
-    console.warn("PiP failed, using mini-screen fallback:", err);
-    toggleMiniScreen();
-  }
+  // Har doim suzuvchi in-app mini-ekran (PiP) rejimini yoqish/o'chirish
+  toggleMiniScreen();
 }
 
 function exitPipIfActive() {
@@ -8611,7 +8585,15 @@ function getCurrentAppSection() {
 
 function dismissKinoSubviews() {
   try { closeMovieModalAnimated(); } catch (_) {}
-  try { closeVideoPlayer(); } catch (_) {}
+  // Mini-ekran aktiv bo'lsa uni yopmaymiz, boshqa bo'limga o'tganda ham ko'rinib o'ynab tursin (huddi musiqadek)!
+  if (!isMiniScreenActive()) {
+    if (videoPlayer && !videoPlayer.hidden) {
+      // Agar to'liq ekranli pleyer ochiq holda boshqa bo'limga o'tilsa — avtomatik mini-ekranga aylantiramiz
+      enterMiniScreen();
+    } else {
+      try { closeVideoPlayer(); } catch (_) {}
+    }
+  }
   try { closeCategoryDetailView({ goHome: true }); } catch (_) {}
   try { closeCategoriesView(); } catch (_) {}
   try { closeSeriesDetailView(); } catch (_) {}
@@ -9061,11 +9043,7 @@ videoPlayer?.addEventListener("click", (e) => {
         videoPlayer.style.transform = "";
         videoPlayer.style.opacity = "";
         videoPlayer.style.borderRadius = "";
-        if (activeMovie?._podcast) {
-          enterMiniScreen();
-        } else {
-          closeVideoPlayer();
-        }
+        enterMiniScreen();
       }, 200);
     } else {
       videoPlayer.style.transition = "transform 180ms ease, border-radius 180ms ease";
@@ -9079,7 +9057,13 @@ videoPlayer?.addEventListener("click", (e) => {
   videoPlayer.addEventListener("touchcancel", onEnd, { passive: true });
 })();
 
-// Mini-ekranni ekranda erkin surish va chetga surib yopish
+// Mini-ekranni ekranda erkin tepa-pastga surish va chetga surib yopish
+let __miniScreenOffsetY = 0;
+window.__resetMiniScreenOffset = () => {
+  __miniScreenOffsetY = 0;
+  if (videoPlayer) videoPlayer.style.transform = "";
+};
+
 (function setupMiniScreenDrag() {
   if (!videoPlayer) return;
   let startX = 0;
@@ -9087,53 +9071,121 @@ videoPlayer?.addEventListener("click", (e) => {
   let isDragging = false;
   let hasMoved = false;
 
-  videoPlayer.addEventListener("touchstart", (e) => {
-    if (!isMiniScreenActive() || e.touches.length !== 1) return;
+  const getPos = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+  };
+
+  const onDragStart = (e) => {
+    if (!isMiniScreenActive()) return;
+    if (e.touches && e.touches.length > 1) return;
     if (e.target.closest(".player-mini-btn")) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
+    const pos = getPos(e);
+    startX = pos.x;
+    startY = pos.y;
     isDragging = true;
     hasMoved = false;
     videoPlayer.classList.add("is-dragging");
-  }, { passive: true });
+    videoPlayer.style.transition = "none";
+  };
 
-  videoPlayer.addEventListener("touchmove", (e) => {
+  const onDragMove = (e) => {
     if (!isDragging || !isMiniScreenActive()) return;
-    const dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) hasMoved = true;
-    videoPlayer.style.transform = `translate(${dx}px, ${dy}px)`;
-  }, { passive: true });
+    const pos = getPos(e);
+    const dx = pos.x - startX;
+    const dy = pos.y - startY;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true;
 
-  const finishDrag = (e) => {
+    const H = window.innerHeight || document.documentElement.clientHeight || 700;
+    const playerH = videoPlayer.offsetHeight || 165;
+    const topSafe = 68; // Topbar va status bar masofasi
+    const maxUpward = -(H - playerH - topSafe - 88);
+    const maxDownward = 50;
+
+    let targetY = __miniScreenOffsetY + dy;
+    if (targetY < maxUpward) {
+      targetY = maxUpward + (targetY - maxUpward) * 0.25;
+    } else if (targetY > maxDownward) {
+      targetY = maxDownward + (targetY - maxDownward) * 0.25;
+    }
+
+    videoPlayer.style.transform = `translate3d(${dx}px, ${targetY}px, 0)`;
+  };
+
+  const onDragEnd = (e) => {
     if (!isDragging) return;
     isDragging = false;
     videoPlayer.classList.remove("is-dragging");
-    const touch = e.changedTouches ? e.changedTouches[0] : null;
-    const dx = touch ? touch.clientX - startX : 0;
-    if (Math.abs(dx) > 130) {
-      // Flick / chetga surib yopish
-      videoPlayer.style.transition = "transform 180ms ease, opacity 180ms ease";
-      videoPlayer.style.transform = `translateX(${dx > 0 ? 320 : -320}px)`;
+
+    const changedTouch = e.changedTouches ? e.changedTouches[0] : null;
+    const endX = changedTouch ? changedTouch.clientX : (e.clientX || startX);
+    const endY = changedTouch ? changedTouch.clientY : (e.clientY || startY);
+    const dx = endX - startX;
+    const dy = endY - startY;
+
+    // 1) Chetga tez surib yopish (Flick to dismiss)
+    if (Math.abs(dx) > 120 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+      videoPlayer.style.transition = "transform 200ms ease, opacity 200ms ease";
+      videoPlayer.style.transform = `translate3d(${dx > 0 ? 360 : -360}px, ${__miniScreenOffsetY + dy}px, 0)`;
       videoPlayer.style.opacity = "0";
       setTimeout(() => {
         videoPlayer.style.transition = "";
         videoPlayer.style.transform = "";
         videoPlayer.style.opacity = "";
+        __miniScreenOffsetY = 0;
         closeVideoPlayer({ forceClose: true });
-      }, 180);
-    } else {
-      videoPlayer.style.transition = "transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1)";
-      videoPlayer.style.transform = "";
-      setTimeout(() => { videoPlayer.style.transition = ""; }, 220);
-      if (!hasMoved && !e.target.closest(".player-mini-btn")) {
+      }, 200);
+      return;
+    }
+
+    // 2) Agar harakat qilinmagan bo'lsa (oddiy bosish) — kattalashtirish (expand)
+    if (!hasMoved) {
+      if (!e.target.closest(".player-mini-btn")) {
         expandVideoPlayer();
       }
+      return;
     }
+
+    // 3) Tepa-pastga surilgan holatda o'sha balandlikda mustahkam qoldirish
+    const H = window.innerHeight || document.documentElement.clientHeight || 700;
+    const playerH = videoPlayer.offsetHeight || 165;
+    const topSafe = 68;
+    const maxUpward = -(H - playerH - topSafe - 88);
+    const maxDownward = 10;
+
+    let finalY = __miniScreenOffsetY + dy;
+    finalY = Math.max(maxUpward, Math.min(maxDownward, finalY));
+    __miniScreenOffsetY = finalY;
+
+    videoPlayer.style.transition = "transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1)";
+    videoPlayer.style.transform = `translate3d(0px, ${__miniScreenOffsetY}px, 0)`;
+    setTimeout(() => {
+      if (isMiniScreenActive()) {
+        videoPlayer.style.transition = "";
+      }
+    }, 240);
   };
 
-  videoPlayer.addEventListener("touchend", finishDrag, { passive: true });
-  videoPlayer.addEventListener("touchcancel", finishDrag, { passive: true });
+  videoPlayer.addEventListener("touchstart", onDragStart, { passive: true });
+  videoPlayer.addEventListener("touchmove", onDragMove, { passive: true });
+  videoPlayer.addEventListener("touchend", onDragEnd, { passive: true });
+  videoPlayer.addEventListener("touchcancel", onDragEnd, { passive: true });
+
+  // Desktop mouse drag
+  videoPlayer.addEventListener("mousedown", (e) => {
+    if (!isMiniScreenActive() || e.button !== 0) return;
+    onDragStart(e);
+    const onMouseMove = (me) => onDragMove(me);
+    const onMouseUp = (me) => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      onDragEnd(me);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  });
 })();
 
 // Speed selector
@@ -11547,7 +11599,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261016-fifa-hl-player-v5";
+    script.src = "/static/fifa/fifa.js?v=20261016-mini-player-v6";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
