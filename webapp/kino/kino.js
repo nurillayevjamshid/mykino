@@ -7416,7 +7416,7 @@ function ensurePotcastsCss() {
   __potcastsCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/potcasts/potcasts.css?v=20261009-clean-icons";
+    link.href = "/static/potcasts/potcasts.css?v=20261016-hero-restore-v13";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -7429,7 +7429,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20261014-nav-hierarchy";
+    script.src = "/static/potcasts/potcasts.js?v=20261016-hero-restore-v13";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);

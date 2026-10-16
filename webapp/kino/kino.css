@@ -8295,7 +8295,7 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
    Hero — Disney+ style banner: image + small circular play btn
    Faqat poster va play tugmasi koʻrinadi
    ============================================================ */
-.hero {
+#heroSection.hero {
   height: auto !important;
   aspect-ratio: 16 / 9;
   margin: 8px 12px 14px !important;
@@ -8304,12 +8304,12 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   overflow: hidden;
   background: #0b0c10 !important;
 }
-.hero__gradient { display: none !important; }
-.hero__title,
-.hero__desc,
-.hero__info,
-#heroPlayLabel { display: none !important; }
-.hero__dots {
+#heroSection .hero__gradient { display: none !important; }
+#heroSection .hero__title,
+#heroSection .hero__desc,
+#heroSection .hero__info,
+#heroSection #heroPlayLabel { display: none !important; }
+#heroSection .hero__dots {
   position: absolute;
   left: 0; right: 0;
   bottom: 8px;
@@ -8320,21 +8320,21 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   z-index: 10;
   pointer-events: none;
 }
-.hero__dot {
+#heroSection .hero__dot {
   width: 6px;
   height: 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.4);
   transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.3s ease, opacity 0.3s ease;
 }
-.hero__dot.is-active {
+#heroSection .hero__dot.is-active {
   width: 18px;
   background: #fff;
   border-radius: 999px;
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
 }
 
-.hero__inner {
+#heroSection .hero__inner {
   position: absolute;
   inset: auto auto 10px 12px !important;
   padding: 0 !important;
@@ -8345,7 +8345,7 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   right: auto !important;
   z-index: 12 !important;
 }
-.hero__actions {
+#heroSection .hero__actions {
   gap: 0 !important;
   justify-content: flex-start !important;
 }

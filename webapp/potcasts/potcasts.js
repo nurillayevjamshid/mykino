@@ -607,7 +607,10 @@
   // ko'rinish va xulq-atvorda chiqaramiz: dual-layer crossfade backdrop, gradient,
   // sarlavha + tavsif, pastda dots morphing indicator, 5s da silliq avto-aylanish.
   function buildFeaturedChannels() {
-    const featured = channels.filter((c) => c.featured);
+    let featured = channels.filter((c) => Boolean(c.featured));
+    if (!featured.length && channels.length) {
+      featured = channels.slice(0, 5);
+    }
     if (!featured.length) return "";
     podHeroList = featured;
     if (podHeroIndex >= featured.length) podHeroIndex = 0;
