@@ -4,6 +4,7 @@ const { uploadImageToR2, uploadFileToR2 } = require("./_lib/r2-store");
 const REDIS_KEY = "categories:v1";
 const POD_LANGS_KEY = "podcast-langs:v1";
 const FIFA_LIVE_KEY = "fifa-live:v1";
+const FIFA_HIGHLIGHTS_KEY = "fifa-highlights:v1";
 const POD_LANG_DEFAULTS = {
   uz: { name: "O'zbekcha", image: "" },
   ru: { name: "Ruscha", image: "" },
@@ -456,6 +457,36 @@ async function writeFifaLiveMatch(match) {
   }
 }
 
+async function readFifaHighlightsConfig() {
+  const client = await getRedis();
+  if (!client) return { channelUrl: "" };
+  try {
+    const raw = await client.get(FIFA_HIGHLIGHTS_KEY);
+    if (!raw) return { channelUrl: "" };
+    const data = JSON.parse(raw);
+    return data && typeof data === "object" ? data : { channelUrl: "" };
+  } catch (err) {
+    console.warn("redis get fifa-highlights xato:", err.message);
+    return { channelUrl: "" };
+  }
+}
+
+async function writeFifaHighlightsConfig(config) {
+  const client = await getRedis();
+  if (!client) return false;
+  try {
+    if (config && config.channelUrl) {
+      await client.set(FIFA_HIGHLIGHTS_KEY, JSON.stringify(config));
+    } else {
+      await client.del(FIFA_HIGHLIGHTS_KEY);
+    }
+    return true;
+  } catch (err) {
+    console.warn("redis set fifa-highlights xato:", err.message);
+    return false;
+  }
+}
+
 // ===== TV kanallar (admin boshqaradi) =====
 // Redis'da saqlanadi; bo'sh bo'lsa webapp statik /static/tv/tv-channels.json'ga o'tadi.
 // v2 ataylab yangi bo‘sh namespace: eski v1 kanallari public/admin’da qayta chiqmaydi.
@@ -571,6 +602,210 @@ async function handleFifaLive(request, response) {
     const ok = await writeFifaLiveMatch(match);
     if (!ok) { response.status(500).json({ ok: false, error: "Saqlash muvaffaqiyatsiz." }); return; }
     response.status(200).json({ ok: true, match });
+  } catch (err) {
+    response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
+  }
+}
+
+// ===== Futbol YouTube Highlight Videolari =====
+let fifaHighlightsCache = { data: null, at: 0, channelUrl: "" };
+const FIFA_HIGHLIGHTS_TTL_MS = 10 * 60 * 1000;
+
+function isVideoWithin2Days(timeText) {
+  if (!timeText) return true;
+  const s = String(timeText).toLowerCase().trim();
+  if (/second|sec|minute|min|hour|h\b|soat|daqiqa|минут|час|moment|bugun|today|сегодня/.test(s)) return true;
+  if (/1\s*day|1d\b|yesterday|kecha|вчера|1\s*kun|1\s*день/.test(s)) return true;
+  if (/2\s*days|2d\b|2\s*kun|2\s*дня/.test(s)) return true;
+  if (/[3-9]\s*days|[3-9]d\b|[0-9]{2,}\s*days|week|hafta|недел|month|oy|месяц|year|yil|год/.test(s)) return false;
+  return true;
+}
+
+function normalizeYoutubeChannelUrl(raw) {
+  let s = String(raw || "").trim();
+  if (!s) return "";
+  if (/^@[\w.-]+$/.test(s)) return `https://www.youtube.com/${s}`;
+  if (/^UC[\w-]{22}$/.test(s)) return `https://www.youtube.com/channel/${s}`;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) {
+    s = `https://${s.replace(/^\/+/, "")}`;
+  }
+  return s;
+}
+
+async function fetchYoutubeHighlightsFromChannel(channelUrl) {
+  const norm = normalizeYoutubeChannelUrl(channelUrl);
+  if (!norm) return [];
+
+  let fetchUrl = norm;
+  if (!fetchUrl.includes("/videos") && !fetchUrl.includes("videos.xml")) {
+    fetchUrl = fetchUrl.replace(/\/+$/, "") + "/videos";
+  }
+
+  const res = await fetch(fetchUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept-Language": "uz,ru,en-US;q=0.8,en;q=0.6",
+    },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`YouTube javob bermadi (HTTP ${res.status})`);
+  const html = await res.text();
+
+  const jsonMatch = html.match(/var ytInitialData\s*=\s*({.+?});<\/script>/) ||
+                    html.match(/ytInitialData\s*=\s*({.+?});/);
+  if (!jsonMatch) return [];
+
+  let data;
+  try {
+    data = JSON.parse(jsonMatch[1]);
+  } catch {
+    return [];
+  }
+
+  const extracted = [];
+  const seenIds = new Set();
+
+  function scan(obj) {
+    if (!obj || typeof obj !== "object") return;
+
+    if (obj.lockupViewModel) {
+      const lvm = obj.lockupViewModel;
+      const videoId = String(lvm.contentId || lvm.videoId || "").trim();
+      const title = String(lvm.metadata?.lockupMetadataViewModel?.title?.content || "").trim();
+      if (videoId && title && !seenIds.has(videoId)) {
+        seenIds.add(videoId);
+        const metaParts = lvm.metadata?.lockupMetadataViewModel?.metadata?.contentMetadataViewModel?.metadataRows?.[0]?.metadataParts || [];
+        const timeAgo = metaParts[1]?.text?.content || metaParts[1]?.accessibilityLabel || metaParts[0]?.text?.content || "";
+        const duration = lvm.contentImage?.thumbnailViewModel?.overlays?.[0]?.thumbnailBottomOverlayViewModel?.badges?.[0]?.thumbnailBadgeViewModel?.text || "";
+        const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        extracted.push({
+          videoId,
+          title,
+          timeAgo,
+          duration,
+          thumb,
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+        });
+      }
+    }
+
+    if (obj.videoRenderer) {
+      const vr = obj.videoRenderer;
+      const videoId = String(vr.videoId || "").trim();
+      const title = String(vr.title?.runs?.[0]?.text || vr.title?.simpleText || "").trim();
+      if (videoId && title && !seenIds.has(videoId)) {
+        seenIds.add(videoId);
+        const timeAgo = vr.publishedTimeText?.simpleText || "";
+        const duration = vr.lengthText?.simpleText || "";
+        const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        extracted.push({
+          videoId,
+          title,
+          timeAgo,
+          duration,
+          thumb,
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+        });
+      }
+    }
+
+    if (obj.gridVideoRenderer) {
+      const gvr = obj.gridVideoRenderer;
+      const videoId = String(gvr.videoId || "").trim();
+      const title = String(gvr.title?.runs?.[0]?.text || gvr.title?.simpleText || "").trim();
+      if (videoId && title && !seenIds.has(videoId)) {
+        seenIds.add(videoId);
+        const timeAgo = gvr.publishedTimeText?.simpleText || "";
+        const duration = gvr.thumbnailOverlays?.[0]?.thumbnailOverlayTimeStatusRenderer?.text?.simpleText || "";
+        const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        extracted.push({
+          videoId,
+          title,
+          timeAgo,
+          duration,
+          thumb,
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+        });
+      }
+    }
+
+    for (const key of Object.keys(obj)) {
+      scan(obj[key]);
+    }
+  }
+
+  scan(data);
+
+  const recent = extracted.filter((v) => isVideoWithin2Days(v.timeAgo));
+  return recent.length > 0 ? recent : extracted.slice(0, 6);
+}
+
+async function handleFifaHighlights(request, response) {
+  if (request.method === "GET") {
+    try {
+      const now = Date.now();
+      const cfg = await readFifaHighlightsConfig();
+      const channelUrl = cfg?.channelUrl || "";
+      if (!channelUrl) {
+        response.setHeader("Cache-Control", "public, max-age=60, s-maxage=120");
+        response.status(200).json({ ok: true, channelUrl: "", videos: [] });
+        return;
+      }
+
+      if (
+        fifaHighlightsCache.data &&
+        now - fifaHighlightsCache.at < FIFA_HIGHLIGHTS_TTL_MS &&
+        fifaHighlightsCache.channelUrl === channelUrl
+      ) {
+        response.setHeader("Cache-Control", "public, max-age=60, s-maxage=180, stale-while-revalidate=600");
+        response.status(200).json(fifaHighlightsCache.data);
+        return;
+      }
+
+      const videos = await fetchYoutubeHighlightsFromChannel(channelUrl).catch((err) => {
+        console.warn("fetchYoutubeHighlights error:", err.message);
+        return [];
+      });
+
+      const payload = { ok: true, channelUrl, count: videos.length, videos };
+      fifaHighlightsCache = { data: payload, at: now, channelUrl };
+      response.setHeader("Cache-Control", "public, max-age=60, s-maxage=180, stale-while-revalidate=600");
+      response.status(200).json(payload);
+    } catch (err) {
+      response.status(500).json({ ok: false, error: err.message || "Videolarni yuklab bo'lmadi.", videos: [] });
+    }
+    return;
+  }
+
+  // Yozish / o'chirish — admin auth
+  if (!(await authorizeRequest(request, response))) return;
+
+  try {
+    const body = await readBody(request);
+    if (request.method === "DELETE" || body.action === "delete") {
+      await writeFifaHighlightsConfig(null);
+      fifaHighlightsCache = { data: null, at: 0, channelUrl: "" };
+      response.status(200).json({ ok: true, channelUrl: "", videos: [] });
+      return;
+    }
+
+    const channelUrl = normalizeYoutubeChannelUrl(body.channelUrl);
+    if (!channelUrl) {
+      response.status(400).json({ ok: false, error: "YouTube kanal havolasi kiritilmadi." });
+      return;
+    }
+
+    let videos = [];
+    try {
+      videos = await fetchYoutubeHighlightsFromChannel(channelUrl);
+    } catch (fetchErr) {
+      console.warn("Highlights test fetch failed:", fetchErr.message);
+    }
+
+    await writeFifaHighlightsConfig({ channelUrl, updatedAt: new Date().toISOString() });
+    const payload = { ok: true, channelUrl, count: videos.length, videos };
+    fifaHighlightsCache = { data: payload, at: Date.now(), channelUrl };
+    response.status(200).json(payload);
   } catch (err) {
     response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
   }
@@ -1178,6 +1413,10 @@ module.exports = async function handler(request, response) {
   }
   if (earlyType === "fifa-live") {
     await handleFifaLive(request, response);
+    return;
+  }
+  if (earlyType === "fifa-highlights") {
+    await handleFifaHighlights(request, response);
     return;
   }
   if (earlyType === "tv-channels") {

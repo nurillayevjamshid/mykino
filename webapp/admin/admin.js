@@ -616,7 +616,7 @@ function switchSection(name) {
   if (name === 'music') fetchMusic();
   if (name === 'podcasts') { fetchPodcasts(); fetchPodLangs(); }
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); loadTickerSettings(); }
-  if (name === 'fifaLive') { loadFifaLiveMatch(); }
+  if (name === 'fifaLive') { loadFifaLiveMatch(); loadFifaHighlights(); }
   if (name === 'esportsStreams') { loadEsportsStreams(); }
   if (name === 'tv') { loadTvChannelsAdmin(); }
 
@@ -5437,6 +5437,114 @@ document.getElementById('fifaLiveCoverUrl')?.addEventListener('input', (e) => {
 
 document.getElementById('fifaLiveSaveBtn')?.addEventListener('click', saveFifaLiveMatch);
 document.getElementById('fifaLiveDeleteBtn')?.addEventListener('click', deleteFifaLiveMatch);
+
+// ============================================================
+// Futbol YouTube Highlights (O'yinlar sharhi)
+let fifaHighlightsLoaded = false;
+
+function setFifaHighlightsStatus(msg, kind) {
+  const el = document.getElementById('fifaHighlightsStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = kind === 'error' ? '#ef4444' : kind === 'ok' ? '#22c55e' : 'var(--text-muted, #666)';
+}
+
+function renderFifaHighlightsPreview(videos) {
+  const wrap = document.getElementById('fifaHighlightsPreviewWrap');
+  const grid = document.getElementById('fifaHighlightsPreviewGrid');
+  const countBadge = document.getElementById('fifaHighlightsCountBadge');
+  if (!wrap || !grid) return;
+
+  const list = Array.isArray(videos) ? videos : [];
+  if (!list.length) {
+    wrap.hidden = true;
+    grid.innerHTML = '';
+    return;
+  }
+
+  wrap.hidden = false;
+  if (countBadge) countBadge.textContent = `${list.length} ta video`;
+
+  grid.innerHTML = list.map((v) => {
+    const thumb = v.thumb || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
+    return `
+      <div style="background:var(--bg-subtle,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);display:flex;flex-direction:column;">
+        <div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;">
+          <img src="${escapeHtml(thumb)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy">
+          ${v.duration ? `<span style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.8);color:#fff;font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;">${escapeHtml(v.duration)}</span>` : ''}
+          ${v.timeAgo ? `<span style="position:absolute;top:6px;left:6px;background:rgba(31,86,184,0.88);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">${escapeHtml(v.timeAgo)}</span>` : ''}
+        </div>
+        <div style="padding:10px;flex:1;display:flex;flex-direction:column;justify-content:space-between;">
+          <div style="font-size:12.5px;font-weight:600;color:var(--text,#111);line-height:1.35;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;" title="${escapeHtml(v.title)}">
+            ${escapeHtml(v.title)}
+          </div>
+          <a href="https://www.youtube.com/watch?v=${v.videoId}" target="_blank" rel="noopener" style="font-size:11px;color:#3b82f6;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+            YouTube'da ko'rish ➔
+          </a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadFifaHighlights() {
+  if (fifaHighlightsLoaded) return;
+  try {
+    const res = await fetch('/api/categories?type=fifa-highlights', { cache: 'no-store' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    const input = document.getElementById('fifaHighlightsChannelUrl');
+    if (input) input.value = json.channelUrl || '';
+    renderFifaHighlightsPreview(json.videos || []);
+    fifaHighlightsLoaded = true;
+  } catch (err) {
+    setFifaHighlightsStatus(`Yuklashda xato: ${err.message}`, 'error');
+  }
+}
+
+async function saveFifaHighlights() {
+  const input = document.getElementById('fifaHighlightsChannelUrl');
+  const channelUrl = (input?.value || '').trim();
+  if (!channelUrl) {
+    setFifaHighlightsStatus("YouTube kanal havolasini kiriting.", 'error');
+    return;
+  }
+
+  setFifaHighlightsStatus("Kanal tekshirilmoqda va videolar yuklanmoqda...", 'info');
+  try {
+    const res = await fetch('/api/categories?type=fifa-highlights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channelUrl }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    renderFifaHighlightsPreview(json.videos || []);
+    const count = json.count || (json.videos || []).length;
+    setFifaHighlightsStatus(`Muvaffaqiyatli saqlandi! ${count} ta o'yin videosi topildi va mini app'da ko'rinadi.`, 'ok');
+  } catch (err) {
+    setFifaHighlightsStatus(`Xato: ${err.message}`, 'error');
+  }
+}
+
+async function deleteFifaHighlights() {
+  if (!confirm("YouTube highlights kanalini o'chirmoqchimisiz? Mini app'da o'yinlar sharhi card'lari ko'rinmay qoladi.")) return;
+  setFifaHighlightsStatus("O'chirilmoqda...", 'info');
+  try {
+    const res = await fetch('/api/categories?type=fifa-highlights', { method: 'DELETE' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    const input = document.getElementById('fifaHighlightsChannelUrl');
+    if (input) input.value = '';
+    renderFifaHighlightsPreview([]);
+    setFifaHighlightsStatus("O'chirildi. Mini app'da highlight card'lari yashirildi.", 'ok');
+  } catch (err) {
+    setFifaHighlightsStatus(`Xato: ${err.message}`, 'error');
+  }
+}
+
+document.getElementById('fifaHighlightsSaveBtn')?.addEventListener('click', saveFifaHighlights);
+document.getElementById('fifaHighlightsDeleteBtn')?.addEventListener('click', deleteFifaHighlights);
 
 
 // ============================================================

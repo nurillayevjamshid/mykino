@@ -58,7 +58,7 @@
       timeline: "Voqealar xronologiyasi",
       noStatsYet: "O'yin statistikasi tez orada yangilanadi.",
       matchDetailsUnavailable: "O'yin ma'lumotlari hali mavjud emas.",
-      favoritesTab: "⭐ Sevimlilar",
+      favoritesTab: "Mening jamoam",
       favoritesTitle: "Saqlangan matchlar va gollar",
       noFavoritesTitle: "Sevimli o'yinlar hali yo'q",
       noFavoritesText: "O'zingiz yoqtirgan jamoalar (Real Madrid, Arsenal, Paxtakor...) o'yinlarini va gollarini bitta joyga yig'ish uchun matchlardagi ⭐ belgisini bosing.",
@@ -113,7 +113,7 @@
       timeline: "Хронология событий",
       noStatsYet: "Статистика матча скоро обновится.",
       matchDetailsUnavailable: "Информация о матче пока недоступна.",
-      favoritesTab: "⭐ Избранное",
+      favoritesTab: "Моя команда",
       favoritesTitle: "Сохранённые матчи и голы",
       noFavoritesTitle: "Нет избранных матчей",
       noFavoritesText: "Нажмите на ⭐ в карточке матча, чтобы сохранить любимые игры и голы в одном месте.",
@@ -168,7 +168,7 @@
       timeline: "Timeline",
       noStatsYet: "Match statistics will be available soon.",
       matchDetailsUnavailable: "Match information is not available yet.",
-      favoritesTab: "⭐ Favorites",
+      favoritesTab: "My team",
       favoritesTitle: "Saved matches & goals",
       noFavoritesTitle: "No favorite matches yet",
       noFavoritesText: "Tap the ⭐ on any match card to save your favorite games and goals in one place.",
@@ -580,20 +580,19 @@
     if (!tabBtn) return;
     const favTeamsStore = readFifaFavoriteTeams();
     const teams = Object.values(favTeamsStore || {});
+    const myTeamLabel = F("favoritesTab") || "Mening jamoam";
     if (teams.length === 1) {
       const team = teams[0];
-      tabBtn.textContent = `⭐ ${team.name}`;
+      tabBtn.textContent = team.name;
       tabBtn.removeAttribute("data-i18n");
       tabBtn.title = team.name;
     } else if (teams.length > 1) {
-      const baseText = F("favoritesTab") || "Sevimlilar";
-      const cleanLabel = baseText.replace(/^⭐\s*/, "");
-      tabBtn.textContent = `⭐ ${cleanLabel} (${teams.length})`;
+      tabBtn.textContent = `${myTeamLabel} (${teams.length})`;
       tabBtn.removeAttribute("data-i18n");
       tabBtn.title = teams.map((t) => t.name).join(", ");
     } else {
       tabBtn.setAttribute("data-i18n", "fifaTabFavorites");
-      tabBtn.textContent = F("favoritesTab") || "⭐ Sevimlilar";
+      tabBtn.textContent = myTeamLabel;
       tabBtn.title = "";
     }
   }
@@ -2355,11 +2354,87 @@
     if (fifaPollTimer) { clearInterval(fifaPollTimer); fifaPollTimer = null; }
   }
 
+  // --- YouTube Highlights (Kunlik o'yinlar sharhi) ---
+  let fifaHighlightsCacheData = null;
+  let fifaHighlightsLoadedAt = 0;
+  async function loadAndRenderFifaHighlights() {
+    const wrap = document.getElementById("fifaHighlightsWrap");
+    if (!wrap) return;
+
+    const now = Date.now();
+    if (fifaHighlightsCacheData && now - fifaHighlightsLoadedAt < 120000) {
+      renderFifaHighlightsHtml(wrap, fifaHighlightsCacheData);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/categories?type=fifa-highlights", {
+        headers: { Accept: "application/json" }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const videos = Array.isArray(data?.videos) ? data.videos : [];
+      fifaHighlightsCacheData = videos;
+      fifaHighlightsLoadedAt = now;
+      renderFifaHighlightsHtml(wrap, videos);
+    } catch (err) {
+      console.warn("Fifa highlights load failed:", err);
+      if (!fifaHighlightsCacheData || !fifaHighlightsCacheData.length) {
+        wrap.hidden = true;
+      }
+    }
+  }
+
+  function renderFifaHighlightsHtml(wrap, videos) {
+    if (!videos || !videos.length) {
+      wrap.hidden = true;
+      wrap.innerHTML = "";
+      return;
+    }
+
+    wrap.hidden = false;
+    wrap.innerHTML = `
+      <div class="fifa-highlights-box">
+        <div class="fifa-highlights-head">
+          <div class="fifa-highlights-title-wrap">
+            <span class="fifa-highlights-pulse"></span>
+            <span class="fifa-highlights-title">O'YINLAR SHARHI</span>
+          </div>
+          <span class="fifa-highlights-sub">Oxirgi kunlik videolar</span>
+        </div>
+        <div class="fifa-highlights-scroll" role="region" aria-label="O'yinlar sharhlari">
+          ${videos.map((v) => {
+            const thumb = v.thumb || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
+            const durationBadge = v.duration ? `<span class="fifa-hl-card__duration">${esc(v.duration)}</span>` : "";
+            const timeBadge = v.timeAgo ? `<span class="fifa-hl-card__time">${esc(v.timeAgo)}</span>` : "";
+            return `
+              <div class="fifa-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(v.title)}" role="button" tabindex="0">
+                <div class="fifa-hl-card__media">
+                  <img src="${esc(thumb)}" alt="" class="fifa-hl-card__img" loading="lazy" decoding="async" onerror="this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
+                  <div class="fifa-hl-card__overlay"></div>
+                  <div class="fifa-hl-card__play" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                      <path d="M8 5v14l11-7z"></path>
+                    </svg>
+                  </div>
+                  ${durationBadge}
+                  ${timeBadge}
+                  <div class="fifa-hl-card__title" title="${esc(v.title)}">${esc(v.title)}</div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
   async function openFifaView() {
     fifaView.hidden = false;
     document.body.classList.add("is-fifa");
     renderFifaLivePromo();
     syncFifaLiveConfig();
+    try { loadAndRenderFifaHighlights(); } catch (_) {}
     // Loading placeholder darhol ko'rinsin
     renderMatches();
     renderGroups();
@@ -2682,8 +2757,8 @@
     // --- TAB 1: VOQEALAR (Match Events Timeline - Image 1) ---
     let timelinePaneHtml = "";
     if (hasEvents) {
-      // Sort in reverse chronological order (latest event at top, match start at bottom, as in Image 1)
-      const sortedEvents = [...events].sort((a, b) => (b.clockSec || 0) - (a.clockSec || 0));
+      // Xronologik tartib (o'yin boshlanishi tepada 0', yakuni pastda 90')
+      const sortedEvents = [...events].sort((a, b) => (a.clockSec || 0) - (b.clockSec || 0));
 
       const eventRows = sortedEvents.map((ev) => {
         const isHome = isHomeEvent(ev);
@@ -2750,14 +2825,14 @@
 
       timelinePaneHtml = `
         <div class="fifa-timeline-card">
-          <div class="fifa-tl-milestone fifa-tl-milestone--end">
-            <span>🏁 O'yin yakuni</span>
+          <div class="fifa-tl-milestone fifa-tl-milestone--start">
+            <span>⏱️ O'yin boshlandi • 0'</span>
           </div>
           <div class="fifa-timeline-list">
             ${eventRows}
           </div>
-          <div class="fifa-tl-milestone fifa-tl-milestone--start">
-            <span>⏱️ O'yin boshlandi • 0'</span>
+          <div class="fifa-tl-milestone fifa-tl-milestone--end">
+            <span>🏁 O'yin yakuni</span>
           </div>
         </div>
       `;
@@ -2779,12 +2854,15 @@
       const renderPitchPlayer = (p, side, isSingleView) => {
         let topPct, leftPct;
         if (isSingleView) {
-          // Tactical half-to-full pitch mapping (like Image 2): GK at top 8%, Attackers at bottom 84%
-          topPct = 8 + ((p.x - 0.08) / (0.46 - 0.08 || 1)) * 76;
+          // Tactical pitch mapping: Darvozabon maydon pastida (84%), Hujumchilar maydon tepasida (12%)
+          const progress = Math.max(0, Math.min(1, (p.x - 0.08) / (0.46 - 0.08 || 1)));
+          topPct = 84 - (progress * 72);
           leftPct = p.y * 100;
         } else {
-          // Both teams on field: Home on top (5%-45%), Away on bottom (55%-95%)
-          topPct = side === "home" ? (5 + (p.x / 0.5) * 40) : (95 - (p.x / 0.5) * 40);
+          // Ikkala jamoa maydonda:
+          // Mezbon yuqoriga hujum qiladi: GK pastda (92%), Hujum 54%
+          // Mehmon pastga hujum qiladi: GK tepada (8%), Hujum 46%
+          topPct = side === "home" ? (92 - (p.x / 0.5) * 38) : (8 + (p.x / 0.5) * 38);
           leftPct = side === "home" ? (p.y * 100) : ((1 - p.y) * 100);
         }
 
@@ -3110,6 +3188,22 @@
 
   // Delegate click on matches and favorites panel
   fifaView.addEventListener("click", (e) => {
+    // 0) O'yinlar sharhi (YouTube highlight video) bosilganda
+    const hlCard = e.target.closest?.("[data-fifa-play-highlight]");
+    if (hlCard) {
+      e.stopPropagation();
+      e.preventDefault();
+      try { haptic?.tap?.(); } catch (_) {}
+      const videoId = hlCard.dataset.fifaPlayHighlight;
+      const title = hlCard.dataset.videoTitle || "O'yin sharhi";
+      if (videoId && typeof window.__playYouTubeStandalone === "function") {
+        window.__playYouTubeStandalone(videoId, { title });
+      } else if (videoId) {
+        window.open(`https://www.youtube.com/watch?v=${videoId}`, "_blank");
+      }
+      return;
+    }
+
     // 1) Sevimli jamoa yulduzcha tugmasi (kartochka chap va o'ng tomoni)
     const teamFavBtn = e.target.closest?.(".fifa-team-fav-btn");
     if (teamFavBtn) {
@@ -3263,6 +3357,12 @@
 
   fifaView.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
+      const hlCard = e.target.closest?.("[data-fifa-play-highlight]");
+      if (hlCard) {
+        e.preventDefault();
+        hlCard.click();
+        return;
+      }
       const row = e.target.closest?.("[data-fifa-open-lineup]");
       if (row) {
         e.preventDefault();
@@ -3286,10 +3386,11 @@
     });
   } catch (_) {}
 
-  // Boshlang'ich holatda tab yozuvini yangilash va kelgusi o'yinlarni fon rejimida yuklash
+  // Boshlang'ich holatda tab yozuvini yangilash va kelgusi o'yinlar/highlightlarni fon rejimida yuklash
   try {
     updateFifaTabs();
     ensureUpcomingMatchesLoaded().catch(() => {});
+    loadAndRenderFifaHighlights().catch(() => {});
   } catch (_) {}
 })();
 

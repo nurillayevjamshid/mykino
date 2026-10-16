@@ -346,7 +346,7 @@ const copy = {
     fifaSub: "Kunlik o'yinlar va turnir jadvallari",
     fifaTabMatches: "Kunlik o'yinlar",
     fifaTabGroups: "Turnir jadvali",
-    fifaTabFavorites: "Sevimlilar",
+    fifaTabFavorites: "Mening jamoam",
     fifaBannerAria: "Futbol ligalari bo'limi",
     adLabel: "REKLAMA",
     adSkip: "Reklamani o'tkazib yuborish",
@@ -488,7 +488,7 @@ const copy = {
     fifaSub: "Ежедневные матчи и таблицы",
     fifaTabMatches: "Матчи дня",
     fifaTabGroups: "Турнирная таблица",
-    fifaTabFavorites: "Избранное",
+    fifaTabFavorites: "Моя команда",
     fifaBannerAria: "Раздел футбольных лиг",
     adLabel: "РЕКЛАМА",
     adSkip: "Пропустить рекламу",
@@ -630,7 +630,7 @@ const copy = {
     fifaSub: "Daily matches and league tables",
     fifaTabMatches: "Daily matches",
     fifaTabGroups: "League table",
-    fifaTabFavorites: "Favorites",
+    fifaTabFavorites: "My team",
     fifaBannerAria: "Football leagues section",
     adLabel: "AD",
     adSkip: "Skip ad",
@@ -11486,7 +11486,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261015-match-lineup-timeline";
+    script.src = "/static/fifa/fifa.js?v=20261016-fifa-highlights-lineup-v1";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);

@@ -356,6 +356,7 @@ async function readPersistedSettings(settings) {
     hasOwn(settings, "ticker") ||
     hasOwn(settings, "preRollAd") ||
     hasOwn(settings, "fifaLive") ||
+    hasOwn(settings, "fifaHighlightsChannel") ||
     hasOwn(settings, "esportsStreams")
   ) {
     return {
@@ -364,6 +365,7 @@ async function readPersistedSettings(settings) {
       ticker: normalizeTicker(settings.ticker),
       preRollAd: normalizePreRollAd(settings.preRollAd, settings.adCdn),
       fifaLive: normalizeFifaLive(settings.fifaLive),
+      fifaHighlightsChannel: trimString(settings.fifaHighlightsChannel || "").slice(0, 500),
       esportsStreams: normalizeEsportsStreams(settings.esportsStreams),
     };
   }
@@ -376,6 +378,7 @@ async function readPersistedSettings(settings) {
       ticker: normalizeTicker(folderSettings.ticker),
       preRollAd: normalizePreRollAd(folderSettings.preRollAd, folderSettings.adCdn),
       fifaLive: normalizeFifaLive(folderSettings.fifaLive),
+      fifaHighlightsChannel: trimString(folderSettings.fifaHighlightsChannel || "").slice(0, 500),
       esportsStreams: normalizeEsportsStreams(folderSettings.esportsStreams),
     };
   } catch {
@@ -385,6 +388,7 @@ async function readPersistedSettings(settings) {
       ticker: normalizeTicker(null),
       preRollAd: normalizePreRollAd(null),
       fifaLive: normalizeFifaLive(null),
+      fifaHighlightsChannel: "",
       esportsStreams: normalizeEsportsStreams(null),
     };
   }
@@ -490,6 +494,9 @@ module.exports = async function handler(request, response) {
       if (hasOwn(body, "fifaLive")) {
         nextSettings.fifaLive = normalizeFifaLive(body.fifaLive);
       }
+      if (hasOwn(body, "fifaHighlightsChannel")) {
+        nextSettings.fifaHighlightsChannel = trimString(body.fifaHighlightsChannel).slice(0, 500);
+      }
       if (hasOwn(body, "esportsStreams")) {
         const incoming = body.esportsStreams && typeof body.esportsStreams === "object" ? body.esportsStreams : {};
         nextSettings.esportsStreams = normalizeEsportsStreams(incoming);
@@ -523,6 +530,7 @@ module.exports = async function handler(request, response) {
         ticker: normalizeTicker(nextSettings.ticker),
         preRollAd: normalizePreRollAd(nextSettings.preRollAd),
         fifaLive: normalizeFifaLive(nextSettings.fifaLive),
+        fifaHighlightsChannel: nextSettings.fifaHighlightsChannel || "",
         esportsStreams: normalizeEsportsStreams(nextSettings.esportsStreams),
       });
       return;
