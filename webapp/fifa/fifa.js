@@ -686,6 +686,54 @@
     return { text: `${diffDays} kundan keyin ⏳`, badgeClass: "fifa-next-badge--days" };
   }
 
+  function formatMatchTimeTashkent(kickoffUtc, fallbackTime = "") {
+    if (!kickoffUtc) return fallbackTime;
+    const d = new Date(kickoffUtc);
+    if (Number.isNaN(d.getTime())) return fallbackTime;
+    try {
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Tashkent",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(d);
+    } catch (_) {
+      return fallbackTime;
+    }
+  }
+
+  function formatMatchDateBadgeUz(kickoffUtc) {
+    if (!kickoffUtc) return "";
+    const d = new Date(kickoffUtc);
+    if (Number.isNaN(d.getTime())) return "";
+
+    const monthsUz = [
+      "yanvar", "fevral", "mart", "aprel", "may", "iyun",
+      "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"
+    ];
+    const daysShortUz = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Juma", "Shan"];
+
+    try {
+      const todayKey = getTashkentDateKey();
+      const matchKey = getTashkentDateKey(d);
+      if (matchKey === todayKey) return "Bugun";
+      const tomorrowKey = shiftDateKey(todayKey, 1);
+      if (matchKey === tomorrowKey) return "Ertaga";
+
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Tashkent",
+        day: "numeric",
+        month: "numeric",
+      }).formatToParts(d).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+
+      const dow = daysShortUz[new Date(d.toLocaleString("en-US", { timeZone: "Asia/Tashkent" })).getDay()] || "";
+      const monthName = monthsUz[Number(parts.month) - 1] || "";
+      return dow ? `${dow}, ${parts.day}-${monthName}` : `${parts.day}-${monthName}`;
+    } catch (_) {
+      return "";
+    }
+  }
+
   function formatMatchDateTimeUz(kickoffUtc, defaultTime = "") {
     if (!kickoffUtc) return defaultTime;
     const d = new Date(kickoffUtc);
@@ -720,6 +768,7 @@
     const isAwayFav = isFifaTeamFavorite(m.away);
     const countdown = getMatchCountdownInfo(m.kickoff, m.status);
     const dateFormatted = formatMatchDateTimeUz(m.kickoff, m.time);
+    const tashkentTime = formatMatchTimeTashkent(m.kickoff, m.time);
     const dateIso = m.kickoff ? String(m.kickoff).slice(0, 10) : "";
 
     const leagueLogo = m.leagueLogo
@@ -769,7 +818,7 @@
               ? `<div class="fifa-next-score">${esc(m.score || "-")}</div>
                  <div class="fifa-next-vs" style="color:#ef4444;">${isLive ? (esc(m.minute || 'LIVE')) : 'Tugagan'}</div>`
               : `<div class="fifa-next-vs">VS</div>
-                 <div class="fifa-next-time">${esc(m.time)}</div>`
+                 <div class="fifa-next-time">${esc(tashkentTime)}</div>`
             }
           </div>
 
@@ -785,7 +834,7 @@
 
         <div class="fifa-next-match-card__footer">
           <div class="fifa-next-meta">
-            <div>📅 <strong>${esc(dateFormatted)}</strong></div>
+            <div>📅 <strong>${esc(dateFormatted)}</strong> <span style="opacity:0.8;font-size:11px;">(Toshkent vaqti)</span></div>
             ${m.venue ? `<div>🏟️ ${esc(m.venue)}</div>` : ''}
           </div>
           <button type="button" class="fifa-next-action-btn" aria-label="Tarkiblar">
@@ -797,6 +846,7 @@
         </div>
       </div>
     `;
+
   }
 
   function toggleFifaFavoriteTeam({ name, logo, leagueId }) {
@@ -1020,19 +1070,32 @@
     return teamLogoHtml(league?.logo || "", league?.name || "Liga");
   }
 
-  function renderMatchCard(m) {
+  function renderMatchCard(m, opts = {}) {
     const isLive = m.status === "live";
     const isFinished = m.status === "finished";
+    const tashkentTime = formatMatchTimeTashkent(m.kickoff, m.time);
+    const dateBadge = formatMatchDateBadgeUz(m.kickoff);
+    const showDate = Boolean(opts.showDate) || Boolean(m.showDate);
+    const dateBadgeHtml = (showDate && dateBadge)
+      ? `<span class="fifa-match__date-badge">${esc(dateBadge)}</span>`
+      : "";
+
     let center;
     if (isLive) {
-      center = `<div class="fifa-match__score">${esc(m.score || "-")}</div>
+      center = `
+        ${dateBadgeHtml}
+        <div class="fifa-match__score">${esc(m.score || "-")}</div>
         <div class="fifa-match__status"><span class="fifa-match__status-dot"></span>${esc(m.minute || "LIVE")}</div>`;
     } else if (isFinished) {
-      center = `<div class="fifa-match__score">${esc(m.score || "-")}</div>
+      center = `
+        ${dateBadgeHtml}
+        <div class="fifa-match__score">${esc(m.score || "-")}</div>
         <div class="fifa-match__time">${F("finished")}</div>`;
     } else {
-      center = `<div class="fifa-match__score">vs</div>
-        <div class="fifa-match__time">${esc(m.time)}</div>`;
+      center = `
+        ${dateBadgeHtml}
+        <div class="fifa-match__score">vs</div>
+        <div class="fifa-match__time">${esc(tashkentTime)}</div>`;
     }
     const dateIso = m.kickoff ? String(m.kickoff).slice(0, 10) : "";
     const dataAttr = ` data-fifa-open-lineup="1" data-match-id="${esc(m.id)}" data-league-id="${esc(m.leagueId || '')}" data-home-en="${esc(m.homeEn || m.home)}" data-away-en="${esc(m.awayEn || m.away)}" data-home-uz="${esc(m.home)}" data-away-uz="${esc(m.away)}" data-home-logo="${esc(m.homeLogo || '')}" data-away-logo="${esc(m.awayLogo || '')}" data-score="${esc(m.score || '')}" data-status="${esc(m.status || '')}" data-minute="${esc(m.minute || '')}" data-date="${esc(dateIso)}" role="button" tabindex="0"`;
@@ -1162,7 +1225,7 @@
             </div>`;
         }).join("")
       : `<div class="fifa-live-empty"><div class="fifa-live-empty__icon">📺</div><div class="fifa-live-empty__title">${F("noLiveTitle")}</div><div>${F("noLiveHint")}</div></div>`;
-    const upcomingHtml = upcoming.length ? `<div class="fifa-upcoming-title">${F("upcomingMatches")}</div>${upcoming.map(renderMatchCard).join("")}` : "";
+    const upcomingHtml = upcoming.length ? `<div class="fifa-upcoming-title">${F("upcomingMatches")}</div>${upcoming.map((m) => renderMatchCard(m, { showDate: true })).join("")}` : "";
     panel.innerHTML = liveHtml + upcomingHtml;
   }
 
@@ -1391,11 +1454,11 @@
     if (remainingUpcoming.length > 0) {
       upcomingListHtml = `
         <div class="fifa-fav-section-title">
-          <span>📅 Keyingi o'yinlar taqvimi</span>
+          <span>📅 Keyingi o'yinlar taqvimi (Toshkent vaqti)</span>
           <small>${remainingUpcoming.length} ta o'yin</small>
         </div>
         <div class="fifa-favorites-list">
-          ${remainingUpcoming.map(renderMatchCard).join("")}
+          ${remainingUpcoming.map((m) => renderMatchCard(m, { showDate: true })).join("")}
         </div>
       `;
     }
@@ -1409,7 +1472,7 @@
           <small>${finishedMatches.length} ta o'yin</small>
         </div>
         <div class="fifa-favorites-list">
-          ${finishedMatches.map(renderMatchCard).join("")}
+          ${finishedMatches.map((m) => renderMatchCard(m, { showDate: true })).join("")}
         </div>
       `;
     }

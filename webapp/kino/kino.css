@@ -10601,9 +10601,11 @@ html[data-theme="light"] .fifa-all-hl-card__meta {
   gap: 6px;
   margin: 16px 0 14px;
   padding: 4px;
-  background: var(--surface-2, rgba(255,255,255,.04));
+  background: var(--tg-theme-secondary-bg-color, var(--surface-2, rgba(255,255,255,.05)));
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   width: 100%;
+  box-sizing: border-box;
   touch-action: manipulation !important;
 }
 .fifa-tab {
@@ -10611,27 +10613,36 @@ html[data-theme="light"] .fifa-all-hl-card__meta {
   min-width: 0;
   border: 0;
   background: transparent;
-  color: var(--text-muted, rgba(255,255,255,.6));
-  font-size: 12.5px;
+  color: var(--tg-theme-subtitle-text-color, var(--text-2, rgba(255,255,255,.78)));
+  font-size: 13px;
   font-weight: 600;
-  padding: 9px 4px;
+  padding: 10px 4px;
   border-radius: 9px;
   cursor: pointer;
   touch-action: manipulation !important;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent !important;
-  transition: background .18s ease, color .18s ease;
+  transition: background .18s ease, color .18s ease, transform .12s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
   letter-spacing: -0.2px;
 }
-.fifa-tab.is-active {
-  background: linear-gradient(135deg, #1f56b8, #15327a);
-  color: #fff;
-  box-shadow: 0 6px 16px -8px rgba(31,86,184,.7);
+.fifa-tab:hover {
+  color: var(--tg-theme-text-color, #ffffff);
+}
+.fifa-tab:active {
+  transform: scale(0.98);
+}
+.fifa-tab.is-active,
+html[data-theme="dark"] .fifa-tab.is-active,
+html[data-theme="light"] .fifa-tab.is-active {
+  background: var(--tg-theme-button-color, linear-gradient(135deg, #1f56b8, #15327a)) !important;
+  color: var(--tg-theme-button-text-color, #ffffff) !important;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(31,86,184,.45);
 }
 
 .fifa-panel { display: none; }
@@ -10859,14 +10870,47 @@ html[data-theme="light"] .fifa-spinner { border-color: rgba(59, 130, 246, .15); 
 html[data-theme="light"] .fifa-match,
 html[data-theme="light"] .fifa-group,
 html[data-theme="light"] .fifa-live-empty { background: #f5f6fa; border-color: #e6e8f0; }
-html[data-theme="light"] .fifa-tabs { background: #f0f1f6; }
-html[data-theme="light"] .fifa-tab { color: #5a5f72; }
+html[data-theme="light"] .fifa-tabs {
+  background: var(--tg-theme-secondary-bg-color, #e9ecf3);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+html[data-theme="light"] .fifa-tab {
+  color: var(--tg-theme-subtitle-text-color, #334155);
+}
+html[data-theme="light"] .fifa-tab:hover {
+  color: var(--tg-theme-text-color, #0f172a);
+}
+html[data-theme="light"] .fifa-tab.is-active {
+  background: var(--tg-theme-button-color, linear-gradient(135deg, #2563eb, #1d4ed8)) !important;
+  color: var(--tg-theme-button-text-color, #ffffff) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
 html[data-theme="light"] .fifa-day,
 html[data-theme="light"] .fifa-upcoming-title,
 html[data-theme="light"] .fifa-match__time,
 html[data-theme="light"] .fifa-group__table th { color: #6b7088; }
 html[data-theme="light"] .fifa-group__table th,
 html[data-theme="light"] .fifa-group__table td { border-color: #e6e8f0; }
+
+.fifa-match__date-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 2.5px 6.5px;
+  border-radius: 6px;
+  background: rgba(31, 86, 184, 0.16);
+  color: #60a5fa;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+}
+html[data-theme="light"] .fifa-match__date-badge {
+  background: rgba(37, 99, 235, 0.10);
+  color: #1d4ed8;
+}
 
 /* =========================================================================
    FIFA Lineup modal — pastdan ochiluvchi bottom-sheet
