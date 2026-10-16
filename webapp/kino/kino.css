@@ -12964,6 +12964,7 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
 }
 
 .fifa-team-fav-btn {
+  position: relative;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -12977,6 +12978,12 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), color 0.18s ease;
   z-index: 5;
   flex: 0 0 auto;
+}
+.fifa-team-fav-btn::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
 }
 .fifa-team-fav-btn:active {
   transform: scale(0.85);
@@ -13422,24 +13429,39 @@ html[data-theme="light"] .fifa-fav-filter-chip.is-active {
   word-break: break-word;
 }
 .fifa-next-team__fav-pill {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #f59e0b;
-  background: rgba(245, 158, 11, 0.14);
-  padding: 3px 8px;
+  background: rgba(245, 158, 11, 0.16);
+  padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid rgba(245, 158, 11, 0.35);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   font-family: inherit;
-  transition: transform 0.14s ease, background 0.14s ease;
+  transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease;
   -webkit-tap-highlight-color: transparent;
+}
+.fifa-next-team__fav-pill:not(.is-active) {
+  color: var(--text-2, rgba(255, 255, 255, 0.7));
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 .fifa-next-team__fav-pill:active {
   transform: scale(0.92);
   background: rgba(245, 158, 11, 0.28);
+}
+html[data-theme="light"] .fifa-next-team__fav-pill:not(.is-active) {
+  color: #475569;
+  background: #f1f5f9;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+html[data-theme="light"] .fifa-next-team__fav-pill.is-active {
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.4);
 }
 
 .fifa-next-center {
@@ -13637,4 +13659,132 @@ button,
 .fifa-fav-teams-chips,
 .fifa-popular-teams-grid {
   touch-action: pan-x manipulation !important;
+}
+
+/* ============================================================
+   FIFA CUSTOM CONFIRMATION MODAL (Sevimlilardan o'chirish)
+   ============================================================ */
+.fifa-confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10005;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fifa-confirm-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fifa-confirm-modal[hidden] {
+  display: none !important;
+}
+
+.fifa-confirm-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.fifa-confirm-modal__dialog {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 330px;
+  background: var(--bg-elevated, #161b2a);
+  border: 1px solid var(--w-16, rgba(255, 255, 255, 0.16));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  border-radius: 24px;
+  padding: 24px 20px 20px;
+  text-align: center;
+  color: var(--text-1, #f7f7fb);
+  transform: scale(0.92) translateY(12px);
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fifa-confirm-modal.is-open .fifa-confirm-modal__dialog {
+  transform: scale(1) translateY(0);
+}
+
+.fifa-confirm-modal__icon {
+  font-size: 38px;
+  margin-bottom: 10px;
+  line-height: 1;
+}
+
+.fifa-confirm-modal__title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-1, #f7f7fb);
+}
+
+.fifa-confirm-modal__message {
+  margin: 0 0 22px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-2, rgba(236, 239, 247, 0.8));
+}
+
+.fifa-confirm-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.fifa-confirm-modal__btn {
+  height: 44px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: transform 0.14s ease, opacity 0.14s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fifa-confirm-modal__btn:active {
+  transform: scale(0.96);
+}
+
+.fifa-confirm-modal__btn--cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-2, #ddd);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.fifa-confirm-modal__btn--confirm {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
+}
+
+/* Light theme confirmation modal */
+html[data-theme="light"] .fifa-confirm-modal__dialog {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #111827;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+}
+html[data-theme="light"] .fifa-confirm-modal__title {
+  color: #111827;
+}
+html[data-theme="light"] .fifa-confirm-modal__message {
+  color: #4b5563;
+}
+html[data-theme="light"] .fifa-confirm-modal__btn--cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
 }
