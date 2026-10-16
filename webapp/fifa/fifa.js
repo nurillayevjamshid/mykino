@@ -2525,7 +2525,7 @@
         const videoId = hlCard.dataset.fifaPlayHighlight;
         const title = hlCard.dataset.videoTitle || "O'yin sharhi";
         if (videoId && typeof window.__playYouTubeStandalone === "function") {
-          window.__playYouTubeStandalone(videoId, { title });
+          window.__playYouTubeStandalone(videoId, { title, isHighlight: true, _podcast: false });
         } else if (videoId) {
           window.open(`https://www.youtube.com/watch?v=${videoId}`, "_blank");
         }
@@ -3433,7 +3433,7 @@
       const videoId = hlCard.dataset.fifaPlayHighlight;
       const title = hlCard.dataset.videoTitle || "O'yin sharhi";
       if (videoId && typeof window.__playYouTubeStandalone === "function") {
-        window.__playYouTubeStandalone(videoId, { title });
+        window.__playYouTubeStandalone(videoId, { title, isHighlight: true, _podcast: false });
       } else if (videoId) {
         window.open(`https://www.youtube.com/watch?v=${videoId}`, "_blank");
       }

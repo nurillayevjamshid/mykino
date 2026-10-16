@@ -2849,7 +2849,7 @@ html[data-theme="light"] .watch-button.watch-button--pill {
 .video-player {
   position: fixed;
   inset: 0;
-  z-index: 150;
+  z-index: 200000;
   background: #000;
   color: #fff;
   overflow: hidden;
@@ -2914,7 +2914,7 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   max-height: none !important;
   border-radius: 14px !important;
   overflow: hidden !important;
-  z-index: 950 !important;
+  z-index: 200010 !important;
   box-shadow:
     0 12px 36px rgba(0, 0, 0, 0.8),
     0 0 0 1px rgba(255, 255, 255, 0.2) !important;
@@ -10323,7 +10323,7 @@ html[data-theme="light"] .fifa-highlights-head:hover .fifa-highlights-arrow-btn 
   width: 100%;
   height: 100vh;
   height: 100dvh;
-  z-index: 100010;
+  z-index: 50000;
   background: var(--bg, #0b0e14);
   color: var(--c-text, #fff);
   display: flex;

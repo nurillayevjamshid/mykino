@@ -6628,7 +6628,8 @@ function closeVideoPlayer(options = {}) {
 
   // Podkast ko'rilayotganda foydalanuvchi orqaga yoki yopish bosgan bo'lsa (forceClose bo'lmasa):
   // pleyer butunlay yopilmaydi, balki suzuvchi mini-ekran (floating PiP) bo'lib davom etadi!
-  if (!forceClose && activeMovie?._podcast && !isMiniScreenActive()) {
+  // DIQQAT: O'yin sharhlari (highlights) yoki noMini bo'lsa mini-ekranga kirmaydi, butunlay yopiladi!
+  if (!forceClose && activeMovie?._podcast && !activeMovie?._highlight && !activeMovie?._noMiniOnBack && !isMiniScreenActive()) {
     enterMiniScreen();
     return;
   }
@@ -6702,14 +6703,21 @@ function closeVideoPlayer(options = {}) {
 window.__playYouTubeStandalone = function (videoId, opts = {}) {
   const id = String(videoId || "").trim();
   if (!id) return;
+  const isPodcast = opts._podcast !== undefined ? Boolean(opts._podcast) : !opts.isHighlight;
   const pseudoMovie = {
     id: `_yt_${id}`,
     title: String(opts.title || "Video"),
     youtubeVideoId: id,
-    _podcast: true,
+    _podcast: isPodcast,
+    _highlight: Boolean(opts.isHighlight),
+    _noMiniOnBack: Boolean(opts.noMiniOnBack || opts.isHighlight || opts._podcast === false),
   };
   // startFromBeginning bermasak — kinolardagidek saqlangan joydan davom etadi.
-  return openVideoPlayer(pseudoMovie, { _podcast: true, startFromBeginning: Boolean(opts.startFromBeginning) });
+  return openVideoPlayer(pseudoMovie, {
+    _podcast: isPodcast,
+    _highlight: Boolean(opts.isHighlight),
+    startFromBeginning: Boolean(opts.startFromBeginning)
+  });
 };
 
 window.__kinoVideo = {
@@ -11539,7 +11547,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261016-fifa-highlights-v4";
+    script.src = "/static/fifa/fifa.js?v=20261016-fifa-hl-player-v5";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
