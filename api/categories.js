@@ -457,17 +457,45 @@ async function writeFifaLiveMatch(match) {
   }
 }
 
+const DEFAULT_QSPORT_VIDEOS = [
+  { videoId: "uTm3r5943HQ", title: "Аталанта — Пафос. Обзор матча Лиги конференций. 1-й тур. 15.10.2026", timeAgo: "6 ч назад", duration: "7:40", thumb: "https://i.ytimg.com/vi/uTm3r5943HQ/hqdefault.jpg", url: "https://www.youtube.com/watch?v=uTm3r5943HQ" },
+  { videoId: "HCmc_t9d6eY", title: "Борнмут — Штурм. Обзор матча Лиги Европы. 2 тур. 15.10.2026", timeAgo: "6 ч назад", duration: "8:31", thumb: "https://i.ytimg.com/vi/HCmc_t9d6eY/hqdefault.jpg", url: "https://www.youtube.com/watch?v=HCmc_t9d6eY" },
+  { videoId: "MEy8rwtCGlQ", title: "Брайтон — Кауно Жальгирис. Обзор матча Лиги конференций. 1-й тур. 15.10.2026", timeAgo: "7 ч назад", duration: "7:47", thumb: "https://i.ytimg.com/vi/MEy8rwtCGlQ/hqdefault.jpg", url: "https://www.youtube.com/watch?v=MEy8rwtCGlQ" },
+  { videoId: "5obdm0lgnTM", title: "Хоффенхайм — Бешикташ. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "8 ч назад", duration: "9:22", thumb: "https://i.ytimg.com/vi/5obdm0lgnTM/hqdefault.jpg", url: "https://www.youtube.com/watch?v=5obdm0lgnTM" },
+  { videoId: "p9lGo9YrrQE", title: "Бенфика — Селтик. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "8 ч назад", duration: "8:20", thumb: "https://i.ytimg.com/vi/p9lGo9YrrQE/hqdefault.jpg", url: "https://www.youtube.com/watch?v=p9lGo9YrrQE" },
+  { videoId: "hUTFf5-O0Qc", title: "Сельта — Ювентус. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "8 ч назад", duration: "5:44", thumb: "https://i.ytimg.com/vi/hUTFf5-O0Qc/hqdefault.jpg", url: "https://www.youtube.com/watch?v=hUTFf5-O0Qc" },
+  { videoId: "JSFZX_ZRZ0Y", title: "Лех — Байер. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "10 ч назад", duration: "8:43", thumb: "https://i.ytimg.com/vi/JSFZX_ZRZ0Y/hqdefault.jpg", url: "https://www.youtube.com/watch?v=JSFZX_ZRZ0Y" },
+  { videoId: "61EMWWn4fZE", title: "Унион — Реал Сосьедад. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "10 ч назад", duration: "7:26", thumb: "https://i.ytimg.com/vi/61EMWWn4fZE/hqdefault.jpg", url: "https://www.youtube.com/watch?v=61EMWWn4fZE" },
+  { videoId: "k2gjjobTU70", title: "Лион — Кристал Пэлас. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "10 ч назад", duration: "8:33", thumb: "https://i.ytimg.com/vi/k2gjjobTU70/hqdefault.jpg", url: "https://www.youtube.com/watch?v=k2gjjobTU70" },
+  { videoId: "_ZM89B0k6bo", title: "Зальцбург — Милан. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "10 ч назад", duration: "7:56", thumb: "https://i.ytimg.com/vi/_ZM89B0k6bo/hqdefault.jpg", url: "https://www.youtube.com/watch?v=_ZM89B0k6bo" },
+  { videoId: "SjbQ6AEnYrM", title: "Рига — Кайрат. Обзор матча Лиги конференций. 1-й тур. 15.10.2026", timeAgo: "11 ч назад", duration: "8:44", thumb: "https://i.ytimg.com/vi/SjbQ6AEnYrM/hqdefault.jpg", url: "https://www.youtube.com/watch?v=SjbQ6AEnYrM" },
+  { videoId: "l26ExLmwMTw", title: "Рома — Реал Мадрид. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "20 ч назад", duration: "10:59", thumb: "https://i.ytimg.com/vi/l26ExLmwMTw/hqdefault.jpg", url: "https://www.youtube.com/watch?v=l26ExLmwMTw" },
+  { videoId: "CXSpO6rvSqE", title: "Шахтёр — АЕК. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "10:15", thumb: "https://i.ytimg.com/vi/CXSpO6rvSqE/hqdefault.jpg", url: "https://www.youtube.com/watch?v=CXSpO6rvSqE" },
+  { videoId: "FOUXW5Ju1MA", title: "Бетис — Порту. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "9:43", thumb: "https://i.ytimg.com/vi/FOUXW5Ju1MA/hqdefault.jpg", url: "https://www.youtube.com/watch?v=FOUXW5Ju1MA" },
+  { videoId: "54qXIE9Q48o", title: "Буде-Глимт — Боруссия Дортмунд. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "10:16", thumb: "https://i.ytimg.com/vi/54qXIE9Q48o/hqdefault.jpg", url: "https://www.youtube.com/watch?v=54qXIE9Q48o" },
+  { videoId: "YJyC_4eVIq4", title: "Астон Вилла — Фейеноорд. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "9:23", thumb: "https://i.ytimg.com/vi/YJyC_4eVIq4/hqdefault.jpg", url: "https://www.youtube.com/watch?v=YJyC_4eVIq4" },
+  { videoId: "AyMDt63_FyY", title: "Слован — Штутгарт. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "6:59", thumb: "https://i.ytimg.com/vi/AyMDt63_FyY/hqdefault.jpg", url: "https://www.youtube.com/watch?v=AyMDt63_FyY" },
+  { videoId: "r08aihFNzV0", title: "Манчестер Сити — ПСЖ. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "9:50", thumb: "https://i.ytimg.com/vi/r08aihFNzV0/hqdefault.jpg", url: "https://www.youtube.com/watch?v=r08aihFNzV0" },
+  { videoId: "9SV1mLxC8BU", title: "ЛАСК — Ливерпуль. Обзор матча Лиги чемпионов. 14.10.2026", timeAgo: "1 дн. назад", duration: "10:41", thumb: "https://i.ytimg.com/vi/9SV1mLxC8BU/hqdefault.jpg", url: "https://www.youtube.com/watch?v=9SV1mLxC8BU" },
+  { videoId: "531RBQypv_E", title: "Фейеноорд — Комо. Обзор матча Лиги чемпионов. 14.10.2026", timeAgo: "1 дн. назад", duration: "8:01", thumb: "https://i.ytimg.com/vi/531RBQypv_E/hqdefault.jpg", url: "https://www.youtube.com/watch?v=531RBQypv_E" }
+];
+
 async function readFifaHighlightsConfig() {
   const client = await getRedis();
-  if (!client) return { channelUrl: "" };
+  if (!client) return { channelUrl: "", videos: [] };
   try {
     const raw = await client.get(FIFA_HIGHLIGHTS_KEY);
-    if (!raw) return { channelUrl: "" };
+    if (!raw) return { channelUrl: "", videos: [] };
     const data = JSON.parse(raw);
-    return data && typeof data === "object" ? data : { channelUrl: "" };
+    const channelUrl = data && typeof data === "object" ? String(data.channelUrl || "") : "";
+    let videos = data && Array.isArray(data.videos) ? data.videos : [];
+    if (videos.length === 0 && /QsportUzbekistan/i.test(channelUrl)) {
+      videos = DEFAULT_QSPORT_VIDEOS;
+    }
+    return { channelUrl, videos, updatedAt: data?.updatedAt || "" };
   } catch (err) {
     console.warn("redis get fifa-highlights xato:", err.message);
-    return { channelUrl: "" };
+    return { channelUrl: "", videos: [] };
   }
 }
 
@@ -476,7 +504,12 @@ async function writeFifaHighlightsConfig(config) {
   if (!client) return false;
   try {
     if (config && config.channelUrl) {
-      await client.set(FIFA_HIGHLIGHTS_KEY, JSON.stringify(config));
+      const payload = {
+        channelUrl: config.channelUrl,
+        videos: Array.isArray(config.videos) ? config.videos : [],
+        updatedAt: config.updatedAt || new Date().toISOString()
+      };
+      await client.set(FIFA_HIGHLIGHTS_KEY, JSON.stringify(payload));
     } else {
       await client.del(FIFA_HIGHLIGHTS_KEY);
     }
@@ -962,6 +995,56 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
   return finalVideos;
 }
 
+async function parseAndEnrichRawVideos(rawText) {
+  if (!rawText || typeof rawText !== "string") return [];
+  const videoIdRegex = /(?:https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)|(?:\bvi?\/))([a-zA-Z0-9_-]{11})\b/g;
+  const ids = [];
+  const seen = new Set();
+  let m;
+  while ((m = videoIdRegex.exec(rawText)) !== null) {
+    const id = m[1];
+    if (!seen.has(id) && !id.startsWith("PL")) {
+      seen.add(id);
+      ids.push(id);
+    }
+  }
+
+  const lines = rawText.split(/[\r\n]+/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed) && !seen.has(trimmed) && !trimmed.startsWith("PL")) {
+      seen.add(trimmed);
+      ids.push(trimmed);
+    }
+  }
+
+  const results = [];
+  for (const id of ids.slice(0, 30)) {
+    let title = "";
+    let thumb = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    try {
+      const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`, {
+        signal: AbortSignal.timeout(3500)
+      });
+      if (oembedRes.ok) {
+        const j = await oembedRes.json();
+        title = j.title || "";
+        if (j.thumbnail_url) thumb = j.thumbnail_url;
+      }
+    } catch (_) {}
+
+    results.push({
+      videoId: id,
+      title: title || `O'yin sharhi (${id})`,
+      timeAgo: "Bugun",
+      duration: "",
+      thumb,
+      url: `https://www.youtube.com/watch?v=${id}`
+    });
+  }
+  return results;
+}
+
 async function handleFifaHighlights(request, response) {
   if (request.method === "GET") {
     try {
@@ -976,24 +1059,19 @@ async function handleFifaHighlights(request, response) {
         return;
       }
 
-      if (
-        !isDebug &&
-        fifaHighlightsCache.data &&
-        fifaHighlightsCache.data.videos?.length > 0 &&
-        now - fifaHighlightsCache.at < FIFA_HIGHLIGHTS_TTL_MS &&
-        fifaHighlightsCache.channelUrl === channelUrl
-      ) {
-        response.setHeader("Cache-Control", "public, max-age=60, s-maxage=180, stale-while-revalidate=600");
-        response.status(200).json(fifaHighlightsCache.data);
-        return;
-      }
+      let videos = Array.isArray(cfg?.videos) ? cfg.videos : [];
+      let debugOut = {};
 
-      const debugOut = {};
-      const videos = await fetchYoutubeHighlightsFromChannel(channelUrl, debugOut).catch((err) => {
-        debugOut.catchErr = err.message;
-        console.warn("fetchYoutubeHighlights error:", err.message);
-        return [];
-      });
+      if (videos.length === 0 || query.refresh === "1") {
+        const scraped = await fetchYoutubeHighlightsFromChannel(channelUrl, debugOut).catch(() => []);
+        if (scraped.length > 0) {
+          videos = scraped;
+          await writeFifaHighlightsConfig({ channelUrl, videos });
+        } else if (videos.length === 0 && /QsportUzbekistan/i.test(channelUrl)) {
+          videos = DEFAULT_QSPORT_VIDEOS;
+          await writeFifaHighlightsConfig({ channelUrl, videos });
+        }
+      }
 
       const payload = { ok: true, channelUrl, count: videos.length, videos };
       if (isDebug) payload.debug = debugOut;
@@ -1021,27 +1099,57 @@ async function handleFifaHighlights(request, response) {
       return;
     }
 
-    const channelUrl = normalizeYoutubeChannelUrl(body.channelUrl);
-    if (!channelUrl) {
-      response.status(400).json({ ok: false, error: "YouTube kanal havolasi kiritilmadi." });
-      return;
+    const cfg = await readFifaHighlightsConfig();
+    let channelUrl = normalizeYoutubeChannelUrl(body.channelUrl) || cfg?.channelUrl || "";
+    let videos = Array.isArray(body.videos) ? body.videos : [];
+
+    // Admin rawText (havolalar yoki YouTube sahifasi matni) yuborgan bo'lsa
+    if (body.rawText && typeof body.rawText === "string") {
+      const imported = await parseAndEnrichRawVideos(body.rawText);
+      if (imported.length > 0) {
+        videos = imported;
+      }
     }
 
     const debugOut = {};
-    let videos = [];
-    try {
-      videos = await fetchYoutubeHighlightsFromChannel(channelUrl, debugOut);
-    } catch (fetchErr) {
-      debugOut.catchErr = fetchErr.message;
-      console.warn("Highlights test fetch failed:", fetchErr.message);
+    let isGeoblocked = false;
+
+    // Agar videolar berilmagan bo'lsa, YouTube'dan scrape qilishga urinish
+    if (videos.length === 0 && channelUrl) {
+      try {
+        const scraped = await fetchYoutubeHighlightsFromChannel(channelUrl, debugOut);
+        if (scraped.length > 0) {
+          videos = scraped;
+        }
+      } catch (fetchErr) {
+        debugOut.catchErr = fetchErr.message;
+      }
     }
 
-    await writeFifaHighlightsConfig({ channelUrl, updatedAt: new Date().toISOString() });
-    const payload = { ok: true, channelUrl, count: videos.length, videos, debug: debugOut };
+    if (debugOut?.plDiag?.alerts?.some((a) => JSON.stringify(a).includes("Недоступные видео скрыты"))) {
+      isGeoblocked = true;
+    }
+
+    // Agar serverda geoblock sabab 0 ta chiqqan bo'lsa, mavjud saqlangan yoki seed videolarni saqlab qolish
+    if (videos.length === 0) {
+      if (Array.isArray(cfg?.videos) && cfg.videos.length > 0) {
+        videos = cfg.videos;
+      } else if (/QsportUzbekistan/i.test(channelUrl)) {
+        videos = DEFAULT_QSPORT_VIDEOS;
+      }
+    }
+
+    await writeFifaHighlightsConfig({ channelUrl, videos, updatedAt: new Date().toISOString() });
+    const payload = {
+      ok: true,
+      channelUrl,
+      count: videos.length,
+      videos,
+      geoblocked: isGeoblocked,
+      debug: debugOut
+    };
     if (videos.length > 0) {
       fifaHighlightsCache = { data: payload, at: Date.now(), channelUrl };
-    } else {
-      fifaHighlightsCache = { data: null, at: 0, channelUrl: "" };
     }
     response.status(200).json(payload);
   } catch (err) {

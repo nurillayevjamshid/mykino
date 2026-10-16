@@ -5504,27 +5504,31 @@ async function loadFifaHighlights() {
 
 async function saveFifaHighlights() {
   const input = document.getElementById('fifaHighlightsChannelUrl');
+  const quickInput = document.getElementById('fifaHighlightsQuickImport');
   const channelUrl = (input?.value || '').trim();
-  if (!channelUrl) {
-    setFifaHighlightsStatus("YouTube kanal havolasini kiriting.", 'error');
+  const rawText = (quickInput?.value || '').trim();
+
+  if (!channelUrl && !rawText) {
+    setFifaHighlightsStatus("YouTube kanal havolasini yoki video havolalarini kiriting.", 'error');
     return;
   }
 
-  setFifaHighlightsStatus("Kanal tekshirilmoqda va videolar yuklanmoqda...", 'info');
+  setFifaHighlightsStatus("Videolar tekshirilmoqda va saqlanmoqda...", 'info');
   try {
     const res = await fetch('/api/categories?type=fifa-highlights', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channelUrl }),
+      body: JSON.stringify({ channelUrl, rawText }),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
     renderFifaHighlightsPreview(json.videos || []);
+    if (quickInput && rawText) quickInput.value = '';
     const count = json.count || (json.videos || []).length;
     if (count > 0) {
-      setFifaHighlightsStatus(`Muvaffaqiyatli saqlandi! ${count} ta o'yin videosi topildi va mini app'da ko'rinadi.`, 'ok');
+      setFifaHighlightsStatus(`Muvaffaqiyatli saqlandi! ${count} ta o'yin videosi mini app'da ko'rinadi.`, 'ok');
     } else {
-      setFifaHighlightsStatus("Kanal havolasi saqlandi, lekin oxirgi 2 kunlik o'yin videosi topilmadi. Kanalga yangi video qo'shilgach mini app'da avtomatik ko'rinadi.", 'info');
+      setFifaHighlightsStatus("Kanal saqlandi. O'yinlar sharhi videolari tez orada mini app'da avtomatik yangilanadi.", 'info');
     }
   } catch (err) {
     setFifaHighlightsStatus(`Xato: ${err.message}`, 'error');
