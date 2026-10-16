@@ -745,6 +745,7 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
     data = JSON.parse(jsonMatch[1]);
     if (debugOut) {
       debugOut.ytKeys = Object.keys(data);
+      let rgr = null;
       const tabs = [];
       const scanTabs = (o) => {
         if (!o || typeof o !== "object") return;
@@ -756,10 +757,16 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
             contentKeys: Object.keys(o.tabRenderer.content || {}),
           });
         }
+        if (o.richGridRenderer) rgr = o.richGridRenderer;
         for (const k of Object.keys(o)) scanTabs(o[k]);
       };
       scanTabs(data);
       debugOut.tabs = tabs;
+      if (rgr) {
+        debugOut.rgrLen = rgr.contents?.length || 0;
+        debugOut.firstContentKeys = rgr.contents?.[0] ? Object.keys(rgr.contents[0].richItemRenderer?.content || rgr.contents[0]) : [];
+        debugOut.firstItemSample = JSON.stringify(rgr.contents?.[0] || {}).slice(0, 300);
+      }
     }
   } catch (parseErr) {
     if (debugOut) debugOut.parseErr = parseErr.message;
