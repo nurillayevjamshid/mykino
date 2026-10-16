@@ -389,6 +389,15 @@
             try {
               const cloudStore = JSON.parse(val);
               if (cloudStore && typeof cloudStore === "object") {
+                const favTeams = readFifaFavoriteTeams();
+                if (!Object.keys(favTeams || {}).length) {
+                  // Foydalanuvchi jamoalarni tozalagan bo'lsa, cloud storage'dan eski matchlarni qayta olmaslik
+                  localStorage.removeItem(FIFA_FAVORITES_KEY);
+                  if (typeof cs.setItem === "function") {
+                    cs.setItem(FIFA_FAVORITES_KEY, "{}", () => {});
+                  }
+                  return;
+                }
                 const localStore = readFifaFavorites();
                 const merged = Object.assign({}, localStore, cloudStore);
                 localStorage.setItem(FIFA_FAVORITES_KEY, JSON.stringify(merged));
@@ -545,36 +554,58 @@
     "man utd": "manchester united",
     "manchester united": "man utd",
     "man united": "manchester united",
+    "манчестер юнайтед": "man utd",
+    "mancester yunayted": "man utd",
     "man city": "manchester city",
     "manchester city": "man city",
+    "манчестер сити": "man city",
+    "mancester siti": "man city",
     "inter": "inter milan",
     "inter milan": "inter",
     "internazionale": "inter milan",
+    "интер": "inter milan",
     "bayern": "bayern munich",
     "bayern munich": "bayern",
     "bayern münchen": "bayern munich",
+    "бавария": "bayern munich",
+    "bavariya": "bayern munich",
     "juve": "juventus",
     "juventus": "juve",
+    "ювентус": "juve",
     "real": "real madrid",
     "real madrid": "real madrid",
+    "реал": "real madrid",
+    "реал мадрид": "real madrid",
     "barca": "barcelona",
     "barça": "barcelona",
     "barcelona": "barcelona",
+    "барселона": "barcelona",
     "atletico": "atletico madrid",
     "atletico madrid": "atletico",
     "atlético madrid": "atletico madrid",
+    "атлетико": "atletico madrid",
     "liverpool": "liverpool",
+    "ливерпуль": "liverpool",
     "chelsea": "chelsea",
+    "chelsi": "chelsea",
+    "челси": "chelsea",
+    "everton": "everton",
+    "эвертон": "everton",
     "arsenal": "arsenal",
+    "арсенал": "arsenal",
     "tottenham": "tottenham hotspur",
     "tottenham hotspur": "tottenham",
     "spurs": "tottenham hotspur",
+    "тоттенхэм": "tottenham hotspur",
     "dortmund": "borussia dortmund",
     "borussia dortmund": "dortmund",
+    "дортмунд": "borussia dortmund",
     "milan": "ac milan",
     "ac milan": "milan",
+    "милан": "ac milan",
     "roma": "as roma",
-    "as roma": "roma"
+    "as roma": "roma",
+    "рома": "as roma"
   };
 
   function teamNamesMatch(nameA, nameB) {
@@ -583,7 +614,7 @@
       .trim()
       .toLowerCase()
       .replace(/\b(fc|cf|sc|afc|fk|ac|as)\b/g, "")
-      .replace(/[^a-z0-9]/g, "");
+      .replace(/[^a-z0-9а-яё]/gi, "");
     const c1 = clean(nameA);
     const c2 = clean(nameB);
     if (!c1 || !c2) return false;
@@ -594,6 +625,7 @@
     if (raw1 === raw2) return true;
     if (TEAM_ALIASES[raw1] && (TEAM_ALIASES[raw1] === raw2 || clean(TEAM_ALIASES[raw1]) === c2)) return true;
     if (TEAM_ALIASES[raw2] && (TEAM_ALIASES[raw2] === raw1 || clean(TEAM_ALIASES[raw2]) === c1)) return true;
+    if (TEAM_ALIASES[raw1] && TEAM_ALIASES[raw2] && TEAM_ALIASES[raw1] === TEAM_ALIASES[raw2]) return true;
 
     // Substring match only if both are non-trivial length and difference is minor (prefix/suffix)
     const minLen = Math.min(c1.length, c2.length);
@@ -925,7 +957,14 @@
     if (changed) {
       writeFifaFavoriteTeams(store);
     }
-    removeFavoriteTeamMatches(teamName);
+    const remainingTeams = Object.keys(store);
+    if (!remainingTeams.length) {
+      // Hamma jamoa o'chirilgan — barcha saqlangan matchlar ham to'liq o'chiriladi!
+      writeFifaFavorites({});
+      activeFavTeamFilter = "all";
+    } else {
+      removeFavoriteTeamMatches(teamName);
+    }
     return true;
   }
 
@@ -994,18 +1033,31 @@
   }
 
   function removeFavoriteTeamMatches(teamName) {
-    if (!teamName) return;
-    const target = String(teamName).trim().toLowerCase();
     const favMatches = readFifaFavorites();
+    const favTeams = readFifaFavoriteTeams();
+    const favTeamKeys = Object.keys(favTeams || {});
+    if (!favTeamKeys.length) {
+      writeFifaFavorites({});
+      return;
+    }
+    const target = String(teamName || "").trim().toLowerCase();
     let changed = false;
     Object.keys(favMatches).forEach((id) => {
       const m = favMatches[id];
       if (!m) return;
-      const hMatch = teamNamesMatch(m.home, target);
-      const aMatch = teamNamesMatch(m.away, target);
+      const hMatch = target && (teamNamesMatch(m.home, target) || teamNamesMatch(m.homeEn, target));
+      const aMatch = target && (teamNamesMatch(m.away, target) || teamNamesMatch(m.awayEn, target));
       if (hMatch || aMatch) {
-        const otherTeam = hMatch ? m.away : m.home;
-        if (!isFifaTeamFavorite(otherTeam)) {
+        const otherHome = isFifaTeamFavorite(m.home) || isFifaTeamFavorite(m.homeEn);
+        const otherAway = isFifaTeamFavorite(m.away) || isFifaTeamFavorite(m.awayEn);
+        if (!otherHome && !otherAway) {
+          delete favMatches[id];
+          changed = true;
+        }
+      } else {
+        // Hozirgi sevimli jamoalarning birortasiga tegishli bo'lmasa — o'chiramiz
+        if (!isFifaTeamFavorite(m.home) && !isFifaTeamFavorite(m.away) &&
+            !isFifaTeamFavorite(m.homeEn) && !isFifaTeamFavorite(m.awayEn)) {
           delete favMatches[id];
           changed = true;
         }
@@ -1354,57 +1406,12 @@
 
     const favTeamsStore = readFifaFavoriteTeams();
     const favTeamsList = Object.values(favTeamsStore || {});
-    const store = readFifaFavorites();
-    const storedMatches = Object.values(store || {}).filter((m) => m && m.id);
 
-    // If upcoming matches are not loaded yet and we have favorite teams, kick off fetch and re-render
-    if (upcomingMatchesCache === null && favTeamsList.length > 0) {
-      ensureUpcomingMatchesLoaded().then(() => {
-        const p = document.getElementById("fifaPanelFavorites");
-        if (p && !p.hidden) renderFifaFavorites();
-      });
-    }
-
-    // Combine matches from upcomingCache + FIFA_DATA.matches + storedMatches
-    const matchesMap = new Map();
-
-    // 1) Upcoming matches from API (kelgusi 8-10 kun)
-    if (Array.isArray(upcomingMatchesCache)) {
-      upcomingMatchesCache.forEach((m) => {
-        if (!m || !m.id) return;
-        if (isFifaTeamFavorite(m.home) || isFifaTeamFavorite(m.away)) {
-          matchesMap.set(String(m.id), { ...m });
-        }
-      });
-    }
-
-    // 2) FIFA_DATA current day matches
-    if (Array.isArray(FIFA_DATA?.matches)) {
-      FIFA_DATA.matches.forEach((m) => {
-        if (!m || !m.id) return;
-        if (isFifaTeamFavorite(m.home) || isFifaTeamFavorite(m.away)) {
-          const id = String(m.id);
-          const existing = matchesMap.get(id);
-          matchesMap.set(id, Object.assign({}, existing || {}, m));
-        }
-      });
-    }
-
-    // 3) Stored matches (bookmarked by star button or cached from past)
-    storedMatches.forEach((m) => {
-      const id = String(m.id);
-      if (!matchesMap.has(id)) {
-        matchesMap.set(id, m);
-      } else {
-        const existing = matchesMap.get(id);
-        matchesMap.set(id, Object.assign({}, m, existing));
-      }
-    });
-
-    const allMatches = Array.from(matchesMap.values());
-
-    // Empty state: no teams AND no saved matches
-    if (!favTeamsList.length && !allMatches.length) {
+    // Empty state: Agar sevimli jamoalar ro'yxati bo'sh bo'lsa (0 ta jamoa bo'lsa) —
+    // barcha eski matchlar va saralanganlar to'liq o'chirilishi va faqat BO'SH HOLAT ko'rinishi shart!
+    if (!favTeamsList.length) {
+      writeFifaFavorites({});
+      activeFavTeamFilter = "all";
       panel.innerHTML = `
         <div class="fifa-favorites-empty">
           <div class="fifa-favorites-empty__icon">⭐</div>
@@ -1432,6 +1439,57 @@
       `;
       return;
     }
+
+    const store = readFifaFavorites();
+    const storedMatches = Object.values(store || {}).filter((m) => m && m.id);
+
+    // If upcoming matches are not loaded yet and we have favorite teams, kick off fetch and re-render
+    if (upcomingMatchesCache === null && favTeamsList.length > 0) {
+      ensureUpcomingMatchesLoaded().then(() => {
+        const p = document.getElementById("fifaPanelFavorites");
+        if (p && !p.hidden) renderFifaFavorites();
+      });
+    }
+
+    // Combine matches from upcomingCache + FIFA_DATA.matches + storedMatches
+    const matchesMap = new Map();
+
+    // 1) Upcoming matches from API (kelgusi 8-10 kun)
+    if (Array.isArray(upcomingMatchesCache)) {
+      upcomingMatchesCache.forEach((m) => {
+        if (!m || !m.id) return;
+        if (isFifaTeamFavorite(m.home) || isFifaTeamFavorite(m.away) || isFifaTeamFavorite(m.homeEn) || isFifaTeamFavorite(m.awayEn)) {
+          matchesMap.set(String(m.id), { ...m });
+        }
+      });
+    }
+
+    // 2) FIFA_DATA current day matches
+    if (Array.isArray(FIFA_DATA?.matches)) {
+      FIFA_DATA.matches.forEach((m) => {
+        if (!m || !m.id) return;
+        if (isFifaTeamFavorite(m.home) || isFifaTeamFavorite(m.away) || isFifaTeamFavorite(m.homeEn) || isFifaTeamFavorite(m.awayEn)) {
+          const id = String(m.id);
+          const existing = matchesMap.get(id);
+          matchesMap.set(id, Object.assign({}, existing || {}, m));
+        }
+      });
+    }
+
+    // 3) Stored matches — faqat hozirgi sevimli jamoalarga tegishli bo'lsagina qo'shiladi!
+    storedMatches.forEach((m) => {
+      const id = String(m.id);
+      if (isFifaTeamFavorite(m.home) || isFifaTeamFavorite(m.away) || isFifaTeamFavorite(m.homeEn) || isFifaTeamFavorite(m.awayEn)) {
+        if (!matchesMap.has(id)) {
+          matchesMap.set(id, m);
+        } else {
+          const existing = matchesMap.get(id);
+          matchesMap.set(id, Object.assign({}, m, existing));
+        }
+      }
+    });
+
+    const allMatches = Array.from(matchesMap.values());
 
 
     // If activeFavTeamFilter is set to a specific team that doesn't exist anymore, reset to all or first team
