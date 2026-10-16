@@ -743,6 +743,17 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
   let data;
   try {
     data = JSON.parse(jsonMatch[1]);
+    if (debugOut) {
+      debugOut.ytKeys = Object.keys(data);
+      const tabs = [];
+      const scanTabs = (o) => {
+        if (!o || typeof o !== "object") return;
+        if (o.tabRenderer?.title) tabs.push(o.tabRenderer.title);
+        for (const k of Object.keys(o)) scanTabs(o[k]);
+      };
+      scanTabs(data);
+      debugOut.tabs = tabs;
+    }
   } catch (parseErr) {
     if (debugOut) debugOut.parseErr = parseErr.message;
     return [];
