@@ -10209,97 +10209,9 @@ function ensureGoogleFontInApp(fontName) {
 
 function renderAdTicker(ticker) {
   const card = document.getElementById("adTickerCard");
-  if (!card) return;
-  if (!ticker || !ticker.enabled || !ticker.text || !ticker.text.trim()) {
-    card.hidden = true;
-    return;
+  if (card) {
+    try { card.remove(); } catch (_) { card.hidden = true; card.style.display = "none"; }
   }
-
-  const text = ticker.text.trim();
-  const text1 = document.getElementById("adTickerText1");
-  const text2 = document.getElementById("adTickerText2");
-  const content = document.getElementById("adTickerContent");
-
-  if (text1) text1.textContent = text;
-  if (text2) text2.textContent = text;
-
-  // Fon va matn ranglari
-  const bgColor = (ticker.bgColor || "linear-gradient(135deg, #e50914, #990000)").trim();
-  const textColor = (ticker.textColor || "#ffffff").trim();
-  card.style.background = bgColor;
-  card.style.color = textColor;
-
-  // Shrift
-  const fontFamily = (ticker.fontFamily || "Montserrat").trim();
-  ensureGoogleFontInApp(fontFamily);
-
-  const fontSize = Number(ticker.fontSize) || 14;
-  const fontWeight = String(ticker.fontWeight || "600").trim();
-  const speed = Number(ticker.speed) || 20;
-
-  if (content) {
-    content.style.fontFamily = `"${fontFamily}", system-ui, -apple-system, sans-serif`;
-    content.style.fontSize = `${fontSize}px`;
-    content.style.fontWeight = fontWeight;
-    content.style.animationDuration = `${speed}s`;
-  }
-
-  // Havola (link) biriktirish
-  const linkUrl = (ticker.linkUrl || "").trim();
-  const badge = document.getElementById("adTickerBadge");
-  if (badge) badge.hidden = true;
-  if (linkUrl) {
-    card.classList.add("has-link");
-    card.style.cursor = "pointer";
-    card.setAttribute("role", "button");
-    card.setAttribute("tabindex", "0");
-    card.setAttribute("aria-label", `${text}. Havolaga o'tish uchun bosing.`);
-
-    const navigateToLink = (e) => {
-      if (e) {
-        e.stopPropagation();
-      }
-      try {
-        const tg = window.Telegram?.WebApp;
-        if (tg?.HapticFeedback?.impactOccurred) {
-          try { tg.HapticFeedback.impactOccurred("light"); } catch (_) {}
-        }
-        const isTg = /^(?:https?:\/\/(?:t|telegram)\.me\/|tg:\/\/)/i.test(linkUrl);
-        if (isTg && tg?.openTelegramLink) {
-          tg.openTelegramLink(linkUrl);
-          return;
-        }
-        if (tg?.openLink) {
-          tg.openLink(linkUrl);
-          return;
-        }
-        const win = window.open(linkUrl, "_blank", "noopener,noreferrer");
-        if (!win) {
-          window.location.assign(linkUrl);
-        }
-      } catch (_) {
-        try { window.location.assign(linkUrl); } catch (_) {}
-      }
-    };
-
-    card.onclick = navigateToLink;
-    card.onkeydown = (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        navigateToLink(e);
-      }
-    };
-  } else {
-    card.classList.remove("has-link");
-    card.style.cursor = "default";
-    card.removeAttribute("role");
-    card.removeAttribute("tabindex");
-    card.setAttribute("aria-label", text);
-    card.onclick = null;
-    card.onkeydown = null;
-  }
-
-  card.hidden = false;
 }
 
 async function loadAppSettings() {
