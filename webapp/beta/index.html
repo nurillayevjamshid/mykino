@@ -14,7 +14,7 @@
   <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261016-ticker-restore-v11" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261016-carousel-restore-v12" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Early Android detection: eliminates FOUC and avoids heavy blur calculation on first paint -->
   <script>
@@ -211,6 +211,30 @@
         </div>
       </div>
     </div>
+
+    <section class="hero" id="heroSection" hidden>
+      <div class="hero__bg is-active" id="heroBackdrop"></div>
+      <div class="hero__bg" id="heroBackdropNext"></div>
+      <div class="hero__shimmer" id="heroShimmer" hidden></div>
+      <div class="hero__gradient"></div>
+      <div class="hero__inner">
+        <h1 class="hero__title" id="heroTitle"></h1>
+        <p class="hero__desc" id="heroDescription"></p>
+        <div class="hero__actions">
+          <button class="hero__play" id="heroPlayButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+            <span id="heroPlayLabel">Ko'rish</span>
+          </button>
+          <button class="hero__info" id="heroInfoButton" type="button" aria-label="Batafsil">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
 
     <section class="movie-grid" id="movieGrid" aria-live="polite"></section>
 
@@ -971,7 +995,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261016-ticker-restore-v11"></script>
+  <script src="/static/kino/kino.js?v=20261016-carousel-restore-v12"></script>
   <script>
     // BETA: Kino bo'limi yo'q — sahifa ochilishi bilan Musiqa view ochiladi
     (function autoOpenMusic() {

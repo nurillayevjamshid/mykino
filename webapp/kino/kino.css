@@ -5702,10 +5702,19 @@ body::before {
   background: var(--muvi-accent);
 }
 
-/* HERO (disabled/removed) */
-.hero,
-#heroSection {
-  display: none !important;
+/* HERO */
+.hero {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  background: #0b0c10 !important;
+  overflow: hidden;
+  border-radius: 0;
+  margin: 0;
+}
+
+.hero[hidden] {
+  display: none;
 }
 
 /* Bottom bar visibility per section (kino, music, podcasts) */
