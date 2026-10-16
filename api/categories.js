@@ -719,6 +719,15 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
     throw err;
   }
 
+  if (debugOut) {
+    debugOut.hasLockupViewModel = html.includes("lockupViewModel");
+    debugOut.hasVideoRenderer = html.includes("videoRenderer");
+    debugOut.hasRichItemRenderer = html.includes("richItemRenderer");
+    debugOut.hasGridVideoRenderer = html.includes("gridVideoRenderer");
+    debugOut.hasWatchEndpoint = html.includes("watchEndpoint");
+    debugOut.videoIdsInHtml = [...new Set([...html.matchAll(/"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/g)].map((m) => m[1]))].slice(0, 10);
+  }
+
   const jsonMatch = html.match(/var ytInitialData\s*=\s*({[\s\S]+?});<\/script>/) ||
                     html.match(/ytInitialData\s*=\s*({[\s\S]+?});/) ||
                     html.match(/window\["ytInitialData"\]\s*=\s*({[\s\S]+?});/);
