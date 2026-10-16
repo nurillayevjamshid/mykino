@@ -10319,10 +10319,7 @@ html[data-theme="light"] .fifa-highlights-head:hover .fifa-highlights-arrow-btn 
 /* --- Barcha o'yinlar sharhi (All Highlights Full Page) --- */
 .fifa-all-hl-page {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   width: 100%;
   height: 100vh;
   height: 100dvh;
@@ -10335,6 +10332,7 @@ html[data-theme="light"] .fifa-highlights-head:hover .fifa-highlights-arrow-btn 
   transform: translateX(100%);
   transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
   overflow: hidden;
+  box-sizing: border-box;
 }
 .fifa-all-hl-page.is-open {
   opacity: 1;
@@ -10348,23 +10346,32 @@ body.fifa-all-hl-open {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: max(12px, env(safe-area-inset-top)) 16px 12px;
-  background: rgba(11, 14, 20, 0.94);
+  padding-top: max(
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 12px),
+    calc(var(--app-safe-top, 0px) + 12px),
+    calc(env(safe-area-inset-top, 0px) + 54px),
+    72px
+  );
+  padding-bottom: 14px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  background: rgba(11, 14, 20, 0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
-  z-index: 2;
+  z-index: 10;
+  box-sizing: border-box;
 }
 .fifa-all-hl-page__back-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: inherit;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
@@ -10373,7 +10380,7 @@ body.fifa-all-hl-open {
   -webkit-tap-highlight-color: transparent;
 }
 .fifa-all-hl-page__back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.16);
 }
 .fifa-all-hl-page__back-btn:active {
   transform: scale(0.92);
@@ -10389,7 +10396,7 @@ body.fifa-all-hl-open {
 }
 .fifa-all-hl-page__title {
   margin: 0;
-  font-size: 15px;
+  font-size: 15.5px;
   font-weight: 800;
   letter-spacing: 0.3px;
   color: var(--c-text, #fff);
@@ -10400,13 +10407,15 @@ body.fifa-all-hl-open {
 }
 
 .fifa-all-hl-page__content {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding: 14px 16px max(32px, env(safe-area-inset-bottom));
+  padding: 16px 16px calc(max(32px, env(safe-area-inset-bottom)) + 24px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   max-width: 680px;
   width: 100%;
   margin: 0 auto;
@@ -10417,20 +10426,23 @@ body.fifa-all-hl-open {
 .fifa-all-hl-card {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0 !important;
+  width: 100%;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+  box-sizing: border-box;
 }
 .fifa-all-hl-card:hover {
   transform: translateY(-2px);
   border-color: rgba(239, 68, 68, 0.4);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.38);
 }
 .fifa-all-hl-card:active {
   transform: scale(0.985);
@@ -10438,11 +10450,15 @@ body.fifa-all-hl-open {
 .fifa-all-hl-card__media {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #000;
+  padding-top: 56.25%; /* 16:9 aspect ratio standard */
+  background: #0f172a;
   overflow: hidden;
+  flex-shrink: 0;
 }
 .fifa-all-hl-card__img {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -10455,7 +10471,7 @@ body.fifa-all-hl-open {
 .fifa-all-hl-card__overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.5) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.6) 100%);
   pointer-events: none;
 }
 .fifa-all-hl-card__play {
@@ -10466,14 +10482,15 @@ body.fifa-all-hl-open {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgba(239, 68, 68, 0.92);
+  background: rgba(239, 68, 68, 0.95);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 4px 18px rgba(239, 68, 68, 0.55);
   transition: transform 0.2s ease, background 0.2s ease;
   pointer-events: none;
+  z-index: 2;
 }
 .fifa-all-hl-card:hover .fifa-all-hl-card__play {
   transform: translate(-50%, -50%) scale(1.1);
@@ -10481,47 +10498,57 @@ body.fifa-all-hl-open {
 }
 .fifa-all-hl-card__duration {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
+  bottom: 10px;
+  right: 10px;
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.3px;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, 0.85);
   color: #fff;
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 2;
 }
 .fifa-all-hl-card__time {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 10px;
+  left: 10px;
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 10.5px;
   font-weight: 700;
-  background: rgba(30, 58, 138, 0.88);
+  background: rgba(30, 58, 138, 0.9);
   color: #fff;
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 2;
 }
 .fifa-all-hl-card__body {
-  padding: 12px 14px 14px;
+  padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  flex-shrink: 0;
+  background: inherit;
 }
 .fifa-all-hl-card__title {
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--c-text, #fff);
-  line-height: 1.38;
+  line-height: 1.4;
   letter-spacing: 0.2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .fifa-all-hl-card__meta {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 8px;
+  font-size: 12px;
   color: var(--text-muted, rgba(255, 255, 255, 0.55));
   font-weight: 500;
 }
@@ -10538,14 +10565,14 @@ html[data-theme="light"] .fifa-all-hl-page {
   color: #0f172a;
 }
 html[data-theme="light"] .fifa-all-hl-page__header {
-  background: rgba(248, 250, 252, 0.95);
+  background: rgba(255, 255, 255, 0.96);
   border-color: #e2e8f0;
 }
 html[data-theme="light"] .fifa-all-hl-page__back-btn {
-  background: #ffffff;
+  background: #f1f5f9;
   border-color: #cbd5e1;
   color: #0f172a;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 html[data-theme="light"] .fifa-all-hl-page__title {
   color: #0f172a;
@@ -10553,7 +10580,14 @@ html[data-theme="light"] .fifa-all-hl-page__title {
 html[data-theme="light"] .fifa-all-hl-card {
   background: #ffffff;
   border-color: #e2e8f0;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
+}
+html[data-theme="light"] .fifa-all-hl-card:hover {
+  border-color: rgba(239, 68, 68, 0.45);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+html[data-theme="light"] .fifa-all-hl-card__body {
+  background: #ffffff;
 }
 html[data-theme="light"] .fifa-all-hl-card__title {
   color: #0f172a;
