@@ -3263,19 +3263,21 @@ function createMovieCard(movie) {
   card.addEventListener("touchstart", (e) => {
     if (e.target.closest(".wishlist-toggle")) return;
     const touch = e.touches[0];
+    if (!touch) return;
     startX = touch.clientX;
     startY = touch.clientY;
     isLongPress = false;
     pressTimer = setTimeout(() => {
       isLongPress = true;
       openMovieContextMenu(movie);
-    }, 450);
+    }, 700);
   }, { passive: true });
 
   card.addEventListener("touchmove", (e) => {
     if (!pressTimer) return;
     const touch = e.touches[0];
-    if (Math.abs(touch.clientX - startX) > 8 || Math.abs(touch.clientY - startY) > 8) {
+    if (!touch) return;
+    if (Math.abs(touch.clientX - startX) > 16 || Math.abs(touch.clientY - startY) > 16) {
       clearTimeout(pressTimer);
       pressTimer = null;
     }
@@ -3284,11 +3286,15 @@ function createMovieCard(movie) {
   card.addEventListener("touchend", () => {
     clearTimeout(pressTimer);
     pressTimer = null;
+    if (isLongPress) {
+      setTimeout(() => { isLongPress = false; }, 150);
+    }
   }, { passive: true });
 
   card.addEventListener("touchcancel", () => {
     clearTimeout(pressTimer);
     pressTimer = null;
+    isLongPress = false;
   }, { passive: true });
 
   card.addEventListener("contextmenu", (e) => {
@@ -3297,6 +3303,7 @@ function createMovieCard(movie) {
   });
 
   card.addEventListener("click", (event) => {
+    if (event.target.closest(".wishlist-toggle")) return;
     if (isLongPress) {
       isLongPress = false;
       event.preventDefault();
@@ -5672,25 +5679,54 @@ function ensureYouTubeApi() {
   if (youtubeApiPromise) return youtubeApiPromise;
 
   youtubeApiPromise = new Promise((resolve, reject) => {
+    let resolved = false;
+    let pollId = 0;
+    let timeoutId = 0;
+
+    const finishResolve = (yt) => {
+      if (resolved) return;
+      resolved = true;
+      if (pollId) clearInterval(pollId);
+      if (timeoutId) clearTimeout(timeoutId);
+      resolve(yt);
+    };
+
+    const finishReject = (err) => {
+      if (resolved) return;
+      resolved = true;
+      if (pollId) clearInterval(pollId);
+      if (timeoutId) clearTimeout(timeoutId);
+      youtubeApiPromise = null;
+      reject(err);
+    };
+
     const existingScript = document.querySelector('script[data-youtube-iframe-api="1"]');
     if (!existingScript) {
       const script = document.createElement("script");
       script.src = "https://www.youtube.com/iframe_api";
       script.async = true;
       script.dataset.youtubeIframeApi = "1";
-      script.onerror = () => reject(new Error("YouTube iframe API yuklanmadi."));
+      script.onerror = () => finishReject(new Error("YouTube iframe API yuklanmadi."));
       document.head.append(script);
     }
 
     const previousReady = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
-      previousReady?.();
-      resolve(window.YT);
+      try { previousReady?.(); } catch (_) {}
+      if (window.YT?.Player) finishResolve(window.YT);
     };
 
-    window.setTimeout(() => {
-      if (window.YT?.Player) resolve(window.YT);
-    }, 0);
+    pollId = setInterval(() => {
+      if (window.YT?.Player) finishResolve(window.YT);
+    }, 50);
+
+    timeoutId = setTimeout(() => {
+      if (window.YT?.Player) {
+        finishResolve(window.YT);
+      } else {
+        finishReject(new Error("YouTube iframe API timeout"));
+      }
+    }, 9000);
   });
 
   return youtubeApiPromise;
@@ -6063,6 +6099,19 @@ function syncFullscreenButton() {
   videoPlayer.classList.toggle("is-tg-fullscreen", isTelegramFullscreen());
 }
 
+function mountDirectYouTubeIframe(mountNode, videoId, movie) {
+  clearVideoLoadTimer();
+  setVideoLoading(false);
+  if (!mountNode || !videoId) return;
+  const iframe = document.createElement("iframe");
+  iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&enablejsapi=1`;
+  iframe.title = movie?.title || "Video";
+  iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+  iframe.allowFullscreen = true;
+  iframe.style.cssText = "width:100%;height:100%;border:0;position:absolute;inset:0;z-index:5;";
+  mountNode.replaceChildren(iframe);
+}
+
 async function mountYouTubePlayer(videoUrl, movie, options = {}) {
   const { requestId = activeVideoRequest } = options;
   const parsed = safeUrl(videoUrl);
@@ -6091,7 +6140,7 @@ async function mountYouTubePlayer(videoUrl, movie, options = {}) {
     if (requestId !== activeVideoRequest || videoPlayer.hidden) return;
 
     activeYouTubePlayer = new YT.Player(mountNode, {
-      host: "https://www.youtube-nocookie.com",
+      host: "https://www.youtube.com",
       videoId,
       playerVars: {
         autoplay: 1,
@@ -6153,16 +6202,25 @@ async function mountYouTubePlayer(videoUrl, movie, options = {}) {
           if (requestId !== activeVideoRequest || videoPlayer.hidden) return;
           clearVideoLoadTimer();
           destroyYouTubePlayer();
+          if (!options._iframeTried) {
+            options._iframeTried = true;
+            mountDirectYouTubeIframe(mountNode, videoId, movie);
+            return;
+          }
           setVideoLoading(false);
-          setFallbackMessage("");
+          const ytUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+          setFallbackMessage("Ushbu video YouTube mualliflik cheklovi sababli to'g'ridan-to'g'ri ko'riladi.", ytUrl);
+          if (videoExternalLink) {
+            videoExternalLink.textContent = "YouTube'da ochish";
+            videoExternalLink.href = ytUrl;
+            videoExternalLink.hidden = false;
+          }
         },
       },
     });
   } catch {
     if (requestId !== activeVideoRequest || videoPlayer.hidden) return;
-    destroyYouTubePlayer();
-    setVideoLoading(false);
-    setFallbackMessage("");
+    mountDirectYouTubeIframe(mountNode, videoId, movie);
   }
 }
 
@@ -6407,9 +6465,16 @@ function renderVideoSource(videoUrl, movie, options = {}) {
     const embedUrl = toYouTubeEmbed(sourceUrl);
     if (embedUrl) {
       videoLoadTimer = window.setTimeout(() => {
-        setVideoLoading(false);
-        setFallbackMessage(fallbackMessage, "");
-      }, 7000);
+        if (requestId !== activeVideoRequest || videoPlayer.hidden) return;
+        const mount = document.getElementById(`youtube-player-${requestId}`);
+        const vId = getYouTubeVideoId(movie) || safeUrl(sourceUrl)?.searchParams.get("v") || "";
+        if (mount && vId && !activeYouTubePlayer?.getPlayerState) {
+          mountDirectYouTubeIframe(mount, vId, movie);
+        } else if (!activeYouTubePlayer?.getPlayerState) {
+          setVideoLoading(false);
+          setFallbackMessage(fallbackMessage, "");
+        }
+      }, 12000);
       mountYouTubePlayer(sourceUrl, movie, { requestId });
       return;
     }
@@ -7416,7 +7481,7 @@ function ensurePotcastsCss() {
   __potcastsCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/potcasts/potcasts.css?v=20261016-hero-restore-v13";
+    link.href = "/static/potcasts/potcasts.css?v=20261016-click-fix-v15";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -7429,7 +7494,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20261016-hero-restore-v13";
+    script.src = "/static/potcasts/potcasts.js?v=20261016-click-fix-v15";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -11599,7 +11664,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261016-fifa-empty-purge-v14";
+    script.src = "/static/fifa/fifa.js?v=20261016-click-fix-v15";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);

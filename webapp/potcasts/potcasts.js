@@ -1414,6 +1414,91 @@
     if (end >= list.length && sentinel) sentinel.remove();
   }
 
+  // Delegated click handler on podcastsRoot — barcha kartochkalar (video, fresh, search, kanal) bir bosishda ishonchli ochilishi uchun
+  if (podcastsRoot) {
+    podcastsRoot.addEventListener("click", (e) => {
+      // 1) Sevimlilar tugmasi (saqlash/o'chirish)
+      const favBtn = e.target.closest("[data-pod-fav]");
+      if (favBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        haptic("medium");
+        const vid = favBtn.dataset.podFav;
+        const meta = findVideoMeta(vid) || findSearchVideoMeta(vid);
+        const isActive = togglePodcastFavorite(vid, meta);
+        favBtn.classList.toggle("is-active", isActive);
+        favBtn.setAttribute("aria-pressed", String(isActive));
+        showToast(isActive ? T("savedToast") : T("unsavedToast"));
+        return;
+      }
+
+      // 2) Saved ro'yxatidan o'chirish tugmasi
+      const savedRemoveBtn = e.target.closest("[data-pod-saved-remove]");
+      if (savedRemoveBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        haptic("medium");
+        togglePodcastFavorite(savedRemoveBtn.dataset.podSavedRemove);
+        showToast(T("unsavedToast"));
+        renderSavedView();
+        return;
+      }
+
+      // 3) Video kartochkasi (kanal ichidagi)
+      const playCard = e.target.closest("[data-pod-play-video]");
+      if (playCard) {
+        e.preventDefault();
+        haptic("light");
+        const vid = playCard.dataset.podPlayVideo;
+        if (vid) openPlayer(vid);
+        return;
+      }
+
+      // 4) Fresh video kartochkasi (so'nggi 48 soatlik)
+      const freshCard = e.target.closest("[data-pod-fresh-play]");
+      if (freshCard) {
+        e.preventDefault();
+        haptic("light");
+        const [chId, vId] = String(freshCard.dataset.podFreshPlay || "").split("|");
+        if (chId && vId) playSearchVideo(chId, vId);
+        return;
+      }
+
+      // 5) Qidiruvdagi video kartochkasi
+      const searchPlayCard = e.target.closest("[data-pod-search-play]");
+      if (searchPlayCard) {
+        e.preventDefault();
+        haptic("light");
+        const [chId, vId] = String(searchPlayCard.dataset.podSearchPlay || "").split("|");
+        if (chId && vId) playSearchVideo(chId, vId);
+        return;
+      }
+
+      // 6) Saqlangan videoni o'ynatish
+      const savedPlayCard = e.target.closest("[data-pod-play-saved]");
+      if (savedPlayCard) {
+        e.preventDefault();
+        haptic("light");
+        const vid = savedPlayCard.dataset.podPlaySaved;
+        const meta = readSavedStore()[vid];
+        if (typeof window.__playYouTubeStandalone === "function") {
+          window.__playYouTubeStandalone(vid, { title: meta?.title || "" });
+        }
+        return;
+      }
+
+      // 7) Kanal qatori (kanalni ochish)
+      const channelRow = e.target.closest("[data-pod-open]");
+      if (channelRow) {
+        if (e.target.closest(".pod-hero__btn")) { e.preventDefault(); e.stopPropagation(); }
+        haptic("light");
+        const chId = channelRow.dataset.podOpen;
+        if (chId) renderChannel(chId);
+        return;
+      }
+    });
+  }
+
   // ---------- Public API ----------
 
   async function openPodcastsView() {

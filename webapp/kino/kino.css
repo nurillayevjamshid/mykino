@@ -1231,7 +1231,7 @@ html[data-theme="light"] .category-page__back:focus-visible {
   gap: 12px;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding: 4px 8px 8px;
@@ -1395,6 +1395,8 @@ html[data-theme="light"] .category-row__more:focus-visible {
     linear-gradient(180deg, var(--w-08), var(--w-04));
   box-shadow: var(--shadow-lg);
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   will-change: transform;
   transition:
     transform var(--dur-base) var(--ease-out),
@@ -5993,7 +5995,7 @@ html[data-theme="light"] .category-row__more:focus-visible {
   gap: 14px;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   scroll-padding-left: 20px;
   scroll-padding-right: 20px;
   scroll-padding-inline: 20px;
@@ -10162,7 +10164,7 @@ html[data-theme="light"] .fifa-view__promo-share {
   overflow-y: hidden;
   padding: 2px 2px 8px;
   margin: 0 -2px;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -10184,7 +10186,8 @@ html[data-theme="light"] .fifa-view__promo-share {
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: pan-x pan-y;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .fifa-hl-card:hover {
   border-color: rgba(255, 255, 255, 0.2);
@@ -10428,6 +10431,7 @@ body.fifa-all-hl-open {
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
   box-sizing: border-box;
 }
