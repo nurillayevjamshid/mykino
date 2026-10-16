@@ -5521,7 +5521,11 @@ async function saveFifaHighlights() {
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
     renderFifaHighlightsPreview(json.videos || []);
     const count = json.count || (json.videos || []).length;
-    setFifaHighlightsStatus(`Muvaffaqiyatli saqlandi! ${count} ta o'yin videosi topildi va mini app'da ko'rinadi.`, 'ok');
+    if (count > 0) {
+      setFifaHighlightsStatus(`Muvaffaqiyatli saqlandi! ${count} ta o'yin videosi topildi va mini app'da ko'rinadi.`, 'ok');
+    } else {
+      setFifaHighlightsStatus("Kanal havolasi saqlandi, lekin oxirgi 2 kunlik o'yin videosi topilmadi. Kanalga yangi video qo'shilgach mini app'da avtomatik ko'rinadi.", 'info');
+    }
   } catch (err) {
     setFifaHighlightsStatus(`Xato: ${err.message}`, 'error');
   }

@@ -670,106 +670,44 @@ function isVideoWithin2Days(timeText, titleText = "") {
 function normalizeYoutubeChannelUrl(raw) {
   let s = String(raw || "").trim();
   if (!s) return "";
-  if (/^@[\w.-]+$/.test(s)) return `https://www.youtube.com/${s}/videos`;
-  if (/^UC[\w-]{22}$/.test(s)) return `https://www.youtube.com/channel/${s}/videos`;
+  if (/^@[\w.-]+$/.test(s)) return `https://www.youtube.com/${s}`;
+  if (/^UC[\w-]{22}$/.test(s)) return `https://www.youtube.com/channel/${s}`;
   if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) {
     s = `https://${s.replace(/^\/+/, "")}`;
   }
   try {
     const parsed = new URL(s);
-    let path = parsed.pathname.replace(/\/+(featured|shorts|streams|community|about|playlists)\/?$/i, "");
-    path = path.replace(/\/+videos\/?$/i, "").replace(/\/+$/, "");
-    return `https://www.youtube.com${path}/videos`;
+    let path = parsed.pathname.replace(/\/+(featured|shorts|streams|community|about|playlists|videos)\/?$/i, "");
+    path = path.replace(/\/+$/, "");
+    return `https://www.youtube.com${path}`;
   } catch {
-    return s.replace(/\/+$/, "") + "/videos";
+    return s.replace(/\/+(featured|shorts|streams|community|about|playlists|videos)\/?$/i, "").replace(/\/+$/, "");
   }
 }
 
-async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
-  const norm = normalizeYoutubeChannelUrl(channelUrl);
-  if (!norm) return [];
-
-  const fetchUrl = norm;
-  if (debugOut) debugOut.fetchUrl = fetchUrl;
-
-  let html = "";
-  try {
-    const res = await fetch(fetchUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "uz,ru;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Cookie": "CONSENT=YES+cb; SOCS=CAESEwgDEgk0ODEzNzk5NDQaAmVuIAEaBgiAo_CLBg; PREF=tz=Asia.Tashkent&hl=ru",
-        "Cache-Control": "no-cache",
-      },
-      signal: AbortSignal.timeout(12000),
-    });
-    if (debugOut) {
-      debugOut.status = res.status;
-      debugOut.finalUrl = res.url;
-    }
-    if (!res.ok) throw new Error(`YouTube javob bermadi (HTTP ${res.status})`);
-    html = await res.text();
-    if (debugOut) {
-      debugOut.htmlLen = html.length;
-      debugOut.title = html.match(/<title>(.*?)<\/title>/i)?.[1] || "";
-    }
-  } catch (err) {
-    if (debugOut) debugOut.fetchErr = err.message;
-    throw err;
-  }
-
-  if (debugOut) {
-    debugOut.hasLockupViewModel = html.includes("lockupViewModel");
-    debugOut.hasVideoRenderer = html.includes("videoRenderer");
-    debugOut.hasRichItemRenderer = html.includes("richItemRenderer");
-    debugOut.hasGridVideoRenderer = html.includes("gridVideoRenderer");
-    debugOut.hasWatchEndpoint = html.includes("watchEndpoint");
-    debugOut.videoIdsInHtml = [...new Set([...html.matchAll(/"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/g)].map((m) => m[1]))].slice(0, 10);
-    debugOut.bodyText = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 600);
-  }
+async function scrapeYoutubePage(url) {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "uz,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Cookie": "CONSENT=YES+cb; SOCS=CAESEwgDEgk0ODEzNzk5NDQaAmVuIAEaBgiAo_CLBg; PREF=tz=Asia.Tashkent&hl=ru",
+      "Cache-Control": "no-cache",
+    },
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!res.ok) return [];
+  const html = await res.text();
 
   const jsonMatch = html.match(/var ytInitialData\s*=\s*({[\s\S]+?});<\/script>/) ||
                     html.match(/ytInitialData\s*=\s*({[\s\S]+?});/) ||
                     html.match(/window\["ytInitialData"\]\s*=\s*({[\s\S]+?});/);
-  if (!jsonMatch) {
-    if (debugOut) {
-      debugOut.noJsonMatch = true;
-      debugOut.snippet = html.slice(0, 500);
-    }
-    return [];
-  }
+  if (!jsonMatch) return [];
 
   let data;
   try {
     data = JSON.parse(jsonMatch[1]);
-    if (debugOut) {
-      debugOut.ytKeys = Object.keys(data);
-      let rgr = null;
-      const tabs = [];
-      const scanTabs = (o) => {
-        if (!o || typeof o !== "object") return;
-        if (o.tabRenderer) {
-          tabs.push({
-            title: o.tabRenderer.title,
-            selected: o.tabRenderer.selected,
-            hasContent: Boolean(o.tabRenderer.content),
-            contentKeys: Object.keys(o.tabRenderer.content || {}),
-          });
-        }
-        if (o.richGridRenderer) rgr = o.richGridRenderer;
-        for (const k of Object.keys(o)) scanTabs(o[k]);
-      };
-      scanTabs(data);
-      debugOut.tabs = tabs;
-      if (rgr) {
-        debugOut.rgrLen = rgr.contents?.length || 0;
-        debugOut.firstContentKeys = rgr.contents?.[0] ? Object.keys(rgr.contents[0].richItemRenderer?.content || rgr.contents[0]) : [];
-        debugOut.firstItemSample = JSON.stringify(rgr.contents?.[0] || {}).slice(0, 300);
-      }
-    }
-  } catch (parseErr) {
-    if (debugOut) debugOut.parseErr = parseErr.message;
+  } catch {
     return [];
   }
 
@@ -846,6 +784,33 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
   }
 
   scan(data);
+  return extracted;
+}
+
+async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
+  const normBase = normalizeYoutubeChannelUrl(channelUrl);
+  if (!normBase) return [];
+
+  if (debugOut) debugOut.normBase = normBase;
+
+  // 1) Asosiy kanal sahifasidan yuklash (SSR'da oxirgi videolar shelf'i to'liq mavjud)
+  let extracted = await scrapeYoutubePage(normBase).catch((e) => {
+    if (debugOut) debugOut.baseErr = e.message;
+    return [];
+  });
+
+  // 2) Agar asosiy sahifada bo'sh bo'lsa, /videos sahifasini sinab ko'rish
+  if (!extracted || extracted.length === 0) {
+    const videosUrl = `${normBase.replace(/\/+$/, "")}/videos`;
+    if (debugOut) debugOut.tryVideosUrl = videosUrl;
+    const fromVideos = await scrapeYoutubePage(videosUrl).catch((e) => {
+      if (debugOut) debugOut.videosErr = e.message;
+      return [];
+    });
+    if (fromVideos && fromVideos.length > 0) {
+      extracted = fromVideos;
+    }
+  }
 
   if (debugOut) {
     debugOut.extractedCount = extracted.length;
