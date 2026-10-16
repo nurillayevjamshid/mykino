@@ -68,7 +68,7 @@
       allTeams: "Barchasi",
       saved: "Saqlangan",
       saveMatch: "Saqlash",
-      highlightsTitle: "O'yinlar sharhi",
+      highlightsTitle: "O'yinlar highlightslari",
       highlightsSub: "Oxirgi 2 kunlik",
     },
     ru: {
@@ -125,7 +125,7 @@
       allTeams: "Все",
       saved: "Сохранено",
       saveMatch: "Сохранить",
-      highlightsTitle: "Обзоры матчей",
+      highlightsTitle: "Хайлайты матчей",
       highlightsSub: "За последние 2 дня",
     },
     en: {
@@ -2430,6 +2430,236 @@
     }
   }
 
+  // --- Highlights sarlavhalari va vaqtini tilga (uz, ru, en) qarab moslashtirish ---
+  const HIGHLIGHT_TOURNAMENTS = [
+    { pattern: /Обзор\s+матча\s+Лиги\s+чемпионов/gi, uz: "Chempionlar ligasi o'yin highlightslari", en: "Champions League match highlights", ru: "Обзор матча Лиги чемпионов" },
+    { pattern: /Обзор\s+матча\s+Лиги\s+Европы/gi, uz: "Yevropa ligasi o'yin highlightslari", en: "Europa League match highlights", ru: "Обзор матча Лиги Европы" },
+    { pattern: /Обзор\s+матча\s+Лиги\s+конференций/gi, uz: "Konferensiyalar ligasi o'yin highlightslari", en: "Conference League match highlights", ru: "Обзор матча Лиги конференций" },
+    { pattern: /Лиг[аи]\s+чемпионов/gi, uz: "Chempionlar ligasi", en: "Champions League", ru: "Лига чемпионов" },
+    { pattern: /Лиг[аи]\s+Европы/gi, uz: "Yevropa ligasi", en: "Europa League", ru: "Лига Европы" },
+    { pattern: /Лиг[аи]\s+конференций/gi, uz: "Konferensiyalar ligasi", en: "Conference League", ru: "Лига конференций" },
+    { pattern: /Премьер-лиг[аи]\s*(Англии)?|АПЛ/gi, uz: "APL", en: "Premier League", ru: "АПЛ" },
+    { pattern: /Ла\s*Лиг[аи]|Пример[аы]/gi, uz: "La Liga", en: "La Liga", ru: "Ла Лига" },
+    { pattern: /Сери[яи]\s*А/gi, uz: "A Seriya", en: "Serie A", ru: "Серия А" },
+    { pattern: /Бундеслиг[аи]/gi, uz: "Bundesliga", en: "Bundesliga", ru: "Бундеслига" },
+    { pattern: /Лиг[аи]\s*1/gi, uz: "Liga 1", en: "Ligue 1", ru: "Лига 1" },
+    { pattern: /Кубок\s+Англии/gi, uz: "Angliya kubogi", en: "FA Cup", ru: "Кубок Англии" },
+    { pattern: /Кубок\s+Испании/gi, uz: "Ispaniya kubogi", en: "Copa del Rey", ru: "Кубок Испании" },
+    { pattern: /Кубок\s+Италии/gi, uz: "Italiya kubogi", en: "Coppa Italia", ru: "Кубок Италии" },
+    { pattern: /Кубок\s+Германии/gi, uz: "Germaniya kubogi", en: "DFB-Pokal", ru: "Кубок Германии" },
+    { pattern: /Суперкубок\s+УЕФА/gi, uz: "UEFA Superkubogi", en: "UEFA Super Cup", ru: "Суперкубок УЕФА" },
+    { pattern: /Суперкубок/gi, uz: "Superkubok", en: "Super Cup", ru: "Суперкубок" },
+    { pattern: /Кубок/gi, uz: "Kubok", en: "Cup", ru: "Кубок" },
+    { pattern: /Обзор\s+матча|Обзоры\s+матчей/gi, uz: "O'yin highlightslari", en: "Match highlights", ru: "Обзор матча" },
+    { pattern: /Все\s+голы\s+и\s+(?:опасные|лучшие)\s+моменты/gi, uz: "Barcha gollar va xavfli vaziyatlar", en: "All goals & highlights", ru: "Все голы и опасные моменты" },
+    { pattern: /Все\s+голы/gi, uz: "Barcha gollar", en: "All goals", ru: "Все голы" },
+    { pattern: /Голы\s+матча/gi, uz: "O'yin gollari", en: "Match goals", ru: "Голы матча" },
+    { pattern: /Голы/gi, uz: "Gollar", en: "Goals", ru: "Голы" },
+    { pattern: /Лучшие\s+моменты|Опасные\s+моменты/gi, uz: "Eng xavfli vaziyatlar", en: "Best moments", ru: "Лучшие моменты" },
+    { pattern: /(\d+)[-\s]*й?\s*тур/gi, uz: "$1-tur", en: "Matchday $1", ru: "$1-й тур" },
+    { pattern: /Полуфинал/gi, uz: "Yarim final", en: "Semi-final", ru: "Полуфинал" },
+    { pattern: /Финал/gi, uz: "Final", en: "Final", ru: "Финал" }
+  ];
+
+  const HIGHLIGHT_CLUBS = {
+    "Манчестер Сити": { uz: "Manchester Siti", en: "Manchester City" },
+    "Манчестер Юнайтед": { uz: "Manchester Yunayted", en: "Manchester United" },
+    "Ливерпуль": { uz: "Liverpul", en: "Liverpool" },
+    "Арсенал": { uz: "Arsenal", en: "Arsenal" },
+    "Челси": { uz: "Chelsi", en: "Chelsea" },
+    "Тоттенхэм": { uz: "Tottenxem", en: "Tottenham" },
+    "Астон Вилла": { uz: "Aston Villa", en: "Aston Villa" },
+    "Ньюкасл": { uz: "Nyukasl", en: "Newcastle" },
+    "Брайтон": { uz: "Brayton", en: "Brighton" },
+    "Борнмут": { uz: "Bornmut", en: "Bournemouth" },
+    "Кристал Пэлас": { uz: "Kristal Pelas", en: "Crystal Palace" },
+    "Вест Хэм": { uz: "Vest Xem", en: "West Ham" },
+    "Вулверхэмптон": { uz: "Vulverxempton", en: "Wolves" },
+    "Фулхэм": { uz: "Fulxem", en: "Fulham" },
+    "Брентфорд": { uz: "Brentford", en: "Brentford" },
+    "Эвертон": { uz: "Everton", en: "Everton" },
+    "Лестер": { uz: "Lester", en: "Leicester" },
+    "Ноттингем Форест": { uz: "Nottingem Forest", en: "Nottingham Forest" },
+    "Ипсвич": { uz: "Ipsvich", en: "Ipswich Town" },
+    "Саутгемптон": { uz: "Sautgempton", en: "Southampton" },
+    "Реал Мадрид": { uz: "Real Madrid", en: "Real Madrid" },
+    "Барселона": { uz: "Barselona", en: "Barcelona" },
+    "Атлетико Мадрид": { uz: "Atletiko Madrid", en: "Atletico Madrid" },
+    "Атлетико": { uz: "Atletiko", en: "Atletico Madrid" },
+    "Реал Сосьедад": { uz: "Real Sosedad", en: "Real Sociedad" },
+    "Севилья": { uz: "Sevilya", en: "Sevilla" },
+    "Бетис": { uz: "Betis", en: "Real Betis" },
+    "Реал Бетис": { uz: "Real Betis", en: "Real Betis" },
+    "Вильярреал": { uz: "Vilyarreal", en: "Villarreal" },
+    "Атлетик Бильбао": { uz: "Atletik Bilbao", en: "Athletic Bilbao" },
+    "Атлетик": { uz: "Atletik", en: "Athletic Club" },
+    "Жирона": { uz: "Jirona", en: "Girona" },
+    "Валенсия": { uz: "Valensiya", en: "Valencia" },
+    "Сельта": { uz: "Selta", en: "Celta Vigo" },
+    "Мальорка": { uz: "Malyorka", en: "Mallorca" },
+    "Осасуна": { uz: "Osasuna", en: "Osasuna" },
+    "Хетафе": { uz: "Xetafe", en: "Getafe" },
+    "Райо Вальекано": { uz: "Rayo Valyekano", en: "Rayo Vallecano" },
+    "Эспаньол": { uz: "Espanyol", en: "Espanyol" },
+    "Алавес": { uz: "Alaves", en: "Alaves" },
+    "Лас-Пальмас": { uz: "Las-Palmas", en: "Las Palmas" },
+    "Леганес": { uz: "Leganes", en: "Leganes" },
+    "Вальядолид": { uz: "Valyadolid", en: "Valladolid" },
+    "Интер": { uz: "Inter", en: "Inter Milan" },
+    "Милан": { uz: "Milan", en: "AC Milan" },
+    "Ювентус": { uz: "Yuventus", en: "Juventus" },
+    "Наполи": { uz: "Napoli", en: "Napoli" },
+    "Аталанта": { uz: "Atalanta", en: "Atalanta" },
+    "Рома": { uz: "Roma", en: "AS Roma" },
+    "Лацио": { uz: "Latsio", en: "Lazio" },
+    "Фиорентина": { uz: "Fiorentina", en: "Fiorentina" },
+    "Болонья": { uz: "Bolonya", en: "Bologna" },
+    "Торино": { uz: "Torino", en: "Torino" },
+    "Удинезе": { uz: "Udineze", en: "Udinese" },
+    "Комо": { uz: "Komo", en: "Como" },
+    "Парма": { uz: "Parma", en: "Parma" },
+    "Верона": { uz: "Verona", en: "Hellas Verona" },
+    "Дженоа": { uz: "Djenoa", en: "Genoa" },
+    "Кальяри": { uz: "Kalyari", en: "Cagliari" },
+    "Лечче": { uz: "Lechche", en: "Lecce" },
+    "Эмполи": { uz: "Empoli", en: "Empoli" },
+    "Венеция": { uz: "Venetsiya", en: "Venezia" },
+    "Монца": { uz: "Montsa", en: "Monza" },
+    "Бавария": { uz: "Bavariya", en: "Bayern Munich" },
+    "Боруссия Дортмунд": { uz: "Borussiya Dortmund", en: "Borussia Dortmund" },
+    "Боруссия Д": { uz: "Borussiya D", en: "Borussia Dortmund" },
+    "Байер": { uz: "Bayer", en: "Bayer Leverkusen" },
+    "РБ Лейпциг": { uz: "RB Leypsig", en: "RB Leipzig" },
+    "Лейпциг": { uz: "Leypsig", en: "RB Leipzig" },
+    "Штутгарт": { uz: "Shtutgart", en: "Stuttgart" },
+    "Айнтрахт": { uz: "Ayntraxt", en: "Eintracht Frankfurt" },
+    "Боруссия М": { uz: "Borussiya M", en: "Borussia M'gladbach" },
+    "Вольфсбург": { uz: "Volfsburg", en: "Wolfsburg" },
+    "Фрайбург": { uz: "Frayburg", en: "Freiburg" },
+    "Хоффенхайм": { uz: "Xoffenxaym", en: "Hoffenheim" },
+    "Вердер": { uz: "Verder", en: "Werder Bremen" },
+    "Аугсбург": { uz: "Augsburg", en: "Augsburg" },
+    "Майнц": { uz: "Maynts", en: "Mainz" },
+    "Унион": { uz: "Union", en: "Union Berlin" },
+    "Санкт-Паули": { uz: "Sankt-Pauli", en: "St. Pauli" },
+    "Хайденхайм": { uz: "Xaydenxaym", en: "Heidenheim" },
+    "Бохум": { uz: "Boxum", en: "Bochum" },
+    "ПСЖ": { uz: "PSJ", en: "PSG" },
+    "Марсель": { uz: "Marsel", en: "Marseille" },
+    "Монако": { uz: "Monako", en: "Monaco" },
+    "Лион": { uz: "Lion", en: "Lyon" },
+    "Лилль": { uz: "Lill", en: "Lille" },
+    "Ренн": { uz: "Renn", en: "Rennes" },
+    "Ницца": { uz: "Nitssa", en: "Nice" },
+    "Ланс": { uz: "Lans", en: "Lens" },
+    "Брест": { uz: "Brest", en: "Brest" },
+    "Бенфика": { uz: "Benfika", en: "Benfica" },
+    "Порту": { uz: "Portu", en: "Porto" },
+    "Спортинг": { uz: "Sporting", en: "Sporting CP" },
+    "Аякс": { uz: "Ayaks", en: "Ajax" },
+    "Фейеноорд": { uz: "Feyenoord", en: "Feyenoord" },
+    "ПСВ": { uz: "PSV", en: "PSV Eindhoven" },
+    "Селтик": { uz: "Seltik", en: "Celtic" },
+    "Рейнджерс": { uz: "Reyndjers", en: "Rangers" },
+    "Галатасарай": { uz: "Galatasaroy", en: "Galatasaray" },
+    "Фенербахче": { uz: "Fenerbaxche", en: "Fenerbahce" },
+    "Бешикташ": { uz: "Beshiktosh", en: "Besiktas" },
+    "Шахтёр": { uz: "Shaxtyor", en: "Shakhtar" },
+    "Динамо Киев": { uz: "Dinamo Kiev", en: "Dynamo Kyiv" },
+    "Динамо Загреб": { uz: "Dinamo Zagreb", en: "Dinamo Zagreb" },
+    "Црвена Звезда": { uz: "Srvena Zvezda", en: "Red Star Belgrade" },
+    "Зальцбург": { uz: "Zalsburg", en: "Salzburg" },
+    "Штурм": { uz: "Shturm", en: "Sturm Graz" },
+    "ЛАСК": { uz: "LASK", en: "LASK" },
+    "Слован": { uz: "Slovan", en: "Slovan Bratislava" },
+    "Буде-Глимт": { uz: "Bude-Glimt", en: "Bodo/Glimt" },
+    "Лех": { uz: "Lex", en: "Lech Poznan" },
+    "Пафос": { uz: "Pafos", en: "Pafos" },
+    "Кайрат": { uz: "Qayrat", en: "Kairat" },
+    "Рига": { uz: "Riga", en: "Riga" },
+    "АЕК": { uz: "AEK", en: "AEK" },
+    "Олимпиакос": { uz: "Olimpiakos", en: "Olympiacos" },
+    "Панатинаикос": { uz: "Panatinaikos", en: "Panathinaikos" },
+    "Кауно Жальгирис": { uz: "Kauno Jalgiris", en: "Kauno Zalgiris" },
+    "Жальгирис": { uz: "Jalgiris", en: "Zalgiris" },
+    "Пахтакор": { uz: "Paxtakor", en: "Pakhtakor" },
+    "Насаф": { uz: "Nasaf", en: "Nasaf" },
+    "Навбахор": { uz: "Navbahor", en: "Navbahor" },
+    "Аль-Хиляль": { uz: "Al-Hilol", en: "Al-Hilal" },
+    "Аль-Наср": { uz: "Al-Nasr", en: "Al-Nassr" },
+    "Интер Майами": { uz: "Inter Mayami", en: "Inter Miami" }
+  };
+
+  const HIGHLIGHT_CYR_MAP = {
+    "а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"yo","ж":"j","з":"z","и":"i",
+    "й":"y","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t",
+    "у":"u","ф":"f","х":"x","ц":"s","ч":"ch","ш":"sh","щ":"sh","ъ":"","ы":"i","ь":"",
+    "э":"e","ю":"yu","я":"ya",
+    "А":"A","Б":"B","В":"V","Г":"G","Д":"D","Е":"E","Ё":"Yo","Ж":"J","З":"Z","И":"I",
+    "Й":"Y","К":"K","Л":"L","М":"M","Н":"N","О":"O","П":"P","Р":"R","С":"S","Т":"T",
+    "У":"U","Ф":"F","Х":"X","Ц":"S","Ч":"Ch","Ш":"Sh","Щ":"Sh","Ъ":"","Ы":"I","Ь":"",
+    "Э":"E","Ю":"Yu","Я":"Ya"
+  };
+
+  function cyrillicToLatinHighlight(text) {
+    return String(text || "").replace(/[а-яёА-ЯЁ]/g, (ch) => HIGHLIGHT_CYR_MAP[ch] !== undefined ? HIGHLIGHT_CYR_MAP[ch] : ch);
+  }
+
+  function localizeHighlightTitle(raw, lang) {
+    if (!raw || lang === "ru") return raw;
+    let t = String(raw).trim();
+
+    // 1) Klublar nomlarini almashtirish (uzunroq nomlar oldinroq)
+    const sortedClubs = Object.keys(HIGHLIGHT_CLUBS).sort((a, b) => b.length - a.length);
+    for (const club of sortedClubs) {
+      const rx = new RegExp("(^|[^а-яёА-ЯЁa-zA-Z])" + club.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&") + "([^а-яёА-ЯЁa-zA-Z]|$)", "gi");
+      const rep = (HIGHLIGHT_CLUBS[club] && (HIGHLIGHT_CLUBS[club][lang] || HIGHLIGHT_CLUBS[club].uz)) || club;
+      t = t.replace(rx, `$1${rep}$2`);
+    }
+
+    // 2) Turnirlar, obzor va match atamalarini almashtirish
+    for (const item of HIGHLIGHT_TOURNAMENTS) {
+      t = t.replace(item.pattern, (m, p1) => {
+        let r = item[lang] || item.uz;
+        if (p1 && r.includes("$1")) {
+          r = r.replace("$1", p1);
+        }
+        return r;
+      });
+    }
+
+    // 3) Qolgan kirill so'zlari chiroyli lotin shakliga o'tkaziladi
+    if (lang === "uz" || lang === "en") {
+      t = cyrillicToLatinHighlight(t);
+    }
+
+    return t;
+  }
+
+  function localizeHighlightTimeAgo(raw, lang) {
+    if (!raw || lang === "ru") return raw;
+    const s = String(raw).trim();
+    const hourMatch = s.match(/(\d+)\s*(?:ч|час\w*)\s*назад/i);
+    if (hourMatch) {
+      const n = hourMatch[1];
+      return lang === "en" ? `${n}h ago` : `${n} soat oldin`;
+    }
+    const dayMatch = s.match(/(\d+)\s*(?:дн\.?|день|дня|дней)\s*назад/i);
+    if (dayMatch) {
+      const n = dayMatch[1];
+      return lang === "en" ? `${n}d ago` : `${n} kun oldin`;
+    }
+    const minMatch = s.match(/(\d+)\s*(?:мин\.?|минут\w*)\s*назад/i);
+    if (minMatch) {
+      const n = minMatch[1];
+      return lang === "en" ? `${n}m ago` : `${n} daqiqa oldin`;
+    }
+    if (/только\s+что/i.test(s)) {
+      return lang === "en" ? "Just now" : "Hozirgina";
+    }
+    return s;
+  }
+
   function renderFifaHighlightsHtml(wrap, videos) {
     if (!videos || !videos.length) {
       wrap.hidden = true;
@@ -2437,6 +2667,7 @@
       return;
     }
 
+    const lang = curLang();
     wrap.hidden = false;
     wrap.innerHTML = `
       <div class="fifa-highlights-head" role="button" tabindex="0" data-fifa-open-all-highlights aria-label="${esc(F("highlightsTitle"))}">
@@ -2455,9 +2686,11 @@
         ${videos.map((v) => {
           const thumb = v.thumb || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
           const durationBadge = v.duration ? `<span class="fifa-hl-card__duration">${esc(v.duration)}</span>` : "";
-          const timeBadge = v.timeAgo ? `<span class="fifa-hl-card__time">${esc(v.timeAgo)}</span>` : "";
+          const localizedTitle = localizeHighlightTitle(v.title, lang);
+          const localizedTime = localizeHighlightTimeAgo(v.timeAgo, lang);
+          const timeBadge = localizedTime ? `<span class="fifa-hl-card__time">${esc(localizedTime)}</span>` : "";
           return `
-            <div class="fifa-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(v.title)}" role="button" tabindex="0">
+            <div class="fifa-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(localizedTitle)}" role="button" tabindex="0">
               <div class="fifa-hl-card__media">
                 <img src="${esc(thumb)}" alt="" class="fifa-hl-card__img" loading="lazy" decoding="async" onerror="this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
                 <div class="fifa-hl-card__overlay"></div>
@@ -2468,7 +2701,7 @@
                 </div>
                 ${durationBadge}
                 ${timeBadge}
-                <div class="fifa-hl-card__title" title="${esc(v.title)}">${esc(v.title)}</div>
+                <div class="fifa-hl-card__title" title="${esc(localizedTitle)}">${esc(localizedTitle)}</div>
               </div>
             </div>
           `;
@@ -2523,7 +2756,7 @@
         e.preventDefault();
         try { haptic?.tap?.(); } catch (_) {}
         const videoId = hlCard.dataset.fifaPlayHighlight;
-        const title = hlCard.dataset.videoTitle || "O'yin sharhi";
+        const title = hlCard.dataset.videoTitle || F("highlightsTitle");
         if (videoId && typeof window.__playYouTubeStandalone === "function") {
           window.__playYouTubeStandalone(videoId, { title, isHighlight: true, _podcast: false });
         } else if (videoId) {
@@ -2559,12 +2792,15 @@
     if (badgeEl) badgeEl.textContent = String(videos.length);
 
     if (contentEl) {
+      const lang = curLang();
       contentEl.innerHTML = videos.map((v) => {
         const thumb = v.thumb || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
         const durationBadge = v.duration ? `<span class="fifa-all-hl-card__duration">${esc(v.duration)}</span>` : "";
-        const timeBadge = v.timeAgo ? `<span class="fifa-all-hl-card__time">${esc(v.timeAgo)}</span>` : "";
+        const localizedTitle = localizeHighlightTitle(v.title, lang);
+        const localizedTime = localizeHighlightTimeAgo(v.timeAgo, lang);
+        const timeBadge = localizedTime ? `<span class="fifa-all-hl-card__time">${esc(localizedTime)}</span>` : "";
         return `
-          <div class="fifa-all-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(v.title)}" role="button" tabindex="0">
+          <div class="fifa-all-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(localizedTitle)}" role="button" tabindex="0">
             <div class="fifa-all-hl-card__media">
               <img src="${esc(thumb)}" alt="" class="fifa-all-hl-card__img" loading="lazy" decoding="async" onerror="this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
               <div class="fifa-all-hl-card__overlay"></div>
@@ -2577,10 +2813,10 @@
               ${timeBadge}
             </div>
             <div class="fifa-all-hl-card__body">
-              <div class="fifa-all-hl-card__title">${esc(v.title)}</div>
+              <div class="fifa-all-hl-card__title">${esc(localizedTitle)}</div>
               <div class="fifa-all-hl-card__meta">
-                <span class="fifa-all-hl-card__source">Qsport Uzbekistan</span>
-                ${v.timeAgo ? `<span class="fifa-all-hl-card__dot">•</span><span>${esc(v.timeAgo)}</span>` : ""}
+                <span class="fifa-all-hl-card__source">NTV football matches</span>
+                ${localizedTime ? `<span class="fifa-all-hl-card__dot">•</span><span>${esc(localizedTime)}</span>` : ""}
               </div>
             </div>
           </div>
@@ -3431,7 +3667,7 @@
       e.preventDefault();
       try { haptic?.tap?.(); } catch (_) {}
       const videoId = hlCard.dataset.fifaPlayHighlight;
-      const title = hlCard.dataset.videoTitle || "O'yin sharhi";
+      const title = hlCard.dataset.videoTitle || F("highlightsTitle");
       if (videoId && typeof window.__playYouTubeStandalone === "function") {
         window.__playYouTubeStandalone(videoId, { title, isHighlight: true, _podcast: false });
       } else if (videoId) {
@@ -3618,6 +3854,15 @@
     window.addEventListener("kino-lang-change", () => {
       try {
         updateFifaTabs();
+        if (fifaHighlightsCacheData && fifaHighlightsCacheData.length) {
+          const wrap = document.getElementById("fifaHighlightsWrap");
+          if (wrap && !wrap.hidden) {
+            renderFifaHighlightsHtml(wrap, fifaHighlightsCacheData);
+          }
+        }
+        if (fifaAllHighlightsPageEl && !fifaAllHighlightsPageEl.hidden) {
+          openFifaAllHighlightsPage();
+        }
         if (!fifaView || fifaView.hidden) return;
         const groupsActive = document.getElementById("fifaPanelGroups")?.classList.contains("is-active");
         const favsActive = document.getElementById("fifaPanelFavorites")?.classList.contains("is-active");

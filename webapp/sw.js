@@ -1,4 +1,4 @@
-const VERSION = "v20261016-mini-player-v6";
+const VERSION = "v20261016-fifa-hl-i18n-v7";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
