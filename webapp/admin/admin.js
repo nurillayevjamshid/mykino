@@ -3613,7 +3613,7 @@ function renderYtChannels() {
           ${avatarHtml}
           <div style="flex:1;min-width:0;">
             <div style="font-weight:700;font-size:15px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(name)}</div>
-            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:2px;">${videoCount} ta video${c.snapshot?.title && c.snapshot.title !== name ? ' · ' + escapeHtml(c.snapshot.title) : ''}${needsFix ? ' · <span style="color:#d97706;">⚠ YT ma\'lumoti yo\'q</span>' : ''}</div>
+            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:2px;">${videoCount} ta video${c.syncStatus === 'syncing' ? ' · <span style="color:#0284c7;">🔄 Navbatda yuklanmoqda...</span>' : ''}${c.snapshot?.title && c.snapshot.title !== name ? ' · ' + escapeHtml(c.snapshot.title) : ''}${needsFix ? ' · <span style="color:#d97706;">⚠ YT ma\'lumoti yo\'q</span>' : ''}</div>
           </div>
         </div>
         <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">

@@ -18,6 +18,13 @@ const MAX_TRACK_SECONDS = 300;
 const BLOB_API_BASE = "https://blob.vercel-storage.com";
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
+const {
+  yieldToEventLoop,
+  fetchWithRetry,
+  fetchPlaylistItemsQueue,
+  hydrateVideosQueue,
+} = require("./youtube-queue");
+
 let _redisPromise = null;
 async function getRedis() {
   const url = process.env.REDIS_URL || process.env.KV_URL || "";
@@ -138,40 +145,40 @@ function isoToSeconds(iso) {
   return (Number(m[1] || 0) * 3600) + (Number(m[2] || 0) * 60) + Number(m[3] || 0);
 }
 
-async function fetchChannelVideos(uploadsPlaylistId, maxResults = MAX_VIDEOS_PER_CHANNEL) {
+async function fetchChannelVideos(uploadsPlaylistId, maxResults = MAX_VIDEOS_PER_CHANNEL, options = {}) {
   if (!uploadsPlaylistId) return [];
-  const allItems = [];
-  let pageToken = "";
-  while (allItems.length < maxResults) {
-    const batchSize = Math.min(50, maxResults - allItems.length);
-    const params = { part: "snippet,contentDetails", playlistId: uploadsPlaylistId, maxResults: batchSize };
-    if (pageToken) params.pageToken = pageToken;
-    const pl = await ytFetch("playlistItems", params);
-    const items = pl?.items || [];
-    allItems.push(...items);
-    pageToken = pl?.nextPageToken || "";
-    if (!pageToken || !items.length) break;
-  }
-  const ids = allItems.map((it) => it.contentDetails?.videoId).filter(Boolean);
+  const playlistItems = await fetchPlaylistItemsQueue({
+    uploadsPlaylistId,
+    ytFetch,
+    maxResults,
+    pageSize: 50,
+  });
+
+  const ids = playlistItems.map((it) => it.contentDetails?.videoId).filter(Boolean);
   if (!ids.length) return [];
-  const videos = [];
-  for (let i = 0; i < ids.length; i += 50) {
-    const batch = ids.slice(i, i + 50);
-    const vresp = await ytFetch("videos", { part: "contentDetails,snippet,statistics", id: batch.join(","), maxResults: 50 });
-    for (const v of (vresp?.items || [])) {
+
+  const videos = await hydrateVideosQueue({
+    videoIds: ids,
+    ytFetch,
+    batchSize: 50,
+    parts: "contentDetails,snippet,statistics,status",
+    onProgress: options.onProgress,
+    itemFormatter: (v) => {
       const sn = v.snippet || {};
-      const dur = isoToSeconds(v.contentDetails?.duration);
+      const cd = v.contentDetails || {};
+      const dur = isoToSeconds(cd.duration);
       // Faqat 1.5–5 daqiqalik videolar olinadi (davomiyligi noma'lumlar ham tashlanadi)
-      if (dur < MIN_TRACK_SECONDS || dur > MAX_TRACK_SECONDS) continue;
-      videos.push({
+      if (dur < MIN_TRACK_SECONDS || dur > MAX_TRACK_SECONDS) return null;
+      return {
         videoId: v.id,
         title: sn.title || "",
         thumb: pickThumb(sn.thumbnails),
         publishedAt: sn.publishedAt || "",
         durationSec: dur,
-      });
-    }
-  }
+      };
+    },
+  });
+
   return videos;
 }
 
@@ -186,6 +193,8 @@ function normalizeStored(ch) {
     snapshot: ch.snapshot || null,
     videos: Array.isArray(ch.videos) ? ch.videos : [],
     videosFetchedAt: Number(ch.videosFetchedAt || 0),
+    syncStatus: String(ch.syncStatus || "ready"),
+    syncError: ch.syncError ? String(ch.syncError).slice(0, 200) : null,
   };
 }
 
@@ -365,21 +374,58 @@ async function handleMusicChannelsRequest(request, response) {
           response.status(409).json({ ok: false, error: "Bu kanal allaqachon qo'shilgan.", channelId: snapshot.channelId });
           return;
         }
-        const videos = await fetchChannelVideos(snapshot.uploadsPlaylistId);
-        const entry = normalizeStored({
+
+        // 1. Dastlabki yozuvni darhol Redis'ga yozamiz (syncing holatida)
+        let entry = normalizeStored({
           channelId: snapshot.channelId,
           addedAt: Date.now(),
           order: list.length,
           customName: String(body.customName || "").trim(),
           customImage: String(body.customImage || "").trim(),
           snapshot,
-          videos,
-          videosFetchedAt: Date.now(),
+          videos: [],
+          videosFetchedAt: 0,
+          syncStatus: "syncing",
         });
         list.push(entry);
         const ok = await writeChannels(list);
         if (!ok) { response.status(503).json({ ok: false, error: "Redis sozlanmagan." }); return; }
-        response.status(200).json({ ok: true, channel: entry, channels: list });
+
+        // 2. Videolarni navbat (queue) va himoyalangan partiyalar bilan yuklaymiz
+        let videos = [];
+        try {
+          videos = await fetchChannelVideos(snapshot.uploadsPlaylistId, MAX_VIDEOS_PER_CHANNEL, {
+            onProgress: async (currentCount) => {
+              if (currentCount > 0) {
+                const currentList = await readChannels();
+                const idx = currentList.findIndex((c) => c.channelId === snapshot.channelId);
+                if (idx >= 0) {
+                  currentList[idx].videos = videos.slice();
+                  currentList[idx].videosFetchedAt = Date.now();
+                  await writeChannels(currentList);
+                }
+              }
+            },
+          });
+        } catch (queueErr) {
+          console.warn(`[music-channels] Kanal videolari yuklanishida ogohlantirish: ${queueErr.message}`);
+        }
+
+        // 3. Yakuniy natijani saqlaymiz
+        const finalList = await readChannels();
+        const idx = finalList.findIndex((c) => c.channelId === snapshot.channelId);
+        if (idx >= 0) {
+          finalList[idx] = normalizeStored({
+            ...finalList[idx],
+            videos,
+            videosFetchedAt: Date.now(),
+            syncStatus: videos.length ? "ready" : "partial",
+          });
+          await writeChannels(finalList);
+          entry = finalList[idx];
+        }
+
+        response.status(200).json({ ok: true, channel: entry, channels: finalList });
         return;
       }
 
@@ -387,11 +433,28 @@ async function handleMusicChannelsRequest(request, response) {
         const channelId = String(body.channelId || "");
         if (!channelId) { response.status(400).json({ ok: false, error: "channelId kerak." }); return; }
         const snapshot = await resolveChannel(channelId);
-        const videos = await fetchChannelVideos(snapshot.uploadsPlaylistId);
         const list = await readChannels();
         const idx = list.findIndex((c) => c.channelId === channelId);
         if (idx < 0) { response.status(404).json({ ok: false, error: "Topilmadi." }); return; }
-        list[idx] = normalizeStored({ ...list[idx], snapshot, videos, videosFetchedAt: Date.now() });
+
+        list[idx].syncStatus = "syncing";
+        await writeChannels(list);
+
+        let videos = [];
+        try {
+          videos = await fetchChannelVideos(snapshot.uploadsPlaylistId, MAX_VIDEOS_PER_CHANNEL);
+        } catch (err) {
+          console.warn(`[music-channels] Refresh paytida ogohlantirish: ${err.message}`);
+          videos = list[idx].videos || [];
+        }
+
+        list[idx] = normalizeStored({
+          ...list[idx],
+          snapshot,
+          videos,
+          videosFetchedAt: Date.now(),
+          syncStatus: "ready",
+        });
         await writeChannels(list);
         response.status(200).json({ ok: true, channel: list[idx], channels: list });
         return;

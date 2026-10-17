@@ -7,6 +7,13 @@ const YT_API_BASE = "https://www.googleapis.com/youtube/v3";
 const CHANNELS_KEY = "podcasts:channels:v1";
 const CHANNEL_CACHE_TTL = 600; // 10 daqiqa
 
+const {
+  yieldToEventLoop,
+  fetchWithRetry,
+  fetchPlaylistItemsQueue,
+  hydrateVideosQueue,
+} = require("./youtube-queue");
+
 let _redisPromise = null;
 async function getRedis() {
   const url = process.env.REDIS_URL || process.env.KV_URL || "";
@@ -188,66 +195,64 @@ function pickThumb(thumbs) {
   return (thumbs.maxres || thumbs.standard || thumbs.high || thumbs.medium || thumbs.default || {}).url || "";
 }
 
-async function fetchUploadedVideos(uploadsPlaylistId, maxResults = 9999) {
+async function fetchUploadedVideos(uploadsPlaylistId, maxResults = 300) {
   if (!uploadsPlaylistId) return [];
-  const allItems = [];
-  let pageToken = "";
-  // YouTube API har safar max 50 qaytaradi — pagination bilan hammasini olamiz
-  while (allItems.length < maxResults) {
-    const batchSize = Math.min(50, maxResults - allItems.length);
-    const params = {
-      part: "snippet,contentDetails",
-      playlistId: uploadsPlaylistId,
-      maxResults: batchSize,
-    };
-    if (pageToken) params.pageToken = pageToken;
-    const pl = await ytFetch("playlistItems", params);
-    const items = pl?.items || [];
-    allItems.push(...items);
-    pageToken = pl?.nextPageToken || "";
-    if (!pageToken || !items.length) break;
-  }
-  const ids = allItems.map((it) => it.contentDetails?.videoId).filter(Boolean);
+  const playlistItems = await fetchPlaylistItemsQueue({
+    uploadsPlaylistId,
+    ytFetch,
+    maxResults,
+    pageSize: 50,
+  });
+
+  const ids = playlistItems.map((it) => it.contentDetails?.videoId).filter(Boolean);
   if (!ids.length) return [];
-  // Durations + statistics — 50 tadan bo'lib chaqiramiz
-  const videos = [];
-  for (let i = 0; i < ids.length; i += 50) {
-    const batch = ids.slice(i, i + 50);
-    const vresp = await ytFetch("videos", {
-      part: "contentDetails,statistics,snippet",
-      id: batch.join(","),
-      maxResults: 50,
-    });
-    for (const v of (vresp?.items || [])) {
+
+  const videos = await hydrateVideosQueue({
+    videoIds: ids,
+    ytFetch,
+    batchSize: 50,
+    parts: "contentDetails,statistics,snippet,status",
+    itemFormatter: (v) => {
       const sn = v.snippet || {};
-      const dur = isoToSeconds(v.contentDetails?.duration);
-      videos.push({
+      const cd = v.contentDetails || {};
+      const st = v.statistics || {};
+      const dur = isoToSeconds(cd.duration);
+      return {
         videoId: v.id,
         title: sn.title || "",
         thumb: pickThumb(sn.thumbnails),
         publishedAt: sn.publishedAt || "",
         durationSec: dur,
         isShort: dur > 0 && dur <= 60,
-        viewCount: Number(v.statistics?.viewCount || 0),
-      });
-    }
-  }
+        viewCount: Number(st.viewCount || 0),
+      };
+    },
+  });
+
   return videos;
 }
 
 async function fetchPlaylists(channelId, maxResults = 25) {
-  const r = await ytFetch("playlists", {
-    part: "snippet,contentDetails",
-    channelId,
-    maxResults,
-  });
-  return (r?.items || []).map((it) => ({
-    playlistId: it.id,
-    title: it.snippet?.title || "",
-    thumb: pickThumb(it.snippet?.thumbnails),
-    itemCount: Number(it.contentDetails?.itemCount || 0),
-    publishedAt: it.snippet?.publishedAt || "",
-  }));
+  try {
+    const r = await fetchWithRetry(
+      () => ytFetch("playlists", {
+        part: "snippet,contentDetails",
+        channelId,
+        maxResults,
+      }),
+      { maxRetries: 2, delayMs: 400 }
+    );
+    return (r?.items || []).map((it) => ({
+      playlistId: it.id,
+      title: it.snippet?.title || "",
+      thumb: pickThumb(it.snippet?.thumbnails),
+      itemCount: Number(it.contentDetails?.itemCount || 0),
+      publishedAt: it.snippet?.publishedAt || "",
+    }));
+  } catch (err) {
+    console.warn(`[podcasts] Playlists olishda xato (${channelId}): ${err.message}`);
+    return [];
+  }
 }
 
 async function getChannelView(channelId) {
@@ -261,17 +266,24 @@ async function getChannelView(channelId) {
     } catch (_) {}
   }
   // Kanal snapshot — agar stored bo'lsa ham, yangilab olamiz (banner va sub o'zgaradi)
-  const chResp = await ytFetch("channels", {
-    part: "snippet,brandingSettings,statistics,contentDetails",
-    id: channelId,
-  });
+  const chResp = await fetchWithRetry(
+    () => ytFetch("channels", {
+      part: "snippet,brandingSettings,statistics,contentDetails",
+      id: channelId,
+    }),
+    { maxRetries: 2, delayMs: 500 }
+  );
   const item = chResp?.items?.[0];
   if (!item) throw Object.assign(new Error("Kanal topilmadi."), { statusCode: 404 });
   const channel = shapeChannel(item);
-  const [videosAll, playlists] = await Promise.all([
-    fetchUploadedVideos(channel.uploadsPlaylistId, 9999),
+
+  const [videosSettled, playlistsSettled] = await Promise.allSettled([
+    fetchUploadedVideos(channel.uploadsPlaylistId, 300),
     fetchPlaylists(channelId, 25),
   ]);
+
+  const videosAll = videosSettled.status === "fulfilled" ? videosSettled.value : [];
+  const playlists = playlistsSettled.status === "fulfilled" ? playlistsSettled.value : [];
   const videos = videosAll.filter((v) => !v.isShort);
   const shorts = videosAll.filter((v) => v.isShort);
   const view = { channel, videos, shorts, playlists, fetchedAt: Date.now() };
