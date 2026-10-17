@@ -122,9 +122,14 @@ async function handleMusicPlaylists(request, response) {
   response.setHeader("Cache-Control", "no-store, max-age=0");
 
   try {
+    const { requireVerifiedUser } = require("./auth");
+
     if (request.method === "GET") {
+      const user = await requireVerifiedUser(request, response);
+      if (!user) return;
       const url = new URL(request.url || "/", "http://localhost");
-      const userId = trim(url.searchParams.get("userId") || request.query?.userId);
+      const requestedUserId = trim(url.searchParams.get("userId") || request.query?.userId);
+      const userId = request.isAdmin && requestedUserId ? requestedUserId : String(user.id);
       if (!userId) { response.status(400).json({ ok: false, error: "userId kerak." }); return; }
       const root = await readStore();
       const map = readUserPlaylists(root, userId);
@@ -133,8 +138,16 @@ async function handleMusicPlaylists(request, response) {
     }
 
     if (request.method === "POST") {
+      const user = await requireVerifiedUser(request, response);
+      if (!user) return;
+
       const body = await readBody(request);
-      const userId = trim(body.userId);
+      const requestedUserId = trim(body.userId);
+      if (!request.isAdmin && requestedUserId && requestedUserId !== String(user.id)) {
+        response.status(403).json({ ok: false, code: "USER_ID_MISMATCH", error: "Boshqa foydalanuvchi nomidan playlist saqlab bo'lmaydi." });
+        return;
+      }
+      const userId = request.isAdmin && requestedUserId ? requestedUserId : String(user.id);
       if (!userId) { response.status(400).json({ ok: false, error: "userId kerak." }); return; }
       const action = trim(body.action || "create");
 

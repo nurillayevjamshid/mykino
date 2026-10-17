@@ -78,7 +78,7 @@ function verifyTelegramWebappInitData(initData, botToken) {
       .update(dataCheckString)
       .digest("hex");
 
-    return calculatedHash === hash;
+    return safeCompareStrings(calculatedHash, hash);
   } catch (error) {
     console.error("Telegram WebApp initData validation error:", error);
     return false;
@@ -142,25 +142,146 @@ function verifySignedToken(fileId, token, botToken) {
   }
 }
 
-// In-memory request log cache for simple stateless IP rate-limiting
-const ipCache = new Map();
-const IP_TTL_MS = 60000; // 1 minute
-const MAX_REQUESTS_PER_MIN = 120; // 120 requests/minute per IP
+// ---------- Rate Limiting (Redis distributed + in-memory fallback) ----------
+let _rateLimitRedis = null;
+async function getRateLimitRedis() {
+  const url = process.env.REDIS_URL || process.env.KV_URL || "";
+  if (!url) return null;
+  if (_rateLimitRedis) {
+    try { const c = await _rateLimitRedis; if (c?.isOpen) return c; } catch (_) {}
+    _rateLimitRedis = null;
+  }
+  _rateLimitRedis = (async () => {
+    try {
+      const { createClient } = require("redis");
+      const client = createClient({ url });
+      client.on("error", (err) => console.warn("redis (rate-limit) error:", err.message));
+      await client.connect();
+      return client;
+    } catch (_) {
+      return null;
+    }
+  })();
+  return await _rateLimitRedis;
+}
 
-function checkRateLimit(ip) {
-  if (!ip) return true;
+const memoryRateLimitCache = new Map();
+const DEFAULT_WINDOW_MS = 60000; // 1 minute
+const DEFAULT_MAX_REQUESTS = 120; // 120 requests/minute per IP
+
+async function checkRateLimitAsync({ ip, userId, max = DEFAULT_MAX_REQUESTS, windowMs = DEFAULT_WINDOW_MS } = {}) {
+  const keyIdentifier = userId ? `user:${userId}` : (ip ? `ip:${ip}` : "unknown");
   const now = Date.now();
-  const clientData = ipCache.get(ip) || { count: 0, resetTime: now + IP_TTL_MS };
 
+  try {
+    const redis = await getRateLimitRedis();
+    if (redis) {
+      const redisKey = `rl:v1:${keyIdentifier}`;
+      const count = await redis.incr(redisKey);
+      if (count === 1) {
+        await redis.pExpire(redisKey, windowMs);
+      }
+      const ttlMs = await redis.pTTL(redisKey);
+      const remainingTtl = ttlMs > 0 ? ttlMs : windowMs;
+      const retryAfter = Math.ceil(remainingTtl / 1000);
+      const remaining = Math.max(0, max - count);
+      return {
+        allowed: count <= max,
+        limit: max,
+        remaining,
+        reset: Math.ceil((now + remainingTtl) / 1000),
+        retryAfter: count > max ? retryAfter : 0,
+      };
+    }
+  } catch (_) {}
+
+  // In-memory sliding window fallback
+  const clientData = memoryRateLimitCache.get(keyIdentifier) || { count: 0, resetTime: now + windowMs };
   if (now > clientData.resetTime) {
     clientData.count = 1;
-    clientData.resetTime = now + IP_TTL_MS;
+    clientData.resetTime = now + windowMs;
   } else {
     clientData.count++;
   }
-  ipCache.set(ip, clientData);
+  memoryRateLimitCache.set(keyIdentifier, clientData);
 
-  return clientData.count <= MAX_REQUESTS_PER_MIN;
+  const remainingTtl = Math.max(0, clientData.resetTime - now);
+  const remaining = Math.max(0, max - clientData.count);
+  const retryAfter = Math.ceil(remainingTtl / 1000);
+
+  return {
+    allowed: clientData.count <= max,
+    limit: max,
+    remaining,
+    reset: Math.ceil(clientData.resetTime / 1000),
+    retryAfter: clientData.count > max ? retryAfter : 0,
+  };
+}
+
+function setRateLimitHeaders(response, rateCheck) {
+  if (!response || !rateCheck) return;
+  try {
+    response.setHeader("X-RateLimit-Limit", String(rateCheck.limit));
+    response.setHeader("X-RateLimit-Remaining", String(rateCheck.remaining));
+    response.setHeader("X-RateLimit-Reset", String(rateCheck.reset));
+    if (rateCheck.retryAfter > 0) {
+      response.setHeader("Retry-After", String(rateCheck.retryAfter));
+    }
+  } catch (_) {}
+}
+
+async function applyRateLimit(request, response, options = {}) {
+  const clientIp = getClientIp(request);
+  const user = getVerifiedInitDataUser(request);
+  const userId = user?.id ? String(user.id) : null;
+  const max = Number(options.max || (request.method === "GET" ? DEFAULT_MAX_REQUESTS : 40));
+  const windowMs = Number(options.windowMs || DEFAULT_WINDOW_MS);
+
+  // Check rate limit for IP
+  const ipCheck = await checkRateLimitAsync({ ip: clientIp, max, windowMs });
+  setRateLimitHeaders(response, ipCheck);
+
+  if (!ipCheck.allowed) {
+    response.status(429).json({
+      ok: false,
+      code: "TOO_MANY_REQUESTS",
+      error: "Siz juda ko'p so'rov yubordingiz. Iltimos biroz kuting.",
+      retryAfter: ipCheck.retryAfter,
+    });
+    return false;
+  }
+
+  // If user is authenticated, check rate limit for User ID too
+  if (userId) {
+    const userCheck = await checkRateLimitAsync({ userId, max, windowMs });
+    if (!userCheck.allowed) {
+      setRateLimitHeaders(response, userCheck);
+      response.status(429).json({
+        ok: false,
+        code: "TOO_MANY_REQUESTS",
+        error: "Foydalanuvchi hisobidan juda ko'p so'rov yuborildi. Iltimos biroz kuting.",
+        retryAfter: userCheck.retryAfter,
+      });
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Synchronous legacy wrapper for backward compatibility
+function checkRateLimit(ip) {
+  if (!ip) return true;
+  const now = Date.now();
+  const clientData = memoryRateLimitCache.get(`ip:${ip}`) || { count: 0, resetTime: now + DEFAULT_WINDOW_MS };
+  if (now > clientData.resetTime) {
+    clientData.count = 1;
+    clientData.resetTime = now + DEFAULT_WINDOW_MS;
+  } else {
+    clientData.count++;
+  }
+  memoryRateLimitCache.set(`ip:${ip}`, clientData);
+  return clientData.count <= DEFAULT_MAX_REQUESTS;
 }
 
 // ---------- Drive fileId & redirect validators ----------
@@ -371,14 +492,112 @@ function appendSetCookie(response, value) {
 }
 
 function isAdminAuthorized(request) {
+  if (!request) return false;
   // 1) Cookie (preferred)
   const cookies = parseCookies(request);
   if (cookies[ADMIN_COOKIE] && verifyAdminSession(cookies[ADMIN_COOKIE])) return true;
-  // 2) Header (legacy, still accepted)
-  const headerPass = request.headers["x-admin-password"];
-  const expected = getRequiredAdminPassword();
-  if (expected && headerPass && safeCompareStrings(headerPass, expected)) return true;
+
+  // 2) Authorization: Bearer <admin_token>
+  const authHeader = request.headers?.["authorization"] || "";
+  if (authHeader.startsWith("Bearer ")) {
+    const bearer = authHeader.substring(7).trim();
+    if (verifyAdminSession(bearer)) return true;
+  }
+
+  // 3) Header: X-Admin-Password
+  const headerPass = request.headers?.["x-admin-password"];
+  if (headerPass && safeCompareAdminPassword(headerPass)) return true;
+
+  // 4) Bot Token / API Key (for server-to-server or bot automation)
+  const apiKey = request.headers?.["x-api-key"] || request.headers?.["x-bot-token"];
+  const botToken = process.env.BOT_TOKEN;
+  if (apiKey && botToken && (safeCompareStrings(apiKey, botToken) || safeCompareStrings(apiKey, `Bot ${botToken}`))) {
+    return true;
+  }
+  if (authHeader.startsWith("Bot ") && botToken && safeCompareStrings(authHeader.substring(4).trim(), botToken)) {
+    return true;
+  }
+
   return false;
+}
+
+/**
+ * Faqat administratorlar uchun qattiq avtorizatsiya middleware.
+ * Begonalar (oddiy foydalanuvchilar ham) kirishini bloklaydi.
+ */
+async function requireAdmin(request, response) {
+  setCorsHeaders(request, response);
+  if (request.method === "OPTIONS") {
+    response.status(204).end();
+    return false;
+  }
+
+  const rateOk = await applyRateLimit(request, response, { max: 40 });
+  if (!rateOk) return false;
+
+  const clientIp = getClientIp(request);
+  if (adminIsLocked(clientIp)) {
+    response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
+    return false;
+  }
+
+  if (isAdminAuthorized(request)) {
+    adminResetFails(clientIp);
+    return true;
+  }
+
+  // Body password fallback if parsed
+  if (request.body && typeof request.body === "object" && request.body.password) {
+    if (safeCompareAdminPassword(request.body.password)) {
+      adminResetFails(clientIp);
+      return true;
+    }
+  }
+
+  adminRegisterFail(clientIp);
+  response.status(401).json({
+    ok: false,
+    code: "ADMIN_UNAUTHORIZED",
+    error: "Ushbu amal faqat administrator uchun ruxsat etilgan.",
+  });
+  return false;
+}
+
+/**
+ * Faqat tasdiqlangan Telegram foydalanuvchilari uchun middleware.
+ * Telegram WebApp initData (HMAC-SHA256) hash'ini Bot Token orqali tekshiradi.
+ * Natijada request.user va request.verifiedUserId ni biriktiradi.
+ */
+async function requireVerifiedUser(request, response) {
+  setCorsHeaders(request, response);
+  if (request.method === "OPTIONS") {
+    response.status(204).end();
+    return null;
+  }
+
+  const rateOk = await applyRateLimit(request, response, { max: 60 });
+  if (!rateOk) return null;
+
+  const user = getVerifiedInitDataUser(request);
+  if (user && user.id) {
+    request.user = user;
+    request.verifiedUserId = String(user.id);
+    return user;
+  }
+
+  // Administratorga ham test/boshqaruv maqsadida ruxsat beriladi
+  if (isAdminAuthorized(request)) {
+    request.isAdmin = true;
+    request.verifiedUserId = "admin";
+    return { id: "admin", is_admin: true, first_name: "Admin" };
+  }
+
+  response.status(401).json({
+    ok: false,
+    code: "UNVERIFIED_USER",
+    error: "Telegram WebApp tasdiqlanmadi (initData xato, eskirgan yoki mavjud emas).",
+  });
+  return null;
 }
 
 /**
@@ -394,87 +613,60 @@ async function authorizeRequest(request, response, options = {}) {
     return false;
   }
 
-  // 2. Simple Rate Limiting (IP-based)
-  const clientIp = getClientIp(request);
-  if (!checkRateLimit(clientIp)) {
-    response.status(429).json({ ok: false, code: "TOO_MANY_REQUESTS", error: "Siz juda ko'p so'rov yubordingiz. Iltimos biroz kuting." });
-    return false;
+  // 2. Rate Limiting (IP & User)
+  const rateOk = await applyRateLimit(request, response, {
+    max: options.rateLimitMax || (request.method === "GET" ? DEFAULT_MAX_REQUESTS : 40),
+  });
+  if (!rateOk) return false;
+
+  // 3. Admin-only check
+  if (options.requireAdmin || options.adminOnly) {
+    return await requireAdmin(request, response);
   }
 
-  // 3. Skip auth for share pages (GET requests with _share=1)
+  // 4. Verified-user-only check
+  if (options.requireVerifiedUser) {
+    const u = await requireVerifiedUser(request, response);
+    return Boolean(u);
+  }
+
+  // 5. Skip auth for share pages (GET requests with _share=1)
   const isShare = String(request.query?._share || "") === "1" || /[?&]_share=1/.test(request.url || "");
   if (isShare && request.method === "GET" && options.allowShare) {
     return true;
   }
 
-  // 4. Retrieve Auth credentials from Headers
+  // 6. Check Admin credentials (Cookie, Bearer, Password header, Bot token)
+  if (isAdminAuthorized(request)) {
+    return true;
+  }
+
+  // 7. Check Telegram WebApp InitData (for normal users)
   const initData = request.headers["x-tg-init-data"] || request.headers["x-telegram-init-data"];
   const authHeader = request.headers["authorization"] || "";
-
   let bearerToken = "";
   if (authHeader.startsWith("Bearer ")) {
     bearerToken = authHeader.substring(7).trim();
   }
-
-  const apiKey = request.headers["x-api-key"] || request.headers["x-bot-token"];
-  const adminPasswordHeader = request.headers["x-admin-password"];
-
-  const botToken = process.env.BOT_TOKEN;
-  const adminPassword = getRequiredAdminPassword();
-
-  // Check 1: API Key / Bot Token (for Telegram bot or backend requests) — constant-time
-  if (apiKey && botToken && (safeCompareStrings(apiKey, botToken) || safeCompareStrings(apiKey, `Bot ${botToken}`))) {
-    return true;
-  }
-  if (authHeader.startsWith("Bot ") && botToken && safeCompareStrings(authHeader.substring(4).trim(), botToken)) {
-    return true;
-  }
-
-  // Check 2a: Admin session cookie (preferred path — set by /api/users?action=admin-login)
-  const cookies = parseCookies(request);
-  if (cookies[ADMIN_COOKIE] && verifyAdminSession(cookies[ADMIN_COOKIE])) {
-    return true;
-  }
-
-  // Check 2b: Admin Password header (legacy fallback) — constant-time + per-IP lockout
-  if (adminPasswordHeader) {
-    if (safeCompareAdminPassword(adminPasswordHeader)) {
-      adminResetFails(clientIp);
-      return true;
-    }
-    if (adminIsLocked(clientIp)) {
-      response.status(429).json({ ok: false, code: "ADMIN_LOCKED", error: "Juda ko'p noto'g'ri urinish. 10 daqiqadan keyin qayta urinib ko'ring." });
-      return false;
-    }
-    adminRegisterFail(clientIp);
-  }
-
-  // Check 3: Telegram WebApp InitData (for normal users)
   const tgToken = initData || bearerToken;
+  const botToken = process.env.BOT_TOKEN;
   if (tgToken && botToken) {
     if (verifyTelegramWebappInitData(tgToken, botToken)) {
       return true;
     }
   }
 
-  // Hotlink protection: check Referer and Origin if they are present
-  // If Origin/Referer are from untrusted sources, reject
+  // 8. Hotlink protection: check Referer and Origin if they are present
   const origin = request.headers.origin;
   if (origin && !isOriginAllowed(origin)) {
     response.status(403).json({ ok: false, code: "FORBIDDEN", error: "Ruxsat berilmagan domen (CORS Block)." });
     return false;
   }
 
-  // Same-origin GET fallback: Telegram ba'zan reply-keyboard webapp tugmasi
-  // bosilganda initData'ni bo'sh yoki eskirgan holda yetkazadi (ayniqsa Desktop
-  // klientida). Bunday paytda foydalanuvchini "Kirish taqiqlangan" ekraniga
-  // uloqtirish o'rniga, agar so'rov bizning ruxsat etilgan domendan kelayotgan
-  // GET bo'lsa, katalogni o'qishga ruxsat beramiz. Yozish/o'zgartirish (POST/PUT/DELETE)
-  // baribir initData yoki admin parolisiz o'tmaydi.
+  // 9. Same-origin GET fallback
   if (request.method === "GET" && origin && isOriginAllowed(origin)) {
     return true;
   }
-  // Origin yo'q bo'lsa (mobil Telegram WebView ba'zan yubormaydi), Referer'ga qaraymiz
   if (request.method === "GET") {
     const referer = request.headers.referer || request.headers.referrer;
     if (referer) {
@@ -498,6 +690,11 @@ async function authorizeRequest(request, response, options = {}) {
 
 module.exports = {
   authorizeRequest,
+  requireAdmin,
+  requireVerifiedUser,
+  applyRateLimit,
+  checkRateLimitAsync,
+  setRateLimitHeaders,
   setCorsHeaders,
   isOriginAllowed,
   verifyTelegramWebappInitData,

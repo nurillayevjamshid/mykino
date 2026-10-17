@@ -1,8 +1,11 @@
 const {
   authorizeRequest,
+  requireAdmin,
+  requireVerifiedUser,
   setCorsHeaders,
   safeCompareStrings,
   getVerifiedInitDataUser,
+  isAdminAuthorized,
   signAdminSession,
   setAdminSessionCookie,
   clearAdminSessionCookie,
@@ -363,8 +366,9 @@ module.exports = async function handler(request, response) {
   const isWatchProgressRequest = /\/watch-progress(?:\?|$|\.)/i.test(reqUrl) || /[?&]_watch=1/.test(reqUrl);
   if (isWatchProgressRequest) {
     const verifiedUser = getVerifiedInitDataUser(request);
-    request.requireVerifiedUser = false;
-    request.verifiedTelegramUserId = verifiedUser?.id ? String(verifiedUser.id) : "";
+    const isAdmin = isAdminAuthorized(request);
+    request.requireVerifiedUser = !isAdmin;
+    request.verifiedTelegramUserId = verifiedUser?.id ? String(verifiedUser.id) : (isAdmin ? "admin" : "");
     return handleWatchProgress(request, response);
   }
 
@@ -372,6 +376,7 @@ module.exports = async function handler(request, response) {
 
   try {
     if (request.method === "GET") {
+      if (!(await requireAdmin(request, response))) return;
       const debugMatch = /[?&]_debug=([^&]+)/.exec(reqUrl);
       const isDebug = debugMatch && safeCompareAdminPassword(decodeURIComponent(debugMatch[1]));
       const repoBackupUsers = readUsersFromRepoBackup();
@@ -429,16 +434,8 @@ module.exports = async function handler(request, response) {
     }
 
     if (request.method === "DELETE") {
+      if (!(await requireAdmin(request, response))) return;
       const body = await readRequestBody(request);
-      const expected = getRequiredAdminPassword();
-      const password = trimStr(body.password);
-      const { isAdminAuthorized } = require("./_lib/auth");
-      const okByCookieOrHeader = isAdminAuthorized(request);
-      const okByBody = password && safeCompareAdminPassword(password);
-      if (!okByCookieOrHeader && !okByBody) {
-        response.status(401).json({ ok: false, error: "Parol noto'g'ri." });
-        return;
-      }
       const telegramId = trimStr(body.telegram_id || body.telegramId || body.id);
       if (!telegramId) {
         response.status(400).json({ ok: false, error: "telegram_id kerak." });
@@ -477,11 +474,16 @@ module.exports = async function handler(request, response) {
     }
 
     if (request.method === "POST") {
+      const tgUser = getVerifiedInitDataUser(request);
+      const isAdmin = isAdminAuthorized(request);
+      if (!tgUser && !isAdmin) {
+        response.status(401).json({ ok: false, error: "Telegram foydalanuvchisi tasdiqlanmadi (initData xato yoki eskirgan)." });
+        return;
+      }
       const body = await readRequestBody(request);
       // Mini App o'zini ro'yxatga olganda telegram_id'ni tanadan emas, imzolangan
       // initData'dan olamiz — shunda hech kim boshqa ID bilan soxta obunachi
       // qo'sha olmaydi. Admin panel (cookie/parol) esa tanadagi ID bilan ishlaydi.
-      const tgUser = getVerifiedInitDataUser(request);
       const next = normalizeUser(tgUser ? {
         telegram_id: tgUser.id,
         username: tgUser.username || body.username,

@@ -344,6 +344,8 @@ async function handleMusicChannelsRequest(request, response) {
     }
 
     if (request.method === "POST" || request.method === "PUT" || request.method === "DELETE") {
+      const { requireAdmin } = require("./auth");
+      if (!(await requireAdmin(request, response))) return;
       const body = await readBody(request);
       const action = String(body.action || (request.method === "DELETE" ? "delete" : "add")).toLowerCase();
 

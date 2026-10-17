@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const { authorizeRequest } = require("./_lib/auth");
+const { authorizeRequest, requireAdmin } = require("./_lib/auth");
 const {
   listDriveMovies,
   listDriveSeries,
@@ -281,6 +281,7 @@ module.exports = async function handler(request, response) {
         return;
       }
       if (request.method === "PUT" || request.method === "POST") {
+        if (!(await requireAdmin(request, response))) return;
         await handleSeriesUpdate(request, response);
         return;
       }

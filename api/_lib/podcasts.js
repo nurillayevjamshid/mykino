@@ -317,10 +317,13 @@ async function handlePodcastsRequest(request, response) {
       const action = String(body.action || (request.method === "DELETE" ? "delete" : "add")).toLowerCase();
 
       if (action === "share") {
+        const { requireVerifiedUser } = require("./auth");
+        const user = await requireVerifiedUser(request, response);
+        if (!user) return;
         const channelId = String(body.channelId || "").trim();
-        const userId = String(body.userId || "").trim();
-        if (!channelId || !/^\d+$/.test(userId)) {
-          response.status(400).json({ ok: false, error: "channelId va userId kerak." });
+        const userId = String(user.id);
+        if (!channelId) {
+          response.status(400).json({ ok: false, error: "channelId kerak." });
           return;
         }
         const token = String(process.env.BOT_TOKEN || "").trim();
@@ -387,6 +390,10 @@ async function handlePodcastsRequest(request, response) {
         response.status(200).json({ ok: true, preparedMessageId: tgJson.result.id, expirationDate: tgJson.result.expiration_date });
         return;
       }
+
+      // Boshqa barcha boshqaruv amallari (add, delete, refresh, update) faqat administrator uchun!
+      const { requireAdmin } = require("./auth");
+      if (!(await requireAdmin(request, response))) return;
 
       if (action === "delete") {
         const channelId = String(body.channelId || "");

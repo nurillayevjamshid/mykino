@@ -364,10 +364,32 @@
     }
   }
 
+  let _fifaSyncDebounceTimer = null;
+  function syncFifaFavoritesToBackend() {
+    clearTimeout(_fifaSyncDebounceTimer);
+    _fifaSyncDebounceTimer = setTimeout(() => {
+      try {
+        const initData = window.Telegram?.WebApp?.initData;
+        if (!initData) return;
+        const teams = readFifaFavoriteTeams();
+        const matches = readFifaFavorites();
+        fetch("/api/categories?type=fifa-favorites", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-TG-Init-Data": initData,
+          },
+          body: JSON.stringify({ teams, matches }),
+        }).catch(() => {});
+      } catch (_) {}
+    }, 350);
+  }
+
   function writeFifaFavorites(store) {
     try {
       localStorage.setItem(FIFA_FAVORITES_KEY, JSON.stringify(store || {}));
       syncFifaFavoritesToCloud(store);
+      syncFifaFavoritesToBackend();
     } catch (_) {}
   }
 
@@ -500,6 +522,40 @@
       if (cs && typeof cs.setItem === "function") {
         cs.setItem(FIFA_FAV_TEAMS_KEY, JSON.stringify(teams || {}), () => {});
       }
+      syncFifaFavoritesToBackend();
+    } catch (_) {}
+  }
+
+  async function syncFifaFavoritesFromBackend() {
+    try {
+      const initData = window.Telegram?.WebApp?.initData;
+      if (!initData) return;
+      const res = await fetch("/api/categories?type=fifa-favorites", {
+        headers: { "X-TG-Init-Data": initData },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !data.ok) return;
+
+      let changed = false;
+      if (data.teams && typeof data.teams === "object" && Object.keys(data.teams).length > 0) {
+        const localTeams = readFifaFavoriteTeams();
+        const mergedTeams = Object.assign({}, data.teams, localTeams);
+        localStorage.setItem(FIFA_FAV_TEAMS_KEY, JSON.stringify(mergedTeams));
+        changed = true;
+      }
+      if (data.matches && typeof data.matches === "object" && Object.keys(data.matches).length > 0) {
+        const localMatches = readFifaFavorites();
+        const mergedMatches = Object.assign({}, data.matches, localMatches);
+        localStorage.setItem(FIFA_FAVORITES_KEY, JSON.stringify(mergedMatches));
+        changed = true;
+      }
+      if (changed) {
+        updateFifaTabs();
+        renderMatches();
+        const favPanel = document.getElementById("fifaPanelFavorites");
+        if (favPanel && !favPanel.hidden) renderFifaFavorites();
+      }
     } catch (_) {}
   }
 
@@ -528,6 +584,7 @@
   }
 
   try { syncFifaFavoriteTeamsFromCloud(); } catch (_) {}
+  try { syncFifaFavoritesFromBackend(); } catch (_) {}
 
   const POPULAR_TEAMS = [
     { name: "Real Madrid", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/86.png", leagueId: "esp.1" },

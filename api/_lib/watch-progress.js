@@ -86,7 +86,7 @@ async function handleWatchProgress(request, response) {
       const body = await readRequestBody(request);
       const requestedUserId = trim(body.userId);
       if (verifiedUserId && requestedUserId && requestedUserId !== verifiedUserId) {
-        response.status(403).json({ ok: false, error: "Boshqa foydalanuvchi nomidan amal bajarib bo‘lmaydi." });
+        response.status(403).json({ ok: false, code: "USER_ID_MISMATCH", error: "Boshqa foydalanuvchi nomidan amal bajarib bo‘lmaydi." });
         return;
       }
       const userId = verifiedUserId || requestedUserId;

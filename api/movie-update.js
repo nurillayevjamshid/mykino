@@ -1,4 +1,4 @@
-const { authorizeRequest, isAdminAuthorized, safeCompareStrings, getRequiredAdminPassword, safeCompareAdminPassword } = require("./_lib/auth");
+const { authorizeRequest, requireAdmin, isAdminAuthorized, safeCompareStrings, getRequiredAdminPassword, safeCompareAdminPassword } = require("./_lib/auth");
 const {
   getDriveFileMetadata,
   setCors,
@@ -58,7 +58,7 @@ module.exports = async function handler(request, response) {
     return movieReactionHandler(request, response);
   }
 
-  if (!(await authorizeRequest(request, response))) {
+  if (!(await requireAdmin(request, response))) {
     return;
   }
 

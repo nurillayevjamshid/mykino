@@ -1,4 +1,4 @@
-const { authorizeRequest } = require("./_lib/auth");
+const { authorizeRequest, requireAdmin } = require("./_lib/auth");
 const {
   getDriveConfig,
   getDriveFileMetadata,
@@ -395,7 +395,9 @@ async function readPersistedSettings(settings) {
 }
 
 module.exports = async function handler(request, response) {
-  if (!(await authorizeRequest(request, response))) {
+  if (request.method === "POST" || request.method === "PUT" || request.method === "DELETE") {
+    if (!(await requireAdmin(request, response))) return;
+  } else if (!(await authorizeRequest(request, response))) {
     return;
   }
 
@@ -462,6 +464,7 @@ module.exports = async function handler(request, response) {
     }
 
     if (request.method === "POST") {
+      if (!(await requireAdmin(request, response))) return;
       const body = await readRequestBody(request);
       const nextSettings = { ...settings };
 

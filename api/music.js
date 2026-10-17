@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { authorizeRequest } = require("./_lib/auth");
+const { authorizeRequest, requireAdmin } = require("./_lib/auth");
 const { handlePodcastsRequest } = require("./_lib/podcasts");
 const {
   handleMusicChannelsRequest,
@@ -289,6 +289,7 @@ async function handleArtistsRequest(request, response) {
     return;
   }
   if (request.method === "POST" || request.method === "PUT" || request.method === "DELETE") {
+    if (!(await requireAdmin(request, response))) return;
     try {
       const body = await readBody(request);
       const action = body.action || (request.method === "DELETE" ? "delete" : (request.method === "PUT" ? "update" : "create"));
@@ -345,7 +346,8 @@ module.exports = async function handler(request, response) {
   }
   response.setHeader("Cache-Control", "no-store, max-age=0");
 
-  const resource = String(request.query?.resource || "").toLowerCase();
+  const url = new URL(request.url || "/", "http://localhost");
+  const resource = String(request.query?.resource || url.searchParams.get("resource") || "").toLowerCase();
   if (resource === "artists") {
     await handleArtistsRequest(request, response);
     return;
@@ -374,6 +376,7 @@ module.exports = async function handler(request, response) {
   }
 
   if (request.method === "POST" || request.method === "PUT") {
+    if (!(await requireAdmin(request, response))) return;
     try {
       const body = await readBody(request);
 

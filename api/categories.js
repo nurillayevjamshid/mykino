@@ -1,4 +1,4 @@
-const { authorizeRequest } = require("./_lib/auth");
+const { authorizeRequest, requireAdmin, requireVerifiedUser } = require("./_lib/auth");
 const { uploadImageToR2, uploadFileToR2 } = require("./_lib/r2-store");
 
 const REDIS_KEY = "categories:v1";
@@ -708,6 +708,74 @@ async function writeTvChannels(list) {
   }
 }
 
+async function handleFifaFavorites(request, response) {
+  const user = await requireVerifiedUser(request, response);
+  if (!user) return;
+  const userId = request.verifiedUserId;
+  const client = await getRedis();
+
+  if (request.method === "GET") {
+    response.setHeader("Cache-Control", "private, no-cache, no-store, max-age=0");
+    if (!client) {
+      return response.status(200).json({ ok: true, teams: {}, matches: {} });
+    }
+    try {
+      const raw = await client.get(`fifa:favorites:v1:${userId}`);
+      const data = raw ? JSON.parse(raw) : {};
+      return response.status(200).json({
+        ok: true,
+        teams: data.teams && typeof data.teams === "object" ? data.teams : {},
+        matches: data.matches && typeof data.matches === "object" ? data.matches : {},
+      });
+    } catch (err) {
+      return response.status(500).json({ ok: false, error: err.message || "Sevimlilarni yuklab bo'lmadi." });
+    }
+  }
+
+  if (request.method === "POST" || request.method === "PUT") {
+    try {
+      const body = await readBody(request);
+      let teams = body.teams && typeof body.teams === "object" ? body.teams : {};
+      let matches = body.matches && typeof body.matches === "object" ? body.matches : {};
+
+      if (client) {
+        try {
+          const raw = await client.get(`fifa:favorites:v1:${userId}`);
+          if (raw) {
+            const existing = JSON.parse(raw);
+            if (existing && typeof existing === "object") {
+              if (body.teams === undefined && existing.teams) teams = existing.teams;
+              if (body.matches === undefined && existing.matches) matches = existing.matches;
+            }
+          }
+        } catch (_) {}
+      }
+
+      const payload = {
+        userId,
+        teams,
+        matches,
+        updatedAt: Date.now(),
+      };
+      if (client) {
+        await client.set(`fifa:favorites:v1:${userId}`, JSON.stringify(payload));
+      }
+      return response.status(200).json({ ok: true, teams, matches });
+    } catch (err) {
+      return response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
+    }
+  }
+
+  if (request.method === "DELETE") {
+    if (client) {
+      await client.del(`fifa:favorites:v1:${userId}`);
+    }
+    return response.status(200).json({ ok: true, teams: {}, matches: {} });
+  }
+
+  return response.status(405).json({ ok: false, error: "Method not allowed." });
+}
+
 async function handleTvChannels(request, response) {
   if (request.method === "GET") {
     try {
@@ -719,8 +787,8 @@ async function handleTvChannels(request, response) {
     }
     return;
   }
-  // Yozish — auth talab
-  if (!(await authorizeRequest(request, response))) return;
+  // Yozish — admin auth talab
+  if (!(await requireAdmin(request, response))) return;
   try {
     const body = await readBody(request);
     if (!isRedisEnabled()) {
@@ -755,8 +823,8 @@ async function handleFifaLive(request, response) {
     }
     return;
   }
-  // Yozish — auth talab
-  if (!(await authorizeRequest(request, response))) return;
+  // Yozish — faqat administrator
+  if (!(await requireAdmin(request, response))) return;
   try {
     const body = await readBody(request);
     if (body.action === "upload") {
@@ -1229,8 +1297,8 @@ async function handleFifaHighlights(request, response) {
     return;
   }
 
-  // Yozish / o'chirish — admin auth
-  if (!(await authorizeRequest(request, response))) return;
+  // Yozish / o'chirish — faqat administrator
+  if (!(await requireAdmin(request, response))) return;
 
   try {
     const body = await readBody(request);
@@ -1964,6 +2032,10 @@ module.exports = async function handler(request, response) {
     await handleFifaLineup(request, response);
     return;
   }
+  if (earlyType === "fifa-favorites") {
+    await handleFifaFavorites(request, response);
+    return;
+  }
 
   if (!(await authorizeRequest(request, response))) {
     return;
@@ -1989,6 +2061,7 @@ module.exports = async function handler(request, response) {
       return;
     }
     if (request.method === "POST" || request.method === "PUT") {
+      if (!(await requireAdmin(request, response))) return;
       try {
         const body = await readBody(request);
         if (body.action === "upload") {
@@ -2026,6 +2099,7 @@ module.exports = async function handler(request, response) {
   }
 
   if (request.method === "POST" || request.method === "PUT" || request.method === "DELETE") {
+    if (!(await requireAdmin(request, response))) return;
     try {
       const body = await readBody(request);
       const action = body.action || (request.method === "DELETE" ? "delete" : (request.method === "PUT" ? "update" : "create"));
