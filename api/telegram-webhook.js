@@ -504,6 +504,10 @@ module.exports = async function handler(request, response) {
     response.status(200).json({ ok: true });
   } catch (err) {
     console.error("Webhook error:", err);
+    try {
+      const { reportError } = require("./_lib/error-logger");
+      reportError(err, { location: "Telegram Webhook", url: request.url, method: request.method }).catch(() => {});
+    } catch (_) {}
     response.status(200).json({ ok: true });
   }
 };

@@ -1407,6 +1407,10 @@ async function handleFifa(request, response) {
     applyFootballHeaders(response, data, dateKey, todayKey, cached ? "REVALIDATED" : "MISS");
     response.status(200).json(data);
   } catch (err) {
+    try {
+      const { reportError } = require("./_lib/error-logger");
+      reportError(err, { location: "Futbol API (fifa scoreboard)", url: request.url, method: request.method }).catch(() => {});
+    } catch (_) {}
     if (cached) {
       applyFootballHeaders(response, cached.data, dateKey, todayKey, "STALE");
       response.status(200).json(cached.data);
@@ -1543,6 +1547,10 @@ async function handleFifaUpcoming(request, response) {
     response.setHeader("Vary", "Accept-Encoding");
     response.status(200).json(payload);
   } catch (err) {
+    try {
+      const { reportError } = require("./_lib/error-logger");
+      reportError(err, { location: "Futbol API (fifa-upcoming)", url: request.url, method: request.method }).catch(() => {});
+    } catch (_) {}
     if (cached) {
       response.setHeader("X-Football-Cache", "STALE");
       response.setHeader("Cache-Control", "public, max-age=300, s-maxage=2700, stale-while-revalidate=3600");
@@ -1995,6 +2003,10 @@ async function handleFifaLineup(request, response) {
     applyLineupHeaders(response, data, cached ? "REVALIDATED" : "MISS");
     response.status(200).json(data);
   } catch (err) {
+    try {
+      const { reportError } = require("./_lib/error-logger");
+      reportError(err, { location: "Futbol API (fifa-lineup modal)", url: request.url, method: request.method }).catch(() => {});
+    } catch (_) {}
     if (cached) {
       applyLineupHeaders(response, cached.data, "STALE");
       response.status(200).json(cached.data);

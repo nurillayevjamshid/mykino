@@ -379,6 +379,12 @@ module.exports = async function handler(request, response) {
     }
     await handleMoviesList(request, response);
   } catch (error) {
+    if (!error.statusCode || error.statusCode >= 500) {
+      try {
+        const { reportError } = require("./_lib/error-logger");
+        reportError(error, { location: "api/movies.js", url: request.url, method: request.method }).catch(() => {});
+      } catch (_) {}
+    }
     response.status(error.statusCode || 500).json({
       ok: false,
       code: error.code || "REQUEST_FAILED",

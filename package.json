@@ -14,6 +14,7 @@
     "test:ci": "node scripts/run-tests.js --reporter=tap",
     "migrate:r2": "node --no-warnings scripts/migrate-to-r2.js",
     "faststart": "node scripts/faststart-drive.js",
-    "faststart:apply": "node scripts/faststart-drive.js --apply"
+    "faststart:apply": "node scripts/faststart-drive.js --apply",
+    "test:load": "node scripts/load-test.js"
   }
 }

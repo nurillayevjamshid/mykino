@@ -20,3 +20,4 @@ build/
 data/users.json
 data/users-backup.json
 data/backups/
+load-test-report.md

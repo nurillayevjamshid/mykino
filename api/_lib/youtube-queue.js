@@ -71,6 +71,10 @@ async function fetchPlaylistItemsQueue({ uploadsPlaylistId, ytFetch, maxResults 
       pl = await fetchWithRetry(() => ytFetch("playlistItems", params), { maxRetries: 2, delayMs: 400 });
     } catch (err) {
       console.warn(`[YouTube Queue] playlistItems sahifasini olishda xatolik: ${err.message}. Mavjud ${allItems.length} ta element bilan davom etiladi.`);
+      try {
+        const { reportError } = require("./error-logger");
+        reportError(err, { location: "YouTube Queue (playlistItems)", extra: { uploadsPlaylistId } }).catch(() => {});
+      } catch (_) {}
       break;
     }
 
@@ -119,6 +123,10 @@ async function hydrateVideosQueue({
       batchItems = vresp?.items || [];
     } catch (batchErr) {
       console.warn(`[YouTube Queue] Partiyada xatolik (${batchErr.message}). ${batch.length} ta video alohida izolyatsiyada tekshirilmoqda...`);
+      try {
+        const { reportError } = require("./error-logger");
+        reportError(batchErr, { location: "YouTube Queue (batch videos)", extra: { batchCount: batch.length } }).catch(() => {});
+      } catch (_) {}
       // 2. Agar butun partiya xato bersa (masalan, bloklangan video yoki 400/403 bo'lsa),
       // har bir videoni alohida try-catch bilan o'tkazamiz!
       for (const singleId of batch) {

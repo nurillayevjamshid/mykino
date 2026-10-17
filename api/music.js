@@ -8,6 +8,7 @@ const {
   loadChannelArtists,
 } = require("./_lib/music-channels");
 const { handleMusicPlaylists } = require("./_lib/music-playlists");
+const { withErrorHandler } = require("./_lib/error-logger");
 
 const SEED_FILE = path.join(process.cwd(), "data", "music.json");
 const REDIS_KEY = "music:tracks:v1";
@@ -340,7 +341,7 @@ async function handleArtistsRequest(request, response) {
   response.status(405).json({ ok: false, error: "Method not allowed." });
 }
 
-module.exports = async function handler(request, response) {
+module.exports = withErrorHandler(async function handler(request, response) {
   if (!(await authorizeRequest(request, response))) {
     return;
   }
@@ -494,4 +495,4 @@ module.exports = async function handler(request, response) {
   }
 
   response.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", error: "Faqat GET/POST/PUT." });
-};
+}, { location: "api/music.js" });
