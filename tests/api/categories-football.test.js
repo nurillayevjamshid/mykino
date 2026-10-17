@@ -237,5 +237,74 @@ describe("api/categories.js football leagues", () => {
     assert.equal(res.body.status, "live");
     assert.equal(res.body.minute, "68'");
     assert.equal(res.body.score, "2 : 1");
+    assert.match(res.headers["Cache-Control"], /s-maxage=60/);
+  });
+
+  test("caches past and future matches with 30-60 min s-maxage and serves HIT", async () => {
+    // 1) Past match (e.g. 2026-01-01)
+    const reqPast1 = createMockReq({ method: "GET", url: "/api/categories?type=fifa&date=2026-01-01&league=esp.1" });
+    const resPast1 = createMockRes();
+    await handler(reqPast1, resPast1);
+    assert.equal(resPast1.statusCode, 200);
+    assert.match(resPast1.headers["Cache-Control"], /s-maxage=3600/);
+
+    const reqPast2 = createMockReq({ method: "GET", url: "/api/categories?type=fifa&date=2026-01-01&league=esp.1" });
+    const resPast2 = createMockRes();
+    await handler(reqPast2, resPast2);
+    assert.equal(resPast2.statusCode, 200);
+    assert.equal(resPast2.headers["X-Football-Cache"], "HIT");
+
+    // 2) Future match (e.g. 2026-12-31)
+    const reqFuture1 = createMockReq({ method: "GET", url: "/api/categories?type=fifa&date=2026-12-31&league=esp.1" });
+    const resFuture1 = createMockRes();
+    await handler(reqFuture1, resFuture1);
+    assert.equal(resFuture1.statusCode, 200);
+    assert.match(resFuture1.headers["Cache-Control"], /s-maxage=2700/);
+
+    const reqFuture2 = createMockReq({ method: "GET", url: "/api/categories?type=fifa&date=2026-12-31&league=esp.1" });
+    const resFuture2 = createMockRes();
+    await handler(reqFuture2, resFuture2);
+    assert.equal(resFuture2.statusCode, 200);
+    assert.equal(resFuture2.headers["X-Football-Cache"], "HIT");
+  });
+
+  test("caches live lineup with 60s s-maxage and serves HIT on repeat", async () => {
+    const req1 = createMockReq({ method: "GET", url: "/api/categories?type=fifa-lineup&eventId=live-777&league=esp.1" });
+    const res1 = createMockRes();
+    await handler(req1, res1);
+    assert.equal(res1.statusCode, 200);
+    assert.equal(res1.body.status, "live");
+    assert.match(res1.headers["Cache-Control"], /s-maxage=60/);
+
+    const req2 = createMockReq({ method: "GET", url: "/api/categories?type=fifa-lineup&eventId=live-777&league=esp.1" });
+    const res2 = createMockRes();
+    await handler(req2, res2);
+    assert.equal(res2.statusCode, 200);
+    assert.equal(res2.headers["X-Fifa-Lineup-Cache"], "HIT");
+  });
+
+  test("coalesces concurrent requests so external fetch is only called once (single-flight)", async () => {
+    let fetchCount = 0;
+    const prevFetch = globalThis.fetch;
+    globalThis.fetch = async (...args) => {
+      fetchCount += 1;
+      await new Promise((r) => setTimeout(r, 20)); // network delay
+      return prevFetch(...args);
+    };
+
+    // 5 concurrent requests for same new date
+    const dateKey = "2026-05-15";
+    const requests = Array.from({ length: 5 }, () => {
+      const req = createMockReq({ method: "GET", url: `/api/categories?type=fifa&date=${dateKey}&league=esp.1` });
+      const res = createMockRes();
+      return handler(req, res).then(() => res);
+    });
+
+    const responses = await Promise.all(requests);
+    responses.forEach((res) => assert.equal(res.statusCode, 200));
+
+    // Without single-flight, 5 requests would trigger 5 * (9 leagues * 2 dates + 1 standings) = ~95 fetches!
+    // With single-flight, only 1 wave of fetches (19 fetches) is executed!
+    assert.ok(fetchCount <= 20, `Fetch count was ${fetchCount}, expected single wave <= 20`);
   });
 });

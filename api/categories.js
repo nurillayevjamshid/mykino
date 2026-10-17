@@ -185,9 +185,140 @@ const FOOTBALL_LEAGUES = [
   { id: "uefa.europa", name: "Yevropa Ligasi", fullName: "UEFA Europa League" },
   { id: "uefa.europa.conf", name: "Konferensiyalar Ligasi", fullName: "UEFA Conference League" },
 ];
-const FOOTBALL_SCOREBOARD_CACHE = new Map();
-const FOOTBALL_STANDINGS_CACHE = new Map();
-const FOOTBALL_TTL_MS = 30 * 1000;
+// =========================================================================
+// FIFA / Futbol Caching Layer: L1 (Memory) + L2 (Redis) + Single-Flight (Inflight Coalescing)
+// =========================================================================
+const FOOTBALL_L1_CACHE = new Map();
+const FOOTBALL_INFLIGHT = new Map();
+
+async function getFootballCache(key) {
+  const now = Date.now();
+  // 1) L1 Memory
+  const mem = FOOTBALL_L1_CACHE.get(key);
+  if (mem && (now - mem.at < mem.ttl)) {
+    return { data: mem.data, isHit: true, at: mem.at, ttl: mem.ttl, source: "L1" };
+  }
+
+  // 2) L2 Redis (serverless instansiyalari o'rtasida umumiy kesh)
+  const client = await getRedis().catch(() => null);
+  if (client) {
+    try {
+      const raw = await client.get(`fifa:cache:${key}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.data) {
+          const remainingTtl = Math.max(1000, (parsed.expiresAt || (now + 60000)) - now);
+          FOOTBALL_L1_CACHE.set(key, { data: parsed.data, at: parsed.at || now, ttl: remainingTtl });
+          return { data: parsed.data, isHit: true, at: parsed.at || now, ttl: remainingTtl, source: "L2_REDIS" };
+        }
+      }
+    } catch (err) {
+      console.warn("redis get football cache xato:", err.message);
+    }
+  }
+
+  // Stale fallback
+  if (mem) {
+    return { data: mem.data, isHit: false, isStale: true, at: mem.at, ttl: mem.ttl, source: "STALE" };
+  }
+
+  return null;
+}
+
+async function setFootballCache(key, data, ttlMs) {
+  const now = Date.now();
+  const safeTtl = Math.max(1000, ttlMs);
+  // 1) L1 Memory
+  FOOTBALL_L1_CACHE.set(key, { data, at: now, ttl: safeTtl });
+
+  // 2) L2 Redis
+  const client = await getRedis().catch(() => null);
+  if (client) {
+    try {
+      const ttlSec = Math.max(1, Math.round(safeTtl / 1000));
+      const payload = JSON.stringify({ data, at: now, expiresAt: now + safeTtl });
+      await client.set(`fifa:cache:${key}`, payload, { EX: ttlSec });
+    } catch (err) {
+      console.warn("redis set football cache xato:", err.message);
+    }
+  }
+}
+
+async function fetchWithSingleFlight(key, fetcher) {
+  if (FOOTBALL_INFLIGHT.has(key)) {
+    return await FOOTBALL_INFLIGHT.get(key);
+  }
+  const promise = (async () => {
+    try {
+      return await fetcher();
+    } finally {
+      FOOTBALL_INFLIGHT.delete(key);
+    }
+  })();
+  FOOTBALL_INFLIGHT.set(key, promise);
+  return await promise;
+}
+
+function applyFootballHeaders(response, data, dateKey, todayKey, cacheStatus) {
+  const hasLive = Array.isArray(data?.matches) && data.matches.some((m) => m.status === "live");
+  let sMaxAge = 3600;
+  let maxAge = 300;
+  let swr = 7200;
+
+  if (dateKey < todayKey) {
+    // O'tib ketgan o'yinlar: 60 daqiqa kesh
+    sMaxAge = 3600;
+    maxAge = 300;
+    swr = 7200;
+  } else if (dateKey > todayKey) {
+    // Kelajakdagi o'yinlar: 45 daqiqa kesh
+    sMaxAge = 2700;
+    maxAge = 300;
+    swr = 3600;
+  } else if (hasLive) {
+    // Jonli o'yinlar: 60 soniya kesh
+    sMaxAge = 60;
+    maxAge = 30;
+    swr = 120;
+  } else {
+    // Bugungi (lekin hozir jonli o'yin yo'q): 10 daqiqa kesh
+    sMaxAge = 600;
+    maxAge = 60;
+    swr = 1200;
+  }
+
+  response.setHeader("X-Football-Cache", cacheStatus || "MISS");
+  response.setHeader("Cache-Control", `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${swr}`);
+  response.setHeader("Vary", "Accept-Encoding");
+}
+
+function applyLineupHeaders(response, data, cacheStatus) {
+  let sMaxAge = 3600;
+  let maxAge = 300;
+  let swr = 7200;
+
+  if (data?.status === "live") {
+    // Jonli o'yin modal statistikasi: 60 soniya kesh
+    sMaxAge = 60;
+    maxAge = 30;
+    swr = 120;
+  } else if (data?.status === "upcoming") {
+    // Kelajakdagi o'yin: 30 daqiqa kesh
+    sMaxAge = 1800;
+    maxAge = 180;
+    swr = 3600;
+  } else {
+    // Tugagan o'yin: 60 daqiqa kesh
+    sMaxAge = 3600;
+    maxAge = 300;
+    swr = 7200;
+  }
+
+  response.setHeader("X-Fifa-Lineup-Cache", cacheStatus || "MISS");
+  response.setHeader("Cache-Control", `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${swr}`);
+  response.setHeader("Vary", "Accept-Encoding");
+}
+
 const ESPN_SCOREBOARD_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 const ESPN_STANDINGS_BASE = "https://site.api.espn.com/apis/v2/sports/soccer";
 const FOOTBALL_TIME_ZONE = "Asia/Tashkent";
@@ -348,6 +479,17 @@ async function fetchFootballStandings(league) {
   return normalizeEspnStandings(payload, league);
 }
 
+async function getCachedFootballStandings(league) {
+  const key = `standings:${league.id}`;
+  const cached = await getFootballCache(key);
+  if (cached?.isHit) return cached.data;
+  return await fetchWithSingleFlight(key, async () => {
+    const fresh = await fetchFootballStandings(league);
+    await setFootballCache(key, fresh, 60 * 60 * 1000); // 60 daqiqa kesh
+    return fresh;
+  });
+}
+
 async function buildFootballPayload(dateKey, activeLeagueId) {
   const activeLeague = FOOTBALL_LEAGUES.find((league) => league.id === activeLeagueId) || FOOTBALL_LEAGUES[0];
   const scoreboardResults = await Promise.allSettled(FOOTBALL_LEAGUES.map((league) => fetchFootballScoreboard(league, dateKey)));
@@ -359,7 +501,7 @@ async function buildFootballPayload(dateKey, activeLeagueId) {
   const selectedLeague = leagueData.find((item) => item.league.id === activeLeague.id)?.league || activeLeague;
   let standings = { leagueId: selectedLeague.id, leagueName: selectedLeague.name, leagueFullName: selectedLeague.fullName, leagueLogo: selectedLeague.logo || "", rows: [], error: "" };
   try {
-    standings = await fetchFootballStandings(selectedLeague);
+    standings = await getCachedFootballStandings(selectedLeague);
   } catch (error) {
     standings.error = error.message || "standings unavailable";
   }
@@ -1162,22 +1304,43 @@ async function handleFifa(request, response) {
   const dateKey = normalizeFootballDate(url.searchParams.get("date"));
   const leagueId = String(url.searchParams.get("league") || FOOTBALL_LEAGUES[0].id).trim();
   const activeLeagueId = FOOTBALL_LEAGUES.some((league) => league.id === leagueId) ? leagueId : FOOTBALL_LEAGUES[0].id;
-  const cacheKey = `${dateKey}:${activeLeagueId}`;
-  const now = Date.now();
-  const cached = FOOTBALL_SCOREBOARD_CACHE.get(cacheKey);
-  if (cached && now - cached.at < FOOTBALL_TTL_MS) {
-    response.setHeader("X-Football-Cache", "HIT");
+  const todayKey = dateKeyInTimeZone();
+  const cacheKey = `fifa:scoreboard:${dateKey}:${activeLeagueId}`;
+
+  const cached = await getFootballCache(cacheKey);
+  if (cached?.isHit) {
+    applyFootballHeaders(response, cached.data, dateKey, todayKey, "HIT");
     response.status(200).json(cached.data);
     return;
   }
+
   try {
-    const data = await buildFootballPayload(dateKey, activeLeagueId);
-    FOOTBALL_SCOREBOARD_CACHE.set(cacheKey, { data, at: now });
-    response.setHeader("X-Football-Cache", cached ? "REVALIDATED" : "MISS");
+    const data = await fetchWithSingleFlight(cacheKey, async () => {
+      return await buildFootballPayload(dateKey, activeLeagueId);
+    });
+
+    // TTL hisoblash:
+    // 1) O'tib ketgan o'yinlar: 60 daqiqa kesh
+    // 2) Kelajakdagi o'yinlar: 45 daqiqa kesh
+    // 3) Bugungi o'yinlar: jonli o'yin bo'lsa 60 soniya, bo'lmasa 10 daqiqa
+    const hasLive = Array.isArray(data?.matches) && data.matches.some((m) => m.status === "live");
+    let ttlMs = 60 * 60 * 1000;
+    if (dateKey < todayKey) {
+      ttlMs = 60 * 60 * 1000; // 60 daqiqa
+    } else if (dateKey > todayKey) {
+      ttlMs = 45 * 60 * 1000; // 45 daqiqa
+    } else if (hasLive) {
+      ttlMs = 60 * 1000; // 60 soniya (jonli o'yinlar)
+    } else {
+      ttlMs = 10 * 60 * 1000; // 10 daqiqa (bugun, lekin hozir jonli o'yin yo'q)
+    }
+
+    await setFootballCache(cacheKey, data, ttlMs);
+    applyFootballHeaders(response, data, dateKey, todayKey, cached ? "REVALIDATED" : "MISS");
     response.status(200).json(data);
   } catch (err) {
     if (cached) {
-      response.setHeader("X-Football-Cache", "STALE");
+      applyFootballHeaders(response, cached.data, dateKey, todayKey, "STALE");
       response.status(200).json(cached.data);
       return;
     }
@@ -1241,77 +1404,93 @@ async function handleFifaUpcoming(request, response) {
   const url = new URL(request.url || "/", "http://localhost");
   const requestedLeagueId = String(url.searchParams.get("league") || "").trim();
   const daysCount = Math.min(10, Math.max(3, Number(url.searchParams.get("days")) || 7));
-  const now = Date.now();
   const todayKey = dateKeyInTimeZone();
-  const cacheKey = `fifa-upcoming:${requestedLeagueId || "all"}:${daysCount}:${todayKey}`;
-  const cached = FOOTBALL_SCOREBOARD_CACHE.get(cacheKey);
-  if (cached && now - cached.at < 2 * 60 * 1000) {
+  const cacheKey = `fifa:upcoming:${requestedLeagueId || "all"}:${daysCount}:${todayKey}`;
+
+  const cached = await getFootballCache(cacheKey);
+  if (cached?.isHit) {
     response.setHeader("X-Football-Cache", "HIT");
+    response.setHeader("Cache-Control", "public, max-age=300, s-maxage=2700, stale-while-revalidate=3600");
+    response.setHeader("Vary", "Accept-Encoding");
     response.status(200).json(cached.data);
     return;
   }
 
-  const dateKeys = [];
-  const base = new Date();
-  for (let i = 0; i < daysCount; i++) {
-    const d = new Date(base.getTime() + i * 86400000);
-    dateKeys.push(d.toISOString().slice(0, 10).replaceAll("-", ""));
-  }
-
-  const leaguesToFetch = requestedLeagueId && FOOTBALL_LEAGUES.some((l) => l.id === requestedLeagueId)
-    ? FOOTBALL_LEAGUES.filter((l) => l.id === requestedLeagueId)
-    : FOOTBALL_LEAGUES;
-
-  const tasks = [];
-  leaguesToFetch.forEach((league) => {
-    dateKeys.forEach((dStr) => {
-      tasks.push(
-        fetchJson(`${ESPN_SCOREBOARD_BASE}/${league.id}/scoreboard?dates=${dStr}`, 8000)
-          .then((payload) => ({ league, payload }))
-          .catch(() => null)
-      );
-    });
-  });
-
-  const results = await Promise.allSettled(tasks);
-  const uniqueMatches = new Map();
-
-  results.forEach((r) => {
-    if (r.status !== "fulfilled" || !r.value || !r.value.payload) return;
-    const { league, payload } = r.value;
-    const events = Array.isArray(payload?.events) ? payload.events : [];
-    events.forEach((ev) => {
-      const normalized = normalizeEspnUpcomingMatch(ev, league);
-      if (normalized && !uniqueMatches.has(normalized.id)) {
-        uniqueMatches.set(normalized.id, normalized);
+  try {
+    const payload = await fetchWithSingleFlight(cacheKey, async () => {
+      const dateKeys = [];
+      const base = new Date();
+      for (let i = 0; i < daysCount; i++) {
+        const d = new Date(base.getTime() + i * 86400000);
+        dateKeys.push(d.toISOString().slice(0, 10).replaceAll("-", ""));
       }
+
+      const leaguesToFetch = requestedLeagueId && FOOTBALL_LEAGUES.some((l) => l.id === requestedLeagueId)
+        ? FOOTBALL_LEAGUES.filter((l) => l.id === requestedLeagueId)
+        : FOOTBALL_LEAGUES;
+
+      const tasks = [];
+      leaguesToFetch.forEach((league) => {
+        dateKeys.forEach((dStr) => {
+          tasks.push(
+            fetchJson(`${ESPN_SCOREBOARD_BASE}/${league.id}/scoreboard?dates=${dStr}`, 8000)
+              .then((p) => ({ league, payload: p }))
+              .catch(() => null)
+          );
+        });
+      });
+
+      const results = await Promise.allSettled(tasks);
+      const uniqueMatches = new Map();
+
+      results.forEach((r) => {
+        if (r.status !== "fulfilled" || !r.value || !r.value.payload) return;
+        const { league, payload: resPayload } = r.value;
+        const events = Array.isArray(resPayload?.events) ? resPayload.events : [];
+        events.forEach((ev) => {
+          const normalized = normalizeEspnUpcomingMatch(ev, league);
+          if (normalized && !uniqueMatches.has(normalized.id)) {
+            uniqueMatches.set(normalized.id, normalized);
+          }
+        });
+      });
+
+      const allMatches = Array.from(uniqueMatches.values()).sort((a, b) =>
+        a.kickoffUtc.localeCompare(b.kickoffUtc)
+      );
+
+      return {
+        ok: true,
+        count: allMatches.length,
+        updatedAt: new Date().toISOString(),
+        matches: allMatches,
+      };
     });
-  });
 
-  const allMatches = Array.from(uniqueMatches.values()).sort((a, b) =>
-    a.kickoffUtc.localeCompare(b.kickoffUtc)
-  );
-
-  const payload = {
-    ok: true,
-    count: allMatches.length,
-    updatedAt: new Date().toISOString(),
-    matches: allMatches,
-  };
-
-  FOOTBALL_SCOREBOARD_CACHE.set(cacheKey, { data: payload, at: now });
-  response.setHeader("X-Football-Cache", cached ? "REVALIDATED" : "MISS");
-  response.status(200).json(payload);
+    // Kelajakdagi o'yinlar taqvimi: 45 daqiqa (2700 soniya) kesh
+    const ttlMs = 45 * 60 * 1000;
+    await setFootballCache(cacheKey, payload, ttlMs);
+    response.setHeader("X-Football-Cache", cached ? "REVALIDATED" : "MISS");
+    response.setHeader("Cache-Control", "public, max-age=300, s-maxage=2700, stale-while-revalidate=3600");
+    response.setHeader("Vary", "Accept-Encoding");
+    response.status(200).json(payload);
+  } catch (err) {
+    if (cached) {
+      response.setHeader("X-Football-Cache", "STALE");
+      response.setHeader("Cache-Control", "public, max-age=300, s-maxage=2700, stale-while-revalidate=3600");
+      response.setHeader("Vary", "Accept-Encoding");
+      response.status(200).json(cached.data);
+      return;
+    }
+    response.status(502).json({ ok: false, error: err.message || "Upcoming o'yinlar manbasi javob bermadi." });
+  }
 }
 
 // =========================================================================
 // FIFA Lineup (ESPN public API) — Vercel'dan ochiq, to'liq 11+15 tarkib.
 // /scoreboard?dates=YYYYMMDD → topic eventId by team names
 // /summary?event=X → rosters (formation, starters, subs, jersey, photo, stats)
-// In-memory cache (10 daqiqa).
 // =========================================================================
-const FIFA_LINEUP_CACHE = new Map();
-const FIFA_LINEUP_TTL_MS = 10 * 60 * 1000;
 const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world";
 
 function normalizeName(s) {
@@ -1715,25 +1894,41 @@ async function handleFifaLineup(request, response) {
     response.status(400).json({ ok: false, error: "eventId yoki home va away kerak" });
     return;
   }
-  const key = `${eventId}|${leagueId}|${home.toLowerCase()}|${away.toLowerCase()}|${date}`;
-  const now = Date.now();
-  const cached = FIFA_LINEUP_CACHE.get(key);
-  const ttl = (cached?.data?.status === "live") ? 15000 : FIFA_LINEUP_TTL_MS;
-  if (cached && now - cached.at < ttl) {
-    response.setHeader("X-Fifa-Lineup-Cache", "HIT");
-    response.setHeader("Cache-Control", "public, max-age=15, s-maxage=30, stale-while-revalidate=120");
+  const cacheKey = `fifa:lineup:${eventId}|${leagueId}|${home.toLowerCase()}|${away.toLowerCase()}|${date}`;
+  const cached = await getFootballCache(cacheKey);
+  if (cached?.isHit) {
+    applyLineupHeaders(response, cached.data, "HIT");
     response.status(200).json(cached.data);
     return;
   }
+
   try {
-    const data = await buildFifaLineupPayload({ home, away, dateUtc: date, eventId, leagueId });
-    FIFA_LINEUP_CACHE.set(key, { data, at: now });
-    response.setHeader("X-Fifa-Lineup-Cache", "MISS");
-    response.setHeader("Cache-Control", "public, max-age=15, s-maxage=30, stale-while-revalidate=120");
+    const data = await fetchWithSingleFlight(cacheKey, async () => {
+      return await buildFifaLineupPayload({ home, away, dateUtc: date, eventId, leagueId });
+    });
+
+    // TTL hisoblash:
+    // - Jonli (live) o'yin statistikasi: 60 soniya kesh
+    // - Tugagan o'yin: 60 daqiqa kesh
+    // - Kelajakdagi o'yin: 30 daqiqa kesh
+    // - Topilmagan: 5 daqiqa
+    let ttlMs = 60 * 60 * 1000;
+    if (data.status === "live") {
+      ttlMs = 60 * 1000; // Jonli: 60 soniya
+    } else if (data.status === "finished") {
+      ttlMs = 60 * 60 * 1000; // Tugagan: 60 daqiqa
+    } else if (data.status === "upcoming") {
+      ttlMs = 30 * 60 * 1000; // Kelajakdagi: 30 daqiqa
+    } else if (!data.found) {
+      ttlMs = 5 * 60 * 1000;
+    }
+
+    await setFootballCache(cacheKey, data, ttlMs);
+    applyLineupHeaders(response, data, cached ? "REVALIDATED" : "MISS");
     response.status(200).json(data);
   } catch (err) {
     if (cached) {
-      response.setHeader("X-Fifa-Lineup-Cache", "STALE");
+      applyLineupHeaders(response, cached.data, "STALE");
       response.status(200).json(cached.data);
       return;
     }
@@ -1746,14 +1941,10 @@ module.exports = async function handler(request, response) {
   const earlyUrl = new URL(request.url || "/", "http://localhost");
   const earlyType = String(earlyUrl.searchParams.get("type") || "").toLowerCase();
   if (earlyType === "fifa") {
-    response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
-    response.setHeader("Vary", "Accept-Encoding");
     await handleFifa(request, response);
     return;
   }
   if (earlyType === "fifa-upcoming") {
-    response.setHeader("Cache-Control", "public, max-age=120, s-maxage=300, stale-while-revalidate=600");
-    response.setHeader("Vary", "Accept-Encoding");
     await handleFifaUpcoming(request, response);
     return;
   }

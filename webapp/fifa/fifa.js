@@ -663,7 +663,7 @@
 
   async function ensureUpcomingMatchesLoaded(force = false) {
     const now = Date.now();
-    if (!force && upcomingMatchesCache && (now - upcomingMatchesLoadedAt < 120000)) {
+    if (!force && upcomingMatchesCache && (now - upcomingMatchesLoadedAt < 30 * 60 * 1000)) {
       return upcomingMatchesCache;
     }
     if (upcomingMatchesPromise && !force) return upcomingMatchesPromise;
@@ -1134,18 +1134,47 @@
     };
   }
 
+  const fifaClientMatchesCache = new Map();
   let fifaRequestId = 0;
 
   async function loadFifaData(force = false, requestedLeagueId = activeLeagueId) {
-    if (!force && loadState === "ready") return;
+    const date = selectedDateKey || getTashkentDateKey();
+    const leagueToFetch = requestedLeagueId || activeLeagueId;
+    const cacheKey = `${date}:${leagueToFetch}`;
+    const todayKey = getTashkentDateKey();
+    const now = Date.now();
+
+    // Client cache tekshiruvi:
+    // O'tib ketgan yoki kelajakdagi kunlar: 30 daqiqa kesh
+    // Bugungi kun: jonli o'yin bo'lsa 60 soniya, bo'lmasa 5 daqiqa
+    const clientCached = fifaClientMatchesCache.get(cacheKey);
+    let ttlMs = 30 * 60 * 1000;
+    if (date < todayKey || date > todayKey) {
+      ttlMs = 30 * 60 * 1000;
+    } else {
+      const hasLive = clientCached?.data?.matches?.some((m) => m.status === "live");
+      ttlMs = hasLive ? 60 * 1000 : 5 * 60 * 1000;
+    }
+
+    if (!force && clientCached && (now - clientCached.at < ttlMs)) {
+      FIFA_DATA = clientCached.data;
+      activeLeagueId = FIFA_DATA.activeLeagueId || leagueToFetch || activeLeagueId;
+      cacheFavoriteTeamMatches(FIFA_DATA.matches);
+      loadState = "ready";
+      return;
+    }
+
     const reqId = ++fifaRequestId;
     const wasReady = loadState === "ready";
-    loadState = "loading";
+    if (clientCached?.data) {
+      FIFA_DATA = clientCached.data;
+    } else {
+      loadState = "loading";
+    }
+
     try {
-      const date = selectedDateKey || getTashkentDateKey();
-      const leagueToFetch = requestedLeagueId || activeLeagueId;
       const params = new URLSearchParams({ type: "fifa", date, league: leagueToFetch });
-      if (force) params.set("_", String(Date.now()));
+      if (force === "hard") params.set("_", String(Date.now()));
       const res = await fetch(`/api/categories?${params.toString()}`, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const payload = await res.json();
@@ -1153,11 +1182,12 @@
       FIFA_DATA = normalizeFromPayload(payload);
       activeLeagueId = FIFA_DATA.activeLeagueId || leagueToFetch || activeLeagueId;
       cacheFavoriteTeamMatches(FIFA_DATA.matches);
+      fifaClientMatchesCache.set(cacheKey, { data: FIFA_DATA, at: Date.now() });
       loadState = "ready";
     } catch (err) {
       if (reqId !== fifaRequestId) return;
       console.warn("FIFA fetch xato:", err.message);
-      loadState = wasReady ? "ready" : "error";
+      loadState = (wasReady || clientCached?.data) ? "ready" : "error";
     }
   }
 
@@ -1314,7 +1344,7 @@
         if (!requestedDate || requestedDate === selectedDateKey) return;
         selectedDateKey = requestedDate;
         renderMatches();
-        await loadFifaData(true, activeLeagueId);
+        await loadFifaData(false, activeLeagueId);
         renderMatches();
       });
     });
@@ -2543,9 +2573,12 @@
 
   // --- Open / close ---
   let fifaPollTimer = null;
-  const FIFA_POLL_MS = 30 * 1000;
+  const FIFA_POLL_MS = 60 * 1000;
 
   async function refreshFifa() {
+    const day = selectedDateKey || getTashkentDateKey();
+    // Faqat bugungi kun ochiq bo'lsa fonda jonli natijalarni yangilash
+    if (day !== getTashkentDateKey()) return;
     await loadFifaData(true, activeLeagueId);
     renderMatches();
     renderGroups();
@@ -3144,9 +3177,16 @@
     `;
   }
 
-  async function fetchLineup(homeEn, awayEn, dateIso, matchId = "", leagueId = "") {
+  async function fetchLineup(homeEn, awayEn, dateIso, matchId = "", leagueId = "", force = false) {
     const key = `${matchId || ""}|${leagueId || ""}|${homeEn}|${awayEn}|${dateIso || ""}`.toLowerCase();
-    if (lineupCache.has(key)) return lineupCache.get(key);
+    const now = Date.now();
+    const cached = lineupCache.get(key);
+    if (!force && cached) {
+      let ttl = 60 * 60 * 1000; // default 60 daqiqa (tugagan o'yin)
+      if (cached.data?.status === "live") ttl = 60 * 1000; // jonli o'yin: 60 soniya
+      else if (cached.data?.status === "upcoming") ttl = 30 * 60 * 1000; // kelgusi o'yin: 30 daqiqa
+      if (now - cached.at < ttl) return cached.data;
+    }
     const params = new URLSearchParams({ type: "fifa-lineup" });
     if (matchId) params.set("eventId", matchId);
     if (leagueId) params.set("league", leagueId);
@@ -3158,7 +3198,7 @@
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    lineupCache.set(key, data);
+    lineupCache.set(key, { data, at: Date.now() });
     return data;
   }
 
@@ -3685,7 +3725,16 @@
   }
 
   let activeLineupRequestId = 0;
+  let activeLiveLineupTimer = null;
+  function clearLiveLineupTimer() {
+    if (activeLiveLineupTimer) {
+      clearInterval(activeLiveLineupTimer);
+      activeLiveLineupTimer = null;
+    }
+  }
+
   async function openLineupModal({ matchId, leagueId, homeEn, awayEn, homeUz, awayUz, homeFlag, awayFlag, score, status, minute, date }) {
+    clearLiveLineupTimer();
     const reqId = ++activeLineupRequestId;
     const modal = ensureLineupModal();
     modal.hidden = false;
@@ -3758,6 +3807,41 @@
       };
 
       renderAndBind();
+
+      // Jonli (live) o'yin bo'lsa modal ochiq turganda har 60 soniyada yangilab turish
+      if (finalStatus === "live") {
+        clearLiveLineupTimer();
+        activeLiveLineupTimer = setInterval(async () => {
+          if (modal.hidden || !document.body.classList.contains("fifa-lineup-open")) {
+            clearLiveLineupTimer();
+            return;
+          }
+          try {
+            const fresh = await fetchLineup(homeEn, awayEn, date, matchId, leagueId, true);
+            if (reqId !== activeLineupRequestId) return;
+            if (fresh && fresh.found) {
+              const liveScore = fresh.score || finalScore;
+              const liveMin = fresh.minute || finalMinute;
+              head.innerHTML = renderLineupHead(
+                fresh.home?.name || homeUz,
+                fresh.away?.name || awayUz,
+                updatedHomeFlag,
+                updatedAwayFlag,
+                liveScore,
+                fresh.status || finalStatus,
+                liveMin,
+                matchId,
+                leagueName,
+                venue,
+                fresh.events || []
+              );
+              if (fresh.status !== "live") {
+                clearLiveLineupTimer();
+              }
+            }
+          } catch (_) {}
+        }, 60000);
+      }
     } catch (err) {
       console.warn("Lineup load failed:", err);
       if (reqId === activeLineupRequestId) {
@@ -3767,6 +3851,7 @@
   }
 
   function closeLineupModal() {
+    clearLiveLineupTimer();
     activeLineupRequestId += 1;
     const modal = document.getElementById("fifaLineupModal");
     if (!modal) return;
@@ -3913,7 +3998,7 @@
         try { haptic?.select?.(); } catch (_) {}
         activeLeagueId = leagueId;
         renderGroups();
-        loadFifaData(true, leagueId).then(() => renderGroups()).catch(() => {});
+        loadFifaData(false, leagueId).then(() => renderGroups()).catch(() => {});
       }
       return;
     }
@@ -3927,7 +4012,7 @@
         try { haptic?.tap?.(); } catch (_) {}
         selectedDateKey = requestedDate;
         renderMatches();
-        loadFifaData(true, activeLeagueId).then(() => renderMatches()).catch(() => {});
+        loadFifaData(false, activeLeagueId).then(() => renderMatches()).catch(() => {});
       }
       return;
     }
