@@ -367,8 +367,47 @@ module.exports = async function handler(request, response) {
 
   if (request.method === "GET") {
     try {
-      const tracks = await loadAll();
-      response.status(200).json({ ok: true, tracks, storage: isRedisEnabled() ? "redis" : "seed" });
+      const allTracks = await loadAll();
+      const pageParam = request.query?.page || url.searchParams.get("page");
+      const limitParam = request.query?.limit || url.searchParams.get("limit");
+      const searchParam = String(request.query?.q || request.query?.search || url.searchParams.get("q") || "").trim().toLowerCase();
+
+      let filtered = allTracks;
+      if (searchParam) {
+        filtered = allTracks.filter((t) =>
+          (t?.title && String(t.title).toLowerCase().includes(searchParam)) ||
+          (t?.artist && String(t.artist).toLowerCase().includes(searchParam)) ||
+          (t?.category && String(t.category).toLowerCase().includes(searchParam))
+        );
+      }
+
+      const total = filtered.length;
+      response.setHeader("X-Total-Count", String(total));
+
+      if (limitParam !== null && limitParam !== undefined) {
+        const page = Math.max(1, parseInt(pageParam || "1", 10) || 1);
+        const limit = Math.max(1, Math.min(100, parseInt(limitParam || "20", 10) || 20));
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        const startIndex = (page - 1) * limit;
+        const paged = filtered.slice(startIndex, startIndex + limit);
+
+        response.setHeader("X-Page", String(page));
+        response.setHeader("X-Per-Page", String(limit));
+        response.setHeader("X-Total-Pages", String(totalPages));
+
+        response.status(200).json({
+          ok: true,
+          tracks: paged,
+          total,
+          page,
+          limit,
+          totalPages,
+          storage: isRedisEnabled() ? "redis" : "seed",
+        });
+        return;
+      }
+
+      response.status(200).json({ ok: true, tracks: filtered, total, storage: isRedisEnabled() ? "redis" : "seed" });
     } catch (err) {
       response.status(500).json({ ok: false, code: "MUSIC_LOAD_FAILED", error: err.message || "Yuklab bo'lmadi." });
     }

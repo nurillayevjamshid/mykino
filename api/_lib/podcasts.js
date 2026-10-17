@@ -299,15 +299,74 @@ async function handlePodcastsRequest(request, response) {
   try {
     // GET /api/podcasts?channelId=UCxxx → kanal sahifa
     if (request.method === "GET") {
-      const channelId = String(request.query?.channelId || "").trim();
+      const url = new URL(request.url || "/", "http://localhost");
+      const channelId = String(request.query?.channelId || url.searchParams.get("channelId") || "").trim();
+      const pageParam = request.query?.page || url.searchParams.get("page");
+      const limitParam = request.query?.limit || url.searchParams.get("limit");
+
       if (channelId) {
         const view = await getChannelView(channelId);
+        if (limitParam !== undefined && limitParam !== null) {
+          const page = Math.max(1, parseInt(pageParam || "1", 10) || 1);
+          const limit = Math.max(1, Math.min(100, parseInt(limitParam || "20", 10) || 20));
+          const allVideos = view.videos || [];
+          const totalVideos = allVideos.length;
+          const totalPages = Math.max(1, Math.ceil(totalVideos / limit));
+          const startIndex = (page - 1) * limit;
+          const pagedVideos = allVideos.slice(startIndex, startIndex + limit);
+
+          response.setHeader("X-Total-Count", String(totalVideos));
+          response.setHeader("X-Page", String(page));
+          response.setHeader("X-Per-Page", String(limit));
+          response.setHeader("X-Total-Pages", String(totalPages));
+
+          response.status(200).json({
+            ok: true,
+            channel: view.channel,
+            videos: pagedVideos,
+            shorts: (view.shorts || []).slice(0, limit),
+            playlists: view.playlists,
+            totalVideos,
+            page,
+            limit,
+            totalPages,
+            fetchedAt: view.fetchedAt,
+          });
+          return;
+        }
+
         response.status(200).json({ ok: true, ...view });
         return;
       }
+
       // GET /api/podcasts → kanallar ro'yxati
       const stored = await readChannels();
       stored.sort((a, b) => (a.order - b.order) || (a.addedAt - b.addedAt));
+      const total = stored.length;
+      response.setHeader("X-Total-Count", String(total));
+
+      if (limitParam !== undefined && limitParam !== null) {
+        const page = Math.max(1, parseInt(pageParam || "1", 10) || 1);
+        const limit = Math.max(1, Math.min(100, parseInt(limitParam || "20", 10) || 20));
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        const startIndex = (page - 1) * limit;
+        const paged = stored.slice(startIndex, startIndex + limit);
+
+        response.setHeader("X-Page", String(page));
+        response.setHeader("X-Per-Page", String(limit));
+        response.setHeader("X-Total-Pages", String(totalPages));
+
+        response.status(200).json({
+          ok: true,
+          channels: paged,
+          total,
+          page,
+          limit,
+          totalPages,
+        });
+        return;
+      }
+
       response.status(200).json({ ok: true, channels: stored });
       return;
     }

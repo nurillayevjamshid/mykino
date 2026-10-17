@@ -228,4 +228,70 @@ describe("api/movies.js", () => {
     assert.ok(cc, "Cache-Control should be set on GET");
     assert.equal(cc, "private, no-cache, no-store, max-age=0");
   });
+
+  test("GET /api/movies?page=1&limit=1 supports pagination with X-Total-Count and page headers", async () => {
+    const googleDrive = require("../../api/_lib/google-drive");
+    mock.method(googleDrive, "listDriveMovies", async () => DRIVE_MOVIES);
+
+    const handler = loadHandler();
+    const req = createMockReq({
+      method: "GET",
+      url: "/api/movies?page=1&limit=1",
+      query: { page: "1", limit: "1" },
+      headers: { "x-api-key": "fake-token" },
+    });
+    const res = createMockRes();
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.headers["X-Total-Count"], "2");
+    assert.equal(res.headers["X-Page"], "1");
+    assert.equal(res.headers["X-Per-Page"], "1");
+    assert.equal(res.headers["X-Total-Pages"], "2");
+    assert.ok(Array.isArray(res.body));
+    assert.equal(res.body.length, 1);
+    assert.equal(res.body[0].title, "Interstellar");
+  });
+
+  test("GET /api/movies?format=paged&limit=1 returns JSON pagination object", async () => {
+    const googleDrive = require("../../api/_lib/google-drive");
+    mock.method(googleDrive, "listDriveMovies", async () => DRIVE_MOVIES);
+
+    const handler = loadHandler();
+    const req = createMockReq({
+      method: "GET",
+      url: "/api/movies?format=paged&limit=1",
+      query: { format: "paged", limit: "1" },
+      headers: { "x-api-key": "fake-token" },
+    });
+    const res = createMockRes();
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.total, 2);
+    assert.equal(res.body.page, 1);
+    assert.equal(res.body.limit, 1);
+    assert.equal(res.body.totalPages, 2);
+    assert.equal(res.body.movies.length, 1);
+  });
+
+  test("GET /api/movies?q=Knight filters movies by query", async () => {
+    const googleDrive = require("../../api/_lib/google-drive");
+    mock.method(googleDrive, "listDriveMovies", async () => DRIVE_MOVIES);
+
+    const handler = loadHandler();
+    const req = createMockReq({
+      method: "GET",
+      url: "/api/movies?q=Knight",
+      query: { q: "Knight" },
+      headers: { "x-api-key": "fake-token" },
+    });
+    const res = createMockRes();
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.length, 1);
+    assert.equal(res.body[0].title, "The Dark Knight");
+  });
 });

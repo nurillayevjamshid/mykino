@@ -5,6 +5,7 @@ const {
   listDriveSeries,
   updateCatalogSeriesMetadata,
   setCors,
+  findMovieByIdOrCode,
 } = require("./_lib/google-drive");
 
 const SERIES_DESCRIPTION_MAX_LENGTH = 4000;
@@ -96,12 +97,95 @@ async function handleMoviesList(request, response) {
     }
   }
   const cleanMovies = Array.isArray(movies) ? movies.map(sanitizeMovieR2) : movies;
-  sendJsonWithEtag(request, response, cleanMovies);
+
+  const url = new URL(request.url || "/", "http://localhost");
+  const pageParam = request.query?.page || url.searchParams.get("page");
+  const limitParam = request.query?.limit || url.searchParams.get("limit");
+  const formatParam = request.query?.format || url.searchParams.get("format");
+  const searchParam = String(request.query?.q || url.searchParams.get("q") || "").trim().toLowerCase();
+
+  let filtered = cleanMovies;
+  if (searchParam) {
+    filtered = cleanMovies.filter((m) =>
+      (m?.title && String(m.title).toLowerCase().includes(searchParam)) ||
+      (m?.genre && String(m.genre).toLowerCase().includes(searchParam)) ||
+      (m?.code && String(m.code).toLowerCase().includes(searchParam)) ||
+      (m?.year && String(m.year).toLowerCase().includes(searchParam))
+    );
+  }
+
+  const total = filtered.length;
+  response.setHeader("X-Total-Count", String(total));
+
+  if (limitParam !== null && limitParam !== undefined) {
+    const page = Math.max(1, parseInt(pageParam || "1", 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(limitParam || "20", 10) || 20));
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const startIndex = (page - 1) * limit;
+    const paginated = filtered.slice(startIndex, startIndex + limit);
+
+    response.setHeader("X-Page", String(page));
+    response.setHeader("X-Per-Page", String(limit));
+    response.setHeader("X-Total-Pages", String(totalPages));
+
+    if (formatParam === "paged" || formatParam === "json") {
+      sendJsonWithEtag(request, response, {
+        ok: true,
+        movies: paginated,
+        total,
+        page,
+        limit,
+        totalPages,
+      });
+      return;
+    }
+
+    sendJsonWithEtag(request, response, paginated);
+    return;
+  }
+
+  sendJsonWithEtag(request, response, filtered);
 }
 
 async function handleSeriesList(request, response) {
   const series = await listDriveSeries();
   const cleanSeries = Array.isArray(series) ? series.map(sanitizeSeriesR2) : series;
+
+  const url = new URL(request.url || "/", "http://localhost");
+  const pageParam = request.query?.page || url.searchParams.get("page");
+  const limitParam = request.query?.limit || url.searchParams.get("limit");
+  const formatParam = request.query?.format || url.searchParams.get("format");
+
+  const total = cleanSeries.length;
+  response.setHeader("X-Total-Count", String(total));
+
+  if (limitParam !== null && limitParam !== undefined) {
+    const page = Math.max(1, parseInt(pageParam || "1", 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(limitParam || "20", 10) || 20));
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const startIndex = (page - 1) * limit;
+    const paginated = cleanSeries.slice(startIndex, startIndex + limit);
+
+    response.setHeader("X-Page", String(page));
+    response.setHeader("X-Per-Page", String(limit));
+    response.setHeader("X-Total-Pages", String(totalPages));
+
+    if (formatParam === "paged" || formatParam === "json") {
+      sendJsonWithEtag(request, response, {
+        ok: true,
+        series: paginated,
+        total,
+        page,
+        limit,
+        totalPages,
+      });
+      return;
+    }
+
+    sendJsonWithEtag(request, response, paginated);
+    return;
+  }
+
   sendJsonWithEtag(request, response, cleanSeries);
 }
 
@@ -147,7 +231,7 @@ async function handleSharePage(request, response) {
   if (code) {
     try {
       const movies = await listDriveMovies();
-      const found = movies.find((m) => String(m.code || "").toUpperCase() === code) || null;
+      const found = findMovieByIdOrCode(movies, code);
       movie = found ? sanitizeMovieR2(found) : null;
     } catch (_) {
       movie = null;

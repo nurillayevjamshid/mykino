@@ -1755,23 +1755,28 @@ function filteredMovies() {
       (activeFilter === "premium" && movie.isPremium) ||
       (activeFilter === "favorites" && wishlistIds.has(String(movie.id)));
 
-    let matchesCategory = true;
+    if (!matchesFilter) return false;
+
     if (activeCat) {
-      const catValues = getMovieCategoryValues(movie);
-      matchesCategory = catValues.includes(activeCat) ||
+      if (!movie._catValues) {
+        movie._catValues = getMovieCategoryValues(movie);
+      }
+      const matchesCategory = movie._catValues.includes(activeCat) ||
         splitMovieGenres(movie?.genre).some((g) => {
           const nv = normalizeCategoryValue(g);
           return nv === activeCat || nv.includes(activeCat) || activeCat.includes(nv);
         });
+      if (!matchesCategory) return false;
     }
 
-    let matchesQuery = true;
     if (q) {
-      const haystack = `${movie?.title || ""} ${movie?.genre || ""} ${movie?.year || ""} ${movie?.code || ""}`.toLowerCase();
-      matchesQuery = haystack.includes(q);
+      if (!movie._searchIndex) {
+        movie._searchIndex = `${movie?.title || ""} ${movie?.genre || ""} ${movie?.year || ""} ${movie?.code || ""}`.toLowerCase();
+      }
+      return movie._searchIndex.includes(q);
     }
 
-    return matchesFilter && matchesCategory && matchesQuery;
+    return true;
   });
 }
 
@@ -3160,6 +3165,8 @@ function attachHeroBindings() {
 // Counter har `renderMovies()` boshida qayta tiklanadi.
 const POSTER_EAGER_LIMIT = 10;
 let __posterEagerBudget = 0;
+const KINO_PAGE_SIZE = 24;
+let kinoVisibleLimit = KINO_PAGE_SIZE;
 
 function createMovieCard(movie) {
   const card = document.createElement("article");
@@ -3590,8 +3597,26 @@ function renderMovies() {
         try { haptic.error(); } catch (_) {}
       }
     } else {
-      for (const movie of list) {
+      const shownMovies = list.slice(0, kinoVisibleLimit);
+      for (const movie of shownMovies) {
         grid.append(createMovieCard(movie));
+      }
+      if (list.length > kinoVisibleLimit) {
+        const moreContainer = document.createElement("div");
+        moreContainer.className = "kino-pagination";
+        moreContainer.style.cssText = "grid-column: 1 / -1; display: flex; justify-content: center; align-items: center; padding: 20px 0 32px;";
+        const remaining = list.length - kinoVisibleLimit;
+        moreContainer.innerHTML = `
+          <button class="kino-pagination__more-btn" type="button" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; background: rgba(229, 9, 20, 0.95); color: #fff; border: 0; border-radius: 999px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 18px rgba(229, 9, 20, 0.4); transition: transform 0.15s ease;">
+            <span>Ko'proq ko'rish (+${Math.min(remaining, KINO_PAGE_SIZE)} ta)</span>
+          </button>
+        `;
+        moreContainer.querySelector("button").addEventListener("click", () => {
+          try { haptic?.tap?.(); } catch (_) {}
+          kinoVisibleLimit += KINO_PAGE_SIZE;
+          renderMovies();
+        });
+        grid.append(moreContainer);
       }
     }
   }
@@ -6770,6 +6795,7 @@ window.__kinoVideo = {
 
 function setFilter(filter) {
   activeFilter = filter;
+  kinoVisibleLimit = KINO_PAGE_SIZE;
   if (filter === "all" || filter === "favorites") {
     activeCategory = "all";
     query = "";
@@ -6792,6 +6818,7 @@ function setFilter(filter) {
 function setCategory(category) {
   activeCategory = category;
   activeFilter = "all";
+  kinoVisibleLimit = KINO_PAGE_SIZE;
   renderMovies();
   syncNavButtons();
 }
@@ -8181,6 +8208,7 @@ searchInput?.addEventListener("input", (event) => {
   clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(() => {
     query = val;
+    kinoVisibleLimit = KINO_PAGE_SIZE;
     if (!val) {
       activeCategory = "all";
     } else {
@@ -8210,6 +8238,7 @@ searchClearBtn?.addEventListener("click", (event) => {
   searchInput.value = "";
   query = "";
   activeCategory = "all";
+  kinoVisibleLimit = KINO_PAGE_SIZE;
   renderSearchCategoryChips();
   renderMovies();
   if (document.body.classList.contains("is-music")) {

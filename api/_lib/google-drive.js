@@ -2129,6 +2129,32 @@ async function getDriveMediaResponse(fileId, requestHeaders = {}) {
   return response;
 }
 
+const _movieIndexCache = new WeakMap();
+
+function buildMovieIndex(movies) {
+  if (!Array.isArray(movies)) return { byId: new Map(), byCode: new Map() };
+  let idx = _movieIndexCache.get(movies);
+  if (idx) return idx;
+
+  const byId = new Map();
+  const byCode = new Map();
+  for (const m of movies) {
+    if (m?.id) byId.set(String(m.id), m);
+    if (m?.fileId) byId.set(String(m.fileId), m);
+    if (m?.code) byCode.set(String(m.code).toUpperCase(), m);
+  }
+  idx = { byId, byCode };
+  _movieIndexCache.set(movies, idx);
+  return idx;
+}
+
+function findMovieByIdOrCode(movies, idOrCode) {
+  if (!idOrCode) return null;
+  const str = String(idOrCode).trim();
+  const idx = buildMovieIndex(movies);
+  return idx.byId.get(str) || idx.byCode.get(str.toUpperCase()) || null;
+}
+
 module.exports = {
   LOGO_POSTER_URL,
   getAccessToken,
@@ -2159,4 +2185,6 @@ module.exports = {
   addMovieComment,
   listMovieComments,
   deleteMovieComment,
+  buildMovieIndex,
+  findMovieByIdOrCode,
 };

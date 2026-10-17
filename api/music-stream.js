@@ -71,8 +71,8 @@ module.exports = async function handler(request, response) {
   const directUrl = request.query?.url || "";
 
   if (directUrl && /\.(mp3|m4a|aac|ogg|wav)(\?.*)?$/i.test(directUrl)) {
-    response.writeHead(302, { Location: directUrl });
-    response.end();
+    response.setHeader("Location", directUrl);
+    response.status(302).end();
     return;
   }
 
@@ -105,20 +105,50 @@ module.exports = async function handler(request, response) {
           return;
         }
 
-        // To'g'ridan-to'g'ri audio stream redirect yoki pipe
+        // To'g'ridan-to'g'ri audio stream redirect yoki Range-mos pipe
         if (request.query?.proxy === "1") {
-          response.setHeader("Content-Type", format.mimeType || "audio/mp4");
+          const mimeType = format.mimeType || "audio/mp4";
+          const rangeHeader = request.headers.range;
+          const contentLength = Number(format.contentLength || format.filesize || 0);
+
+          if (rangeHeader) {
+            const parts = rangeHeader.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10) || 0;
+            const end = parts[1] ? parseInt(parts[1], 10) : (contentLength > 0 ? contentLength - 1 : undefined);
+
+            const streamOptions = {
+              filter: "audioonly",
+              quality: "highestaudio",
+              range: end !== undefined ? { start, end } : { start },
+            };
+
+            response.status(206);
+            response.setHeader("Content-Type", mimeType);
+            response.setHeader("Accept-Ranges", "bytes");
+            response.setHeader("Cache-Control", "public, max-age=3600");
+            if (contentLength > 0 && end !== undefined) {
+              const chunksize = (end - start) + 1;
+              response.setHeader("Content-Range", `bytes ${start}-${end}/${contentLength}`);
+              response.setHeader("Content-Length", String(chunksize));
+            }
+
+            const stream = ytdl(ytUrl, streamOptions);
+            stream.pipe(response);
+            return;
+          }
+
+          response.setHeader("Content-Type", mimeType);
           response.setHeader("Accept-Ranges", "bytes");
+          if (contentLength > 0) response.setHeader("Content-Length", contentLength);
+          response.setHeader("Cache-Control", "public, max-age=3600");
           const stream = ytdl(ytUrl, { filter: "audioonly", quality: "highestaudio" });
           stream.pipe(response);
           return;
         }
 
-        response.writeHead(302, {
-          Location: format.url,
-          "Cache-Control": "public, max-age=3600"
-        });
-        response.end();
+        response.setHeader("Location", format.url);
+        response.setHeader("Cache-Control", "public, max-age=3600");
+        response.status(302).end();
         return;
       }
     } catch (err) {
@@ -134,11 +164,9 @@ module.exports = async function handler(request, response) {
         response.status(200).json({ ok: true, videoId, audioUrl: streamUrl });
         return;
       }
-      response.writeHead(302, {
-        Location: streamUrl,
-        "Cache-Control": "public, max-age=1800"
-      });
-      response.end();
+      response.setHeader("Location", streamUrl);
+      response.setHeader("Cache-Control", "public, max-age=1800");
+      response.status(302).end();
       return;
     }
   } catch (err) {
