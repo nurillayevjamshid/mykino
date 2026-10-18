@@ -547,6 +547,21 @@ function normalizeFifaLiveTelegramUrl(value) {
   return raw;
 }
 
+function extractYoutubeLiveId(value) {
+  const raw = String(value || "").trim();
+  if (!raw || !/^https?:\/\//i.test(raw)) return "";
+  let parsed;
+  try { parsed = new URL(raw); } catch (_) { return ""; }
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+  if (host === "youtu.be") {
+    const id = parsed.pathname.split("/").filter(Boolean)[0] || "";
+    return /^[\w-]{6,20}$/.test(id) ? id : "";
+  }
+  if (host !== "youtube.com" && host !== "m.youtube.com" && host !== "youtube-nocookie.com") return "";
+  const id = parsed.searchParams.get("v") || parsed.pathname.match(/\/(?:live|embed|shorts)\/([\w-]{6,20})/i)?.[1] || "";
+  return /^[\w-]{6,20}$/.test(id) ? id : "";
+}
+
 function normalizeFifaLiveMatch(body) {
   const title = String(body?.title || "").trim().slice(0, 120);
   if (!title) {
@@ -555,9 +570,11 @@ function normalizeFifaLiveMatch(body) {
     throw err;
   }
   const coverUrl = String(body?.coverUrl || "").trim();
-  const telegramUrl = normalizeFifaLiveTelegramUrl(body?.telegramUrl);
-  if (!telegramUrl) {
-    const err = new Error("OBS stream havolasi kerak (https://.../playlist.m3u8).");
+  const sourceUrl = String(body?.youtubeUrl || body?.streamUrl || body?.telegramUrl || "").trim();
+  const youtubeId = extractYoutubeLiveId(sourceUrl);
+  const telegramUrl = youtubeId ? "" : normalizeFifaLiveTelegramUrl(sourceUrl);
+  if (!youtubeId && !telegramUrl) {
+    const err = new Error("YouTube Live, HLS (.m3u8) yoki Cloudflare WHEP havolasini kiriting.");
     err.statusCode = 400;
     throw err;
   }
@@ -568,7 +585,7 @@ function normalizeFifaLiveMatch(body) {
     if (!Number.isNaN(d.getTime())) startsAt = d.toISOString();
   }
   const isLive = Boolean(body?.isLive);
-  return { title, coverUrl, telegramUrl, startsAt, isLive, updatedAt: new Date().toISOString() };
+  return { title, coverUrl, telegramUrl, youtubeUrl: youtubeId ? sourceUrl : "", youtubeId, startsAt, isLive, updatedAt: new Date().toISOString() };
 }
 
 async function readFifaLiveMatch() {
@@ -578,7 +595,7 @@ async function readFifaLiveMatch() {
     const raw = await client.get(FIFA_LIVE_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (!data || typeof data !== "object" || !data.title || !data.telegramUrl) return null;
+    if (!data || typeof data !== "object" || !data.title || (!data.telegramUrl && !data.youtubeUrl && !data.youtubeId)) return null;
     return data;
   } catch (err) {
     console.warn("redis get fifa-live xato:", err.message);

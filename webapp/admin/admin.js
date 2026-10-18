@@ -5355,7 +5355,7 @@ async function loadFifaLiveMatch() {
     const liveEl = document.getElementById('fifaLiveIsLive');
     if (coverEl) coverEl.value = m.coverUrl || '';
     if (titleEl) titleEl.value = m.title || '';
-    if (tgEl) tgEl.value = m.telegramUrl || '';
+    if (tgEl) tgEl.value = m.youtubeUrl || m.telegramUrl || '';
     if (startEl) startEl.value = fifaLiveIsoToLocalInput(m.startsAt);
     if (liveEl) liveEl.checked = Boolean(m.isLive);
     fifaLiveUploadedUrl = m.coverUrl || '';
@@ -5369,12 +5369,12 @@ async function loadFifaLiveMatch() {
 async function saveFifaLiveMatch() {
   const title = (document.getElementById('fifaLiveTitle')?.value || '').trim();
   const coverUrl = (document.getElementById('fifaLiveCoverUrl')?.value || fifaLiveUploadedUrl || '').trim();
-  const telegramUrl = (document.getElementById('fifaLiveTelegramUrl')?.value || '').trim();
+  const streamUrl = (document.getElementById('fifaLiveTelegramUrl')?.value || '').trim();
   const startsAtLocal = (document.getElementById('fifaLiveStartsAt')?.value || '').trim();
   const isLive = document.getElementById('fifaLiveIsLive')?.checked || false;
 
   if (!title) { setFifaLiveStatus("O'yin nomini kiriting.", 'error'); return; }
-  if (!telegramUrl) { setFifaLiveStatus("OBS stream havolasini (.m3u8) kiriting.", 'error'); return; }
+  if (!streamUrl) { setFifaLiveStatus("YouTube Live yoki OBS stream havolasini kiriting.", 'error'); return; }
 
   const startsAt = startsAtLocal ? new Date(startsAtLocal).toISOString() : '';
 
@@ -5383,7 +5383,7 @@ async function saveFifaLiveMatch() {
     const res = await fetch('/api/categories?type=fifa-live', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, coverUrl, telegramUrl, startsAt, isLive }),
+      body: JSON.stringify({ title, coverUrl, streamUrl, startsAt, isLive }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);

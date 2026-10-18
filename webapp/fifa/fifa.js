@@ -1846,10 +1846,12 @@
       if (res.ok) {
         const json = await res.json();
         const m = json && json.match;
-        if (m && m.isLive && m.telegramUrl) {
+        const sourceUrl = m && (m.youtubeUrl || m.telegramUrl);
+        if (m && m.isLive && sourceUrl) {
           window.fifaLiveConfig = {
             enabled: true,
-            channelUrl: m.telegramUrl,
+            channelUrl: sourceUrl,
+            youtubeId: m.youtubeId || "",
             imageUrl: m.coverUrl || "",
             title: m.title || "Futbol jonli efiri",
             subtitle: "Futbol uchrashuvlarini jonli tomosha qiling",
@@ -1892,9 +1894,52 @@
     }
   }
 
+  function extractYoutubeId(value) {
+    const raw = String(value || "").trim();
+    if (!raw || !/^https?:\/\//i.test(raw)) return "";
+    let parsed;
+    try { parsed = new URL(raw); } catch (_) { return ""; }
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "youtu.be") {
+      const id = parsed.pathname.split("/").filter(Boolean)[0] || "";
+      return /^[\w-]{6,20}$/.test(id) ? id : "";
+    }
+    if (host !== "youtube.com" && host !== "m.youtube.com" && host !== "youtube-nocookie.com") return "";
+    const id = parsed.searchParams.get("v") || parsed.pathname.match(/\/(?:live|embed|shorts)\/([\w-]{6,20})/i)?.[1] || "";
+    return /^[\w-]{6,20}$/.test(id) ? id : "";
+  }
+
+  function openYoutubeLiveModal(url, title) {
+    const youtubeId = extractYoutubeId(url);
+    if (!youtubeId) return false;
+    let modal = document.getElementById("fifaYoutubeLiveModal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "fifaYoutubeLiveModal";
+      modal.setAttribute("role", "dialog");
+      modal.setAttribute("aria-modal", "true");
+      modal.style.cssText = "position:fixed;inset:0;z-index:10000;background:rgba(3,8,16,.94);display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box;";
+      modal.innerHTML = `<div style="position:relative;width:min(100%,960px);aspect-ratio:16/9;background:#000;border-radius:18px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.55);"><iframe id="fifaYoutubeLiveFrame" title="FIFA live stream" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="width:100%;height:100%;border:0;display:block;"></iframe><button type="button" id="fifaYoutubeLiveClose" aria-label="Yopish" style="position:absolute;top:12px;right:12px;width:40px;height:40px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:26px;line-height:1;cursor:pointer;">×</button></div>`;
+      document.body.appendChild(modal);
+      const close = () => { modal.hidden = true; modal.style.display = "none"; document.body.classList.remove("fifa-hls-open"); };
+      modal.querySelector("#fifaYoutubeLiveClose")?.addEventListener("click", close);
+      modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
+    }
+    const frame = modal.querySelector("#fifaYoutubeLiveFrame");
+    if (frame) {
+      frame.title = title || "FIFA live stream";
+      frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeId)}?autoplay=1&playsinline=1&rel=0`;
+    }
+    modal.hidden = false;
+    modal.style.display = "flex";
+    document.body.classList.add("fifa-hls-open");
+    return true;
+  }
+
   function openFifaLiveChannel(url) {
     const target = String(url || "").trim();
     if (!target) return;
+    if (openYoutubeLiveModal(target, "FIFA jonli efiri")) return;
     // Cloudflare WHEP (WebRTC) playback URL — past kechikishli WebRTC pleyer
     if (/\/webRTC\/play(\?|$)/i.test(target)) {
       openLivePlayerModal(target, "whep");
