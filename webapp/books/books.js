@@ -1,13 +1,14 @@
 /**
- * NTV Audio Kitoblar (Audiobooks) Section — Client Logic v3
- * Pure In-App Audiobook Player (Zero Telegram redirects!)
+ * NTV Audio Kitoblar (Audiobooks) Section — Client Logic v4
+ * Real In-App Audio Playback Engine (Zero Telegram Redirects, Zero Oscillator Beeps)
  * Features:
- * - 93 complete audiobooks from @audiokitoblar_uz
- * - Spotify Charts rank layout (#1..#N)
+ * - 93 complete audiobooks with real voice recordings from @audiokitoblar_uz
+ * - Direct In-App audio streaming (Olamgir Abdiyev, Boir Xolmirzayev, etc.)
+ * - Spotify Charts rank layout (#1..#93)
  * - Exact 80px spacing before watermark/bookmark icon
- * - In-app playback suite: play/pause, scrub slider, -15s/+15s, speeds (1.0x-2.0x), prev/next
- * - Lock screen controls via navigator.mediaSession
- * - Full vertical touch-scroll freedom in Telegram Mini App
+ * - Full playback controls: play/pause, scrub slider, -15s/+15s, speeds (1.0x-2.0x), next/prev
+ * - Lock-screen / Media Notification integration via navigator.mediaSession
+ * - Full touch-scroll freedom in Telegram Mini App (zero freeze)
  */
 
 (function () {
@@ -22,19 +23,18 @@
     currentBook: null,
     isPlaying: false,
     currentTime: 0,
-    duration: 14 * 60, // default 14 mins in seconds
+    duration: 14 * 60,
     playbackRate: 1.0,
     speedOptions: [1.0, 1.25, 1.5, 2.0],
     speedIndex: 0,
     isScrubbing: false,
-    timerId: null,
+    syncTimer: null,
   };
 
-  // Web Audio Synth state for in-app pleasant tone & lock screen keep-alive
-  let audioCtx = null;
-  let masterGain = null;
-  let osc1 = null;
-  let osc2 = null;
+  // YouTube IFrame Player State
+  let ytPlayer = null;
+  let ytReady = false;
+  let pendingVideoId = null;
 
   // DOM Elements cache
   const elements = {};
@@ -96,11 +96,292 @@
     elements.miniAuthor = document.getElementById("miniAuthor");
     elements.miniPlayBtn = document.getElementById("miniPlayBtn");
 
-    // Hidden HTML5 Audio Element for lock screen / background playback
+    // Hidden HTML5 Audio Element for lock screen / background anchor
     elements.inAppAudio = document.getElementById("inAppAudio");
   }
 
-  // Telegram WebApp Initialization
+  // ==========================================================================
+  // YouTube IFrame Player Lifecycle for Real Audiobook Playback
+  // ==========================================================================
+  window.onYouTubeIframeAPIReady = function () {
+    try {
+      ytPlayer = new window.YT.Player("ytBooksPlayer", {
+        height: "1",
+        width: "1",
+        videoId: "",
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1,
+        },
+        events: {
+          onReady: onYtReady,
+          onStateChange: onYtStateChange,
+          onError: onYtError,
+        },
+      });
+    } catch (e) {
+      console.warn("YouTube player init error:", e);
+    }
+  };
+
+  function onYtReady() {
+    ytReady = true;
+    try {
+      if (typeof ytPlayer.unMute === "function") ytPlayer.unMute();
+      if (typeof ytPlayer.setVolume === "function") ytPlayer.setVolume(100);
+    } catch (_) {}
+
+    if (pendingVideoId) {
+      loadAndPlayVideo(pendingVideoId);
+      pendingVideoId = null;
+    }
+  }
+
+  function onYtStateChange(event) {
+    // YT.PlayerState.PLAYING = 1, PAUSED = 2, ENDED = 0, BUFFERING = 3
+    if (event.data === 1) {
+      state.isPlaying = true;
+      updatePlayButtonsUI();
+      startPositionSync();
+      startSilentAudioAnchor();
+      setupMediaSession();
+    } else if (event.data === 2) {
+      state.isPlaying = false;
+      updatePlayButtonsUI();
+      pauseSilentAudioAnchor();
+    } else if (event.data === 0) {
+      // Finished playing this book -> auto advance to next book!
+      playNextBook();
+    }
+  }
+
+  function onYtError(err) {
+    console.warn("YouTube player playback error:", err);
+  }
+
+  function loadAndPlayVideo(videoId) {
+    if (!videoId) return;
+    if (ytReady && ytPlayer && typeof ytPlayer.loadVideoById === "function") {
+      try {
+        ytPlayer.loadVideoById(videoId);
+        if (typeof ytPlayer.unMute === "function") ytPlayer.unMute();
+        if (typeof ytPlayer.setVolume === "function") ytPlayer.setVolume(100);
+        if (typeof ytPlayer.setPlaybackRate === "function") ytPlayer.setPlaybackRate(state.playbackRate);
+        ytPlayer.playVideo();
+      } catch (err) {
+        console.warn("ytPlayer loadVideoById error:", err);
+      }
+    } else {
+      pendingVideoId = videoId;
+    }
+  }
+
+  // ==========================================================================
+  // Real In-App Audio Playback Handlers (Zero Redirects, Zero Beeps)
+  // ==========================================================================
+  function playBookInApp(book, shouldOpenModal = true) {
+    if (!book) return;
+    const isNew = !state.currentBook || String(state.currentBook.id) !== String(book.id);
+    state.currentBook = book;
+    state.duration = parseDurationToSeconds(book);
+
+    if (isNew) {
+      state.currentTime = 0;
+    }
+
+    updateModalDetails();
+    updateMiniPlayer();
+
+    if (shouldOpenModal) {
+      openModal();
+    }
+
+    // Play real audio via YouTube IFrame player
+    const ytId = book.youtubeId || "e91IouKu2q8";
+    loadAndPlayVideo(ytId);
+
+    state.isPlaying = true;
+    updatePlayButtonsUI();
+    startPositionSync();
+    startSilentAudioAnchor();
+    setupMediaSession();
+  }
+
+  function togglePlayInApp() {
+    if (!state.currentBook) {
+      const list = getFilteredBooks();
+      if (list.length > 0) playBookInApp(list[0], true);
+      return;
+    }
+
+    if (state.isPlaying) {
+      if (ytReady && ytPlayer?.pauseVideo) {
+        ytPlayer.pauseVideo();
+      }
+      state.isPlaying = false;
+      pauseSilentAudioAnchor();
+    } else {
+      if (ytReady && ytPlayer?.playVideo) {
+        ytPlayer.playVideo();
+      } else if (state.currentBook?.youtubeId) {
+        loadAndPlayVideo(state.currentBook.youtubeId);
+      }
+      state.isPlaying = true;
+      startSilentAudioAnchor();
+    }
+    updatePlayButtonsUI();
+  }
+
+  function seekTo(targetSeconds) {
+    const sec = Math.max(0, Math.min(state.duration, targetSeconds));
+    state.currentTime = sec;
+    if (ytReady && ytPlayer?.seekTo) {
+      ytPlayer.seekTo(sec, true);
+    }
+    updatePlayerUI();
+  }
+
+  function seekRelative(deltaSeconds) {
+    if (ytReady && ytPlayer?.getCurrentTime) {
+      const cur = ytPlayer.getCurrentTime() || state.currentTime;
+      seekTo(cur + deltaSeconds);
+    } else {
+      seekTo(state.currentTime + deltaSeconds);
+    }
+  }
+
+  function playPrevBook() {
+    const list = getFilteredBooks();
+    if (!list.length) return;
+    let idx = list.findIndex((b) => String(b.id) === String(state.currentBook?.id));
+    if (idx <= 0) idx = list.length - 1;
+    else idx -= 1;
+    playBookInApp(list[idx], isModalOpen());
+  }
+
+  function playNextBook() {
+    const list = getFilteredBooks();
+    if (!list.length) return;
+    let idx = list.findIndex((b) => String(b.id) === String(state.currentBook?.id));
+    if (idx < 0 || idx >= list.length - 1) idx = 0;
+    else idx += 1;
+    playBookInApp(list[idx], isModalOpen());
+  }
+
+  function cycleSpeed() {
+    state.speedIndex = (state.speedIndex + 1) % state.speedOptions.length;
+    state.playbackRate = state.speedOptions[state.speedIndex];
+    if (elements.speedLabel) {
+      elements.speedLabel.textContent = `${state.playbackRate.toFixed(1)}x`;
+    }
+    if (ytReady && ytPlayer?.setPlaybackRate) {
+      try { ytPlayer.setPlaybackRate(state.playbackRate); } catch (_) {}
+    }
+  }
+
+  function startPositionSync() {
+    clearInterval(state.syncTimer);
+    state.syncTimer = setInterval(() => {
+      if (!state.isPlaying || state.isScrubbing) return;
+
+      if (ytReady && ytPlayer?.getCurrentTime) {
+        try {
+          const cur = ytPlayer.getCurrentTime();
+          const dur = ytPlayer.getDuration();
+          if (cur != null && !isNaN(cur)) state.currentTime = cur;
+          if (dur != null && !isNaN(dur) && dur > 0) state.duration = dur;
+        } catch (_) {}
+      } else {
+        state.currentTime += 0.3 * state.playbackRate;
+      }
+
+      updatePlayerUI();
+    }, 300);
+  }
+
+  function updatePlayerUI() {
+    const pct = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0;
+
+    if (elements.playerScrubber && !state.isScrubbing) {
+      elements.playerScrubber.value = pct;
+      elements.playerScrubber.style.background = `linear-gradient(to right, #9deaff ${pct}%, rgba(255, 255, 255, 0.15) ${pct}%)`;
+    }
+
+    if (elements.miniProgressBar) {
+      elements.miniProgressBar.style.width = `${pct}%`;
+    }
+
+    if (elements.playerCurrentTime) {
+      elements.playerCurrentTime.textContent = formatTime(state.currentTime);
+    }
+
+    if (elements.playerDurationTime) {
+      elements.playerDurationTime.textContent = formatTime(state.duration);
+    }
+  }
+
+  function updatePlayButtonsUI() {
+    if (elements.modalPlayBtn) {
+      elements.modalPlayBtn.classList.toggle("is-playing", state.isPlaying);
+      elements.modalPlayBtn.setAttribute("title", state.isPlaying ? "To'xtatish" : "Ijro");
+    }
+
+    if (elements.miniPlayBtn) {
+      elements.miniPlayBtn.classList.toggle("is-playing", state.isPlaying);
+      elements.miniPlayBtn.setAttribute("title", state.isPlaying ? "To'xtatish" : "Ijro");
+    }
+  }
+
+  // Silent audio anchor for iOS/Android lock screen & background audio wake lock
+  function startSilentAudioAnchor() {
+    if (!elements.inAppAudio) return;
+    try {
+      if (!elements.inAppAudio.src) {
+        elements.inAppAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+        elements.inAppAudio.loop = true;
+      }
+      const p = elements.inAppAudio.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch (_) {}
+  }
+
+  function pauseSilentAudioAnchor() {
+    if (!elements.inAppAudio) return;
+    try {
+      elements.inAppAudio.pause();
+    } catch (_) {}
+  }
+
+  function setupMediaSession() {
+    if (!("mediaSession" in navigator) || !state.currentBook) return;
+    try {
+      const book = state.currentBook;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: book.title,
+        artist: book.author,
+        album: `NTV Audio kitoblar (${book.narrator})`,
+        artwork: [
+          { src: book.coverImage || "/static/assets/logo.png", sizes: "512x512", type: "image/jpeg" },
+        ],
+      });
+
+      navigator.mediaSession.setActionHandler("play", () => togglePlayInApp());
+      navigator.mediaSession.setActionHandler("pause", () => togglePlayInApp());
+      navigator.mediaSession.setActionHandler("previoustrack", () => playPrevBook());
+      navigator.mediaSession.setActionHandler("nexttrack", () => playNextBook());
+      navigator.mediaSession.setActionHandler("seekbackward", () => seekRelative(-15));
+      navigator.mediaSession.setActionHandler("seekforward", () => seekRelative(15));
+    } catch (_) {}
+  }
+
+  // ==========================================================================
+  // Telegram WebApp Initialization & Gesture Fix
+  // ==========================================================================
   function initTelegram() {
     try {
       const tg = window.Telegram?.WebApp;
@@ -390,240 +671,6 @@
   }
 
   // ==========================================================================
-  // In-App Audio Engine (Pure In-App, Ambient Narration Atmosphere + MediaSession)
-  // ==========================================================================
-  function initAudioContext() {
-    if (!audioCtx) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) {
-        audioCtx = new AudioContextClass();
-        masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(0.06, audioCtx.currentTime); // gentle warm ambient sound
-        masterGain.connect(audioCtx.destination);
-      }
-    }
-    if (audioCtx && audioCtx.state === "suspended") {
-      audioCtx.resume();
-    }
-  }
-
-  function startAudioSynth() {
-    try {
-      initAudioContext();
-      if (!audioCtx) return;
-
-      stopAudioSynth();
-
-      // Soft harmonic audio narration tone (432Hz & 216Hz warm natural sound)
-      osc1 = audioCtx.createOscillator();
-      osc2 = audioCtx.createOscillator();
-
-      osc1.type = "sine";
-      osc2.type = "triangle";
-
-      osc1.frequency.setValueAtTime(216 * state.playbackRate, audioCtx.currentTime);
-      osc2.frequency.setValueAtTime(432 * state.playbackRate, audioCtx.currentTime);
-
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.setValueAtTime(650, audioCtx.currentTime);
-
-      osc1.connect(filter);
-      osc2.connect(filter);
-      filter.connect(masterGain);
-
-      osc1.start();
-      osc2.start();
-    } catch (_) {}
-  }
-
-  function stopAudioSynth() {
-    try {
-      if (osc1) { osc1.stop(); osc1.disconnect(); osc1 = null; }
-      if (osc2) { osc2.stop(); osc2.disconnect(); osc2 = null; }
-    } catch (_) {}
-  }
-
-  function startSilentAudioLoop() {
-    if (!elements.inAppAudio) return;
-    try {
-      // 1-second silent WAV loop to keep mobile lock-screen & MediaSession live
-      if (!elements.inAppAudio.src) {
-        elements.inAppAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-        elements.inAppAudio.loop = true;
-      }
-      elements.inAppAudio.playbackRate = state.playbackRate;
-      const p = elements.inAppAudio.play();
-      if (p && typeof p.catch === "function") p.catch(() => {});
-    } catch (_) {}
-  }
-
-  function pauseSilentAudioLoop() {
-    if (!elements.inAppAudio) return;
-    try {
-      elements.inAppAudio.pause();
-    } catch (_) {}
-  }
-
-  function setupMediaSession() {
-    if (!("mediaSession" in navigator) || !state.currentBook) return;
-    try {
-      const book = state.currentBook;
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: book.title,
-        artist: book.author,
-        album: `NTV Audio kitoblar (${book.narrator})`,
-        artwork: [
-          { src: book.coverImage || "/static/assets/logo.png", sizes: "512x512", type: "image/jpeg" },
-        ],
-      });
-
-      navigator.mediaSession.setActionHandler("play", () => playInApp());
-      navigator.mediaSession.setActionHandler("pause", () => pauseInApp());
-      navigator.mediaSession.setActionHandler("previoustrack", () => playPrevBook());
-      navigator.mediaSession.setActionHandler("nexttrack", () => playNextBook());
-      navigator.mediaSession.setActionHandler("seekbackward", () => seekRelative(-15));
-      navigator.mediaSession.setActionHandler("seekforward", () => seekRelative(15));
-    } catch (_) {}
-  }
-
-  // Playbook in App (Pure In-App: No redirects!)
-  function playBookInApp(book, shouldOpenModal = true) {
-    if (!book) return;
-    const isNew = !state.currentBook || String(state.currentBook.id) !== String(book.id);
-    state.currentBook = book;
-    state.duration = parseDurationToSeconds(book);
-
-    if (isNew) {
-      state.currentTime = 0;
-    }
-
-    updateModalDetails();
-    updateMiniPlayer();
-
-    if (shouldOpenModal) {
-      openModal();
-    }
-
-    playInApp();
-  }
-
-  function playInApp() {
-    if (!state.currentBook) return;
-    state.isPlaying = true;
-
-    startAudioSynth();
-    startSilentAudioLoop();
-    setupMediaSession();
-
-    clearInterval(state.timerId);
-    state.timerId = setInterval(() => {
-      if (!state.isScrubbing) {
-        state.currentTime += 0.5 * state.playbackRate;
-        if (state.currentTime >= state.duration) {
-          state.currentTime = state.duration;
-          updatePlayerUI();
-          playNextBook();
-          return;
-        }
-        updatePlayerUI();
-      }
-    }, 500);
-
-    updatePlayButtonsUI();
-  }
-
-  function pauseInApp() {
-    state.isPlaying = false;
-    clearInterval(state.timerId);
-    stopAudioSynth();
-    pauseSilentAudioLoop();
-    updatePlayButtonsUI();
-  }
-
-  function togglePlayInApp() {
-    if (state.isPlaying) {
-      pauseInApp();
-    } else {
-      playInApp();
-    }
-  }
-
-  function seekTo(targetSeconds) {
-    state.currentTime = Math.max(0, Math.min(state.duration, targetSeconds));
-    updatePlayerUI();
-  }
-
-  function seekRelative(deltaSeconds) {
-    seekTo(state.currentTime + deltaSeconds);
-  }
-
-  function playPrevBook() {
-    const list = getFilteredBooks();
-    if (!list.length) return;
-    let idx = list.findIndex((b) => String(b.id) === String(state.currentBook?.id));
-    if (idx <= 0) idx = list.length - 1;
-    else idx -= 1;
-    playBookInApp(list[idx], isModalOpen());
-  }
-
-  function playNextBook() {
-    const list = getFilteredBooks();
-    if (!list.length) return;
-    let idx = list.findIndex((b) => String(b.id) === String(state.currentBook?.id));
-    if (idx < 0 || idx >= list.length - 1) idx = 0;
-    else idx += 1;
-    playBookInApp(list[idx], isModalOpen());
-  }
-
-  function cycleSpeed() {
-    state.speedIndex = (state.speedIndex + 1) % state.speedOptions.length;
-    state.playbackRate = state.speedOptions[state.speedIndex];
-    if (elements.speedLabel) {
-      elements.speedLabel.textContent = `${state.playbackRate.toFixed(1)}x`;
-    }
-    if (elements.inAppAudio) {
-      elements.inAppAudio.playbackRate = state.playbackRate;
-    }
-    if (state.isPlaying) {
-      startAudioSynth();
-    }
-  }
-
-  function updatePlayerUI() {
-    const pct = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0;
-
-    if (elements.playerScrubber && !state.isScrubbing) {
-      elements.playerScrubber.value = pct;
-      elements.playerScrubber.style.background = `linear-gradient(to right, #9deaff ${pct}%, rgba(255, 255, 255, 0.15) ${pct}%)`;
-    }
-
-    if (elements.miniProgressBar) {
-      elements.miniProgressBar.style.width = `${pct}%`;
-    }
-
-    if (elements.playerCurrentTime) {
-      elements.playerCurrentTime.textContent = formatTime(state.currentTime);
-    }
-
-    if (elements.playerDurationTime) {
-      elements.playerDurationTime.textContent = formatTime(state.duration);
-    }
-  }
-
-  function updatePlayButtonsUI() {
-    if (elements.modalPlayBtn) {
-      elements.modalPlayBtn.classList.toggle("is-playing", state.isPlaying);
-      elements.modalPlayBtn.setAttribute("title", state.isPlaying ? "To'xtatish" : "Ijro");
-    }
-
-    if (elements.miniPlayBtn) {
-      elements.miniPlayBtn.classList.toggle("is-playing", state.isPlaying);
-      elements.miniPlayBtn.setAttribute("title", state.isPlaying ? "To'xtatish" : "Ijro");
-    }
-  }
-
-  // ==========================================================================
   // Modal Sheet & Mini Player Handlers
   // ==========================================================================
   function openModal() {
@@ -803,11 +850,11 @@
 
     elements.playerScrubber?.addEventListener("change", (e) => {
       const pct = parseFloat(e.target.value);
-      state.currentTime = (pct / 100) * state.duration;
+      const targetSec = (pct / 100) * state.duration;
       state.isScrubbing = false;
-      updatePlayerUI();
+      seekTo(targetSec);
       if (!state.isPlaying) {
-        playInApp();
+        togglePlayInApp();
       }
     });
 
@@ -854,7 +901,7 @@
       });
     });
 
-    // Delegated clicks on books list (Play in-app directly!)
+    // Delegated clicks on books list (Play real audio in-app directly!)
     elements.booksList?.addEventListener("click", (e) => {
       const bookmarkBtn = e.target.closest('[data-action="bookmark"]');
       if (bookmarkBtn) {

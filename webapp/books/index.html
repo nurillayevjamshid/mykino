@@ -71,7 +71,7 @@
     } catch (_) {}
   </script>
   <link rel="stylesheet" href="/static/glass-theme.css?v=20261019-instant-click-v1" />
-  <link rel="stylesheet" href="/books/books.css?v=20261019-v3" />
+  <link rel="stylesheet" href="/books/books.css?v=20261019-v4" />
 </head>
 
 <body>
@@ -437,10 +437,15 @@
     </div>
   </div>
 
-  <!-- Hidden In-App HTML5 Audio Element for zero-delay native playback -->
+  <!-- Hidden In-App HTML5 Audio Element for lock screen / background anchor -->
   <audio id="inAppAudio" preload="auto" playsinline webkit-playsinline></audio>
 
-  <script src="/books/books.js?v=20261019-v3"></script>
+  <!-- Background YouTube IFrame Player Container for Real Audiobook Audio -->
+  <div id="ytBooksPlayer" style="position:fixed;bottom:-9999px;left:-9999px;width:1px;height:1px;opacity:0.001;pointer-events:none;"></div>
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="/books/books.js?v=20261019-v4"></script>
 </body>
 
 </html>
