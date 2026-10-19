@@ -387,7 +387,7 @@ body.sidebar-open {
   display: block;
 }
 
-/* Middle Info: Title and Author fully visible (no cutoff) */
+/* Middle Info: Title and Author - strictly single line, never wrap to new line */
 .chart-info {
   flex: 1;
   min-width: 0;
@@ -395,16 +395,17 @@ body.sidebar-open {
   flex-direction: column;
   justify-content: center;
   gap: 3px;
-  padding-right: 8px;
+  padding-right: 12px;
+  overflow: hidden;
 }
 
 .chart-title {
   font-size: 15px;
   font-weight: 700;
   color: #ffffff;
-  white-space: normal !important;
-  word-break: break-word;
-  line-height: 1.35;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
   letter-spacing: -0.01em;
 }
 
@@ -412,26 +413,17 @@ body.sidebar-open {
   font-size: 13px;
   font-weight: 500;
   color: var(--books-muted);
-  white-space: normal !important;
-  word-break: break-word;
-  line-height: 1.35;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
-/* Right Side Actions Container */
+/* Right Side Actions Container (Watermark and Next Chevron) */
 .chart-actions {
   display: flex;
   align-items: center;
+  gap: 4px;
   flex-shrink: 0;
-}
-
-/* EXACT USER REQUIREMENT: Duration in minutes is spaced exactly 80px before watermark icon! */
-.chart-duration {
-  font-size: 13px;
-  font-weight: 600;
-  color: #94a3b8;
-  white-space: nowrap;
-  margin-right: 80px !important; /* EXACT 80px spacing before watermark icon */
-  letter-spacing: -0.01em;
 }
 
 /* Watermark / Bookmark Icon button in list item - circular */
@@ -1244,21 +1236,11 @@ body.sidebar-open {
    Responsive Breakpoints
    ========================================================================== */
 @media (max-width: 420px) {
-  .chart-duration {
-    margin-right: 80px !important; /* STRICTLY KEEP 80px BEFORE WATERMARK */
-    font-size: 12px;
-  }
-
   .chart-title {
     font-size: 14px;
   }
 
   .chart-author {
     font-size: 12px;
-  }
-
-  .chart-rank {
-    min-width: 28px;
-    font-size: 15px;
   }
 }

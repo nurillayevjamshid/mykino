@@ -573,7 +573,6 @@
     elements.booksList.innerHTML = list
       .map((book) => {
         const isSaved = state.savedIds.has(String(book.id));
-        const durationText = book.duration || `${book.minutes || 14} daqiqa`;
         const coverSrc = "/books/cover.jpg";
 
         return `
@@ -585,16 +584,14 @@
                 <img src="${coverSrc}" alt="${escapeHtml(book.title)}" loading="lazy" onerror="this.src='/books/cover.jpg'" />
               </div>
 
-              <!-- Middle Info: Title and Author fully visible -->
+              <!-- Middle Info: Title and Author (Single line, no wrap) -->
               <div class="chart-info">
                 <div class="chart-title">${escapeHtml(book.title)}</div>
                 <div class="chart-author">${escapeHtml(book.author)}</div>
               </div>
 
-              <!-- Right Actions: Duration spaced EXACTLY 80px before Watermark Icon -->
+              <!-- Right Actions: Watermark Icon and Next Chevron -->
               <div class="chart-actions">
-                <span class="chart-duration">${escapeHtml(durationText)}</span>
-
                 <button type="button" class="chart-bookmark-btn ${isSaved ? "is-saved" : ""}" data-action="bookmark" data-id="${book.id}" aria-label="Saqlash" title="${isSaved ? "Saqlangandan o'chirish" : "Saqlash"}">
                   <svg viewBox="0 0 24 24" fill="${isSaved ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
