@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="uz" data-theme="dark">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d0d12" />
+  <title>NTV — Audio kitoblar</title>
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/books/books.css?v=20261019-v1" />
+</head>
+
+<body>
+  <!-- Top spacing dedicated to native Telegram icons (Close & 3-dots) -->
+  <div class="tg-native-header-space" aria-hidden="true"></div>
+
+  <div class="books-app">
+    <!-- Topbar: Hamburger on left, Audiobook icon + NTV in center, Watermark (Bookmark) on right -->
+    <header class="books-topbar">
+      <button type="button" class="topbar-btn topbar-menu" id="booksMenuBtn" aria-label="Menyu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="4" y1="7" x2="20" y2="7"></line>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="17" x2="14" y2="17"></line>
+        </svg>
+      </button>
+
+      <div class="books-brand" aria-label="NTV Audio kitoblar">
+        <span class="audiobook-mark-icon" aria-hidden="true">
+          <!-- Audiobook icon: Headphones with book pages -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+            <path d="M12 12v5"></path>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <span class="brand-title">NTV</span>
+          <span class="brand-subtitle">Audio kitob</span>
+        </div>
+      </div>
+
+      <button type="button" class="topbar-btn topbar-bookmark" id="booksBookmarkBtn" aria-label="Saqlangan audio kitoblar" title="Saqlanganlar">
+        <!-- Bookmark / Watermark icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+        </svg>
+        <span class="bookmark-badge" id="bookmarkBadge" data-count="0"></span>
+      </button>
+    </header>
+
+    <!-- Search box -->
+    <div class="books-search-wrap">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="search" id="booksSearchInput" class="search-input" placeholder="Audio kitob, muallif yoki suxandon..." autocomplete="off" />
+        <button type="button" class="search-clear-btn" id="booksSearchClearBtn" aria-label="Tozalash" hidden>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter chips -->
+    <div class="genre-pills" role="tablist">
+      <button type="button" class="genre-pill is-active" data-filter="barchasi" role="tab">Barchasi</button>
+      <button type="button" class="genre-pill" data-filter="Hikoya" role="tab">Hikoyalar</button>
+      <button type="button" class="genre-pill" data-filter="Roman" role="tab">Romanlar</button>
+      <button type="button" class="genre-pill" data-filter="Qissa" role="tab">Qissalar</button>
+      <button type="button" class="genre-pill" data-filter="Rivoyat" role="tab">Rivoyatlar</button>
+      <button type="button" class="genre-pill" data-filter="saqlanganlar" role="tab">Saqlanganlar</button>
+    </div>
+
+    <!-- Section header meta bar -->
+    <div class="section-meta-bar">
+      <span class="section-label" id="sectionLabel">Eng so'nggi qo'shilganlar</span>
+      <span class="section-count" id="sectionCount">Yuklanmoqda...</span>
+    </div>
+
+    <!-- Audiobook list (Image 1 Spotify chart style: #1..#N) -->
+    <main class="books-list" id="booksList" aria-label="Audio kitoblar ro'yxati">
+      <!-- Injected by books.js -->
+    </main>
+  </div>
+
+  <!-- Sidebar Drawer Backdrop & Aside -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <aside class="books-sidebar" id="booksSidebar" aria-label="NTV Menyusi">
+    <div class="sidebar-header">
+      <div class="books-brand">
+        <span class="audiobook-mark-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+            <path d="M12 12v5"></path>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <span class="brand-title">NTV</span>
+          <span class="brand-subtitle">Audio kitob</span>
+        </div>
+      </div>
+      <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Yopish">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button type="button" class="sidebar-item is-active" data-filter="barchasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span>Barcha kitoblar</span>
+      </button>
+
+      <button type="button" class="sidebar-item" data-filter="saqlanganlar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+        </svg>
+        <span>Saqlanganlar</span>
+        <span class="sidebar-badge" id="sidebarSavedBadge">0</span>
+      </button>
+
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">Janrlar</div>
+
+      <button type="button" class="sidebar-item" data-filter="Hikoya">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+        </svg>
+        <span>Hikoyalar</span>
+      </button>
+
+      <button type="button" class="sidebar-item" data-filter="Roman">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span>Romanlar</span>
+      </button>
+
+      <button type="button" class="sidebar-item" data-filter="Qissa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="m10 15 5-3-5-3v6Z"></path>
+        </svg>
+        <span>Qissalar</span>
+      </button>
+
+      <div class="sidebar-divider"></div>
+
+      <a href="https://t.me/audiokitoblar_uz" target="_blank" rel="noopener noreferrer" class="sidebar-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+        <span>Telegram kanal</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="theme-toggle-row">
+        <span>Tungi rejim</span>
+        <button type="button" class="theme-switch-btn" id="sidebarThemeSwitch" aria-label="Tungi rejimni yoqish/o'chirish">
+          <span class="theme-switch-knob"></span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Audiobook Detail & Player Modal -->
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <div class="book-modal" id="bookModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-grabber"></div>
+
+    <div class="modal-header">
+      <span style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">
+        Audio kitob
+      </span>
+      <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Yopish">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-cover-large" id="modalCover">📖</div>
+      <h2 class="modal-book-title" id="modalTitle">Nomi</h2>
+      <div class="modal-book-author" id="modalAuthor">Muallif</div>
+
+      <div class="modal-meta-grid">
+        <div class="meta-chip">
+          <div class="meta-chip-label">Janr</div>
+          <div class="meta-chip-value" id="modalGenre">Hikoya</div>
+        </div>
+        <div class="meta-chip">
+          <div class="meta-chip-label">O'qigan inson</div>
+          <div class="meta-chip-value" id="modalNarrator">Olamgir Abdiyev</div>
+        </div>
+        <div class="meta-chip">
+          <div class="meta-chip-label">Hajmi</div>
+          <div class="meta-chip-value" id="modalSize">13 MB</div>
+        </div>
+        <div class="meta-chip">
+          <div class="meta-chip-label">Vaqti</div>
+          <div class="meta-chip-value" id="modalDuration">14 daqiqa</div>
+        </div>
+      </div>
+
+      <!-- Player Controls -->
+      <div class="modal-player-box">
+        <div class="player-scrubber-wrap">
+          <input type="range" class="scrubber-slider" id="playerScrubber" min="0" max="100" value="0" />
+          <div class="player-time-row">
+            <span id="playerCurrentTime">0:00</span>
+            <span id="playerDurationTime">14:00</span>
+          </div>
+        </div>
+
+        <div class="player-controls-row">
+          <button type="button" class="btn-ctrl" id="btnRewind" title="-15 sekund" aria-label="Orqaga 15 sekund">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"></path>
+            </svg>
+          </button>
+
+          <button type="button" class="btn-ctrl btn-ctrl-main" id="modalPlayBtn" title="Ijro / Pauza" aria-label="Ijro">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="6 3 20 12 6 21 6 3"></polygon>
+            </svg>
+          </button>
+
+          <button type="button" class="btn-ctrl" id="btnForward" title="+15 sekund" aria-label="Oldinga 15 sekund">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 17l5-5-5-5M6 17l5-5-5-5"></path>
+            </svg>
+          </button>
+
+          <button type="button" class="btn-ctrl" id="btnSpeed" title="Tezlik" style="font-size: 13px; font-weight: 800;">
+            1.0x
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="modal-actions">
+        <a id="modalTgLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+          <span>Telegramda eshitish</span>
+        </a>
+
+        <button type="button" class="btn-bookmark-action" id="modalBookmarkBtn" aria-label="Saqlash" title="Saqlash">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky Bottom Mini Player -->
+  <div class="mini-player-bar" id="miniPlayer" role="region" aria-label="Mitti pleyer">
+    <div class="mini-cover" id="miniCover">📖</div>
+    <div class="mini-info">
+      <div class="mini-title" id="miniTitle">Audio kitob</div>
+      <div class="mini-author" id="miniAuthor">Muallif</div>
+    </div>
+    <div class="mini-controls">
+      <button type="button" class="mini-play-btn" id="miniPlayBtn" aria-label="Ijro / Pauza">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="6 3 20 12 6 21 6 3"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="/books/books.js?v=20261019-v1"></script>
+</body>
+
+</html>

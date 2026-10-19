@@ -21,7 +21,7 @@ const JS_DIRS = ['api', 'webapp', 'scripts', 'tests', 'bot'];
 const JS_FILES = [];
 
 // JSON files that must parse (data integrity).
-const JSON_FILES = ['package.json', 'vercel.json', 'data/movies.json'];
+const JSON_FILES = ['package.json', 'vercel.json', 'data/movies.json', 'data/books.json', 'webapp/books/books.json'];
 
 // Never walk into these.
 const SKIP_DIRS = new Set(['node_modules', '.git', '.vercel', '.workbuddy-ai', '.tmp-check']);

@@ -84,6 +84,7 @@
     { "src": "/api/music-stream/(.*)", "dest": "/api/music-stream.js?id=$1" },
     { "src": "/api/podcasts", "dest": "/api/music.js?_podcasts=1" },
     { "src": "/api/music-playlists", "dest": "/api/music.js?_playlists=1" },
+    { "src": "/api/books", "dest": "/api/music.js?_books=1" },
     { "src": "/api/categories", "dest": "/api/categories.js" },
     { "src": "/api/news", "dest": "/api/telegram-webhook.js?_news=1" },
     { "src": "/api/news/(.*)", "dest": "/api/telegram-webhook.js?_news=1&$1" },
@@ -111,6 +112,9 @@
     { "src": "/news", "dest": "/webapp/news/index.html" },
     { "src": "/news/", "dest": "/webapp/news/index.html" },
     { "src": "/news/(.*)", "dest": "/webapp/news/$1" },
+    { "src": "/books", "dest": "/webapp/books/index.html" },
+    { "src": "/books/", "dest": "/webapp/books/index.html" },
+    { "src": "/books/(.*)", "dest": "/webapp/books/$1" },
     { "src": "/static/(.*)", "dest": "/webapp/$1" },
     { "src": "/", "dest": "/webapp/index.html" }
   ]
