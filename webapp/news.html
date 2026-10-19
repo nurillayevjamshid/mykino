@@ -2317,6 +2317,131 @@
       });
     }
 
+    // Relative Time Localization (UZ, RU, EN)
+    function ruPlural(num, one, few, many) {
+      const n10 = num % 10;
+      const n100 = num % 100;
+      if (n10 === 1 && n100 !== 11) return one;
+      if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return few;
+      return many;
+    }
+
+    function formatRelativeTime(dateInput, lang = currentLang, fallbackText = '') {
+      let date = null;
+      if (dateInput) {
+        if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+          date = dateInput;
+        } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
+          const parsed = new Date(dateInput);
+          if (!isNaN(parsed.getTime())) date = parsed;
+        }
+      }
+
+      if (date) {
+        const now = Date.now();
+        const diffSec = Math.max(0, Math.floor((now - date.getTime()) / 1000));
+
+        if (diffSec < 60) {
+          if (lang === 'ru') return 'Только что';
+          if (lang === 'en') return 'Just now';
+          return 'Hozirgina';
+        }
+
+        if (diffSec < 3600) {
+          const min = Math.floor(diffSec / 60);
+          if (lang === 'ru') {
+            return `${min} ${ruPlural(min, 'минуту', 'минуты', 'минут')} назад`;
+          }
+          if (lang === 'en') {
+            return `${min} ${min === 1 ? 'minute' : 'minutes'} ago`;
+          }
+          return `${min} daqiqa oldin`;
+        }
+
+        if (diffSec < 86400) {
+          const hours = Math.floor(diffSec / 3600);
+          if (lang === 'ru') {
+            return `${hours} ${ruPlural(hours, 'час', 'часа', 'часов')} назад`;
+          }
+          if (lang === 'en') {
+            return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+          }
+          return `${hours} soat oldin`;
+        }
+
+        if (diffSec < 86400 * 2) {
+          if (lang === 'ru') return 'Вчера';
+          if (lang === 'en') return 'Yesterday';
+          return 'Kecha';
+        }
+
+        try {
+          const locale = lang === 'ru' ? 'ru-RU' : (lang === 'en' ? 'en-US' : 'uz-UZ');
+          const formatter = new Intl.DateTimeFormat(locale, {
+            timeZone: 'Asia/Tashkent',
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+          return formatter.format(date);
+        } catch (_) {}
+      }
+
+      if (fallbackText) {
+        const raw = String(fallbackText).trim();
+        if (/^hozirgina$/i.test(raw)) {
+          if (lang === 'ru') return 'Только что';
+          if (lang === 'en') return 'Just now';
+          return 'Hozirgina';
+        }
+        if (/^kecha$/i.test(raw)) {
+          if (lang === 'ru') return 'Вчера';
+          if (lang === 'en') return 'Yesterday';
+          return 'Kecha';
+        }
+        const minMatch = raw.match(/^(\d+)\s*daqiqa\s*oldin/i);
+        if (minMatch) {
+          const m = parseInt(minMatch[1], 10);
+          if (lang === 'ru') return `${m} ${ruPlural(m, 'минуту', 'минуты', 'минут')} назад`;
+          if (lang === 'en') return `${m} ${m === 1 ? 'minute' : 'minutes'} ago`;
+          return `${m} daqiqa oldin`;
+        }
+        const hrMatch = raw.match(/^(\d+)\s*soat\s*oldin/i);
+        if (hrMatch) {
+          const h = parseInt(hrMatch[1], 10);
+          if (lang === 'ru') return `${h} ${ruPlural(h, 'час', 'часа', 'часов')} назад`;
+          if (lang === 'en') return `${h} ${h === 1 ? 'hour' : 'hours'} ago`;
+          return `${h} soat oldin`;
+        }
+        const dayMatch = raw.match(/^(\d+)\s*kun\s*oldin/i);
+        if (dayMatch) {
+          const d = parseInt(dayMatch[1], 10);
+          if (lang === 'ru') return `${d} ${ruPlural(d, 'день', 'дня', 'дней')} назад`;
+          if (lang === 'en') return `${d} ${d === 1 ? 'day' : 'days'} ago`;
+          return `${d} kun oldin`;
+        }
+        return raw;
+      }
+      return '';
+    }
+
+    function formatPostTime(post, lang = currentLang) {
+      if (!post) return '';
+      return formatRelativeTime(post.datetime, lang, post.timeFormatted);
+    }
+
+    function updateAllTimestamps() {
+      document.querySelectorAll('.time-stamp').forEach(el => {
+        const dt = el.getAttribute('data-time');
+        const fb = el.getAttribute('data-time-fallback');
+        if (dt || fb) {
+          el.textContent = formatRelativeTime(dt, currentLang, fb);
+        }
+      });
+    }
+
     function setLanguage(lang) {
       if (!I18N[lang]) lang = 'uz';
       currentLang = lang;
@@ -2328,14 +2453,15 @@
       });
 
       applyTranslations();
+      updateAllTimestamps();
+
+      const targetList = isShowingBookmarks ? savedBookmarks : currentPosts;
+      renderFeed(targetList);
 
       if (currentLang !== 'uz') {
-        const targetList = isShowingBookmarks ? savedBookmarks : currentPosts;
         preparePostTranslations(targetList, currentLang).then(() => {
           renderFeed(targetList);
         });
-      } else {
-        renderFeed(isShowingBookmarks ? savedBookmarks : currentPosts);
       }
 
       if (activeModalPost && newsModal.classList.contains('active')) {
@@ -2508,7 +2634,7 @@
           <div class="card-meta">
             <div class="meta-left">
               <span class="source-tag">Tezkor</span>
-              <span class="time-stamp">${escapeHtml(post.timeFormatted || '')}</span>
+              <span class="time-stamp" data-time="${escapeHtml(post.datetime || '')}" data-time-fallback="${escapeHtml(post.timeFormatted || '')}">${escapeHtml(formatPostTime(post, currentLang))}</span>
             </div>
             <div class="views-count">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2635,7 +2761,7 @@
       modalTitle.textContent = titleToShow;
       modalMeta.innerHTML = `
         <span class="source-tag">Tezkor</span>
-        <span class="time-stamp">${escapeHtml(post.timeFormatted || '')}</span>
+        <span class="time-stamp" data-time="${escapeHtml(post.datetime || '')}" data-time-fallback="${escapeHtml(post.timeFormatted || '')}">${escapeHtml(formatPostTime(post, currentLang))}</span>
         <span class="views-count">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
           ${escapeHtml(post.views || '1')}
@@ -3022,6 +3148,7 @@
     applyTheme(currentTheme);
     setLanguage(currentLang);
     updateScrollState();
+    setInterval(updateAllTimestamps, 60000);
     loadNews();
   </script>
 </body>
