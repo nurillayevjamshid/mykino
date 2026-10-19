@@ -9,61 +9,66 @@
   
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Early platform detection and Telegram WebApp Fullscreen & Insets initialization -->
+  <!-- Early theme & platform detection to prevent flicker -->
   <script>
-    try {
-      var ua = navigator.userAgent || "";
-      var tgApp = window.Telegram && window.Telegram.WebApp;
-      var tgPlat = (tgApp && tgApp.platform) || "";
-      if (tgPlat === "android" || (/Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua))) {
-        document.documentElement.classList.add("is-android");
-      }
-      var isDesktop = tgPlat === "tdesktop" || tgPlat === "macos" || tgPlat === "weba" || tgPlat === "webk" || !/Android|iPhone|iPad|iPod/i.test(ua);
+    (function() {
+      try {
+        var ua = navigator.userAgent || "";
+        var tgApp = window.Telegram && window.Telegram.WebApp;
+        var tgPlat = (tgApp && tgApp.platform) || "";
+        if (tgPlat === "android" || (/Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua))) {
+          document.documentElement.classList.add("is-android");
+        }
+        var storedTheme = localStorage.getItem("kino_theme");
+        var tgScheme = tgApp && tgApp.colorScheme;
+        var effTheme = (storedTheme === "dark" || storedTheme === "light") ? storedTheme : (tgScheme === "dark" ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", effTheme);
 
-      var applyTgInsets = function() {
-        if (!tgApp) return;
-        var isFs = Boolean(tgApp.isFullscreen);
-        var cTop = Number(tgApp.contentSafeAreaInset && tgApp.contentSafeAreaInset.top) || 0;
-        var sTop = Number(tgApp.safeAreaInset && tgApp.safeAreaInset.top) || 0;
-        var effTop = cTop;
-        if (!effTop && isFs) {
-          effTop = sTop ? (sTop + 48) : 98;
-        } else if (!effTop && sTop) {
-          effTop = sTop + (isFs ? 48 : 0);
-        }
-        if (effTop > 0) {
-          document.documentElement.style.setProperty("--tg-content-safe-area-inset-top", effTop + "px");
-          document.documentElement.style.setProperty("--app-safe-top", effTop + "px");
-          document.documentElement.classList.add("has-tg-fullscreen");
-        } else {
-          document.documentElement.style.removeProperty("--tg-content-safe-area-inset-top");
-          document.documentElement.style.removeProperty("--app-safe-top");
-          document.documentElement.classList.remove("has-tg-fullscreen");
-        }
-      };
+        var applyTgInsets = function() {
+          if (!tgApp) return;
+          var isFs = Boolean(tgApp.isFullscreen);
+          var cTop = Number(tgApp.contentSafeAreaInset && tgApp.contentSafeAreaInset.top) || 0;
+          var sTop = Number(tgApp.safeAreaInset && tgApp.safeAreaInset.top) || 0;
+          var effTop = cTop;
+          if (!effTop && isFs) {
+            effTop = sTop ? (sTop + 48) : 98;
+          } else if (!effTop && sTop) {
+            effTop = sTop + (isFs ? 48 : 0);
+          }
+          if (effTop > 0) {
+            document.documentElement.style.setProperty("--tg-content-safe-area-inset-top", effTop + "px");
+            document.documentElement.style.setProperty("--app-safe-top", effTop + "px");
+            document.documentElement.classList.add("has-tg-fullscreen");
+          } else {
+            document.documentElement.style.removeProperty("--tg-content-safe-area-inset-top");
+            document.documentElement.style.removeProperty("--app-safe-top");
+            document.documentElement.classList.remove("has-tg-fullscreen");
+          }
+        };
 
-      if (tgApp) {
-        try { tgApp.ready(); } catch (_) {}
-        try { tgApp.expand(); } catch (_) {}
-        if (typeof tgApp.requestFullscreen === "function" && !tgApp.isFullscreen) {
-          try { tgApp.requestFullscreen(); } catch (_) {}
-        }
-        applyTgInsets();
+        if (tgApp) {
+          try { tgApp.ready(); } catch (_) {}
+          try { tgApp.expand(); } catch (_) {}
+          if (typeof tgApp.requestFullscreen === "function" && !tgApp.isFullscreen) {
+            try { tgApp.requestFullscreen(); } catch (_) {}
+          }
+          applyTgInsets();
 
-        if (tgApp.onEvent) {
-          tgApp.onEvent("safeAreaChanged", applyTgInsets);
-          tgApp.onEvent("contentSafeAreaChanged", applyTgInsets);
-          tgApp.onEvent("fullscreenChanged", function() {
-            applyTgInsets();
-            if (tgApp.isFullscreen) {
-              document.documentElement.classList.add("is-tg-fullscreen");
-            } else {
-              document.documentElement.classList.remove("is-tg-fullscreen");
-            }
-          });
+          if (tgApp.onEvent) {
+            tgApp.onEvent("safeAreaChanged", applyTgInsets);
+            tgApp.onEvent("contentSafeAreaChanged", applyTgInsets);
+            tgApp.onEvent("fullscreenChanged", function() {
+              applyTgInsets();
+              if (tgApp.isFullscreen) {
+                document.documentElement.classList.add("is-tg-fullscreen");
+              } else {
+                document.documentElement.classList.remove("is-tg-fullscreen");
+              }
+            });
+          }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    })();
   </script>
 
   <style>
@@ -90,6 +95,20 @@
       --news-header-height: calc(var(--news-header-top) + 56px);
     }
 
+    html[data-theme="dark"] {
+      --news-bg: #09111f;
+      --news-card-bg: #111e33;
+      --news-card-hover: #16253d;
+      --news-border: rgba(255, 255, 255, 0.08);
+      --news-border-hover: rgba(255, 255, 255, 0.16);
+      --news-text: #f8fafc;
+      --news-text-body: #cbd5e1;
+      --news-muted: #8da4be;
+      --news-accent: #3b82f6;
+      --news-accent-soft: rgba(59, 130, 246, 0.15);
+      --news-tezkor-red: #ef4444;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -103,6 +122,7 @@
       padding-bottom: max(calc(var(--safe-bottom) + 24px), 32px);
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }
 
     /* Container Shell */
@@ -126,12 +146,22 @@
       backdrop-filter: blur(16px) saturate(160%);
       -webkit-backdrop-filter: blur(16px) saturate(160%);
       border-bottom: 1px solid var(--news-border);
-      transition: box-shadow 0.2s ease, background 0.2s ease;
+      transition: box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    }
+
+    html[data-theme="dark"] .collab-header {
+      background: rgba(9, 17, 31, 0.92);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .collab-header.is-scrolled {
       background: rgba(248, 250, 252, 0.98);
       box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    html[data-theme="dark"] .collab-header.is-scrolled {
+      background: rgba(9, 17, 31, 0.98);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
 
     .collab-header-inner {
@@ -147,6 +177,7 @@
     .header-left, .header-right {
       display: flex;
       align-items: center;
+      gap: 8px;
       z-index: 2;
     }
 
@@ -169,6 +200,59 @@
       object-fit: contain;
       display: block;
       user-select: none;
+    }
+
+    /* Icon Buttons */
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1px solid var(--news-border);
+      color: var(--news-muted);
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover, .icon-btn:active {
+      background: #f1f5f9;
+      color: var(--news-text);
+      border-color: var(--news-border-hover);
+    }
+
+    .icon-btn.is-active {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #2563eb;
+    }
+
+    html[data-theme="dark"] .icon-btn {
+      background: #132238;
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    html[data-theme="dark"] .icon-btn:hover,
+    html[data-theme="dark"] .icon-btn:active {
+      background: #1a2c47;
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    html[data-theme="dark"] .icon-btn.is-active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+      color: #60a5fa;
+    }
+
+    .icon-btn svg {
+      width: 19px;
+      height: 19px;
     }
 
     /* Sidebar Navigation (Matching Main NTV Mini App Visual) */
@@ -217,6 +301,12 @@
       box-sizing: border-box;
     }
 
+    html[data-theme="dark"] .sidebar {
+      background: linear-gradient(155deg, rgba(17, 30, 51, 0.96), rgba(9, 17, 31, 0.94));
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 24px 0 60px rgba(0, 0, 0, 0.5);
+    }
+
     .sidebar.is-open {
       transform: translateX(0);
     }
@@ -229,17 +319,22 @@
       border-bottom: 1px solid rgba(92, 121, 151, 0.15);
     }
 
+    html[data-theme="dark"] .sidebar__head {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
     .sidebar__brand {
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
+    /* NTV logo icon: qora (black) in daylight, clean crisp in dark mode */
     .brand-logo {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #e50914;
+      color: var(--news-text);
     }
 
     .brand-logo__svg {
@@ -251,7 +346,7 @@
       font-weight: 800;
       font-size: 20px;
       letter-spacing: 0.02em;
-      color: #132136;
+      color: var(--news-text);
     }
 
     .sidebar__close {
@@ -268,10 +363,21 @@
       transition: all 0.2s ease;
     }
 
+    html[data-theme="dark"] .sidebar__close {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+    }
+
     .sidebar__close:hover {
       background: #ffffff;
       color: #132136;
       transform: rotate(90deg);
+    }
+
+    html[data-theme="dark"] .sidebar__close:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
     }
 
     .sidebar__close svg {
@@ -294,7 +400,7 @@
       padding: 12px 14px;
       border-radius: 17px;
       background: transparent;
-      color: rgba(34, 52, 73, 0.72);
+      color: rgba(34, 52, 73, 0.78);
       text-decoration: none;
       font-size: 15px;
       font-weight: 600;
@@ -303,6 +409,12 @@
       border: 1px solid transparent;
       transition: all 0.2s ease;
       box-sizing: border-box;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    html[data-theme="dark"] .sidebar__item {
+      color: #94a3b8;
     }
 
     .sidebar__item svg {
@@ -331,8 +443,20 @@
       box-shadow: 0 8px 22px rgba(70, 104, 135, 0.12), inset 0 1px rgba(255, 255, 255, 0.95);
     }
 
+    html[data-theme="dark"] .sidebar__item:hover,
+    html[data-theme="dark"] .sidebar__item.is-active {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(255, 255, 255, 0.14) !important;
+      color: #f8fafc !important;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+    }
+
     .sidebar__item.is-active svg {
       color: #2563eb;
+    }
+
+    html[data-theme="dark"] .sidebar__item.is-active svg {
+      color: #3b82f6;
     }
 
     .sidebar__divider {
@@ -341,37 +465,180 @@
       margin: 10px 14px;
     }
 
-    .icon-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      background: #ffffff;
-      border: 1px solid var(--news-border);
+    html[data-theme="dark"] .sidebar__divider {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Sidebar Settings Section: Day/Night mode & Language switch */
+    .sidebar__section-title {
+      padding: 10px 20px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       color: var(--news-muted);
-      cursor: pointer;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-      transition: all 0.2s;
     }
 
-    .icon-btn:hover, .icon-btn:active {
-      background: #f1f5f9;
+    .sidebar__settings {
+      padding: 6px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sidebar-setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sidebar-setting--lang {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .sidebar-setting__head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
       color: var(--news-text);
-      border-color: var(--news-border-hover);
     }
 
-    .icon-btn.is-active {
-      background: #eff6ff;
-      border-color: #3b82f6;
-      color: #2563eb;
-    }
-
-    .icon-btn svg {
+    .sidebar-setting__head svg {
       width: 19px;
       height: 19px;
+      color: var(--news-muted);
+      flex-shrink: 0;
     }
+
+    /* iOS-Style Theme Switch */
+    .theme-switch {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .theme-switch__track {
+      width: 58px;
+      height: 30px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #eef0f5, #e2e6ee);
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 7px;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .theme-switch__icon {
+      width: 14px;
+      height: 14px;
+      position: relative;
+      z-index: 1;
+      transition: opacity 0.25s ease, color 0.25s ease;
+    }
+
+    .theme-switch__icon--sun { color: #c98a2b; }
+    .theme-switch__icon--moon { color: #cfd6e4; }
+
+    .theme-switch__knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.16);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+    }
+
+    html[data-theme="dark"] .theme-switch__track {
+      background: linear-gradient(135deg, #1f2638, #2c3550);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    html[data-theme="dark"] .theme-switch__knob {
+      transform: translateX(28px);
+      background: #0f1422;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+    }
+
+    html[data-theme="dark"] .theme-switch__icon--sun { opacity: 0.32; }
+    html[data-theme="light"] .theme-switch__icon--moon { opacity: 0.45; color: #6b7280; }
+
+    /* Language Pills */
+    .lang-pills {
+      display: flex;
+      gap: 6px;
+      padding: 4px;
+      background: rgba(15, 23, 42, 0.05);
+      border: 1px solid var(--news-border);
+      border-radius: 999px;
+    }
+
+    html[data-theme="dark"] .lang-pills {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .lang-pill {
+      flex: 1;
+      padding: 7px 0;
+      border-radius: 999px;
+      border: 0;
+      background: transparent;
+      color: var(--news-muted);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .lang-pill:hover {
+      color: var(--news-text);
+    }
+
+    .lang-pill.is-active {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    html[data-theme="dark"] .lang-pill.is-active {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    }
+
+    .sidebar__foot {
+      margin-top: auto;
+      padding: 16px 20px 20px;
+      border-top: 1px solid var(--news-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--news-muted);
+    }
+
+    html[data-theme="dark"] .sidebar__foot {
+      border-top-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .sidebar__foot-brand {
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--news-text);
+    }
+
     /* Search Bar */
     .search-wrap {
       position: relative;
@@ -392,13 +659,29 @@
       transition: all 0.2s;
     }
 
+    html[data-theme="dark"] .search-input {
+      background: #111e33;
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
     .search-input:focus {
       border-color: var(--news-accent);
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
+    html[data-theme="dark"] .search-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
     .search-input::placeholder {
       color: #94a3b8;
+    }
+
+    html[data-theme="dark"] .search-input::placeholder {
+      color: #64748b;
     }
 
     .search-icon {
@@ -410,6 +693,10 @@
       pointer-events: none;
       width: 16px;
       height: 16px;
+    }
+
+    html[data-theme="dark"] .search-icon {
+      color: #64748b;
     }
 
     .search-clear {
@@ -424,6 +711,10 @@
       display: none;
       padding: 4px;
       font-size: 13px;
+    }
+
+    html[data-theme="dark"] .search-clear {
+      color: #8da4be;
     }
 
     /* Bookmarks Active Notice Pill */
@@ -441,6 +732,12 @@
       margin-bottom: 14px;
     }
 
+    html[data-theme="dark"] .filter-indicator {
+      background: rgba(30, 58, 138, 0.3);
+      border-color: rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+    }
+
     .filter-indicator.active {
       display: flex;
     }
@@ -452,6 +749,11 @@
       cursor: pointer;
       font-weight: 700;
       padding: 2px 6px;
+      font-size: 13px;
+    }
+
+    html[data-theme="dark"] .btn-close-filter {
+      color: #93c5fd;
     }
 
     /* News Cards Feed */
@@ -474,9 +776,18 @@
       gap: 10px;
     }
 
+    html[data-theme="dark"] .news-card {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 6px 18px -4px rgba(0, 0, 0, 0.25);
+    }
+
     .news-card:hover {
       border-color: var(--news-border-hover);
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 24px -3px rgba(0, 0, 0, 0.06);
+    }
+
+    html[data-theme="dark"] .news-card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .card-meta {
@@ -503,6 +814,11 @@
       border-radius: 6px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+    }
+
+    html[data-theme="dark"] .source-tag {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
     }
 
     .time-stamp {
@@ -532,6 +848,10 @@
       cursor: pointer;
     }
 
+    html[data-theme="dark"] .card-media {
+      background: #16253d;
+    }
+
     .card-media img {
       width: 100%;
       height: auto;
@@ -549,7 +869,7 @@
       position: absolute;
       bottom: 10px;
       right: 10px;
-      background: rgba(15, 23, 42, 0.8);
+      background: rgba(15, 23, 42, 0.82);
       color: #fff;
       font-size: 11px;
       font-weight: 700;
@@ -581,7 +901,7 @@
       position: absolute;
       bottom: 10px;
       left: 10px;
-      background: rgba(15, 23, 42, 0.8);
+      background: rgba(15, 23, 42, 0.82);
       color: #fff;
       font-size: 11px;
       font-weight: 600;
@@ -610,6 +930,7 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       white-space: pre-line;
+      cursor: pointer;
     }
 
     .card-tags {
@@ -657,6 +978,17 @@
       color: #1e40af;
     }
 
+    html[data-theme="dark"] .btn-read-more {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+    }
+
+    html[data-theme="dark"] .btn-read-more:hover {
+      background: rgba(59, 130, 246, 0.25);
+      color: #93c5fd;
+    }
+
     .footer-icons {
       display: flex;
       align-items: center;
@@ -681,9 +1013,19 @@
       color: var(--news-text);
     }
 
+    html[data-theme="dark"] .action-icon-btn:hover {
+      background: #1a2c47;
+      color: #f8fafc;
+    }
+
     .action-icon-btn.saved {
       color: #d97706;
       background: #fef3c7;
+    }
+
+    html[data-theme="dark"] .action-icon-btn.saved {
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.2);
     }
 
     .action-icon-btn svg {
@@ -698,7 +1040,7 @@
     }
 
     .btn-load-more {
-      background: #ffffff;
+      background: var(--news-card-bg);
       border: 1px solid var(--news-border);
       color: var(--news-text);
       font-size: 14px;
@@ -719,9 +1061,20 @@
       box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
     }
 
+    html[data-theme="dark"] .btn-load-more {
+      background: #132238;
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+    }
+
+    html[data-theme="dark"] .btn-load-more:hover {
+      background: #182b46;
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
     /* Skeleton Loading State */
     .skeleton-card {
-      background: #ffffff;
+      background: var(--news-card-bg);
       border: 1px solid var(--news-border);
       border-radius: 16px;
       padding: 16px;
@@ -737,16 +1090,21 @@
       border-radius: 6px;
     }
 
+    html[data-theme="dark"] .skeleton-bar {
+      background: linear-gradient(90deg, #16253d 25%, #1e3352 50%, #16253d 75%);
+      background-size: 200% 100%;
+    }
+
     @keyframes shimmer {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
 
-    /* Full Detail Modal (Daylight Reader View) */
+    /* Full Detail Modal (Reader View) */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(15, 23, 42, 0.65);
       backdrop-filter: blur(10px);
       z-index: 1000;
       display: none;
@@ -768,8 +1126,8 @@
     }
 
     .modal-dialog {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--news-card-bg);
+      border: 1px solid var(--news-border);
       border-radius: 20px;
       width: min(100%, 680px);
       max-height: 90vh;
@@ -781,6 +1139,12 @@
       transition: transform 0.25s ease;
     }
 
+    html[data-theme="dark"] .modal-dialog {
+      background: #111e33;
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    }
+
     .modal-overlay.active .modal-dialog {
       transform: scale(1);
     }
@@ -790,8 +1154,13 @@
       align-items: center;
       justify-content: space-between;
       padding: 14px 18px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--news-border);
       background: #f8fafc;
+    }
+
+    html[data-theme="dark"] .modal-header {
+      background: #0d1726;
+      border-bottom-color: rgba(255, 255, 255, 0.08);
     }
 
     .modal-controls {
@@ -811,6 +1180,12 @@
       cursor: pointer;
     }
 
+    html[data-theme="dark"] .font-btn {
+      background: #152339;
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #f8fafc;
+    }
+
     .modal-close {
       width: 32px;
       height: 32px;
@@ -822,6 +1197,12 @@
       display: grid;
       place-items: center;
       font-size: 13px;
+    }
+
+    html[data-theme="dark"] .modal-close {
+      background: #152339;
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #f8fafc;
     }
 
     .modal-body {
@@ -858,14 +1239,22 @@
     }
 
     .modal-full-text {
-      color: #1e293b;
+      color: var(--news-text-body);
       white-space: pre-line;
       word-break: break-word;
+    }
+
+    html[data-theme="dark"] .modal-full-text {
+      color: #cbd5e1;
     }
 
     .modal-full-text a {
       color: var(--news-accent);
       text-decoration: underline;
+    }
+
+    html[data-theme="dark"] .modal-full-text a {
+      color: #60a5fa;
     }
 
     .modal-footer {
@@ -874,8 +1263,13 @@
       justify-content: space-between;
       gap: 10px;
       padding: 14px 20px;
-      border-top: 1px solid #e2e8f0;
+      border-top: 1px solid var(--news-border);
       background: #f8fafc;
+    }
+
+    html[data-theme="dark"] .modal-footer {
+      background: #0d1726;
+      border-top-color: rgba(255, 255, 255, 0.08);
     }
 
     .btn-share {
@@ -897,6 +1291,12 @@
       background: #dbeafe;
     }
 
+    html[data-theme="dark"] .btn-share {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+    }
+
     .btn-modal-close {
       display: inline-flex;
       align-items: center;
@@ -914,6 +1314,12 @@
 
     .btn-modal-close:hover {
       background: #e2e8f0;
+    }
+
+    html[data-theme="dark"] .btn-modal-close {
+      background: #1a2c47;
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
     }
 
     /* Toast notification */
@@ -935,6 +1341,12 @@
       pointer-events: none;
     }
 
+    html[data-theme="dark"] .toast-msg {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
     .toast-msg.show {
       transform: translateX(-50%) translateY(0);
       opacity: 1;
@@ -945,7 +1357,7 @@
       text-align: center;
       padding: 48px 20px;
       color: var(--news-muted);
-      background: #ffffff;
+      background: var(--news-card-bg);
       border-radius: 16px;
       border: 1px solid var(--news-border);
     }
@@ -954,7 +1366,7 @@
       width: 44px;
       height: 44px;
       margin-bottom: 12px;
-      color: #cbd5e1;
+      color: var(--news-muted);
     }
 
     /* Floating Scroll-To-Top Button */
@@ -989,6 +1401,13 @@
       user-select: none;
     }
 
+    html[data-theme="dark"] .scroll-top-btn {
+      background: rgba(19, 34, 56, 0.92);
+      color: #f8fafc;
+      border-color: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
     .scroll-top-btn.is-visible {
       opacity: 1;
       pointer-events: auto;
@@ -1000,6 +1419,12 @@
       color: var(--news-accent);
       border-color: #93c5fd;
       box-shadow: 0 8px 24px rgba(37, 99, 235, 0.2), 0 2px 8px rgba(15, 23, 42, 0.1);
+    }
+
+    html[data-theme="dark"] .scroll-top-btn:hover {
+      background: #162842;
+      color: #60a5fa;
+      border-color: #3b82f6;
     }
 
     .scroll-top-btn:active {
@@ -1021,8 +1446,7 @@
     /* Modallar yoki menyu ochilganda tugmani yashirish */
     body.is-modal-open .scroll-top-btn,
     body:has(#newsModal.active) .scroll-top-btn,
-    body:has(.sidebar.is-open) .scroll-top-btn,
-    body:has(.nav-drawer-overlay.active) .scroll-top-btn {
+    body:has(.sidebar.is-open) .scroll-top-btn {
       opacity: 0 !important;
       pointer-events: none !important;
       transform: translateY(16px) scale(0.85) !important;
@@ -1030,7 +1454,7 @@
   </style>
 </head>
 <body>
-  <!-- Top Collaboration Fixed Navbar (scrollda muqum turadi) -->
+  <!-- Top Collaboration Fixed Sticky Navbar -->
   <header class="collab-header" id="collabHeader">
     <div class="collab-header-inner">
       <div class="header-left">
@@ -1048,9 +1472,17 @@
       </div>
 
       <div class="header-right">
+        <!-- Bookmark ribbon button (visible in main news feed) -->
         <button class="icon-btn" id="btnBookmarks" title="Saqlangan yangiliklar" aria-label="Saqlanganlar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+          </svg>
+        </button>
+
+        <!-- Previous/Back button (replaces bookmark button when viewing saved news) -->
+        <button class="icon-btn" id="btnBackFromBookmarks" title="Barchasiga qaytish" aria-label="Orqaga" style="display: none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
       </div>
@@ -1058,8 +1490,8 @@
   </header>
 
   <div class="news-container">
-    <!-- Search Box -->
-    <div class="search-wrap">
+    <!-- Search Box (hidden when viewing saved news) -->
+    <div class="search-wrap" id="searchWrap">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"></circle>
         <path d="m21 21-4.35-4.35"></path>
@@ -1068,9 +1500,9 @@
       <button class="search-clear" id="searchClear" aria-label="Tozalash">✕</button>
     </div>
 
-    <!-- Active Filter Indicator (Only shown when viewing bookmarks) -->
+    <!-- Active Filter Indicator (Shown when viewing saved bookmarks) -->
     <div class="filter-indicator" id="filterIndicator">
-      <span>📌 Saqlangan yangiliklar</span>
+      <span id="filterIndicatorLabel">📌 Saqlangan yangiliklar</span>
       <button class="btn-close-filter" id="btnCloseFilter">Barchasiga qaytish ✕</button>
     </div>
 
@@ -1097,12 +1529,12 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
-        Yana yangiliklarni yuklash
+        <span id="loadMoreLabel">Yana yangiliklarni yuklash</span>
       </button>
     </div>
   </div>
 
-  <!-- Sidebar Navigation (Exact visual match with main mini app) -->
+  <!-- Sidebar Navigation Drawer -->
   <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
   <aside class="sidebar" id="appSidebar" aria-label="Asosiy menyu" aria-hidden="true">
     <div class="sidebar__head">
@@ -1131,12 +1563,12 @@
           <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
           <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
         </svg>
-        <span>Kinolar</span>
+        <span data-i18n="navMovies">Kinolar</span>
       </a>
 
       <a class="sidebar__item sidebar__item--top sidebar__item--fifa" href="/?section=football">
         <img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="22" height="22" loading="eager" decoding="async">
-        <span>Futbol</span>
+        <span data-i18n="navFootball">Futbol</span>
       </a>
 
       <a class="sidebar__item sidebar__item--top" href="/?section=music">
@@ -1145,7 +1577,7 @@
           <circle cx="6" cy="18" r="3"></circle>
           <circle cx="18" cy="16" r="3"></circle>
         </svg>
-        <span>Musiqa</span>
+        <span data-i18n="navMusic">Musiqa</span>
       </a>
 
       <a class="sidebar__item sidebar__item--top" href="/?section=podcasts">
@@ -1154,26 +1586,34 @@
           <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
           <line x1="12" y1="19" x2="12" y2="22"></line>
         </svg>
-        <span>Potkastlar</span>
+        <span data-i18n="navPodcasts">Potkastlar</span>
       </a>
 
-      <a class="sidebar__item sidebar__item--top is-active" href="/news" id="sidebarNewsItem" onclick="closeDrawer(); return false;">
+      <a class="sidebar__item sidebar__item--top" href="/books">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path>
-          <path d="M18 14h-8"></path>
-          <path d="M15 18h-5"></path>
-          <path d="M10 6h8v4h-8V6Z"></path>
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
         </svg>
-        <span>Yangiliklar</span>
+        <span data-i18n="navBooks">Audio kitoblar</span>
       </a>
+
+      <!-- Note: Yangiliklar is excluded here because user is already in Yangiliklar! -->
 
       <div class="sidebar__divider"></div>
+
+      <!-- Saralangan yangiliklar button -->
+      <button class="sidebar__item" type="button" id="sidebarSavedNewsBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+        </svg>
+        <span data-i18n="navSavedNews">Saralangan yangiliklar</span>
+      </button>
 
       <a class="sidebar__item" href="/?favorites=1">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
         </svg>
-        <span>Sevimlilar</span>
+        <span data-i18n="navFavorites">Sevimlilar</span>
       </a>
 
       <a class="sidebar__item" href="/?profile=1">
@@ -1181,9 +1621,58 @@
           <circle cx="12" cy="8" r="4"></circle>
           <path d="M4 21a8 8 0 0 1 16 0"></path>
         </svg>
-        <span>Profil</span>
+        <span data-i18n="navProfile">Profil</span>
       </a>
     </nav>
+
+    <div class="sidebar__divider"></div>
+
+    <!-- Sozlamalar: Tungi rejim va Til tanlash -->
+    <div class="sidebar__section-title" data-i18n="settingsTitle">Sozlamalar</div>
+    <div class="sidebar__settings">
+      <div class="sidebar-setting">
+        <div class="sidebar-setting__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span data-i18n="nightMode">Tungi rejim</span>
+        </div>
+        <button class="theme-switch" type="button" id="sidebarThemeSwitch" role="switch" aria-checked="false" aria-label="Tungi rejim">
+          <span class="theme-switch__track">
+            <svg class="theme-switch__icon theme-switch__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+            <svg class="theme-switch__icon theme-switch__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span class="theme-switch__knob"></span>
+          </span>
+        </button>
+      </div>
+
+      <div class="sidebar-setting sidebar-setting--lang">
+        <div class="sidebar-setting__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M2 12h20"></path>
+            <path d="M12 2a15 15 0 0 1 0 20"></path>
+            <path d="M12 2a15 15 0 0 0 0 20"></path>
+          </svg>
+          <span data-i18n="language">Til</span>
+        </div>
+        <div class="lang-pills" id="sidebarLangPills" role="tablist">
+          <button class="lang-pill" type="button" data-lang="uz" role="tab">UZ</button>
+          <button class="lang-pill" type="button" data-lang="ru" role="tab">RU</button>
+          <button class="lang-pill" type="button" data-lang="en" role="tab">ENG</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar__foot">
+      <span class="sidebar__foot-brand">NTV</span>
+      <span class="sidebar__foot-copy">&copy; 2026</span>
+    </div>
   </aside>
 
   <!-- Full Story Detail Modal -->
@@ -1198,7 +1687,7 @@
         </div>
       </div>
       <div class="modal-body font-normal" id="modalBody">
-        <h2 id="modalTitle" style="font-size: 20px; font-weight: 800; line-height: 1.35; color: #0f172a;"></h2>
+        <h2 id="modalTitle" style="font-size: 20px; font-weight: 800; line-height: 1.35; color: var(--news-text);"></h2>
         <div id="modalMedia"></div>
         <div class="modal-full-text" id="modalText"></div>
       </div>
@@ -1209,7 +1698,7 @@
             <polyline points="16 6 12 2 8 6"></polyline>
             <line x1="12" y1="2" x2="12" y2="15"></line>
           </svg>
-          Ulashish
+          <span id="modalShareBtnLabel">Ulashish</span>
         </button>
         <button class="btn-modal-close" id="modalFooterClose">
           Yopish
@@ -1234,9 +1723,8 @@
     // Initialize Telegram WebApp
     const tg = window.Telegram?.WebApp;
     if (tg) {
-      tg.ready();
-      tg.expand();
-      try { tg.headerColor = '#ffffff'; tg.backgroundColor = '#f8fafc'; } catch (_) {}
+      try { tg.ready(); } catch (_) {}
+      try { tg.expand(); } catch (_) {}
     }
 
     function haptic(type = 'light') {
@@ -1244,6 +1732,23 @@
     }
 
     // State
+    const THEME_STORAGE_KEY = 'kino_theme';
+    const LANG_STORAGE_KEY = 'kino_lang';
+
+    let currentTheme = (function() {
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      if (stored === 'light' || stored === 'dark') return stored;
+      const tgScheme = tg?.colorScheme;
+      if (tgScheme === 'light' || tgScheme === 'dark') return tgScheme;
+      return 'light';
+    })();
+
+    let currentLang = (function() {
+      const stored = localStorage.getItem(LANG_STORAGE_KEY);
+      if (stored === 'uz' || stored === 'ru' || stored === 'en') return stored;
+      return 'uz';
+    })();
+
     let currentPosts = [];
     let nextBeforeId = null;
     let isShowingBookmarks = false;
@@ -1252,19 +1757,340 @@
     let isLoading = false;
     let savedBookmarks = JSON.parse(localStorage.getItem('ntv_saved_news') || '[]');
 
+    // Translation Dictionaries (UZ, RU, EN)
+    const I18N = {
+      uz: {
+        pageTitle: "Tezkor × NTV — Yangiliklar",
+        navMovies: "Kinolar",
+        navFootball: "Futbol",
+        navMusic: "Musiqa",
+        navPodcasts: "Potkastlar",
+        navBooks: "Audio kitoblar",
+        navSavedNews: "Saralangan yangiliklar",
+        navFavorites: "Sevimlilar",
+        navProfile: "Profil",
+        settingsTitle: "Sozlamalar",
+        nightMode: "Tungi rejim",
+        language: "Til",
+        searchPlaceholder: "Yangiliklarni qidirish...",
+        savedNewsBanner: "📌 Saqlangan yangiliklar",
+        backToAll: "Barchasiga qaytish ✕",
+        readMore: "Batafsil o'qish",
+        savedTooltip: "Saqlash",
+        shareTooltip: "Ulashish",
+        loadMore: "Yana yangiliklarni yuklash",
+        loadingMore: "Yuklanmoqda...",
+        noNews: "Yangiliklar topilmadi.",
+        noBookmarks: "Saqlangan yangiliklar mavjud emas.",
+        networkError: "Tarmoqqa ulanib bo'lmadi.",
+        retry: "Qayta urinish",
+        savedSuccess: "Yangilik saqlandi!",
+        removedSuccess: "Saqlanganlardan olib tashlandi",
+        linkCopied: "Havola nusxalandi!",
+        loadError: "Yangiliklarni yuklashda xatolik yuz berdi",
+        share: "Ulashish",
+        close: "Yopish",
+        photosCount: "+{n} rasm",
+        menuTooltip: "Bo'limlar menyusi",
+        bookmarksTooltip: "Saqlangan yangiliklar",
+        backTooltip: "Barchasiga qaytish",
+        fontSmaller: "Kichikroq shrift",
+        fontBigger: "Kattaroq shrift",
+        scrollTopTooltip: "Yuqoriga chiqish"
+      },
+      ru: {
+        pageTitle: "Tezkor × NTV — Новости",
+        navMovies: "Фильмы",
+        navFootball: "Футбол",
+        navMusic: "Музыка",
+        navPodcasts: "Подкасты",
+        navBooks: "Аудиокниги",
+        navSavedNews: "Сохранённые новости",
+        navFavorites: "Избранное",
+        navProfile: "Профиль",
+        settingsTitle: "Настройки",
+        nightMode: "Ночной режим",
+        language: "Язык",
+        searchPlaceholder: "Поиск новостей...",
+        savedNewsBanner: "📌 Сохранённые новости",
+        backToAll: "Вернуться ко всем ✕",
+        readMore: "Читать далее",
+        savedTooltip: "Сохранить",
+        shareTooltip: "Поделиться",
+        loadMore: "Загрузить ещё новости",
+        loadingMore: "Загрузка...",
+        noNews: "Новости не найдены.",
+        noBookmarks: "Нет сохранённых новостей.",
+        networkError: "Не удалось подключиться к сети.",
+        retry: "Повторить",
+        savedSuccess: "Новость сохранена!",
+        removedSuccess: "Удалено из сохранённых",
+        linkCopied: "Ссылка скопирована!",
+        loadError: "Ошибка при загрузке новостей",
+        share: "Поделиться",
+        close: "Закрыть",
+        photosCount: "+{n} фото",
+        menuTooltip: "Меню разделов",
+        bookmarksTooltip: "Сохранённые новости",
+        backTooltip: "Вернуться ко всем",
+        fontSmaller: "Уменьшить шрифт",
+        fontBigger: "Увеличить шрифт",
+        scrollTopTooltip: "Наверх"
+      },
+      en: {
+        pageTitle: "Tezkor × NTV — News",
+        navMovies: "Movies",
+        navFootball: "Football",
+        navMusic: "Music",
+        navPodcasts: "Podcasts",
+        navBooks: "Audiobooks",
+        navSavedNews: "Saved news",
+        navFavorites: "Favorites",
+        navProfile: "Profile",
+        settingsTitle: "Settings",
+        nightMode: "Night mode",
+        language: "Language",
+        searchPlaceholder: "Search news...",
+        savedNewsBanner: "📌 Saved news",
+        backToAll: "Back to all ✕",
+        readMore: "Read more",
+        savedTooltip: "Save",
+        shareTooltip: "Share",
+        loadMore: "Load more news",
+        loadingMore: "Loading...",
+        noNews: "No news found.",
+        noBookmarks: "No saved news yet.",
+        networkError: "Could not connect to the network.",
+        retry: "Retry",
+        savedSuccess: "News saved!",
+        removedSuccess: "Removed from saved",
+        linkCopied: "Link copied!",
+        loadError: "Error loading news",
+        share: "Share",
+        close: "Close",
+        photosCount: "+{n} photos",
+        menuTooltip: "Section menu",
+        bookmarksTooltip: "Saved news",
+        backTooltip: "Back to all",
+        fontSmaller: "Smaller font",
+        fontBigger: "Larger font",
+        scrollTopTooltip: "Scroll to top"
+      }
+    };
+
+    function t(key) {
+      return (I18N[currentLang] && I18N[currentLang][key]) || I18N.uz[key] || key;
+    }
+
+    // Dynamic translation caching using Google GTX
+    const _transMemoryCache = new Map();
+
+    function hashStr(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) {
+        h = ((h << 5) - h) + str.charCodeAt(i);
+        h |= 0;
+      }
+      return String(h >>> 0);
+    }
+
+    async function fetchTranslateGtx(str, targetLang) {
+      if (!str || !str.trim()) return str;
+      try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(str)}`;
+        const res = await fetch(url);
+        if (!res.ok) return str;
+        const data = await res.json();
+        if (Array.isArray(data) && Array.isArray(data[0])) {
+          return data[0].map(item => item[0]).filter(Boolean).join('');
+        }
+      } catch (_) {}
+      return str;
+    }
+
+    async function translateText(text, targetLang) {
+      if (!text || !text.trim() || targetLang === 'uz') return text;
+      const key = `${targetLang}:${text}`;
+      if (_transMemoryCache.has(key)) return _transMemoryCache.get(key);
+
+      const hash = hashStr(text);
+      try {
+        const cached = localStorage.getItem(`ntv_tr_${targetLang}_${hash}`);
+        if (cached) {
+          _transMemoryCache.set(key, cached);
+          return cached;
+        }
+      } catch (_) {}
+
+      try {
+        if (text.length <= 1200) {
+          const resText = await fetchTranslateGtx(text, targetLang);
+          if (resText) {
+            _transMemoryCache.set(key, resText);
+            try { localStorage.setItem(`ntv_tr_${targetLang}_${hash}`, resText); } catch (_) {}
+            return resText;
+          }
+        } else {
+          // Break into paragraphs for long articles
+          const paragraphs = text.split(/\n\n+/);
+          const trParas = [];
+          for (const p of paragraphs) {
+            if (!p.trim()) { trParas.push(p); continue; }
+            if (p.length > 1200) {
+              const sentences = p.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [p];
+              let chunk = '';
+              const trChunks = [];
+              for (const s of sentences) {
+                if ((chunk + s).length > 1000) {
+                  if (chunk) { trChunks.push(await fetchTranslateGtx(chunk, targetLang)); chunk = ''; }
+                }
+                chunk += s;
+              }
+              if (chunk) trChunks.push(await fetchTranslateGtx(chunk, targetLang));
+              trParas.push(trChunks.join(''));
+            } else {
+              trParas.push(await fetchTranslateGtx(p, targetLang));
+            }
+          }
+          const fullRes = trParas.join('\n\n');
+          _transMemoryCache.set(key, fullRes);
+          try { localStorage.setItem(`ntv_tr_${targetLang}_${hash}`, fullRes); } catch (_) {}
+          return fullRes;
+        }
+      } catch (err) {
+        console.warn('translate error:', err);
+      }
+      return text;
+    }
+
+    async function preparePostTranslations(posts, targetLang) {
+      if (targetLang === 'uz' || !posts || !posts.length) return;
+      const promises = posts.map(async (post) => {
+        if (!post) return;
+        if (!post[`title_${targetLang}`] && post.title) {
+          post[`title_${targetLang}`] = await translateText(post.title, targetLang);
+        }
+        if (!post[`lead_${targetLang}`] && post.lead) {
+          post[`lead_${targetLang}`] = await translateText(post.lead, targetLang);
+        }
+      });
+      await Promise.allSettled(promises);
+    }
+
+    // Apply translations across UI static nodes
+    function applyTranslations() {
+      document.title = t('pageTitle');
+      if (searchInput) searchInput.placeholder = t('searchPlaceholder');
+      const filterLabel = document.getElementById('filterIndicatorLabel');
+      if (filterLabel) filterLabel.textContent = t('savedNewsBanner');
+      if (btnCloseFilter) btnCloseFilter.textContent = t('backToAll');
+      const loadMoreLabel = document.getElementById('loadMoreLabel');
+      if (loadMoreLabel) loadMoreLabel.textContent = t('loadMore');
+
+      if (btnMenu) {
+        btnMenu.title = t('menuTooltip');
+        btnMenu.setAttribute('aria-label', t('menuTooltip'));
+      }
+      if (btnBookmarks) {
+        btnBookmarks.title = t('bookmarksTooltip');
+        btnBookmarks.setAttribute('aria-label', t('bookmarksTooltip'));
+      }
+      if (btnBackFromBookmarks) {
+        btnBackFromBookmarks.title = t('backTooltip');
+        btnBackFromBookmarks.setAttribute('aria-label', t('backTooltip'));
+      }
+      if (btnScrollTop) {
+        btnScrollTop.title = t('scrollTopTooltip');
+        btnScrollTop.setAttribute('aria-label', t('scrollTopTooltip'));
+      }
+
+      if (btnFontDec) btnFontDec.title = t('fontSmaller');
+      if (btnFontInc) btnFontInc.title = t('fontBigger');
+      const shareLabel = document.getElementById('modalShareBtnLabel');
+      if (shareLabel) shareLabel.textContent = t('share');
+      if (modalFooterClose) modalFooterClose.textContent = t('close');
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const k = el.getAttribute('data-i18n');
+        if (k && I18N[currentLang] && I18N[currentLang][k]) {
+          el.textContent = I18N[currentLang][k];
+        }
+      });
+    }
+
+    function setLanguage(lang) {
+      if (!I18N[lang]) lang = 'uz';
+      currentLang = lang;
+      localStorage.setItem(LANG_STORAGE_KEY, lang);
+      haptic('light');
+
+      document.querySelectorAll('#sidebarLangPills .lang-pill').forEach(pill => {
+        pill.classList.toggle('is-active', pill.getAttribute('data-lang') === lang);
+      });
+
+      applyTranslations();
+
+      if (currentLang !== 'uz') {
+        const targetList = isShowingBookmarks ? savedBookmarks : currentPosts;
+        preparePostTranslations(targetList, currentLang).then(() => {
+          renderFeed(targetList);
+        });
+      } else {
+        renderFeed(isShowingBookmarks ? savedBookmarks : currentPosts);
+      }
+
+      if (activeModalPost && newsModal.classList.contains('active')) {
+        openStoryModal(activeModalPost.id);
+      }
+    }
+
+    // Theme Management (Light / Dark)
+    function applyTheme(theme) {
+      currentTheme = theme === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
+
+      const themeSwitch = document.getElementById('sidebarThemeSwitch');
+      if (themeSwitch) {
+        themeSwitch.setAttribute('aria-checked', currentTheme === 'dark' ? 'true' : 'false');
+      }
+
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      const headerColor = currentTheme === 'dark' ? '#09111f' : '#ffffff';
+      const bgColor = currentTheme === 'dark' ? '#09111f' : '#f8fafc';
+      if (metaTheme) metaTheme.setAttribute('content', headerColor);
+      if (tg) {
+        try { tg.setHeaderColor(headerColor); } catch (_) {}
+        try { tg.setBackgroundColor(bgColor); } catch (_) {}
+      }
+    }
+
+    function toggleTheme() {
+      haptic('medium');
+      const next = currentTheme === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+    }
+
     // DOM Elements
     const btnMenu = document.getElementById('btnMenu');
     const appSidebar = document.getElementById('appSidebar');
     const sidebarBackdrop = document.getElementById('sidebarBackdrop');
     const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+    const sidebarSavedNewsBtn = document.getElementById('sidebarSavedNewsBtn');
+    const sidebarThemeSwitch = document.getElementById('sidebarThemeSwitch');
+    const sidebarLangPills = document.getElementById('sidebarLangPills');
+
     const newsFeed = document.getElementById('newsFeed');
     const loadMoreWrap = document.getElementById('loadMoreWrap');
     const btnLoadMore = document.getElementById('btnLoadMore');
     const btnBookmarks = document.getElementById('btnBookmarks');
+    const btnBackFromBookmarks = document.getElementById('btnBackFromBookmarks');
     const filterIndicator = document.getElementById('filterIndicator');
     const btnCloseFilter = document.getElementById('btnCloseFilter');
+    const searchWrap = document.getElementById('searchWrap');
     const searchInput = document.getElementById('searchInput');
     const searchClear = document.getElementById('searchClear');
+
     const newsModal = document.getElementById('newsModal');
     const modalClose = document.getElementById('modalClose');
     const modalTitle = document.getElementById('modalTitle');
@@ -1276,6 +2102,8 @@
     const btnFontDec = document.getElementById('btnFontDec');
     const btnFontInc = document.getElementById('btnFontInc');
     const toastMsg = document.getElementById('toastMsg');
+    const btnScrollTop = document.getElementById('btnScrollTop');
+    const collabHeader = document.getElementById('collabHeader');
 
     function showToast(text) {
       toastMsg.textContent = text;
@@ -1321,7 +2149,7 @@
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            <p>${isShowingBookmarks ? "Saqlangan yangiliklar mavjud emas." : "Yangiliklar topilmadi."}</p>
+            <p>${isShowingBookmarks ? t('noBookmarks') : t('noNews')}</p>
           </div>
         `;
         loadMoreWrap.style.display = 'none';
@@ -1334,22 +2162,30 @@
         card.className = 'news-card';
         card.setAttribute('data-id', post.id);
 
+        const displayTitle = (currentLang !== 'uz' && post[`title_${currentLang}`])
+          ? post[`title_${currentLang}`]
+          : post.title;
+
+        const displayLead = (currentLang !== 'uz' && post[`lead_${currentLang}`])
+          ? post[`lead_${currentLang}`]
+          : (post.lead || '');
+
         // Media HTML
         let mediaHtml = '';
         if (post.photos && post.photos.length > 0) {
           const firstPhoto = post.photos[0];
           const albumBadge = post.photos.length > 1
-            ? `<span class="album-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg> +${post.photos.length - 1} rasm</span>`
+            ? `<span class="album-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg> ${t('photosCount').replace('{n}', post.photos.length - 1)}</span>`
             : '';
           mediaHtml = `
             <div class="card-media" onclick="openStoryModal(${post.id})">
-              <img src="${firstPhoto}" alt="${escapeHtml(post.title)}" loading="lazy">
+              <img src="${firstPhoto}" alt="${escapeHtml(displayTitle)}" loading="lazy">
               ${albumBadge}
             </div>
           `;
         } else if (post.videoUrl) {
           const thumbHtml = post.videoThumb
-            ? `<img src="${post.videoThumb}" alt="${escapeHtml(post.title)}" loading="lazy">`
+            ? `<img src="${post.videoThumb}" alt="${escapeHtml(displayTitle)}" loading="lazy">`
             : `<video src="${post.videoUrl}#t=0.001" preload="metadata" playsinline muted style="width: 100%; max-height: 380px; object-fit: cover;"></video>`;
 
           mediaHtml = `
@@ -1385,20 +2221,20 @@
 
           ${mediaHtml}
 
-          <h2 class="card-title" onclick="openStoryModal(${post.id})">${escapeHtml(post.title)}</h2>
-          <p class="card-lead" onclick="openStoryModal(${post.id})">${escapeHtml(post.lead || '')}</p>
+          <h2 class="card-title" onclick="openStoryModal(${post.id})">${escapeHtml(displayTitle)}</h2>
+          <p class="card-lead" onclick="openStoryModal(${post.id})">${escapeHtml(displayLead)}</p>
 
           ${tagsHtml ? `<div class="card-tags">${tagsHtml}</div>` : ''}
 
           <div class="card-footer">
-            <button class="btn-read-more" onclick="openStoryModal(${post.id})">Batafsil o'qish</button>
+            <button class="btn-read-more" onclick="openStoryModal(${post.id})">${t('readMore')}</button>
             <div class="footer-icons">
-              <button class="action-icon-btn ${isSaved ? 'saved' : ''}" onclick="toggleBookmark(${post.id})" title="Saqlash">
+              <button class="action-icon-btn ${isSaved ? 'saved' : ''}" onclick="toggleBookmark(${post.id})" title="${t('savedTooltip')}">
                 <svg viewBox="0 0 24 24" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                   <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
                 </svg>
               </button>
-              <button class="action-icon-btn" onclick="sharePost(${post.id})" title="Ulashish">
+              <button class="action-icon-btn" onclick="sharePost(${post.id})" title="${t('shareTooltip')}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
                   <polyline points="16 6 12 2 8 6"></polyline>
@@ -1421,12 +2257,15 @@
 
       try {
         if (isShowingBookmarks) {
-          currentPosts = savedBookmarks;
+          let list = savedBookmarks;
           if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            currentPosts = currentPosts.filter(p => (p.title + ' ' + p.text).toLowerCase().includes(q));
+            list = list.filter(p => (p.title + ' ' + (p.text || '')).toLowerCase().includes(q));
           }
-          renderFeed(currentPosts, false);
+          if (currentLang !== 'uz') {
+            await preparePostTranslations(list, currentLang);
+          }
+          renderFeed(list, false);
           return;
         }
 
@@ -1438,17 +2277,24 @@
         const res = await fetch(`/api/news?${params.toString()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        const incoming = data.posts || [];
 
         if (append) {
-          currentPosts = [...currentPosts, ...(data.posts || [])];
+          currentPosts = [...currentPosts, ...incoming];
         } else {
-          currentPosts = data.posts || [];
+          currentPosts = incoming;
         }
 
         nextBeforeId = data.nextBefore;
-        renderFeed(append ? data.posts || [] : currentPosts, append);
 
-        // Check deep link ID if initial load
+        if (currentLang !== 'uz') {
+          preparePostTranslations(incoming, currentLang).then(() => {
+            renderFeed(append ? incoming : currentPosts, append);
+          });
+        }
+        renderFeed(append ? incoming : currentPosts, append);
+
+        // Check deep link ID on initial load
         if (!append && !before) {
           const urlParams = new URLSearchParams(window.location.search);
           const deepId = urlParams.get('id');
@@ -1458,12 +2304,12 @@
         }
       } catch (err) {
         console.error('loadNews error:', err);
-        showToast("Yangiliklarni yuklashda xatolik yuz berdi");
+        showToast(t('loadError'));
         if (!append && currentPosts.length === 0) {
           newsFeed.innerHTML = `
             <div class="empty-state">
-              <p>Tarmoqqa ulanib bo'lmadi.</p>
-              <button class="btn-load-more" onclick="loadNews({ force: true })" style="margin-top: 12px;">Qayta urinish</button>
+              <p>${t('networkError')}</p>
+              <button class="btn-load-more" onclick="loadNews({ force: true })" style="margin-top: 12px;">${t('retry')}</button>
             </div>
           `;
         }
@@ -1478,7 +2324,15 @@
       if (!post) return;
       activeModalPost = post;
 
-      modalTitle.textContent = post.title;
+      const titleToShow = (currentLang !== 'uz' && post[`title_${currentLang}`])
+        ? post[`title_${currentLang}`]
+        : post.title;
+
+      const textToShow = (currentLang !== 'uz' && post[`text_${currentLang}`])
+        ? post[`text_${currentLang}`]
+        : (post.text || '');
+
+      modalTitle.textContent = titleToShow;
       modalMeta.innerHTML = `
         <span class="source-tag">Tezkor</span>
         <span class="time-stamp">${escapeHtml(post.timeFormatted || '')}</span>
@@ -1492,15 +2346,34 @@
       let mediaHtml = '';
       if (post.photos && post.photos.length > 0) {
         mediaHtml = `<div class="modal-gallery">` +
-          post.photos.map(p => `<img src="${p}" alt="${escapeHtml(post.title)}" loading="lazy">`).join('') +
+          post.photos.map(p => `<img src="${p}" alt="${escapeHtml(titleToShow)}" loading="lazy">`).join('') +
           `</div>`;
       } else if (post.videoUrl) {
         mediaHtml = `<div class="modal-video"><video src="${post.videoUrl}" ${post.videoThumb ? `poster="${post.videoThumb}"` : ''} controls playsinline autoplay></video></div>`;
       }
       modalMedia.innerHTML = mediaHtml;
 
-      // Full text with formatted links
-      modalText.innerHTML = linkifyText(post.text);
+      modalText.innerHTML = linkifyText(textToShow);
+
+      // Asynchronously fetch translation if not yet cached
+      if (currentLang !== 'uz') {
+        if (!post[`title_${currentLang}`]) {
+          translateText(post.title, currentLang).then(tr => {
+            post[`title_${currentLang}`] = tr;
+            if (activeModalPost && activeModalPost.id === post.id) {
+              modalTitle.textContent = tr;
+            }
+          });
+        }
+        if (!post[`text_${currentLang}`]) {
+          translateText(post.text, currentLang).then(tr => {
+            post[`text_${currentLang}`] = tr;
+            if (activeModalPost && activeModalPost.id === post.id) {
+              modalText.innerHTML = linkifyText(tr);
+            }
+          });
+        }
+      }
 
       modalShareBtn.onclick = () => sharePost(post.id);
 
@@ -1508,9 +2381,7 @@
       document.body.classList.add('is-modal-open');
       document.body.style.overflow = 'hidden';
 
-      if (tg?.BackButton) {
-        tg.BackButton.show();
-      }
+      if (tg?.BackButton) tg.BackButton.show();
     }
 
     function closeModal() {
@@ -1518,7 +2389,7 @@
       document.body.classList.remove('is-modal-open');
       const v = modalMedia.querySelector('video');
       if (v) { v.pause(); v.src = ''; }
-      if (!navDrawerOverlay.classList.contains('active')) {
+      if (!appSidebar.classList.contains('is-open')) {
         document.body.style.overflow = '';
       }
       if (tg?.BackButton) tg.BackButton.show();
@@ -1526,7 +2397,6 @@
 
     function linkifyText(text) {
       if (!text) return '';
-      // Strip telegram channel links and handle mentions
       const cleaned = text
         .replace(/https?:\/\/(?:t|telegram)\.me\/[^\s<]+/gi, '')
         .replace(/\bt\.me\/[^\s<]+/gi, '')
@@ -1551,31 +2421,36 @@
       const post = currentPosts.find(p => p.id === id) || savedBookmarks.find(p => p.id === id);
       if (!post) return;
 
+      const titleToShow = (currentLang !== 'uz' && post[`title_${currentLang}`])
+        ? post[`title_${currentLang}`]
+        : post.title;
+
       const shareUrl = `${window.location.origin}/news?id=${post.id}`;
-      const shareText = `${post.title}\n\n${shareUrl}`;
+      const shareText = `${titleToShow}\n\n${shareUrl}`;
 
       if (navigator.share) {
-        navigator.share({ title: post.title, text: shareText, url: shareUrl }).catch(() => {});
+        navigator.share({ title: titleToShow, text: shareText, url: shareUrl }).catch(() => {});
       } else {
         if (navigator.clipboard) {
-          navigator.clipboard.writeText(`${post.title}\n${shareUrl}`);
+          navigator.clipboard.writeText(`${titleToShow}\n${shareUrl}`);
         }
-        showToast("Havola nusxalandi!");
+        showToast(t('linkCopied'));
       }
     }
 
+    // Toggle bookmark: keeps post in current list AND updates saved list
     function toggleBookmark(id) {
       haptic('medium');
-      const post = currentPosts.find(p => p.id === id);
+      const post = currentPosts.find(p => p.id === id) || savedBookmarks.find(p => p.id === id);
       if (!post) return;
 
       const idx = savedBookmarks.findIndex(b => b.id === id);
       if (idx >= 0) {
         savedBookmarks.splice(idx, 1);
-        showToast("Saqlanganlardan olib tashlandi");
+        showToast(t('removedSuccess'));
       } else {
         savedBookmarks.unshift(post);
-        showToast("Yangilik saqlandi!");
+        showToast(t('savedSuccess'));
       }
 
       localStorage.setItem('ntv_saved_news', JSON.stringify(savedBookmarks));
@@ -1595,42 +2470,57 @@
     }
 
     // Font size adjustments in Reader modal
-    let fontSizes = ['font-small', 'font-normal', 'font-large'];
+    const fontSizes = ['font-small', 'font-normal', 'font-large'];
     let currentFontIdx = 1;
 
     btnFontInc.onclick = () => {
       if (currentFontIdx < fontSizes.length - 1) {
-        document.getElementById('modalBody').classList.remove(fontSizes[currentFontIdx]);
+        modalBody.classList.remove(fontSizes[currentFontIdx]);
         currentFontIdx++;
-        document.getElementById('modalBody').classList.add(fontSizes[currentFontIdx]);
+        modalBody.classList.add(fontSizes[currentFontIdx]);
       }
     };
 
     btnFontDec.onclick = () => {
       if (currentFontIdx > 0) {
-        document.getElementById('modalBody').classList.remove(fontSizes[currentFontIdx]);
+        modalBody.classList.remove(fontSizes[currentFontIdx]);
         currentFontIdx--;
-        document.getElementById('modalBody').classList.add(fontSizes[currentFontIdx]);
+        modalBody.classList.add(fontSizes[currentFontIdx]);
       }
     };
 
-    // Bookmarks toggle
-    btnBookmarks.onclick = () => {
+    // Bookmarks View Management
+    function enterBookmarksView() {
       haptic('light');
-      isShowingBookmarks = !isShowingBookmarks;
-      btnBookmarks.classList.toggle('is-active', isShowingBookmarks);
-      filterIndicator.classList.toggle('active', isShowingBookmarks);
+      isShowingBookmarks = true;
+      btnBookmarks.style.display = 'none';
+      btnBackFromBookmarks.style.display = 'inline-flex';
+      if (searchWrap) searchWrap.style.display = 'none';
+      filterIndicator.classList.add('active');
       nextBeforeId = null;
-      loadNews();
-    };
+      renderFeed(savedBookmarks);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-    btnCloseFilter.onclick = () => {
+    function exitBookmarksView() {
+      haptic('light');
       isShowingBookmarks = false;
-      btnBookmarks.classList.remove('is-active');
+      btnBookmarks.style.display = 'inline-flex';
+      btnBackFromBookmarks.style.display = 'none';
+      if (searchWrap) searchWrap.style.display = '';
       filterIndicator.classList.remove('active');
       nextBeforeId = null;
-      loadNews();
-    };
+      renderFeed(currentPosts);
+    }
+
+    btnBookmarks.onclick = enterBookmarksView;
+    btnBackFromBookmarks.onclick = exitBookmarksView;
+    btnCloseFilter.onclick = exitBookmarksView;
+
+    sidebarSavedNewsBtn?.addEventListener('click', () => {
+      closeDrawer();
+      enterBookmarksView();
+    });
 
     // Search input with debounce
     let searchDebounce = null;
@@ -1667,15 +2557,34 @@
 
     if (btnMenu) btnMenu.onclick = openDrawer;
     if (sidebarCloseBtn) sidebarCloseBtn.onclick = closeDrawer;
-    if (sidebarBackdrop) {
-      sidebarBackdrop.onclick = closeDrawer;
+    if (sidebarBackdrop) sidebarBackdrop.onclick = closeDrawer;
+
+    // Theme and Language Listeners in Sidebar
+    sidebarThemeSwitch?.addEventListener('click', () => {
+      localStorage.setItem('kino_theme_explicit', '1');
+      toggleTheme();
+    });
+
+    sidebarLangPills?.querySelectorAll('.lang-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const nextLang = pill.getAttribute('data-lang');
+        if (nextLang) setLanguage(nextLang);
+      });
+    });
+
+    // Telegram Theme Change Event
+    if (tg?.onEvent) {
+      tg.onEvent('themeChanged', () => {
+        if (!localStorage.getItem('kino_theme_explicit')) {
+          const scheme = tg.colorScheme;
+          if (scheme === 'dark' || scheme === 'light') {
+            applyTheme(scheme);
+          }
+        }
+      });
     }
 
-    // Floating Scroll-To-Top button handling
-    // Floating Scroll-To-Top button & sticky navbar handling
-    const btnScrollTop = document.getElementById('btnScrollTop');
-    const collabHeader = document.getElementById('collabHeader');
-
+    // Scroll-To-Top button & Sticky Navbar
     function updateScrollState() {
       const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
       if (btnScrollTop) {
@@ -1704,7 +2613,6 @@
       });
     }
 
-    // Scroll listener (for sticky navbar, scroll-to-top button, and infinite scroll)
     window.addEventListener('scroll', () => {
       updateScrollState();
       if (isLoading || !nextBeforeId || isShowingBookmarks) return;
@@ -1713,11 +2621,7 @@
       }
     }, { passive: true });
 
-    // Initial load and scroll check
-    updateScrollState();
-    loadNews();
-
-    // Native Telegram Back Button integration
+    // Telegram Native Back Button Integration
     function handleTgBack() {
       if (newsModal && newsModal.classList.contains('active')) {
         closeModal();
@@ -1728,20 +2632,23 @@
         return;
       }
       if (isShowingBookmarks) {
-        btnCloseFilter?.click();
+        exitBookmarksView();
         return;
       }
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        window.location.href = '/';
-      }
+      // Return to main kino section!
+      window.location.href = '/';
     }
 
     if (tg?.BackButton) {
       tg.BackButton.show();
       tg.BackButton.onClick(handleTgBack);
     }
+
+    // Initialize theme, language and load news
+    applyTheme(currentTheme);
+    setLanguage(currentLang);
+    updateScrollState();
+    loadNews();
   </script>
 </body>
 </html>

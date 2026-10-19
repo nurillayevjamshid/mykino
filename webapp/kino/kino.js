@@ -10831,23 +10831,20 @@ function hideSplashNow() {
   }, 500);
 }
 
-// Splash: minimum 0ms — kontent tayyor bo'lishi bilan darrov yopiladi.
-// Brending FIFA banner + topbar'da allaqachon ko'rinadi, qo'shimcha hold
-// kerak emas. Faqat MAX_MS keshda hech nima bo'lmasa fallback uchun.
+// Splash: qat'iy 3 soniya (3000ms) har doim chiqadigan qilingan
 function initSplashScreen() {
-  const MIN_MS = 0;
-  const MAX_MS = 3500;
+  const DURATION_MS = 3000;
   const startedAt = Date.now();
 
   const tryHide = () => {
     if (splashHideRequested) return;
     splashHideRequested = true;
     const elapsed = Date.now() - startedAt;
-    const wait = Math.max(0, MIN_MS - elapsed);
+    const wait = Math.max(0, DURATION_MS - elapsed);
     setTimeout(hideSplashNow, wait);
   };
 
-  setTimeout(tryHide, MAX_MS);
+  setTimeout(tryHide, DURATION_MS);
   return { tryHide };
 }
 
