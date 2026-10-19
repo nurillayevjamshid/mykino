@@ -1463,14 +1463,52 @@ async function syncWishlistFromCloud() {
   return false;
 }
 
+// ===== O'chirilgan kinolar (Tombstones) — cloud va backenddan qayta tiklanmasin =====
+const KINO_DELETED_MOVIES_KEY = "mykino:deleted_movies:v1";
+
+function readDeletedMovieIds() {
+  try {
+    const raw = localStorage.getItem(KINO_DELETED_MOVIES_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function recordDeletedMovieId(movieId) {
+  if (!movieId) return;
+  try {
+    const set = readDeletedMovieIds();
+    set.add(String(movieId));
+    const arr = Array.from(set).slice(-300);
+    localStorage.setItem(KINO_DELETED_MOVIES_KEY, JSON.stringify(arr));
+  } catch (_) {}
+}
+
+function unmarkDeletedMovieId(movieId) {
+  if (!movieId) return;
+  try {
+    const set = readDeletedMovieIds();
+    if (set.delete(String(movieId))) {
+      localStorage.setItem(KINO_DELETED_MOVIES_KEY, JSON.stringify(Array.from(set)));
+    }
+  } catch (_) {}
+}
+
+function isMovieDeleted(movieId) {
+  if (!movieId) return false;
+  return readDeletedMovieIds().has(String(movieId));
+}
+
 let _watchedPushDebounce = null;
-function pushWatchedMoviesToCloud(store) {
+function pushWatchedMoviesToCloud(store, immediate = false) {
   clearTimeout(_watchedPushDebounce);
-  _watchedPushDebounce = setTimeout(() => {
+  const doPush = () => {
     try {
       if (!store || typeof store !== "object") return;
       const entries = Object.values(store)
-        .filter((e) => e && e.id)
+        .filter((e) => e && e.id && !isMovieDeleted(e.id))
         .sort((a, b) => Number(b.watchedAt || 0) - Number(a.watchedAt || 0))
         .slice(0, 35);
       const compact = entries.map((e) => ({
@@ -1484,7 +1522,12 @@ function pushWatchedMoviesToCloud(store) {
       }));
       cloudSet(KINO_WATCHED_CLOUD_KEY, JSON.stringify({ items: compact, updatedAt: Date.now() }));
     } catch (_) {}
-  }, 300);
+  };
+  if (immediate) {
+    doPush();
+  } else {
+    _watchedPushDebounce = setTimeout(doPush, 300);
+  }
 }
 
 async function syncWatchedMoviesFromCloud() {
@@ -1501,13 +1544,20 @@ async function syncWatchedMoviesFromCloud() {
     if (!cloudItems.length) return false;
 
     const localStore = readWatchedMoviesStore();
+    const clearedAt = Number(localStorage.getItem("mykino:history_cleared_at") || 0);
+    const deletedIds = readDeletedMovieIds();
     let hasChanges = false;
+    let cloudHasDeleted = false;
 
     for (const item of cloudItems) {
       if (!item || !item.id) continue;
       const key = String(item.id);
-      const existing = localStore[key];
       const cloudW = Number(item.w || 0);
+      if (deletedIds.has(key) || (clearedAt && cloudW < clearedAt)) {
+        cloudHasDeleted = true;
+        continue;
+      }
+      const existing = localStore[key];
       const localW = Number(existing?.watchedAt || 0);
 
       if (!existing || cloudW > localW) {
@@ -1522,6 +1572,10 @@ async function syncWatchedMoviesFromCloud() {
         };
         hasChanges = true;
       }
+    }
+
+    if (cloudHasDeleted) {
+      pushWatchedMoviesToCloud(localStore, true);
     }
 
     if (hasChanges) {
@@ -2481,16 +2535,25 @@ async function loadProgressFromBackend(options = {}) {
 
   const localProgress = readWatchProgressStore();
   const localWatched = readWatchedMoviesStore();
+  const clearedAt = Number(localStorage.getItem("mykino:history_cleared_at") || 0);
+  const deletedIds = readDeletedMovieIds();
   let progressChanged = false;
   let watchedChanged = false;
 
   for (const [id, rawEntry] of Object.entries(remote)) {
     if (!rawEntry || typeof rawEntry !== "object") continue;
+    const idStr = String(id);
     const remoteUpdated = Number(rawEntry.updatedAt || 0);
-    const localEntry = localProgress[id];
+
+    if (deletedIds.has(idStr) || (clearedAt && remoteUpdated < clearedAt)) {
+      queueProgressRemove(idStr);
+      continue;
+    }
+
+    const localEntry = localProgress[idStr];
     const localUpdated = Number(localEntry?.updatedAt || 0);
     if (remoteUpdated > localUpdated) {
-      localProgress[id] = {
+      localProgress[idStr] = {
         time: Math.max(0, Math.floor(Number(rawEntry.time) || 0)),
         duration: Math.max(0, Math.floor(Number(rawEntry.duration) || 0)),
         updatedAt: remoteUpdated,
@@ -2499,8 +2562,8 @@ async function loadProgressFromBackend(options = {}) {
       progressChanged = true;
     }
 
-    const watchedEntry = localWatched[id];
-    const catalogMovie = Array.isArray(movies) ? movies.find((m) => String(m?.id) === String(id) || String(m?.code) === String(id)) : null;
+    const watchedEntry = localWatched[idStr];
+    const catalogMovie = Array.isArray(movies) ? movies.find((m) => String(m?.id) === idStr || String(m?.code) === idStr) : null;
     const resolvedPoster = String(rawEntry.poster || (catalogMovie ? getPosterImage(catalogMovie) : "") || "");
     const resolvedTitle = String(rawEntry.title || catalogMovie?.title || "Kino");
     const resolvedYear = String(rawEntry.year || catalogMovie?.year || "");
@@ -2646,6 +2709,7 @@ function syncWatchedCount() {
 
 function markMovieWatched(movie, progress = 0) {
   if (!movie?.id) return;
+  unmarkDeletedMovieId(movie.id);
   const store = readWatchedMoviesStore();
   const existing = store[String(movie.id)];
   const posterUrl = getPosterImage(movie) || movie?.thumbnail || movie?.cover || existing?.poster || "";
@@ -2695,21 +2759,35 @@ function getWatchedMovieEntries() {
 
 function removeWatchedMovie(movieId) {
   if (!movieId) return;
+  const id = String(movieId);
+  recordDeletedMovieId(id);
+
   const nextWatched = readWatchedMoviesStore();
-  delete nextWatched[String(movieId)];
-  writeWatchedMoviesStore(nextWatched);
+  delete nextWatched[id];
+  localStorage.setItem(WATCHED_MOVIES_KEY, JSON.stringify(nextWatched));
+  pushWatchedMoviesToCloud(nextWatched, true);
 
   const nextProgress = readWatchProgressStore();
-  delete nextProgress[String(movieId)];
-  writeWatchProgressStore(nextProgress);
-  queueProgressRemove(String(movieId));
+  delete nextProgress[id];
+  localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(nextProgress));
+
+  queueProgressRemove(id);
+  scheduleProgressSync(300);
 }
 
 function clearWatchedHistory() {
+  try {
+    const current = readWatchedMoviesStore();
+    for (const id of Object.keys(current)) {
+      recordDeletedMovieId(id);
+    }
+  } catch (_) {}
+  try { localStorage.setItem("mykino:history_cleared_at", String(Date.now())); } catch (_) {}
   localStorage.removeItem(WATCHED_MOVIES_KEY);
   localStorage.removeItem(WATCH_PROGRESS_KEY);
   clearWatchedMoviesCloud();
   queueProgressClearAll();
+  scheduleProgressSync(0);
 }
 
 // ===== Music listening history (per Telegram user) =====
@@ -7431,13 +7509,18 @@ function renderPodcastProfileModal() {
  // O'chirish tugmalari
   watchedMovieList.querySelectorAll("[data-pod-history-remove]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
+      e.preventDefault();
       e.stopPropagation();
       const vid = btn.dataset.podHistoryRemove;
       let h = getPodcastHistory().filter((x) => x.videoId !== vid);
       try { localStorage.setItem("podcastHistory", JSON.stringify(h)); } catch (_) {}
       pushPodcastHistoryToCloud(h);
       clearPodcastProgress(vid);
-      renderPodcastProfileModal();
+      btn.closest(".profile-history__item")?.remove();
+      if (watchedMovieEmpty) watchedMovieEmpty.hidden = h.length > 0;
+      if (clearHistoryButton) clearHistoryButton.hidden = h.length === 0;
+      if (viewCount) viewCount.textContent = String(h.length);
+      try { haptic.tap(); } catch (_) {}
     });
   });
 }
@@ -8906,29 +8989,75 @@ attachHeroBindings();
 clearHistoryButton?.addEventListener("click", () => {
   clearWatchedHistory();
   syncWatchedCount();
-  renderProfileModal();
+  if (watchedMovieList) watchedMovieList.innerHTML = "";
+  if (watchedMovieCount) watchedMovieCount.textContent = "0 ta";
+  if (watchedMovieEmpty) watchedMovieEmpty.hidden = false;
+  if (clearHistoryButton) clearHistoryButton.hidden = true;
+  renderProfileStats();
+  try { haptic.tap(); } catch (_) {}
 });
 
 watchedMovieList?.addEventListener("click", (event) => {
   const removeButton = event.target.closest("[data-history-remove]");
   if (!removeButton) return;
+  event.preventDefault();
   event.stopPropagation();
-  removeWatchedMovie(removeButton.dataset.historyRemove || "");
+
+  const movieId = removeButton.dataset.historyRemove;
+  if (!movieId) return;
+
+  removeWatchedMovie(movieId);
+
+  const card = removeButton.closest(".profile-history__item");
+  if (card) {
+    card.remove();
+  }
+
+  const remaining = getWatchedMovieEntries();
+  if (watchedMovieCount) {
+    watchedMovieCount.textContent = `${remaining.length} ta`;
+  }
+  if (watchedMovieEmpty) {
+    watchedMovieEmpty.hidden = remaining.length > 0;
+  }
+  if (clearHistoryButton) {
+    clearHistoryButton.hidden = remaining.length === 0;
+  }
+
   syncWatchedCount();
-  renderProfileModal();
+  renderProfileStats();
+  try { haptic.tap(); } catch (_) {}
 });
 
 document.getElementById("clearMusicHistoryButton")?.addEventListener("click", () => {
   clearMusicHistory();
-  renderMusicHistory();
+  const listEl = document.getElementById("musicHistoryList");
+  if (listEl) listEl.innerHTML = "";
+  const countEl = document.getElementById("musicHistoryCount");
+  if (countEl) countEl.textContent = "0 ta";
+  const emptyEl = document.getElementById("musicHistoryEmpty");
+  if (emptyEl) emptyEl.hidden = false;
+  const clearBtn = document.getElementById("clearMusicHistoryButton");
+  if (clearBtn) clearBtn.hidden = true;
+  try { haptic.tap(); } catch (_) {}
 });
 
 document.getElementById("musicHistoryList")?.addEventListener("click", (event) => {
   const removeButton = event.target.closest("[data-music-history-remove]");
   if (removeButton) {
+    event.preventDefault();
     event.stopPropagation();
     removeMusicHistoryItem(removeButton.dataset.musicHistoryRemove || "");
-    renderMusicHistory();
+    const card = removeButton.closest(".profile-history__item");
+    if (card) card.remove();
+    const remaining = getMusicHistoryEntries();
+    const countEl = document.getElementById("musicHistoryCount");
+    if (countEl) countEl.textContent = `${remaining.length} ta`;
+    const emptyEl = document.getElementById("musicHistoryEmpty");
+    if (emptyEl) emptyEl.hidden = remaining.length > 0;
+    const clearBtn = document.getElementById("clearMusicHistoryButton");
+    if (clearBtn) clearBtn.hidden = remaining.length === 0;
+    try { haptic.tap(); } catch (_) {}
     return;
   }
   const item = event.target.closest("[data-music-history]");

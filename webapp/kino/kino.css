@@ -4607,11 +4607,25 @@ html[data-theme="light"] .profile-userid {
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.08);
   flex: 0 0 auto;
+  position: relative;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.profile-history__remove::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
 }
 
 .profile-history__remove .icon-svg {
   width: 16px;
   height: 16px;
+  pointer-events: none;
 }
 
 .profile-history__empty {
@@ -12714,30 +12728,44 @@ body.is-podcasts .ad-ticker-card {
   background: linear-gradient(90deg, #10b981, #059669) !important;
 }
 .profile-history:not(.profile-history--music) .profile-history__remove {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   flex-shrink: 0;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: transform 0.1s ease, background 0.15s ease, color 0.15s ease;
   padding: 0;
+  position: relative;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.profile-history:not(.profile-history--music) .profile-history__remove::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
 }
 .profile-history:not(.profile-history--music) .profile-history__remove:hover {
   color: #ef4444;
-  background: rgba(239, 68, 68, 0.14);
-  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
 }
 .profile-history:not(.profile-history--music) .profile-history__remove:active {
-  transform: scale(0.88);
+  transform: scale(0.85);
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
 }
 .profile-history:not(.profile-history--music) .profile-history__remove .icon-svg {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
 }
 html[data-theme="light"] .profile-history:not(.profile-history--music) .profile-history__item {
   background: linear-gradient(135deg, rgba(229, 9, 20, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%) !important;
