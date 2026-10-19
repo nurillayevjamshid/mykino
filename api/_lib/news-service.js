@@ -97,20 +97,31 @@ function parseMessageBlock(block) {
     .replace(/<a\b[^>]*href=["']https?:\/\/(?:t|telegram)\.me\/[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi, "$1")
     .replace(/<a\b[^>]*href=["']https?:\/\/t\.me[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi, "$1");
 
+  // Remove social promo footer (globe icons + Instagram + YouTube) from rawHtml
+  rawHtml = rawHtml
+    .replace(/(?:<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>|🌐|\uD83C\uDF10)?\s*<a\b[^>]*href=["']https?:\/\/(?:www\.)?instagram\.com\/[^"']*["'][^>]*>[\s\S]*?<\/a>[\s\S]*$/gi, "")
+    .replace(/(?:<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>|🌐|\uD83C\uDF10)?\s*<a\b[^>]*href=["']https?:\/\/(?:www\.)?youtube\.com\/[^"']*["'][^>]*>[\s\S]*?<\/a>[\s\S]*$/gi, "")
+    .replace(/<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>/gi, "");
+
   // Plain text
   let plainText = rawHtml
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .trim();
 
-  // Strip Telegram channel promo links and handles from text
+  // Strip Telegram channel promo links, handles, and trailing Instagram/YouTube globes from text
   plainText = plainText
+    .replace(/(?:🌐|\uD83C\uDF10)?\s*Instagram\s*(?:🌐|\uD83C\uDF10|\|)?\s*YouTube[\s\S]*$/gi, "")
+    .replace(/(?:🌐|\uD83C\uDF10)\s*Instagram\b[\s\S]*$/gi, "")
+    .replace(/(?:🌐|\uD83C\uDF10)\s*YouTube\b[\s\S]*$/gi, "")
+    .replace(/https?:\/\/(?:www\.)?(?:instagram\.com|youtube\.com)\/[^\s<]+/gi, "")
     .replace(/https?:\/\/(?:t|telegram)\.me\/[a-zA-Z0-9_+/]+/gi, "")
     .replace(/https?:\/\/t\.me\/[a-zA-Z0-9_+/]+/gi, "")
     .replace(/\bt\.me\/[a-zA-Z0-9_+/]+/gi, "")
     .replace(/@tezkorofficial_uz\b/gi, "")
     .replace(/[ \t]+/g, " ")
-    .replace(/\n\s*\n\s*\n/g, "\n\n")
+    .replace(/\n\s*\n\s*\n+/g, "\n\n")
+    .replace(/[\r\n\s]+$/, "")
     .trim();
 
   // Clean lines & extract title
@@ -269,12 +280,17 @@ function ingestWebhookPost(channelPost) {
   }
 
   const cleanText = text
+    .replace(/(?:🌐|\uD83C\uDF10)?\s*Instagram\s*(?:🌐|\uD83C\uDF10|\|)?\s*YouTube[\s\S]*$/gi, "")
+    .replace(/(?:🌐|\uD83C\uDF10)\s*Instagram\b[\s\S]*$/gi, "")
+    .replace(/(?:🌐|\uD83C\uDF10)\s*YouTube\b[\s\S]*$/gi, "")
+    .replace(/https?:\/\/(?:www\.)?(?:instagram\.com|youtube\.com)\/[^\s<]+/gi, "")
     .replace(/https?:\/\/(?:t|telegram)\.me\/[a-zA-Z0-9_+/]+/gi, "")
     .replace(/https?:\/\/t\.me\/[a-zA-Z0-9_+/]+/gi, "")
     .replace(/\bt\.me\/[a-zA-Z0-9_+/]+/gi, "")
     .replace(/@tezkorofficial_uz\b/gi, "")
     .replace(/[ \t]+/g, " ")
-    .replace(/\n\s*\n\s*\n/g, "\n\n")
+    .replace(/\n\s*\n\s*\n+/g, "\n\n")
+    .replace(/[\r\n\s]+$/, "")
     .trim();
 
   const rawLines = cleanText.split("\n").map((l) => l.trim()).filter(Boolean);

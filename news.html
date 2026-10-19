@@ -2593,8 +2593,8 @@
           : post.title;
 
         const displayLead = (currentLang !== 'uz' && post[`lead_${currentLang}`])
-          ? post[`lead_${currentLang}`]
-          : (post.lead || '');
+          ? cleanNewsText(post[`lead_${currentLang}`])
+          : cleanNewsText(post.lead || '');
 
         // Media HTML
         let mediaHtml = '';
@@ -2792,10 +2792,11 @@
           });
         }
         if (!post[`text_${currentLang}`]) {
-          translateText(post.text, currentLang).then(tr => {
-            post[`text_${currentLang}`] = tr;
+          const toTranslate = cleanNewsText(post.text);
+          translateText(toTranslate, currentLang).then(tr => {
+            post[`text_${currentLang}`] = cleanNewsText(tr);
             if (activeModalPost && activeModalPost.id === post.id) {
-              modalText.innerHTML = linkifyText(tr);
+              modalText.innerHTML = linkifyText(post[`text_${currentLang}`]);
             }
           });
         }
@@ -2821,13 +2822,32 @@
       if (tg?.BackButton) tg.BackButton.show();
     }
 
-    function linkifyText(text) {
+    function cleanNewsText(text) {
       if (!text) return '';
-      const cleaned = text
+      let str = String(text);
+
+      // Remove globus icons and Instagram/YouTube footer at the end of the news text
+      str = str.replace(/(?:🌐|\uD83C\uDF10)?\s*Instagram\s*(?:🌐|\uD83C\uDF10|\|)?\s*YouTube[\s\S]*$/gi, '');
+      str = str.replace(/(?:🌐|\uD83C\uDF10)\s*Instagram\b[\s\S]*$/gi, '');
+      str = str.replace(/(?:🌐|\uD83C\uDF10)\s*YouTube\b[\s\S]*$/gi, '');
+      str = str.replace(/https?:\/\/(?:www\.)?(?:instagram\.com|youtube\.com)\/[^\s<]+/gi, '');
+
+      // Remove Telegram channel promo links and handles
+      str = str
         .replace(/https?:\/\/(?:t|telegram)\.me\/[^\s<]+/gi, '')
         .replace(/\bt\.me\/[^\s<]+/gi, '')
         .replace(/@tezkorofficial_uz\b/gi, '')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n\s*\n\s*\n+/g, '\n\n')
+        .replace(/[\r\n\s]+$/, '')
         .trim();
+
+      return str;
+    }
+
+    function linkifyText(text) {
+      if (!text) return '';
+      const cleaned = cleanNewsText(text);
       const escaped = escapeHtml(cleaned);
       return escaped.replace(
         /(https?:\/\/[^\s<]+)/g,
