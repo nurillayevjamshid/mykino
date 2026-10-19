@@ -4,28 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="referrer" content="no-referrer">
-  <title>NTV — Tezkor Yangiliklar</title>
+  <meta name="theme-color" content="#ffffff">
+  <title>Tezkor × NTV — Yangiliklar</title>
   
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- NTV Shared Glass Theme -->
-  <link rel="stylesheet" href="/glass-theme.css">
-
   <style>
     :root {
-      --news-bg: #0b0e14;
-      --news-card-bg: rgba(255, 255, 255, 0.05);
-      --news-card-hover: rgba(255, 255, 255, 0.08);
-      --news-border: rgba(255, 255, 255, 0.12);
-      --news-border-hover: rgba(255, 255, 255, 0.24);
-      --news-text: #ffffff;
-      --news-muted: #94a3b8;
-      --news-accent: #38bdf8;
-      --news-red: #ef4444;
-      --news-green: #10b981;
-      --news-orange: #f59e0b;
-      --news-purple: #a855f7;
+      --news-bg: #f8fafc;
+      --news-card-bg: #ffffff;
+      --news-card-hover: #ffffff;
+      --news-border: #e2e8f0;
+      --news-border-hover: #cbd5e1;
+      --news-text: #0f172a;
+      --news-text-body: #334155;
+      --news-muted: #64748b;
+      --news-accent: #2563eb;
+      --news-accent-soft: #eff6ff;
+      --news-tezkor-red: #d92525;
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
@@ -35,7 +32,7 @@
     body {
       background: var(--news-bg);
       color: var(--news-text);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       min-height: 100vh;
       padding: max(calc(var(--safe-top) + 12px), 16px) 16px max(calc(var(--safe-bottom) + 24px), 32px);
       -webkit-font-smoothing: antialiased;
@@ -44,12 +41,12 @@
 
     /* Container Shell */
     .news-container {
-      max-width: 760px;
+      max-width: 720px;
       margin: 0 auto;
     }
 
-    /* Top Bar */
-    .news-header {
+    /* Top Collaboration Header */
+    .collab-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -57,48 +54,69 @@
       margin-bottom: 16px;
       padding-bottom: 14px;
       border-bottom: 1px solid var(--news-border);
+      background: var(--news-bg);
     }
 
-    .brand-group {
+    .collab-logos {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
-    .live-badge {
+    /* Tezkor Logo */
+    .collab-brand.tezkor-brand {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.35);
-      color: #fca5a5;
-      font-size: 11px;
+    }
+
+    .logo-tezkor {
+      height: 28px;
+      width: auto;
+      max-width: 135px;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Cross / X symbol */
+    .collab-cross {
+      font-size: 14px;
       font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 20px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      color: #94a3b8;
+      user-select: none;
+      line-height: 1;
     }
 
-    .live-dot {
-      width: 7px;
-      height: 7px;
-      background: #ef4444;
+    /* NTV Logo */
+    .collab-brand.ntv-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      text-decoration: none;
+      color: #0f172a;
+    }
+
+    .ntv-logo-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      box-shadow: 0 0 8px #ef4444;
-      animation: pulse 1.6s infinite ease-in-out;
+      background: #0f172a;
+      color: #ffffff;
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
+    .ntv-logo-svg {
+      width: 18px;
+      height: 18px;
     }
 
-    .news-title {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: #fff;
+    .ntv-text {
+      font-size: 19px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #0f172a;
+      line-height: 1;
     }
 
     .header-actions {
@@ -114,23 +132,24 @@
       width: 38px;
       height: 38px;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.07);
+      background: #ffffff;
       border: 1px solid var(--news-border);
-      color: #fff;
+      color: var(--news-muted);
       cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       transition: all 0.2s;
     }
 
     .icon-btn:hover, .icon-btn:active {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
-      transform: scale(0.97);
+      background: #f1f5f9;
+      color: var(--news-text);
+      border-color: var(--news-border-hover);
     }
 
     .icon-btn.is-active {
-      background: rgba(56, 189, 248, 0.2);
-      border-color: #38bdf8;
-      color: #38bdf8;
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #2563eb;
     }
 
     .icon-btn svg {
@@ -138,25 +157,17 @@
       height: 19px;
     }
 
-    .spinning svg {
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
-    }
-
     /* Channel info banner */
     .channel-banner {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(168, 85, 247, 0.08));
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      background: #ffffff;
+      border: 1px solid var(--news-border);
       border-radius: 14px;
       padding: 10px 14px;
-      margin-bottom: 16px;
-      backdrop-filter: blur(10px);
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
 
     .channel-info {
@@ -166,21 +177,21 @@
     }
 
     .channel-avatar {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: 10px;
-      background: #2481cc;
+      background: var(--news-tezkor-red);
       display: grid;
       place-items: center;
       font-weight: 800;
       color: #fff;
-      font-size: 15px;
+      font-size: 14px;
     }
 
     .channel-name {
       font-size: 13px;
       font-weight: 700;
-      color: #fff;
+      color: var(--news-text);
       display: block;
     }
 
@@ -188,6 +199,7 @@
       font-size: 12px;
       color: var(--news-accent);
       text-decoration: none;
+      font-weight: 500;
     }
 
     .btn-tg-join {
@@ -199,7 +211,7 @@
       font-size: 12px;
       font-weight: 600;
       padding: 6px 12px;
-      border-radius: 10px;
+      border-radius: 9px;
       border: none;
       cursor: pointer;
       text-decoration: none;
@@ -213,26 +225,30 @@
     /* Search Bar */
     .search-wrap {
       position: relative;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
 
     .search-input {
       width: 100%;
       height: 42px;
       padding: 0 40px 0 38px;
-      background: rgba(255, 255, 255, 0.06);
+      background: #ffffff;
       border: 1px solid var(--news-border);
       border-radius: 12px;
-      color: #fff;
+      color: var(--news-text);
       font-size: 14px;
       outline: none;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
       transition: all 0.2s;
     }
 
     .search-input:focus {
-      background: rgba(255, 255, 255, 0.1);
       border-color: var(--news-accent);
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .search-input::placeholder {
+      color: #94a3b8;
     }
 
     .search-icon {
@@ -240,7 +256,7 @@
       left: 12px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--news-muted);
+      color: #94a3b8;
       pointer-events: none;
       width: 16px;
       height: 16px;
@@ -253,56 +269,46 @@
       transform: translateY(-50%);
       background: none;
       border: none;
-      color: var(--news-muted);
+      color: #94a3b8;
       cursor: pointer;
       display: none;
       padding: 4px;
+      font-size: 13px;
     }
 
-    /* Categories Horizontal Scroll */
-    .categories-bar {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-      margin-bottom: 16px;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .categories-bar::-webkit-scrollbar { display: none; }
-
-    .category-chip {
-      white-space: nowrap;
-      padding: 7px 14px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--news-border);
-      color: var(--news-muted);
+    /* Bookmarks Active Notice Pill */
+    .filter-indicator {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 8px 14px;
+      border-radius: 10px;
       font-size: 13px;
       font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .filter-indicator.active {
+      display: flex;
+    }
+
+    .btn-close-filter {
+      background: none;
+      border: none;
+      color: #1e40af;
       cursor: pointer;
-      transition: all 0.2s;
-      flex-shrink: 0;
+      font-weight: 700;
+      padding: 2px 6px;
     }
 
-    .category-chip:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-    }
-
-    .category-chip.active {
-      background: rgba(56, 189, 248, 0.2);
-      border-color: var(--news-accent);
-      color: #fff;
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
-    }
-
-    /* News Cards */
+    /* News Cards Feed */
     .news-feed {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .news-card {
@@ -310,18 +316,17 @@
       border: 1px solid var(--news-border);
       border-radius: 16px;
       padding: 16px;
-      backdrop-filter: blur(12px);
-      transition: all 0.25s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 18px -4px rgba(0, 0, 0, 0.03);
+      transition: all 0.2s ease;
       position: relative;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .news-card:hover {
-      background: var(--news-card-hover);
       border-color: var(--news-border-hover);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 24px -3px rgba(0, 0, 0, 0.06);
     }
 
     .card-meta {
@@ -330,34 +335,29 @@
       justify-content: space-between;
       gap: 8px;
       font-size: 12px;
+      color: var(--news-muted);
     }
 
     .meta-left {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
-    .cat-tag {
+    .source-tag {
       font-weight: 700;
       font-size: 11px;
-      padding: 3px 8px;
+      color: var(--news-tezkor-red);
+      background: #fee2e2;
+      padding: 2px 7px;
       border-radius: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #e2e8f0;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
 
-    .cat-tag.cat-tezkor { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
-    .cat-tag.cat-dunyo { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; }
-    .cat-tag.cat-jamiyat { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
-    .cat-tag.cat-iqtisod { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
-    .cat-tag.cat-sport { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
-    .cat-tag.cat-texno { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
-
     .time-stamp {
       color: var(--news-muted);
+      font-weight: 500;
     }
 
     .views-count {
@@ -377,7 +377,7 @@
       position: relative;
       border-radius: 12px;
       overflow: hidden;
-      background: #000;
+      background: #e2e8f0;
       max-height: 380px;
       cursor: pointer;
     }
@@ -388,19 +388,18 @@
       display: block;
       object-fit: cover;
       max-height: 380px;
-      transition: transform 0.3s;
+      transition: transform 0.25s;
     }
 
     .card-media:hover img {
-      transform: scale(1.02);
+      transform: scale(1.015);
     }
 
     .album-badge {
       position: absolute;
       bottom: 10px;
       right: 10px;
-      background: rgba(0, 0, 0, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(15, 23, 42, 0.8);
       color: #fff;
       font-size: 11px;
       font-weight: 700;
@@ -417,22 +416,22 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 52px;
-      height: 52px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
-      background: rgba(0, 0, 0, 0.65);
-      border: 2px solid rgba(255, 255, 255, 0.8);
+      background: rgba(15, 23, 42, 0.75);
+      border: 2px solid rgba(255, 255, 255, 0.9);
       display: grid;
       place-items: center;
       color: #fff;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
     }
 
     .video-duration {
       position: absolute;
       bottom: 10px;
       left: 10px;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(15, 23, 42, 0.8);
       color: #fff;
       font-size: 11px;
       font-weight: 600;
@@ -444,7 +443,7 @@
       font-size: 17px;
       font-weight: 700;
       line-height: 1.35;
-      color: #fff;
+      color: var(--news-text);
       cursor: pointer;
     }
 
@@ -455,7 +454,7 @@
     .card-lead {
       font-size: 14px;
       line-height: 1.5;
-      color: #cbd5e1;
+      color: var(--news-text-body);
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
@@ -474,6 +473,7 @@
       font-size: 12px;
       text-decoration: none;
       cursor: pointer;
+      font-weight: 500;
     }
 
     .tag-item:hover {
@@ -487,30 +487,30 @@
       justify-content: space-between;
       gap: 8px;
       padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid var(--news-border);
     }
 
     .btn-read-more {
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      color: #7dd3fc;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
       font-size: 13px;
       font-weight: 600;
-      padding: 7px 14px;
-      border-radius: 10px;
+      padding: 6px 14px;
+      border-radius: 9px;
       cursor: pointer;
       transition: all 0.2s;
     }
 
     .btn-read-more:hover {
-      background: rgba(56, 189, 248, 0.25);
-      color: #fff;
+      background: #dbeafe;
+      color: #1e40af;
     }
 
     .footer-icons {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
     .action-icon-btn {
@@ -518,8 +518,8 @@
       border: 1px solid transparent;
       color: var(--news-muted);
       cursor: pointer;
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       border-radius: 8px;
       display: grid;
       place-items: center;
@@ -527,12 +527,13 @@
     }
 
     .action-icon-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background: #f1f5f9;
+      color: var(--news-text);
     }
 
     .action-icon-btn.saved {
-      color: #f59e0b;
+      color: #d97706;
+      background: #fef3c7;
     }
 
     .action-icon-btn svg {
@@ -547,14 +548,15 @@
     }
 
     .btn-load-more {
-      background: rgba(255, 255, 255, 0.08);
+      background: #ffffff;
       border: 1px solid var(--news-border);
-      color: #fff;
+      color: var(--news-text);
       font-size: 14px;
       font-weight: 600;
-      padding: 12px 28px;
-      border-radius: 14px;
+      padding: 11px 24px;
+      border-radius: 12px;
       cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       transition: all 0.2s;
       display: inline-flex;
       align-items: center;
@@ -562,14 +564,14 @@
     }
 
     .btn-load-more:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
-      transform: translateY(-1px);
+      background: #f8fafc;
+      border-color: var(--news-border-hover);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
     }
 
     /* Skeleton Loading State */
     .skeleton-card {
-      background: rgba(255, 255, 255, 0.04);
+      background: #ffffff;
       border: 1px solid var(--news-border);
       border-radius: 16px;
       padding: 16px;
@@ -579,7 +581,7 @@
     }
 
     .skeleton-bar {
-      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%);
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
       background-size: 200% 100%;
       animation: shimmer 1.5s infinite;
       border-radius: 6px;
@@ -590,12 +592,12 @@
       100% { background-position: -200% 0; }
     }
 
-    /* Full Detail Modal (Reader View) */
+    /* Full Detail Modal (Daylight Reader View) */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(16px);
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(10px);
       z-index: 1000;
       display: none;
       align-items: center;
@@ -611,15 +613,15 @@
     }
 
     .modal-dialog {
-      background: #111622;
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 20px;
       width: min(100%, 680px);
       max-height: 90vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       transform: scale(0.96);
       transition: transform 0.25s ease;
     }
@@ -633,8 +635,8 @@
       align-items: center;
       justify-content: space-between;
       padding: 14px 18px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
     }
 
     .modal-controls {
@@ -644,9 +646,9 @@
     }
 
     .font-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--news-border);
-      color: #fff;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: var(--news-text);
       font-size: 12px;
       font-weight: 700;
       padding: 4px 8px;
@@ -657,13 +659,14 @@
     .modal-close {
       width: 32px;
       height: 32px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.08);
-      border: none;
-      color: #fff;
+      border-radius: 9px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: var(--news-text);
       cursor: pointer;
       display: grid;
       place-items: center;
+      font-size: 13px;
     }
 
     .modal-body {
@@ -673,6 +676,7 @@
       flex-direction: column;
       gap: 16px;
       line-height: 1.6;
+      color: var(--news-text);
     }
 
     .modal-body.font-small { font-size: 14px; }
@@ -699,7 +703,7 @@
     }
 
     .modal-full-text {
-      color: #f1f5f9;
+      color: #1e293b;
       white-space: pre-line;
       word-break: break-word;
     }
@@ -715,8 +719,8 @@
       justify-content: space-between;
       gap: 10px;
       padding: 14px 20px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(255, 255, 255, 0.02);
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
     }
 
     .btn-tg-open {
@@ -738,14 +742,14 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background: #ffffff;
+      color: var(--news-text);
       padding: 8px 16px;
       border-radius: 10px;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      border: 1px solid var(--news-border);
+      border: 1px solid #cbd5e1;
     }
 
     /* Toast notification */
@@ -754,14 +758,13 @@
       bottom: calc(var(--safe-bottom) + 24px);
       left: 50%;
       transform: translateX(-50%) translateY(50px);
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid var(--news-accent);
-      color: #fff;
+      background: #0f172a;
+      color: #ffffff;
       font-size: 13px;
       font-weight: 600;
       padding: 10px 20px;
       border-radius: 25px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
       z-index: 2000;
       opacity: 0;
       transition: all 0.3s ease;
@@ -778,37 +781,40 @@
       text-align: center;
       padding: 48px 20px;
       color: var(--news-muted);
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid var(--news-border);
     }
 
     .empty-state svg {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       margin-bottom: 12px;
-      color: rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
     }
   </style>
 </head>
 <body>
   <div class="news-container">
-    <!-- Top Header -->
-    <header class="news-header">
-      <div class="brand-group">
-        <span class="live-badge">
-          <span class="live-dot"></span>
-          Jonli
-        </span>
-        <h1 class="news-title">Tezkor Yangiliklar</h1>
+    <!-- Top Collaboration Header: Tezkor × NTV -->
+    <header class="collab-header">
+      <div class="collab-logos">
+        <div class="collab-brand tezkor-brand" title="Tezkor rasmiy kanali">
+          <img src="/static/assets/tezkor-logo.png" alt="Tezkor" class="logo-tezkor" onerror="this.src='./tezkor-logo.png'">
+        </div>
+        <span class="collab-cross" aria-label="hamkorlikda">✕</span>
+        <div class="collab-brand ntv-brand" title="NTV Mini App">
+          <span class="ntv-logo-badge">
+            <svg viewBox="0 0 32 32" class="ntv-logo-svg">
+              <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="2.2"></circle>
+              <path d="M13 10.8 23 16 13 21.2Z" fill="currentColor"></path>
+            </svg>
+          </span>
+          <span class="ntv-text">NTV</span>
+        </div>
       </div>
       <div class="header-actions">
-        <button class="icon-btn" id="btnRefresh" title="Yangilash" aria-label="Yangilash">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 2v6h-6"></path>
-            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-            <path d="M3 22v-6h6"></path>
-            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-          </svg>
-        </button>
-        <button class="icon-btn" id="btnBookmarks" title="Saqlanganlar" aria-label="Saqlanganlar">
+        <button class="icon-btn" id="btnBookmarks" title="Saqlangan yangiliklar" aria-label="Saqlanganlar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
           </svg>
@@ -843,17 +849,11 @@
       <button class="search-clear" id="searchClear" aria-label="Tozalash">✕</button>
     </div>
 
-    <!-- Categories Filter Chips -->
-    <nav class="categories-bar" id="categoriesBar">
-      <button class="category-chip active" data-cat="">Barchasi</button>
-      <button class="category-chip" data-cat="⚡ Tezkor">⚡ Tezkor</button>
-      <button class="category-chip" data-cat="Dunyo">Dunyo</button>
-      <button class="category-chip" data-cat="Jamiyat">Jamiyat</button>
-      <button class="category-chip" data-cat="Iqtisod">Iqtisod</button>
-      <button class="category-chip" data-cat="Sport">Sport</button>
-      <button class="category-chip" data-cat="Texnologiya">Texnologiya</button>
-      <button class="category-chip" data-cat="bookmarks">📌 Saqlanganlar</button>
-    </nav>
+    <!-- Active Filter Indicator (Only shown when viewing bookmarks) -->
+    <div class="filter-indicator" id="filterIndicator">
+      <span>📌 Saqlangan yangiliklar</span>
+      <button class="btn-close-filter" id="btnCloseFilter">Barchasiga qaytish ✕</button>
+    </div>
 
     <!-- News Feed -->
     <main class="news-feed" id="newsFeed">
@@ -895,7 +895,7 @@
         </div>
       </div>
       <div class="modal-body font-normal" id="modalBody">
-        <h2 id="modalTitle" style="font-size: 20px; font-weight: 800; line-height: 1.3;"></h2>
+        <h2 id="modalTitle" style="font-size: 20px; font-weight: 800; line-height: 1.35; color: #0f172a;"></h2>
         <div id="modalMedia"></div>
         <div class="modal-full-text" id="modalText"></div>
       </div>
@@ -928,7 +928,7 @@
     if (tg) {
       tg.ready();
       tg.expand();
-      try { tg.headerColor = '#0b0e14'; } catch (_) {}
+      try { tg.headerColor = '#ffffff'; tg.backgroundColor = '#f8fafc'; } catch (_) {}
     }
 
     function haptic(type = 'light') {
@@ -938,7 +938,7 @@
     // State
     let currentPosts = [];
     let nextBeforeId = null;
-    let currentCategory = '';
+    let isShowingBookmarks = false;
     let searchQuery = '';
     let activeModalPost = null;
     let isLoading = false;
@@ -948,11 +948,11 @@
     const newsFeed = document.getElementById('newsFeed');
     const loadMoreWrap = document.getElementById('loadMoreWrap');
     const btnLoadMore = document.getElementById('btnLoadMore');
-    const btnRefresh = document.getElementById('btnRefresh');
     const btnBookmarks = document.getElementById('btnBookmarks');
+    const filterIndicator = document.getElementById('filterIndicator');
+    const btnCloseFilter = document.getElementById('btnCloseFilter');
     const searchInput = document.getElementById('searchInput');
     const searchClear = document.getElementById('searchClear');
-    const categoriesBar = document.getElementById('categoriesBar');
     const newsModal = document.getElementById('newsModal');
     const modalClose = document.getElementById('modalClose');
     const modalTitle = document.getElementById('modalTitle');
@@ -972,17 +972,6 @@
       setTimeout(() => toastMsg.classList.remove('show'), 2200);
     }
 
-    function getCatClass(cat) {
-      const lower = (cat || '').toLowerCase();
-      if (lower.includes('tezkor')) return 'cat-tezkor';
-      if (lower.includes('dunyo')) return 'cat-dunyo';
-      if (lower.includes('jamiyat')) return 'cat-jamiyat';
-      if (lower.includes('iqtisod')) return 'cat-iqtisod';
-      if (lower.includes('sport')) return 'cat-sport';
-      if (lower.includes('texno')) return 'cat-texno';
-      return '';
-    }
-
     function renderFeed(posts, append = false) {
       if (!append) {
         newsFeed.innerHTML = '';
@@ -996,7 +985,7 @@
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            <p>Yangiliklar topilmadi.</p>
+            <p>${isShowingBookmarks ? "Saqlangan yangiliklar mavjud emas." : "Yangiliklar topilmadi."}</p>
           </div>
         `;
         loadMoreWrap.style.display = 'none';
@@ -1042,7 +1031,7 @@
         card.innerHTML = `
           <div class="card-meta">
             <div class="meta-left">
-              <span class="cat-tag ${getCatClass(post.category)}">${escapeHtml(post.category || 'Yangilik')}</span>
+              <span class="source-tag">Tezkor</span>
               <span class="time-stamp">${escapeHtml(post.timeFormatted || '')}</span>
             </div>
             <div class="views-count">
@@ -1088,27 +1077,26 @@
         newsFeed.appendChild(card);
       });
 
-      loadMoreWrap.style.display = nextBeforeId ? 'block' : 'none';
+      loadMoreWrap.style.display = (!isShowingBookmarks && nextBeforeId) ? 'block' : 'none';
     }
 
     async function loadNews({ before = null, force = false, append = false } = {}) {
       if (isLoading) return;
       isLoading = true;
 
-      if (!append) {
-        btnRefresh.classList.add('spinning');
-      }
-
       try {
-        if (currentCategory === 'bookmarks') {
+        if (isShowingBookmarks) {
           currentPosts = savedBookmarks;
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            currentPosts = currentPosts.filter(p => (p.title + ' ' + p.text).toLowerCase().includes(q));
+          }
           renderFeed(currentPosts, false);
           return;
         }
 
         const params = new URLSearchParams();
         if (before) params.set('before', before);
-        if (currentCategory && currentCategory !== 'Barchasi') params.set('category', currentCategory);
         if (searchQuery) params.set('q', searchQuery);
         if (force) params.set('refresh', '1');
 
@@ -1146,7 +1134,6 @@
         }
       } finally {
         isLoading = false;
-        btnRefresh.classList.remove('spinning');
       }
     }
 
@@ -1158,7 +1145,7 @@
 
       modalTitle.textContent = post.title;
       modalMeta.innerHTML = `
-        <span class="cat-tag ${getCatClass(post.category)}">${escapeHtml(post.category || '')}</span>
+        <span class="source-tag">Tezkor</span>
         <span class="time-stamp">${escapeHtml(post.timeFormatted || '')}</span>
         <span class="views-count">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -1259,7 +1246,7 @@
 
       localStorage.setItem('ntv_saved_news', JSON.stringify(savedBookmarks));
 
-      if (currentCategory === 'bookmarks') {
+      if (isShowingBookmarks) {
         renderFeed(savedBookmarks);
       } else {
         renderFeed(currentPosts);
@@ -1293,36 +1280,20 @@
       }
     };
 
-    // Category chips
-    categoriesBar.addEventListener('click', (e) => {
-      const chip = e.target.closest('.category-chip');
-      if (!chip) return;
-      haptic('light');
-
-      document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-
-      currentCategory = chip.getAttribute('data-cat') || '';
-      btnBookmarks.classList.toggle('is-active', currentCategory === 'bookmarks');
-
-      nextBeforeId = null;
-      loadNews({ force: false });
-    });
-
+    // Bookmarks toggle
     btnBookmarks.onclick = () => {
       haptic('light');
-      const isCurrentlyBookmarks = currentCategory === 'bookmarks';
-      document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+      isShowingBookmarks = !isShowingBookmarks;
+      btnBookmarks.classList.toggle('is-active', isShowingBookmarks);
+      filterIndicator.classList.toggle('active', isShowingBookmarks);
+      nextBeforeId = null;
+      loadNews();
+    };
 
-      if (isCurrentlyBookmarks) {
-        currentCategory = '';
-        document.querySelector('.category-chip[data-cat=""]').classList.add('active');
-        btnBookmarks.classList.remove('is-active');
-      } else {
-        currentCategory = 'bookmarks';
-        document.querySelector('.category-chip[data-cat="bookmarks"]').classList.add('active');
-        btnBookmarks.classList.add('is-active');
-      }
+    btnCloseFilter.onclick = () => {
+      isShowingBookmarks = false;
+      btnBookmarks.classList.remove('is-active');
+      filterIndicator.classList.remove('active');
       nextBeforeId = null;
       loadNews();
     };
@@ -1347,15 +1318,8 @@
       loadNews();
     };
 
-    // Buttons
-    btnRefresh.onclick = () => {
-      haptic('medium');
-      nextBeforeId = null;
-      loadNews({ force: true });
-    };
-
     btnLoadMore.onclick = () => {
-      if (nextBeforeId) {
+      if (nextBeforeId && !isShowingBookmarks) {
         haptic('light');
         loadNews({ before: nextBeforeId, append: true });
       }
@@ -1372,7 +1336,7 @@
 
     // Infinite scroll listener
     window.addEventListener('scroll', () => {
-      if (isLoading || !nextBeforeId) return;
+      if (isLoading || !nextBeforeId || isShowingBookmarks) return;
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 400) {
         loadNews({ before: nextBeforeId, append: true });
       }
