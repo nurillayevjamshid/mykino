@@ -260,7 +260,7 @@
     showMusicState("loading");
     let seed = [];
     try {
-      const res = await fetch("/api/music", { cache: "no-store" });
+      const res = await fetch("/api/music");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       seed = Array.isArray(json.tracks) ? json.tracks : [];
@@ -346,7 +346,7 @@
 
   async function fetchMusicArtists() {
     try {
-      const res = await fetch("/api/music?resource=artists", { cache: "no-store" });
+      const res = await fetch("/api/music?resource=artists");
       if (!res.ok) return;
       const json = await res.json();
       musicArtistsData = Array.isArray(json.artists) ? json.artists : [];

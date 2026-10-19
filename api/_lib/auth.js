@@ -237,7 +237,25 @@ async function applyRateLimit(request, response, options = {}) {
   const max = Number(options.max || (request.method === "GET" ? DEFAULT_MAX_REQUESTS : 40));
   const windowMs = Number(options.windowMs || DEFAULT_WINDOW_MS);
 
-  // Check rate limit for IP
+  // 1. If user is an authenticated Telegram Mini App user, rate-limit by their individual User ID.
+  // This completely prevents innocent users from being blocked when sharing Carrier-Grade NAT (CGNAT) IPs
+  // on mobile networks (Beeline, Ucell, Mobiuz, Uztelecom).
+  if (userId) {
+    const userCheck = await checkRateLimitAsync({ userId, max, windowMs });
+    setRateLimitHeaders(response, userCheck);
+    if (!userCheck.allowed) {
+      response.status(429).json({
+        ok: false,
+        code: "TOO_MANY_REQUESTS",
+        error: "Foydalanuvchi hisobidan juda ko'p so'rov yuborildi. Iltimos biroz kuting.",
+        retryAfter: userCheck.retryAfter,
+      });
+      return false;
+    }
+    return true;
+  }
+
+  // 2. Unauthenticated / Anonymous requests are rate-limited by IP
   const ipCheck = await checkRateLimitAsync({ ip: clientIp, max, windowMs });
   setRateLimitHeaders(response, ipCheck);
 
@@ -249,21 +267,6 @@ async function applyRateLimit(request, response, options = {}) {
       retryAfter: ipCheck.retryAfter,
     });
     return false;
-  }
-
-  // If user is authenticated, check rate limit for User ID too
-  if (userId) {
-    const userCheck = await checkRateLimitAsync({ userId, max, windowMs });
-    if (!userCheck.allowed) {
-      setRateLimitHeaders(response, userCheck);
-      response.status(429).json({
-        ok: false,
-        code: "TOO_MANY_REQUESTS",
-        error: "Foydalanuvchi hisobidan juda ko'p so'rov yuborildi. Iltimos biroz kuting.",
-        retryAfter: userCheck.retryAfter,
-      });
-      return false;
-    }
   }
 
   return true;

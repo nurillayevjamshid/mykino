@@ -339,8 +339,23 @@ async function upsertUserR2(record) {
   }
 }
 
+const recentUserSync = new Map();
+
 async function upsertUser(telegramUser) {
   if (!telegramUser?.id) return;
+  const userIdStr = String(telegramUser.id);
+  const now = Date.now();
+  const lastSync = recentUserSync.get(userIdStr);
+  if (lastSync && (now - lastSync) < 60000) {
+    // 60 soniya ichida qayta yozishni to'xtatish (10,000 parallel /start burst protection)
+    return;
+  }
+  recentUserSync.set(userIdStr, now);
+  if (recentUserSync.size > 10000) {
+    const oldestKey = recentUserSync.keys().next().value;
+    recentUserSync.delete(oldestKey);
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const nowIso = new Date().toISOString();
   const record = {
@@ -499,6 +514,13 @@ module.exports = async function handler(request, response) {
       await handleMessage(update.message);
     } else if (update.callback_query) {
       await handleCallback(update.callback_query);
+    } else if (update.channel_post || update.edited_channel_post) {
+      try {
+        const { ingestWebhookPost } = require("./_lib/news-service");
+        ingestWebhookPost(update.channel_post || update.edited_channel_post);
+      } catch (ingestErr) {
+        console.error("Webhook channel post ingestion error:", ingestErr);
+      }
     }
 
     response.status(200).json({ ok: true });
