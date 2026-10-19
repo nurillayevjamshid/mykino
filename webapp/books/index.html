@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Telegram safe-area & platform detection -->
+  <!-- Telegram safe-area & platform detection with vertical swipe disabled for smooth scrolling -->
   <script>
     try {
       var ua = navigator.userAgent || "";
@@ -21,7 +21,6 @@
       if (tgPlat === "android" || (/Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua))) {
         document.documentElement.classList.add("is-android");
       }
-      var isDesktop = tgPlat === "tdesktop" || tgPlat === "macos" || tgPlat === "weba" || tgPlat === "webk" || !/Android|iPhone|iPad|iPod/i.test(ua);
 
       var applyTgInsets = function() {
         if (!tgApp) return;
@@ -48,6 +47,9 @@
       if (tgApp) {
         try { tgApp.ready(); } catch (_) {}
         try { tgApp.expand(); } catch (_) {}
+        if (typeof tgApp.disableVerticalSwipes === "function") {
+          try { tgApp.disableVerticalSwipes(); } catch (_) {}
+        }
         if (typeof tgApp.requestFullscreen === "function" && !tgApp.isFullscreen) {
           try { tgApp.requestFullscreen(); } catch (_) {}
         }
@@ -69,7 +71,7 @@
     } catch (_) {}
   </script>
   <link rel="stylesheet" href="/static/glass-theme.css?v=20261019-instant-click-v1" />
-  <link rel="stylesheet" href="/books/books.css?v=20261019-v2" />
+  <link rel="stylesheet" href="/books/books.css?v=20261019-v3" />
 </head>
 
 <body>
@@ -142,6 +144,7 @@
       <button type="button" class="genre-pill" data-filter="Hikoya" role="tab">Hikoyalar</button>
       <button type="button" class="genre-pill" data-filter="Roman" role="tab">Romanlar</button>
       <button type="button" class="genre-pill" data-filter="Qissa" role="tab">Qissalar</button>
+      <button type="button" class="genre-pill" data-filter="Drama" role="tab">Dramalar</button>
       <button type="button" class="genre-pill" data-filter="saqlanganlar" role="tab">Saqlanganlar</button>
     </div>
 
@@ -157,7 +160,7 @@
     </main>
   </div>
 
-  <!-- Sidebar Navigation (Exact visual match with main NTV mini app) -->
+  <!-- Sidebar Navigation (Exact Visual Match with Main NTV Mini App) -->
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
   <aside class="sidebar" id="booksSidebar" aria-label="Asosiy menyu" aria-hidden="true">
     <div class="sidebar__head">
@@ -284,7 +287,7 @@
     </div>
   </aside>
 
-  <!-- Audiobook Detail Modal -->
+  <!-- Complete In-App Audiobook Player Modal (Bottom Sheet) -->
   <div class="modal-backdrop" id="modalBackdrop"></div>
   <div class="book-modal" id="bookModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-grabber"></div>
@@ -306,7 +309,8 @@
     </div>
 
     <div class="modal-body">
-      <div class="modal-cover-wrap">
+      <!-- Big Square Cover Art -->
+      <div class="modal-cover-wrap" id="modalCoverWrap">
         <img class="modal-cover-image" id="modalCoverImg" src="" alt="Muqova" hidden />
         <div class="modal-cover-fallback" id="modalCoverFallback">📖</div>
       </div>
@@ -314,7 +318,7 @@
       <h2 class="modal-book-title" id="modalTitle">Nomi</h2>
       <div class="modal-book-author" id="modalAuthor">Muallif</div>
 
-      <!-- 6-Field Metadata Badges Grid -->
+      <!-- 4 Metadata Chips: Janr, O'qigan inson, Hajmi, Vaqti -->
       <div class="modal-meta-grid">
         <div class="meta-chip">
           <div class="meta-chip-label">Janr</div>
@@ -334,49 +338,109 @@
         </div>
       </div>
 
+      <!-- Complete In-App Player Scrubber & Time -->
+      <div class="modal-player-box">
+        <div class="player-scrubber-wrap">
+          <input type="range" class="scrubber-slider" id="playerScrubber" min="0" max="100" value="0" step="0.1" aria-label="Ijro joyi" />
+          <div class="player-time-row">
+            <span id="playerCurrentTime">0:00</span>
+            <span id="playerDurationTime">14:00</span>
+          </div>
+        </div>
+
+        <!-- In-App Playback Controls -->
+        <div class="player-controls-row">
+          <button type="button" class="btn-ctrl" id="btnPrevBook" title="Oldingi kitob" aria-label="Oldingi">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+            </svg>
+          </button>
+
+          <button type="button" class="btn-ctrl" id="btnRewind" title="-15 sekund" aria-label="Orqaga 15 sekund">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"></path>
+            </svg>
+            <span class="ctrl-subtext">15</span>
+          </button>
+
+          <!-- Big In-App Play / Pause Button -->
+          <button type="button" class="btn-ctrl btn-ctrl-main" id="modalPlayBtn" title="Ijro / To'xtatish" aria-label="Ijro">
+            <svg class="icon-play" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+              <polygon points="6 3 20 12 6 21 6 3"></polygon>
+            </svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" width="28" height="28" fill="currentColor" hidden>
+              <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+              <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+            </svg>
+          </button>
+
+          <button type="button" class="btn-ctrl" id="btnForward" title="+15 sekund" aria-label="Oldinga 15 sekund">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 17l5-5-5-5M6 17l5-5-5-5"></path>
+            </svg>
+            <span class="ctrl-subtext">15</span>
+          </button>
+
+          <button type="button" class="btn-ctrl" id="btnNextBook" title="Keyingi kitob" aria-label="Keyingi">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Secondary Controls: Speed & Watermark/Bookmark -->
+        <div class="player-secondary-row">
+          <button type="button" class="btn-speed-toggle" id="btnSpeedToggle" title="Ijro tezligi">
+            <span id="speedLabel">1.0x</span>
+          </button>
+
+          <button type="button" class="btn-modal-bookmark" id="modalBookmarkBtn" aria-label="Saqlash" title="Saqlash">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+            </svg>
+            <span class="bookmark-text" id="modalBookmarkText">Saqlash</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Description Excerpt from Channel Post -->
       <div class="modal-desc-box" id="modalDescBox" hidden>
         <p class="modal-desc-text" id="modalDescText"></p>
       </div>
-
-      <!-- Direct Real Audio Action Button (Opens exact Telegram audio post) -->
-      <div class="modal-actions">
-        <button type="button" class="btn-primary-listen" id="modalListenTgBtn">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-          </svg>
-          <span>Telegramda tinglash (Real Audio)</span>
-        </button>
-
-        <button type="button" class="btn-bookmark-action" id="modalBookmarkBtn" aria-label="Saqlash" title="Saqlash">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
-          </svg>
-        </button>
-      </div>
-
-      <div class="modal-notice">
-        <span>Audio to'g'ridan-to'g'ri rasmiy Telegram kanalidan o'ynatiladi.</span>
-      </div>
     </div>
   </div>
 
-  <!-- Sticky Bottom Quick Bar / Mini Player -->
-  <div class="mini-player-bar" id="miniPlayer" role="region" aria-label="Tanlangan audio kitob">
+  <!-- Sticky Bottom In-App Mini Player -->
+  <div class="mini-player-bar" id="miniPlayer" role="region" aria-label="Mini pleyer">
+    <!-- Progress Line along top of mini-player -->
+    <div class="mini-progress-track">
+      <div class="mini-progress-bar" id="miniProgressBar"></div>
+    </div>
+
     <div class="mini-cover" id="miniCover">📖</div>
-    <div class="mini-info">
+    <div class="mini-info" id="miniInfoWrap">
       <div class="mini-title" id="miniTitle">Audio kitob</div>
       <div class="mini-author" id="miniAuthor">Muallif</div>
     </div>
-    <button type="button" class="mini-listen-btn" id="miniListenBtn" aria-label="Telegramda tinglash">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-        <polygon points="6 3 20 12 6 21 6 3"></polygon>
-      </svg>
-      <span>Tinglash</span>
-    </button>
+
+    <div class="mini-controls">
+      <!-- Toggle Play/Pause directly in mini app -->
+      <button type="button" class="mini-play-btn" id="miniPlayBtn" aria-label="Ijro / Pauza">
+        <svg class="mini-icon-play" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <polygon points="6 3 20 12 6 21 6 3"></polygon>
+        </svg>
+        <svg class="mini-icon-pause" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" hidden>
+          <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+          <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+        </svg>
+      </button>
+    </div>
   </div>
 
-  <script src="/books/books.js?v=20261019-v2"></script>
+  <!-- Hidden In-App HTML5 Audio Element for zero-delay native playback -->
+  <audio id="inAppAudio" preload="auto" playsinline webkit-playsinline></audio>
+
+  <script src="/books/books.js?v=20261019-v3"></script>
 </body>
 
 </html>

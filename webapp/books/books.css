@@ -26,8 +26,20 @@
   padding: 0;
 }
 
-html, body {
-  min-height: 100%;
+/* ==========================================================================
+   Smooth Vertical Scrolling Engine (Prevents WebView / TG Swipe Hijack)
+   ========================================================================== */
+html {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+body {
+  min-height: 100vh !important;
+  min-height: -webkit-fill-available !important;
   background:
     radial-gradient(70vw 46vw at 8% 4%, rgba(56, 189, 248, 0.10), transparent 64%),
     radial-gradient(55vw 42vw at 93% 14%, rgba(168, 85, 247, 0.08), transparent 64%),
@@ -37,10 +49,11 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-}
-
-body {
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  position: relative;
   padding-top: max(
     calc(var(--tg-content-safe-area-inset-top, 0px) + 14px),
     calc(var(--app-safe-top, 0px) + 14px),
@@ -49,7 +62,13 @@ body {
   );
   padding-left: 14px;
   padding-right: 14px;
-  padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 84px), 100px);
+  padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 94px), 110px);
+}
+
+body.modal-open,
+body.sidebar-open {
+  overflow: hidden !important;
+  touch-action: none;
 }
 
 /* Telegram Native Header Spacer (Protects TG Close and 3-dots native controls) */
@@ -63,6 +82,8 @@ body {
 .books-app {
   max-width: 680px;
   margin: 0 auto;
+  position: relative;
+  width: 100%;
 }
 
 /* ==========================================================================
@@ -545,6 +566,13 @@ body {
 .sidebar-backdrop.is-open {
   opacity: 1;
   pointer-events: auto;
+  display: block !important;
+}
+
+.sidebar-backdrop:not(.is-open) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .sidebar {
@@ -568,6 +596,15 @@ body {
 
 .sidebar.is-open {
   transform: translateX(0);
+  display: flex !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.sidebar:not(.is-open) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .sidebar__head {
@@ -603,6 +640,7 @@ body {
   gap: 5px;
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sidebar__item {
@@ -739,7 +777,7 @@ body {
 }
 
 /* ==========================================================================
-   Audiobook Detail Modal (Bottom Sheet)
+   Complete In-App Audiobook Player Modal (Bottom Sheet)
    ========================================================================== */
 .modal-backdrop {
   position: fixed;
@@ -756,6 +794,13 @@ body {
 .modal-backdrop.is-open {
   opacity: 1;
   pointer-events: auto;
+  display: block !important;
+}
+
+.modal-backdrop:not(.is-open) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .book-modal {
@@ -775,10 +820,20 @@ body {
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
   max-height: 88vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .book-modal.is-open {
   transform: translateY(0);
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.book-modal:not(.is-open) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .modal-grabber {
@@ -895,6 +950,199 @@ body {
   color: #ffffff;
 }
 
+/* ==========================================================================
+   In-App Audiobook Player Box (Scrubber, Controls, Speeds)
+   ========================================================================== */
+.modal-player-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 18px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.player-scrubber-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.scrubber-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.scrubber-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #9deaff;
+  box-shadow: 0 0 10px rgba(157, 234, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.scrubber-slider::-webkit-slider-thumb:active {
+  transform: scale(1.25);
+}
+
+.scrubber-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: #9deaff;
+  box-shadow: 0 0 10px rgba(157, 234, 255, 0.8);
+  cursor: pointer;
+}
+
+.player-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--books-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  padding: 0 2px;
+}
+
+.player-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.btn-ctrl {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-ctrl:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.btn-ctrl .ctrl-subtext {
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  margin-top: -3px;
+  color: #9deaff;
+}
+
+.btn-ctrl-main {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: 1px solid rgba(157, 234, 255, 0.45);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.45);
+  color: #ffffff;
+}
+
+.btn-ctrl-main:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+}
+
+.btn-ctrl-main svg {
+  margin-left: 2px;
+}
+
+.btn-ctrl-main.is-playing svg.icon-play {
+  display: none !important;
+}
+
+.btn-ctrl-main.is-playing svg.icon-pause {
+  display: block !important;
+  margin-left: 0;
+}
+
+.player-secondary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-speed-toggle {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 6px 14px;
+  color: #9deaff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.18s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-speed-toggle:active {
+  transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.btn-modal-bookmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 6px 14px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-modal-bookmark:active {
+  transform: scale(0.94);
+}
+
+.btn-modal-bookmark.is-saved {
+  background: rgba(245, 158, 11, 0.20);
+  border-color: rgba(245, 158, 11, 0.40);
+  color: #f59e0b;
+}
+
+.btn-modal-bookmark.is-saved svg {
+  fill: currentColor;
+}
+
 .modal-desc-box {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -909,71 +1157,8 @@ body {
   color: #cbd5e1;
 }
 
-.modal-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.btn-primary-listen {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: linear-gradient(135deg, #229ed9 0%, #1e88e5 100%);
-  border: none;
-  border-radius: 14px;
-  height: 50px;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 18px rgba(34, 158, 217, 0.35);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.btn-primary-listen:active {
-  transform: scale(0.97);
-  box-shadow: 0 2px 10px rgba(34, 158, 217, 0.25);
-}
-
-.btn-bookmark-action {
-  width: 50px;
-  height: 50px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.btn-bookmark-action:active {
-  transform: scale(0.93);
-}
-
-.btn-bookmark-action.is-saved {
-  background: rgba(245, 158, 11, 0.22);
-  border-color: rgba(245, 158, 11, 0.45);
-  color: #f59e0b;
-}
-
-.modal-notice {
-  text-align: center;
-  font-size: 12px;
-  color: var(--books-dim);
-}
-
 /* ==========================================================================
-   Sticky Bottom Quick Bar / Mini Player
+   Sticky Bottom In-App Mini Player
    ========================================================================== */
 .mini-player-bar {
   position: fixed;
@@ -983,27 +1168,46 @@ body {
   max-width: 652px;
   margin: 0 auto;
   background: linear-gradient(135deg, rgba(23, 37, 60, 0.96), rgba(11, 18, 31, 0.94));
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 16px;
   padding: 8px 12px;
   display: none;
   align-items: center;
   gap: 12px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
   z-index: 990;
   cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mini-player-bar.is-visible {
-  display: flex;
+  display: flex !important;
+}
+
+/* Progress track along very top edge of mini player */
+.mini-progress-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mini-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2563eb, #9deaff);
+  transition: width 0.15s linear;
 }
 
 .mini-cover {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
   background: #1e293b;
   display: flex;
   align-items: center;
@@ -1024,6 +1228,9 @@ body {
 .mini-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .mini-title {
@@ -1043,19 +1250,32 @@ body {
   text-overflow: ellipsis;
 }
 
-.mini-listen-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #229ed9 0%, #1e88e5 100%);
-  border: none;
+.mini-play-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border: 1px solid rgba(157, 234, 255, 0.4);
   color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
+  transition: transform 0.18s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mini-play-btn:active {
+  transform: scale(0.92);
+}
+
+.mini-play-btn.is-playing .mini-icon-play {
+  display: none !important;
+}
+
+.mini-play-btn.is-playing .mini-icon-pause {
+  display: block !important;
 }
 
 /* ==========================================================================
@@ -1063,7 +1283,7 @@ body {
    ========================================================================== */
 @media (max-width: 420px) {
   .chart-duration {
-    margin-right: 80px !important; /* STRICTLY KEEP 80px */
+    margin-right: 80px !important; /* STRICTLY KEEP 80px BEFORE WATERMARK */
     font-size: 12px;
   }
 
