@@ -8742,6 +8742,7 @@ function showSectionSplash(sectionKey) {
 }
 
 function hideSectionSplash(immediate = false) {
+  try { document.documentElement.classList.remove("skip-entrance-splash"); } catch (_) {}
   const el = document.getElementById("sectionSplash");
   if (!el || el.hidden) return;
   clearTimeout(sectionSplashTimer);
@@ -10831,8 +10832,55 @@ function hideSplashNow() {
   }, 500);
 }
 
-// Splash: qat'iy 3 soniya (3000ms) har doim chiqadigan qilingan
+// Splash: qat'iy 3 soniya (3000ms) har doim chiqadigan qilingan (boshida kirganda)
+// Agar bo'limlar orasida (masalan, yangiliklardan nazad orqali) o'tilayotgan bo'lsa,
+// kirish animatsiyasi emas, balki bo'limlar orasidagi animatsiya (sectionSplash) ishlatiladi!
 function initSplashScreen() {
+  const isFromSection = (function() {
+    try {
+      if (pageParams.has("from") || pageParams.has("section_splash")) return true;
+      const s = sessionStorage.getItem("ntv_section_splash");
+      if (s) {
+        sessionStorage.removeItem("ntv_section_splash");
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  })();
+
+  if (isFromSection) {
+    try {
+      if (window.history && window.history.replaceState) {
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete("from");
+        cleanUrl.searchParams.delete("section_splash");
+        window.history.replaceState({}, "", cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      }
+    } catch (_) {}
+
+    splashAlreadyHidden = true;
+    splashHideRequested = true;
+    const splashScreen = document.getElementById("splashScreen");
+    if (splashScreen) {
+      splashScreen.style.display = "none";
+      splashScreen.classList.add("hidden");
+    }
+    const appShell = document.getElementById("appShell");
+    if (appShell) {
+      appShell.style.opacity = "1";
+      appShell.style.pointerEvents = "auto";
+    }
+
+    showSectionSplash("kino");
+
+    const tryHide = () => {
+      hideSectionSplash();
+    };
+
+    setTimeout(tryHide, 1200);
+    return { tryHide };
+  }
+
   const DURATION_MS = 3000;
   const startedAt = Date.now();
 

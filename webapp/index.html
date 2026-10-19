@@ -93,6 +93,30 @@
   <!-- Bot username'i yagona joydan boshqariladi: botni almashtirganda faqat shu
        qatorni o'zgartiring (kino.js, fifa.js, potcasts.js shu qiymatni o'qiydi). -->
   <script>window.MYKINO_BOT_USERNAME = "myntv_bot";</script>
+  <script>
+    (function() {
+      try {
+        var p = new URLSearchParams(window.location.search);
+        var fromSection = p.has("from") || p.has("section_splash") || (function() {
+          try {
+            var s = sessionStorage.getItem("ntv_section_splash");
+            return Boolean(s);
+          } catch (_) { return false; }
+        })();
+        if (fromSection) {
+          document.documentElement.classList.add("skip-entrance-splash");
+        }
+      } catch (_) {}
+    })();
+  </script>
+  <style>
+    html.skip-entrance-splash #splashScreen {
+      display: none !important;
+    }
+    html.skip-entrance-splash #sectionSplash:not(.is-hiding) {
+      display: flex !important;
+    }
+  </style>
   <link rel="stylesheet" href="/static/glass-theme.css?v=20261019-instant-click-v1" />
 </head>
 
@@ -147,7 +171,9 @@
   <div id="sectionSplash" class="section-splash" hidden aria-hidden="true">
     <div class="section-splash__spinner" id="sectionSplashSpinner" aria-hidden="true"></div>
     <div class="section-splash__brand">
-      <span class="section-splash__logo" id="sectionSplashLogo" aria-hidden="true"></span>
+      <span class="section-splash__logo" id="sectionSplashLogo" aria-hidden="true">
+        <svg viewBox="0 0 32 32" class="brand-logo__svg" aria-hidden="true"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg>
+      </span>
       <span class="section-splash__name">
         <span>NTV</span>
       </span>
