@@ -293,6 +293,7 @@ const copy = {
     all: "Barchasi",
     homeNav: "Kino",
     musicNav: "Musiqa",
+    newsNav: "Yangiliklar",
     top: "Top",
     premium: "Premium",
     search: "Qidirish",
@@ -435,6 +436,7 @@ const copy = {
     all: "Все",
     homeNav: "Kino",
     musicNav: "Музыка",
+    newsNav: "Новости",
     top: "Топ",
     premium: "Премиум",
     search: "Поиск",
@@ -577,6 +579,7 @@ const copy = {
     all: "All",
     homeNav: "Kino",
     musicNav: "Music",
+    newsNav: "News",
     top: "Top",
     premium: "Premium",
     search: "Search",
@@ -720,6 +723,7 @@ const copy = {
 const fallbackCopy = {
   homeNav: "Kino",
   musicNav: "Musiqa",
+  newsNav: "Yangiliklar",
   loadingTitle: "Kinolar yuklanmoqda...",
   loadingText: "Katalog tayyorlanmoqda.",
   loadErrorTitle: "Katalog yuklanmadi",
@@ -8410,6 +8414,7 @@ if (requestedSection) {
     if (requestedSection === 'music') openMusicView();
     else if (requestedSection === 'podcasts') openPodcastsView();
     else if (requestedSection === 'football' || requestedSection === 'fifa') openFifaView();
+    else if (requestedSection === 'news') window.location.replace('/news');
   }, 0);
 }
 
@@ -8445,6 +8450,7 @@ function syncSidebarSectionItems() {
     document.getElementById("sidebarFifaItem"),
     document.getElementById("sidebarMusicItem"),
     document.getElementById("sidebarPodcastsItem"),
+    document.getElementById("sidebarNewsItem"),
   ];
   if (!slots.some(Boolean)) return;
 
@@ -8491,6 +8497,17 @@ function syncSidebarSectionItems() {
       </svg>
       <span data-i18n="tvNav">${plainLabel(t("tvNav"))}</span>`,
     },
+    news: {
+      action: "news",
+      html: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path>
+        <path d="M18 14h-8"></path>
+        <path d="M15 18h-5"></path>
+        <path d="M10 6h8v4h-8V6Z"></path>
+      </svg>
+      <span data-i18n="newsNav">${plainLabel(t("newsNav"))}</span>`,
+    },
     esport: {
       action: "esport",
       html: `
@@ -8506,11 +8523,11 @@ function syncSidebarSectionItems() {
   };
 
   const ORDER = {
-    kino: ["fifa", "music", "podcasts"],
-    fifa: ["kino", "music", "podcasts"],
-    music: ["kino", "fifa", "podcasts"],
-    podcasts: ["kino", "fifa", "music"],
-    esport: ["kino", "fifa", "music"],
+    kino: ["fifa", "music", "podcasts", "news"],
+    fifa: ["kino", "music", "podcasts", "news"],
+    music: ["kino", "fifa", "podcasts", "news"],
+    podcasts: ["kino", "fifa", "music", "news"],
+    esport: ["kino", "fifa", "music", "news"],
   };
 
   ORDER[section].forEach((key, i) => {
@@ -8676,6 +8693,7 @@ const SECTION_SPLASH_ICONS = {
   fifa: `<img src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44" style="object-fit:contain;display:block;">`,
   esport: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M7 12h3"></path><path d="M8.5 10.5v3"></path><circle cx="16" cy="11" r="1"></circle><circle cx="18" cy="13.5" r="1"></circle></svg>`,
   tv: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="m8 2 4 4 4-4"></path></svg>`,
+  news: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>`,
 };
 
 const SECTION_SPLASH_COLORS = {
@@ -8685,6 +8703,7 @@ const SECTION_SPLASH_COLORS = {
   fifa: "#00b894",
   esport: "#00cec9",
   tv: "#e50914",
+  news: "#2563eb",
 };
 
 let sectionSplashTimer = null;
@@ -8859,6 +8878,12 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
         syncNavButtons();
       });
+      return;
+    }
+    if (action === "news") {
+      setSidebarOpen(false);
+      showSectionSplash("news");
+      window.location.href = "/news";
       return;
     }
     if (action === "music-playlists") {

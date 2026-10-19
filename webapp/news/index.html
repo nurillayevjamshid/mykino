@@ -1169,18 +1169,15 @@
       haptic('light');
       navDrawerOverlay.classList.add('active');
       document.body.style.overflow = 'hidden';
-      if (tg?.BackButton) {
-        tg.BackButton.show();
-        tg.BackButton.onClick(closeDrawer);
-      }
+      if (tg?.BackButton) tg.BackButton.show();
     }
 
     function closeDrawer() {
       navDrawerOverlay.classList.remove('active');
       if (!newsModal.classList.contains('active')) {
         document.body.style.overflow = '';
-        if (tg?.BackButton) tg.BackButton.hide();
       }
+      if (tg?.BackButton) tg.BackButton.show();
     }
 
     function renderFeed(posts, append = false) {
@@ -1384,7 +1381,6 @@
 
       if (tg?.BackButton) {
         tg.BackButton.show();
-        tg.BackButton.onClick(closeModal);
       }
     }
 
@@ -1394,8 +1390,8 @@
       if (v) { v.pause(); v.src = ''; }
       if (!navDrawerOverlay.classList.contains('active')) {
         document.body.style.overflow = '';
-        if (tg?.BackButton) tg.BackButton.hide();
       }
+      if (tg?.BackButton) tg.BackButton.show();
     }
 
     function linkifyText(text) {
@@ -1557,6 +1553,32 @@
 
     // Initial load
     loadNews();
+
+    // Native Telegram Back Button integration
+    function handleTgBack() {
+      if (newsModal && newsModal.classList.contains('active')) {
+        closeModal();
+        return;
+      }
+      if (navDrawerOverlay && navDrawerOverlay.classList.contains('active')) {
+        closeDrawer();
+        return;
+      }
+      if (isShowingBookmarks) {
+        btnCloseFilter?.click();
+        return;
+      }
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = '/';
+      }
+    }
+
+    if (tg?.BackButton) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(handleTgBack);
+    }
   </script>
 </body>
 </html>
