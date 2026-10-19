@@ -699,7 +699,7 @@
     } else if (elements.modalCoverFallback) {
       if (elements.modalCoverImg) elements.modalCoverImg.hidden = true;
       elements.modalCoverFallback.hidden = false;
-      elements.modalCoverFallback.style.background = book.coverGradient || "linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%)";
+      elements.modalCoverFallback.style.background = book.coverGradient || "linear-gradient(135deg, rgba(33,50,74,0.95), rgba(12,21,36,0.92))";
       elements.modalCoverFallback.textContent = getInitials(book.title);
     }
 
