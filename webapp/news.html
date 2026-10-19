@@ -934,13 +934,17 @@
             </div>
           `;
         } else if (post.videoUrl) {
+          const thumbHtml = post.videoThumb
+            ? `<img src="${post.videoThumb}" alt="${escapeHtml(post.title)}" loading="lazy">`
+            : `<video src="${post.videoUrl}#t=0.001" preload="metadata" playsinline muted style="width: 100%; max-height: 380px; object-fit: cover;"></video>`;
+
           mediaHtml = `
             <div class="card-media" onclick="openStoryModal(${post.id})">
-              <video src="${post.videoUrl}" preload="metadata" playsinline muted style="width: 100%; max-height: 360px; object-fit: cover;"></video>
+              ${thumbHtml}
               <div class="video-badge">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               </div>
-              ${post.videoDuration ? `<span class="video-duration">${post.videoDuration}</span>` : ''}
+              ${post.videoDuration ? `<span class="video-duration">${escapeHtml(post.videoDuration)}</span>` : ''}
             </div>
           `;
         }
@@ -1077,7 +1081,7 @@
           post.photos.map(p => `<img src="${p}" alt="${escapeHtml(post.title)}" loading="lazy">`).join('') +
           `</div>`;
       } else if (post.videoUrl) {
-        mediaHtml = `<div class="modal-video"><video src="${post.videoUrl}" controls playsinline autoplay muted></video></div>`;
+        mediaHtml = `<div class="modal-video"><video src="${post.videoUrl}" ${post.videoThumb ? `poster="${post.videoThumb}"` : ''} controls playsinline autoplay></video></div>`;
       }
       modalMedia.innerHTML = mediaHtml;
 

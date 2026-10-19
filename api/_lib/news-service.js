@@ -146,10 +146,10 @@ function parseMessageBlock(block) {
   const videoUrl = videoMatch ? videoMatch[1] : null;
 
   // Video thumbnail / duration
-  const videoThumbMatch = block.match(/tgme_widget_message_video_thumb[^"]*style="[^"]*background-image:url\('([^']+)'\)/);
+  const videoThumbMatch = block.match(/tgme_widget_message_video_thumb[\s\S]*?background-image:url\('([^']+)'\)/i);
   const videoThumb = videoThumbMatch ? videoThumbMatch[1] : null;
 
-  const videoDurationMatch = block.match(/<time class="message_video_duration"[^>]*>([^<]+)<\/time>/);
+  const videoDurationMatch = block.match(/message_video_duration[^>]*>([^<]+)<\/time>/i);
   const videoDuration = videoDurationMatch ? videoDurationMatch[1].trim() : null;
 
   // Link preview
