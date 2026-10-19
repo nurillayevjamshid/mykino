@@ -71,7 +71,7 @@
     } catch (_) {}
   </script>
   <link rel="stylesheet" href="/static/glass-theme.css?v=20261019-instant-click-v1" />
-  <link rel="stylesheet" href="/books/books.css?v=20261019-v4" />
+  <link rel="stylesheet" href="/books/books.css?v=20261019-v5" />
 </head>
 
 <body>
@@ -79,7 +79,7 @@
   <div class="tg-native-header-space" aria-hidden="true"></div>
 
   <div class="books-app">
-    <!-- Topbar: Left Hamburger, Center Audiobook Icon + NTV Logo, Right Watermark (Bookmark) -->
+    <!-- Topbar: Left Hamburger, Center Audiobook Icon + NTV, Right Saved + Search -->
     <header class="books-topbar">
       <button type="button" class="topbar-btn topbar-menu" id="booksMenuBtn" aria-label="Menyu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -89,46 +89,45 @@
         </svg>
       </button>
 
-      <div class="books-brand" aria-label="NTV Audio kitoblar">
-        <!-- Audiobook Headphones Icon before NTV logo as requested -->
-        <span class="audiobook-headphone-badge" aria-hidden="true">
+      <div class="brand brand--center brand--section books-brand" aria-label="NTV Audio kitoblar">
+        <span class="brand-section__icon books-section-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
             <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
-            <path d="M12 12v5"></path>
           </svg>
         </span>
-        <div class="brand-ntv-group">
-          <span class="brand-logo">
-            <svg viewBox="0 0 32 32" class="brand-logo__svg">
-              <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
-              <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
-            </svg>
-          </span>
-          <span class="brand-text">
-            <span class="brand-text__top">NTV</span>
-          </span>
-          <span class="brand-pill-tag">Audio kitob</span>
-        </div>
+        <span class="brand-text">
+          <span class="brand-text__top">NTV</span>
+        </span>
       </div>
 
-      <!-- Watermark / Bookmark Icon on right for saved audiobooks -->
-      <button type="button" class="topbar-btn topbar-bookmark" id="booksBookmarkBtn" aria-label="Saqlangan audio kitoblar" title="Saqlanganlar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
-        </svg>
-        <span class="bookmark-badge" id="bookmarkBadge" data-count="0"></span>
-      </button>
+      <div class="topbar-actions">
+        <!-- Watermark / Bookmark Icon on right for saved audiobooks -->
+        <button type="button" class="topbar-btn topbar-bookmark" id="booksBookmarkBtn" aria-label="Saqlangan audio kitoblar" title="Saqlanganlar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+          </svg>
+          <span class="bookmark-badge" id="bookmarkBadge" data-count="0"></span>
+        </button>
+
+        <!-- Search button added AFTER the saved icon -->
+        <button type="button" class="topbar-btn topbar-search-btn" id="booksSearchToggleBtn" aria-label="Qidirish" title="Qidirish">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </div>
     </header>
 
-    <!-- Search Box -->
-    <div class="books-search-wrap">
+    <!-- Search Box (Toggled via search button in topbar) -->
+    <div class="books-search-wrap" id="booksSearchWrap" hidden>
       <div class="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input type="search" id="booksSearchInput" class="search-input" placeholder="Audio kitob, muallif yoki suxandon..." autocomplete="off" />
+        <input type="search" id="booksSearchInput" class="search-input" placeholder="Audio kitob yoki muallif qidirish..." autocomplete="off" />
         <button type="button" class="search-clear-btn" id="booksSearchClearBtn" aria-label="Tozalash" hidden>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -445,7 +444,7 @@
 
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <script src="/books/books.js?v=20261019-v4"></script>
+  <script src="/books/books.js?v=20261019-v5"></script>
 </body>
 
 </html>

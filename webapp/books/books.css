@@ -103,7 +103,7 @@ body.sidebar-open {
   justify-content: center;
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: 50% !important;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #ffffff;
@@ -111,6 +111,7 @@ body.sidebar-open {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
 }
 
 .topbar-btn:active {
@@ -119,51 +120,37 @@ body.sidebar-open {
 }
 
 .topbar-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 
-.books-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  user-select: none;
-}
-
-.audiobook-headphone-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(34, 158, 217, 0.20));
-  border: 1px solid rgba(157, 234, 255, 0.32);
-  color: #9deaff;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
-}
-
-.audiobook-headphone-badge svg {
-  width: 19px;
-  height: 19px;
-}
-
-.brand-ntv-group {
+.topbar-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.brand-logo {
+.books-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.books-section-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #9deaff;
+  width: 24px;
+  height: 24px;
 }
 
-.brand-logo__svg {
-  width: 26px;
-  height: 26px;
+.books-section-icon svg {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 .brand-text__top {
@@ -173,27 +160,14 @@ body.sidebar-open {
   color: #ffffff;
 }
 
-.brand-pill-tag {
-  display: inline-block;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #9deaff;
-  background: rgba(157, 234, 255, 0.12);
-  border: 1px solid rgba(157, 234, 255, 0.22);
-  border-radius: 999px;
-}
-
 .topbar-bookmark {
   position: relative;
 }
 
 .bookmark-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -3px;
+  right: -3px;
   min-width: 18px;
   height: 18px;
   padding: 0 4px;
@@ -219,7 +193,12 @@ body.sidebar-open {
    Search Box
    ========================================================================== */
 .books-search-wrap {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  transition: all 0.25s ease;
+}
+
+.books-search-wrap[hidden] {
+  display: none !important;
 }
 
 .search-box {
@@ -228,8 +207,8 @@ body.sidebar-open {
   gap: 10px;
   background: rgba(255, 255, 255, 0.065);
   border: 1px solid var(--books-border);
-  border-radius: 14px;
-  padding: 0 14px;
+  border-radius: 999px !important;
+  padding: 0 16px;
   height: 46px;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -339,47 +318,32 @@ body.sidebar-open {
 }
 
 /* ==========================================================================
-   Spotify Charts Audiobooks List (#1..#N Style from Image 1)
+   Audiobooks List (Clean Stretched Rounded Cards)
    ========================================================================== */
 .books-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
 }
 
 .book-chart-row {
   display: flex;
   align-items: center;
-  gap: 12px;
   width: 100%;
 }
 
-/* Rank Number Badge on the Left, OUTSIDE the card (#1, #2...) */
-.chart-rank {
-  min-width: 34px;
-  text-align: center;
-  font-size: 17px;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-  flex-shrink: 0;
-  opacity: 0.95;
-}
-
-.chart-rank.is-top1 { color: #f59e0b; }
-.chart-rank.is-top2 { color: #94a3b8; }
-.chart-rank.is-top3 { color: #d97706; }
-
-/* Dark Rounded Container Card */
+/* Dark Rounded Container Card stretched full width */
 .chart-card {
+  width: 100%;
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
   background: var(--books-card-bg);
   border: 1px solid var(--books-border);
-  border-radius: 14px;
-  padding: 9px 12px;
+  border-radius: 20px !important;
+  padding: 10px 14px;
   cursor: pointer;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(12px);
@@ -398,49 +362,49 @@ body.sidebar-open {
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* Square Cover Artwork Thumbnail */
+/* Circular Cover Artwork inside the card */
 .chart-cover {
-  width: 48px;
-  height: 48px;
-  border-radius: 9px;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 50% !important;
   flex-shrink: 0;
-  margin-right: 12px;
+  margin-right: 14px;
   overflow: hidden;
   background: #1e293b;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 800;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   position: relative;
 }
 
 .chart-cover img {
   width: 100%;
   height: 100%;
+  border-radius: 50% !important;
   object-fit: cover;
   display: block;
 }
 
-/* Middle Info: Title and Author */
+/* Middle Info: Title and Author fully visible (no cutoff) */
 .chart-info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
+  padding-right: 8px;
 }
 
 .chart-title {
   font-size: 15px;
   font-weight: 700;
   color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal !important;
+  word-break: break-word;
+  line-height: 1.35;
   letter-spacing: -0.01em;
 }
 
@@ -448,20 +412,9 @@ body.sidebar-open {
   font-size: 13px;
   font-weight: 500;
   color: var(--books-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.chart-narrator-pill {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--books-dim);
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal !important;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 /* Right Side Actions Container */
@@ -481,32 +434,37 @@ body.sidebar-open {
   letter-spacing: -0.01em;
 }
 
-/* Watermark / Bookmark Icon button in list item */
+/* Watermark / Bookmark Icon button in list item - circular */
 .chart-bookmark-btn {
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--books-dim);
   cursor: pointer;
-  padding: 6px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 50% !important;
   transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
 }
 
 .chart-bookmark-btn svg {
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
 }
 
 .chart-bookmark-btn:hover {
   color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .chart-bookmark-btn.is-saved {
   color: var(--books-gold) !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
 }
 
 /* Next chevron icon ('>') following the watermark icon */
@@ -515,8 +473,8 @@ body.sidebar-open {
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.40);
-  margin-left: 2px;
-  padding: 4px;
+  margin-left: 6px;
+  padding: 2px;
 }
 
 .chart-next-icon svg {
@@ -1169,8 +1127,8 @@ body.sidebar-open {
   margin: 0 auto;
   background: linear-gradient(135deg, rgba(23, 37, 60, 0.96), rgba(11, 18, 31, 0.94));
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 16px;
-  padding: 8px 12px;
+  border-radius: 24px !important;
+  padding: 8px 14px;
   display: none;
   align-items: center;
   gap: 12px;
@@ -1205,9 +1163,10 @@ body.sidebar-open {
 }
 
 .mini-cover {
-  width: 42px;
-  height: 42px;
-  border-radius: 9px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50% !important;
   background: #1e293b;
   display: flex;
   align-items: center;
@@ -1217,12 +1176,15 @@ body.sidebar-open {
   font-weight: 800;
   flex-shrink: 0;
   overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .mini-cover img {
   width: 100%;
   height: 100%;
+  border-radius: 50% !important;
   object-fit: cover;
+  display: block;
 }
 
 .mini-info {
@@ -1251,9 +1213,9 @@ body.sidebar-open {
 }
 
 .mini-play-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50% !important;
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   border: 1px solid rgba(157, 234, 255, 0.4);
   color: #ffffff;

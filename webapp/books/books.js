@@ -49,6 +49,8 @@
 
     elements.menuBtn = document.getElementById("booksMenuBtn");
     elements.topbarBookmarkBtn = document.getElementById("booksBookmarkBtn");
+    elements.searchToggleBtn = document.getElementById("booksSearchToggleBtn");
+    elements.searchWrap = document.getElementById("booksSearchWrap");
     elements.bookmarkBadge = document.getElementById("bookmarkBadge");
 
     elements.sidebar = document.getElementById("booksSidebar");
@@ -537,7 +539,7 @@
     render();
   }
 
-  // Render Spotify Charts Audiobook List
+  // Render Audiobook List
   function render() {
     if (!elements.booksList) return;
 
@@ -569,38 +571,24 @@
     }
 
     elements.booksList.innerHTML = list
-      .map((book, index) => {
-        const rank = index + 1;
+      .map((book) => {
         const isSaved = state.savedIds.has(String(book.id));
-        const initials = getInitials(book.title);
-        const gradient = book.coverGradient || "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)";
-        const coverImg = book.coverImage
-          ? `<img src="${escapeHtml(book.coverImage)}" alt="${escapeHtml(book.title)}" loading="lazy" onerror="this.remove()" />`
-          : "";
-
-        const rankClass = rank === 1 ? "is-top1" : rank === 2 ? "is-top2" : rank === 3 ? "is-top3" : "";
-
-        // Format duration display
         const durationText = book.duration || `${book.minutes || 14} daqiqa`;
+        const coverSrc = "/books/cover.jpg";
 
         return `
           <div class="book-chart-row" data-id="${book.id}">
-            <!-- Rank Number Badge OUTSIDE the card -->
-            <div class="chart-rank ${rankClass}">#${rank}</div>
-
-            <!-- Dark Rounded Card Container (Click opens in-app player) -->
+            <!-- Dark Rounded Card Container stretched full width (Click opens in-app player) -->
             <div class="chart-card" data-action="play-in-app" data-id="${book.id}">
-              <!-- Square Cover Art -->
-              <div class="chart-cover" style="background: ${gradient};">
-                ${coverImg}
-                <span>${initials}</span>
+              <!-- Circular Cover Art -->
+              <div class="chart-cover">
+                <img src="${coverSrc}" alt="${escapeHtml(book.title)}" loading="lazy" onerror="this.src='/books/cover.jpg'" />
               </div>
 
-              <!-- Middle Info: Title and Author -->
+              <!-- Middle Info: Title and Author fully visible -->
               <div class="chart-info">
                 <div class="chart-title">${escapeHtml(book.title)}</div>
                 <div class="chart-author">${escapeHtml(book.author)}</div>
-                <div class="chart-narrator-pill">🎙️ ${escapeHtml(book.narrator)}</div>
               </div>
 
               <!-- Right Actions: Duration spaced EXACTLY 80px before Watermark Icon -->
@@ -707,8 +695,8 @@
     const book = state.currentBook;
     if (!book) return;
 
-    if (book.coverImage && elements.modalCoverImg) {
-      elements.modalCoverImg.src = book.coverImage;
+    if (elements.modalCoverImg) {
+      elements.modalCoverImg.src = "/books/cover.jpg";
       elements.modalCoverImg.hidden = false;
       if (elements.modalCoverFallback) elements.modalCoverFallback.hidden = true;
     } else if (elements.modalCoverFallback) {
@@ -755,12 +743,7 @@
 
     elements.miniPlayer.classList.add("is-visible");
     if (elements.miniCover) {
-      if (book.coverImage) {
-        elements.miniCover.innerHTML = `<img src="${escapeHtml(book.coverImage)}" alt="" />`;
-      } else {
-        elements.miniCover.style.background = book.coverGradient || "#2563eb";
-        elements.miniCover.textContent = getInitials(book.title);
-      }
+      elements.miniCover.innerHTML = `<img src="/books/cover.jpg" alt="" />`;
     }
     if (elements.miniTitle) elements.miniTitle.textContent = book.title;
     if (elements.miniAuthor) elements.miniAuthor.textContent = `${book.author} • ${book.duration || ""}`;
@@ -806,6 +789,23 @@
     elements.topbarBookmarkBtn?.addEventListener("click", () => {
       setFilter("saqlanganlar");
       window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // Topbar Search button (toggles search box)
+    elements.searchToggleBtn?.addEventListener("click", () => {
+      if (!elements.searchWrap) return;
+      const isHidden = elements.searchWrap.hidden;
+      elements.searchWrap.hidden = !isHidden;
+      if (elements.searchWrap.hidden) {
+        if (elements.searchInput && elements.searchInput.value) {
+          elements.searchInput.value = "";
+          state.searchQuery = "";
+          if (elements.searchClearBtn) elements.searchClearBtn.hidden = true;
+          render();
+        }
+      } else {
+        setTimeout(() => elements.searchInput?.focus(), 60);
+      }
     });
 
     // Sidebar Close
