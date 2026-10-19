@@ -491,6 +491,10 @@ async function handleCallback(callback) {
 
 module.exports = async function handler(request, response) {
   const reqUrl = request.url || "";
+  if (/[?&]_news=1(?:&|$)/.test(reqUrl) || reqUrl.startsWith("/api/news")) {
+    const newsHandler = require("./news");
+    return newsHandler(request, response);
+  }
   if (/[?&]action=feedback(?:&|$)/.test(reqUrl)) {
     return handleWebappFeedback(request, response);
   }

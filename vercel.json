@@ -68,7 +68,6 @@
     { "src": "api/drive-thumbnail.js", "use": "@vercel/node" },
     { "src": "api/story-card.js", "use": "@vercel/node" },
     { "src": "api/music-stream.js", "use": "@vercel/node" },
-    { "src": "api/news.js", "use": "@vercel/node" },
     { "src": "webapp/**", "use": "@vercel/static" }
   ],
   "routes": [
@@ -86,8 +85,8 @@
     { "src": "/api/podcasts", "dest": "/api/music.js?_podcasts=1" },
     { "src": "/api/music-playlists", "dest": "/api/music.js?_playlists=1" },
     { "src": "/api/categories", "dest": "/api/categories.js" },
-    { "src": "/api/news", "dest": "/api/news.js" },
-    { "src": "/api/news/(.*)", "dest": "/api/news.js?$1" },
+    { "src": "/api/news", "dest": "/api/telegram-webhook.js?_news=1" },
+    { "src": "/api/news/(.*)", "dest": "/api/telegram-webhook.js?_news=1&$1" },
     { "src": "/api/story-card", "dest": "/api/story-card.js" },
     { "src": "/api/settings", "dest": "/api/settings.js" },
     { "src": "/api/users", "dest": "/api/users.js" },
