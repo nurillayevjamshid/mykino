@@ -934,6 +934,77 @@
       margin-bottom: 12px;
       color: #cbd5e1;
     }
+
+    /* Floating Scroll-To-Top Button */
+    .scroll-top-btn {
+      position: fixed;
+      right: 18px;
+      bottom: max(calc(var(--safe-bottom) + 18px), 24px);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      color: #0f172a;
+      border: 1px solid rgba(203, 213, 225, 0.85);
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1200;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(16px) scale(0.85);
+      transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                  transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                  background-color 0.15s,
+                  border-color 0.15s,
+                  box-shadow 0.15s;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .scroll-top-btn.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    .scroll-top-btn:hover {
+      background: #ffffff;
+      color: var(--news-accent);
+      border-color: #93c5fd;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.2), 0 2px 8px rgba(15, 23, 42, 0.1);
+    }
+
+    .scroll-top-btn:active {
+      transform: translateY(0) scale(0.92);
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.16);
+    }
+
+    .scroll-top-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 2.6;
+      transition: transform 0.15s ease;
+    }
+
+    .scroll-top-btn:active svg {
+      transform: translateY(-1px);
+    }
+
+    /* Modallar yoki menyu ochilganda tugmani yashirish */
+    body.is-modal-open .scroll-top-btn,
+    body:has(#newsModal.active) .scroll-top-btn,
+    body:has(.sidebar.is-open) .scroll-top-btn,
+    body:has(.nav-drawer-overlay.active) .scroll-top-btn {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(16px) scale(0.85) !important;
+    }
   </style>
 </head>
 <body>
@@ -1125,6 +1196,14 @@
 
   <!-- Toast Notification -->
   <div class="toast-msg" id="toastMsg">Xabar saqlandi</div>
+
+  <!-- Floating Scroll-To-Top Button -->
+  <button type="button" class="scroll-top-btn" id="btnScrollTop" aria-label="Yuqoriga chiqish" title="Yuqoriga chiqish">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="12" y1="19" x2="12" y2="5"></line>
+      <polyline points="5 12 12 5 19 12"></polyline>
+    </svg>
+  </button>
 
   <!-- App Script -->
   <script>
@@ -1402,6 +1481,7 @@
       modalShareBtn.onclick = () => sharePost(post.id);
 
       newsModal.classList.add('active');
+      document.body.classList.add('is-modal-open');
       document.body.style.overflow = 'hidden';
 
       if (tg?.BackButton) {
@@ -1411,6 +1491,7 @@
 
     function closeModal() {
       newsModal.classList.remove('active');
+      document.body.classList.remove('is-modal-open');
       const v = modalMedia.querySelector('video');
       if (v) { v.pause(); v.src = ''; }
       if (!navDrawerOverlay.classList.contains('active')) {
@@ -1566,15 +1647,39 @@
       sidebarBackdrop.onclick = closeDrawer;
     }
 
-    // Infinite scroll listener
+    // Floating Scroll-To-Top button handling
+    const btnScrollTop = document.getElementById('btnScrollTop');
+    function updateScrollTopVisibility() {
+      if (!btnScrollTop) return;
+      const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      if (scrollY > 260) {
+        btnScrollTop.classList.add('is-visible');
+      } else {
+        btnScrollTop.classList.remove('is-visible');
+      }
+    }
+
+    if (btnScrollTop) {
+      btnScrollTop.addEventListener('click', (e) => {
+        e.preventDefault();
+        haptic('light');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        try { document.documentElement.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) {}
+        try { document.body.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) {}
+      });
+    }
+
+    // Scroll listener (both for scroll-to-top button and infinite scroll)
     window.addEventListener('scroll', () => {
+      updateScrollTopVisibility();
       if (isLoading || !nextBeforeId || isShowingBookmarks) return;
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 400) {
         loadNews({ before: nextBeforeId, append: true });
       }
-    });
+    }, { passive: true });
 
-    // Initial load
+    // Initial load and scroll check
+    updateScrollTopVisibility();
     loadNews();
 
     // Native Telegram Back Button integration
