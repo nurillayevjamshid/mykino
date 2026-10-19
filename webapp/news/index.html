@@ -50,52 +50,92 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      position: relative;
       margin-bottom: 16px;
-      padding-bottom: 14px;
+      padding-bottom: 12px;
       border-bottom: 1px solid var(--news-border);
+      min-height: 44px;
       background: var(--news-bg);
     }
 
-    .collab-logos {
+    .header-left, .header-right {
       display: flex;
       align-items: center;
-      gap: 12px;
+      z-index: 2;
     }
 
-    /* Tezkor Logo */
-    .collab-brand.tezkor-brand {
-      display: inline-flex;
+    .collab-center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
       align-items: center;
+      justify-content: center;
+      z-index: 1;
+      pointer-events: auto;
     }
 
-    .logo-tezkor {
-      height: 28px;
+    .collab-logo-img {
+      height: 20px;
       width: auto;
-      max-width: 135px;
+      max-width: 175px;
       object-fit: contain;
       display: block;
-    }
-
-    /* Cross / X symbol */
-    .collab-cross {
-      font-size: 14px;
-      font-weight: 700;
-      color: #94a3b8;
       user-select: none;
-      line-height: 1;
     }
 
-    /* NTV Logo */
-    .collab-brand.ntv-brand {
-      display: inline-flex;
+    /* Navigation Drawer (Hamburger Menu) */
+    .nav-drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(6px);
+      z-index: 3000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .nav-drawer-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .nav-drawer {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: min(85vw, 310px);
+      background: #ffffff;
+      box-shadow: 6px 0 30px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-100%);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .nav-drawer-overlay.active .nav-drawer {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--news-border);
+      display: flex;
       align-items: center;
-      gap: 7px;
-      text-decoration: none;
-      color: #0f172a;
+      justify-content: space-between;
+      background: #f8fafc;
     }
 
-    .ntv-logo-badge {
+    .drawer-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drawer-ntv-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -106,23 +146,148 @@
       color: #ffffff;
     }
 
-    .ntv-logo-svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    .ntv-text {
-      font-size: 19px;
+    .drawer-brand-text {
+      font-size: 18px;
       font-weight: 900;
-      letter-spacing: -0.03em;
       color: #0f172a;
-      line-height: 1;
+      letter-spacing: -0.03em;
     }
 
-    .header-actions {
+    .drawer-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid var(--news-border);
+      background: #ffffff;
+      color: var(--news-muted);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      transition: all 0.15s ease;
+    }
+
+    .drawer-close:hover {
+      background: #f1f5f9;
+      color: var(--news-text);
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .drawer-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--news-muted);
+      letter-spacing: 0.05em;
+      padding: 6px 10px 2px;
+    }
+
+    .drawer-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: var(--news-text);
+      transition: all 0.15s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+    }
+
+    .drawer-item:hover, .drawer-item:active {
+      background: #f1f5f9;
+      border-color: var(--news-border);
+    }
+
+    .drawer-item.is-current {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+    }
+
+    .drawer-item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: #f8fafc;
+      border: 1px solid var(--news-border);
+      color: var(--news-text);
+      flex-shrink: 0;
+    }
+
+    .drawer-item-icon svg {
+      width: 19px;
+      height: 19px;
+    }
+
+    .drawer-item.is-current .drawer-item-icon {
+      background: #3b82f6;
+      color: #ffffff;
+      border-color: #3b82f6;
+    }
+
+    .drawer-item-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .drawer-item-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: inherit;
+    }
+
+    .drawer-item-sub {
+      font-size: 11.5px;
+      color: var(--news-muted);
+    }
+
+    .drawer-item.is-current .drawer-item-sub {
+      color: #2563eb;
+    }
+
+    .drawer-current-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      text-transform: uppercase;
+    }
+
+    .drawer-divider {
+      height: 1px;
+      background: var(--news-border);
+      margin: 8px 10px;
+    }
+
+    .drawer-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--news-border);
+      background: #f8fafc;
+      font-size: 12px;
+      color: var(--news-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .icon-btn {
@@ -739,24 +904,23 @@
 </head>
 <body>
   <div class="news-container">
-    <!-- Top Collaboration Header: Tezkor × NTV -->
+    <!-- Top Collaboration Header: Menu | Centered Logo | Bookmarks -->
     <header class="collab-header">
-      <div class="collab-logos">
-        <div class="collab-brand tezkor-brand" title="Tezkor">
-          <img src="/static/assets/tezkor-logo.png" alt="Tezkor" class="logo-tezkor" onerror="this.src='./tezkor-logo.png'">
-        </div>
-        <span class="collab-cross" aria-label="hamkorlikda">✕</span>
-        <div class="collab-brand ntv-brand" title="NTV Mini App">
-          <span class="ntv-logo-badge">
-            <svg viewBox="0 0 32 32" class="ntv-logo-svg">
-              <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="2.2"></circle>
-              <path d="M13 10.8 23 16 13 21.2Z" fill="currentColor"></path>
-            </svg>
-          </span>
-          <span class="ntv-text">NTV</span>
-        </div>
+      <div class="header-left">
+        <button class="icon-btn" id="btnMenu" title="Bo'limlar menyusi" aria-label="Menyu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
       </div>
-      <div class="header-actions">
+
+      <div class="collab-center" title="Tezkor x NTV">
+        <img src="/static/assets/collab-logo.png" alt="Tezkor x NTV" class="collab-logo-img" onerror="this.src='./collab-logo.png'">
+      </div>
+
+      <div class="header-right">
         <button class="icon-btn" id="btnBookmarks" title="Saqlangan yangiliklar" aria-label="Saqlanganlar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
@@ -806,6 +970,110 @@
         </svg>
         Yana yangiliklarni yuklash
       </button>
+    </div>
+  </div>
+
+  <!-- Navigation Drawer (Kino, Musiqa, Futbol, Potkastlar) -->
+  <div class="nav-drawer-overlay" id="navDrawerOverlay">
+    <div class="nav-drawer" id="navDrawer" role="dialog" aria-modal="true" aria-label="Asosiy menyu">
+      <div class="drawer-header">
+        <div class="drawer-brand">
+          <span class="drawer-ntv-badge">
+            <svg viewBox="0 0 32 32" width="16" height="16">
+              <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="2.2"></circle>
+              <path d="M13 10.8 23 16 13 21.2Z" fill="currentColor"></path>
+            </svg>
+          </span>
+          <span class="drawer-brand-text">NTV</span>
+        </div>
+        <button class="drawer-close" id="btnDrawerClose" aria-label="Yopish">✕</button>
+      </div>
+
+      <div class="drawer-body">
+        <span class="drawer-label">Asosiy bo'limlar</span>
+
+        <a class="drawer-item" href="/">
+          <div class="drawer-item-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+              <line x1="7" y1="2" x2="7" y2="22"></line>
+              <line x1="17" y1="2" x2="17" y2="22"></line>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <line x1="2" y1="7" x2="7" y2="7"></line>
+              <line x1="2" y1="17" x2="7" y2="17"></line>
+              <line x1="17" y1="17" x2="22" y2="17"></line>
+              <line x1="17" y1="7" x2="22" y2="7"></line>
+            </svg>
+          </div>
+          <div class="drawer-item-content">
+            <span class="drawer-item-title">Kinolar</span>
+            <span class="drawer-item-sub">Filmlar va seriallar</span>
+          </div>
+        </a>
+
+        <a class="drawer-item" href="/?section=music">
+          <div class="drawer-item-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+          </div>
+          <div class="drawer-item-content">
+            <span class="drawer-item-title">Musiqa</span>
+            <span class="drawer-item-sub">Qo'shiqlar va ijrochilar</span>
+          </div>
+        </a>
+
+        <a class="drawer-item" href="/?section=football">
+          <div class="drawer-item-icon">
+            <img src="/static/assets/futbol-ball.png" alt="Futbol" width="20" height="20" style="display:block;">
+          </div>
+          <div class="drawer-item-content">
+            <span class="drawer-item-title">Futbol</span>
+            <span class="drawer-item-sub">O'yinlar va jadvallar</span>
+          </div>
+        </a>
+
+        <a class="drawer-item" href="/?section=podcasts">
+          <div class="drawer-item-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="13" rx="3"></rect>
+              <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+            </svg>
+          </div>
+          <div class="drawer-item-content">
+            <span class="drawer-item-title">Potkastlar</span>
+            <span class="drawer-item-sub">Suhbatlar va shoular</span>
+          </div>
+        </a>
+
+        <div class="drawer-divider"></div>
+
+        <span class="drawer-label">Hamkorlik</span>
+
+        <div class="drawer-item is-current" onclick="closeDrawer()">
+          <div class="drawer-item-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path>
+              <path d="M18 14h-8"></path>
+              <path d="M15 18h-5"></path>
+              <path d="M10 6h8v4h-8V6Z"></path>
+            </svg>
+          </div>
+          <div class="drawer-item-content">
+            <span class="drawer-item-title">Yangiliklar</span>
+            <span class="drawer-item-sub">Tezkor rasmiy lenta</span>
+          </div>
+          <span class="drawer-current-pill">Joriy</span>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <span>NTV Mini App</span>
+        <span style="font-weight: 600;">myplaylist.uz</span>
+      </div>
     </div>
   </div>
 
@@ -868,6 +1136,9 @@
     let savedBookmarks = JSON.parse(localStorage.getItem('ntv_saved_news') || '[]');
 
     // DOM Elements
+    const btnMenu = document.getElementById('btnMenu');
+    const navDrawerOverlay = document.getElementById('navDrawerOverlay');
+    const btnDrawerClose = document.getElementById('btnDrawerClose');
     const newsFeed = document.getElementById('newsFeed');
     const loadMoreWrap = document.getElementById('loadMoreWrap');
     const btnLoadMore = document.getElementById('btnLoadMore');
@@ -892,6 +1163,24 @@
       toastMsg.textContent = text;
       toastMsg.classList.add('show');
       setTimeout(() => toastMsg.classList.remove('show'), 2200);
+    }
+
+    function openDrawer() {
+      haptic('light');
+      navDrawerOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      if (tg?.BackButton) {
+        tg.BackButton.show();
+        tg.BackButton.onClick(closeDrawer);
+      }
+    }
+
+    function closeDrawer() {
+      navDrawerOverlay.classList.remove('active');
+      if (!newsModal.classList.contains('active')) {
+        document.body.style.overflow = '';
+        if (tg?.BackButton) tg.BackButton.hide();
+      }
     }
 
     function renderFeed(posts, append = false) {
@@ -1101,11 +1390,11 @@
 
     function closeModal() {
       newsModal.classList.remove('active');
-      document.body.style.overflow = '';
       const v = modalMedia.querySelector('video');
       if (v) { v.pause(); v.src = ''; }
-      if (tg?.BackButton) {
-        tg.BackButton.hide();
+      if (!navDrawerOverlay.classList.contains('active')) {
+        document.body.style.overflow = '';
+        if (tg?.BackButton) tg.BackButton.hide();
       }
     }
 
@@ -1249,6 +1538,14 @@
     newsModal.onclick = (e) => {
       if (e.target === newsModal) closeModal();
     };
+
+    if (btnMenu) btnMenu.onclick = openDrawer;
+    if (btnDrawerClose) btnDrawerClose.onclick = closeDrawer;
+    if (navDrawerOverlay) {
+      navDrawerOverlay.onclick = (e) => {
+        if (e.target === navDrawerOverlay) closeDrawer();
+      };
+    }
 
     // Infinite scroll listener
     window.addEventListener('scroll', () => {
