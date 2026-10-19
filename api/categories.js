@@ -616,29 +616,6 @@ async function writeFifaLiveMatch(match) {
   }
 }
 
-const DEFAULT_QSPORT_VIDEOS = [
-  { videoId: "uTm3r5943HQ", title: "Аталанта — Пафос. Обзор матча Лиги конференций. 1-й тур. 15.10.2026", timeAgo: "6 ч назад", duration: "7:40", thumb: "https://i.ytimg.com/vi/uTm3r5943HQ/hqdefault.jpg", url: "https://www.youtube.com/watch?v=uTm3r5943HQ" },
-  { videoId: "HCmc_t9d6eY", title: "Борнмут — Штурм. Обзор матча Лиги Европы. 2 тур. 15.10.2026", timeAgo: "6 ч назад", duration: "8:31", thumb: "https://i.ytimg.com/vi/HCmc_t9d6eY/hqdefault.jpg", url: "https://www.youtube.com/watch?v=HCmc_t9d6eY" },
-  { videoId: "MEy8rwtCGlQ", title: "Брайтон — Кауно Жальгирис. Обзор матча Лиги конференций. 1-й тур. 15.10.2026", timeAgo: "7 ч назад", duration: "7:47", thumb: "https://i.ytimg.com/vi/MEy8rwtCGlQ/hqdefault.jpg", url: "https://www.youtube.com/watch?v=MEy8rwtCGlQ" },
-  { videoId: "5obdm0lgnTM", title: "Хоффенхайм — Бешикташ. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "8 ч назад", duration: "9:22", thumb: "https://i.ytimg.com/vi/5obdm0lgnTM/hqdefault.jpg", url: "https://www.youtube.com/watch?v=5obdm0lgnTM" },
-  { videoId: "p9lGo9YrrQE", title: "Бенфика — Селтик. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "8 ч назад", duration: "8:20", thumb: "https://i.ytimg.com/vi/p9lGo9YrrQE/hqdefault.jpg", url: "https://www.youtube.com/watch?v=p9lGo9YrrQE" },
-  { videoId: "hUTFf5-O0Qc", title: "Сельта — Ювентус. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "8 ч назад", duration: "5:44", thumb: "https://i.ytimg.com/vi/hUTFf5-O0Qc/hqdefault.jpg", url: "https://www.youtube.com/watch?v=hUTFf5-O0Qc" },
-  { videoId: "JSFZX_ZRZ0Y", title: "Лех — Байер. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "10 ч назад", duration: "8:43", thumb: "https://i.ytimg.com/vi/JSFZX_ZRZ0Y/hqdefault.jpg", url: "https://www.youtube.com/watch?v=JSFZX_ZRZ0Y" },
-  { videoId: "61EMWWn4fZE", title: "Унион — Реал Сосьедад. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "10 ч назад", duration: "7:26", thumb: "https://i.ytimg.com/vi/61EMWWn4fZE/hqdefault.jpg", url: "https://www.youtube.com/watch?v=61EMWWn4fZE" },
-  { videoId: "k2gjjobTU70", title: "Лион — Кристал Пэлас. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "10 ч назад", duration: "8:33", thumb: "https://i.ytimg.com/vi/k2gjjobTU70/hqdefault.jpg", url: "https://www.youtube.com/watch?v=k2gjjobTU70" },
-  { videoId: "_ZM89B0k6bo", title: "Зальцбург — Милан. Обзор матча Лиги Европы. 2-й тур. 15.10.2026", timeAgo: "10 ч назад", duration: "7:56", thumb: "https://i.ytimg.com/vi/_ZM89B0k6bo/hqdefault.jpg", url: "https://www.youtube.com/watch?v=_ZM89B0k6bo" },
-  { videoId: "SjbQ6AEnYrM", title: "Рига — Кайрат. Обзор матча Лиги конференций. 1-й тур. 15.10.2026", timeAgo: "11 ч назад", duration: "8:44", thumb: "https://i.ytimg.com/vi/SjbQ6AEnYrM/hqdefault.jpg", url: "https://www.youtube.com/watch?v=SjbQ6AEnYrM" },
-  { videoId: "l26ExLmwMTw", title: "Рома — Реал Мадрид. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "20 ч назад", duration: "10:59", thumb: "https://i.ytimg.com/vi/l26ExLmwMTw/hqdefault.jpg", url: "https://www.youtube.com/watch?v=l26ExLmwMTw" },
-  { videoId: "CXSpO6rvSqE", title: "Шахтёр — АЕК. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "10:15", thumb: "https://i.ytimg.com/vi/CXSpO6rvSqE/hqdefault.jpg", url: "https://www.youtube.com/watch?v=CXSpO6rvSqE" },
-  { videoId: "FOUXW5Ju1MA", title: "Бетис — Порту. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "9:43", thumb: "https://i.ytimg.com/vi/FOUXW5Ju1MA/hqdefault.jpg", url: "https://www.youtube.com/watch?v=FOUXW5Ju1MA" },
-  { videoId: "54qXIE9Q48o", title: "Буде-Глимт — Боруссия Дортмунд. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "10:16", thumb: "https://i.ytimg.com/vi/54qXIE9Q48o/hqdefault.jpg", url: "https://www.youtube.com/watch?v=54qXIE9Q48o" },
-  { videoId: "YJyC_4eVIq4", title: "Астон Вилла — Фейеноорд. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "9:23", thumb: "https://i.ytimg.com/vi/YJyC_4eVIq4/hqdefault.jpg", url: "https://www.youtube.com/watch?v=YJyC_4eVIq4" },
-  { videoId: "AyMDt63_FyY", title: "Слован — Штутгарт. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "6:59", thumb: "https://i.ytimg.com/vi/AyMDt63_FyY/hqdefault.jpg", url: "https://www.youtube.com/watch?v=AyMDt63_FyY" },
-  { videoId: "r08aihFNzV0", title: "Манчестер Сити — ПСЖ. Обзор матча Лиги чемпионов. 15.10.2026", timeAgo: "1 дн. назад", duration: "9:50", thumb: "https://i.ytimg.com/vi/r08aihFNzV0/hqdefault.jpg", url: "https://www.youtube.com/watch?v=r08aihFNzV0" },
-  { videoId: "9SV1mLxC8BU", title: "ЛАСК — Ливерпуль. Обзор матча Лиги чемпионов. 14.10.2026", timeAgo: "1 дн. назад", duration: "10:41", thumb: "https://i.ytimg.com/vi/9SV1mLxC8BU/hqdefault.jpg", url: "https://www.youtube.com/watch?v=9SV1mLxC8BU" },
-  { videoId: "531RBQypv_E", title: "Фейеноорд — Комо. Обзор матча Лиги чемпионов. 14.10.2026", timeAgo: "1 дн. назад", duration: "8:01", thumb: "https://i.ytimg.com/vi/531RBQypv_E/hqdefault.jpg", url: "https://www.youtube.com/watch?v=531RBQypv_E" }
-];
-
 async function readFifaHighlightsConfig() {
   const client = await getRedis();
   if (!client) return { channelUrl: "", videos: [] };
@@ -647,10 +624,7 @@ async function readFifaHighlightsConfig() {
     if (!raw) return { channelUrl: "", videos: [] };
     const data = JSON.parse(raw);
     const channelUrl = data && typeof data === "object" ? String(data.channelUrl || "") : "";
-    let videos = data && Array.isArray(data.videos) ? data.videos : [];
-    if (videos.length === 0 && /QsportUzbekistan/i.test(channelUrl)) {
-      videos = DEFAULT_QSPORT_VIDEOS;
-    }
+    const videos = data && Array.isArray(data.videos) ? data.videos : [];
     return { channelUrl, videos, updatedAt: data?.updatedAt || "" };
   } catch (err) {
     console.warn("redis get fifa-highlights xato:", err.message);
@@ -871,22 +845,93 @@ async function handleFifaLive(request, response) {
 let fifaHighlightsCache = { data: null, at: 0, channelUrl: "" };
 const FIFA_HIGHLIGHTS_TTL_MS = 10 * 60 * 1000;
 
-function isVideoWithin2Days(timeText, titleText = "") {
-  if (!timeText) return true;
+function unescapeXml(str) {
+  if (!str || typeof str !== "string") return "";
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function formatTimeAgoFromDate(d) {
+  if (!d || Number.isNaN(d.getTime())) return "";
+  const now = Date.now();
+  const diffSec = Math.max(0, Math.floor((now - d.getTime()) / 1000));
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffHours < 1) {
+    if (diffMin <= 1) return "Hozirgina";
+    return `${diffMin} daqiqa oldin`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours} soat oldin`;
+  }
+  if (diffDays === 1) {
+    return "Kecha";
+  }
+  return `${diffDays} kun oldin`;
+}
+
+function isVideoWithin2Days(timeText, titleText = "", published = null) {
+  const now = Date.now();
+
+  // 1) Rasmiy YouTube ISO 8601 publication timestamp (masalan RSS feed'dan olingan)
+  if (published) {
+    const pubDate = new Date(published);
+    const pubTime = pubDate.getTime();
+    if (!Number.isNaN(pubTime)) {
+      const diffHours = (now - pubTime) / (1000 * 60 * 60);
+      // Agar diffHours <= 48.5 bo'lsa (2 kun + 30 min bufer) -> mos keladi
+      if (diffHours >= -2 && diffHours <= 48.5) return true;
+      if (diffHours > 48.5) return false;
+    }
+  }
+
+  // 2) Sarlavhada sana bo'lsa (masalan "15.10.2026", "18.10.2026")
+  const fullText = (String(timeText || "") + " " + String(titleText || "")).trim();
+  const dateMatch = fullText.match(/\b([0-3]?[0-9])\.([0-1]?[0-9])(?:\.(20\d{2}|\d{2}))?\b/);
+  if (dateMatch) {
+    const day = parseInt(dateMatch[1], 10);
+    const month = parseInt(dateMatch[2], 10) - 1;
+    const curYear = new Date().getFullYear();
+    const year = dateMatch[3] ? (dateMatch[3].length === 2 ? 2000 + parseInt(dateMatch[3], 10) : parseInt(dateMatch[3], 10)) : curYear;
+    const videoDate = new Date(year, month, day);
+    if (!Number.isNaN(videoDate.getTime())) {
+      const diffDays = (now - videoDate.getTime()) / (1000 * 60 * 60 * 24);
+      // Agar sana 2 kundan ortiq oldin bo'lsa, qat'iy rad etamiz
+      if (diffDays > 2.2) return false;
+      if (diffDays >= -0.5 && diffDays <= 2.2) return true;
+    }
+  }
+
+  if (!timeText) {
+    // Agar timeText ham, published ham yo'q bo'lsa — eski yoki noma'lum videolarni kiritmaymiz
+    return false;
+  }
+
   const s = String(timeText).toLowerCase().trim();
 
-  // Hafta, oy, yil, week, month, year, недел, месяц, год -> ALBATTA 2 kundan eski
+  // 3) Hafta, oy, yil, week, month, year, недел, месяц, год -> ALBATTA 2 kundan eski
   if (/(?:week|hafta|недел|month|oy|месяц|year|yil|год)/i.test(s)) {
     return false;
   }
 
-  // Soatlar, daqiqalar, soniyalar yoki bugungi -> ALBATTA 2 kun ichida
+  // 4) Soatlar, daqiqalar, soniyalar yoki bugungi -> ALBATTA 2 kun ichida
   // Eslatma: Cyrillic 'ч' uchun \b ishlamaydi, shuning uchun ч(?:\s|\.|$|ас) ishlatiladi
   if (/(?:second|sec|minute|min|hour|soat|daqiqa|минут|час|ч(?:\s|\.|$)|bugun|today|сегодня|hozir|just now|moment)/i.test(s)) {
     return true;
   }
 
-  // Kun soni: masalan "1 kun", "2 days", "3 kun", "4 дн", "3 дня", "5 дней"
+  // 5) Kecha / yesterday / вчера -> 1 kun (mos keladi)
+  if (/(?:yesterday|kecha|вчера)/i.test(s)) {
+    return true;
+  }
+
+  // 6) Kun soni: masalan "1 kun", "2 days", "3 kun", "4 дн", "3 дня", "5 дней"
   const dayMatch = s.match(/([0-9]+)\s*(?:day|days|kun|день|дня|дней|дн\.?|д\.?)/i);
   if (dayMatch) {
     const days = parseInt(dayMatch[1], 10);
@@ -895,28 +940,7 @@ function isVideoWithin2Days(timeText, titleText = "") {
     }
   }
 
-  // Kecha / yesterday / вчера -> 1 kun
-  if (/(?:yesterday|kecha|вчера)/i.test(s)) {
-    return true;
-  }
-
-  // Agar sarlavhada sana bo'lsa (masalan "15.10.2026")
-  const fullText = (s + " " + String(titleText || "")).trim();
-  const dateMatch = fullText.match(/\b([0-3]?[0-9])\.([0-1]?[0-9])(?:\.(20\d{2}|\d{2}))?\b/);
-  if (dateMatch) {
-    const day = parseInt(dateMatch[1], 10);
-    const month = parseInt(dateMatch[2], 10) - 1;
-    const now = new Date();
-    const year = dateMatch[3] ? (dateMatch[3].length === 2 ? 2000 + parseInt(dateMatch[3], 10) : parseInt(dateMatch[3], 10)) : now.getFullYear();
-    const videoDate = new Date(year, month, day);
-    if (!Number.isNaN(videoDate.getTime())) {
-      const diffDays = Math.abs(now.getTime() - videoDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays <= 2.5) return true;
-      if (diffDays > 2.5) return false;
-    }
-  }
-
-  // Agar matnda umumiy raqam bo'lsa (masalan "3 d" yoki boshqa)
+  // 7) Agar matnda umumiy raqam bo'lsa (masalan "3 d" yoki boshqa)
   const numMatch = s.match(/([0-9]+)/);
   if (numMatch) {
     const n = parseInt(numMatch[1], 10);
@@ -924,7 +948,7 @@ function isVideoWithin2Days(timeText, titleText = "") {
     if (n <= 2) return true;
   }
 
-  return true;
+  return false;
 }
 
 function normalizeYoutubeChannelUrl(raw) {
@@ -1170,48 +1194,116 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
 
   if (debugOut) debugOut.channelId = channelId;
 
-  let allVideos = [];
+  const videoMap = new Map();
 
-  // 2) Agar channelId aniqlangan bo'lsa, YouTube'ning rasmiy Uploads playlist'ini (UU...) yuklaymiz.
-  // Bu sahifada har qanday datacenter yoki IP orqali 100 tagacha eng yangi SSR videolar to'liq chiqadi!
+  // 2) Agar channelId aniqlangan bo'lsa, avvalo YouTube'ning rasmiy RSS feed'ini yuklaymiz.
+  // RSS feed o'ta tez (<200ms), bloklanmaydi va har bir video uchun 100% aniq published (ISO 8601) sanasini beradi!
+  if (channelId) {
+    try {
+      const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+      if (debugOut) debugOut.rssUrl = rssUrl;
+      const rssRes = await fetch(rssUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "application/atom+xml,application/xml,text/xml;q=0.9,*/*;q=0.8"
+        },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (rssRes.ok) {
+        const rssXml = await rssRes.text();
+        const entries = rssXml.match(/<entry>[\s\S]*?<\/entry>/g) || [];
+        if (debugOut) debugOut.rssCount = entries.length;
+        for (const entry of entries) {
+          const videoIdMatch = entry.match(/<yt:videoId>(.*?)<\/yt:videoId>/);
+          const videoId = videoIdMatch ? videoIdMatch[1].trim() : "";
+          if (!videoId) continue;
+
+          const titleMatch = entry.match(/<title>([\s\S]*?)<\/title>/);
+          const rawTitle = titleMatch ? titleMatch[1].trim() : "";
+          const title = unescapeXml(rawTitle);
+
+          const publishedMatch = entry.match(/<published>(.*?)<\/published>/);
+          const published = publishedMatch ? publishedMatch[1].trim() : "";
+
+          const thumbMatch = entry.match(/<media:thumbnail[^>]+url="([^"]+)"/);
+          const thumb = thumbMatch ? thumbMatch[1].trim() : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+          const timeAgo = published ? formatTimeAgoFromDate(new Date(published)) : "";
+
+          videoMap.set(videoId, {
+            videoId,
+            title,
+            timeAgo,
+            duration: "",
+            thumb,
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+            published
+          });
+        }
+      }
+    } catch (rssErr) {
+      if (debugOut) debugOut.rssErr = rssErr.message;
+    }
+  }
+
+  // 3) YouTube'ning rasmiy Uploads playlist'ini (UU...) yuklab, duration va qo'shimcha videolarni boyitamiz
   if (channelId) {
     const uploadsPlaylistId = channelId.replace(/^UC/, "UU");
     const playlistUrl = `https://www.youtube.com/playlist?list=${uploadsPlaylistId}`;
     if (debugOut) debugOut.playlistUrl = playlistUrl;
     const { videos: plVideos } = await scrapeYoutubePage(playlistUrl, debugOut ? debugOut.plDiag : null);
     if (plVideos && plVideos.length > 0) {
-      allVideos = plVideos;
+      for (const pv of plVideos) {
+        if (!pv.videoId) continue;
+        const existing = videoMap.get(pv.videoId);
+        if (existing) {
+          if (pv.duration && !existing.duration) existing.duration = pv.duration;
+          if (pv.title && pv.title.length > existing.title.length) existing.title = pv.title;
+        } else {
+          videoMap.set(pv.videoId, pv);
+        }
+      }
     }
   }
 
-  if (allVideos.length === 0) {
-    allVideos = baseVideos;
+  // 4) Agar RSS ham, playlist ham bo'sh bo'lsa, kanal sahifasi va /videos sahifasini tekshirish
+  if (videoMap.size === 0) {
+    for (const bv of baseVideos) {
+      if (bv.videoId) videoMap.set(bv.videoId, bv);
+    }
   }
-
-  // 3) Agar hamon bo'sh bo'lsa, /videos sahifasini sinab ko'ramiz
-  if (allVideos.length === 0) {
+  if (videoMap.size === 0) {
     const videosUrl = `${normBase}/videos`;
     if (debugOut) {
       debugOut.videosUrl = videosUrl;
       debugOut.videosDiag = {};
     }
     const { videos: vVideos } = await scrapeYoutubePage(videosUrl, debugOut ? debugOut.videosDiag : null);
-    if (vVideos && vVideos.length > 0) {
-      allVideos = vVideos;
+    for (const vv of (vVideos || [])) {
+      if (vv.videoId) videoMap.set(vv.videoId, vv);
     }
   }
 
+  const allVideos = Array.from(videoMap.values());
   if (debugOut) {
     debugOut.totalFound = allVideos.length;
   }
 
-  // Oxirgi 2 kunlik videolarni saralash
-  const recent = allVideos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title));
-  const pool = recent.length > 0 ? recent : allVideos.slice(0, 10);
+  // QAT'IY TALAB: Faqat va faqat oxirgi 2 kunlik videolarni saralash!
+  // Agar oxirgi 2 kunda qo'shilganlari bo'lmasa, bo'sh array [] qaytadi (eski videolarga fallback YO'Q)!
+  const recent = allVideos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
+  if (recent.length === 0) {
+    if (debugOut) {
+      debugOut.recentCount = 0;
+      debugOut.regularCount = 0;
+      debugOut.finalCount = 0;
+    }
+    return [];
+  }
 
   // Shorts (<= 60 soniya yoki #shorts) lardan asosiy o'yin sharhlarini afzal ko'rish
-  const regular = pool.filter((v) => !isShortsVideo(v));
-  const finalVideos = regular.length > 0 ? regular : pool;
+  const regular = recent.filter((v) => !isShortsVideo(v));
+  const finalVideos = regular.length > 0 ? regular : recent;
 
   if (debugOut) {
     debugOut.recentCount = recent.length;
@@ -1282,25 +1374,53 @@ async function handleFifaHighlights(request, response) {
       const channelUrl = cfg?.channelUrl || "";
       if (!channelUrl) {
         response.setHeader("Cache-Control", "public, max-age=60, s-maxage=120");
-        response.status(200).json({ ok: true, channelUrl: "", videos: [] });
+        response.status(200).json({ ok: true, channelUrl: "", count: 0, videos: [] });
         return;
       }
+
+      // Kesh 15 daqiqa amal qiladi, so'ng YouTube'dan avtomatik yangi highlightlar tortiladi
+      const FIFA_HIGHLIGHTS_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
+      const lastUpdatedMs = cfg?.updatedAt ? new Date(cfg.updatedAt).getTime() : 0;
+      const isExpired = !lastUpdatedMs || Number.isNaN(lastUpdatedMs) || (now - lastUpdatedMs > FIFA_HIGHLIGHTS_REFRESH_INTERVAL_MS);
+      const forceRefresh = query.refresh === "1";
 
       let videos = Array.isArray(cfg?.videos) ? cfg.videos : [];
       let debugOut = {};
 
-      if (videos.length === 0 || query.refresh === "1") {
-        const scraped = await fetchYoutubeHighlightsFromChannel(channelUrl, debugOut).catch(() => []);
-        if (scraped.length > 0) {
-          videos = scraped;
-          await writeFifaHighlightsConfig({ channelUrl, videos });
-        } else if (videos.length === 0 && /QsportUzbekistan/i.test(channelUrl)) {
-          videos = DEFAULT_QSPORT_VIDEOS;
-          await writeFifaHighlightsConfig({ channelUrl, videos });
+      if (isExpired || forceRefresh || videos.length === 0) {
+        let fetchPromise = FOOTBALL_INFLIGHT.get("fifa-highlights-scrape");
+        if (!fetchPromise) {
+          fetchPromise = fetchYoutubeHighlightsFromChannel(channelUrl, debugOut)
+            .finally(() => FOOTBALL_INFLIGHT.delete("fifa-highlights-scrape"));
+          FOOTBALL_INFLIGHT.set("fifa-highlights-scrape", fetchPromise);
         }
+        const scraped = await fetchPromise.catch((err) => {
+          console.warn("Fifa highlights scrape failed:", err.message);
+          return null;
+        });
+
+        if (scraped !== null) {
+          videos = scraped;
+          await writeFifaHighlightsConfig({ channelUrl, videos, updatedAt: new Date().toISOString() });
+        } else {
+          // Scrape vaqtinchalik xato bersa, mavjud keshdan faqat 2 kunliklarini qoldiramiz
+          videos = (Array.isArray(cfg?.videos) ? cfg.videos : []).filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
+        }
+      } else {
+        // Kesh muddati o'tmagan bo'lsa ham, 2 kundan o'tib ketgan videolarni qat'iy tozalash
+        videos = videos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
       }
 
-      const payload = { ok: true, channelUrl, count: videos.length, videos };
+      // Qat'iy yakuniy tekshiruv: faqat oxirgi 2 kunlik videolar
+      videos = videos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
+
+      const payload = {
+        ok: true,
+        channelUrl,
+        count: videos.length,
+        videos,
+        updatedAt: cfg?.updatedAt || new Date().toISOString()
+      };
       if (isDebug) payload.debug = debugOut;
 
       if (videos.length > 0) {
@@ -1309,7 +1429,7 @@ async function handleFifaHighlights(request, response) {
       response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       response.status(200).json(payload);
     } catch (err) {
-      response.status(500).json({ ok: false, error: err.message || "Videolarni yuklab bo'lmadi.", videos: [] });
+      response.status(500).json({ ok: false, error: err.message || "Videolarni yuklab bo'lmadi.", count: 0, videos: [] });
     }
     return;
   }
@@ -1322,7 +1442,7 @@ async function handleFifaHighlights(request, response) {
     if (request.method === "DELETE" || body.action === "delete") {
       await writeFifaHighlightsConfig(null);
       fifaHighlightsCache = { data: null, at: 0, channelUrl: "" };
-      response.status(200).json({ ok: true, channelUrl: "", videos: [] });
+      response.status(200).json({ ok: true, channelUrl: "", count: 0, videos: [] });
       return;
     }
 
@@ -1341,11 +1461,11 @@ async function handleFifaHighlights(request, response) {
     const debugOut = {};
     let isGeoblocked = false;
 
-    // Agar videolar berilmagan bo'lsa, YouTube'dan scrape qilishga urinish
+    // Agar videolar berilmagan bo'lsa, YouTube'dan yangi scrape qilish
     if (videos.length === 0 && channelUrl) {
       try {
         const scraped = await fetchYoutubeHighlightsFromChannel(channelUrl, debugOut);
-        if (scraped.length > 0) {
+        if (scraped && scraped.length > 0) {
           videos = scraped;
         }
       } catch (fetchErr) {
@@ -1357,14 +1477,8 @@ async function handleFifaHighlights(request, response) {
       isGeoblocked = true;
     }
 
-    // Agar serverda geoblock sabab 0 ta chiqqan bo'lsa, mavjud saqlangan yoki seed videolarni saqlab qolish
-    if (videos.length === 0) {
-      if (Array.isArray(cfg?.videos) && cfg.videos.length > 0) {
-        videos = cfg.videos;
-      } else if (/QsportUzbekistan/i.test(channelUrl)) {
-        videos = DEFAULT_QSPORT_VIDEOS;
-      }
-    }
+    // Qat'iy qoida: Faqat oxirgi 2 kunlik videolar saqlanadi (agar 2 kunda video bo'lmasa, bo'sh [] saqlanadi)
+    videos = videos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
 
     await writeFifaHighlightsConfig({ channelUrl, videos, updatedAt: new Date().toISOString() });
     const payload = {
