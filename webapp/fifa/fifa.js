@@ -3162,7 +3162,7 @@
     // Loading placeholder darhol ko'rinsin
     renderMatches();
     renderGroups();
-    appShell?.scrollTo({ top: 0, behavior: "smooth" });
+    appShell?.scrollTo({ top: 0, behavior: "auto" });
     try { tgBackRegister?.("fifa", () => closeFifaView()); } catch (_) {}
     // Real ma'lumotni fetch qilib qayta render
     selectedDateKey = getTashkentDateKey();

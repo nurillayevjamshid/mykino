@@ -1508,7 +1508,7 @@
     // Qaysi yo'l bilan kirilmasin (sidebar, bottom bar) — potkast barida
     // "Podcastlar" tugmasi active bo'lib, pill indikator uning ustida tursin.
     try { window.setActiveBottomTab?.("podcasts-tab"); } catch (_) {}
-    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
     try {
       window.tgBackRegister?.("podcasts-view", () => {
         try { closePodcastsView(); window.setFilter?.("all"); } catch (_) {}

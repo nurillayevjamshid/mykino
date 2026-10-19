@@ -1534,7 +1534,7 @@
     try { ensureYouTubeApi?.(); } catch (_) {}
     musicView.hidden = false;
     document.body.classList.add("is-music");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "auto" });
     document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.classList.remove("is-active"));
     setMusicNavActive("categories");
     tgBackRegister("music-view", () => { try { closeMusicView(); setFilter("all"); } catch (_) {} });

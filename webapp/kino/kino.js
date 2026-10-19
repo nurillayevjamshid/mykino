@@ -3345,7 +3345,7 @@ function createMoreCard(categoryValue) {
   `;
   card.addEventListener("click", () => {
     setCategory(categoryValue);
-    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
   });
   return card;
 }
@@ -3403,7 +3403,7 @@ function renderHomeRows() {
     }
     section.querySelector(".category-row__more").addEventListener("click", () => {
       setCategory(group.value);
-      document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+      document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
     });
     grid.append(section);
   }
@@ -3475,7 +3475,7 @@ function renderCategoryPageHeader() {
   header.querySelector(".category-page__title").textContent = getCategoryLabel(activeCategory);
   header.querySelector(".category-page__back").addEventListener("click", () => {
     setCategory("all");
-    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
   });
   return header;
 }
@@ -3494,7 +3494,7 @@ function renderFavoritesPageHeader() {
   header.querySelector(".category-page__title").textContent = plainLabel(t("favoritesNav"));
   header.querySelector(".category-page__back").addEventListener("click", () => {
     setFilter("all");
-    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
   });
   return header;
 }
@@ -7167,25 +7167,18 @@ document.querySelectorAll("[data-action='search']").forEach((button) => {
 document.querySelectorAll("[data-action='catalog']").forEach((button) => {
   button.addEventListener("click", () => {
     setFilter("all");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   });
 });
 
-// Pastki navbar — musiqa bo'limidagi tablar uchun debounce/lock.
-// Bir tugmani ketma-ket bosish bir nechta navigation push'ini ishga tushurmasin.
-const __musicTabLock = { key: "", at: 0 };
-function musicTabLock(key, gapMs = 320) {
-  const now = Date.now();
-  if (__musicTabLock.key === key && (now - __musicTabLock.at) < gapMs) return false;
-  __musicTabLock.key = key;
-  __musicTabLock.at = now;
+// Pastki navbar — musiqa bo'limidagi tablar (bir zumda ishlashi uchun qulfsiz)
+function musicTabLock() {
   return true;
 }
 
 document.querySelectorAll("[data-action='artists']").forEach((button) => {
   button.addEventListener("click", (event) => {
     event.preventDefault();
-    if (!musicTabLock("artists")) return;
     ensureMusicModule().then((m) => {
       // openAllArtists o'zi peer panellarni yopadi va nav active'ni o'rnatadi.
       m?.openAllArtists?.();
@@ -7196,7 +7189,6 @@ document.querySelectorAll("[data-action='artists']").forEach((button) => {
 document.querySelectorAll(".bottom-bar [data-action='playlist']").forEach((button) => {
   button.addEventListener("click", (event) => {
     event.preventDefault();
-    if (!musicTabLock("playlist")) return;
     ensureMusicModule().then((m) => {
       m?.openPlaylistsView?.();
     }).catch(() => {});
@@ -7207,7 +7199,6 @@ document.querySelectorAll("[data-action='categories']").forEach((button) => {
   button.addEventListener("click", (event) => {
     if (button.closest(".bottom-bar")) {
       event.preventDefault();
-      if (!musicTabLock("categories")) return;
       ensureMusicModule().then((m) => {
         // openMusicView o'zi peer panellarni yopadi va nav active'ni "categories" qiladi.
         m?.openMusicView?.();
@@ -7258,12 +7249,12 @@ document.querySelectorAll("[data-action='podcasts-tab']").forEach((btn) => {
 document.querySelectorAll("[data-action='podcast-discover']").forEach((btn) => {
   btn.addEventListener("click", () => {
     hideAllCustomViews();
-    try {
-      window.__potcasts?.openCategoriesView?.();
-    } catch (_) {
+    ensurePotcastsModule().then((m) => {
+      m?.openCategoriesView?.();
+    }).catch(() => {
       const catComing = document.getElementById("categoryComingSoon");
       if (catComing) catComing.hidden = false;
-    }
+    });
     setActiveBottomTab("podcast-discover");
   });
 });
@@ -7271,12 +7262,12 @@ document.querySelectorAll("[data-action='podcast-discover']").forEach((btn) => {
 document.querySelectorAll(".bottom-bar [data-action='podcast-saved']").forEach((btn) => {
   btn.addEventListener("click", () => {
     hideAllCustomViews();
-    try {
-      window.__potcasts?.openSavedView?.();
-    } catch (_) {
+    ensurePotcastsModule().then((m) => {
+      m?.openSavedView?.();
+    }).catch(() => {
       const favComing = document.getElementById("favoritesComingSoon");
       if (favComing) favComing.hidden = false;
-    }
+    });
     setActiveBottomTab("podcast-saved");
   });
 });
@@ -7286,7 +7277,7 @@ document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((btn) => {
   btn.addEventListener("click", () => {
     hideAllCustomViews();
     setFilter("all");
-    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
   });
 });
 
@@ -7295,7 +7286,7 @@ document.querySelectorAll(".bottom-bar [data-action='favorites']").forEach((btn)
   btn.addEventListener("click", () => {
     hideAllCustomViews();
     setFilter("favorites");
-    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
   });
 });
 
@@ -7474,7 +7465,7 @@ function ensureMusicModule() {
   const cssPromise = ensureMusicCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music/music.js?v=20261014-mini-screen-bg-audio";
+    script.src = "/static/music/music.js?v=20261019-instant-click-v1";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -7521,7 +7512,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20261016-click-fix-v15";
+    script.src = "/static/potcasts/potcasts.js?v=20261019-instant-click-v1";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -7713,7 +7704,7 @@ function openCategoryDetailView(name) {
   categoryDetailView.hidden = false;
   document.body.classList.add("is-category-detail");
   document.body.classList.remove("is-categories");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: "auto" });
   tgBackRegister("category-detail", () => { try { closeCategoryDetailView(); } catch (_) {} });
   syncNavButtons();
 }
@@ -7885,7 +7876,7 @@ function openSeriesListView() {
   seriesListView.hidden = false;
   document.body.classList.add("is-series-list");
   document.body.classList.remove("is-series-detail", "is-categories");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: "auto" });
   if (!seriesCatalogLoaded) {
     if (seriesListGrid) seriesListGrid.innerHTML = "";
     if (seriesListEmpty) {
@@ -7975,7 +7966,7 @@ function openSeriesDetailView(series) {
   seriesDetailView.hidden = false;
   document.body.classList.add("is-series-detail");
   document.body.classList.remove("is-series-list");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: "auto" });
   tgBackRegister("series-detail", () => { try { closeSeriesDetailView(); } catch (_) {} });
   syncNavButtons();
 }
@@ -8335,7 +8326,7 @@ if (requestedSection) {
   window.setTimeout(() => {
     if (requestedSection === 'music') openMusicView();
     else if (requestedSection === 'podcasts') openPodcastsView();
-    else if (requestedSection === 'football') openFifaView();
+    else if (requestedSection === 'football' || requestedSection === 'fifa') openFifaView();
   }, 0);
 }
 
@@ -8706,29 +8697,17 @@ function navigateSidebarSection(action, switchFn) {
   }
 
   dismissKinoSubviews();
-  showSectionSplash(targetKey);
 
-  const startTime = Date.now();
-  let switchResult = null;
   try {
-    switchResult = switchFn();
-  } catch (_) {}
-
-  const finish = () => {
-    ensureTelegramFullscreen();
-    const elapsed = Date.now() - startTime;
-    const remaining = Math.max(0, 800 - elapsed);
-    sectionSplashTimer = setTimeout(() => {
-      hideSectionSplash();
+    const switchResult = switchFn();
+    if (switchResult && typeof switchResult.then === "function") {
+      switchResult.finally(() => {
+        ensureTelegramFullscreen();
+      });
+    } else {
       ensureTelegramFullscreen();
-    }, remaining);
-  };
-
-  if (switchResult && typeof switchResult.then === "function") {
-    switchResult.then(finish).catch(finish);
-  } else {
-    finish();
-  }
+    }
+  } catch (_) {}
 }
 
 document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
@@ -8794,7 +8773,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         closeEsportView();
         setFilter("all");
         tgBackClearExcept([]);
-        document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+        document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
         syncNavButtons();
       });
       return;
@@ -8835,16 +8814,13 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
           closeTvView();
           closeEsportView();
           await openPodcastsView();
-          try { window.__potcasts?.openSavedView?.(); } catch (_) {
-            const favComing = document.getElementById("favoritesComingSoon");
-            if (favComing) favComing.hidden = false;
-          }
+          const m = await ensurePotcastsModule();
+          m?.openSavedView?.();
         });
       } else {
-        try { window.__potcasts?.openSavedView?.(); } catch (_) {
-          const favComing = document.getElementById("favoritesComingSoon");
-          if (favComing) favComing.hidden = false;
-        }
+        ensurePotcastsModule().then((m) => {
+          m?.openSavedView?.();
+        }).catch(() => {});
       }
       return;
     }
@@ -8864,11 +8840,11 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
           closeTvView();
           closeEsportView();
           setFilter("favorites");
-          document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+          document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
         });
       } else {
         setFilter("favorites");
-        document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+        document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
         setSidebarOpen(false);
       }
       return;
@@ -8921,7 +8897,7 @@ document.querySelectorAll("[data-action='favorites']").forEach((button) => {
     setFilter("favorites");
     setSearchPanelOpen(false);
     if (categoryPanel) categoryPanel.hidden = true;
-    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
   });
 });
 
@@ -10804,43 +10780,23 @@ async function initApp() {
   loadProgressFromBackend().catch(() => {}).then(() => {
     try { renderContinueWatchingCard(); } catch (_) {}
   });
-  // Musiqa modulini idle paytda fonda yuklab qo'yamiz — foydalanuvchi
-  // birinchi marta musiqa tugmasini bosganda kutmasin.
-  const preloadMusic = () => { ensureMusicModule().catch(() => {}); };
+  // Barcha bo'lim modullarini fonda oldindan yuklab qo'yamiz — foydalanuvchi
+  // qaysi bo'limni tanlasa ham internetdan kutmasdan zumda (0ms) ochilsin!
+  const preloadAllModules = () => {
+    ensureMusicModule().catch(() => {});
+    ensurePotcastsModule().catch(() => {});
+    ensureFifaModule().catch(() => {});
+    ensureTvModule().catch(() => {});
+    ensureEsportModule().catch(() => {});
+  };
   if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(preloadMusic, { timeout: 4000 });
+    window.requestIdleCallback(preloadAllModules, { timeout: 2000 });
   } else {
-    window.setTimeout(preloadMusic, 2500);
+    window.setTimeout(preloadAllModules, 800);
   }
 }
 
 initApp();
-
-// === nav-icon-click-anim (revertable: delete this block) ===
-(function attachNavClickAnim() {
-  const SELECTOR = '.sidebar__item, .icon-button, .bottom-bar__button';
-  document.addEventListener('pointerdown', (e) => {
-    const target = e.target.closest(SELECTOR);
-    if (!target) return;
-    target.classList.remove('is-clicked');
-    void target.offsetWidth;
-    target.classList.add('is-clicked');
-    setTimeout(() => target.classList.remove('is-clicked'), 420);
-
-    const ripple = document.createElement('span');
-    ripple.className = 'nav-click-ripple';
-    target.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 520);
-
-    // Haptic: bottom-bar — selection (tab almashish), boshqalar — tap.
-    if (target.classList.contains('bottom-bar__button')) {
-      haptic.select();
-    } else {
-      haptic.tap();
-    }
-  }, { passive: true });
-})();
-// === /nav-icon-click-anim ===
 
 // === haptic for key interactions ===
 (function attachHapticHooks() {
@@ -11693,7 +11649,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261017-fifa-cache-v16";
+    script.src = "/static/fifa/fifa.js?v=20261019-instant-click-v1";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
