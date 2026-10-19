@@ -4,22 +4,80 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#0d0d12" />
+  <meta name="theme-color" content="#0b0e14" />
   <title>NTV — Audio kitoblar</title>
   <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/books/books.css?v=20261019-v1" />
+  <!-- Telegram safe-area & platform detection -->
+  <script>
+    try {
+      var ua = navigator.userAgent || "";
+      var tgApp = window.Telegram && window.Telegram.WebApp;
+      var tgPlat = (tgApp && tgApp.platform) || "";
+      if (tgPlat === "android" || (/Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua))) {
+        document.documentElement.classList.add("is-android");
+      }
+      var isDesktop = tgPlat === "tdesktop" || tgPlat === "macos" || tgPlat === "weba" || tgPlat === "webk" || !/Android|iPhone|iPad|iPod/i.test(ua);
+
+      var applyTgInsets = function() {
+        if (!tgApp) return;
+        var isFs = Boolean(tgApp.isFullscreen);
+        var cTop = Number(tgApp.contentSafeAreaInset && tgApp.contentSafeAreaInset.top) || 0;
+        var sTop = Number(tgApp.safeAreaInset && tgApp.safeAreaInset.top) || 0;
+        var effTop = cTop;
+        if (!effTop && isFs) {
+          effTop = sTop ? (sTop + 48) : 98;
+        } else if (!effTop && sTop) {
+          effTop = sTop + (isFs ? 48 : 0);
+        }
+        if (effTop > 0) {
+          document.documentElement.style.setProperty("--tg-content-safe-area-inset-top", effTop + "px");
+          document.documentElement.style.setProperty("--app-safe-top", effTop + "px");
+          document.documentElement.classList.add("has-tg-fullscreen");
+        } else {
+          document.documentElement.style.removeProperty("--tg-content-safe-area-inset-top");
+          document.documentElement.style.removeProperty("--app-safe-top");
+          document.documentElement.classList.remove("has-tg-fullscreen");
+        }
+      };
+
+      if (tgApp) {
+        try { tgApp.ready(); } catch (_) {}
+        try { tgApp.expand(); } catch (_) {}
+        if (typeof tgApp.requestFullscreen === "function" && !tgApp.isFullscreen) {
+          try { tgApp.requestFullscreen(); } catch (_) {}
+        }
+        applyTgInsets();
+
+        if (tgApp.onEvent) {
+          tgApp.onEvent("safeAreaChanged", applyTgInsets);
+          tgApp.onEvent("contentSafeAreaChanged", applyTgInsets);
+          tgApp.onEvent("fullscreenChanged", function() {
+            applyTgInsets();
+            if (tgApp.isFullscreen) {
+              document.documentElement.classList.add("is-tg-fullscreen");
+            } else {
+              document.documentElement.classList.remove("is-tg-fullscreen");
+            }
+          });
+        }
+      }
+    } catch (_) {}
+  </script>
+  <link rel="stylesheet" href="/static/glass-theme.css?v=20261019-instant-click-v1" />
+  <link rel="stylesheet" href="/books/books.css?v=20261019-v2" />
 </head>
 
 <body>
-  <!-- Top spacing dedicated to native Telegram icons (Close & 3-dots) -->
+  <!-- Native Telegram Top Bar Safe Area Spacer (Close & 3-dots protection) -->
   <div class="tg-native-header-space" aria-hidden="true"></div>
 
   <div class="books-app">
-    <!-- Topbar: Hamburger on left, Audiobook icon + NTV in center, Watermark (Bookmark) on right -->
+    <!-- Topbar: Left Hamburger, Center Audiobook Icon + NTV Logo, Right Watermark (Bookmark) -->
     <header class="books-topbar">
       <button type="button" class="topbar-btn topbar-menu" id="booksMenuBtn" aria-label="Menyu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -30,22 +88,30 @@
       </button>
 
       <div class="books-brand" aria-label="NTV Audio kitoblar">
-        <span class="audiobook-mark-icon" aria-hidden="true">
-          <!-- Audiobook icon: Headphones with book pages -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Audiobook Headphones Icon before NTV logo as requested -->
+        <span class="audiobook-headphone-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
             <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
             <path d="M12 12v5"></path>
           </svg>
         </span>
-        <div class="brand-text">
-          <span class="brand-title">NTV</span>
-          <span class="brand-subtitle">Audio kitob</span>
+        <div class="brand-ntv-group">
+          <span class="brand-logo">
+            <svg viewBox="0 0 32 32" class="brand-logo__svg">
+              <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+              <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <span class="brand-text__top">NTV</span>
+          </span>
+          <span class="brand-pill-tag">Audio kitob</span>
         </div>
       </div>
 
+      <!-- Watermark / Bookmark Icon on right for saved audiobooks -->
       <button type="button" class="topbar-btn topbar-bookmark" id="booksBookmarkBtn" aria-label="Saqlangan audio kitoblar" title="Saqlanganlar">
-        <!-- Bookmark / Watermark icon -->
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
         </svg>
@@ -53,7 +119,7 @@
       </button>
     </header>
 
-    <!-- Search box -->
+    <!-- Search Box -->
     <div class="books-search-wrap">
       <div class="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -70,125 +136,166 @@
       </div>
     </div>
 
-    <!-- Filter chips -->
+    <!-- Filter Chips / Genre Pills -->
     <div class="genre-pills" role="tablist">
       <button type="button" class="genre-pill is-active" data-filter="barchasi" role="tab">Barchasi</button>
       <button type="button" class="genre-pill" data-filter="Hikoya" role="tab">Hikoyalar</button>
       <button type="button" class="genre-pill" data-filter="Roman" role="tab">Romanlar</button>
       <button type="button" class="genre-pill" data-filter="Qissa" role="tab">Qissalar</button>
-      <button type="button" class="genre-pill" data-filter="Rivoyat" role="tab">Rivoyatlar</button>
       <button type="button" class="genre-pill" data-filter="saqlanganlar" role="tab">Saqlanganlar</button>
     </div>
 
-    <!-- Section header meta bar -->
+    <!-- Section Meta Bar -->
     <div class="section-meta-bar">
-      <span class="section-label" id="sectionLabel">Eng so'nggi qo'shilganlar</span>
+      <span class="section-label" id="sectionLabel">Kanal bo'yicha so'nggi qo'shilganlar</span>
       <span class="section-count" id="sectionCount">Yuklanmoqda...</span>
     </div>
 
-    <!-- Audiobook list (Image 1 Spotify chart style: #1..#N) -->
+    <!-- Audiobook List (Image 1 / Spotify Chart style: #1..#N) -->
     <main class="books-list" id="booksList" aria-label="Audio kitoblar ro'yxati">
       <!-- Injected by books.js -->
     </main>
   </div>
 
-  <!-- Sidebar Drawer Backdrop & Aside -->
+  <!-- Sidebar Navigation (Exact visual match with main NTV mini app) -->
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-  <aside class="books-sidebar" id="booksSidebar" aria-label="NTV Menyusi">
-    <div class="sidebar-header">
-      <div class="books-brand">
-        <span class="audiobook-mark-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
-            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
-            <path d="M12 12v5"></path>
+  <aside class="sidebar" id="booksSidebar" aria-label="Asosiy menyu" aria-hidden="true">
+    <div class="sidebar__head">
+      <div class="brand sidebar__brand" aria-hidden="true">
+        <span class="brand-logo">
+          <svg viewBox="0 0 32 32" class="brand-logo__svg">
+            <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+            <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
           </svg>
         </span>
-        <div class="brand-text">
-          <span class="brand-title">NTV</span>
-          <span class="brand-subtitle">Audio kitob</span>
-        </div>
+        <span class="brand-text">
+          <span class="brand-text__top">NTV</span>
+        </span>
       </div>
-      <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Yopish">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
+      <button class="sidebar__close" type="button" id="sidebarCloseBtn" aria-label="Yopish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
         </svg>
       </button>
     </div>
 
-    <nav class="sidebar-nav">
-      <button type="button" class="sidebar-item is-active" data-filter="barchasi">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+    <nav class="sidebar__nav">
+      <a class="sidebar__item sidebar__item--top" href="/">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+          <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
         </svg>
-        <span>Barcha kitoblar</span>
-      </button>
+        <span>Kinolar</span>
+      </a>
 
-      <button type="button" class="sidebar-item" data-filter="saqlanganlar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <a class="sidebar__item sidebar__item--top sidebar__item--fifa" href="/?section=football">
+        <img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="22" height="22" loading="eager" decoding="async">
+        <span>Futbol</span>
+      </a>
+
+      <a class="sidebar__item sidebar__item--top" href="/?section=music">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 18V5l12-2v13"></path>
+          <circle cx="6" cy="18" r="3"></circle>
+          <circle cx="18" cy="16" r="3"></circle>
+        </svg>
+        <span>Musiqa</span>
+      </a>
+
+      <a class="sidebar__item sidebar__item--top" href="/?section=podcasts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="2" width="6" height="13" rx="3"></rect>
+          <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
+        <span>Potkastlar</span>
+      </a>
+
+      <a class="sidebar__item sidebar__item--top" href="/news">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path>
+          <path d="M18 14h-8"></path>
+          <path d="M15 18h-5"></path>
+          <path d="M10 6h8v4h-8V6Z"></path>
+        </svg>
+        <span>Yangiliklar</span>
+      </a>
+
+      <!-- Active Audio Kitoblar Section -->
+      <a class="sidebar__item sidebar__item--top is-active" href="/books" onclick="closeSidebar(); return false;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+        </svg>
+        <span>Audio kitoblar</span>
+      </a>
+
+      <div class="sidebar__divider"></div>
+
+      <!-- Quick Saqlanganlar filter in books view -->
+      <button class="sidebar__item" type="button" id="sidebarSavedBooksBtn" data-sidebar-action="saved-books">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
         </svg>
-        <span>Saqlanganlar</span>
+        <span>Saqlangan audio kitoblar</span>
         <span class="sidebar-badge" id="sidebarSavedBadge">0</span>
       </button>
 
-      <div class="sidebar-divider"></div>
-      <div class="sidebar-section-title">Janrlar</div>
-
-      <button type="button" class="sidebar-item" data-filter="Hikoya">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+      <a class="sidebar__item" href="/?favorites=1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
         </svg>
-        <span>Hikoyalar</span>
-      </button>
+        <span>Sevimlilar</span>
+      </a>
 
-      <button type="button" class="sidebar-item" data-filter="Roman">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      <a class="sidebar__item" href="/?profile=1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4 21a8 8 0 0 1 16 0"></path>
         </svg>
-        <span>Romanlar</span>
-      </button>
-
-      <button type="button" class="sidebar-item" data-filter="Qissa">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="m10 15 5-3-5-3v6Z"></path>
-        </svg>
-        <span>Qissalar</span>
-      </button>
-
-      <div class="sidebar-divider"></div>
-
-      <a href="https://t.me/audiokitoblar_uz" target="_blank" rel="noopener noreferrer" class="sidebar-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"></line>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-        </svg>
-        <span>Telegram kanal</span>
+        <span>Profil</span>
       </a>
     </nav>
 
-    <div class="sidebar-footer">
-      <div class="theme-toggle-row">
-        <span>Tungi rejim</span>
-        <button type="button" class="theme-switch-btn" id="sidebarThemeSwitch" aria-label="Tungi rejimni yoqish/o'chirish">
-          <span class="theme-switch-knob"></span>
+    <div class="sidebar__divider"></div>
+    <div class="sidebar__section-title">Sozlamalar</div>
+    <div class="sidebar__settings">
+      <div class="sidebar-setting">
+        <div class="sidebar-setting__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span>Tungi rejim</span>
+        </div>
+        <button class="theme-switch" type="button" id="sidebarThemeSwitch" role="switch" aria-checked="true" aria-label="Tungi rejim">
+          <span class="theme-switch__track">
+            <svg class="theme-switch__icon theme-switch__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+            <svg class="theme-switch__icon theme-switch__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span class="theme-switch__knob"></span>
+          </span>
         </button>
       </div>
     </div>
   </aside>
 
-  <!-- Audiobook Detail & Player Modal -->
+  <!-- Audiobook Detail Modal -->
   <div class="modal-backdrop" id="modalBackdrop"></div>
   <div class="book-modal" id="bookModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-grabber"></div>
 
     <div class="modal-header">
-      <span style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">
-        Audio kitob
+      <span class="modal-badge-label">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+        </svg>
+        <span>Audio kitob</span>
       </span>
       <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Yopish">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -199,10 +306,15 @@
     </div>
 
     <div class="modal-body">
-      <div class="modal-cover-large" id="modalCover">📖</div>
+      <div class="modal-cover-wrap">
+        <img class="modal-cover-image" id="modalCoverImg" src="" alt="Muqova" hidden />
+        <div class="modal-cover-fallback" id="modalCoverFallback">📖</div>
+      </div>
+
       <h2 class="modal-book-title" id="modalTitle">Nomi</h2>
       <div class="modal-book-author" id="modalAuthor">Muallif</div>
 
+      <!-- 6-Field Metadata Badges Grid -->
       <div class="modal-meta-grid">
         <div class="meta-chip">
           <div class="meta-chip-label">Janr</div>
@@ -222,77 +334,49 @@
         </div>
       </div>
 
-      <!-- Player Controls -->
-      <div class="modal-player-box">
-        <div class="player-scrubber-wrap">
-          <input type="range" class="scrubber-slider" id="playerScrubber" min="0" max="100" value="0" />
-          <div class="player-time-row">
-            <span id="playerCurrentTime">0:00</span>
-            <span id="playerDurationTime">14:00</span>
-          </div>
-        </div>
-
-        <div class="player-controls-row">
-          <button type="button" class="btn-ctrl" id="btnRewind" title="-15 sekund" aria-label="Orqaga 15 sekund">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"></path>
-            </svg>
-          </button>
-
-          <button type="button" class="btn-ctrl btn-ctrl-main" id="modalPlayBtn" title="Ijro / Pauza" aria-label="Ijro">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="6 3 20 12 6 21 6 3"></polygon>
-            </svg>
-          </button>
-
-          <button type="button" class="btn-ctrl" id="btnForward" title="+15 sekund" aria-label="Oldinga 15 sekund">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M13 17l5-5-5-5M6 17l5-5-5-5"></path>
-            </svg>
-          </button>
-
-          <button type="button" class="btn-ctrl" id="btnSpeed" title="Tezlik" style="font-size: 13px; font-weight: 800;">
-            1.0x
-          </button>
-        </div>
+      <!-- Description Excerpt from Channel Post -->
+      <div class="modal-desc-box" id="modalDescBox" hidden>
+        <p class="modal-desc-text" id="modalDescText"></p>
       </div>
 
-      <!-- Action Buttons -->
+      <!-- Direct Real Audio Action Button (Opens exact Telegram audio post) -->
       <div class="modal-actions">
-        <a id="modalTgLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary-action">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13"></line>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        <button type="button" class="btn-primary-listen" id="modalListenTgBtn">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
           </svg>
-          <span>Telegramda eshitish</span>
-        </a>
+          <span>Telegramda tinglash (Real Audio)</span>
+        </button>
 
         <button type="button" class="btn-bookmark-action" id="modalBookmarkBtn" aria-label="Saqlash" title="Saqlash">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
           </svg>
         </button>
       </div>
+
+      <div class="modal-notice">
+        <span>Audio to'g'ridan-to'g'ri rasmiy Telegram kanalidan o'ynatiladi.</span>
+      </div>
     </div>
   </div>
 
-  <!-- Sticky Bottom Mini Player -->
-  <div class="mini-player-bar" id="miniPlayer" role="region" aria-label="Mitti pleyer">
+  <!-- Sticky Bottom Quick Bar / Mini Player -->
+  <div class="mini-player-bar" id="miniPlayer" role="region" aria-label="Tanlangan audio kitob">
     <div class="mini-cover" id="miniCover">📖</div>
     <div class="mini-info">
       <div class="mini-title" id="miniTitle">Audio kitob</div>
       <div class="mini-author" id="miniAuthor">Muallif</div>
     </div>
-    <div class="mini-controls">
-      <button type="button" class="mini-play-btn" id="miniPlayBtn" aria-label="Ijro / Pauza">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <polygon points="6 3 20 12 6 21 6 3"></polygon>
-        </svg>
-      </button>
-    </div>
+    <button type="button" class="mini-listen-btn" id="miniListenBtn" aria-label="Telegramda tinglash">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+        <polygon points="6 3 20 12 6 21 6 3"></polygon>
+      </svg>
+      <span>Tinglash</span>
+    </button>
   </div>
 
-  <script src="/books/books.js?v=20261019-v1"></script>
+  <script src="/books/books.js?v=20261019-v2"></script>
 </body>
 
 </html>

@@ -1,116 +1,100 @@
 /* ==========================================================================
-   NTV Audio Kitoblar (Audiobooks) — Books Section Stylesheet
-   Spotify & Apple Books inspired modern dark UI
+   NTV Audio Kitoblar (Audiobooks) Styling — VisionOS Acrylic Glass Theme
+   Designed for Telegram Mini App & Modern Mobile Browsers
+   Matches Spotify Charts Layout & Official NTV Design System
    ========================================================================== */
 
 :root {
-  --bg-primary: #0d0d12;
-  --bg-card: #181820;
-  --bg-card-hover: #21212b;
-  --bg-elevated: #242430;
-  --text-primary: #ffffff;
-  --text-secondary: #9a9aa8;
-  --text-muted: #6b6b7a;
-  --accent-gold: #ffb703;
-  --accent-blue: #3b82f6;
-  --accent-cyan: #06b6d4;
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-focus: rgba(255, 255, 255, 0.18);
-  --radius-card: 14px;
-  --radius-sm: 8px;
-  --radius-full: 9999px;
-  --font-family: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-  --tg-safe-top: max(env(safe-area-inset-top, 0px), 18px);
-  --tg-safe-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  --books-bg: #0b0e14;
+  --books-card-bg: rgba(255, 255, 255, 0.065);
+  --books-card-hover: rgba(255, 255, 255, 0.11);
+  --books-border: rgba(255, 255, 255, 0.10);
+  --books-border-active: rgba(157, 234, 255, 0.35);
+  --books-text: #ffffff;
+  --books-muted: #94a3b8;
+  --books-dim: #64748b;
+  --books-blue: #2563eb;
+  --books-tg-blue: #229ed9;
+  --books-gold: #f59e0b;
+  --tg-safe-top: env(safe-area-inset-top, 0px);
+  --tg-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Light theme overrides if user switches */
-[data-theme="light"] {
-  --bg-primary: #f5f6fa;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f0f2f8;
-  --bg-elevated: #ffffff;
-  --text-primary: #12131a;
-  --text-secondary: #5c5f73;
-  --text-muted: #8b8ea0;
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-focus: rgba(0, 0, 0, 0.18);
-}
-
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-family);
-  min-height: 100vh;
-  width: 100%;
-  overflow-x: hidden;
+  min-height: 100%;
+  background:
+    radial-gradient(70vw 46vw at 8% 4%, rgba(56, 189, 248, 0.10), transparent 64%),
+    radial-gradient(55vw 42vw at 93% 14%, rgba(168, 85, 247, 0.08), transparent 64%),
+    radial-gradient(70vw 50vw at 50% 110%, rgba(20, 184, 166, 0.06), transparent 68%),
+    #0b0e14 !important;
+  color: var(--books-text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-button {
-  background: none;
-  border: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
+body {
+  padding-top: max(
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 14px),
+    calc(var(--app-safe-top, 0px) + 14px),
+    calc(env(safe-area-inset-top, 0px) + 54px),
+    68px
+  );
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 84px), 100px);
 }
 
-/* Telegram Native Header Clearance */
+/* Telegram Native Header Spacer (Protects TG Close and 3-dots native controls) */
 .tg-native-header-space {
-  height: calc(var(--tg-safe-top) + 8px);
+  display: block;
   width: 100%;
-  flex-shrink: 0;
+  height: 0;
+  pointer-events: none;
 }
 
-/* App Container */
 .books-app {
   max-width: 680px;
   margin: 0 auto;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding: 0 16px calc(100px + var(--tg-safe-bottom));
 }
 
-/* Top Navigation Bar */
+/* ==========================================================================
+   Topbar (Left Hamburger, Center Audiobook Icon + NTV Logo, Right Watermark)
+   ========================================================================== */
 .books-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0 16px;
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  background: linear-gradient(180deg, var(--bg-primary) 80%, rgba(13, 13, 18, 0.9) 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  gap: 12px;
+  padding: 8px 4px 16px 4px;
 }
 
 .topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary);
-  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .topbar-btn:active {
-  transform: scale(0.92);
-  background: var(--bg-card-hover);
+  transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .topbar-btn svg {
@@ -118,102 +102,128 @@ button {
   height: 22px;
 }
 
+.books-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.audiobook-headphone-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(34, 158, 217, 0.20));
+  border: 1px solid rgba(157, 234, 255, 0.32);
+  color: #9deaff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+}
+
+.audiobook-headphone-badge svg {
+  width: 19px;
+  height: 19px;
+}
+
+.brand-ntv-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.brand-logo__svg {
+  width: 26px;
+  height: 26px;
+}
+
+.brand-text__top {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+}
+
+.brand-pill-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9deaff;
+  background: rgba(157, 234, 255, 0.12);
+  border: 1px solid rgba(157, 234, 255, 0.22);
+  border-radius: 999px;
+}
+
+.topbar-bookmark {
+  position: relative;
+}
+
 .bookmark-badge {
   position: absolute;
   top: -4px;
   right: -4px;
-  background: var(--accent-gold);
-  color: #000;
-  font-size: 10px;
-  font-weight: 800;
   min-width: 18px;
   height: 18px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 0 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-}
-
-.bookmark-badge:empty, .bookmark-badge[data-count="0"] {
-  display: none;
-}
-
-/* Center Brand: NTV Logo + Audiobook Icon */
-.books-brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  text-decoration: none;
-  user-select: none;
-}
-
-.audiobook-mark-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  border-radius: 999px;
+  background: var(--books-gold);
+  color: #0b0e14;
+  font-size: 10px;
+  font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.35);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.audiobook-mark-icon svg {
-  width: 18px;
-  height: 18px;
+.bookmark-badge[data-count]:not([data-count="0"]) {
+  opacity: 1;
+  transform: scale(1);
 }
 
-.brand-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand-title {
-  font-size: 20px;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
-  line-height: 1;
-}
-
-.brand-subtitle {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--accent-gold);
-  margin-top: 2px;
-}
-
-/* Search Box */
+/* ==========================================================================
+   Search Box
+   ========================================================================== */
 .books-search-wrap {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 0 14px;
-  height: 44px;
   gap: 10px;
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid var(--books-border);
+  border-radius: 14px;
+  padding: 0 14px;
+  height: 46px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .search-box:focus-within {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+  border-color: var(--books-border-active);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
 }
 
 .search-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--text-muted);
+  width: 19px;
+  height: 19px;
+  color: var(--books-muted);
   flex-shrink: 0;
 }
 
@@ -222,35 +232,37 @@ button {
   background: transparent;
   border: none;
   outline: none;
-  color: var(--text-primary);
+  color: #ffffff;
   font-size: 14px;
-  font-weight: 500;
+  font-family: inherit;
 }
 
 .search-input::placeholder {
-  color: var(--text-muted);
+  color: var(--books-dim);
 }
 
 .search-clear-btn {
-  color: var(--text-muted);
-  padding: 4px;
+  background: transparent;
+  border: none;
+  color: var(--books-muted);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 4px;
 }
 
-.search-clear-btn:hover {
-  color: var(--text-primary);
-}
-
-/* Filter Chips */
+/* ==========================================================================
+   Genre Pills / Filter Chips
+   ========================================================================== */
 .genre-pills {
   display: flex;
+  align-items: center;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 16px;
+  padding-bottom: 14px;
   scrollbar-width: none;
-  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .genre-pills::-webkit-scrollbar {
@@ -258,15 +270,17 @@ button {
 }
 
 .genre-pill {
+  flex-shrink: 0;
   padding: 7px 15px;
-  border-radius: var(--radius-full);
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
-  white-space: nowrap;
-  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--books-muted);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .genre-pill:active {
@@ -274,306 +288,258 @@ button {
 }
 
 .genre-pill.is-active {
-  background: #ffffff;
-  color: #0d0d12;
-  border-color: #ffffff;
+  background: rgba(157, 234, 255, 0.18);
+  border-color: rgba(157, 234, 255, 0.40);
+  color: #9deaff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-[data-theme="light"] .genre-pill.is-active {
-  background: #0d0d12;
-  color: #ffffff;
-  border-color: #0d0d12;
-}
-
-/* Section Header (Counter / View status) */
+/* ==========================================================================
+   Section Meta Bar
+   ========================================================================== */
 .section-meta-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 0 4px;
+  padding: 6px 4px 14px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--books-muted);
 }
 
 .section-label {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
+  color: var(--books-muted);
 }
 
 .section-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
+  color: #9deaff;
 }
 
 /* ==========================================================================
-   Audiobook List Items (Spotify Chart #1..#10 Style as in Image 1)
+   Spotify Charts Audiobooks List (#1..#N Style from Image 1)
    ========================================================================== */
-
 .books-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.book-row {
+.book-chart-row {
   display: flex;
   align-items: center;
+  gap: 12px;
   width: 100%;
 }
 
-/* Rank Number (#1, #2, #3, ...) */
-.book-rank {
-  font-size: 19px;
+/* Rank Number Badge on the Left, OUTSIDE the card (#1, #2...) */
+.chart-rank {
+  min-width: 34px;
+  text-align: center;
+  font-size: 17px;
   font-weight: 800;
   color: #ffffff;
-  width: 38px;
-  text-align: left;
+  letter-spacing: -0.02em;
   flex-shrink: 0;
-  letter-spacing: -0.04em;
-  padding-left: 2px;
+  opacity: 0.95;
 }
 
-[data-theme="light"] .book-rank {
-  color: #1a1a24;
-}
+.chart-rank.is-top1 { color: #f59e0b; }
+.chart-rank.is-top2 { color: #94a3b8; }
+.chart-rank.is-top3 { color: #d97706; }
 
-/* Rounded Card Container */
-.book-card {
+/* Dark Rounded Container Card */
+.chart-card {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-card);
-  padding: 10px 14px;
+  background: var(--books-card-bg);
+  border: 1px solid var(--books-border);
+  border-radius: 14px;
+  padding: 9px 12px;
   cursor: pointer;
-  transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
-  user-select: none;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.book-card:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-focus);
+.chart-card:hover {
+  background: var(--books-card-hover);
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
 }
 
-.book-card:active {
+.chart-card:active {
   transform: scale(0.985);
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.book-card.is-active-playing {
-  border-color: var(--accent-gold);
-  background: rgba(245, 158, 11, 0.08);
-}
-
-/* Book Cover Thumbnail */
-.book-cover-wrap {
-  width: 46px;
-  height: 46px;
-  border-radius: 8px;
-  overflow: hidden;
-  position: relative;
+/* Square Cover Artwork Thumbnail */
+.chart-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 9px;
   flex-shrink: 0;
   margin-right: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
-}
-
-.book-cover-art {
-  width: 100%;
-  height: 100%;
+  overflow: hidden;
+  background: #1e293b;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #ffffff;
   font-size: 15px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  background-size: cover;
-  background-position: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  position: relative;
 }
 
-.book-cover-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.28);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s ease;
+.chart-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.book-card:hover .book-cover-overlay,
-.book-card.is-active-playing .book-cover-overlay {
-  opacity: 1;
-}
-
-.book-cover-overlay svg {
-  width: 18px;
-  height: 18px;
-  color: #ffffff;
-}
-
-/* Title and Author Info Column */
-.book-info {
+/* Middle Info: Title and Author */
+.chart-info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-right: 8px;
+  gap: 2px;
 }
 
-.book-title {
-  color: var(--text-primary);
-  font-size: 14.5px;
+.chart-title {
+  font-size: 15px;
   font-weight: 700;
-  line-height: 1.25;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.book-author {
-  color: var(--text-secondary);
-  font-size: 12.5px;
-  font-weight: 500;
-  margin-top: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/*
-  IMPORTANT USER REQUIREMENT:
-  "watermark icondan 80px oldin audio kitob necha daqiqadan iboratligi boladi."
-  Duration is placed with EXACTLY 80px space before the watermark/bookmark icon.
-*/
-.book-duration {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--text-muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-right: 80px; /* EXACTLY 80px space before watermark icon */
   letter-spacing: -0.01em;
 }
 
-/* Watermark (Bookmark 🔖) Button */
-.book-bookmark-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
+.chart-author {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--books-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chart-narrator-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--books-dim);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right Side Actions Container */
+.chart-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
   flex-shrink: 0;
-  transition: color 0.2s ease, transform 0.15s ease;
-  margin-right: 4px;
 }
 
-.book-bookmark-btn:hover {
-  color: var(--text-primary);
+/* EXACT USER REQUIREMENT: Duration in minutes is spaced exactly 80px before watermark icon! */
+.chart-duration {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+  margin-right: 80px !important; /* EXACT 80px spacing before watermark icon */
+  letter-spacing: -0.01em;
 }
 
-.book-bookmark-btn:active {
-  transform: scale(0.85);
+/* Watermark / Bookmark Icon button in list item */
+.chart-bookmark-btn {
+  background: transparent;
+  border: none;
+  color: var(--books-dim);
+  cursor: pointer;
+  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.book-bookmark-btn.is-saved {
-  color: var(--accent-gold);
-}
-
-.book-bookmark-btn.is-saved svg {
-  fill: currentColor;
-}
-
-.book-bookmark-btn svg {
+.chart-bookmark-btn svg {
   width: 19px;
   height: 19px;
 }
 
-/* Next / Chevron Right Icon */
-.book-chevron {
-  width: 20px;
-  height: 20px;
-  display: flex;
+.chart-bookmark-btn:hover {
+  color: #ffffff;
+}
+
+.chart-bookmark-btn.is-saved {
+  color: var(--books-gold) !important;
+}
+
+/* Next chevron icon ('>') following the watermark icon */
+.chart-next-icon {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  transition: transform 0.2s ease, color 0.2s ease;
+  color: rgba(255, 255, 255, 0.40);
+  margin-left: 2px;
+  padding: 4px;
 }
 
-.book-card:hover .book-chevron {
-  color: var(--text-primary);
-  transform: translateX(2px);
-}
-
-.book-chevron svg {
-  width: 17px;
-  height: 17px;
+.chart-next-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* Empty State */
-.books-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
+.books-empty {
   text-align: center;
+  padding: 60px 20px;
+  color: var(--books-muted);
 }
 
-.empty-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: var(--bg-card);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  margin-bottom: 16px;
+.books-empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
 }
 
-.empty-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.empty-title {
-  font-size: 17px;
+.books-empty-title {
+  font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffffff;
   margin-bottom: 6px;
 }
 
-.empty-desc {
-  font-size: 13.5px;
-  color: var(--text-secondary);
-  max-width: 280px;
-  line-height: 1.45;
+.books-empty-hint {
+  font-size: 13px;
+  color: var(--books-dim);
 }
 
 /* ==========================================================================
-   Sidebar Drawer (NTV Style with glass effect)
+   Sidebar Navigation (Exact Visual Match with Main NTV Mini App)
    ========================================================================== */
-
 .sidebar-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 90;
+  background: rgba(3, 8, 16, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 998;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .sidebar-backdrop.is-open {
@@ -581,163 +547,210 @@ button {
   pointer-events: auto;
 }
 
-.books-sidebar {
+.sidebar {
   position: fixed;
   top: 0;
-  bottom: 0;
   left: 0;
-  width: min(82vw, 320px);
-  background: var(--bg-card);
-  border-right: 1px solid var(--border-subtle);
-  z-index: 100;
+  bottom: 0;
+  width: 285px;
+  max-width: 84vw;
+  background: linear-gradient(155deg, rgba(21, 35, 57, 0.94), rgba(11, 18, 31, 0.92));
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0 26px 26px 0;
+  z-index: 999;
   display: flex;
   flex-direction: column;
+  padding: max(calc(env(safe-area-inset-top, 0px) + 20px), 24px) 16px max(calc(env(safe-area-inset-bottom, 0px) + 20px), 24px) 16px;
   transform: translateX(-100%);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  padding: var(--tg-safe-top) 20px var(--tg-safe-bottom);
-  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 10px 0 40px rgba(0, 0, 0, 0.5);
 }
 
-.books-sidebar.is-open {
+.sidebar.is-open {
   transform: translateX(0);
 }
 
-.sidebar-header {
+.sidebar__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0 20px;
-  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 22px;
+  padding: 0 4px;
 }
 
-.sidebar-close-btn {
-  width: 36px;
-  height: 36px;
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar__close {
+  width: 34px;
+  height: 34px;
   border-radius: 10px;
-  background: var(--bg-elevated);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  cursor: pointer;
 }
 
-.sidebar-nav {
+.sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 18px 0;
+  gap: 5px;
   flex: 1;
   overflow-y: auto;
 }
 
-.sidebar-item {
+.sidebar__item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  color: var(--text-primary);
-  font-size: 15px;
+  gap: 13px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  color: var(--books-muted);
+  text-decoration: none;
+  font-size: 14px;
   font-weight: 600;
-  transition: background 0.15s ease;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.18s;
+  width: 100%;
+  text-align: left;
 }
 
-.sidebar-item:active, .sidebar-item.is-active {
-  background: var(--bg-elevated);
-  color: var(--accent-gold);
+.sidebar__item svg {
+  width: 21px;
+  height: 21px;
+  flex-shrink: 0;
 }
 
-.sidebar-item svg {
-  width: 20px;
-  height: 20px;
-  color: var(--text-secondary);
+.sidebar__item:hover,
+.sidebar__item.is-active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.15);
 }
 
-.sidebar-item.is-active svg {
-  color: var(--accent-gold);
+.sidebar__item.is-active svg {
+  color: #9deaff;
+}
+
+.sidebar__item-img--fifa {
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sidebar__divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.10);
+  margin: 10px 4px;
 }
 
 .sidebar-badge {
   margin-left: auto;
-  font-size: 11px;
-  font-weight: 700;
-  background: var(--bg-elevated);
-  color: var(--accent-gold);
   padding: 2px 8px;
-  border-radius: var(--radius-full);
-}
-
-.sidebar-divider {
-  height: 1px;
-  background: var(--border-subtle);
-  margin: 10px 0;
-}
-
-.sidebar-section-title {
+  border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
+  background: rgba(245, 158, 11, 0.20);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.sidebar__section-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  padding: 8px 14px 4px;
+  color: var(--books-dim);
+  padding: 8px 14px 4px 14px;
 }
 
-.sidebar-footer {
-  padding-top: 16px;
-  border-top: 1px solid var(--border-subtle);
+.sidebar__settings {
+  padding: 4px;
 }
 
-.theme-toggle-row {
+.sidebar-setting {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--bg-elevated);
+  padding: 8px 10px;
 }
 
-.theme-switch-btn {
+.sidebar-setting__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--books-muted);
+}
+
+.sidebar-setting__head svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Theme switch knob */
+.theme-switch {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.theme-switch__track {
   width: 48px;
   height: 26px;
-  background: #333340;
-  border-radius: var(--radius-full);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.35);
+  border: 1px solid rgba(157, 234, 255, 0.30);
+  display: flex;
+  align-items: center;
   position: relative;
-  transition: background 0.25s ease;
+  padding: 2px;
 }
 
-.theme-switch-btn.is-active {
-  background: var(--accent-gold);
+.theme-switch__icon {
+  width: 12px;
+  height: 12px;
+  position: absolute;
+  color: rgba(255, 255, 255, 0.6);
 }
 
-.theme-switch-knob {
+.theme-switch__icon--sun { left: 6px; }
+.theme-switch__icon--moon { right: 6px; color: #9deaff; }
+
+.theme-switch__knob {
   width: 20px;
   height: 20px;
-  border-radius: var(--radius-full);
+  border-radius: 50%;
   background: #ffffff;
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  transition: transform 0.25s ease;
-}
-
-.theme-switch-btn.is-active .theme-switch-knob {
   transform: translateX(22px);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 /* ==========================================================================
-   Audiobook Detail & Player Modal
+   Audiobook Detail Modal (Bottom Sheet)
    ========================================================================== */
-
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 95;
+  background: rgba(3, 8, 16, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1001;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .modal-backdrop.is-open {
@@ -747,19 +760,19 @@ button {
 
 .book-modal {
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
-  max-width: 580px;
+  bottom: 0;
+  max-width: 600px;
   margin: 0 auto;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-bottom: none;
-  border-radius: 24px 24px 0 0;
-  z-index: 100;
-  padding: 20px 22px calc(24px + var(--tg-safe-bottom));
-  transform: translateY(105%);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  background: linear-gradient(165deg, rgba(23, 37, 60, 0.98), rgba(11, 18, 31, 0.96));
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 26px 26px 0 0;
+  z-index: 1002;
+  padding: 12px 20px max(calc(env(safe-area-inset-bottom, 0px) + 24px), 30px) 20px;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
   max-height: 88vh;
   overflow-y: auto;
 }
@@ -769,65 +782,87 @@ button {
 }
 
 .modal-grabber {
-  width: 38px;
+  width: 44px;
   height: 4px;
-  background: var(--border-subtle);
-  border-radius: var(--radius-full);
-  margin: 0 auto 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 auto 14px auto;
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+}
+
+.modal-badge-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9deaff;
 }
 
 .modal-close-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  background: var(--bg-elevated);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  cursor: pointer;
 }
 
-.modal-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.modal-cover-large {
+.modal-cover-wrap {
   width: 140px;
   height: 140px;
+  margin: 0 auto 16px auto;
   border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  background: #1e293b;
+  position: relative;
+}
+
+.modal-cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.modal-cover-fallback {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 40px;
-  font-weight: 900;
+  font-weight: 800;
   color: #ffffff;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-  margin-bottom: 20px;
-  position: relative;
 }
 
 .modal-book-title {
   font-size: 20px;
   font-weight: 800;
-  color: var(--text-primary);
-  line-height: 1.25;
-  margin-bottom: 6px;
+  text-align: center;
+  color: #ffffff;
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
 }
 
 .modal-book-author {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--accent-gold);
+  text-align: center;
+  color: var(--books-muted);
   margin-bottom: 18px;
 }
 
@@ -835,217 +870,155 @@ button {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  width: 100%;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
 .meta-chip {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 10px 12px;
-  text-align: left;
+  padding: 9px 12px;
 }
 
 .meta-chip-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-muted);
-  letter-spacing: 0.06em;
-  margin-bottom: 3px;
+  color: var(--books-dim);
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
 }
 
 .meta-chip-value {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
 }
 
-/* Audio Player Controls in Modal */
-.modal-player-box {
-  width: 100%;
-  background: var(--bg-elevated);
-  border-radius: 16px;
-  padding: 16px;
+.modal-desc-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px;
   margin-bottom: 20px;
-  border: 1px solid var(--border-subtle);
 }
 
-.player-scrubber-wrap {
-  width: 100%;
+.modal-desc-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 12px;
 }
 
-.scrubber-slider {
-  width: 100%;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 5px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.15);
-  outline: none;
-  cursor: pointer;
-}
-
-.scrubber-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #ffffff;
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-}
-
-.player-time-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-top: 6px;
-}
-
-.player-controls-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-}
-
-.btn-ctrl {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  transition: transform 0.15s ease, color 0.15s ease;
-}
-
-.btn-ctrl:active {
-  transform: scale(0.88);
-}
-
-.btn-ctrl-main {
-  width: 56px;
-  height: 56px;
-  background: var(--accent-gold);
-  color: #000000;
-  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
-}
-
-.btn-ctrl-main:active {
-  transform: scale(0.92);
-}
-
-.btn-ctrl-main svg {
-  width: 26px;
-  height: 26px;
-}
-
-/* Modal Actions */
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-
-.btn-primary-action {
+.btn-primary-listen {
   flex: 1;
-  height: 46px;
-  border-radius: 12px;
-  background: #2481cc;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  text-decoration: none;
-  transition: opacity 0.2s;
+  gap: 10px;
+  background: linear-gradient(135deg, #229ed9 0%, #1e88e5 100%);
+  border: none;
+  border-radius: 14px;
+  height: 50px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(34, 158, 217, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.btn-primary-action:hover {
-  opacity: 0.95;
-}
-
-.btn-primary-action svg {
-  width: 19px;
-  height: 19px;
+.btn-primary-listen:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 10px rgba(34, 158, 217, 0.25);
 }
 
 .btn-bookmark-action {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-bookmark-action:active {
+  transform: scale(0.93);
 }
 
 .btn-bookmark-action.is-saved {
-  color: var(--accent-gold);
-  background: rgba(245, 158, 11, 0.12);
-  border-color: var(--accent-gold);
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #f59e0b;
 }
 
-.btn-bookmark-action.is-saved svg {
-  fill: currentColor;
+.modal-notice {
+  text-align: center;
+  font-size: 12px;
+  color: var(--books-dim);
 }
 
 /* ==========================================================================
-   Sticky Bottom Mini Player
+   Sticky Bottom Quick Bar / Mini Player
    ========================================================================== */
-
 .mini-player-bar {
   position: fixed;
-  bottom: calc(12px + var(--tg-safe-bottom));
-  left: 16px;
-  right: 16px;
-  max-width: 648px;
+  left: 14px;
+  right: 14px;
+  bottom: max(calc(env(safe-area-inset-bottom, 0px) + 12px), 16px);
+  max-width: 652px;
   margin: 0 auto;
-  background: rgba(24, 24, 32, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, rgba(23, 37, 60, 0.96), rgba(11, 18, 31, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 16px;
-  padding: 8px 14px;
-  display: flex;
+  padding: 8px 12px;
+  display: none;
   align-items: center;
   gap: 12px;
-  z-index: 50;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  transform: translateY(140%);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+  z-index: 990;
   cursor: pointer;
 }
 
 .mini-player-bar.is-visible {
-  transform: translateY(0);
+  display: flex;
 }
 
 .mini-cover {
   width: 40px;
   height: 40px;
   border-radius: 8px;
+  background: #1e293b;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: #ffffff;
+  font-size: 14px;
   font-weight: 800;
-  font-size: 13px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.mini-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .mini-info {
@@ -1054,76 +1027,56 @@ button {
 }
 
 .mini-title {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .mini-author {
-  font-size: 11.5px;
-  color: var(--text-secondary);
+  font-size: 12px;
+  color: var(--books-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.mini-controls {
+.mini-listen-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.mini-play-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  background: #ffffff;
-  color: #000000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mini-play-btn svg {
-  width: 18px;
-  height: 18px;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #229ed9 0%, #1e88e5 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================
-   Responsive Adaptations
+   Responsive Breakpoints
    ========================================================================== */
-
-@media (max-width: 460px) {
-  .books-app {
-    padding: 0 12px calc(90px + var(--tg-safe-bottom));
-  }
-  .book-rank {
-    width: 32px;
-    font-size: 17px;
-  }
-  .book-card {
-    padding: 8px 10px;
-  }
-  .book-cover-wrap {
-    width: 42px;
-    height: 42px;
-    margin-right: 10px;
-  }
-  .book-title {
-    font-size: 13.5px;
-  }
-  .book-author {
+@media (max-width: 420px) {
+  .chart-duration {
+    margin-right: 80px !important; /* STRICTLY KEEP 80px */
     font-size: 12px;
   }
-  .book-duration {
-    margin-right: 50px; /* gracefully scale down for narrow 360px phones */
-    font-size: 11.5px;
+
+  .chart-title {
+    font-size: 14px;
   }
-  .book-bookmark-btn {
-    width: 28px;
-    height: 28px;
+
+  .chart-author {
+    font-size: 12px;
+  }
+
+  .chart-rank {
+    min-width: 28px;
+    font-size: 15px;
   }
 }

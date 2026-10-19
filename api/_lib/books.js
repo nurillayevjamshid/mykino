@@ -4,15 +4,22 @@ const path = require("path");
 const BOOKS_FILE = path.join(process.cwd(), "data", "books.json");
 
 function readBooks() {
-  try {
-    if (!fs.existsSync(BOOKS_FILE)) return [];
-    const raw = fs.readFileSync(BOOKS_FILE, "utf8");
-    const data = JSON.parse(raw);
-    return Array.isArray(data) ? data : [];
-  } catch (err) {
-    console.error("books read error:", err.message);
-    return [];
+  const candidates = [
+    path.join(process.cwd(), "data", "books.json"),
+    path.join(process.cwd(), "webapp", "books", "books.json"),
+    path.join(__dirname, "..", "..", "data", "books.json"),
+    path.join(__dirname, "..", "data", "books.json"),
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        const raw = fs.readFileSync(p, "utf8");
+        const data = JSON.parse(raw);
+        if (Array.isArray(data) && data.length > 0) return data;
+      }
+    } catch (_) {}
   }
+  return [];
 }
 
 async function handleBooksRequest(request, response) {
