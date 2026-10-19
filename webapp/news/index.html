@@ -131,7 +131,7 @@
       margin: 0 auto;
     }
 
-    /* Top Collaboration Header — Fixed Sticky Navbar (scrollda muqum turadi) */
+    /* Top Collaboration Header — Fixed Sticky Navbar */
     .collab-header {
       position: fixed;
       top: 0;
@@ -202,26 +202,33 @@
       user-select: none;
     }
 
-    /* Icon Buttons */
+    /* Icon Buttons: circular shape (border-radius: 50% / dumaloq) like in Kino */
     .icon-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50% !important;
       background: #ffffff;
       border: 1px solid var(--news-border);
       color: var(--news-muted);
       cursor: pointer;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-      transition: all 0.2s;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .icon-btn:hover, .icon-btn:active {
+    .icon-btn:hover {
       background: #f1f5f9;
       color: var(--news-text);
       border-color: var(--news-border-hover);
+      transform: translateY(-1px);
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
     }
 
     .icon-btn.is-active {
@@ -237,8 +244,7 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
 
-    html[data-theme="dark"] .icon-btn:hover,
-    html[data-theme="dark"] .icon-btn:active {
+    html[data-theme="dark"] .icon-btn:hover {
       background: #1a2c47;
       color: #ffffff;
       border-color: rgba(255, 255, 255, 0.2);
@@ -255,7 +261,7 @@
       height: 19px;
     }
 
-    /* Sidebar Navigation (Matching Main NTV Mini App Visual) */
+    /* Sidebar Navigation */
     .sidebar-backdrop {
       position: fixed;
       inset: 0;
@@ -329,7 +335,7 @@
       gap: 10px;
     }
 
-    /* NTV logo icon: qora (black) in daylight, clean crisp in dark mode */
+    /* NTV logo icon: black in daylight, clean white in dark mode */
     .brand-logo {
       display: inline-flex;
       align-items: center;
@@ -349,10 +355,11 @@
       color: var(--news-text);
     }
 
+    /* Circular close button */
     .sidebar__close {
-      width: 34px;
-      height: 34px;
-      border-radius: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50% !important;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -469,7 +476,7 @@
       background: rgba(255, 255, 255, 0.08);
     }
 
-    /* Sidebar Settings Section: Day/Night mode & Language switch */
+    /* Sidebar Settings Section */
     .sidebar__section-title {
       padding: 10px 20px 6px;
       font-size: 11px;
@@ -526,7 +533,7 @@
     .theme-switch__track {
       width: 58px;
       height: 30px;
-      border-radius: 999px;
+      border-radius: 9999px;
       background: linear-gradient(135deg, #eef0f5, #e2e6ee);
       border: 1px solid rgba(15, 23, 42, 0.1);
       position: relative;
@@ -582,7 +589,7 @@
       padding: 4px;
       background: rgba(15, 23, 42, 0.05);
       border: 1px solid var(--news-border);
-      border-radius: 999px;
+      border-radius: 9999px;
     }
 
     html[data-theme="dark"] .lang-pills {
@@ -593,7 +600,7 @@
     .lang-pill {
       flex: 1;
       padding: 7px 0;
-      border-radius: 999px;
+      border-radius: 9999px;
       border: 0;
       background: transparent;
       color: var(--news-muted);
@@ -639,82 +646,154 @@
       color: var(--news-text);
     }
 
-    /* Search Bar */
-    .search-wrap {
-      position: relative;
+    /* Expandable Search Panel (Matching Kino's inline search panel) */
+    .topbar-search__panel {
       margin-bottom: 16px;
+      transition: all 0.25s ease;
     }
 
-    .search-input {
-      width: 100%;
-      height: 42px;
-      padding: 0 40px 0 38px;
+    .topbar-search__panel[hidden] {
+      display: none !important;
+    }
+
+    @keyframes searchSlideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .topbar-search__panel:not([hidden]) {
+      animation: searchSlideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .search-box {
+      min-height: 44px;
+      height: 44px;
+      padding: 0 16px;
+      border-radius: 9999px !important;
       background: #ffffff;
-      border: 1px solid var(--news-border);
-      border-radius: 12px;
-      color: var(--news-text);
-      font-size: 14px;
-      outline: none;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-      transition: all 0.2s;
+      border: 1.5px solid var(--news-border);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+      display: flex;
+      align-items: center;
+      position: relative;
+      transition: all 0.2s ease;
     }
 
-    html[data-theme="dark"] .search-input {
+    html[data-theme="dark"] .search-box {
       background: #111e33;
       border-color: rgba(255, 255, 255, 0.1);
-      color: #f8fafc;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
 
-    .search-input:focus {
+    .search-box:focus-within {
       border-color: var(--news-accent);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
     }
 
-    html[data-theme="dark"] .search-input:focus {
+    html[data-theme="dark"] .search-box:focus-within {
       border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
     }
 
-    .search-input::placeholder {
-      color: #94a3b8;
+    .search-box .search-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--news-muted);
+      flex-shrink: 0;
+      margin-right: 10px;
     }
 
-    html[data-theme="dark"] .search-input::placeholder {
-      color: #64748b;
+    .search-box .search-input {
+      flex: 1;
+      height: 100%;
+      border: 0;
+      background: transparent;
+      outline: none;
+      font-size: 14.5px;
+      color: var(--news-text);
+      padding: 0;
+      box-shadow: none;
     }
 
-    .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #94a3b8;
-      pointer-events: none;
-      width: 16px;
-      height: 16px;
+    .search-box .search-input::placeholder {
+      color: var(--news-muted);
     }
 
-    html[data-theme="dark"] .search-icon {
-      color: #64748b;
-    }
-
-    .search-clear {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: #94a3b8;
+    .search-box .search-clear {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50% !important;
+      border: 0;
+      background: rgba(100, 116, 139, 0.15);
+      color: var(--news-muted);
       cursor: pointer;
-      display: none;
-      padding: 4px;
-      font-size: 13px;
+      font-size: 11px;
+      transition: background 0.15s, color 0.15s;
     }
 
-    html[data-theme="dark"] .search-clear {
-      color: #8da4be;
+    .search-box .search-clear:hover {
+      background: rgba(100, 116, 139, 0.25);
+      color: var(--news-text);
+    }
+
+    /* Quick Topic Chips (like genre pills in Kino) */
+    .search-topics {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px 2px 2px;
+      margin-top: 4px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .search-topics::-webkit-scrollbar {
+      display: none;
+    }
+
+    .search-topic-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 9999px !important;
+      background: var(--news-card-bg);
+      border: 1px solid var(--news-border);
+      color: var(--news-text-body);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .search-topic-chip:hover {
+      background: var(--news-accent-soft);
+      border-color: var(--news-accent);
+      color: var(--news-accent);
+      transform: translateY(-1px);
+    }
+
+    html[data-theme="dark"] .search-topic-chip {
+      background: #111e33;
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+    }
+
+    html[data-theme="dark"] .search-topic-chip:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+      color: #93c5fd;
     }
 
     /* Bookmarks Active Notice Pill */
@@ -725,8 +804,8 @@
       background: #eff6ff;
       border: 1px solid #bfdbfe;
       color: #1e40af;
-      padding: 8px 14px;
-      border-radius: 10px;
+      padding: 8px 16px;
+      border-radius: 9999px !important;
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 14px;
@@ -743,51 +822,60 @@
     }
 
     .btn-close-filter {
-      background: none;
+      background: rgba(30, 64, 175, 0.1);
       border: none;
       color: #1e40af;
       cursor: pointer;
       font-weight: 700;
-      padding: 2px 6px;
-      font-size: 13px;
+      padding: 3px 12px;
+      border-radius: 9999px !important;
+      font-size: 12px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-close-filter:hover {
+      background: rgba(30, 64, 175, 0.2);
     }
 
     html[data-theme="dark"] .btn-close-filter {
+      background: rgba(147, 197, 253, 0.15);
       color: #93c5fd;
     }
 
-    /* News Cards Feed */
+    /* News Cards Feed: matching modern Kino card standards */
     .news-feed {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
     }
 
     .news-card {
       background: var(--news-card-bg);
       border: 1px solid var(--news-border);
-      border-radius: 16px;
+      border-radius: 22px !important;
       padding: 16px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 18px -4px rgba(0, 0, 0, 0.03);
-      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.04), 0 8px 24px -6px rgba(15, 23, 42, 0.04);
+      transition: all 0.22s ease;
       position: relative;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
 
     html[data-theme="dark"] .news-card {
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 6px 18px -4px rgba(0, 0, 0, 0.25);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.35), 0 12px 32px -4px rgba(0, 0, 0, 0.45);
     }
 
     .news-card:hover {
       border-color: var(--news-border-hover);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 24px -3px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 6px 16px -2px rgba(15, 23, 42, 0.06), 0 14px 32px -4px rgba(15, 23, 42, 0.08);
+      transform: translateY(-1px);
     }
 
     html[data-theme="dark"] .news-card:hover {
       border-color: rgba(255, 255, 255, 0.16);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.45), 0 18px 40px -4px rgba(0, 0, 0, 0.55);
     }
 
     .card-meta {
@@ -802,7 +890,7 @@
     .meta-left {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
     .source-tag {
@@ -810,8 +898,8 @@
       font-size: 11px;
       color: var(--news-tezkor-red);
       background: #fee2e2;
-      padding: 2px 7px;
-      border-radius: 6px;
+      padding: 3px 9px;
+      border-radius: 9999px !important;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -841,7 +929,7 @@
     /* Media inside card */
     .card-media {
       position: relative;
-      border-radius: 12px;
+      border-radius: 16px !important;
       overflow: hidden;
       background: #e2e8f0;
       max-height: 380px;
@@ -858,11 +946,12 @@
       display: block;
       object-fit: cover;
       max-height: 380px;
-      transition: transform 0.25s;
+      border-radius: 16px !important;
+      transition: transform 0.28s ease;
     }
 
     .card-media:hover img {
-      transform: scale(1.015);
+      transform: scale(1.018);
     }
 
     .album-badge {
@@ -873,12 +962,12 @@
       color: #fff;
       font-size: 11px;
       font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 8px;
+      padding: 4px 10px;
+      border-radius: 9999px !important;
       backdrop-filter: blur(6px);
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
 
     .video-badge {
@@ -886,9 +975,9 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
+      width: 52px;
+      height: 52px;
+      border-radius: 50% !important;
       background: rgba(15, 23, 42, 0.75);
       border: 2px solid rgba(255, 255, 255, 0.9);
       display: grid;
@@ -905,16 +994,17 @@
       color: #fff;
       font-size: 11px;
       font-weight: 600;
-      padding: 3px 6px;
-      border-radius: 6px;
+      padding: 3px 8px;
+      border-radius: 9999px !important;
     }
 
     .card-title {
-      font-size: 17px;
+      font-size: 17.5px;
       font-weight: 700;
       line-height: 1.35;
       color: var(--news-text);
       cursor: pointer;
+      letter-spacing: -0.01em;
     }
 
     .card-title:hover {
@@ -923,7 +1013,7 @@
 
     .card-lead {
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.55;
       color: var(--news-text-body);
       display: -webkit-box;
       -webkit-line-clamp: 3;
@@ -944,11 +1034,24 @@
       font-size: 12px;
       text-decoration: none;
       cursor: pointer;
-      font-weight: 500;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 9999px !important;
+      background: var(--news-accent-soft);
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      display: inline-block;
     }
 
     .tag-item:hover {
-      text-decoration: underline;
+      border-color: var(--news-accent);
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+
+    html[data-theme="dark"] .tag-item {
+      background: rgba(59, 130, 246, 0.14);
+      color: #93c5fd;
     }
 
     /* Card Actions */
@@ -957,7 +1060,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      padding-top: 8px;
+      padding-top: 10px;
       border-top: 1px solid var(--news-border);
     }
 
@@ -967,15 +1070,16 @@
       color: #1d4ed8;
       font-size: 13px;
       font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 9px;
+      padding: 7px 18px;
+      border-radius: 9999px !important;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
     }
 
     .btn-read-more:hover {
       background: #dbeafe;
       color: #1e40af;
+      transform: translateY(-1px);
     }
 
     html[data-theme="dark"] .btn-read-more {
@@ -992,25 +1096,32 @@
     .footer-icons {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
 
+    /* Circular action icon button */
     .action-icon-btn {
       background: none;
       border: 1px solid transparent;
       color: var(--news-muted);
       cursor: pointer;
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50% !important;
       display: grid;
       place-items: center;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .action-icon-btn:hover {
       background: #f1f5f9;
       color: var(--news-text);
+      transform: translateY(-1px);
+    }
+
+    .action-icon-btn:active {
+      transform: scale(0.92);
     }
 
     html[data-theme="dark"] .action-icon-btn:hover {
@@ -1045,11 +1156,11 @@
       color: var(--news-text);
       font-size: 14px;
       font-weight: 600;
-      padding: 11px 24px;
-      border-radius: 12px;
+      padding: 12px 28px;
+      border-radius: 9999px !important;
       cursor: pointer;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-      transition: all 0.2s;
+      transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -1058,7 +1169,8 @@
     .btn-load-more:hover {
       background: #f8fafc;
       border-color: var(--news-border-hover);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
     }
 
     html[data-theme="dark"] .btn-load-more {
@@ -1076,7 +1188,7 @@
     .skeleton-card {
       background: var(--news-card-bg);
       border: 1px solid var(--news-border);
-      border-radius: 16px;
+      border-radius: 22px !important;
       padding: 16px;
       display: flex;
       flex-direction: column;
@@ -1087,7 +1199,7 @@
       background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
       background-size: 200% 100%;
       animation: shimmer 1.5s infinite;
-      border-radius: 6px;
+      border-radius: 9999px;
     }
 
     html[data-theme="dark"] .skeleton-bar {
@@ -1128,7 +1240,7 @@
     .modal-dialog {
       background: var(--news-card-bg);
       border: 1px solid var(--news-border);
-      border-radius: 20px;
+      border-radius: 26px !important;
       width: min(100%, 680px);
       max-height: 90vh;
       display: flex;
@@ -1175,9 +1287,10 @@
       color: var(--news-text);
       font-size: 12px;
       font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 6px;
+      padding: 5px 12px;
+      border-radius: 9999px !important;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
 
     html[data-theme="dark"] .font-btn {
@@ -1187,9 +1300,9 @@
     }
 
     .modal-close {
-      width: 32px;
-      height: 32px;
-      border-radius: 9px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50% !important;
       background: #ffffff;
       border: 1px solid #cbd5e1;
       color: var(--news-text);
@@ -1197,12 +1310,18 @@
       display: grid;
       place-items: center;
       font-size: 13px;
+      transition: all 0.2s ease;
     }
 
     html[data-theme="dark"] .modal-close {
       background: #152339;
       border-color: rgba(255, 255, 255, 0.15);
       color: #f8fafc;
+    }
+
+    .modal-close:hover {
+      background: #f1f5f9;
+      transform: rotate(90deg);
     }
 
     .modal-body {
@@ -1227,13 +1346,13 @@
 
     .modal-gallery img {
       width: 100%;
-      border-radius: 12px;
+      border-radius: 16px !important;
       display: block;
     }
 
     .modal-video video {
       width: 100%;
-      border-radius: 12px;
+      border-radius: 16px !important;
       display: block;
       background: #000;
     }
@@ -1278,8 +1397,8 @@
       gap: 6px;
       background: #eff6ff;
       color: #1d4ed8;
-      padding: 8px 18px;
-      border-radius: 10px;
+      padding: 9px 20px;
+      border-radius: 9999px !important;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -1303,8 +1422,8 @@
       gap: 6px;
       background: #f1f5f9;
       color: var(--news-text);
-      padding: 8px 18px;
-      border-radius: 10px;
+      padding: 9px 20px;
+      border-radius: 9999px !important;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -1332,8 +1451,8 @@
       color: #ffffff;
       font-size: 13px;
       font-weight: 600;
-      padding: 10px 20px;
-      border-radius: 25px;
+      padding: 10px 22px;
+      border-radius: 9999px !important;
       box-shadow: 0 10px 25px rgba(0,0,0,0.25);
       z-index: 2000;
       opacity: 0;
@@ -1358,7 +1477,7 @@
       padding: 48px 20px;
       color: var(--news-muted);
       background: var(--news-card-bg);
-      border-radius: 16px;
+      border-radius: 22px !important;
       border: 1px solid var(--news-border);
     }
 
@@ -1376,7 +1495,7 @@
       bottom: max(calc(var(--safe-bottom) + 18px), 24px);
       width: 48px;
       height: 48px;
-      border-radius: 50%;
+      border-radius: 50% !important;
       background: rgba(255, 255, 255, 0.92);
       color: #0f172a;
       border: 1px solid rgba(203, 213, 225, 0.85);
@@ -1518,6 +1637,15 @@
       border-color: rgba(255, 255, 255, 0.15);
       border-top-color: #e50914;
     }
+
+    /* Modallar yoki menyu ochilganda tugmani yashirish */
+    body.is-modal-open .scroll-top-btn,
+    body:has(#newsModal.active) .scroll-top-btn,
+    body:has(.sidebar.is-open) .scroll-top-btn {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(16px) scale(0.85) !important;
+    }
   </style>
 </head>
 <body>
@@ -1552,20 +1680,39 @@
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
+
+        <!-- Search Trigger Button: saralanganlardan keyin joylashtirildi (kino bo'limidagidek) -->
+        <button class="icon-btn" id="btnSearchTrigger" title="Qidirish" aria-label="Qidirish">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+          </svg>
+        </button>
       </div>
     </div>
   </header>
 
   <div class="news-container">
-    <!-- Search Box (hidden when viewing saved news) -->
-    <div class="search-wrap" id="searchWrap">
-      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.35-4.35"></path>
-      </svg>
-      <input type="text" class="search-input" id="searchInput" placeholder="Yangiliklarni qidirish..." autocomplete="off">
-      <button class="search-clear" id="searchClear" aria-label="Tozalash">✕</button>
-    </div>
+    <!-- Search Panel (Hidden by default, opens smoothly when search icon is clicked like in Kino!) -->
+    <section class="topbar-search__panel" id="searchPanel" hidden>
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input type="search" class="search-input" id="searchInput" placeholder="Yangiliklarni qidirish..." autocomplete="off">
+        <button class="search-clear" id="searchClear" aria-label="Tozalash" style="display: none;">✕</button>
+      </div>
+
+      <!-- Quick Topic Chips (like genre pills in Kino) -->
+      <div class="search-topics" id="searchTopics">
+        <button type="button" class="search-topic-chip" data-tag="O'zbekiston">🇺🇿 O'zbekiston</button>
+        <button type="button" class="search-topic-chip" data-tag="Dunyo">🌍 Dunyo</button>
+        <button type="button" class="search-topic-chip" data-tag="Sport">⚽ Sport</button>
+        <button type="button" class="search-topic-chip" data-tag="Iqtisodiyot">📈 Iqtisodiyot</button>
+        <button type="button" class="search-topic-chip" data-tag="Texnologiya">💻 Texnologiya</button>
+      </div>
+    </section>
 
     <!-- Active Filter Indicator (Shown when viewing saved bookmarks) -->
     <div class="filter-indicator" id="filterIndicator">
@@ -1578,13 +1725,13 @@
       <!-- Loading skeletons -->
       <div class="skeleton-card">
         <div class="skeleton-bar" style="width: 25%; height: 16px;"></div>
-        <div class="skeleton-bar" style="width: 100%; height: 200px;"></div>
+        <div class="skeleton-bar" style="width: 100%; height: 200px; border-radius: 16px;"></div>
         <div class="skeleton-bar" style="width: 80%; height: 20px;"></div>
         <div class="skeleton-bar" style="width: 60%; height: 16px;"></div>
       </div>
       <div class="skeleton-card">
         <div class="skeleton-bar" style="width: 25%; height: 16px;"></div>
-        <div class="skeleton-bar" style="width: 100%; height: 200px;"></div>
+        <div class="skeleton-bar" style="width: 100%; height: 200px; border-radius: 16px;"></div>
         <div class="skeleton-bar" style="width: 80%; height: 20px;"></div>
         <div class="skeleton-bar" style="width: 60%; height: 16px;"></div>
       </div>
@@ -1856,6 +2003,7 @@
         nightMode: "Tungi rejim",
         language: "Til",
         searchPlaceholder: "Yangiliklarni qidirish...",
+        searchTooltip: "Qidirish",
         savedNewsBanner: "📌 Saqlangan yangiliklar",
         backToAll: "Barchasiga qaytish ✕",
         readMore: "Batafsil o'qish",
@@ -1895,6 +2043,7 @@
         nightMode: "Ночной режим",
         language: "Язык",
         searchPlaceholder: "Поиск новостей...",
+        searchTooltip: "Поиск",
         savedNewsBanner: "📌 Сохранённые новости",
         backToAll: "Вернуться ко всем ✕",
         readMore: "Читать далее",
@@ -1934,6 +2083,7 @@
         nightMode: "Night mode",
         language: "Language",
         searchPlaceholder: "Search news...",
+        searchTooltip: "Search",
         savedNewsBanner: "📌 Saved news",
         backToAll: "Back to all ✕",
         readMore: "Read more",
@@ -2014,7 +2164,6 @@
             return resText;
           }
         } else {
-          // Break into paragraphs for long articles
           const paragraphs = text.split(/\n\n+/);
           const trParas = [];
           for (const p of paragraphs) {
@@ -2081,6 +2230,10 @@
       if (btnBackFromBookmarks) {
         btnBackFromBookmarks.title = t('backTooltip');
         btnBackFromBookmarks.setAttribute('aria-label', t('backTooltip'));
+      }
+      if (btnSearchTrigger) {
+        btnSearchTrigger.title = t('searchTooltip');
+        btnSearchTrigger.setAttribute('aria-label', t('searchTooltip'));
       }
       if (btnScrollTop) {
         btnScrollTop.title = t('scrollTopTooltip');
@@ -2168,9 +2321,10 @@
     const btnLoadMore = document.getElementById('btnLoadMore');
     const btnBookmarks = document.getElementById('btnBookmarks');
     const btnBackFromBookmarks = document.getElementById('btnBackFromBookmarks');
+    const btnSearchTrigger = document.getElementById('btnSearchTrigger');
     const filterIndicator = document.getElementById('filterIndicator');
     const btnCloseFilter = document.getElementById('btnCloseFilter');
-    const searchWrap = document.getElementById('searchWrap');
+    const searchPanel = document.getElementById('searchPanel');
     const searchInput = document.getElementById('searchInput');
     const searchClear = document.getElementById('searchClear');
 
@@ -2546,9 +2700,10 @@
     }
 
     function filterByTag(tag) {
+      toggleSearchPanel(true);
       searchInput.value = tag;
       searchQuery = tag;
-      searchClear.style.display = 'block';
+      searchClear.style.display = 'inline-flex';
       loadNews({ force: false });
     }
 
@@ -2572,13 +2727,48 @@
       }
     };
 
+    // Expandable Search Panel toggle (like in Kino!)
+    function toggleSearchPanel(forceState) {
+      haptic('light');
+      const isCurrentlyOpen = !searchPanel.hidden;
+      const nextState = typeof forceState === 'boolean' ? forceState : !isCurrentlyOpen;
+
+      searchPanel.hidden = !nextState;
+      btnSearchTrigger.classList.toggle('is-active', nextState);
+
+      if (nextState) {
+        setTimeout(() => {
+          if (searchInput) searchInput.focus();
+        }, 50);
+      } else {
+        if (searchQuery) {
+          searchInput.value = '';
+          searchQuery = '';
+          searchClear.style.display = 'none';
+          nextBeforeId = null;
+          loadNews();
+        }
+      }
+    }
+
+    btnSearchTrigger.onclick = () => toggleSearchPanel();
+
+    // Quick topic chips listener
+    document.querySelectorAll('.search-topic-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tag = chip.getAttribute('data-tag');
+        if (tag) filterByTag(tag);
+      });
+    });
+
     // Bookmarks View Management
     function enterBookmarksView() {
       haptic('light');
       isShowingBookmarks = true;
       btnBookmarks.style.display = 'none';
       btnBackFromBookmarks.style.display = 'inline-flex';
-      if (searchWrap) searchWrap.style.display = 'none';
+      btnSearchTrigger.style.display = 'none'; // hide search trigger in bookmarks
+      toggleSearchPanel(false); // close search panel
       filterIndicator.classList.add('active');
       nextBeforeId = null;
       renderFeed(savedBookmarks);
@@ -2590,7 +2780,7 @@
       isShowingBookmarks = false;
       btnBookmarks.style.display = 'inline-flex';
       btnBackFromBookmarks.style.display = 'none';
-      if (searchWrap) searchWrap.style.display = '';
+      btnSearchTrigger.style.display = 'inline-flex'; // restore search trigger
       filterIndicator.classList.remove('active');
       nextBeforeId = null;
       renderFeed(currentPosts);
@@ -2609,7 +2799,7 @@
     let searchDebounce = null;
     searchInput.addEventListener('input', (e) => {
       searchQuery = e.target.value.trim();
-      searchClear.style.display = searchQuery ? 'block' : 'none';
+      searchClear.style.display = searchQuery ? 'inline-flex' : 'none';
       clearTimeout(searchDebounce);
       searchDebounce = setTimeout(() => {
         nextBeforeId = null;
@@ -2728,6 +2918,10 @@
       }
       if (appSidebar && appSidebar.classList.contains('is-open')) {
         closeDrawer();
+        return;
+      }
+      if (!searchPanel.hidden) {
+        toggleSearchPanel(false);
         return;
       }
       if (isShowingBookmarks) {
