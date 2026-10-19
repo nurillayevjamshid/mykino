@@ -109,9 +109,9 @@
     { "src": "/spatial/(.*)", "dest": "/webapp/spatial/$1" },
     { "src": "/kibersport", "dest": "/webapp/kibersport.html" },
     { "src": "/kibersport/", "dest": "/webapp/kibersport.html" },
-    { "src": "/news", "dest": "/webapp/news.html" },
-    { "src": "/news/", "dest": "/webapp/news.html" },
-    { "src": "/news/(.*)", "dest": "/webapp/news.html" },
+    { "src": "/news", "dest": "/webapp/news/index.html" },
+    { "src": "/news/", "dest": "/webapp/news/index.html" },
+    { "src": "/news/(.*)", "dest": "/webapp/news/$1" },
     { "src": "/static/(.*)", "dest": "/webapp/$1" },
     { "src": "/", "dest": "/webapp/index.html" }
   ]

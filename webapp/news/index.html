@@ -1,0 +1,1385 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <title>NTV — Tezkor Yangiliklar</title>
+  
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- NTV Shared Glass Theme -->
+  <link rel="stylesheet" href="/glass-theme.css">
+
+  <style>
+    :root {
+      --news-bg: #0b0e14;
+      --news-card-bg: rgba(255, 255, 255, 0.05);
+      --news-card-hover: rgba(255, 255, 255, 0.08);
+      --news-border: rgba(255, 255, 255, 0.12);
+      --news-border-hover: rgba(255, 255, 255, 0.24);
+      --news-text: #ffffff;
+      --news-muted: #94a3b8;
+      --news-accent: #38bdf8;
+      --news-red: #ef4444;
+      --news-green: #10b981;
+      --news-orange: #f59e0b;
+      --news-purple: #a855f7;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--news-bg);
+      color: var(--news-text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      padding: max(calc(var(--safe-top) + 12px), 16px) 16px max(calc(var(--safe-bottom) + 24px), 32px);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Container Shell */
+    .news-container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    /* Top Bar */
+    .news-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--news-border);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: #ef4444;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #ef4444;
+      animation: pulse 1.6s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .news-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--news-border);
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover, .icon-btn:active {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: scale(0.97);
+    }
+
+    .icon-btn.is-active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+
+    .icon-btn svg {
+      width: 19px;
+      height: 19px;
+    }
+
+    .spinning svg {
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Channel info banner */
+    .channel-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(168, 85, 247, 0.08));
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 14px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .channel-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .channel-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #2481cc;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .channel-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      display: block;
+    }
+
+    .channel-tag {
+      font-size: 12px;
+      color: var(--news-accent);
+      text-decoration: none;
+    }
+
+    .btn-tg-join {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #2481cc;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .btn-tg-join:hover {
+      background: #1b68a5;
+    }
+
+    /* Search Bar */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 42px;
+      padding: 0 40px 0 38px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--news-border);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--news-accent);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--news-muted);
+      pointer-events: none;
+      width: 16px;
+      height: 16px;
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--news-muted);
+      cursor: pointer;
+      display: none;
+      padding: 4px;
+    }
+
+    /* Categories Horizontal Scroll */
+    .categories-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .categories-bar::-webkit-scrollbar { display: none; }
+
+    .category-chip {
+      white-space: nowrap;
+      padding: 7px 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--news-border);
+      color: var(--news-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .category-chip:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .category-chip.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--news-accent);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+    }
+
+    /* News Cards */
+    .news-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .news-card {
+      background: var(--news-card-bg);
+      border: 1px solid var(--news-border);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(12px);
+      transition: all 0.25s ease;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .news-card:hover {
+      background: var(--news-card-hover);
+      border-color: var(--news-border-hover);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .meta-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cat-tag {
+      font-weight: 700;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .cat-tag.cat-tezkor { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .cat-tag.cat-dunyo { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; }
+    .cat-tag.cat-jamiyat { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .cat-tag.cat-iqtisod { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .cat-tag.cat-sport { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
+    .cat-tag.cat-texno { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+
+    .time-stamp {
+      color: var(--news-muted);
+    }
+
+    .views-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--news-muted);
+    }
+
+    .views-count svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Media inside card */
+    .card-media {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      max-height: 380px;
+      cursor: pointer;
+    }
+
+    .card-media img {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: cover;
+      max-height: 380px;
+      transition: transform 0.3s;
+    }
+
+    .card-media:hover img {
+      transform: scale(1.02);
+    }
+
+    .album-badge {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 8px;
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .video-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.65);
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .video-duration {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 6px;
+      border-radius: 6px;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .card-title:hover {
+      color: var(--news-accent);
+    }
+
+    .card-lead {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: pre-line;
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag-item {
+      color: var(--news-accent);
+      font-size: 12px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .tag-item:hover {
+      text-decoration: underline;
+    }
+
+    /* Card Actions */
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-read-more {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #7dd3fc;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-read-more:hover {
+      background: rgba(56, 189, 248, 0.25);
+      color: #fff;
+    }
+
+    .footer-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-icon-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--news-muted);
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      transition: all 0.2s;
+    }
+
+    .action-icon-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .action-icon-btn.saved {
+      color: #f59e0b;
+    }
+
+    .action-icon-btn svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    /* Load more button & skeletons */
+    .load-more-wrap {
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .btn-load-more {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--news-border);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-load-more:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Skeleton Loading State */
+    .skeleton-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--news-border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .skeleton-bar {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Full Detail Modal (Reader View) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(16px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-dialog {
+      background: #111622;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 20px;
+      width: min(100%, 680px);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+      transform: scale(0.96);
+      transition: transform 0.25s ease;
+    }
+
+    .modal-overlay.active .modal-dialog {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .modal-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .font-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--news-border);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      line-height: 1.6;
+    }
+
+    .modal-body.font-small { font-size: 14px; }
+    .modal-body.font-normal { font-size: 16px; }
+    .modal-body.font-large { font-size: 18px; }
+
+    .modal-gallery {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-gallery img {
+      width: 100%;
+      border-radius: 12px;
+      display: block;
+    }
+
+    .modal-video video {
+      width: 100%;
+      border-radius: 12px;
+      display: block;
+      background: #000;
+    }
+
+    .modal-full-text {
+      color: #f1f5f9;
+      white-space: pre-line;
+      word-break: break-word;
+    }
+
+    .modal-full-text a {
+      color: var(--news-accent);
+      text-decoration: underline;
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .btn-tg-open {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #2481cc;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-share {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--news-border);
+    }
+
+    /* Toast notification */
+    .toast-msg {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 24px);
+      left: 50%;
+      transform: translateX(-50%) translateY(50px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--news-accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 2000;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+
+    .toast-msg.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--news-muted);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      color: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="news-container">
+    <!-- Top Header -->
+    <header class="news-header">
+      <div class="brand-group">
+        <span class="live-badge">
+          <span class="live-dot"></span>
+          Jonli
+        </span>
+        <h1 class="news-title">Tezkor Yangiliklar</h1>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="btnRefresh" title="Yangilash" aria-label="Yangilash">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 2v6h-6"></path>
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+            <path d="M3 22v-6h6"></path>
+            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btnBookmarks" title="Saqlanganlar" aria-label="Saqlanganlar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Source Channel Banner -->
+    <div class="channel-banner">
+      <div class="channel-info">
+        <div class="channel-avatar">T</div>
+        <div>
+          <span class="channel-name">Tezkor uz | Rasmiy kanal</span>
+          <a href="https://t.me/tezkorofficial_uz" target="_blank" rel="noopener" class="channel-tag" id="channelLink">@tezkorofficial_uz</a>
+        </div>
+      </div>
+      <button class="btn-tg-join" id="btnJoinChannel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+        </svg>
+        A'zo bo'lish
+      </button>
+    </div>
+
+    <!-- Search Box -->
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      <input type="text" class="search-input" id="searchInput" placeholder="Yangiliklarni qidirish..." autocomplete="off">
+      <button class="search-clear" id="searchClear" aria-label="Tozalash">✕</button>
+    </div>
+
+    <!-- Categories Filter Chips -->
+    <nav class="categories-bar" id="categoriesBar">
+      <button class="category-chip active" data-cat="">Barchasi</button>
+      <button class="category-chip" data-cat="⚡ Tezkor">⚡ Tezkor</button>
+      <button class="category-chip" data-cat="Dunyo">Dunyo</button>
+      <button class="category-chip" data-cat="Jamiyat">Jamiyat</button>
+      <button class="category-chip" data-cat="Iqtisod">Iqtisod</button>
+      <button class="category-chip" data-cat="Sport">Sport</button>
+      <button class="category-chip" data-cat="Texnologiya">Texnologiya</button>
+      <button class="category-chip" data-cat="bookmarks">📌 Saqlanganlar</button>
+    </nav>
+
+    <!-- News Feed -->
+    <main class="news-feed" id="newsFeed">
+      <!-- Loading skeletons -->
+      <div class="skeleton-card">
+        <div class="skeleton-bar" style="width: 25%; height: 16px;"></div>
+        <div class="skeleton-bar" style="width: 100%; height: 200px;"></div>
+        <div class="skeleton-bar" style="width: 80%; height: 20px;"></div>
+        <div class="skeleton-bar" style="width: 60%; height: 16px;"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-bar" style="width: 25%; height: 16px;"></div>
+        <div class="skeleton-bar" style="width: 100%; height: 200px;"></div>
+        <div class="skeleton-bar" style="width: 80%; height: 20px;"></div>
+        <div class="skeleton-bar" style="width: 60%; height: 16px;"></div>
+      </div>
+    </main>
+
+    <!-- Load More -->
+    <div class="load-more-wrap" id="loadMoreWrap" style="display: none;">
+      <button class="btn-load-more" id="btnLoadMore">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+        Yana yangiliklarni yuklash
+      </button>
+    </div>
+  </div>
+
+  <!-- Full Story Detail Modal -->
+  <div class="modal-overlay" id="newsModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="card-meta" id="modalMeta"></div>
+        <div class="modal-controls">
+          <button class="font-btn" id="btnFontDec" title="Kichikroq shrift">A-</button>
+          <button class="font-btn" id="btnFontInc" title="Kattaroq shrift">A+</button>
+          <button class="modal-close" id="modalClose" aria-label="Yopish">✕</button>
+        </div>
+      </div>
+      <div class="modal-body font-normal" id="modalBody">
+        <h2 id="modalTitle" style="font-size: 20px; font-weight: 800; line-height: 1.3;"></h2>
+        <div id="modalMedia"></div>
+        <div class="modal-full-text" id="modalText"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-tg-open" id="modalTgBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+          </svg>
+          Telegramda ochish
+        </button>
+        <button class="btn-share" id="modalShareBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+            <polyline points="16 6 12 2 8 6"></polyline>
+            <line x1="12" y1="2" x2="12" y2="15"></line>
+          </svg>
+          Ulashish
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-msg" id="toastMsg">Xabar saqlandi</div>
+
+  <!-- App Script -->
+  <script>
+    // Initialize Telegram WebApp
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      try { tg.headerColor = '#0b0e14'; } catch (_) {}
+    }
+
+    function haptic(type = 'light') {
+      try { tg?.HapticFeedback?.impactOccurred(type); } catch (_) {}
+    }
+
+    // State
+    let currentPosts = [];
+    let nextBeforeId = null;
+    let currentCategory = '';
+    let searchQuery = '';
+    let activeModalPost = null;
+    let isLoading = false;
+    let savedBookmarks = JSON.parse(localStorage.getItem('ntv_saved_news') || '[]');
+
+    // DOM Elements
+    const newsFeed = document.getElementById('newsFeed');
+    const loadMoreWrap = document.getElementById('loadMoreWrap');
+    const btnLoadMore = document.getElementById('btnLoadMore');
+    const btnRefresh = document.getElementById('btnRefresh');
+    const btnBookmarks = document.getElementById('btnBookmarks');
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+    const categoriesBar = document.getElementById('categoriesBar');
+    const newsModal = document.getElementById('newsModal');
+    const modalClose = document.getElementById('modalClose');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalText = document.getElementById('modalText');
+    const modalMedia = document.getElementById('modalMedia');
+    const modalMeta = document.getElementById('modalMeta');
+    const modalTgBtn = document.getElementById('modalTgBtn');
+    const modalShareBtn = document.getElementById('modalShareBtn');
+    const btnJoinChannel = document.getElementById('btnJoinChannel');
+    const btnFontDec = document.getElementById('btnFontDec');
+    const btnFontInc = document.getElementById('btnFontInc');
+    const toastMsg = document.getElementById('toastMsg');
+
+    function showToast(text) {
+      toastMsg.textContent = text;
+      toastMsg.classList.add('show');
+      setTimeout(() => toastMsg.classList.remove('show'), 2200);
+    }
+
+    function getCatClass(cat) {
+      const lower = (cat || '').toLowerCase();
+      if (lower.includes('tezkor')) return 'cat-tezkor';
+      if (lower.includes('dunyo')) return 'cat-dunyo';
+      if (lower.includes('jamiyat')) return 'cat-jamiyat';
+      if (lower.includes('iqtisod')) return 'cat-iqtisod';
+      if (lower.includes('sport')) return 'cat-sport';
+      if (lower.includes('texno')) return 'cat-texno';
+      return '';
+    }
+
+    function renderFeed(posts, append = false) {
+      if (!append) {
+        newsFeed.innerHTML = '';
+      }
+
+      if (posts.length === 0 && !append) {
+        newsFeed.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p>Yangiliklar topilmadi.</p>
+          </div>
+        `;
+        loadMoreWrap.style.display = 'none';
+        return;
+      }
+
+      posts.forEach(post => {
+        const isSaved = savedBookmarks.some(b => b.id === post.id);
+        const card = document.createElement('article');
+        card.className = 'news-card';
+        card.setAttribute('data-id', post.id);
+
+        // Media HTML
+        let mediaHtml = '';
+        if (post.photos && post.photos.length > 0) {
+          const firstPhoto = post.photos[0];
+          const albumBadge = post.photos.length > 1
+            ? `<span class="album-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg> +${post.photos.length - 1} rasm</span>`
+            : '';
+          mediaHtml = `
+            <div class="card-media" onclick="openStoryModal(${post.id})">
+              <img src="${firstPhoto}" alt="${escapeHtml(post.title)}" loading="lazy">
+              ${albumBadge}
+            </div>
+          `;
+        } else if (post.videoUrl) {
+          mediaHtml = `
+            <div class="card-media" onclick="openStoryModal(${post.id})">
+              <video src="${post.videoUrl}" preload="metadata" playsinline muted style="width: 100%; max-height: 360px; object-fit: cover;"></video>
+              <div class="video-badge">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              </div>
+              ${post.videoDuration ? `<span class="video-duration">${post.videoDuration}</span>` : ''}
+            </div>
+          `;
+        }
+
+        // Tags HTML
+        const tagsHtml = (post.tags || []).slice(0, 4).map(t =>
+          `<span class="tag-item" onclick="filterByTag('${escapeHtml(t)}')">${escapeHtml(t)}</span>`
+        ).join(' ');
+
+        card.innerHTML = `
+          <div class="card-meta">
+            <div class="meta-left">
+              <span class="cat-tag ${getCatClass(post.category)}">${escapeHtml(post.category || 'Yangilik')}</span>
+              <span class="time-stamp">${escapeHtml(post.timeFormatted || '')}</span>
+            </div>
+            <div class="views-count">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <span>${escapeHtml(post.views || '1')}</span>
+            </div>
+          </div>
+
+          ${mediaHtml}
+
+          <h2 class="card-title" onclick="openStoryModal(${post.id})">${escapeHtml(post.title)}</h2>
+          <p class="card-lead" onclick="openStoryModal(${post.id})">${escapeHtml(post.lead || '')}</p>
+
+          ${tagsHtml ? `<div class="card-tags">${tagsHtml}</div>` : ''}
+
+          <div class="card-footer">
+            <button class="btn-read-more" onclick="openStoryModal(${post.id})">Batafsil o'qish</button>
+            <div class="footer-icons">
+              <button class="action-icon-btn ${isSaved ? 'saved' : ''}" onclick="toggleBookmark(${post.id})" title="Saqlash">
+                <svg viewBox="0 0 24 24" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                  <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+                </svg>
+              </button>
+              <button class="action-icon-btn" onclick="sharePost(${post.id})" title="Ulashish">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                  <polyline points="16 6 12 2 8 6"></polyline>
+                  <line x1="12" y1="2" x2="12" y2="15"></line>
+                </svg>
+              </button>
+              <button class="action-icon-btn" onclick="openTelegramLink('${post.telegramUrl}')" title="Telegramda ko'rish">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        `;
+
+        newsFeed.appendChild(card);
+      });
+
+      loadMoreWrap.style.display = nextBeforeId ? 'block' : 'none';
+    }
+
+    async function loadNews({ before = null, force = false, append = false } = {}) {
+      if (isLoading) return;
+      isLoading = true;
+
+      if (!append) {
+        btnRefresh.classList.add('spinning');
+      }
+
+      try {
+        if (currentCategory === 'bookmarks') {
+          currentPosts = savedBookmarks;
+          renderFeed(currentPosts, false);
+          return;
+        }
+
+        const params = new URLSearchParams();
+        if (before) params.set('before', before);
+        if (currentCategory && currentCategory !== 'Barchasi') params.set('category', currentCategory);
+        if (searchQuery) params.set('q', searchQuery);
+        if (force) params.set('refresh', '1');
+
+        const res = await fetch(`/api/news?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (append) {
+          currentPosts = [...currentPosts, ...(data.posts || [])];
+        } else {
+          currentPosts = data.posts || [];
+        }
+
+        nextBeforeId = data.nextBefore;
+        renderFeed(append ? data.posts || [] : currentPosts, append);
+
+        // Check deep link ID if initial load
+        if (!append && !before) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const deepId = urlParams.get('id');
+          if (deepId) {
+            openStoryModal(parseInt(deepId, 10));
+          }
+        }
+      } catch (err) {
+        console.error('loadNews error:', err);
+        showToast("Yangiliklarni yuklashda xatolik yuz berdi");
+        if (!append && currentPosts.length === 0) {
+          newsFeed.innerHTML = `
+            <div class="empty-state">
+              <p>Tarmoqqa ulanib bo'lmadi.</p>
+              <button class="btn-load-more" onclick="loadNews({ force: true })" style="margin-top: 12px;">Qayta urinish</button>
+            </div>
+          `;
+        }
+      } finally {
+        isLoading = false;
+        btnRefresh.classList.remove('spinning');
+      }
+    }
+
+    function openStoryModal(id) {
+      haptic('light');
+      const post = currentPosts.find(p => p.id === id) || savedBookmarks.find(p => p.id === id);
+      if (!post) return;
+      activeModalPost = post;
+
+      modalTitle.textContent = post.title;
+      modalMeta.innerHTML = `
+        <span class="cat-tag ${getCatClass(post.category)}">${escapeHtml(post.category || '')}</span>
+        <span class="time-stamp">${escapeHtml(post.timeFormatted || '')}</span>
+        <span class="views-count">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          ${escapeHtml(post.views || '1')}
+        </span>
+      `;
+
+      // Media
+      let mediaHtml = '';
+      if (post.photos && post.photos.length > 0) {
+        mediaHtml = `<div class="modal-gallery">` +
+          post.photos.map(p => `<img src="${p}" alt="${escapeHtml(post.title)}" loading="lazy">`).join('') +
+          `</div>`;
+      } else if (post.videoUrl) {
+        mediaHtml = `<div class="modal-video"><video src="${post.videoUrl}" controls playsinline autoplay muted></video></div>`;
+      }
+      modalMedia.innerHTML = mediaHtml;
+
+      // Full text with formatted links
+      modalText.innerHTML = linkifyText(post.text);
+
+      modalTgBtn.onclick = () => openTelegramLink(post.telegramUrl);
+      modalShareBtn.onclick = () => sharePost(post.id);
+
+      newsModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+
+      if (tg?.BackButton) {
+        tg.BackButton.show();
+        tg.BackButton.onClick(closeModal);
+      }
+    }
+
+    function closeModal() {
+      newsModal.classList.remove('active');
+      document.body.style.overflow = '';
+      const v = modalMedia.querySelector('video');
+      if (v) { v.pause(); v.src = ''; }
+      if (tg?.BackButton) {
+        tg.BackButton.hide();
+      }
+    }
+
+    function linkifyText(text) {
+      if (!text) return '';
+      const escaped = escapeHtml(text);
+      return escaped.replace(
+        /(https?:\/\/[^\s<]+)/g,
+        '<a href="$1" target="_blank" rel="noopener">$1</a>'
+      );
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
+    function openTelegramLink(url) {
+      haptic('medium');
+      if (tg?.openTelegramLink) {
+        tg.openTelegramLink(url);
+      } else {
+        window.open(url, '_blank', 'noopener');
+      }
+    }
+
+    function sharePost(id) {
+      haptic('light');
+      const post = currentPosts.find(p => p.id === id) || savedBookmarks.find(p => p.id === id);
+      if (!post) return;
+
+      const shareUrl = `${window.location.origin}/news?id=${post.id}`;
+      const shareText = `${post.title}\n\nBatafsil: ${shareUrl}\n\nKanal: @tezkorofficial_uz`;
+
+      if (navigator.share) {
+        navigator.share({ title: post.title, text: shareText, url: shareUrl }).catch(() => {});
+      } else if (tg?.openTelegramLink) {
+        const tgShare = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.title)}`;
+        tg.openTelegramLink(tgShare);
+      } else {
+        navigator.clipboard?.writeText(shareText);
+        showToast("Havola nusxalandi!");
+      }
+    }
+
+    function toggleBookmark(id) {
+      haptic('medium');
+      const post = currentPosts.find(p => p.id === id);
+      if (!post) return;
+
+      const idx = savedBookmarks.findIndex(b => b.id === id);
+      if (idx >= 0) {
+        savedBookmarks.splice(idx, 1);
+        showToast("Saqlanganlardan olib tashlandi");
+      } else {
+        savedBookmarks.unshift(post);
+        showToast("Yangilik saqlandi!");
+      }
+
+      localStorage.setItem('ntv_saved_news', JSON.stringify(savedBookmarks));
+
+      if (currentCategory === 'bookmarks') {
+        renderFeed(savedBookmarks);
+      } else {
+        renderFeed(currentPosts);
+      }
+    }
+
+    function filterByTag(tag) {
+      searchInput.value = tag;
+      searchQuery = tag;
+      searchClear.style.display = 'block';
+      loadNews({ force: false });
+    }
+
+    // Font size adjustments in Reader modal
+    let fontSizes = ['font-small', 'font-normal', 'font-large'];
+    let currentFontIdx = 1;
+
+    btnFontInc.onclick = () => {
+      if (currentFontIdx < fontSizes.length - 1) {
+        document.getElementById('modalBody').classList.remove(fontSizes[currentFontIdx]);
+        currentFontIdx++;
+        document.getElementById('modalBody').classList.add(fontSizes[currentFontIdx]);
+      }
+    };
+
+    btnFontDec.onclick = () => {
+      if (currentFontIdx > 0) {
+        document.getElementById('modalBody').classList.remove(fontSizes[currentFontIdx]);
+        currentFontIdx--;
+        document.getElementById('modalBody').classList.add(fontSizes[currentFontIdx]);
+      }
+    };
+
+    // Category chips
+    categoriesBar.addEventListener('click', (e) => {
+      const chip = e.target.closest('.category-chip');
+      if (!chip) return;
+      haptic('light');
+
+      document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+
+      currentCategory = chip.getAttribute('data-cat') || '';
+      btnBookmarks.classList.toggle('is-active', currentCategory === 'bookmarks');
+
+      nextBeforeId = null;
+      loadNews({ force: false });
+    });
+
+    btnBookmarks.onclick = () => {
+      haptic('light');
+      const isCurrentlyBookmarks = currentCategory === 'bookmarks';
+      document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+
+      if (isCurrentlyBookmarks) {
+        currentCategory = '';
+        document.querySelector('.category-chip[data-cat=""]').classList.add('active');
+        btnBookmarks.classList.remove('is-active');
+      } else {
+        currentCategory = 'bookmarks';
+        document.querySelector('.category-chip[data-cat="bookmarks"]').classList.add('active');
+        btnBookmarks.classList.add('is-active');
+      }
+      nextBeforeId = null;
+      loadNews();
+    };
+
+    // Search input with debounce
+    let searchDebounce = null;
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim();
+      searchClear.style.display = searchQuery ? 'block' : 'none';
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        nextBeforeId = null;
+        loadNews();
+      }, 350);
+    });
+
+    searchClear.onclick = () => {
+      searchInput.value = '';
+      searchQuery = '';
+      searchClear.style.display = 'none';
+      nextBeforeId = null;
+      loadNews();
+    };
+
+    // Buttons
+    btnRefresh.onclick = () => {
+      haptic('medium');
+      nextBeforeId = null;
+      loadNews({ force: true });
+    };
+
+    btnLoadMore.onclick = () => {
+      if (nextBeforeId) {
+        haptic('light');
+        loadNews({ before: nextBeforeId, append: true });
+      }
+    };
+
+    btnJoinChannel.onclick = () => {
+      openTelegramLink('https://t.me/tezkorofficial_uz');
+    };
+
+    modalClose.onclick = closeModal;
+    newsModal.onclick = (e) => {
+      if (e.target === newsModal) closeModal();
+    };
+
+    // Infinite scroll listener
+    window.addEventListener('scroll', () => {
+      if (isLoading || !nextBeforeId) return;
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 400) {
+        loadNews({ before: nextBeforeId, append: true });
+      }
+    });
+
+    // Initial load
+    loadNews();
+  </script>
+</body>
+</html>
