@@ -92,10 +92,25 @@ function parseMessageBlock(block) {
   const textMatch = block.match(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/);
   let rawHtml = textMatch ? textMatch[1] : "";
 
+  // Remove Telegram channel links from rawHtml so they become unlinked text
+  rawHtml = rawHtml
+    .replace(/<a\b[^>]*href=["']https?:\/\/(?:t|telegram)\.me\/[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi, "$1")
+    .replace(/<a\b[^>]*href=["']https?:\/\/t\.me[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi, "$1");
+
   // Plain text
   let plainText = rawHtml
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<[^>]+>/g, "")
+    .trim();
+
+  // Strip Telegram channel promo links and handles from text
+  plainText = plainText
+    .replace(/https?:\/\/(?:t|telegram)\.me\/[a-zA-Z0-9_+/]+/gi, "")
+    .replace(/https?:\/\/t\.me\/[a-zA-Z0-9_+/]+/gi, "")
+    .replace(/\bt\.me\/[a-zA-Z0-9_+/]+/gi, "")
+    .replace(/@tezkorofficial_uz\b/gi, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n\s*\n/g, "\n\n")
     .trim();
 
   // Clean lines & extract title
@@ -145,12 +160,15 @@ function parseMessageBlock(block) {
     const siteNameMatch = linkPreviewMatch[2].match(/<div class="link_preview_site_name"[^>]*>([^<]+)<\/div>/);
     const titleMatch = linkPreviewMatch[2].match(/<div class="link_preview_title"[^>]*>([^<]+)<\/div>/);
     const descMatch = linkPreviewMatch[2].match(/<div class="link_preview_description"[^>]*>([^<]+)<\/div>/);
-    linkPreview = {
-      url,
-      siteName: siteNameMatch ? siteNameMatch[1].trim() : "",
-      title: titleMatch ? titleMatch[1].trim() : "",
-      description: descMatch ? descMatch[1].trim() : "",
-    };
+    // Discard preview if it points to a Telegram channel
+    if (!/https?:\/\/(?:t|telegram)\.me/i.test(url)) {
+      linkPreview = {
+        url,
+        siteName: siteNameMatch ? siteNameMatch[1].trim() : "",
+        title: titleMatch ? titleMatch[1].trim() : "",
+        description: descMatch ? descMatch[1].trim() : "",
+      };
+    }
   }
 
   // Extract hashtags
@@ -250,7 +268,16 @@ function ingestWebhookPost(channelPost) {
     videoUrl = `/api/news?media=video&fileId=${channelPost.video.file_id}`;
   }
 
-  const rawLines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const cleanText = text
+    .replace(/https?:\/\/(?:t|telegram)\.me\/[a-zA-Z0-9_+/]+/gi, "")
+    .replace(/https?:\/\/t\.me\/[a-zA-Z0-9_+/]+/gi, "")
+    .replace(/\bt\.me\/[a-zA-Z0-9_+/]+/gi, "")
+    .replace(/@tezkorofficial_uz\b/gi, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n\s*\n/g, "\n\n")
+    .trim();
+
+  const rawLines = cleanText.split("\n").map((l) => l.trim()).filter(Boolean);
   let title = rawLines[0] || "Tezkor xabar";
   title = title.replace(/^[🔊🔴⚡️🔥🌤⚽️🚨👉📌📢\s]+/, "").trim();
   if (title.length > 120) title = title.slice(0, 115) + "...";
@@ -260,8 +287,8 @@ function ingestWebhookPost(channelPost) {
     postFullId: `${CHANNEL_USERNAME}/${id}`,
     title,
     lead: rawLines.slice(0, 3).join(" ").slice(0, 220),
-    text,
-    html: text.replace(/\n/g, "<br>"),
+    text: cleanText,
+    html: cleanText.replace(/\n/g, "<br>"),
     photos,
     videoUrl,
     videoThumb: null,
@@ -270,8 +297,8 @@ function ingestWebhookPost(channelPost) {
     datetime: dateIso,
     timeFormatted: formatUzbekTime(dateIso),
     views: "1",
-    category: inferCategory(text),
-    tags: [...text.matchAll(/#([a-zA-Z0-9_а-яА-ЯўқғҳЎҚҒҲ]+)/g)].map((m) => `#${m[1]}`),
+    category: inferCategory(cleanText),
+    tags: [...cleanText.matchAll(/#([a-zA-Z0-9_а-яА-ЯўқғҳЎҚҒҲ]+)/g)].map((m) => `#${m[1]}`),
     telegramUrl: `https://t.me/${CHANNEL_USERNAME}/${id}`,
     sourceChannel: CHANNEL_USERNAME,
   };

@@ -156,72 +156,6 @@
       width: 19px;
       height: 19px;
     }
-
-    /* Channel info banner */
-    .channel-banner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #ffffff;
-      border: 1px solid var(--news-border);
-      border-radius: 14px;
-      padding: 10px 14px;
-      margin-bottom: 14px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-    }
-
-    .channel-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .channel-avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background: var(--news-tezkor-red);
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-      color: #fff;
-      font-size: 14px;
-    }
-
-    .channel-name {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--news-text);
-      display: block;
-    }
-
-    .channel-tag {
-      font-size: 12px;
-      color: var(--news-accent);
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .btn-tg-join {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #2481cc;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 6px 12px;
-      border-radius: 9px;
-      border: none;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.2s;
-    }
-
-    .btn-tg-join:hover {
-      background: #1b68a5;
-    }
-
     /* Search Bar */
     .search-wrap {
       position: relative;
@@ -723,33 +657,42 @@
       background: #f8fafc;
     }
 
-    .btn-tg-open {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #2481cc;
-      color: #fff;
-      padding: 8px 16px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-    }
-
     .btn-share {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #ffffff;
+      background: #eff6ff;
+      color: #1d4ed8;
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #bfdbfe;
+      transition: all 0.15s;
+    }
+
+    .btn-share:hover {
+      background: #dbeafe;
+    }
+
+    .btn-modal-close {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f1f5f9;
       color: var(--news-text);
-      padding: 8px 16px;
+      padding: 8px 18px;
       border-radius: 10px;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid #cbd5e1;
+      transition: background 0.15s;
+    }
+
+    .btn-modal-close:hover {
+      background: #e2e8f0;
     }
 
     /* Toast notification */
@@ -799,7 +742,7 @@
     <!-- Top Collaboration Header: Tezkor × NTV -->
     <header class="collab-header">
       <div class="collab-logos">
-        <div class="collab-brand tezkor-brand" title="Tezkor rasmiy kanali">
+        <div class="collab-brand tezkor-brand" title="Tezkor">
           <img src="/static/assets/tezkor-logo.png" alt="Tezkor" class="logo-tezkor" onerror="this.src='./tezkor-logo.png'">
         </div>
         <span class="collab-cross" aria-label="hamkorlikda">✕</span>
@@ -821,23 +764,6 @@
         </button>
       </div>
     </header>
-
-    <!-- Source Channel Banner -->
-    <div class="channel-banner">
-      <div class="channel-info">
-        <div class="channel-avatar">T</div>
-        <div>
-          <span class="channel-name">Tezkor uz | Rasmiy kanal</span>
-          <a href="https://t.me/tezkorofficial_uz" target="_blank" rel="noopener" class="channel-tag" id="channelLink">@tezkorofficial_uz</a>
-        </div>
-      </div>
-      <button class="btn-tg-join" id="btnJoinChannel">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
-        </svg>
-        A'zo bo'lish
-      </button>
-    </div>
 
     <!-- Search Box -->
     <div class="search-wrap">
@@ -900,12 +826,6 @@
         <div class="modal-full-text" id="modalText"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-tg-open" id="modalTgBtn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
-          </svg>
-          Telegramda ochish
-        </button>
         <button class="btn-share" id="modalShareBtn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
@@ -913,6 +833,9 @@
             <line x1="12" y1="2" x2="12" y2="15"></line>
           </svg>
           Ulashish
+        </button>
+        <button class="btn-modal-close" id="modalFooterClose">
+          Yopish
         </button>
       </div>
     </div>
@@ -959,9 +882,8 @@
     const modalText = document.getElementById('modalText');
     const modalMedia = document.getElementById('modalMedia');
     const modalMeta = document.getElementById('modalMeta');
-    const modalTgBtn = document.getElementById('modalTgBtn');
     const modalShareBtn = document.getElementById('modalShareBtn');
-    const btnJoinChannel = document.getElementById('btnJoinChannel');
+    const modalFooterClose = document.getElementById('modalFooterClose');
     const btnFontDec = document.getElementById('btnFontDec');
     const btnFontInc = document.getElementById('btnFontInc');
     const toastMsg = document.getElementById('toastMsg');
@@ -1065,11 +987,6 @@
                   <line x1="12" y1="2" x2="12" y2="15"></line>
                 </svg>
               </button>
-              <button class="action-icon-btn" onclick="openTelegramLink('${post.telegramUrl}')" title="Telegramda ko'rish">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
-                </svg>
-              </button>
             </div>
           </div>
         `;
@@ -1167,7 +1084,6 @@
       // Full text with formatted links
       modalText.innerHTML = linkifyText(post.text);
 
-      modalTgBtn.onclick = () => openTelegramLink(post.telegramUrl);
       modalShareBtn.onclick = () => sharePost(post.id);
 
       newsModal.classList.add('active');
@@ -1191,24 +1107,24 @@
 
     function linkifyText(text) {
       if (!text) return '';
-      const escaped = escapeHtml(text);
+      // Strip telegram channel links and handle mentions
+      const cleaned = text
+        .replace(/https?:\/\/(?:t|telegram)\.me\/[^\s<]+/gi, '')
+        .replace(/\bt\.me\/[^\s<]+/gi, '')
+        .replace(/@tezkorofficial_uz\b/gi, '')
+        .trim();
+      const escaped = escapeHtml(cleaned);
       return escaped.replace(
         /(https?:\/\/[^\s<]+)/g,
-        '<a href="$1" target="_blank" rel="noopener">$1</a>'
+        (match) => {
+          if (/(?:t|telegram)\.me/i.test(match)) return '';
+          return `<a href="${match}" target="_blank" rel="noopener">${match}</a>`;
+        }
       );
     }
 
     function escapeHtml(s) {
       return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    }
-
-    function openTelegramLink(url) {
-      haptic('medium');
-      if (tg?.openTelegramLink) {
-        tg.openTelegramLink(url);
-      } else {
-        window.open(url, '_blank', 'noopener');
-      }
     }
 
     function sharePost(id) {
@@ -1217,15 +1133,14 @@
       if (!post) return;
 
       const shareUrl = `${window.location.origin}/news?id=${post.id}`;
-      const shareText = `${post.title}\n\nBatafsil: ${shareUrl}\n\nKanal: @tezkorofficial_uz`;
+      const shareText = `${post.title}\n\n${shareUrl}`;
 
       if (navigator.share) {
         navigator.share({ title: post.title, text: shareText, url: shareUrl }).catch(() => {});
-      } else if (tg?.openTelegramLink) {
-        const tgShare = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.title)}`;
-        tg.openTelegramLink(tgShare);
       } else {
-        navigator.clipboard?.writeText(shareText);
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(`${post.title}\n${shareUrl}`);
+        }
         showToast("Havola nusxalandi!");
       }
     }
@@ -1325,11 +1240,8 @@
       }
     };
 
-    btnJoinChannel.onclick = () => {
-      openTelegramLink('https://t.me/tezkorofficial_uz');
-    };
-
     modalClose.onclick = closeModal;
+    if (modalFooterClose) modalFooterClose.onclick = closeModal;
     newsModal.onclick = (e) => {
       if (e.target === newsModal) closeModal();
     };
