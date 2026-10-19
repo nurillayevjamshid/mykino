@@ -81,6 +81,13 @@
       --news-tezkor-red: #d92525;
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --news-header-top: max(
+        calc(var(--tg-content-safe-area-inset-top, 0px) + 12px),
+        calc(var(--app-safe-top, 0px) + 12px),
+        calc(env(safe-area-inset-top, 0px) + 52px),
+        64px
+      );
+      --news-header-height: calc(var(--news-header-top) + 56px);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -90,12 +97,7 @@
       color: var(--news-text);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       min-height: 100vh;
-      padding-top: max(
-        calc(var(--tg-content-safe-area-inset-top, 0px) + 14px),
-        calc(var(--app-safe-top, 0px) + 14px),
-        calc(env(safe-area-inset-top, 0px) + 54px),
-        68px
-      );
+      padding-top: calc(var(--news-header-height) + 14px);
       padding-left: 16px;
       padding-right: 16px;
       padding-bottom: max(calc(var(--safe-bottom) + 24px), 32px);
@@ -109,17 +111,37 @@
       margin: 0 auto;
     }
 
-    /* Top Collaboration Header */
+    /* Top Collaboration Header — Fixed Sticky Navbar (scrollda muqum turadi) */
     .collab-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1100;
+      padding-top: var(--news-header-top);
+      padding-bottom: 12px;
+      padding-left: 16px;
+      padding-right: 16px;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(16px) saturate(160%);
+      -webkit-backdrop-filter: blur(16px) saturate(160%);
+      border-bottom: 1px solid var(--news-border);
+      transition: box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .collab-header.is-scrolled {
+      background: rgba(248, 250, 252, 0.98);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .collab-header-inner {
+      max-width: 720px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
       position: relative;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--news-border);
       min-height: 44px;
-      background: var(--news-bg);
     }
 
     .header-left, .header-right {
@@ -1008,9 +1030,9 @@
   </style>
 </head>
 <body>
-  <div class="news-container">
-    <!-- Top Collaboration Header: Menu | Centered Logo | Bookmarks -->
-    <header class="collab-header">
+  <!-- Top Collaboration Fixed Navbar (scrollda muqum turadi) -->
+  <header class="collab-header" id="collabHeader">
+    <div class="collab-header-inner">
       <div class="header-left">
         <button class="icon-btn" id="btnMenu" title="Bo'limlar menyusi" aria-label="Menyu">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1032,8 +1054,10 @@
           </svg>
         </button>
       </div>
-    </header>
+    </div>
+  </header>
 
+  <div class="news-container">
     <!-- Search Box -->
     <div class="search-wrap">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1648,14 +1672,25 @@
     }
 
     // Floating Scroll-To-Top button handling
+    // Floating Scroll-To-Top button & sticky navbar handling
     const btnScrollTop = document.getElementById('btnScrollTop');
-    function updateScrollTopVisibility() {
-      if (!btnScrollTop) return;
+    const collabHeader = document.getElementById('collabHeader');
+
+    function updateScrollState() {
       const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-      if (scrollY > 260) {
-        btnScrollTop.classList.add('is-visible');
-      } else {
-        btnScrollTop.classList.remove('is-visible');
+      if (btnScrollTop) {
+        if (scrollY > 260) {
+          btnScrollTop.classList.add('is-visible');
+        } else {
+          btnScrollTop.classList.remove('is-visible');
+        }
+      }
+      if (collabHeader) {
+        if (scrollY > 8) {
+          collabHeader.classList.add('is-scrolled');
+        } else {
+          collabHeader.classList.remove('is-scrolled');
+        }
       }
     }
 
@@ -1669,9 +1704,9 @@
       });
     }
 
-    // Scroll listener (both for scroll-to-top button and infinite scroll)
+    // Scroll listener (for sticky navbar, scroll-to-top button, and infinite scroll)
     window.addEventListener('scroll', () => {
-      updateScrollTopVisibility();
+      updateScrollState();
       if (isLoading || !nextBeforeId || isShowingBookmarks) return;
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 400) {
         loadNews({ before: nextBeforeId, append: true });
@@ -1679,7 +1714,7 @@
     }, { passive: true });
 
     // Initial load and scroll check
-    updateScrollTopVisibility();
+    updateScrollState();
     loadNews();
 
     // Native Telegram Back Button integration
