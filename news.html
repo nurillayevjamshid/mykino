@@ -3332,11 +3332,32 @@
       closeDrawer();
       showSectionSplash(targetKey);
       try { sessionStorage.setItem('ntv_section_splash', targetKey); } catch (_) {}
-      const hash = window.location.hash || '';
-      const cleanUrl = url.includes('#') ? url : (url + hash);
+
+      // Fallback timer: agar navigatsiya kechiksa yoki amalga oshmasa, ekran muzlab qolmasligi uchun
       setTimeout(() => {
-        window.location.href = cleanUrl;
-      }, 350);
+        hideSectionSplash();
+      }, 2500);
+
+      try {
+        const targetUrl = new URL(url, window.location.origin);
+        if (window.location.hash) {
+          targetUrl.hash = window.location.hash;
+        }
+        const dest = targetUrl.href;
+        setTimeout(() => {
+          try {
+            window.location.assign(dest);
+          } catch (_) {
+            window.location.href = dest;
+          }
+        }, 180);
+      } catch (_) {
+        const hash = window.location.hash || '';
+        const cleanUrl = url.includes('#') ? url : (url + hash);
+        setTimeout(() => {
+          window.location.href = cleanUrl;
+        }, 180);
+      }
     }
 
     function navigateToKino() {

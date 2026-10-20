@@ -8476,6 +8476,10 @@ if (requestedSection) {
   } catch (err) {
     console.error("Error activating requested section:", err);
   }
+  setTimeout(() => {
+    ensureTelegramFullscreen();
+    hideSectionSplash();
+  }, 1500);
 }
 
 // Sidebar yuqori 3 slot — joriy bo'limdan boshqa bo'limlarga o'tish tugmalari.
@@ -8588,6 +8592,7 @@ function syncSidebarSectionItems() {
     music: ["kino", "fifa", "podcasts", "news"],
     podcasts: ["kino", "fifa", "music", "news"],
     esport: ["kino", "fifa", "music", "news"],
+    news: ["kino", "fifa", "music", "podcasts"],
   };
 
   ORDER[section].forEach((key, i) => {
@@ -8809,7 +8814,7 @@ function hideSectionSplash(immediate = false) {
     splashScreen.classList.add("hidden");
   }
   const el = document.getElementById("sectionSplash");
-  if (!el || el.hidden) return;
+  if (!el) return;
   clearTimeout(sectionSplashTimer);
   clearTimeout(sectionSplashHideTimer);
   if (immediate) {
@@ -10964,6 +10969,20 @@ function initSplashScreen() {
       : (requestedSec || storedSplash || "kino");
 
     showSectionSplash(targetKey);
+
+    if (targetKey === "fifa") {
+      try { openFifaView(); } catch (_) {}
+    } else if (targetKey === "music") {
+      try { openMusicView(); } catch (_) {}
+    } else if (targetKey === "podcasts") {
+      try { openPodcastsView(); } catch (_) {}
+    } else {
+      try {
+        closeMusicView();
+        closePodcastsView();
+        closeFifaView();
+      } catch (_) {}
+    }
 
     setTimeout(() => {
       ensureTelegramFullscreen();

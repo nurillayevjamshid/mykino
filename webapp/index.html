@@ -226,6 +226,18 @@
         var spin = document.getElementById("sectionSplashSpinner");
         if (logo && ICONS[splashKey]) logo.innerHTML = ICONS[splashKey];
         if (spin && COLORS[splashKey]) spin.style.borderTopColor = COLORS[splashKey];
+
+        // Safety fallback: agar kino.js yuklanishi kechiksa, splash ekran muzlab qolmasligi uchun
+        setTimeout(function() {
+          try {
+            document.documentElement.classList.remove("skip-entrance-splash");
+            var el = document.getElementById("sectionSplash");
+            if (el) {
+              el.classList.add("is-hiding");
+              setTimeout(function() { el.hidden = true; el.classList.remove("is-hiding"); }, 230);
+            }
+          } catch (_) {}
+        }, 2200);
       } catch (_) {}
     })();
   </script>
