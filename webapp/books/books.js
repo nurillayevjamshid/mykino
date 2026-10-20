@@ -29,7 +29,128 @@
     speedIndex: 0,
     isScrubbing: false,
     syncTimer: null,
+    currentLang: (function () {
+      try {
+        const stored = localStorage.getItem("kino_lang") || localStorage.getItem("app_lang");
+        if (stored === "uz" || stored === "ru" || stored === "en") return stored;
+      } catch (_) {}
+      return "uz";
+    })(),
   };
+
+  // Translation Dictionaries (UZ, RU, EN)
+  const BOOKS_I18N = {
+    uz: {
+      searchPlaceholder: "Audio kitob yoki muallif qidirish...",
+      all: "Barchasi",
+      hikoyalar: "Hikoyalar",
+      romanlar: "Romanlar",
+      qissalar: "Qissalar",
+      dramalar: "Dramalar",
+      saved: "Saqlanganlar",
+      latestAdded: "Kanal bo'yicha so'nggi qo'shilganlar",
+      loading: "Yuklanmoqda...",
+      savedTitle: "Saqlangan audio kitoblar",
+      genreBooks: "{genre} janridagi kitoblar",
+      noSaved: "Saqlangan audio kitoblar yo'q",
+      noSavedHint: "O'zingizga yoqqan audio kitoblar yonidagi saqlash (watermark) belgisini bosing.",
+      notFound: "Audio kitob topilmadi",
+      notFoundHint: "Boshqa so'z bilan qidirib ko'ring yoki boshqa janrni tanlang.",
+      booksCountSuffix: "ta kitob",
+    },
+    ru: {
+      searchPlaceholder: "Поиск аудиокниги или автора...",
+      all: "Все",
+      hikoyalar: "Рассказы",
+      romanlar: "Романы",
+      qissalar: "Повести",
+      dramalar: "Драмы",
+      saved: "Сохранённые",
+      latestAdded: "Последние добавленные",
+      loading: "Загрузка...",
+      savedTitle: "Сохранённые аудиокниги",
+      genreBooks: "Книги жанра {genre}",
+      noSaved: "Нет сохранённых аудиокниг",
+      noSavedHint: "Нажмите на значок закладки рядом с понравившейся аудиокнигой.",
+      notFound: "Аудиокнига не найдена",
+      notFoundHint: "Попробуйте другое слово или выберите другой жанр.",
+      booksCountSuffix: "аудиокниг",
+    },
+    en: {
+      searchPlaceholder: "Search audiobook or author...",
+      all: "All",
+      hikoyalar: "Stories",
+      romanlar: "Novels",
+      qissalar: "Novellas",
+      dramalar: "Dramas",
+      saved: "Saved",
+      latestAdded: "Latest added audiobooks",
+      loading: "Loading...",
+      savedTitle: "Saved audiobooks",
+      genreBooks: "{genre} audiobooks",
+      noSaved: "No saved audiobooks",
+      noSavedHint: "Tap the bookmark icon next to any audiobook you like.",
+      notFound: "Audiobook not found",
+      notFoundHint: "Try searching with different keywords or select another genre.",
+      booksCountSuffix: "audiobooks",
+    },
+  };
+
+  function t(key) {
+    const lang = state.currentLang || "uz";
+    return (BOOKS_I18N[lang] && BOOKS_I18N[lang][key]) || BOOKS_I18N.uz[key] || key;
+  }
+
+  // Section Splash Icons & Colors (Exact match with Kino & News)
+  const SECTION_SPLASH_ICONS = {
+    kino: `<svg viewBox="0 0 32 32" class="brand-logo__svg" aria-hidden="true"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg>`,
+    music: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
+    podcasts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>`,
+    fifa: `<img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44">`,
+    news: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>`,
+    books: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>`,
+  };
+
+  const SECTION_SPLASH_COLORS = {
+    kino: "#e50914",
+    music: "#ff2a5f",
+    podcasts: "#8b5cf6",
+    fifa: "#00b894",
+    books: "#10b981",
+    news: "#2563eb",
+  };
+
+  function showSectionSplash(sectionKey = "kino") {
+    const el = elements.sectionSplash || document.getElementById("sectionSplash");
+    if (!el) return;
+    const logoEl = elements.sectionSplashLogo || document.getElementById("sectionSplashLogo");
+    const spinnerEl = elements.sectionSplashSpinner || document.getElementById("sectionSplashSpinner");
+    if (logoEl && SECTION_SPLASH_ICONS[sectionKey]) logoEl.innerHTML = SECTION_SPLASH_ICONS[sectionKey];
+    if (spinnerEl && SECTION_SPLASH_COLORS[sectionKey]) spinnerEl.style.borderTopColor = SECTION_SPLASH_COLORS[sectionKey];
+    el.classList.remove("is-hiding");
+    el.hidden = false;
+  }
+
+  function hideSectionSplash() {
+    const el = elements.sectionSplash || document.getElementById("sectionSplash");
+    if (!el || el.hidden) return;
+    el.classList.add("is-hiding");
+    setTimeout(() => {
+      el.hidden = true;
+      el.classList.remove("is-hiding");
+    }, 230);
+  }
+
+  function navigateToSection(targetKey, url) {
+    closeSidebar();
+    showSectionSplash(targetKey);
+    try { sessionStorage.setItem("ntv_section_splash", targetKey); } catch (_) {}
+    const hash = window.location.hash || "";
+    const cleanUrl = url.includes("#") ? url : (url + hash);
+    setTimeout(() => {
+      window.location.href = cleanUrl;
+    }, 350);
+  }
 
   // YouTube IFrame Player State
   let ytPlayer = null;
@@ -59,6 +180,10 @@
     elements.sidebarSavedBadge = document.getElementById("sidebarSavedBadge");
     elements.sidebarSavedBooksBtn = document.getElementById("sidebarSavedBooksBtn");
     elements.sidebarThemeSwitch = document.getElementById("sidebarThemeSwitch");
+    elements.sidebarLangPills = document.getElementById("sidebarLangPills");
+    elements.sectionSplash = document.getElementById("sectionSplash");
+    elements.sectionSplashLogo = document.getElementById("sectionSplashLogo");
+    elements.sectionSplashSpinner = document.getElementById("sectionSplashSpinner");
     const initBooksTheme = document.documentElement.getAttribute("data-theme") || "light";
     if (elements.sidebarThemeSwitch) {
       elements.sidebarThemeSwitch.setAttribute("aria-checked", initBooksTheme === "dark" ? "true" : "false");
@@ -523,6 +648,49 @@
     return list;
   }
 
+  function updateSectionLabel() {
+    if (!elements.sectionLabel) return;
+    const filterName = state.activeFilter;
+    if (filterName === "saqlanganlar") {
+      elements.sectionLabel.textContent = t("savedTitle");
+    } else if (filterName !== "barchasi") {
+      elements.sectionLabel.textContent = t("genreBooks").replace("{genre}", filterName);
+    } else {
+      elements.sectionLabel.textContent = t("latestAdded");
+    }
+  }
+
+  function setLanguage(lang) {
+    if (!BOOKS_I18N[lang]) lang = "uz";
+    state.currentLang = lang;
+    try {
+      localStorage.setItem("kino_lang", lang);
+      localStorage.setItem("app_lang", lang);
+    } catch (_) {}
+
+    elements.sidebarLangPills?.querySelectorAll(".lang-pill").forEach((pill) => {
+      pill.classList.toggle("is-active", pill.getAttribute("data-lang") === lang);
+    });
+
+    if (elements.searchInput) {
+      elements.searchInput.placeholder = t("searchPlaceholder");
+    }
+
+    // Update genre pill labels
+    elements.genrePills?.forEach((pill) => {
+      const filter = pill.getAttribute("data-filter");
+      if (filter === "barchasi") pill.textContent = t("all");
+      else if (filter === "Hikoya") pill.textContent = t("hikoyalar");
+      else if (filter === "Roman") pill.textContent = t("romanlar");
+      else if (filter === "Qissa") pill.textContent = t("qissalar");
+      else if (filter === "Drama") pill.textContent = t("dramalar");
+      else if (filter === "saqlanganlar") pill.textContent = t("saved");
+    });
+
+    updateSectionLabel();
+    render();
+  }
+
   function setFilter(filterName) {
     state.activeFilter = filterName;
     elements.genrePills.forEach((btn) => {
@@ -530,16 +698,7 @@
       btn.classList.toggle("is-active", active);
     });
 
-    if (elements.sectionLabel) {
-      if (filterName === "saqlanganlar") {
-        elements.sectionLabel.textContent = "Saqlangan audio kitoblar";
-      } else if (filterName !== "barchasi") {
-        elements.sectionLabel.textContent = `${filterName} janridagi kitoblar`;
-      } else {
-        elements.sectionLabel.textContent = "Kanal bo'yicha so'nggi qo'shilganlar";
-      }
-    }
-
+    updateSectionLabel();
     render();
   }
 
@@ -550,7 +709,7 @@
     const list = getFilteredBooks();
 
     if (elements.sectionCount) {
-      elements.sectionCount.textContent = `${list.length} ta kitob`;
+      elements.sectionCount.textContent = `${list.length} ${t("booksCountSuffix")}`;
     }
 
     if (list.length === 0) {
@@ -558,16 +717,16 @@
         elements.booksList.innerHTML = `
           <div class="books-empty">
             <div class="books-empty-icon">🔖</div>
-            <div class="books-empty-title">Saqlangan audio kitoblar yo'q</div>
-            <div class="books-empty-hint">O'zingizga yoqqan audio kitoblar yonidagi saqlash (watermark) belgisini bosing.</div>
+            <div class="books-empty-title">${escapeHtml(t("noSaved"))}</div>
+            <div class="books-empty-hint">${escapeHtml(t("noSavedHint"))}</div>
           </div>
         `;
       } else {
         elements.booksList.innerHTML = `
           <div class="books-empty">
             <div class="books-empty-icon">🔍</div>
-            <div class="books-empty-title">Audio kitob topilmadi</div>
-            <div class="books-empty-hint">Boshqa so'z bilan qidirib ko'ring yoki boshqa janrni tanlang.</div>
+            <div class="books-empty-title">${escapeHtml(t("notFound"))}</div>
+            <div class="books-empty-hint">${escapeHtml(t("notFoundHint"))}</div>
           </div>
         `;
       }
@@ -813,6 +972,54 @@
     elements.sidebarCloseBtn?.addEventListener("click", closeSidebar);
     elements.sidebarBackdrop?.addEventListener("click", closeSidebar);
 
+    // Sidebar navigation top items (Bo'limlar orasida o'tish va splash animatsiyasi)
+    document.querySelectorAll(".sidebar__item--top").forEach((a) => {
+      a.addEventListener("click", (e) => {
+        const href = a.getAttribute("href");
+        if (!href || href === "/books") return;
+        e.preventDefault();
+        let targetKey = "kino";
+        let targetUrl = "/?from=books";
+        if (href.includes("section=football") || href.includes("section=fifa")) {
+          targetKey = "fifa";
+          targetUrl = "/?section=football&from=books";
+        } else if (href.includes("section=music")) {
+          targetKey = "music";
+          targetUrl = "/?section=music&from=books";
+        } else if (href.includes("section=podcasts")) {
+          targetKey = "podcasts";
+          targetUrl = "/?section=podcasts&from=books";
+        } else if (href.includes("news")) {
+          targetKey = "news";
+          targetUrl = "/news?from=books";
+        }
+        navigateToSection(targetKey, targetUrl);
+      });
+    });
+
+    // Sidebar Language Pills
+    elements.sidebarLangPills?.querySelectorAll(".lang-pill").forEach((pill) => {
+      pill.addEventListener("click", () => {
+        const nextLang = pill.getAttribute("data-lang");
+        if (nextLang) setLanguage(nextLang);
+      });
+    });
+
+    // Cross-page / cross-tab storage sync
+    window.addEventListener("storage", (e) => {
+      if (e.key === "kino_theme" || e.key === "app_theme") {
+        const next = e.newValue === "dark" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", next);
+        elements.sidebarThemeSwitch?.setAttribute("aria-checked", next === "dark" ? "true" : "false");
+      }
+      if (e.key === "kino_lang" || e.key === "app_lang") {
+        const next = e.newValue;
+        if (next && (next === "uz" || next === "ru" || next === "en") && state.currentLang !== next) {
+          setLanguage(next);
+        }
+      }
+    });
+
     // Sidebar Saved Books button
     elements.sidebarSavedBooksBtn?.addEventListener("click", () => {
       closeSidebar();
@@ -934,8 +1141,28 @@
     initElements();
     initTelegram();
     loadSavedIds();
+    setLanguage(state.currentLang);
     bindEvents();
     loadBooks();
+
+    // Bo'limlar orasida o'tish (splash continuity): 1.5s splash
+    const incomingSplash = (function () {
+      try {
+        const s = sessionStorage.getItem("ntv_section_splash");
+        if (s) {
+          sessionStorage.removeItem("ntv_section_splash");
+          return s;
+        }
+      } catch (_) {}
+      return null;
+    })();
+
+    if (incomingSplash === "books" || window.location.search.includes("from=")) {
+      showSectionSplash("books");
+      setTimeout(() => {
+        hideSectionSplash();
+      }, 1000);
+    }
   });
 
   // Global exports for inline triggers

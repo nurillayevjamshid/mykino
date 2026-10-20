@@ -81,4 +81,38 @@ describe('Section Navigation & Splash Continuity Suite', () => {
     assert.match(newsHtml, /\[data-theme="dark"\] \.sidebar__item-img--fifa[\s\S]*?filter:\s*invert\(1\)/);
     assert.match(booksCss, /\[data-theme="dark"\] \.sidebar__item-img--fifa[\s\S]*?filter:\s*invert\(1\)/);
   });
+
+  test('cross-section language synchronization across kino, news, and books', () => {
+    const kinoJs = fs.readFileSync(path.join(rootDir, 'webapp', 'kino', 'kino.js'), 'utf8');
+    const newsHtml = fs.readFileSync(path.join(rootDir, 'webapp', 'news', 'index.html'), 'utf8');
+    const booksJs = fs.readFileSync(path.join(rootDir, 'webapp', 'books', 'books.js'), 'utf8');
+    const booksHtml = fs.readFileSync(path.join(rootDir, 'webapp', 'books', 'index.html'), 'utf8');
+
+    // kino.js listens to storage for kino_lang and app_lang, exports setAppLanguage
+    assert.match(kinoJs, /e\.key === "kino_lang" \|\| e\.key === "app_lang"/);
+    assert.match(kinoJs, /window\.setAppLanguage = setAppLanguage/);
+
+    // news index.html sets app_lang and listens to storage
+    assert.match(newsHtml, /localStorage\.setItem\('app_lang', lang\)/);
+    assert.match(newsHtml, /e\.key === LANG_STORAGE_KEY \|\| e\.key === 'app_lang'/);
+
+    // books includes language pills and storage sync
+    assert.match(booksHtml, /id="sidebarLangPills"/);
+    assert.match(booksJs, /e\.key === "kino_lang" \|\| e\.key === "app_lang"/);
+  });
+
+  test('single-click responsiveness and backdrop pointer-events safety', () => {
+    const kinoCss = fs.readFileSync(path.join(rootDir, 'webapp', 'kino', 'kino.css'), 'utf8');
+    const booksCss = fs.readFileSync(path.join(rootDir, 'webapp', 'books', 'books.css'), 'utf8');
+    const newsHtml = fs.readFileSync(path.join(rootDir, 'webapp', 'news', 'index.html'), 'utf8');
+
+    // Ensure .sidebar-backdrop does not block clicks when closed
+    assert.match(kinoCss, /\.sidebar-backdrop:not\(\.is-open\)\s*\{\s*pointer-events:\s*none !important;\s*\}/);
+    assert.match(booksCss, /\.sidebar-backdrop:not\(\.is-open\)/);
+    assert.match(newsHtml, /\.sidebar-backdrop\s*\{[\s\S]*?pointer-events:\s*none;/);
+
+    // Ensure hidden splash screens do not block clicks
+    assert.match(kinoCss, /\.splash-screen\.hidden,\s*\.splash-screen\[hidden\]\s*\{[\s\S]*?pointer-events:\s*none !important;/);
+    assert.match(kinoCss, /\.section-splash\[hidden\]\s*\{[\s\S]*?pointer-events:\s*none !important;/);
+  });
 });

@@ -292,6 +292,23 @@
           </span>
         </button>
       </div>
+
+      <div class="sidebar-setting">
+        <div class="sidebar-setting__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15 15 0 0 1 0 20"></path>
+            <path d="M12 2a15 15 0 0 0 0 20"></path>
+          </svg>
+          <span data-i18n="language">Til</span>
+        </div>
+        <div class="lang-pills" id="sidebarLangPills" role="tablist">
+          <button class="lang-pill" type="button" data-lang="uz" role="tab">UZ</button>
+          <button class="lang-pill" type="button" data-lang="ru" role="tab">RU</button>
+          <button class="lang-pill" type="button" data-lang="en" role="tab">ENG</button>
+        </div>
+      </div>
     </div>
   </aside>
 
@@ -450,6 +467,22 @@
 
   <!-- Background YouTube IFrame Player Container for Real Audiobook Audio -->
   <div id="ytBooksPlayer" style="position:fixed;bottom:-9999px;left:-9999px;width:1px;height:1px;opacity:0.001;pointer-events:none;"></div>
+
+  <!-- Section Switch Splash Screen (Sidebar navigation) -->
+  <div id="sectionSplash" class="section-splash" hidden aria-hidden="true">
+    <div class="section-splash__spinner" id="sectionSplashSpinner" aria-hidden="true"></div>
+    <div class="section-splash__brand">
+      <span class="section-splash__logo" id="sectionSplashLogo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+        </svg>
+      </span>
+      <span class="section-splash__name">
+        <span>NTV</span>
+      </span>
+    </div>
+  </div>
 
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>

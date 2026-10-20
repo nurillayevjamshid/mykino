@@ -2566,7 +2566,10 @@
     function setLanguage(lang) {
       if (!I18N[lang]) lang = 'uz';
       currentLang = lang;
-      localStorage.setItem(LANG_STORAGE_KEY, lang);
+      try {
+        localStorage.setItem(LANG_STORAGE_KEY, lang);
+        localStorage.setItem('app_lang', lang);
+      } catch (_) {}
       haptic('light');
 
       document.querySelectorAll('#sidebarLangPills .lang-pill').forEach(pill => {
@@ -3116,7 +3119,7 @@
           searchClear.style.display = 'none';
           nextBeforeId = null;
           loadNews();
-    loadTicker();
+          loadTicker();
         }
       }
     }
@@ -3215,12 +3218,18 @@
       });
     });
 
-    // Bo'limlar va sahifalar orasida theme o'zgarishini sinxronlashtirish
+    // Bo'limlar va sahifalar orasida theme va til o'zgarishini sinxronlashtirish
     window.addEventListener('storage', (e) => {
       if (e.key === THEME_STORAGE_KEY || e.key === 'app_theme') {
         const next = e.newValue === 'dark' ? 'dark' : 'light';
         if (currentTheme !== next) {
           applyTheme(next);
+        }
+      }
+      if (e.key === LANG_STORAGE_KEY || e.key === 'app_lang') {
+        const next = e.newValue;
+        if (next && (next === 'uz' || next === 'ru' || next === 'en') && currentLang !== next) {
+          setLanguage(next);
         }
       }
     });
@@ -3303,6 +3312,16 @@
       el.hidden = false;
     }
 
+    function hideSectionSplash() {
+      const el = document.getElementById('sectionSplash');
+      if (!el || el.hidden) return;
+      el.classList.add('is-hiding');
+      setTimeout(() => {
+        el.hidden = true;
+        el.classList.remove('is-hiding');
+      }, 230);
+    }
+
     function navigateToSection(targetKey, url) {
       closeDrawer();
       showSectionSplash(targetKey);
@@ -3379,6 +3398,25 @@
     setInterval(updateAllTimestamps, 60000);
     loadNews();
     loadTicker();
+
+    // Bo'limlar orasida o'tish (splash continuity): Kino/boshqa bo'limdan kelganda 1.5s splash ko'rsatiladi
+    const incomingSectionSplash = (function() {
+      try {
+        const s = sessionStorage.getItem('ntv_section_splash');
+        if (s) {
+          sessionStorage.removeItem('ntv_section_splash');
+          return s;
+        }
+      } catch (_) {}
+      return null;
+    })();
+
+    if (incomingSectionSplash === 'news' || window.location.search.includes('from=')) {
+      showSectionSplash('news');
+      setTimeout(() => {
+        hideSectionSplash();
+      }, 1000);
+    }
   </script>
 </body>
 </html>

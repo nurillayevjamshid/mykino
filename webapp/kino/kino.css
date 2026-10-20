@@ -318,8 +318,10 @@ textarea,
   pointer-events: none;
 }
 
-.splash-screen.hidden {
-  display: none;
+.splash-screen.hidden,
+.splash-screen[hidden] {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 html {
@@ -6546,11 +6548,17 @@ html[data-theme="dark"] .app-shell {
   -webkit-backdrop-filter: blur(4px);
   z-index: 998;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.25s ease;
 }
 
 .sidebar-backdrop.is-open {
   opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar-backdrop:not(.is-open) {
+  pointer-events: none !important;
 }
 
 html[data-theme="light"] .sidebar-backdrop {
@@ -12451,11 +12459,12 @@ html[data-theme="light"] .fifa-date-nav__today { background: #f5f6fa; border-col
 }
 .section-splash[hidden] {
   display: none !important;
+  pointer-events: none !important;
 }
 .section-splash.is-hiding {
   opacity: 0;
   visibility: hidden;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 .section-splash__spinner {
   width: 40px;

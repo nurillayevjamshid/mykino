@@ -232,7 +232,7 @@ if (tg) {
     tg.onEvent?.("viewportChanged", applyTelegramSafeArea);
   } catch (_) {}
 
-  // Bo'limlar va sahifalar (masalan, Yangiliklar) orasida theme o'zgarishini sinxronlashtirish
+  // Bo'limlar va sahifalar (masalan, Yangiliklar) orasida theme va til o'zgarishini sinxronlashtirish
   try {
     window.addEventListener("storage", (e) => {
       if (e.key === THEME_STORAGE_KEY || e.key === "app_theme") {
@@ -240,6 +240,19 @@ if (tg) {
         if (document.documentElement.getAttribute("data-theme") !== nextScheme) {
           applyTheme(nextScheme);
           try { syncSidebarSettings?.(); } catch (_) {}
+        }
+      }
+      if (e.key === "kino_lang" || e.key === "app_lang") {
+        const nextLang = e.newValue;
+        if (nextLang && (nextLang === "uz" || nextLang === "ru" || nextLang === "en") && nextLang !== lang) {
+          if (typeof setAppLanguage === "function") {
+            setAppLanguage(nextLang);
+          } else {
+            lang = nextLang;
+            try { applyCopy?.(); } catch (_) {}
+            try { syncSidebarSettings?.(); } catch (_) {}
+            try { window.dispatchEvent(new CustomEvent("kino-lang-change", { detail: { lang: nextLang } })); } catch (_) {}
+          }
         }
       }
     });
@@ -9026,18 +9039,26 @@ sidebarThemeSwitch?.addEventListener("click", () => {
   syncSidebarSettings();
 });
 
+function setAppLanguage(next) {
+  if (!next || (next !== "uz" && next !== "ru" && next !== "en")) return;
+  lang = next;
+  try {
+    localStorage.setItem("kino_lang", next);
+    localStorage.setItem("app_lang", next);
+  } catch (_) {}
+  try { syncSidebarSectionItems(); } catch (_) {}
+  try { applyCopy(); } catch (_) {}
+  syncSidebarSettings();
+  try {
+    window.dispatchEvent(new CustomEvent("kino-lang-change", { detail: { lang: next } }));
+  } catch (_) {}
+}
+window.setAppLanguage = setAppLanguage;
+
 sidebarLangPills?.querySelectorAll(".lang-pill").forEach((pill) => {
   pill.addEventListener("click", () => {
     const next = pill.dataset.lang;
-    if (!next) return;
-    lang = next;
-    localStorage.setItem("kino_lang", next);
-    try { syncSidebarSectionItems(); } catch (_) {}
-    try { applyCopy(); } catch (_) {}
-    syncSidebarSettings();
-    try {
-      window.dispatchEvent(new CustomEvent("kino-lang-change", { detail: { lang: next } }));
-    } catch (_) {}
+    if (next) setAppLanguage(next);
   });
 });
 
@@ -10900,14 +10921,15 @@ function hideSplashNow() {
 // Agar bo'limlar orasida (masalan, yangiliklardan nazad orqali) o'tilayotgan bo'lsa,
 // kirish animatsiyasi emas, balki bo'limlar orasidagi animatsiya (sectionSplash) ishlatiladi!
 function initSplashScreen() {
+  let storedSplash = null;
   const isFromSection = (function() {
     try {
-      if (pageParams.has("from") || pageParams.has("section_splash") || pageParams.has("section")) return true;
       const s = sessionStorage.getItem("ntv_section_splash");
       if (s) {
+        storedSplash = s;
         sessionStorage.removeItem("ntv_section_splash");
-        return true;
       }
+      if (pageParams.has("from") || pageParams.has("section_splash") || pageParams.has("section") || storedSplash) return true;
     } catch (_) {}
     return false;
   })();
@@ -10938,9 +10960,7 @@ function initSplashScreen() {
 
     const requestedSec = pageParams.get("section");
     const targetKey = (requestedSec === "football" || requestedSec === "fifa") ? "fifa"
-      : (requestedSec || (function() {
-          try { return sessionStorage.getItem("ntv_section_splash") || "kino"; } catch (_) { return "kino"; }
-        })());
+      : (requestedSec || storedSplash || "kino");
 
     showSectionSplash(targetKey);
 
