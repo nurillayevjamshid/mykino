@@ -8064,16 +8064,8 @@ body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  /* MUHIM: transform/will-change: transform qo'shilmaydi — chunki ular fixed
-     pozitsiyali bolalarning containing block'ini buzib, topbar/bottom-bar
-     viewport o'rniga .app-shell bilan birga skroll qilib ketadi.
-     will-change: scroll-position xavfsiz hint — containing block yaratmaydi. */
-  will-change: scroll-position;
-  /* touch-action: manipulation — double-tap-zoom delay'ni o'chiradi va
-     touch'ga javob (sensitivity) tezroq bo'ladi. Pan-x va pan-y ikkalasi
-     ham ruxsat etilgan, faqat zoom va non-standard gestures bloklanadi. */
-  touch-action: manipulation;
-  /* Scroll snappier bo'lishi uchun smooth olib tashlandi */
+  /* Android va iOS'da apparat tezlashuviga ega, silliq vertikal scroll */
+  touch-action: pan-y;
 }
 
 /* Topbar header — sticky to app-shell top; in-flow so cards don't slide under it */
@@ -8125,8 +8117,7 @@ body {
    eslab qolinadi). Funksionallikka ta'sir qilmaydi.
    ============================================================ */
 .category-row {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 320px;
+  /* content-visibility olib tashlandi: Android'da scroll sakrashi va qotib qolishini oldini oladi */
 }
 
 /* ============================================================

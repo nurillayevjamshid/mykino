@@ -5893,6 +5893,7 @@ function ensureYouTubeApi() {
 
   return youtubeApiPromise;
 }
+window.ensureYouTubeApi = ensureYouTubeApi;
 
 let isUserVideoPaused = false;
 
@@ -11630,6 +11631,10 @@ initApp();
 // qilinmaydi — ular o'z native scroll'i bilan ishlaydi. PTR (pull-to-refresh)
 // tepada pastga tortish vaziyatida bypass bo'ladi, native PTR handleri ishlaydi.
 (function attachAndroidTouchBoost() {
+  // O'chirilgan: Android Chrome/WebView o'zining apparat tezlashuviga ega 60/120Hz silliq
+  // momentum scroll tizimiga ega. 3.6x sun'iy multiplier va custom rAF scroll Android'da
+  // qattiq, giper-sezgir va sakrab ketadigan scroll muammosini keltirib chiqarayotgan edi.
+  return;
   if (!document.documentElement.classList.contains("is-android")) return;
   const scroller = document.querySelector(".app-shell");
   if (!scroller) return;

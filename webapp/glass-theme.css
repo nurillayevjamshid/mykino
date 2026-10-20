@@ -1170,7 +1170,6 @@ html.is-android .card-list,
 html.is-android .comments-sheet__scroll,
 html.is-android .modal-content {
   contain: content;
-  will-change: scroll-position;
   -webkit-overflow-scrolling: touch;
 }
 

@@ -694,14 +694,16 @@
         if (!active || !e.touches[0]) return;
         const dx = e.touches[0].clientX - sx;
         const dy = e.touches[0].clientY - sy;
-        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 12) active = false;
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) active = false;
       }, { passive: true });
       const finish = (e) => {
         if (!active) { restartPodHeroRotation(); return; }
         active = false;
         const t = e.changedTouches && e.changedTouches[0];
         const dx = t ? t.clientX - sx : 0;
-        if (Math.abs(dx) > 36) {
+        const dy = t ? t.clientY - sy : 0;
+        if (Math.abs(dy) > Math.abs(dx)) { restartPodHeroRotation(); return; }
+        if (Math.abs(dx) > 50) {
           swiped = true;
           const dir = dx < 0 ? 1 : -1;
           switchPodHero(podHeroIndex + dir, false);
