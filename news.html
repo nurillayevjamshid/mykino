@@ -6,6 +6,19 @@
   <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#ffffff">
   <title>Tezkor × NTV — Yangiliklar</title>
+  <script>
+    // Yangiliklar bo'limi arxivlangan: mini ilovada faol bo'lmagani sababli asosiy bo'limga yo'naltiriladi
+    (function() {
+      try {
+        var p = new URLSearchParams(window.location.search);
+        if (!p.has('__debug_news__')) {
+          window.location.replace('/' + (window.location.hash || ''));
+        }
+      } catch (_) {
+        window.location.href = '/';
+      }
+    })();
+  </script>
   
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>

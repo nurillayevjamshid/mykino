@@ -8472,7 +8472,7 @@ if (requestedSection) {
     if (requestedSection === 'music') openMusicView();
     else if (requestedSection === 'podcasts') openPodcastsView();
     else if (requestedSection === 'football' || requestedSection === 'fifa') openFifaView();
-    else if (requestedSection === 'news') window.location.replace('/news');
+    else if (requestedSection === 'news') { /* arxivlangan — kinoda qoladi */ }
   } catch (err) {
     console.error("Error activating requested section:", err);
   }
@@ -8960,12 +8960,6 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     }
     if (action === "news") {
       setSidebarOpen(false);
-      showSectionSplash("news");
-      try { sessionStorage.setItem('ntv_section_splash', 'news'); } catch (_) {}
-      const hash = window.location.hash || '';
-      setTimeout(() => {
-        window.location.href = "/news" + hash;
-      }, 500);
       return;
     }
     if (action === "music-playlists") {
