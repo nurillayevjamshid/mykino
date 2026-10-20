@@ -73,6 +73,77 @@ function formatUzbekTime(isoString) {
 /**
  * Clean and parse raw Telegram message block
  */
+
+/**
+ * Extract full inner HTML of tgme_widget_message_text by tracking <div> tag depth
+ * to avoid premature truncation on nested <div> tags (e.g. within blockquotes or custom emojis).
+ */
+function extractMessageTextHtml(block) {
+  const marker = '<div class="tgme_widget_message_text';
+  const startIdx = block.indexOf(marker);
+  if (startIdx === -1) return "";
+
+  const contentStart = block.indexOf('>', startIdx);
+  if (contentStart === -1) return "";
+
+  let depth = 1;
+  let pos = contentStart + 1;
+  const len = block.length;
+
+  while (pos < len && depth > 0) {
+    const nextOpen = block.indexOf('<div', pos);
+    const nextClose = block.indexOf('</div>', pos);
+
+    if (nextClose === -1) break;
+
+    if (nextOpen !== -1 && nextOpen < nextClose) {
+      depth++;
+      pos = nextOpen + 4;
+    } else {
+      depth--;
+      if (depth === 0) {
+        return block.slice(contentStart + 1, nextClose);
+      }
+      pos = nextClose + 6;
+    }
+  }
+  return "";
+}
+
+function cleanNewsText(rawHtml) {
+  let plain = String(rawHtml || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<\/blockquote>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#39;/g, "'")
+    .trim();
+
+  // Strip trailing promo text (links to instagram, youtube, and promo sentences)
+  plain = plain
+    .replace(/(?:Yangilikni\s+yaqinlarga\s+ham\s+ulashing[\s\S]*$)/i, "")
+    .replace(/(?:Tezkor\s+yangiliklar[\s\S]*$)/i, "")
+    .replace(/(?:🌐|\uD83C\uDF10)?\s*Instagram\s*(?:🌐|\uD83C\uDF10|\|)?\s*YouTube[\s\S]*$/gi, "")
+    .replace(/(?:🌐|\uD83C\uDF10)\s*Instagram\b[\s\S]*$/gi, "")
+    .replace(/(?:🌐|\uD83C\uDF10)\s*YouTube\b[\s\S]*$/gi, "")
+    .replace(/https?:\/\/(?:www\.)?(?:instagram\.com|youtube\.com)\/[^\s<]+/gi, "")
+    .replace(/https?:\/\/(?:t|telegram)\.me\/[a-zA-Z0-9_+/]+/gi, "")
+    .replace(/https?:\/\/t\.me\/[a-zA-Z0-9_+/]+/gi, "")
+    .replace(/\bt\.me\/[a-zA-Z0-9_+/]+/gi, "")
+    .replace(/@tezkorofficial_uz\b/gi, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n\s*\n+/g, "\n\n")
+    .replace(/[\r\n\s]+$/, "")
+    .trim();
+
+  return plain;
+}
+
 function parseMessageBlock(block) {
   const postIdMatch = block.match(/data-post="([^"]+)"/);
   if (!postIdMatch) return null;
@@ -103,26 +174,8 @@ function parseMessageBlock(block) {
     .replace(/(?:<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>|🌐|\uD83C\uDF10)?\s*<a\b[^>]*href=["']https?:\/\/(?:www\.)?youtube\.com\/[^"']*["'][^>]*>[\s\S]*?<\/a>[\s\S]*$/gi, "")
     .replace(/<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>/gi, "");
 
-  // Plain text
-  let plainText = rawHtml
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .trim();
-
-  // Strip Telegram channel promo links, handles, and trailing Instagram/YouTube globes from text
-  plainText = plainText
-    .replace(/(?:🌐|\uD83C\uDF10)?\s*Instagram\s*(?:🌐|\uD83C\uDF10|\|)?\s*YouTube[\s\S]*$/gi, "")
-    .replace(/(?:🌐|\uD83C\uDF10)\s*Instagram\b[\s\S]*$/gi, "")
-    .replace(/(?:🌐|\uD83C\uDF10)\s*YouTube\b[\s\S]*$/gi, "")
-    .replace(/https?:\/\/(?:www\.)?(?:instagram\.com|youtube\.com)\/[^\s<]+/gi, "")
-    .replace(/https?:\/\/(?:t|telegram)\.me\/[a-zA-Z0-9_+/]+/gi, "")
-    .replace(/https?:\/\/t\.me\/[a-zA-Z0-9_+/]+/gi, "")
-    .replace(/\bt\.me\/[a-zA-Z0-9_+/]+/gi, "")
-    .replace(/@tezkorofficial_uz\b/gi, "")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n\s*\n\s*\n+/g, "\n\n")
-    .replace(/[\r\n\s]+$/, "")
-    .trim();
+  // Plain text with trailing promotional footer cleanly removed
+  const plainText = cleanNewsText(rawHtml);
 
   // Clean lines & extract title
   const rawLines = plainText.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -279,19 +332,7 @@ function ingestWebhookPost(channelPost) {
     videoUrl = `/api/news?media=video&fileId=${channelPost.video.file_id}`;
   }
 
-  const cleanText = text
-    .replace(/(?:🌐|\uD83C\uDF10)?\s*Instagram\s*(?:🌐|\uD83C\uDF10|\|)?\s*YouTube[\s\S]*$/gi, "")
-    .replace(/(?:🌐|\uD83C\uDF10)\s*Instagram\b[\s\S]*$/gi, "")
-    .replace(/(?:🌐|\uD83C\uDF10)\s*YouTube\b[\s\S]*$/gi, "")
-    .replace(/https?:\/\/(?:www\.)?(?:instagram\.com|youtube\.com)\/[^\s<]+/gi, "")
-    .replace(/https?:\/\/(?:t|telegram)\.me\/[a-zA-Z0-9_+/]+/gi, "")
-    .replace(/https?:\/\/t\.me\/[a-zA-Z0-9_+/]+/gi, "")
-    .replace(/\bt\.me\/[a-zA-Z0-9_+/]+/gi, "")
-    .replace(/@tezkorofficial_uz\b/gi, "")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n\s*\n\s*\n+/g, "\n\n")
-    .replace(/[\r\n\s]+$/, "")
-    .trim();
+  const cleanText = cleanNewsText(text);
 
   const rawLines = cleanText.split("\n").map((l) => l.trim()).filter(Boolean);
   let title = rawLines[0] || "Tezkor xabar";

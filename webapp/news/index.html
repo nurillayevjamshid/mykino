@@ -1717,7 +1717,100 @@
       pointer-events: none !important;
       transform: translateY(16px) scale(0.85) !important;
     }
-  </style>
+  
+    /* Ticker Card */
+    .ad-ticker-card {
+      position: sticky;
+      top: calc(var(--header-total-h, 56px));
+      z-index: 95;
+      padding: 6px 14px 4px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
+    }
+    html[data-theme="dark"] .ad-ticker-card {
+      background: rgba(15, 23, 42, 0.92);
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+    .ad-ticker-card[hidden] { display: none !important; }
+    .ad-ticker-card__content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 640px;
+      margin: 0 auto;
+      height: 28px;
+    }
+    .ad-ticker-card__icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      color: #ef4444;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ad-ticker-card__icon svg { width: 100%; height: 100%; }
+    .ad-ticker-card__marquee {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+    }
+    .ad-ticker-card__track {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: ticker-slide 20s linear infinite;
+    }
+    @keyframes ticker-slide {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-100%, 0, 0); }
+    }
+    .ad-ticker-card__text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    html[data-theme="dark"] .ad-ticker-card__text {
+      color: #f1f5f9;
+    }
+
+    /* Loading Spinner State */
+    .news-loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px 16px;
+      gap: 12px;
+      text-align: center;
+    }
+    .news-loading-spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: news-spin 0.8s linear infinite;
+    }
+    html[data-theme="dark"] .news-loading-spinner {
+      border-color: rgba(255, 255, 255, 0.15);
+      border-top-color: #3b82f6;
+    }
+    .news-loading-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--news-muted, #64748b);
+      margin: 0;
+    }
+    @keyframes news-spin {
+      to { transform: rotate(360deg); }
+    }
+
+</style>
 </head>
 <body>
   <!-- Top Collaboration Fixed Sticky Navbar -->
@@ -1768,7 +1861,26 @@
         </button>
       </div>
     </div>
-  </header>
+  
+    </header>
+
+    <!-- Yuruvchi matnli e'lon kartochkasi (Marquee Ticker Card) -->
+    <div class="ad-ticker-card" id="adTickerCard" hidden role="region" aria-label="E'lon">
+      <div class="ad-ticker-card__content">
+        <span class="ad-ticker-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+        </span>
+        <div class="ad-ticker-card__marquee">
+          <div class="ad-ticker-card__track" id="adTickerTrack">
+            <span class="ad-ticker-card__text" id="adTickerText"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
   <div class="news-container">
     <!-- Search Panel (Hidden by default, opens smoothly when search icon is clicked like in Kino!) -->
@@ -2053,6 +2165,7 @@
     // Translation Dictionaries (UZ, RU, EN)
     const I18N = {
       uz: {
+      loadingNews: "Yangiliklar yuklanmoqda...",
         pageTitle: "Tezkor × NTV — Yangiliklar",
         navMovies: "Kinolar",
         navFootball: "Futbol",
@@ -2093,6 +2206,7 @@
         scrollTopTooltip: "Yuqoriga chiqish"
       },
       ru: {
+      loadingNews: "Новости загружаются...",
         pageTitle: "Tezkor × NTV — Новости",
         navMovies: "Фильмы",
         navFootball: "Футбол",
@@ -2133,6 +2247,7 @@
         scrollTopTooltip: "Наверх"
       },
       en: {
+      loadingNews: "Loading news...",
         pageTitle: "Tezkor × NTV — News",
         navMovies: "Movies",
         navFootball: "Football",
@@ -2562,6 +2677,39 @@
       if (tg?.BackButton) tg.BackButton.show();
     }
 
+    
+    function renderLoadingState() {
+      newsFeed.innerHTML = `
+        <div class="news-loading-state" role="status" aria-live="polite">
+          <div class="news-loading-spinner" aria-hidden="true"></div>
+          <p class="news-loading-text">${t('loadingNews') || "Yangiliklar yuklanmoqda..."}</p>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-bar" style="width: 25%; height: 16px;"></div>
+          <div class="skeleton-bar" style="width: 100%; height: 200px; border-radius: 16px;"></div>
+          <div class="skeleton-bar" style="width: 80%; height: 20px;"></div>
+          <div class="skeleton-bar" style="width: 60%; height: 16px;"></div>
+        </div>
+      `;
+    }
+
+    async function loadTicker() {
+      try {
+        const res = await fetch('/api/settings');
+        if (!res.ok) return;
+        const data = await res.json();
+        const card = document.getElementById('adTickerCard');
+        const text = document.getElementById('adTickerText');
+        if (!card || !text) return;
+        if (data.adCardEnabled && data.adCardText) {
+          text.textContent = data.adCardText;
+          card.hidden = false;
+        } else {
+          card.hidden = true;
+        }
+      } catch (_) {}
+    }
+
     function renderFeed(posts, append = false) {
       if (!append) {
         newsFeed.innerHTML = '';
@@ -2680,7 +2828,9 @@
     async function loadNews({ before = null, force = false, append = false } = {}) {
       if (isLoading) return;
       isLoading = true;
-
+      if (!append) {
+        renderLoadingState();
+      }
       try {
         if (isShowingBookmarks) {
           let list = savedBookmarks;
@@ -2956,6 +3106,7 @@
           searchClear.style.display = 'none';
           nextBeforeId = null;
           loadNews();
+    loadTicker();
         }
       }
     }
@@ -3122,13 +3273,19 @@
       el.hidden = false;
     }
 
-    function navigateToKino() {
-      showSectionSplash('kino');
-      try { sessionStorage.setItem('ntv_section_splash', 'kino'); } catch (_) {}
+    
+    function navigateToSection(targetKey, url) {
+      showSectionSplash(targetKey);
+      try { sessionStorage.setItem('ntv_section_splash', targetKey); } catch (_) {}
       setTimeout(() => {
-        window.location.href = '/?from=news';
-      }, 20);
+        window.location.href = url;
+      }, 1500);
     }
+
+    function navigateToKino() {
+      navigateToSection('kino', '/?from=news');
+    }
+
 
     // Telegram Native Back Button Integration
     function handleTgBack() {
@@ -3157,11 +3314,22 @@
       tg.BackButton.onClick(handleTgBack);
     }
 
-    document.querySelectorAll('a[href="/"]').forEach(a => {
+    
+    document.querySelectorAll('.sidebar__item--top').forEach(a => {
       a.addEventListener('click', (e) => {
+        const href = a.getAttribute('href');
+        if (!href) return;
         e.preventDefault();
-        navigateToKino();
+        closeDrawer();
+        let targetKey = 'kino';
+        if (href.includes('section=football')) targetKey = 'fifa';
+        else if (href.includes('section=music')) targetKey = 'music';
+        else if (href.includes('section=podcasts')) targetKey = 'podcasts';
+        else if (href.includes('books')) targetKey = 'books';
+        navigateToSection(targetKey, href);
       });
+    });
+
     });
 
     // Initialize theme, language and load news

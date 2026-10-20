@@ -3599,8 +3599,10 @@
         }
 
         const num = p.number != null ? String(p.number) : "";
-        const photo = p.photo
-          ? `<img src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="this.parentNode.querySelector('.fifa-pitch-player__initials')?.removeAttribute('hidden'); this.remove();" />`
+        const photoUrl = p.photo || (p.id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/soccer/players/full/${p.id}.png&w=120&h=120&scale=crop` : "");
+        const fallbackEspn = p.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${p.id}.png` : "";
+        const photo = photoUrl
+          ? `<img src="${esc(photoUrl)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="if(this.dataset.fallbackApplied !== '1' && '${fallbackEspn}'){ this.dataset.fallbackApplied='1'; this.src='${fallbackEspn}'; } else { this.parentNode.querySelector('.fifa-pitch-player__initials')?.removeAttribute('hidden'); this.remove(); }" />`
           : "";
         const initials = (p.name || "?").split(/\s+/).map((s) => s[0] || "").join("").slice(0, 2).toUpperCase();
 
@@ -3652,8 +3654,10 @@
               ${subs.map((p) => {
                 const num = p.number != null ? String(p.number) : "";
                 const initials = (p.name || "?").split(/\s+/).map((s) => s[0] || "").join("").slice(0, 2).toUpperCase();
-                const photo = p.photo
-                  ? `<img src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="this.parentNode.querySelector('.fifa-bench-initials')?.removeAttribute('hidden'); this.remove();" />`
+                const photoUrl = p.photo || (p.id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/soccer/players/full/${p.id}.png&w=120&h=120&scale=crop` : "");
+                const fallbackEspn = p.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${p.id}.png` : "";
+                const photo = photoUrl
+                  ? `<img src="${esc(photoUrl)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="if(this.dataset.fallbackApplied !== '1' && '${fallbackEspn}'){ this.dataset.fallbackApplied='1'; this.src='${fallbackEspn}'; } else { this.parentNode.querySelector('.fifa-bench-initials')?.removeAttribute('hidden'); this.remove(); }" />`
                   : "";
                 return `
                   <div class="fifa-bench-card${p.subIn ? " is-subbed-in" : ""}">

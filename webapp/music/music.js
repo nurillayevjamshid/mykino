@@ -684,43 +684,8 @@
     setMusicNavActive("categories");
   }
 
-  // ----- Musiqa beta eslatma modali -----
-  function ensureMusicBetaModal() {
-    let el = document.getElementById("musicBetaModal");
-    if (el) return el;
-    el = document.createElement("div");
-    el.id = "musicBetaModal";
-    el.className = "music-beta-modal";
-    el.hidden = true;
-    el.innerHTML = `
-      <div class="music-beta-modal__backdrop" data-music-beta-close></div>
-      <div class="music-beta-modal__card" role="dialog" aria-modal="true">
-        <div class="music-beta-modal__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9.5"></circle>
-            <path d="M9.3 9.2a2.8 2.8 0 0 1 5.4.9c0 1.9-2.7 2.4-2.7 4.2"></path>
-            <line x1="12" y1="17.6" x2="12.01" y2="17.6"></line>
-          </svg>
-        </div>
-        <p class="music-beta-modal__text">Hozirda musiqa bo'limi beta versiyada ishlamoqda. Yaqin vaqtlarda yanada ko'proq sizga yoqadigan qo'shiqlar qo'shiladi.</p>
-        <button class="music-beta-modal__btn" type="button" data-music-beta-close>Tushunarli</button>
-      </div>
-    `;
-    document.body.appendChild(el);
-    el.addEventListener("click", (event) => {
-      if (event.target.closest("[data-music-beta-close]")) el.hidden = true;
-    });
-    return el;
-  }
-  function openMusicBetaModal() {
-    ensureMusicBetaModal().hidden = false;
-  }
-  document.addEventListener("click", (event) => {
-    if (event.target.closest("[data-music-beta-info]")) {
-      event.preventDefault();
-      openMusicBetaModal();
-    }
-  });
+  // Musiqa beta eslatma modali olib tashlandi
+  function openMusicBetaModal() {}
 
   // ===== Playlists (multi, YouTube-uslubida) =====
   const MUSIC_PLAYLISTS_KEY = "kino_music_playlists_v2";
@@ -2330,7 +2295,9 @@
     if (musicFullPlayerArtFallback && artUrl) {
       musicFullPlayerArtFallback.style.backgroundImage = `url('${artUrl.replaceAll("'", "%27")}')`;
     }
-    if (musicFullPlayerAlbum) musicFullPlayerAlbum.textContent = (track.category && track.category !== "all") ? track.category : M("musicLabel");
+    if (musicFullPlayerAlbum) {
+      musicFullPlayerAlbum.textContent = track.artist || displayTrackTitle(track) || M("musicLabel");
+    }
     if (musicFullPlayerTitle) musicFullPlayerTitle.textContent = displayTrackTitle(track);
     if (musicFullPlayerArtist) musicFullPlayerArtist.textContent = track.artist;
     if (musicFullPlayerBarFill) musicFullPlayerBarFill.style.width = "0%";

@@ -8410,12 +8410,24 @@ syncSidebarSettings();
 // Kibersport sidebaridan kelgan bo'lim yo'nalishini ishga tushirish.
 const requestedSection = new URLSearchParams(window.location.search).get('section');
 if (requestedSection) {
-  window.setTimeout(() => {
-    if (requestedSection === 'music') openMusicView();
-    else if (requestedSection === 'podcasts') openPodcastsView();
-    else if (requestedSection === 'football' || requestedSection === 'fifa') openFifaView();
-    else if (requestedSection === 'news') window.location.replace('/news');
-  }, 0);
+  const splashKey = (requestedSection === 'football' || requestedSection === 'fifa') ? 'fifa' : requestedSection;
+  showSectionSplash(splashKey);
+  const startTime = Date.now();
+  let switchPromise;
+  if (requestedSection === 'music') switchPromise = openMusicView();
+  else if (requestedSection === 'podcasts') switchPromise = openPodcastsView();
+  else if (requestedSection === 'football' || requestedSection === 'fifa') switchPromise = openFifaView();
+  else if (requestedSection === 'news') { window.location.replace('/news'); }
+
+  if (requestedSection !== 'news') {
+    Promise.resolve(switchPromise).finally(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 1500 - elapsed);
+      setTimeout(() => {
+        hideSectionSplash();
+      }, remaining);
+    });
+  }
 }
 
 // Sidebar yuqori 3 slot — joriy bo'limdan boshqa bo'limlarga o'tish tugmalari.
@@ -8800,17 +8812,25 @@ function navigateSidebarSection(action, switchFn) {
   }
 
   dismissKinoSubviews();
+  showSectionSplash(targetKey);
 
+  const startTime = Date.now();
+  let switchPromise;
   try {
-    const switchResult = switchFn();
-    if (switchResult && typeof switchResult.then === "function") {
-      switchResult.finally(() => {
-        ensureTelegramFullscreen();
-      });
-    } else {
-      ensureTelegramFullscreen();
-    }
-  } catch (_) {}
+    const res = switchFn();
+    switchPromise = (res && typeof res.then === "function") ? res : Promise.resolve(res);
+  } catch (err) {
+    switchPromise = Promise.reject(err);
+  }
+
+  switchPromise.finally(() => {
+    ensureTelegramFullscreen();
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, 1500 - elapsed);
+    setTimeout(() => {
+      hideSectionSplash();
+    }, remaining);
+  });
 }
 
 document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
@@ -8884,7 +8904,9 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     if (action === "news") {
       setSidebarOpen(false);
       showSectionSplash("news");
-      window.location.href = "/news";
+      setTimeout(() => {
+        window.location.href = "/news";
+      }, 1500);
       return;
     }
     if (action === "music-playlists") {

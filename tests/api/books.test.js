@@ -76,6 +76,6 @@ describe("api/_lib/books.js", () => {
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.ok, true);
     assert.equal(res.body.book.id, "7457");
-    assert.equal(res.body.book.title, "Qor qo‘ynida lola");
+    assert.equal(res.body.book.title, "Qor qo'ynida lola");
   });
 });

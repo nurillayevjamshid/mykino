@@ -2132,7 +2132,15 @@ body.fullplayer-open .mini-player[aria-hidden="false"] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 18px 22px 30px;
+  padding-top: max(
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 16px),
+    calc(var(--app-safe-top, 0px) + 16px),
+    calc(env(safe-area-inset-top, 0px) + 56px),
+    72px
+  ) !important;
+  padding-left: 22px;
+  padding-right: 22px;
+  padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 30px), 36px);
   background: linear-gradient(180deg, #0c0f1c 0%, #14172e 55%, #0a0c18 100%);
   color: #f3f4ff;
   opacity: 0;
@@ -2547,44 +2555,10 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
   background: linear-gradient(90deg, #8b5cff, #ff5dc8) !important;
 }
 
-/* --- Music beta notice (navbar va header orasida) --- */
-.music-beta-notice {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 10px 16px 2px;
-  text-align: center;
-}
-.music-beta-notice__text {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #ff5a5a;
-  letter-spacing: -0.01em;
-}
-.music-beta-notice__info {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: #ff5a5a;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.music-beta-notice__info svg { width: 100%; height: 100%; display: block; }
-
+/* --- Music beta notice (deprecated & hidden) --- */
+.music-beta-notice,
 .music-beta-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 210;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 26px;
+  display: none !important;
 }
 .music-beta-modal[hidden] { display: none; }
 .music-beta-modal__backdrop {

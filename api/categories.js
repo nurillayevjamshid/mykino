@@ -1807,7 +1807,7 @@ function espnMapPlayer(p) {
     shortName: String(p?.athlete?.shortName || p?.athlete?.displayName || "").trim(),
     position: String(p?.position?.abbreviation || ""),
     starter: p.starter === true,
-    photo: p?.athlete?.headshot?.href || "",
+    photo: p?.athlete?.headshot?.href || (p?.athlete?.id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/soccer/players/full/${p.athlete.id}.png&w=120&h=120&scale=crop` : ""), 
     isCaptain: false,
     rating: null,
     motm: false,

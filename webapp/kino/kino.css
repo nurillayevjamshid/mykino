@@ -7607,7 +7607,15 @@ html[data-theme="dark"] .profile-modal::backdrop {
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 24px) 20px calc(env(safe-area-inset-bottom, 0px) + 140px);
+  padding-top: max(
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 24px),
+    calc(var(--app-safe-top, 0px) + 24px),
+    calc(env(safe-area-inset-top, 0px) + 64px),
+    76px
+  );
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 140px), 160px);
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
@@ -7618,7 +7626,12 @@ html[data-theme="dark"] .profile-modal::backdrop {
 }
 
 .profile-modal .modal-close {
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: max(
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 12px),
+    calc(var(--app-safe-top, 0px) + 12px),
+    calc(env(safe-area-inset-top, 0px) + 52px),
+    60px
+  );
 }
 
 .modal-poster {
@@ -12582,13 +12595,7 @@ html[data-theme="dark"] .section-splash__spinner {
   display: none !important;
 }
 
-body.is-fifa .ad-ticker-card,
-body.is-music .ad-ticker-card,
-body.is-tv .ad-ticker-card,
-body.is-esport .ad-ticker-card,
-body.is-podcasts .ad-ticker-card {
-  display: none !important;
-}
+/* Ticker card is active across all sections (Kino, Futbol, Musiqa, TV, Esports, Podkastlar) */
 
 /* === Ko'rishda Davom Eting (Continue Watching Card) === */
 .continue-watching-card {
