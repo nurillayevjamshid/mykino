@@ -160,22 +160,25 @@ function parseMessageBlock(block) {
   const views = viewsMatch ? viewsMatch[1].trim() : "0";
 
   // Raw HTML content
-  const textMatch = block.match(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/);
-  let rawHtml = textMatch ? textMatch[1] : "";
-
-  // Remove Telegram channel links from rawHtml so they become unlinked text
-  rawHtml = rawHtml
-    .replace(/<a\b[^>]*href=["']https?:\/\/(?:t|telegram)\.me\/[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi, "$1")
-    .replace(/<a\b[^>]*href=["']https?:\/\/t\.me[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi, "$1");
-
-  // Remove social promo footer (globe icons + Instagram + YouTube) from rawHtml
-  rawHtml = rawHtml
-    .replace(/(?:<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>|🌐|\uD83C\uDF10)?\s*<a\b[^>]*href=["']https?:\/\/(?:www\.)?instagram\.com\/[^"']*["'][^>]*>[\s\S]*?<\/a>[\s\S]*$/gi, "")
-    .replace(/(?:<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>|🌐|\uD83C\uDF10)?\s*<a\b[^>]*href=["']https?:\/\/(?:www\.)?youtube\.com\/[^"']*["'][^>]*>[\s\S]*?<\/a>[\s\S]*$/gi, "")
-    .replace(/<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>/gi, "");
+  let rawHtml = extractMessageTextHtml(block);
+  if (!rawHtml) {
+    const textMatch = block.match(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/);
+    rawHtml = textMatch ? textMatch[1] : "";
+  }
 
   // Plain text with trailing promotional footer cleanly removed
   const plainText = cleanNewsText(rawHtml);
+
+  // Remove Telegram channel links and social promo links from rawHtml
+  rawHtml = rawHtml
+    .replace(/<a\b[^>]*href=["']https?:\/\/(?:t|telegram)\.me\/[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi, "$1")
+    .replace(/<a\b[^>]*href=["']https?:\/\/t\.me[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi, "$1")
+    .replace(/(?:Yangilikni\s+yaqinlarga\s+ham\s+ulashing|Tezkor\s+yangiliklar)[\s\S]*$/i, "")
+    .replace(/<a\b[^>]*href=["']https?:\/\/(?:www\.)?(?:instagram\.com|youtube\.com)\/[^"']*["'][^>]*>[\s\S]*?<\/a>/gi, "")
+    .replace(/https?:\/\/(?:www\.)?(?:instagram\.com|youtube\.com)\/[^\s<]+/gi, "")
+    .replace(/<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>/gi, "")
+    .replace(/<br\s*\/?>\s*<br\s*\/?>\s*$/gi, "")
+    .trim();
 
   // Clean lines & extract title
   const rawLines = plainText.split("\n").map((l) => l.trim()).filter(Boolean);
