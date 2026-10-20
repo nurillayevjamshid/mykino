@@ -8446,26 +8446,18 @@ function syncSidebarSettings() {
 }
 syncSidebarSettings();
 
-// Kibersport sidebaridan kelgan bo'lim yo'nalishini ishga tushirish.
-const requestedSection = new URLSearchParams(window.location.search).get('section');
+// Kibersport / News / havola orqali kelgan bo'lim yo'nalishini ishga tushirish.
+const requestedSection = pageParams.get('section');
 if (requestedSection) {
   const splashKey = (requestedSection === 'football' || requestedSection === 'fifa') ? 'fifa' : requestedSection;
   showSectionSplash(splashKey);
-  const startTime = Date.now();
-  let switchPromise;
-  if (requestedSection === 'music') switchPromise = openMusicView();
-  else if (requestedSection === 'podcasts') switchPromise = openPodcastsView();
-  else if (requestedSection === 'football' || requestedSection === 'fifa') switchPromise = openFifaView();
-  else if (requestedSection === 'news') { window.location.replace('/news'); }
-
-  if (requestedSection !== 'news') {
-    Promise.resolve(switchPromise).finally(() => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, 1500 - elapsed);
-      setTimeout(() => {
-        hideSectionSplash();
-      }, remaining);
-    });
+  try {
+    if (requestedSection === 'music') openMusicView();
+    else if (requestedSection === 'podcasts') openPodcastsView();
+    else if (requestedSection === 'football' || requestedSection === 'fifa') openFifaView();
+    else if (requestedSection === 'news') window.location.replace('/news');
+  } catch (err) {
+    console.error("Error activating requested section:", err);
   }
 }
 
@@ -8794,6 +8786,11 @@ function showSectionSplash(sectionKey) {
 
 function hideSectionSplash(immediate = false) {
   try { document.documentElement.classList.remove("skip-entrance-splash"); } catch (_) {}
+  const splashScreen = document.getElementById("splashScreen");
+  if (splashScreen) {
+    splashScreen.style.display = "none";
+    splashScreen.classList.add("hidden");
+  }
   const el = document.getElementById("sectionSplash");
   if (!el || el.hidden) return;
   clearTimeout(sectionSplashTimer);
@@ -8845,7 +8842,7 @@ function navigateSidebarSection(action, switchFn) {
   setSidebarOpen(false);
   ensureTelegramFullscreen();
   const current = getCurrentAppSection();
-  const targetKey = action === "kino-back" ? "kino" : action;
+  const targetKey = (action === "kino-back" || action === "kino") ? "kino" : action;
   if (current === targetKey) {
     return;
   }
@@ -8853,23 +8850,16 @@ function navigateSidebarSection(action, switchFn) {
   dismissKinoSubviews();
   showSectionSplash(targetKey);
 
-  const startTime = Date.now();
-  let switchPromise;
   try {
-    const res = switchFn();
-    switchPromise = (res && typeof res.then === "function") ? res : Promise.resolve(res);
+    switchFn();
   } catch (err) {
-    switchPromise = Promise.reject(err);
+    console.error("Section switch error:", err);
   }
 
-  switchPromise.finally(() => {
+  setTimeout(() => {
     ensureTelegramFullscreen();
-    const elapsed = Date.now() - startTime;
-    const remaining = Math.max(0, 1500 - elapsed);
-    setTimeout(() => {
-      hideSectionSplash();
-    }, remaining);
-  });
+    hideSectionSplash();
+  }, 1500);
 }
 
 document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
@@ -8926,7 +8916,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
       });
       return;
     }
-    if (action === "kino-back") {
+    if (action === "kino-back" || action === "kino") {
       navigateSidebarSection("kino-back", () => {
         closeMusicView();
         closePodcastsView();
@@ -8943,9 +8933,11 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
     if (action === "news") {
       setSidebarOpen(false);
       showSectionSplash("news");
+      try { sessionStorage.setItem('ntv_section_splash', 'news'); } catch (_) {}
+      const hash = window.location.hash || '';
       setTimeout(() => {
-        window.location.href = "/news";
-      }, 1500);
+        window.location.href = "/news" + hash;
+      }, 500);
       return;
     }
     if (action === "music-playlists") {
@@ -10907,7 +10899,7 @@ function hideSplashNow() {
 function initSplashScreen() {
   const isFromSection = (function() {
     try {
-      if (pageParams.has("from") || pageParams.has("section_splash")) return true;
+      if (pageParams.has("from") || pageParams.has("section_splash") || pageParams.has("section")) return true;
       const s = sessionStorage.getItem("ntv_section_splash");
       if (s) {
         sessionStorage.removeItem("ntv_section_splash");
@@ -10923,6 +10915,7 @@ function initSplashScreen() {
         const cleanUrl = new URL(window.location.href);
         cleanUrl.searchParams.delete("from");
         cleanUrl.searchParams.delete("section_splash");
+        cleanUrl.searchParams.delete("section");
         window.history.replaceState({}, "", cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       }
     } catch (_) {}
@@ -10940,14 +10933,20 @@ function initSplashScreen() {
       appShell.style.pointerEvents = "auto";
     }
 
-    showSectionSplash("kino");
+    const requestedSec = pageParams.get("section");
+    const targetKey = (requestedSec === "football" || requestedSec === "fifa") ? "fifa"
+      : (requestedSec || (function() {
+          try { return sessionStorage.getItem("ntv_section_splash") || "kino"; } catch (_) { return "kino"; }
+        })());
 
-    const tryHide = () => {
+    showSectionSplash(targetKey);
+
+    setTimeout(() => {
+      ensureTelegramFullscreen();
       hideSectionSplash();
-    };
+    }, 1500);
 
-    setTimeout(tryHide, 1200);
-    return { tryHide };
+    return { tryHide: () => {} };
   }
 
   const DURATION_MS = 3000;

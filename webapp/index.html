@@ -97,7 +97,8 @@
     (function() {
       try {
         var p = new URLSearchParams(window.location.search);
-        var fromSection = p.has("from") || p.has("section_splash") || (function() {
+        var req = p.get("section");
+        var fromSection = p.has("from") || p.has("section_splash") || Boolean(req) || (function() {
           try {
             var s = sessionStorage.getItem("ntv_section_splash");
             return Boolean(s);
@@ -179,6 +180,35 @@
       </span>
     </div>
   </div>
+  <script>
+    (function() {
+      try {
+        var p = new URLSearchParams(window.location.search);
+        var req = p.get("section");
+        var splashKey = (req === "football" || req === "fifa") ? "fifa"
+          : (req === "music") ? "music"
+          : (req === "podcasts") ? "podcasts"
+          : (req === "esport") ? "esport"
+          : (req === "news") ? "news"
+          : (function() {
+            try { return sessionStorage.getItem("ntv_section_splash") || "kino"; } catch(_) { return "kino"; }
+          })();
+        var ICONS = {
+          kino: '<svg viewBox="0 0 32 32" class="brand-logo__svg" aria-hidden="true"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg>',
+          music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>',
+          podcasts: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>',
+          fifa: '<img src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44" style="object-fit:contain;display:block;">',
+          esport: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M7 12h3"></path><path d="M8.5 10.5v3"></path><circle cx="16" cy="11" r="1"></circle><circle cx="18" cy="13.5" r="1"></circle></svg>',
+          news: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>'
+        };
+        var COLORS = { kino: "#e50914", music: "#8b5cff", podcasts: "#ff9800", fifa: "#00b894", esport: "#00cec9", news: "#2563eb" };
+        var logo = document.getElementById("sectionSplashLogo");
+        var spin = document.getElementById("sectionSplashSpinner");
+        if (logo && ICONS[splashKey]) logo.innerHTML = ICONS[splashKey];
+        if (spin && COLORS[splashKey]) spin.style.borderTopColor = COLORS[splashKey];
+      } catch (_) {}
+    })();
+  </script>
   <div class="ad-modal" id="adModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="adModalTitle">
     <div class="ad-modal__backdrop" data-ad-close></div>
     <div class="ad-modal__dialog" role="document">
