@@ -506,6 +506,12 @@
       color: #94a3b8;
     }
 
+    .sidebar__item[hidden],
+    .sidebar__item--books,
+    .sidebar__item[href*="books"] {
+      display: none !important;
+    }
+
     .sidebar__item svg {
       width: 22px;
       height: 22px;
@@ -2011,7 +2017,7 @@
         <span data-i18n="navPodcasts">Potkastlar</span>
       </a>
 
-      <a class="sidebar__item sidebar__item--top" href="/books?from=news">
+      <a class="sidebar__item sidebar__item--top sidebar__item--books" href="/books?from=news" style="display: none !important;" hidden aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
           <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
