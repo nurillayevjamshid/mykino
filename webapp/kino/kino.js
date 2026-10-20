@@ -8510,11 +8510,17 @@ function syncTopbarSection() {
   brand.setAttribute("aria-label", "NTV");
 }
 function syncSidebarSectionItems() {
+  const newsSlot = document.getElementById("sidebarNewsItem");
+  if (newsSlot) {
+    newsSlot.hidden = true;
+    newsSlot.setAttribute("aria-hidden", "true");
+    newsSlot.style.setProperty("display", "none", "important");
+  }
+
   const slots = [
     document.getElementById("sidebarFifaItem"),
     document.getElementById("sidebarMusicItem"),
     document.getElementById("sidebarPodcastsItem"),
-    document.getElementById("sidebarNewsItem"),
   ];
   if (!slots.some(Boolean)) return;
 
@@ -8587,11 +8593,11 @@ function syncSidebarSectionItems() {
   };
 
   const ORDER = {
-    kino: ["fifa", "music", "podcasts", "news"],
-    fifa: ["kino", "music", "podcasts", "news"],
-    music: ["kino", "fifa", "podcasts", "news"],
-    podcasts: ["kino", "fifa", "music", "news"],
-    esport: ["kino", "fifa", "music", "news"],
+    kino: ["fifa", "music", "podcasts"],
+    fifa: ["kino", "music", "podcasts"],
+    music: ["kino", "fifa", "podcasts"],
+    podcasts: ["kino", "fifa", "music"],
+    esport: ["kino", "fifa", "music"],
     news: ["kino", "fifa", "music", "podcasts"],
   };
 

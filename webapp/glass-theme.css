@@ -2221,3 +2221,10 @@ html[data-theme="dark"] #sectionSplash .section-splash__logo img,
 [data-theme="dark"] #sectionSplash .section-splash__logo img {
   filter: invert(1) brightness(1.2) !important;
 }
+
+#sidebarNewsItem,
+.sidebar__item--news,
+.sidebar__item[data-sidebar-action="news"],
+.sidebar__item[href*="news"] {
+  display: none !important;
+}

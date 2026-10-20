@@ -13770,3 +13770,10 @@ html[data-theme="light"] .fifa-confirm-modal__btn--cancel {
   color: #374151;
   border: 1px solid #e5e7eb;
 }
+
+#sidebarNewsItem,
+.sidebar__item--news,
+.sidebar__item[data-sidebar-action="news"],
+.sidebar__item[href*="news"] {
+  display: none !important;
+}
