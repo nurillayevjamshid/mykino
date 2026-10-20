@@ -103,6 +103,7 @@ function normalize(track) {
     categories,
     category: categories[0],
     youtubeId,
+    ...(track.audioUrl ? { audioUrl: String(track.audioUrl).trim() } : {}),
   };
 }
 
