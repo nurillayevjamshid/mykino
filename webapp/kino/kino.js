@@ -5601,6 +5601,42 @@ function updateMiniScreenControlsState() {
   playerMiniToggle.setAttribute("aria-label", isPlaying ? "Pauza" : "Play");
 }
 
+
+let miniControlsTimer = null;
+
+function showMiniControls(autoHide = true) {
+  if (!playerMiniControls || !isMiniScreenActive()) return;
+  playerMiniControls.hidden = false;
+  playerMiniControls.setAttribute("aria-hidden", "false");
+  playerMiniControls.classList.add("is-visible");
+  playerMiniControls.classList.remove("is-hidden");
+  if (videoPlayer) videoPlayer.classList.add("has-mini-controls");
+
+  clearTimeout(miniControlsTimer);
+  if (autoHide) {
+    miniControlsTimer = setTimeout(() => {
+      hideMiniControls();
+    }, 2000);
+  }
+}
+
+function hideMiniControls() {
+  if (!playerMiniControls) return;
+  playerMiniControls.classList.remove("is-visible");
+  playerMiniControls.classList.add("is-hidden");
+  if (videoPlayer) videoPlayer.classList.remove("has-mini-controls");
+  clearTimeout(miniControlsTimer);
+  miniControlsTimer = null;
+}
+
+function toggleMiniControls() {
+  if (playerMiniControls && (playerMiniControls.classList.contains("is-visible") || videoPlayer?.classList.contains("has-mini-controls"))) {
+    hideMiniControls();
+  } else {
+    showMiniControls(true);
+  }
+}
+
 function enterMiniScreen() {
   if (!videoPlayer || videoPlayer.hidden || isMiniScreenActive()) return;
   if (isAnyFullscreen()) {
@@ -5620,6 +5656,7 @@ function enterMiniScreen() {
   }
   updateMiniScreenControlsState();
   setupPipButton();
+  showMiniControls(true);
   tgBackUnregister("video-player");
   try {
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light");
@@ -5628,6 +5665,7 @@ function enterMiniScreen() {
 
 function expandVideoPlayer() {
   if (!videoPlayer || !isMiniScreenActive()) return;
+  hideMiniControls();
   videoPlayer.classList.remove("is-mini-screen");
   if (typeof window.__resetMiniScreenOffset === "function") {
     window.__resetMiniScreenOffset();
@@ -5636,6 +5674,7 @@ function expandVideoPlayer() {
   }
   document.body.classList.add("is-player-open");
   document.body.classList.remove("has-video-mini-screen");
+  hideMiniControls();
   if (playerMiniControls) {
     playerMiniControls.hidden = true;
     playerMiniControls.setAttribute("aria-hidden", "true");
@@ -9225,11 +9264,13 @@ playerOverlay?.addEventListener("click", (e) => {
 // Mini player (floating mini-screen) boshqaruv tugmalari
 playerMiniClose?.addEventListener("click", (e) => {
   e.stopPropagation();
+  hideMiniControls();
   closeVideoPlayer({ forceClose: true });
 });
 
 playerMiniExpand?.addEventListener("click", (e) => {
   e.stopPropagation();
+  hideMiniControls();
   expandVideoPlayer();
 });
 
@@ -9237,12 +9278,16 @@ playerMiniToggle?.addEventListener("click", (e) => {
   e.stopPropagation();
   toggleYouTubePlayback();
   setTimeout(updateMiniScreenControlsState, 50);
+  showMiniControls(true);
 });
 
 videoPlayer?.addEventListener("click", (e) => {
   if (isMiniScreenActive()) {
-    if (e.target.closest(".player-mini-btn")) return;
-    expandVideoPlayer();
+    if (e.target.closest(".player-mini-btn")) {
+      showMiniControls(true);
+      return;
+    }
+    toggleMiniControls();
   }
 });
 
@@ -9387,11 +9432,13 @@ window.__resetMiniScreenOffset = () => {
       return;
     }
 
-    // 2) Agar harakat qilinmagan bo'lsa (oddiy bosish) — kattalashtirish (expand)
+    // 2) Agar harakat qilinmagan bo'lsa (oddiy bosish) — mini controls ko'rsatish/berkitish
     if (!hasMoved) {
-      if (!e.target.closest(".player-mini-btn")) {
-        expandVideoPlayer();
+      if (e.target.closest(".player-mini-btn")) {
+        showMiniControls(true);
+        return;
       }
+      toggleMiniControls();
       return;
     }
 

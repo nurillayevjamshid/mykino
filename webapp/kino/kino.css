@@ -2991,18 +2991,15 @@ html[data-theme="light"] .watch-button.watch-button--pill {
   border-radius: 16px;
 }
 
-.video-player.is-mini-screen:hover .player-mini-controls,
-.video-player.is-mini-screen:active .player-mini-controls,
-.video-player.is-mini-screen.has-controls .player-mini-controls {
-  opacity: 1;
-  pointer-events: auto;
+.video-player.is-mini-screen.has-mini-controls .player-mini-controls,
+.video-player.is-mini-screen .player-mini-controls.is-visible {
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
-@media (hover: none) {
-  .video-player.is-mini-screen .player-mini-controls {
-    opacity: 0.94;
-    pointer-events: auto;
-  }
+.video-player.is-mini-screen .player-mini-controls.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .player-mini-btn {
