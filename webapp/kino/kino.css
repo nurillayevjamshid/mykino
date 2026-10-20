@@ -9724,7 +9724,14 @@ svg[stroke="currentColor"]:not(.brand-logo__svg) {
   height: 24px;
 }
 :root:not([data-theme="dark"]) .sidebar__item-img--fifa { filter: none; }
-[data-theme="dark"] .sidebar__item-img--fifa { filter: invert(1) brightness(1.1); }
+html[data-theme="dark"] .sidebar__item-img--fifa,
+[data-theme="dark"] .sidebar__item-img--fifa,
+html[data-theme="dark"] .brand-section__icon img,
+[data-theme="dark"] .brand-section__icon img,
+html[data-theme="dark"] #sectionSplash .section-splash__logo img,
+[data-theme="dark"] #sectionSplash .section-splash__logo img {
+  filter: invert(1) brightness(1.2) !important;
+}
 .sidebar__item:hover .sidebar__item-img,
 .sidebar__item:focus-visible .sidebar__item-img { transform: scale(1.05); }
 .fifa-badge {

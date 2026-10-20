@@ -657,6 +657,11 @@ body.sidebar-open {
   height: 21px;
   border-radius: 50%;
   object-fit: cover;
+  transition: filter 0.2s ease;
+}
+html[data-theme="dark"] .sidebar__item-img--fifa,
+[data-theme="dark"] .sidebar__item-img--fifa {
+  filter: invert(1) brightness(1.2) !important;
 }
 
 .sidebar__divider {

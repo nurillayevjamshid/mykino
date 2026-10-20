@@ -59,6 +59,10 @@
     elements.sidebarSavedBadge = document.getElementById("sidebarSavedBadge");
     elements.sidebarSavedBooksBtn = document.getElementById("sidebarSavedBooksBtn");
     elements.sidebarThemeSwitch = document.getElementById("sidebarThemeSwitch");
+    const initBooksTheme = document.documentElement.getAttribute("data-theme") || "light";
+    if (elements.sidebarThemeSwitch) {
+      elements.sidebarThemeSwitch.setAttribute("aria-checked", initBooksTheme === "dark" ? "true" : "false");
+    }
 
     // Modal Sheet Elements
     elements.modalBackdrop = document.getElementById("modalBackdrop");
@@ -818,8 +822,15 @@
 
     // Sidebar Theme Switch toggle
     elements.sidebarThemeSwitch?.addEventListener("click", () => {
-      const isDark = document.documentElement.getAttribute("data-theme") !== "light";
-      document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      const next = isDark ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try {
+        localStorage.setItem("kino_theme", next);
+        localStorage.setItem("kino_theme_explicit", "1");
+        localStorage.setItem("app_theme", next);
+      } catch (_) {}
+      elements.sidebarThemeSwitch.setAttribute("aria-checked", next === "dark" ? "true" : "false");
     });
 
     // Modal Close

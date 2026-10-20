@@ -232,14 +232,15 @@ if (tg) {
     tg.onEvent?.("viewportChanged", applyTelegramSafeArea);
   } catch (_) {}
 
-  // Telegram theme almashganda — agar foydalanuvchi qo'lda toggle bosmagan bo'lsa — ergashish.
+  // Bo'limlar va sahifalar (masalan, Yangiliklar) orasida theme o'zgarishini sinxronlashtirish
   try {
-    tg.onEvent?.("themeChanged", () => {
-      if (localStorage.getItem(THEME_EXPLICIT_KEY) === "1") return;
-      const nextScheme = tg.colorScheme === "dark" ? "dark" : "light";
-      if (document.documentElement.getAttribute("data-theme") !== nextScheme) {
-        applyTheme(nextScheme);
-        try { syncSidebarSettings?.(); } catch (_) {}
+    window.addEventListener("storage", (e) => {
+      if (e.key === THEME_STORAGE_KEY || e.key === "app_theme") {
+        const nextScheme = e.newValue === "dark" ? "dark" : "light";
+        if (document.documentElement.getAttribute("data-theme") !== nextScheme) {
+          applyTheme(nextScheme);
+          try { syncSidebarSettings?.(); } catch (_) {}
+        }
       }
     });
   } catch (_) {}
@@ -277,12 +278,9 @@ const haptic = (() => {
 const THEME_STORAGE_KEY = "kino_theme";
 const THEME_EXPLICIT_KEY = "kino_theme_explicit";
 function getInitialTheme() {
-  const explicit = localStorage.getItem(THEME_EXPLICIT_KEY) === "1";
-  const stored = localStorage.getItem(THEME_STORAGE_KEY);
-  if (explicit && (stored === "light" || stored === "dark")) return stored;
-  const tgScheme = tg?.colorScheme;
-  if (tgScheme === "dark" || tgScheme === "light") return tgScheme;
-  return stored === "dark" ? "dark" : "light";
+  const stored = localStorage.getItem(THEME_STORAGE_KEY) || localStorage.getItem("app_theme");
+  if (stored === "dark") return "dark";
+  return "light";
 }
 const savedTheme = getInitialTheme();
 const themeToggle = document.querySelector(".theme-toggle");
@@ -1033,6 +1031,11 @@ function setRangeFill(node, value, maxValue) {
 function applyTheme(theme) {
   const nextTheme = theme === "dark" ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", nextTheme);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    localStorage.setItem(THEME_EXPLICIT_KEY, "1");
+    localStorage.setItem("app_theme", nextTheme);
+  } catch (_) {}
   if (themeToggle) {
     themeToggle.dataset.theme = nextTheme;
     themeToggle.setAttribute(
@@ -8733,7 +8736,7 @@ const SECTION_SPLASH_ICONS = {
   kino: `<svg viewBox="0 0 32 32" class="brand-logo__svg" aria-hidden="true"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg>`,
   music: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
   podcasts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>`,
-  fifa: `<img src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44" style="object-fit:contain;display:block;">`,
+  fifa: `<img class="sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44" style="object-fit:contain;display:block;">`,
   esport: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M7 12h3"></path><path d="M8.5 10.5v3"></path><circle cx="16" cy="11" r="1"></circle><circle cx="18" cy="13.5" r="1"></circle></svg>`,
   tv: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="m8 2 4 4 4-4"></path></svg>`,
   news: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>`,

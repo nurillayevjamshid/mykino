@@ -1,11 +1,20 @@
 <!doctype html>
-<html lang="uz" data-theme="dark">
+<html lang="uz" data-theme="light">
 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0e14" />
+  <meta name="theme-color" content="#fafafb" />
   <title>NTV — Audio kitoblar</title>
+  <script>
+    (function() {
+      try {
+        var storedTheme = localStorage.getItem("kino_theme") || localStorage.getItem("app_theme");
+        var effTheme = (storedTheme === "dark") ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", effTheme);
+      } catch (_) {}
+    })();
+  </script>
   <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -270,7 +279,7 @@
           </svg>
           <span>Tungi rejim</span>
         </div>
-        <button class="theme-switch" type="button" id="sidebarThemeSwitch" role="switch" aria-checked="true" aria-label="Tungi rejim">
+        <button class="theme-switch" type="button" id="sidebarThemeSwitch" role="switch" aria-checked="false" aria-label="Tungi rejim">
           <span class="theme-switch__track">
             <svg class="theme-switch__icon theme-switch__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4"></circle>

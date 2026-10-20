@@ -49,4 +49,36 @@ describe('Section Navigation & Splash Continuity Suite', () => {
     assert.match(booksHtml, /href="\/\?section=music&from=books"/, 'Navigates to Music with from=books');
     assert.match(booksHtml, /href="\/\?section=podcasts&from=books"/, 'Navigates to Podcasts with from=books');
   });
+
+  test('unified light theme default and storage sync across index, news, and books', () => {
+    const indexHtml = fs.readFileSync(path.join(rootDir, 'webapp', 'index.html'), 'utf8');
+    const newsHtml = fs.readFileSync(path.join(rootDir, 'webapp', 'news', 'index.html'), 'utf8');
+    const booksHtml = fs.readFileSync(path.join(rootDir, 'webapp', 'books', 'index.html'), 'utf8');
+    const kinoJs = fs.readFileSync(path.join(rootDir, 'webapp', 'kino', 'kino.js'), 'utf8');
+
+    // Both index and news default to light
+    assert.match(indexHtml, /effTheme = \(storedTheme === "dark"\) \? "dark" : "light"/);
+    assert.match(newsHtml, /effTheme = \(storedTheme === "dark"\) \? "dark" : "light"/);
+    assert.match(booksHtml, /effTheme = \(storedTheme === "dark"\) \? "dark" : "light"/);
+
+    // kino.js getInitialTheme strictly defaults to light
+    assert.match(kinoJs, /if \(stored === "dark"\) return "dark";\s*return "light";/);
+
+    // Both listen to storage event to sync theme cross-page
+    assert.match(kinoJs, /window\.addEventListener\("storage",/);
+    assert.match(newsHtml, /window\.addEventListener\('storage',/);
+  });
+
+  test('football section icon inverts to white in dark mode across all sidebars and styles', () => {
+    const kinoCss = fs.readFileSync(path.join(rootDir, 'webapp', 'kino', 'kino.css'), 'utf8');
+    const glassCss = fs.readFileSync(path.join(rootDir, 'webapp', 'glass-theme.css'), 'utf8');
+    const newsHtml = fs.readFileSync(path.join(rootDir, 'webapp', 'news', 'index.html'), 'utf8');
+    const booksCss = fs.readFileSync(path.join(rootDir, 'webapp', 'books', 'books.css'), 'utf8');
+
+    // Check invert filter in all css files
+    assert.match(kinoCss, /\[data-theme="dark"\] \.sidebar__item-img--fifa[\s\S]*?filter:\s*invert\(1\)/);
+    assert.match(glassCss, /\[data-theme="dark"\] \.sidebar__item-img--fifa[\s\S]*?filter:\s*invert\(1\)/);
+    assert.match(newsHtml, /\[data-theme="dark"\] \.sidebar__item-img--fifa[\s\S]*?filter:\s*invert\(1\)/);
+    assert.match(booksCss, /\[data-theme="dark"\] \.sidebar__item-img--fifa[\s\S]*?filter:\s*invert\(1\)/);
+  });
 });

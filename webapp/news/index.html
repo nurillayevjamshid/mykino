@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="uz">
+<html lang="uz" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -19,10 +19,21 @@
         if (tgPlat === "android" || (/Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua))) {
           document.documentElement.classList.add("is-android");
         }
-        var storedTheme = localStorage.getItem("kino_theme");
-        var tgScheme = tgApp && tgApp.colorScheme;
-        var effTheme = (storedTheme === "dark" || storedTheme === "light") ? storedTheme : (tgScheme === "dark" ? "dark" : "light");
+        var storedTheme = localStorage.getItem("kino_theme") || localStorage.getItem("app_theme");
+        if (!storedTheme) {
+          storedTheme = "light";
+          try {
+            localStorage.setItem("kino_theme", "light");
+            localStorage.setItem("app_theme", "light");
+            localStorage.setItem("kino_theme_explicit", "1");
+          } catch (_) {}
+        }
+        var effTheme = (storedTheme === "dark") ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", effTheme);
+        if (effTheme === "dark") {
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', '#09111f');
+        }
 
         var applyTgInsets = function() {
           if (!tgApp) return;
@@ -511,6 +522,13 @@
       height: 22px;
       display: block;
       object-fit: contain;
+      transition: filter 0.2s ease, transform 0.2s ease;
+    }
+    html[data-theme="dark"] .sidebar__item-img--fifa,
+    [data-theme="dark"] .sidebar__item-img--fifa,
+    html[data-theme="dark"] #sectionSplash .section-splash__logo img,
+    [data-theme="dark"] #sectionSplash .section-splash__logo img {
+      filter: invert(1) brightness(1.2) !important;
     }
 
     .sidebar__item:hover,
@@ -2131,10 +2149,8 @@
     const LANG_STORAGE_KEY = 'kino_lang';
 
     let currentTheme = (function() {
-      const stored = localStorage.getItem(THEME_STORAGE_KEY);
-      if (stored === 'light' || stored === 'dark') return stored;
-      const tgScheme = tg?.colorScheme;
-      if (tgScheme === 'light' || tgScheme === 'dark') return tgScheme;
+      const stored = localStorage.getItem(THEME_STORAGE_KEY) || localStorage.getItem('app_theme');
+      if (stored === 'dark') return 'dark';
       return 'light';
     })();
 
@@ -2578,7 +2594,11 @@
     function applyTheme(theme) {
       currentTheme = theme === 'dark' ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', currentTheme);
-      localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
+        localStorage.setItem('kino_theme_explicit', '1');
+        localStorage.setItem('app_theme', currentTheme);
+      } catch (_) {}
 
       const themeSwitch = document.getElementById('sidebarThemeSwitch');
       if (themeSwitch) {
@@ -3195,17 +3215,15 @@
       });
     });
 
-    // Telegram Theme Change Event
-    if (tg?.onEvent) {
-      tg.onEvent('themeChanged', () => {
-        if (!localStorage.getItem('kino_theme_explicit')) {
-          const scheme = tg.colorScheme;
-          if (scheme === 'dark' || scheme === 'light') {
-            applyTheme(scheme);
-          }
+    // Bo'limlar va sahifalar orasida theme o'zgarishini sinxronlashtirish
+    window.addEventListener('storage', (e) => {
+      if (e.key === THEME_STORAGE_KEY || e.key === 'app_theme') {
+        const next = e.newValue === 'dark' ? 'dark' : 'light';
+        if (currentTheme !== next) {
+          applyTheme(next);
         }
-      });
-    }
+      }
+    });
 
     // Scroll-To-Top button & Sticky Navbar
     function updateScrollState() {
@@ -3260,7 +3278,7 @@
       kino: '<svg viewBox="0 0 32 32" class="brand-logo__svg" aria-hidden="true"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg>',
       music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>',
       podcasts: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>',
-      fifa: '<img src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44" style="object-fit:contain;display:block;">',
+      fifa: '<img class="sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44" style="object-fit:contain;display:block;">',
       books: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>',
       news: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>',
     };

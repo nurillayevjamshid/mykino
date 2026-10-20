@@ -2213,3 +2213,12 @@ html[data-theme="light"] .profile-history__poster {
 
 
 
+
+html[data-theme="dark"] .sidebar__item-img--fifa,
+[data-theme="dark"] .sidebar__item-img--fifa,
+html[data-theme="dark"] .brand-section__icon img,
+[data-theme="dark"] .brand-section__icon img,
+html[data-theme="dark"] #sectionSplash .section-splash__logo img,
+[data-theme="dark"] #sectionSplash .section-splash__logo img {
+  filter: invert(1) brightness(1.2) !important;
+}
