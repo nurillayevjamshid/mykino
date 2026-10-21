@@ -962,36 +962,56 @@
   </section>
 
   <div class="mini-player" id="miniPlayer" aria-hidden="true">
-    <button type="button" class="mini-player__expand" id="miniPlayerExpand" aria-label="Kengaytirish">
+    <div class="mini-player__art-wrap" id="miniPlayerArtWrap" role="button" tabindex="0" aria-label="Kengaytirish">
       <div class="mini-player__art">
         <img id="miniPlayerArt" alt="" />
       </div>
-      <div class="mini-player__meta">
-        <strong id="miniPlayerTitle">—</strong>
-        <span id="miniPlayerArtist">—</span>
+    </div>
+    <div class="mini-player__body">
+      <div class="mini-player__header">
+        <button type="button" class="mini-player__expand" id="miniPlayerExpand" aria-label="Kengaytirish">
+          <strong id="miniPlayerTitle">—</strong>
+          <span id="miniPlayerArtist">—</span>
+        </button>
+        <div class="mini-player__top-actions">
+          <button type="button" class="mini-player__airplay" id="miniPlayerAirplay" aria-label="Kengaytirish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+              <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/>
+            </svg>
+          </button>
+          <button type="button" class="mini-player__btn mini-player__btn--close" id="miniPlayerClose" aria-label="Yopish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
       </div>
-    </button>
-    <div class="mini-player__bar"><div class="mini-player__bar-fill" id="miniPlayerBarFill"></div></div>
-    <div class="mini-player__actions">
-      <button type="button" class="mini-player__btn" id="miniPlayerPrev" aria-label="Oldingi">
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M6 5h2v14H6z"></path>
-          <path d="M20 5v14l-11-7z"></path>
-        </svg>
-      </button>
-      <button type="button" class="mini-player__btn mini-player__btn--play" id="miniPlayerToggle" aria-label="Play" data-state="play">
-        <svg class="mini-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
-        <svg class="mini-icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path></svg>
-      </button>
-      <button type="button" class="mini-player__btn" id="miniPlayerNext" aria-label="Keyingi">
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M16 5h2v14h-2z"></path>
-          <path d="M4 5v14l11-7z"></path>
-        </svg>
-      </button>
-      <button type="button" class="mini-player__btn mini-player__btn--close" id="miniPlayerClose" aria-label="Yopish">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-      </button>
+      <div class="mini-player__progress-row">
+        <div class="mini-player__bar"><div class="mini-player__bar-fill" id="miniPlayerBarFill"></div></div>
+        <span class="mini-player__time" id="miniPlayerTime">0:00</span>
+      </div>
+      <div class="mini-player__controls">
+        <div class="mini-player__playback-btns">
+          <button type="button" class="mini-player__btn mini-player__btn--prev" id="miniPlayerPrev" aria-label="Oldingi">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M11 6 2 12l9 6V6zm10 0-9 6 9 6V6z"/>
+            </svg>
+          </button>
+          <button type="button" class="mini-player__btn mini-player__btn--play" id="miniPlayerToggle" aria-label="Play" data-state="play">
+            <svg class="mini-icon-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            <svg class="mini-icon-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          </button>
+          <button type="button" class="mini-player__btn mini-player__btn--next" id="miniPlayerNext" aria-label="Keyingi">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="m3 6 9 6-9 6V6zm10 0 9 6-9 6V6z"/>
+            </svg>
+          </button>
+        </div>
+        <button type="button" class="mini-player__btn mini-player__btn--like" id="miniPlayerLike" aria-label="Sevimlilar">
+          <svg class="mini-icon-like" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 

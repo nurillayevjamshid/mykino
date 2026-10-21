@@ -128,6 +128,7 @@
   const miniPlayerClose = document.getElementById("miniPlayerClose");
   const miniPlayerBarFill = document.getElementById("miniPlayerBarFill");
   const miniPlayerTime = document.getElementById("miniPlayerTime");
+  const miniPlayerLike = document.getElementById("miniPlayerLike");
 
   // ===== State =====
   let musicAllTracks = [];
@@ -795,10 +796,15 @@
     }
   }
   function syncFullPlayerLike() {
-    if (!musicFullPlayerLike) return;
-    const id = musicFullPlayerLike.dataset.id;
-    if (!id) return;
-    musicFullPlayerLike.setAttribute("aria-pressed", trackInAnyPlaylist(id) ? "true" : "false");
+    if (musicFullPlayerLike) {
+      const id = musicFullPlayerLike.dataset.id;
+      if (id) musicFullPlayerLike.setAttribute("aria-pressed", trackInAnyPlaylist(id) ? "true" : "false");
+    }
+    const miniLike = document.getElementById("miniPlayerLike");
+    if (miniLike) {
+      const id = miniLike.dataset.id;
+      if (id) miniLike.setAttribute("aria-pressed", trackInAnyPlaylist(id) ? "true" : "false");
+    }
   }
 
   // ===== Save-to-playlist bottom sheet =====
@@ -2373,7 +2379,13 @@
         return;
       }
       try {
-        if (miniPlayerTime) miniPlayerTime.textContent = formatMusicTime(cur);
+        if (miniPlayerTime) {
+          if (dur > 0) {
+            miniPlayerTime.textContent = `-${formatMusicTime(Math.max(0, dur - cur))}`;
+          } else {
+            miniPlayerTime.textContent = formatMusicTime(cur);
+          }
+        }
         if (miniPlayerBarFill && dur > 0) miniPlayerBarFill.style.width = `${Math.min(100, (cur / dur) * 100)}%`;
         if (musicFullPlayerCur) musicFullPlayerCur.textContent = formatMusicTime(cur);
         if (musicFullPlayerDur && dur > 0) musicFullPlayerDur.textContent = `-${formatMusicTime(Math.max(0, dur - cur))}`;
@@ -2419,6 +2431,12 @@
     }
     if (miniPlayerBarFill) miniPlayerBarFill.style.width = "0%";
     if (miniPlayerTime) miniPlayerTime.textContent = "0:00";
+    const miniLikeEl = document.getElementById("miniPlayerLike");
+    if (miniLikeEl) {
+      const inPl = readMusicPlaylist().includes(track.youtubeId);
+      miniLikeEl.setAttribute("aria-pressed", inPl ? "true" : "false");
+      miniLikeEl.dataset.id = track.youtubeId;
+    }
     showMiniPlayer();
     openMusicFullPlayer(track);
 
@@ -2880,9 +2898,35 @@
   miniPlayerClose?.addEventListener("click", hideMiniPlayer);
   document.getElementById("miniPlayerPrev")?.addEventListener("click", () => playRelative(-1));
   document.getElementById("miniPlayerNext")?.addEventListener("click", () => playRelative(1));
-  document.getElementById("miniPlayerExpand")?.addEventListener("click", () => {
+  const expandMiniPlayer = () => {
     const track = musicAllTracks.find((t) => trackKey(t) === musicCurrentTrackKey);
     if (track) openMusicFullPlayer(track);
+  };
+  document.getElementById("miniPlayerExpand")?.addEventListener("click", expandMiniPlayer);
+  document.getElementById("miniPlayerArtWrap")?.addEventListener("click", expandMiniPlayer);
+  document.getElementById("miniPlayerAirplay")?.addEventListener("click", expandMiniPlayer);
+  document.getElementById("miniPlayerLike")?.addEventListener("click", () => {
+    const miniLikeEl = document.getElementById("miniPlayerLike");
+    const id = miniLikeEl?.dataset.id;
+    if (id) handleSaveButtonClick(id);
+  });
+  document.querySelector(".mini-player__bar")?.addEventListener("click", (e) => {
+    try {
+      const bar = e.currentTarget;
+      const rect = bar.getBoundingClientRect();
+      if (!rect.width) return;
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      if (currentPlayingType === "audio" && nativeAudioPlayer) {
+        const dur = nativeAudioPlayer.duration || 0;
+        if (dur > 0) {
+          nativeAudioPlayer.currentTime = dur * pct;
+          syncMediaPositionState();
+        }
+      } else if (ytReady && ytPlayer?.seekTo) {
+        const dur = ytPlayer.getDuration() || 0;
+        if (dur > 0) ytPlayer.seekTo(dur * pct, true);
+      }
+    } catch (_) {}
   });
 
   document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.addEventListener("click", closeMusicView));

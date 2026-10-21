@@ -7709,7 +7709,7 @@ function ensureMusicCss() {
   __musicCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/music/music.css?v=20261021-player-redesign-v1";
+    link.href = "/static/music/music.css?v=20261021-mini-player-v2";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -7723,7 +7723,7 @@ function ensureMusicModule() {
   const cssPromise = ensureMusicCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music/music.js?v=20261021-instant-play-v1";
+    script.src = "/static/music/music.js?v=20261021-mini-player-v2";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
