@@ -327,7 +327,7 @@ html[data-theme="light"] .player-play-btn {
 .music-chart, .music-genre, .music-artist, .pod-featured-card, .pod-stat-card,
 .tv-chip, .tv-player { background: linear-gradient(145deg, rgba(255,255,255,.14), rgba(255,255,255,.055)) !important; border: 1px solid var(--glass-border-soft) !important; box-shadow: var(--glass-shadow) !important; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 .music-topbar, .tv-head { border-radius: 22px !important; }
-.music-hero, .pod-hero, .pod-hero-card-scroll { border-radius: 28px !important; }
+.music-hero, .pod-hero, .pod-hero-card-scroll, .pod-hero-kino, .music-carousel__track, #heroSection.hero, #heroSection, .hero-carousel { border-radius: 30px !important; }
 .music-tab.is-active, .tv-chip.is-active { color: var(--glass-cyan) !important; background: rgba(157,234,255,.14) !important; border-color: rgba(157,234,255,.32) !important; }
 .music-hero__play, .pod-hero__btn { background: linear-gradient(135deg, #d7f8ff, #93dff1) !important; color: #092331 !important; }
 

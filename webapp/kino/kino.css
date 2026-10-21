@@ -467,7 +467,7 @@ img {
   aspect-ratio: 16 / 9;
   position: relative;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: 30px !important;
   margin-bottom: 20px;
   background: var(--bg-1);
   box-shadow: var(--shadow-lg);
@@ -8416,8 +8416,9 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
   aspect-ratio: 16 / 9;
   margin: 8px 12px 14px !important;
   width: calc(100% - 24px) !important;
-  border-radius: 18px !important;
-  overflow: hidden;
+  border-radius: 30px !important;
+  overflow: hidden !important;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
   background: #0b0c10 !important;
 }
 #heroSection .hero__gradient { display: none !important; }
