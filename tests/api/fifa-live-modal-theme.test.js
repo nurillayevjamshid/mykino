@@ -62,4 +62,33 @@ describe("FIFA Live Match Modal Dark Mode & High Contrast Suite", () => {
     assert.match(kinoCss, /html\[data-theme="light"\]\s*\.fifa-stat-row\s*\{[^}]*background:\s*#ffffff/);
     assert.match(kinoCss, /html\[data-theme="light"\]\s*\.fifa-tl-item-content\s*\{[^}]*background:\s*#f8fafc/);
   });
+
+  test("fifa elements enforce high-contrast text and cards in both dark and light modes", () => {
+    const kinoCss = fs.readFileSync(kinoCssPath, "utf8");
+    const glassCss = fs.readFileSync(glassCssPath, "utf8");
+    const fifaJs = fs.readFileSync(path.join(__dirname, "../../webapp/fifa/fifa.js"), "utf8");
+
+    // No hardcoded white text on light backgrounds via inline styles in fifa.js
+    assert.doesNotMatch(fifaJs, /style="[^"]*color:\s*var\(--c-text/);
+    assert.doesNotMatch(fifaJs, /style="[^"]*color:\s*var\(--text-muted/);
+
+    // Dark mode contrast
+    assert.match(kinoCss, /\.fifa-match__name\s*\{[^}]*color:\s*#ffffff/);
+    assert.match(kinoCss, /\.fifa-match-league\s*\{[^}]*background:\s*#111522/);
+    assert.match(kinoCss, /\.fifa-standings-card\s*\{[^}]*background:\s*#111522/);
+    assert.match(kinoCss, /\.fifa-next-match-card\s*\{[^}]*color:\s*#ffffff/);
+
+    // Light mode explicit contrast
+    assert.match(kinoCss, /html\[data-theme="light"\]\s*\.fifa-match\s*\{[^}]*background:\s*#ffffff/);
+    assert.match(kinoCss, /html\[data-theme="light"\]\s*\.fifa-match__name\s*\{[^}]*color:\s*#0f172a/);
+    assert.match(kinoCss, /html\[data-theme="light"\]\s*\.fifa-match-league__copy strong\s*\{[^}]*color:\s*#0f172a/);
+    assert.match(kinoCss, /html\[data-theme="light"\]\s*\.fifa-standings-card__head strong\s*\{[^}]*color:\s*#0f172a/);
+    assert.match(kinoCss, /html\[data-theme="light"\]\s*\.fifa-next-team__name\s*\{[^}]*color:\s*#0f172a/);
+    assert.match(kinoCss, /html\[data-theme="light"\]\s*\.fifa-favorites-heading\s*\{[^}]*color:\s*#0f172a/);
+
+    // Glass theme protects football elements from becoming unreadable
+    assert.match(glassCss, /html\[data-theme="light"\]\s*\.fifa-match__name[^}]*color:\s*#0f172a\s*!important/);
+    assert.match(glassCss, /html\[data-theme="light"\]\s*\.fifa-match-league__copy strong[^}]*color:\s*#0f172a\s*!important/);
+    assert.match(glassCss, /html\[data-theme="light"\]\s*\.fifa-next-team__name[^}]*color:\s*#0f172a\s*!important/);
+  });
 });

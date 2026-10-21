@@ -939,7 +939,7 @@
           <div class="fifa-next-center">
             ${isLive || isFinished
               ? `<div class="fifa-next-score">${esc(m.score || "-")}</div>
-                 <div class="fifa-next-vs" style="color:#ef4444;">${isLive ? (esc(m.minute || 'LIVE')) : 'Tugagan'}</div>`
+                 <div class="fifa-next-vs fifa-next-vs--live">${isLive ? (esc(m.minute || 'LIVE')) : 'Tugagan'}</div>`
               : `<div class="fifa-next-vs">VS</div>
                  <div class="fifa-next-time">${esc(tashkentTime)}</div>`
             }
@@ -1652,10 +1652,10 @@
             <span class="fifa-next-badge">${isLoadingUpcoming ? "Yuklanmoqda..." : "Taqvim kutilmoqda"}</span>
           </div>
           <div style="padding: 14px 6px; text-align: center;">
-            <div style="font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--c-text, #fff);">
+            <div class="fifa-next-empty-title">
               ${isLoadingUpcoming ? "Keyingi o'yinlar qidirilmoqda..." : `Yaqin 8-10 kun ichida ${esc(targetName)} ishtirokida rasmiy o'yin belgilanmagan`}
             </div>
-            <div style="font-size: 12px; color: var(--text-muted, rgba(255,255,255,0.6));">
+            <div class="fifa-next-empty-desc">
               ${isLoadingUpcoming ? "Iltimos, kuting…" : "Keyingi o'yinlar taqvimi rasmiy e'lon qilingach, shu yerda avtomatik ko'rinadi."}
             </div>
             ${targetName && !isLoadingUpcoming ? `
@@ -3457,8 +3457,8 @@
       return `
         <div class="fifa-lineup-empty">
           <div class="fifa-live-empty__icon">⚽</div>
-          <div style="font-weight:700;font-size:15px;color:var(--c-text,#fff);">${esc(F("lineupNotAvailable") || "Tarkiblar hali e'lon qilinmadi")}</div>
-          <div style="font-size:12px;color:var(--text-muted,rgba(255,255,255,0.6));margin-top:6px;max-width:300px;">
+          <div class="fifa-lineup-empty__title">${esc(F("lineupNotAvailable") || "Tarkiblar hali e'lon qilinmadi")}</div>
+          <div class="fifa-lineup-empty__desc">
             Rasmiy boshlang'ich tarkiblar va jonli voqealar odatda o'yin boshlanishidan 1 soat oldin e'lon qilinadi.
           </div>
         </div>
@@ -3572,8 +3572,8 @@
       timelinePaneHtml = `
         <div class="fifa-lineup-empty">
           <div class="fifa-live-empty__icon">⏱️</div>
-          <div style="font-weight:700;color:var(--c-text,#fff);">O'yin voqealari hali boshlanmadi</div>
-          <div style="font-size:12px;color:var(--text-muted,rgba(255,255,255,0.6));margin-top:4px;">
+          <div class="fifa-lineup-empty__title">O'yin voqealari hali boshlanmadi</div>
+          <div class="fifa-lineup-empty__desc">
             Gollar, kartochkalar va o'yinchi almashinuvlari o'yin boshlangach shu yerda real vaqtda yangilanadi.
           </div>
         </div>
@@ -3742,8 +3742,8 @@
       lineupPaneHtml = `
         <div class="fifa-lineup-empty">
           <div class="fifa-live-empty__icon">⚽</div>
-          <div style="font-weight:700;color:var(--c-text,#fff);">${esc(F("lineupNotAvailable") || "Tarkiblar hali e'lon qilinmadi")}</div>
-          <div style="font-size:12px;color:var(--text-muted,rgba(255,255,255,0.6));margin-top:4px;">
+          <div class="fifa-lineup-empty__title">${esc(F("lineupNotAvailable") || "Tarkiblar hali e'lon qilinmadi")}</div>
+          <div class="fifa-lineup-empty__desc">
             Boshlang'ich 11+15 tarkiblar odatda o'yin boshlanishidan 1 soat oldin rasmiy ravishda e'lon qilinadi.
           </div>
         </div>
@@ -3792,8 +3792,8 @@
       statsPaneHtml = `
         <div class="fifa-lineup-empty">
           <div class="fifa-live-empty__icon">📊</div>
-          <div style="font-weight:700;color:var(--c-text,#fff);">Statistika hali mavjud emas</div>
-          <div style="font-size:12px;color:var(--text-muted,rgba(255,255,255,0.6));margin-top:4px;">
+          <div class="fifa-lineup-empty__title">Statistika hali mavjud emas</div>
+          <div class="fifa-lineup-empty__desc">
             To'p nazorati, zarbalar va boshqa statistik ma'lumotlar o'yin boshlangach hisoblab boriladi.
           </div>
         </div>

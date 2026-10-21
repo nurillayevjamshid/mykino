@@ -2256,3 +2256,245 @@ html.is-android .fifa-tl-badge {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+
+/* ============================================================
+   FIFA / Football Section High-Contrast Theme Enforcement
+   Guarantees all football text and cards are 100% readable
+   in both light and dark themes with no invisible text.
+   ============================================================ */
+/* Dark Mode */
+.fifa-view,
+html[data-theme="dark"] .fifa-view,
+[data-theme="dark"] .fifa-view {
+  color: #ffffff !important;
+}
+
+.fifa-match,
+html[data-theme="dark"] .fifa-match,
+[data-theme="dark"] .fifa-match {
+  background: #141924 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.fifa-match__name,
+html[data-theme="dark"] .fifa-match__name,
+[data-theme="dark"] .fifa-match__name,
+.fifa-match__score,
+html[data-theme="dark"] .fifa-match__score,
+[data-theme="dark"] .fifa-match__score {
+  color: #ffffff !important;
+}
+
+.fifa-match__time,
+html[data-theme="dark"] .fifa-match__time,
+[data-theme="dark"] .fifa-match__time {
+  color: #94a3b8 !important;
+}
+
+.fifa-match-league,
+html[data-theme="dark"] .fifa-match-league,
+[data-theme="dark"] .fifa-match-league {
+  background: #111522 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.fifa-match-league__copy strong,
+html[data-theme="dark"] .fifa-match-league__copy strong,
+[data-theme="dark"] .fifa-match-league__copy strong {
+  color: #ffffff !important;
+}
+
+.fifa-match-league__copy small,
+html[data-theme="dark"] .fifa-match-league__copy small,
+[data-theme="dark"] .fifa-match-league__copy small,
+.fifa-match-league__empty,
+html[data-theme="dark"] .fifa-match-league__empty,
+[data-theme="dark"] .fifa-match-league__empty {
+  color: #94a3b8 !important;
+}
+
+.fifa-standings-card,
+html[data-theme="dark"] .fifa-standings-card,
+[data-theme="dark"] .fifa-standings-card {
+  background: #111522 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.fifa-standings-card__head strong,
+html[data-theme="dark"] .fifa-standings-card__head strong,
+[data-theme="dark"] .fifa-standings-card__head strong {
+  color: #ffffff !important;
+}
+
+.fifa-standings-card__head small,
+html[data-theme="dark"] .fifa-standings-card__head small,
+[data-theme="dark"] .fifa-standings-card__head small {
+  color: #94a3b8 !important;
+}
+
+.fifa-standing-team,
+html[data-theme="dark"] .fifa-standing-team,
+[data-theme="dark"] .fifa-standing-team,
+.fifa-cell--pts,
+html[data-theme="dark"] .fifa-cell--pts,
+[data-theme="dark"] .fifa-cell--pts {
+  color: #ffffff !important;
+}
+
+.fifa-next-match-card,
+html[data-theme="dark"] .fifa-next-match-card,
+[data-theme="dark"] .fifa-next-match-card {
+  background: linear-gradient(135deg, #131826, #0e121d) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.fifa-next-match-card__league,
+html[data-theme="dark"] .fifa-next-match-card__league,
+[data-theme="dark"] .fifa-next-match-card__league,
+.fifa-next-team__name,
+html[data-theme="dark"] .fifa-next-team__name,
+[data-theme="dark"] .fifa-next-team__name,
+.fifa-next-time,
+html[data-theme="dark"] .fifa-next-time,
+[data-theme="dark"] .fifa-next-time,
+.fifa-next-meta strong,
+html[data-theme="dark"] .fifa-next-meta strong,
+[data-theme="dark"] .fifa-next-meta strong,
+.fifa-favorites-heading,
+html[data-theme="dark"] .fifa-favorites-heading,
+[data-theme="dark"] .fifa-favorites-heading,
+.fifa-fav-section-title,
+html[data-theme="dark"] .fifa-fav-section-title,
+[data-theme="dark"] .fifa-fav-section-title {
+  color: #ffffff !important;
+}
+
+.fifa-next-match-card__league small,
+html[data-theme="dark"] .fifa-next-match-card__league small,
+[data-theme="dark"] .fifa-next-match-card__league small,
+.fifa-next-meta,
+html[data-theme="dark"] .fifa-next-meta,
+[data-theme="dark"] .fifa-next-meta,
+.fifa-favorites-count,
+html[data-theme="dark"] .fifa-favorites-count,
+[data-theme="dark"] .fifa-favorites-count,
+.fifa-fav-section-title small,
+html[data-theme="dark"] .fifa-fav-section-title small,
+[data-theme="dark"] .fifa-fav-section-title small {
+  color: #94a3b8 !important;
+}
+
+.fifa-date-nav__label strong,
+html[data-theme="dark"] .fifa-date-nav__label strong,
+[data-theme="dark"] .fifa-date-nav__label strong {
+  color: #ffffff !important;
+}
+
+.fifa-date-nav__label small,
+html[data-theme="dark"] .fifa-date-nav__label small,
+[data-theme="dark"] .fifa-date-nav__label small {
+  color: #94a3b8 !important;
+}
+
+/* Light Mode */
+html[data-theme="light"] .fifa-view {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-match {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="light"] .fifa-match__name,
+html[data-theme="light"] .fifa-match__score {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-match__time {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .fifa-match-league {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="light"] .fifa-match-league__copy strong {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-match-league__copy small,
+html[data-theme="light"] .fifa-match-league__empty {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .fifa-standings-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="light"] .fifa-standings-card__head strong {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-standings-card__head small {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .fifa-standing-team,
+html[data-theme="light"] .fifa-cell--pts {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-next-match-card {
+  background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06) !important;
+}
+
+html[data-theme="light"] .fifa-next-match-card__league,
+html[data-theme="light"] .fifa-next-team__name,
+html[data-theme="light"] .fifa-next-time,
+html[data-theme="light"] .fifa-next-meta strong,
+html[data-theme="light"] .fifa-favorites-heading,
+html[data-theme="light"] .fifa-fav-section-title,
+html[data-theme="light"] .fifa-next-empty-title,
+html[data-theme="light"] .fifa-lineup-empty__title {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-next-match-card__league small,
+html[data-theme="light"] .fifa-next-meta,
+html[data-theme="light"] .fifa-favorites-count,
+html[data-theme="light"] .fifa-fav-section-title small,
+html[data-theme="light"] .fifa-next-empty-desc,
+html[data-theme="light"] .fifa-lineup-empty__desc {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .fifa-date-nav__label strong {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-date-nav__label small {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .fifa-date-nav__button,
+html[data-theme="light"] .fifa-date-nav__today {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
