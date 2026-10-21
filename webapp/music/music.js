@@ -1496,7 +1496,7 @@
     }
     fetchMusicArtists().then(() => { renderMusicFilters(); renderMusicCarousel(); });
     try { loadPlaylistsFromServer(); } catch (_) {}
-    try { ensureMusicYouTubeApi().then(() => initYtPlayerForMusic()).catch(() => {}); } catch (_) {}
+    try { ensureMusicYouTubeApi().catch(() => {}); } catch (_) {}
     musicView.hidden = false;
     document.body.classList.add("is-music");
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -2050,12 +2050,15 @@
   let ytMountRequestId = 0;
   let ytStartupTimer = null;
   let ytProgressTimer = null;
+  let currentYtVideoId = null;
 
   function destroyMusicYtPlayer() {
     clearTimeout(ytStartupTimer);
+    ytStartupTimer = null;
     directIframeEl = null;
     directIframePlaying = false;
     directIframeProgress = 0;
+    currentYtVideoId = null;
     if (ytPlayer?.destroy) {
       try { ytPlayer.destroy(); } catch (_) {}
     }
@@ -2069,26 +2072,172 @@
     }
   }
 
-  function mountDirectMusicIframe(videoId, track) {
-    if (!musicFullPlayerYtSlot || !videoId) return;
+  function handleYtPlayerStateChange(e, reqId, videoId, track) {
+    if (reqId !== ytMountRequestId) return;
+    if (!window.YT) return;
+    const S = YT.PlayerState;
+    if (e.data === S.PLAYING) {
+      clearTimeout(ytStartupTimer);
+      ytStartupTimer = null;
+      musicUserPlaying = true;
+      userManuallyPaused = false;
+      directIframePlaying = true;
+      ensureYtAudio();
+      requestMusicWakeLock();
+      if ("mediaSession" in navigator) {
+        try { navigator.mediaSession.playbackState = "playing"; } catch (_) {}
+      }
+      if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
+      if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+      if (musicFullPlayerArt) {
+        musicFullPlayerArt.classList.add("is-playing");
+        musicFullPlayerArt.classList.remove("has-video");
+      }
+      startMiniProgress();
+    } else if (e.data === S.PAUSED) {
+      if (!userManuallyPaused && musicUserPlaying) {
+        const tryResume = () => {
+          if (musicUserPlaying && !userManuallyPaused && ytPlayer?.playVideo) {
+            try {
+              ensureYtAudio();
+              ytPlayer.playVideo();
+            } catch (_) {}
+          }
+        };
+        setTimeout(tryResume, 80);
+        setTimeout(tryResume, 250);
+        return;
+      }
+      musicUserPlaying = false;
+      directIframePlaying = false;
+      releaseMusicWakeLock();
+      pauseSilentAnchor();
+      if ("mediaSession" in navigator) {
+        try { navigator.mediaSession.playbackState = "paused"; } catch (_) {}
+      }
+      if (miniPlayerToggle) miniPlayerToggle.dataset.state = "play";
+      if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "play";
+      if (musicFullPlayerArt) {
+        musicFullPlayerArt.classList.remove("is-playing");
+      }
+    } else if (e.data === S.ENDED) {
+      releaseMusicWakeLock();
+      if ("mediaSession" in navigator) {
+        try { navigator.mediaSession.playbackState = "paused"; } catch (_) {}
+      }
+      try { autoAdvance(); } catch (_) {}
+    }
+  }
+
+  // Fast track switch in existing live player (bypasses iframe re-creation and loading lag)
+  function loadTrackInExistingPlayer(videoId, track) {
+    if (!videoId) return false;
+
+    // 1. If ytPlayer is already mounted and has loadVideoById
+    if (ytPlayer && ytReady && typeof ytPlayer.loadVideoById === "function") {
+      try {
+        currentYtVideoId = videoId;
+        directIframeProgress = 0;
+        musicUserPlaying = true;
+        userManuallyPaused = false;
+        requestMusicWakeLock();
+        ytPlayer.loadVideoById({
+          videoId: videoId,
+          startSeconds: 0
+        });
+        try { ytPlayer.unMute?.(); } catch (_) {}
+        try { ytPlayer.setVolume?.(100); } catch (_) {}
+        try { ytPlayer.playVideo?.(); } catch (_) {}
+        if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
+        if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+        if (musicFullPlayerArt) {
+          musicFullPlayerArt.classList.add("is-playing");
+          musicFullPlayerArt.classList.remove("has-video");
+        }
+        if ("mediaSession" in navigator) {
+          try { navigator.mediaSession.playbackState = "playing"; } catch (_) {}
+        }
+        startMiniProgress();
+        return true;
+      } catch (err) {
+        console.warn("ytPlayer.loadVideoById warning, will fall back:", err);
+      }
+    }
+
+    // 2. If directIframeEl is mounted and still present in DOM
+    if (directIframeEl && musicFullPlayerYtSlot?.contains(directIframeEl)) {
+      try {
+        currentYtVideoId = videoId;
+        directIframeProgress = 0;
+        directIframePlaying = true;
+        musicUserPlaying = true;
+        userManuallyPaused = false;
+        requestMusicWakeLock();
+        directIframeEl.contentWindow?.postMessage(
+          JSON.stringify({ event: "command", func: "loadVideoById", args: [videoId, 0] }),
+          "*"
+        );
+        directIframeEl.contentWindow?.postMessage(
+          '{"event":"command","func":"playVideo","args":""}',
+          "*"
+        );
+        if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
+        if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+        if (musicFullPlayerArt) {
+          musicFullPlayerArt.classList.add("is-playing");
+          musicFullPlayerArt.classList.remove("has-video");
+        }
+        if ("mediaSession" in navigator) {
+          try { navigator.mediaSession.playbackState = "playing"; } catch (_) {}
+        }
+        startMiniProgress();
+        return true;
+      } catch (err) {
+        console.warn("directIframeEl postMessage warning, will fall back:", err);
+      }
+    }
+
+    return false;
+  }
+
+  function mountMusicYouTubePlayer(track) {
+    const videoId = track?.youtubeId;
+    if (!videoId) return;
+
+    // Instant reuse of existing YouTube iframe/player without re-creating DOM
+    if (loadTrackInExistingPlayer(videoId, track)) {
+      return;
+    }
+
+    const reqId = ++ytMountRequestId;
+    currentYtVideoId = videoId;
     clearTimeout(ytStartupTimer);
+    ytStartupTimer = null;
+
     destroyMusicYtPlayer();
 
+    // Create iframe directly inside the user tap/click handler
+    // Setting allow attributes upfront gives immediate autoplay permission on Android & iOS WebViews!
     const iframe = document.createElement("iframe");
+    iframe.id = `ytPlayer_${reqId}`;
     iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`;
     iframe.title = track?.title || "Music";
-    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    iframe.allow = "accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture; web-share";
     iframe.allowFullscreen = true;
     iframe.setAttribute("playsinline", "1");
     iframe.setAttribute("webkit-playsinline", "1");
     iframe.style.cssText = "width:100%;height:100%;border:0;position:absolute;inset:0;opacity:0.001;pointer-events:none;z-index:1;";
-    musicFullPlayerYtSlot.replaceChildren(iframe);
+
+    if (musicFullPlayerYtSlot) {
+      musicFullPlayerYtSlot.replaceChildren(iframe);
+    }
 
     directIframeEl = iframe;
     directIframePlaying = true;
     ytReady = true;
     musicUserPlaying = true;
     userManuallyPaused = false;
+    directIframeProgress = 0;
     requestMusicWakeLock();
 
     if (musicFullPlayerArt) {
@@ -2101,141 +2250,86 @@
       try { navigator.mediaSession.playbackState = "playing"; } catch (_) {}
     }
     startMiniProgress();
-  }
 
-  async function mountMusicYouTubePlayer(track) {
-    const videoId = track?.youtubeId;
-    if (!videoId) return;
-    const reqId = ++ytMountRequestId;
-
-    destroyMusicYtPlayer();
-
-    const mountNode = document.createElement("div");
-    mountNode.id = `ytPlayer_${reqId}`;
-    mountNode.style.cssText = "width:100%;height:100%;position:absolute;inset:0;opacity:0.001;pointer-events:none;z-index:1;";
-    if (musicFullPlayerYtSlot) {
-      musicFullPlayerYtSlot.replaceChildren(mountNode);
-    }
-
-    clearTimeout(ytStartupTimer);
-    ytStartupTimer = setTimeout(() => {
-      if (reqId !== ytMountRequestId) return;
-      if (!musicUserPlaying || userManuallyPaused) return;
-      const s = ytPlayer?.getPlayerState ? ytPlayer.getPlayerState() : -1;
-      if (s !== 1) { // 1 = PLAYING
-        console.warn("Music YT player startup timeout, falling back to direct iframe...");
-        mountDirectMusicIframe(videoId, track);
-      }
-    }, 2800);
-
-    try {
-      const YT = await ensureMusicYouTubeApi();
-      if (reqId !== ytMountRequestId) return;
-
-      ytPlayer = new YT.Player(mountNode, {
-        host: "https://www.youtube.com",
-        videoId: videoId,
-        height: "100%",
-        width: "100%",
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          enablejsapi: 1,
-          fs: 0,
-          iv_load_policy: 3,
-          modestbranding: 1,
-          playsinline: 1,
-          rel: 0,
-          origin: window.location.origin
-        },
-        events: {
-          onReady: () => {
-            if (reqId !== ytMountRequestId) return;
-            ytReady = true;
-            try {
-              const iframe = ytPlayer.getIframe?.() || musicFullPlayerYtSlot?.querySelector("iframe");
-              if (iframe) {
-                iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
-                iframe.setAttribute("playsinline", "1");
-                iframe.setAttribute("webkit-playsinline", "1");
+    // Bind YouTube IFrame API to this active iframe in background for rich events
+    ensureMusicYouTubeApi().then((YT) => {
+      if (reqId !== ytMountRequestId || !musicFullPlayerYtSlot?.contains(iframe)) return;
+      try {
+        ytPlayer = new YT.Player(iframe, {
+          events: {
+            onReady: () => {
+              if (reqId !== ytMountRequestId) return;
+              ytReady = true;
+              try { ytPlayer.setVolume?.(100); } catch (_) {}
+              try { ytPlayer.unMute?.(); } catch (_) {}
+              if (musicUserPlaying && !userManuallyPaused) {
+                try { ytPlayer.playVideo?.(); } catch (_) {}
               }
-            } catch (_) {}
-            try { ytPlayer.setVolume?.(100); } catch (_) {}
-            try { ytPlayer.unMute?.(); } catch (_) {}
-            try { ytPlayer.playVideo?.(); } catch (_) {}
-            musicUserPlaying = true;
-            userManuallyPaused = false;
-            requestMusicWakeLock();
-            startMiniProgress();
-          },
-          onStateChange: (e) => {
-            if (reqId !== ytMountRequestId) return;
-            if (!window.YT) return;
-            const S = YT.PlayerState;
-            if (e.data === S.PLAYING) {
-              clearTimeout(ytStartupTimer);
-              musicUserPlaying = true;
-              userManuallyPaused = false;
-              ensureYtAudio();
-              requestMusicWakeLock();
-              if ("mediaSession" in navigator) {
-                try { navigator.mediaSession.playbackState = "playing"; } catch (_) {}
-              }
-              if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
-              if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
-              if (musicFullPlayerArt) {
-                musicFullPlayerArt.classList.add("is-playing");
-                musicFullPlayerArt.classList.remove("has-video");
-              }
-              startMiniProgress();
-            } else if (e.data === S.PAUSED) {
-              if (!userManuallyPaused && musicUserPlaying) {
-                const tryResume = () => {
-                  if (musicUserPlaying && !userManuallyPaused && ytPlayer?.playVideo) {
-                    try {
-                      ensureYtAudio();
-                      ytPlayer.playVideo();
-                    } catch (_) {}
-                  }
-                };
-                setTimeout(tryResume, 80);
-                setTimeout(tryResume, 250);
-                return;
-              }
-              musicUserPlaying = false;
-              releaseMusicWakeLock();
-              pauseSilentAnchor();
-              if ("mediaSession" in navigator) {
-                try { navigator.mediaSession.playbackState = "paused"; } catch (_) {}
-              }
-              if (miniPlayerToggle) miniPlayerToggle.dataset.state = "play";
-              if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "play";
-              if (musicFullPlayerArt) {
-                musicFullPlayerArt.classList.remove("is-playing");
-              }
-            } else if (e.data === S.ENDED) {
-              releaseMusicWakeLock();
-              if ("mediaSession" in navigator) {
-                try { navigator.mediaSession.playbackState = "paused"; } catch (_) {}
-              }
-              try { autoAdvance(); } catch (_) {}
+            },
+            onStateChange: (e) => {
+              if (reqId !== ytMountRequestId) return;
+              handleYtPlayerStateChange(e, reqId, videoId, track);
+            },
+            onError: (e) => {
+              if (reqId !== ytMountRequestId) return;
+              console.warn("YT player error:", e?.data);
             }
-          },
-          onError: (e) => {
-            if (reqId !== ytMountRequestId) return;
-            console.warn("YT player error", e?.data);
-            clearTimeout(ytStartupTimer);
-            mountDirectMusicIframe(videoId, track);
           }
-        }
-      });
-    } catch (err) {
-      if (reqId !== ytMountRequestId) return;
-      console.warn("Failed to init YT.Player, fallback to direct iframe:", err);
-      mountDirectMusicIframe(videoId, track);
-    }
+        });
+      } catch (err) {
+        console.warn("YT.Player binding error:", err);
+      }
+    }).catch(() => {});
   }
+
+  function mountDirectMusicIframe(videoId, track) {
+    mountMusicYouTubePlayer(track || { youtubeId: videoId });
+  }
+
+  // Native postMessage listener for YouTube embed events (instant sync without waiting for YT.Player)
+  window.addEventListener("message", (e) => {
+    try {
+      if (!e.data) return;
+      let payload = e.data;
+      if (typeof payload === "string") {
+        try { payload = JSON.parse(payload); } catch (_) { return; }
+      }
+      if (!payload || typeof payload !== "object") return;
+
+      if (payload.event === "onStateChange") {
+        const state = payload.info;
+        if (state === 1) { // PLAYING
+          directIframePlaying = true;
+          musicUserPlaying = true;
+          userManuallyPaused = false;
+          if (musicFullPlayerArt) {
+            musicFullPlayerArt.classList.add("is-playing");
+            musicFullPlayerArt.classList.remove("has-video");
+          }
+          if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
+          if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
+        } else if (state === 2) { // PAUSED
+          directIframePlaying = false;
+          if (userManuallyPaused) {
+            musicUserPlaying = false;
+            if (musicFullPlayerArt) musicFullPlayerArt.classList.remove("is-playing");
+            if (miniPlayerToggle) miniPlayerToggle.dataset.state = "play";
+            if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "play";
+          }
+        } else if (state === 0) { // ENDED
+          directIframePlaying = false;
+          try { autoAdvance(); } catch (_) {}
+        }
+      } else if (payload.event === "infoDelivery" && payload.info) {
+        if (typeof payload.info.duration === "number" && payload.info.duration > 0) {
+          directIframeDuration = payload.info.duration;
+        }
+        if (typeof payload.info.currentTime === "number" && payload.info.currentTime >= 0) {
+          directIframeProgress = payload.info.currentTime;
+        }
+      }
+    } catch (_) {}
+  });
 
   // YouTube IFrame API ready callback zanjiri
   (function chainYouTubeReadyCallback() {

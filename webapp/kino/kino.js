@@ -7605,10 +7605,11 @@ function ensureMusicCss() {
 function ensureMusicModule() {
   if (window.__music) return Promise.resolve(window.__music);
   if (__musicModulePromise) return __musicModulePromise;
+  try { if (typeof ensureYouTubeApi === "function") ensureYouTubeApi(); } catch (_) {}
   const cssPromise = ensureMusicCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music/music.js?v=20261021-audio-only-v1";
+    script.src = "/static/music/music.js?v=20261021-instant-play-v1";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
