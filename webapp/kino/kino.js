@@ -7770,7 +7770,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20261019-instant-click-v1";
+    script.src = "/static/potcasts/potcasts.js?v=20261021-saved-icon-v1";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -8771,7 +8771,7 @@ function syncSidebarSectionItems() {
         lower1.dataset.sidebarAction = "podcast-saved";
         lower1.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+          <path d="M18 7v14l-6-4-6 4V7a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4z"></path>
         </svg>
         <span data-i18n="savedNav">${plainLabel(t("savedNav"))}</span>`;
 
