@@ -10587,51 +10587,66 @@ html[data-theme="light"] .fifa-all-hl-card__meta {
 
 .fifa-tabs {
   display: flex;
-  gap: 6px;
-  margin: 16px 0 14px;
+  align-items: center;
+  gap: 4px;
+  margin: 14px 0 16px;
   padding: 4px;
-  background: #121622;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  background: rgba(22, 26, 56, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   width: 100%;
   box-sizing: border-box;
   touch-action: manipulation !important;
 }
 .fifa-tab {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   border: 0;
   background: transparent;
-  color: #cbd5e1;
+  color: #A5A9C6;
   font-size: 13px;
   font-weight: 600;
-  padding: 10px 4px;
-  border-radius: 9px;
+  padding: 9px 8px;
+  border-radius: 9999px;
   cursor: pointer;
   touch-action: manipulation !important;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent !important;
-  transition: background .18s ease, color .18s ease, transform .12s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
   letter-spacing: -0.2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .fifa-tab:hover {
   color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
 }
 .fifa-tab:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 .fifa-tab.is-active,
-html[data-theme="dark"] .fifa-tab.is-active,
-html[data-theme="light"] .fifa-tab.is-active {
-  background: #0071e3 !important;
+html[data-theme="dark"] .fifa-tab.is-active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
   color: #ffffff !important;
   font-weight: 700;
-  box-shadow: 0 4px 14px rgba(0, 113, 227, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+@media (max-width: 380px) {
+  .fifa-tab {
+    font-size: 11.5px;
+    padding: 8px 4px;
+    letter-spacing: -0.3px;
+  }
 }
 
 .fifa-panel { display: none; }
@@ -10920,19 +10935,25 @@ html[data-theme="light"] .fifa-live-empty__title {
   color: #0f172a;
 }
 html[data-theme="light"] .fifa-tabs {
-  background: #e9ecf3;
-  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(226, 232, 240, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 9999px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 html[data-theme="light"] .fifa-tab {
-  color: #334155;
+  color: #475569;
+  background: transparent;
 }
 html[data-theme="light"] .fifa-tab:hover {
   color: #0f172a;
+  background: rgba(255, 255, 255, 0.5);
 }
 html[data-theme="light"] .fifa-tab.is-active {
-  background: #0071e3 !important;
+  background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.35);
+  font-weight: 700;
+  border: 1px solid rgba(0, 113, 227, 0.3) !important;
+  box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
 }
 html[data-theme="light"] .fifa-day,
 html[data-theme="light"] .fifa-upcoming-title {
@@ -11490,36 +11511,39 @@ html[data-theme="light"] .fifa-lineup-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, .05);
+  gap: 4px;
+  background: rgba(22, 26, 56, 0.72);
   padding: 4px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 .fifa-pitch-switch-btn {
   flex: 1;
-  padding: 7px 10px;
-  border-radius: 8px;
+  padding: 7px 12px;
+  border-radius: 9999px;
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, .65);
+  color: #A5A9C6;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: all .18s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
 }
 .fifa-pitch-switch-btn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, .06);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
 }
 .fifa-pitch-switch-btn.is-active {
-  background: rgba(255, 255, 255, .15);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4) !important;
 }
 
 .fifa-pitch-card {
@@ -11731,36 +11755,46 @@ html[data-theme="light"] .fifa-lineup-empty {
 .fifa-modal-tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   margin-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
-  padding-bottom: 12px;
+  padding: 4px;
+  background: rgba(22, 26, 56, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+  width: 100%;
 }
 .fifa-modal-tab {
-  flex: 1;
-  padding: 9px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 700;
-  background: #161c28;
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: transparent;
+  color: #A5A9C6;
+  border: 0;
   cursor: pointer;
-  transition: all .2s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  white-space: nowrap;
 }
 .fifa-modal-tab:hover {
-  background: #1f2738;
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
 }
 .fifa-modal-tab.is-active {
-  background: #0071e3 !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
   color: #ffffff !important;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 4px 14px rgba(0, 113, 227, .4);
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
 }
 .fifa-modal-tab-content {
   display: none;
@@ -12036,13 +12070,50 @@ html[data-theme="light"] .fifa-lineup-score { background: #f1f5f9; color: #0f172
 html[data-theme="light"] .fifa-modal-status-badge { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
 html[data-theme="light"] .fifa-modal-status-badge--live { background: rgba(239, 68, 68, 0.12); color: #dc2626; border-color: rgba(239, 68, 68, 0.25); box-shadow: none; }
 html[data-theme="light"] .fifa-lineup-modal__body { background: #ffffff; }
-html[data-theme="light"] .fifa-modal-tabs { border-color: #e2e8f0; }
-html[data-theme="light"] .fifa-modal-tab { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
-html[data-theme="light"] .fifa-modal-tab:hover { background: #e2e8f0; color: #0f172a; }
-html[data-theme="light"] .fifa-modal-tab.is-active { background: var(--primary, #0071e3) !important; color: #ffffff !important; border-color: #0071e3 !important; }
-html[data-theme="light"] .fifa-pitch-switcher { background: #f1f5f9; border-color: #e2e8f0; }
-html[data-theme="light"] .fifa-pitch-switch-btn { color: #475569; }
-html[data-theme="light"] .fifa-pitch-switch-btn.is-active { background: #ffffff; color: #0f172a; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1); }
+html[data-theme="light"] .fifa-modal-tabs {
+  background: rgba(226, 232, 240, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 9999px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+html[data-theme="light"] .fifa-modal-tab {
+  background: transparent;
+  color: #475569;
+  border: 0;
+  border-radius: 9999px;
+}
+html[data-theme="light"] .fifa-modal-tab:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: #0f172a;
+}
+html[data-theme="light"] .fifa-modal-tab.is-active {
+  background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 113, 227, 0.3) !important;
+  box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+html[data-theme="light"] .fifa-pitch-switcher {
+  background: rgba(226, 232, 240, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+html[data-theme="light"] .fifa-pitch-switch-btn {
+  color: #475569;
+  background: transparent;
+  border-radius: 9999px;
+}
+html[data-theme="light"] .fifa-pitch-switch-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: #0f172a;
+}
+html[data-theme="light"] .fifa-pitch-switch-btn.is-active {
+  background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  border: 1px solid rgba(0, 113, 227, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.35) !important;
+}
 html[data-theme="light"] .fifa-bench-col { background: #f8fafc; border-color: #e2e8f0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); }
 html[data-theme="light"] .fifa-bench-heading { color: #0f172a; }
 html[data-theme="light"] .fifa-bench-heading small { color: #64748b; }
