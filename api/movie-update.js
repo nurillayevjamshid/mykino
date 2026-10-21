@@ -152,6 +152,9 @@ module.exports = async function handler(request, response) {
     if (hasOwn(body, "quality")) updates.quality = body.quality;
     if (hasOwn(body, "posterImage")) updates.posterImage = body.posterImage;
     if (!hasOwn(body, "posterImage") && hasOwn(body, "poster")) updates.poster = body.poster;
+    if (hasOwn(body, "deletedHeaderImage")) {
+      updates.deletedHeaderImage = body.deletedHeaderImage;
+    }
     if (hasOwn(body, "headerImage")) {
       updates.headerImage = body.headerImage;
     } else if (hasOwn(body, "heroPoster")) {
@@ -160,6 +163,9 @@ module.exports = async function handler(request, response) {
       updates.headerPoster = body.headerPoster;
     } else if (hasOwn(body, "heroImage")) {
       updates.heroImage = body.heroImage;
+    }
+    if (updates.headerImage === "" && !hasOwn(body, "showInHeader")) {
+      updates.showInHeader = false;
     }
     if (hasOwn(body, "headerCrop")) {
       updates.headerCrop = body.headerCrop && typeof body.headerCrop === "object" ? body.headerCrop : null;
@@ -201,9 +207,9 @@ module.exports = async function handler(request, response) {
         poster: posterImage,
         headerImage: trimString(override.headerImage),
         heroPoster: trimString(override.headerImage),
-        showInHeader: Boolean(override.showInHeader),
-        heroFeatured: Boolean(override.showInHeader),
-        headerCrop: override.headerCrop || null,
+        showInHeader: Boolean(override.showInHeader) && Boolean(trimString(override.headerImage)),
+        heroFeatured: Boolean(override.showInHeader) && Boolean(trimString(override.headerImage)),
+        headerCrop: trimString(override.headerImage) ? (override.headerCrop || null) : null,
         description: trimString(override.description),
         year: override.year || "",
       },

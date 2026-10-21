@@ -91,4 +91,34 @@ describe("FIFA Live Match Modal Dark Mode & High Contrast Suite", () => {
     assert.match(glassCss, /html\[data-theme="light"\]\s*\.fifa-match-league__copy strong[^}]*color:\s*#0f172a\s*!important/);
     assert.match(glassCss, /html\[data-theme="light"\]\s*\.fifa-next-team__name[^}]*color:\s*#0f172a\s*!important/);
   });
+
+  test("modern reference match cards render unified 3-column layout with live pill badge and theme colors", () => {
+    const kinoCss = fs.readFileSync(kinoCssPath, "utf8");
+    const glassCss = fs.readFileSync(glassCssPath, "utf8");
+    const fifaJs = fs.readFileSync(path.join(__dirname, "../../webapp/fifa/fifa.js"), "utf8");
+
+    // JS Card markup
+    assert.match(fifaJs, /class="fifa-card-badge-wrap"/);
+    assert.match(fifaJs, /class="fifa-card-competition"/);
+    assert.match(fifaJs, /class="fifa-card-fixture"/);
+    assert.match(fifaJs, /class="fifa-card-team fifa-card-team--home/);
+    assert.match(fifaJs, /class="fifa-card-center"/);
+    assert.match(fifaJs, /class="fifa-card-score/);
+    assert.match(fifaJs, /class="fifa-card-subtitle/);
+    assert.match(fifaJs, /fifa-team-fav-btn--corner/);
+
+    // Dynamic badge logic
+    assert.match(fifaJs, /function getMatchBadgeHtml/);
+    assert.match(fifaJs, /fifa-card-badge--live/);
+    assert.match(fifaJs, /fifa-card-badge--finished/);
+    assert.match(fifaJs, /fifa-card-badge--time/);
+
+    // CSS styles: lime pill badge
+    assert.match(kinoCss, /\.fifa-card-badge--live\s*\{[^}]*background:\s*#a3e635/);
+    assert.match(glassCss, /\.fifa-card-badge--live\s*\{[^}]*background:\s*#a3e635/);
+
+    // Border radius 22px
+    assert.match(kinoCss, /\.fifa-match\s*\{[^}]*border-radius:\s*22px/);
+    assert.match(glassCss, /\.fifa-match[^}]*border-radius:\s*22px/);
+  });
 });

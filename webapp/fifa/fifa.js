@@ -881,20 +881,97 @@
     }
   }
 
+  function getMatchLeagueName(m) {
+    if (!m) return "Futbol";
+    if (m.leagueName) return m.leagueName;
+    if (m.leagueFullName) return m.leagueFullName;
+    if (typeof m.league === "string" && m.league) return m.league;
+    if (m.leagueId && Array.isArray(FIFA_DATA?.leagues)) {
+      const l = FIFA_DATA.leagues.find((x) => x.id === m.leagueId);
+      if (l && (l.name || l.fullName)) return l.name || l.fullName;
+    }
+    return "Futbol";
+  }
+
+  function formatMatchScoreDisplay(score) {
+    if (!score || score === "-") return "-";
+    const cleaned = String(score).trim();
+    if (cleaned.includes(":") || cleaned.includes("-")) {
+      const parts = cleaned.split(/[-:]/);
+      if (parts.length === 2) {
+        return `${parts[0].trim()} : ${parts[1].trim()}`;
+      }
+    }
+    return cleaned;
+  }
+
+  function getMatchBadgeHtml(m, opts = {}) {
+    const isLive = m.status === "live";
+    const isFinished = m.status === "finished";
+    if (isLive) {
+      const liveText = (m.minute && m.minute !== "LIVE") ? `Live ${m.minute}` : "Live";
+      return `<span class="fifa-card-badge fifa-card-badge--live"><span class="fifa-match__status-dot fifa-card-badge__dot"></span>${esc(liveText)}</span>`;
+    }
+    if (isFinished) {
+      const dateBadge = formatMatchDateBadgeUz(m.kickoff);
+      const showDate = Boolean(opts.showDate) || Boolean(m.showDate);
+      const finishedText = (showDate && dateBadge) ? `${dateBadge} • ${F("finished") || "Yakunlangan"}` : (F("finished") || "Yakunlangan");
+      return `<span class="fifa-card-badge fifa-card-badge--finished">${esc(finishedText)}</span>`;
+    }
+    const tashkentTime = formatMatchTimeTashkent(m.kickoff, m.time);
+    const dateBadge = formatMatchDateBadgeUz(m.kickoff);
+    const showDate = Boolean(opts.showDate) || Boolean(m.showDate);
+    let timeBadgeText = "";
+    if (showDate && dateBadge && tashkentTime) {
+      timeBadgeText = `${dateBadge} ${tashkentTime}`;
+    } else if (dateBadge && (dateBadge === "Bugun" || dateBadge === "Ertaga") && tashkentTime) {
+      timeBadgeText = `${dateBadge} ${tashkentTime}`;
+    } else if (tashkentTime) {
+      timeBadgeText = tashkentTime;
+    } else if (dateBadge) {
+      timeBadgeText = dateBadge;
+    } else {
+      timeBadgeText = m.time || "Kutilmoqda";
+    }
+    return `<span class="fifa-card-badge fifa-card-badge--time">${esc(timeBadgeText)}</span>`;
+  }
+
   function renderNextMatchFeaturedCard(m, targetTeamName = "") {
     if (!m) return "";
     const isLive = m.status === "live";
     const isFinished = m.status === "finished";
     const isHomeFav = isFifaTeamFavorite(m.home);
     const isAwayFav = isFifaTeamFavorite(m.away);
-    const countdown = getMatchCountdownInfo(m.kickoff, m.status);
     const dateFormatted = formatMatchDateTimeUz(m.kickoff, m.time);
-    const tashkentTime = formatMatchTimeTashkent(m.kickoff, m.time);
     const dateIso = m.kickoff ? String(m.kickoff).slice(0, 10) : "";
 
-    const leagueLogo = m.leagueLogo
-      ? `<img src="${esc(m.leagueLogo)}" alt="${esc(m.leagueName)}" loading="lazy" />`
-      : "🏆";
+    const badgeHtml = getMatchBadgeHtml(m, { showDate: true });
+    const competitionName = getMatchLeagueName(m);
+
+    const homeFavBtn = `
+      <button class="fifa-team-fav-btn fifa-team-fav-btn--corner fifa-team-fav-btn--home${isHomeFav ? " is-active" : ""}" type="button" data-team-fav="${esc(m.home)}" data-team-logo="${esc(m.homeLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="${isHomeFav ? "Sevimlilardan o'chirish" : "Sevimli jamoa qilish"}">
+        <svg class="fifa-team-fav-star" viewBox="0 0 24 24" fill="${isHomeFav ? "#f59e0b" : "none"}" stroke="${isHomeFav ? "#f59e0b" : "currentColor"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+      </button>
+    `;
+
+    const awayFavBtn = `
+      <button class="fifa-team-fav-btn fifa-team-fav-btn--corner fifa-team-fav-btn--away${isAwayFav ? " is-active" : ""}" type="button" data-team-fav="${esc(m.away)}" data-team-logo="${esc(m.awayLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="${isAwayFav ? "Sevimlilardan o'chirish" : "Sevimli jamoa qilish"}">
+        <svg class="fifa-team-fav-star" viewBox="0 0 24 24" fill="${isAwayFav ? "#f59e0b" : "none"}" stroke="${isAwayFav ? "#f59e0b" : "currentColor"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+      </button>
+    `;
+
+    const scoreDisplay = (isLive || isFinished)
+      ? esc(formatMatchScoreDisplay(m.score || "0 - 0"))
+      : "VS";
+
+    let subtitleText = m.round || m.group || "";
+    if (!subtitleText && m.venue) {
+      subtitleText = m.venue;
+    }
 
     return `
       <div class="fifa-next-match-card" data-fifa-open-lineup="1"
@@ -911,53 +988,38 @@
            data-minute="${esc(m.minute || '')}"
            data-date="${esc(dateIso)}"
            role="button" tabindex="0">
-        <div class="fifa-next-match-card__header">
-          <div class="fifa-next-match-card__league">
-            ${leagueLogo}
-            <span>${esc(m.leagueName || "Liga")}</span>
-            ${m.round ? `<small>• ${esc(m.round)}</small>` : ""}
-          </div>
-          <span class="fifa-next-badge ${countdown.badgeClass}">
-            ${isLive ? '<span class="fifa-match__status-dot"></span>' : ''}
-            ${countdown.text}
-          </span>
+        <div class="fifa-card-badge-wrap">
+          ${badgeHtml}
         </div>
+        <div class="fifa-card-competition">${esc(competitionName)}</div>
 
-        <div class="fifa-next-match-card__fixture">
+        <div class="fifa-card-fixture">
           <!-- Home Team -->
-          <div class="fifa-next-team fifa-next-team--home${isHomeFav ? ' is-fav' : ''}">
-            <div class="fifa-next-team__logo">
+          <div class="fifa-card-team fifa-card-team--home${isHomeFav ? ' is-fav' : ''}">
+            <div class="fifa-card-team__logo-wrap">
               ${teamLogoHtml(m.homeLogo, m.home)}
+              ${homeFavBtn}
             </div>
-            <div class="fifa-next-team__name">${esc(m.home)}</div>
-            <button type="button" class="fifa-next-team__fav-pill${isHomeFav ? ' is-active' : ''}" data-team-fav="${esc(m.home)}" data-team-logo="${esc(m.homeLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="${isHomeFav ? "Sevimlilardan o'chirish" : "Sevimli jamoa qilish"}">
-              ${isHomeFav ? "⭐ Sevimli" : "+ Sevimli"}
-            </button>
+            <div class="fifa-card-team__name fifa-next-team__name" title="${esc(m.home)}">${esc(m.home)}</div>
           </div>
 
           <!-- Center VS / Score -->
-          <div class="fifa-next-center">
-            ${isLive || isFinished
-              ? `<div class="fifa-next-score">${esc(m.score || "-")}</div>
-                 <div class="fifa-next-vs fifa-next-vs--live">${isLive ? (esc(m.minute || 'LIVE')) : 'Tugagan'}</div>`
-              : `<div class="fifa-next-vs">VS</div>
-                 <div class="fifa-next-time">${esc(tashkentTime)}</div>`
-            }
+          <div class="fifa-card-center">
+            <div class="fifa-card-score fifa-next-score${isLive ? ' fifa-card-score--live' : ''}${!isLive && !isFinished ? ' fifa-card-score--vs' : ''}">${scoreDisplay}</div>
+            ${subtitleText ? `<div class="fifa-card-subtitle fifa-next-meta" title="${esc(subtitleText)}">${esc(subtitleText)}</div>` : ''}
           </div>
 
           <!-- Away Team -->
-          <div class="fifa-next-team fifa-next-team--away${isAwayFav ? ' is-fav' : ''}">
-            <div class="fifa-next-team__logo">
+          <div class="fifa-card-team fifa-card-team--away${isAwayFav ? ' is-fav' : ''}">
+            <div class="fifa-card-team__logo-wrap">
               ${teamLogoHtml(m.awayLogo, m.away)}
+              ${awayFavBtn}
             </div>
-            <div class="fifa-next-team__name">${esc(m.away)}</div>
-            <button type="button" class="fifa-next-team__fav-pill${isAwayFav ? ' is-active' : ''}" data-team-fav="${esc(m.away)}" data-team-logo="${esc(m.awayLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="${isAwayFav ? "Sevimlilardan o'chirish" : "Sevimli jamoa qilish"}">
-              ${isAwayFav ? "⭐ Sevimli" : "+ Sevimli"}
-            </button>
+            <div class="fifa-card-team__name fifa-next-team__name" title="${esc(m.away)}">${esc(m.away)}</div>
           </div>
         </div>
 
-        <div class="fifa-next-match-card__footer">
+        <div class="fifa-next-match-card__footer" style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
           <div class="fifa-next-meta">
             <div>📅 <strong>${esc(dateFormatted)}</strong> <span style="opacity:0.8;font-size:11px;">(Toshkent vaqti)</span></div>
             ${m.venue ? `<div>🏟️ ${esc(m.venue)}</div>` : ''}
@@ -971,7 +1033,6 @@
         </div>
       </div>
     `;
-
   }
 
   function addFifaFavoriteTeam({ name, logo, leagueId }) {
@@ -1173,6 +1234,8 @@
         awayEn: String(away.name || ""),
         homeLogo: String(home.logo || ""),
         awayLogo: String(away.logo || ""),
+        round: String(match.round || match.stage || match.group || ""),
+        venue: String(match.venue || ""),
         time: String(match.time || ""),
         kickoff: String(match.kickoffUtc || ""),
         status: String(match.status || "upcoming"),
@@ -1281,37 +1344,16 @@
   function renderMatchCard(m, opts = {}) {
     const isLive = m.status === "live";
     const isFinished = m.status === "finished";
-    const tashkentTime = formatMatchTimeTashkent(m.kickoff, m.time);
-    const dateBadge = formatMatchDateBadgeUz(m.kickoff);
-    const showDate = Boolean(opts.showDate) || Boolean(m.showDate);
-    const dateBadgeHtml = (showDate && dateBadge)
-      ? `<span class="fifa-match__date-badge">${esc(dateBadge)}</span>`
-      : "";
-
-    let center;
-    if (isLive) {
-      center = `
-        ${dateBadgeHtml}
-        <div class="fifa-match__score">${esc(m.score || "-")}</div>
-        <div class="fifa-match__status"><span class="fifa-match__status-dot"></span>${esc(m.minute || "LIVE")}</div>`;
-    } else if (isFinished) {
-      center = `
-        ${dateBadgeHtml}
-        <div class="fifa-match__score">${esc(m.score || "-")}</div>
-        <div class="fifa-match__time">${F("finished")}</div>`;
-    } else {
-      center = `
-        ${dateBadgeHtml}
-        <div class="fifa-match__score">vs</div>
-        <div class="fifa-match__time">${esc(tashkentTime)}</div>`;
-    }
     const dateIso = m.kickoff ? String(m.kickoff).slice(0, 10) : "";
-    const dataAttr = ` data-fifa-open-lineup="1" data-match-id="${esc(m.id)}" data-league-id="${esc(m.leagueId || '')}" data-home-en="${esc(m.homeEn || m.home)}" data-away-en="${esc(m.awayEn || m.away)}" data-home-uz="${esc(m.home)}" data-away-uz="${esc(m.away)}" data-home-logo="${esc(m.homeLogo || '')}" data-away-logo="${esc(m.awayLogo || '')}" data-score="${esc(m.score || '')}" data-status="${esc(m.status || '')}" data-minute="${esc(m.minute || '')}" data-date="${esc(dateIso)}" role="button" tabindex="0"`;
+
+    const badgeHtml = getMatchBadgeHtml(m, opts);
+    const competitionName = getMatchLeagueName(m);
+
     const isHomeFav = isFifaTeamFavorite(m.home);
     const isAwayFav = isFifaTeamFavorite(m.away);
 
     const homeFavBtn = `
-      <button class="fifa-team-fav-btn fifa-team-fav-btn--home${isHomeFav ? " is-active" : ""}" type="button" data-team-fav="${esc(m.home)}" data-team-logo="${esc(m.homeLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="${isHomeFav ? "Sevimlilardan o'chirish" : "Sevimli jamoa qilish"}">
+      <button class="fifa-team-fav-btn fifa-team-fav-btn--corner fifa-team-fav-btn--home${isHomeFav ? " is-active" : ""}" type="button" data-team-fav="${esc(m.home)}" data-team-logo="${esc(m.homeLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="${isHomeFav ? "Sevimlilardan o'chirish" : "Sevimli jamoa qilish"}">
         <svg class="fifa-team-fav-star" viewBox="0 0 24 24" fill="${isHomeFav ? "#f59e0b" : "none"}" stroke="${isHomeFav ? "#f59e0b" : "currentColor"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
         </svg>
@@ -1319,26 +1361,55 @@
     `;
 
     const awayFavBtn = `
-      <button class="fifa-team-fav-btn fifa-team-fav-btn--away${isAwayFav ? " is-active" : ""}" type="button" data-team-fav="${esc(m.away)}" data-team-logo="${esc(m.awayLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="${isAwayFav ? "Sevimlilardan o'chirish" : "Sevimli jamoa qilish"}">
+      <button class="fifa-team-fav-btn fifa-team-fav-btn--corner fifa-team-fav-btn--away${isAwayFav ? " is-active" : ""}" type="button" data-team-fav="${esc(m.away)}" data-team-logo="${esc(m.awayLogo || '')}" data-team-league="${esc(m.leagueId || '')}" data-match-id="${esc(m.id)}" aria-label="${isAwayFav ? "Sevimlilardan o'chirish" : "Sevimli jamoa qilish"}">
         <svg class="fifa-team-fav-star" viewBox="0 0 24 24" fill="${isAwayFav ? "#f59e0b" : "none"}" stroke="${isAwayFav ? "#f59e0b" : "currentColor"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
         </svg>
       </button>
     `;
 
+    const scoreDisplay = (isLive || isFinished)
+      ? esc(formatMatchScoreDisplay(m.score || "0 - 0"))
+      : "VS";
+
+    let subtitleText = m.round || m.group || "";
+    if (!subtitleText && m.venue) {
+      subtitleText = m.venue;
+    }
+
+    const dataAttr = ` data-fifa-open-lineup="1" data-match-id="${esc(m.id)}" data-league-id="${esc(m.leagueId || '')}" data-home-en="${esc(m.homeEn || m.home)}" data-away-en="${esc(m.awayEn || m.away)}" data-home-uz="${esc(m.home)}" data-away-uz="${esc(m.away)}" data-home-logo="${esc(m.homeLogo || '')}" data-away-logo="${esc(m.awayLogo || '')}" data-score="${esc(m.score || '')}" data-status="${esc(m.status || '')}" data-minute="${esc(m.minute || '')}" data-date="${esc(dateIso)}" role="button" tabindex="0"`;
+
     return `
       <div class="fifa-match fifa-match--clickable${isLive ? " fifa-match--live" : isFinished ? " fifa-match--finished" : ""}"${dataAttr}>
-        ${homeFavBtn}
-        <div class="fifa-match__team fifa-match__team--home">
-          <span class="fifa-match__name">${esc(m.home)}</span>
-          <span class="fifa-match__flag">${teamLogoHtml(m.homeLogo, m.home)}</span>
+        <div class="fifa-card-badge-wrap">
+          ${badgeHtml}
         </div>
-        <div class="fifa-match__center">${center}</div>
-        <div class="fifa-match__team fifa-match__team--away">
-          <span class="fifa-match__flag">${teamLogoHtml(m.awayLogo, m.away)}</span>
-          <span class="fifa-match__name">${esc(m.away)}</span>
+        <div class="fifa-card-competition">${esc(competitionName)}</div>
+        <div class="fifa-card-fixture">
+          <!-- Home Team -->
+          <div class="fifa-card-team fifa-card-team--home${isHomeFav ? " is-fav" : ""}">
+            <div class="fifa-card-team__logo-wrap">
+              ${teamLogoHtml(m.homeLogo, m.home)}
+              ${homeFavBtn}
+            </div>
+            <div class="fifa-card-team__name fifa-match__name" title="${esc(m.home)}">${esc(m.home)}</div>
+          </div>
+
+          <!-- Center VS / Score -->
+          <div class="fifa-card-center">
+            <div class="fifa-card-score fifa-match__score${isLive ? " fifa-card-score--live" : ""}${!isLive && !isFinished ? " fifa-card-score--vs" : ""}">${scoreDisplay}</div>
+            ${subtitleText ? `<div class="fifa-card-subtitle fifa-match__time" title="${esc(subtitleText)}">${esc(subtitleText)}</div>` : ""}
+          </div>
+
+          <!-- Away Team -->
+          <div class="fifa-card-team fifa-card-team--away${isAwayFav ? " is-fav" : ""}">
+            <div class="fifa-card-team__logo-wrap">
+              ${teamLogoHtml(m.awayLogo, m.away)}
+              ${awayFavBtn}
+            </div>
+            <div class="fifa-card-team__name fifa-match__name" title="${esc(m.away)}">${esc(m.away)}</div>
+          </div>
         </div>
-        ${awayFavBtn}
       </div>
     `;
   }
@@ -1414,24 +1485,7 @@
     const live = (FIFA_DATA.matches || []).filter((m) => m.status === "live");
     const upcoming = (FIFA_DATA.matches || []).filter((m) => m.status === "upcoming").slice(0, 3);
     const liveHtml = live.length
-      ? live.map((m) => {
-          const dateIso = m.kickoff ? String(m.kickoff).slice(0, 10) : "";
-          const isFav = isFifaFavorite(m.id);
-          const favBtn = `
-            <button class="fifa-match__fav-btn${isFav ? " is-active" : ""}" type="button" data-fifa-fav-id="${esc(m.id)}" aria-label="${isFav ? "Sevimlilardan o'chirish" : "Sevimlilarga saqlash"}">
-              <svg class="fifa-match__fav-star" viewBox="0 0 24 24" fill="${isFav ? "#f59e0b" : "none"}" stroke="${isFav ? "#f59e0b" : "currentColor"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-            </button>
-          `;
-          return `
-            <div class="fifa-live-card fifa-match--clickable" data-fifa-open-lineup="1" data-match-id="${esc(m.id)}" data-league-id="${esc(m.leagueId || '')}" data-home-en="${esc(m.homeEn || m.home)}" data-away-en="${esc(m.awayEn || m.away)}" data-home-uz="${esc(m.home)}" data-away-uz="${esc(m.away)}" data-home-logo="${esc(m.homeLogo || '')}" data-away-logo="${esc(m.awayLogo || '')}" data-score="${esc(m.score || '')}" data-status="live" data-minute="${esc(m.minute || 'LIVE')}" data-date="${esc(dateIso)}" role="button" tabindex="0">
-              <span class="fifa-live-card__label"><span class="fifa-banner__live-dot"></span>HOZIR LIVE</span>
-              <div class="fifa-live-card__teams">${teamLogoHtml(m.homeLogo, m.home)} ${esc(m.home)} ${esc(m.score || "-")} ${esc(m.away)} ${teamLogoHtml(m.awayLogo, m.away)}</div>
-              <div class="fifa-live-card__meta">${esc(m.minute || "")} · ${esc(m.time)}</div>
-              ${favBtn}
-            </div>`;
-        }).join("")
+      ? live.map((m) => renderMatchCard(m)).join("")
       : `<div class="fifa-live-empty"><div class="fifa-live-empty__icon">📺</div><div class="fifa-live-empty__title">${F("noLiveTitle")}</div><div>${F("noLiveHint")}</div></div>`;
     const upcomingHtml = upcoming.length ? `<div class="fifa-upcoming-title">${F("upcomingMatches")}</div>${upcoming.map((m) => renderMatchCard(m, { showDate: true })).join("")}` : "";
     panel.innerHTML = liveHtml + upcomingHtml;

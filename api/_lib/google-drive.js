@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const { uploadImageToR2, putJsonToR2, getJsonFromR2 } = require("./r2-store");
+const { uploadImageToR2, putJsonToR2, getJsonFromR2, deleteImageFromR2 } = require("./r2-store");
 const { generateSignedToken } = require("./auth");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
@@ -424,7 +424,7 @@ function overrideFieldValue(object, key) {
 // katalog yozuvi shikastlanganda kino postersiz ko'rinishining asosiy sababi.
 const OVERRIDE_STRING_KEYS = [
   "title", "genre", "category", "quality", "posterImage", "poster",
-  "headerImage", "heroPoster", "headerPoster", "heroImage", "description", "cdnUrl",
+  "description", "cdnUrl",
 ];
 
 function mergeOverridePreferNonEmpty(base, top) {
@@ -436,6 +436,23 @@ function mergeOverridePreferNonEmpty(base, top) {
       result[key] = baseObj[key];
     }
   }
+  if (hasOwn(topObj, "headerImage")) {
+    const val = trimString(topObj.headerImage);
+    if (!val) {
+      result.headerImage = "";
+      delete result.heroPoster;
+      delete result.headerPoster;
+      delete result.heroImage;
+      delete result.headerCrop;
+      if (!topObj.showInHeader) {
+        result.showInHeader = false;
+      }
+    } else {
+      result.headerImage = val;
+    }
+  } else if (!overrideFieldValue(topObj, "headerImage") && overrideFieldValue(baseObj, "headerImage")) {
+    result.headerImage = baseObj.headerImage;
+  }
   if (!(Number(topObj.rating) > 0) && Number(baseObj.rating) > 0) {
     result.rating = baseObj.rating;
   }
@@ -445,7 +462,16 @@ function mergeOverridePreferNonEmpty(base, top) {
   if (topObj.showInHeader === undefined && baseObj.showInHeader !== undefined) {
     result.showInHeader = baseObj.showInHeader;
   }
-  if (!topObj.headerCrop && baseObj.headerCrop) {
+  if (!result.headerImage) {
+    result.showInHeader = false;
+    delete result.headerCrop;
+    delete result.heroPoster;
+    delete result.headerPoster;
+    delete result.heroImage;
+    delete result.heroFeatured;
+    delete result.isHero;
+  }
+  if (!topObj.headerCrop && baseObj.headerCrop && result.headerImage) {
     result.headerCrop = baseObj.headerCrop;
   }
   return result;
@@ -490,12 +516,15 @@ function sanitizeHeaderCrop(value) {
 
 function cleanupStoredMovieOverride(current = {}) {
   const posterImage = usablePosterValue(current.posterImage) || usablePosterValue(current.poster);
-  const rawHeaderImage = usablePosterValue(current.headerImage)
-    || usablePosterValue(current.heroPoster)
-    || usablePosterValue(current.headerPoster)
-    || usablePosterValue(current.heroImage);
+  const rawHeaderImage = current.headerImage !== undefined && current.headerImage !== null
+    ? usablePosterValue(current.headerImage)
+    : (
+        usablePosterValue(current.heroPoster)
+        || usablePosterValue(current.headerPoster)
+        || usablePosterValue(current.heroImage)
+      );
   const headerImage = resolveStoredHeaderImage(rawHeaderImage);
-  const showInHeader = safeBooleanFlag(current.showInHeader) && (!rawHeaderImage || Boolean(headerImage));
+  const showInHeader = safeBooleanFlag(current.showInHeader) && Boolean(headerImage);
   const next = {
     ...current,
     posterImage,
@@ -636,10 +665,13 @@ function toDriveMovie(file, index, metadataMap = {}) {
   // Logo/placeholder kabi yolg'on URL'lar poster sifatida qabul qilinmaydi —
   // ular o'rniga Drive thumbnail fallback ishlaydi.
   const posterImage = usablePosterValue(override?.posterImage) || usablePosterValue(override?.poster);
-  const rawHeaderImage = usablePosterValue(override?.headerImage)
-    || usablePosterValue(override?.heroPoster)
-    || usablePosterValue(override?.headerPoster)
-    || usablePosterValue(override?.heroImage);
+  const rawHeaderImage = override?.headerImage !== undefined && override?.headerImage !== null
+    ? usablePosterValue(override.headerImage)
+    : (
+        usablePosterValue(override?.heroPoster)
+        || usablePosterValue(override?.headerPoster)
+        || usablePosterValue(override?.heroImage)
+      );
   const headerImage = resolveStoredHeaderImage(rawHeaderImage);
 
   const botToken = process.env.BOT_TOKEN || "";
@@ -650,7 +682,7 @@ function toDriveMovie(file, index, metadataMap = {}) {
   if (posterImage && posterImage.startsWith("/api/drive-thumbnail")) {
     finalPosterImage = `${posterImage}${posterImage.includes("?") ? "&" : "?"}token=${generateSignedToken(file.id, botToken)}`;
   }
-  const showInHeader = safeBooleanFlag(override?.showInHeader) && (!rawHeaderImage || Boolean(headerImage));
+  const showInHeader = safeBooleanFlag(override?.showInHeader) && Boolean(headerImage);
   const finalDescription = sanitizePublicDescription(override?.description) || description;
   const finalTitle = trimString(override?.title) || title;
   const finalQuality = trimString(override?.quality) || quality;
@@ -694,7 +726,7 @@ function toDriveMovie(file, index, metadataMap = {}) {
     heroPoster: headerImage.startsWith("data:") ? "" : headerImage,
     heroFeatured: showInHeader,
     thumbnail: finalPosterImage.startsWith("data:") ? "" : finalPosterImage,
-    headerCrop: sanitizeHeaderCrop(override?.headerCrop),
+    headerCrop: headerImage ? sanitizeHeaderCrop(override?.headerCrop) : null,
     likes: reactionCounts.likes,
     dislikes: reactionCounts.dislikes,
     streamUrl: `/api/drive-stream/${encodeURIComponent(file.id)}${tokenParam}`,
@@ -911,7 +943,7 @@ function mergeMovieOverridesFillOnly(currentMovies, sourceMovies) {
     }
     const next = { ...current };
     let changed = false;
-    for (const key of ["title", "genre", "quality", "posterImage", "headerImage", "description", "cdnUrl"]) {
+    for (const key of ["title", "genre", "quality", "posterImage", "description", "cdnUrl"]) {
       // Rasm maydonlarida logo/placeholder kabi yolg'on URL'lar bo'sh sanaladi —
       // ular ham haqiqiy qiymat bilan to'ldiriladi.
       if (!overrideFieldValue(next, key) && overrideFieldValue(source, key)) {
@@ -1353,23 +1385,51 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
   if (updates.posterImage !== undefined || updates.poster !== undefined) {
     next.posterImage = trimString(updates.posterImage !== undefined ? updates.posterImage : updates.poster);
   }
-  if (updates.headerImage !== undefined || updates.heroPoster !== undefined || updates.headerPoster !== undefined || updates.heroImage !== undefined) {
-    next.headerImage = trimString(
-      updates.headerImage !== undefined
-        ? updates.headerImage
-        : updates.heroPoster !== undefined
-          ? updates.heroPoster
-          : updates.headerPoster !== undefined
-            ? updates.headerPoster
-            : updates.heroImage
-    );
+  const oldHeaderImage = current.headerImage || current.heroPoster || current.headerPoster || current.heroImage || "";
+  const hasHeaderUpdate = hasOwn(updates, "headerImage")
+    || hasOwn(updates, "heroPoster")
+    || hasOwn(updates, "headerPoster")
+    || hasOwn(updates, "heroImage");
+
+  if (hasHeaderUpdate) {
+    const rawHeader = updates.headerImage !== undefined
+      ? updates.headerImage
+      : updates.heroPoster !== undefined
+        ? updates.heroPoster
+        : updates.headerPoster !== undefined
+          ? updates.headerPoster
+          : updates.heroImage;
+    const cleanHeader = trimString(rawHeader);
+    next.headerImage = cleanHeader;
+    if (!cleanHeader) {
+      next.headerImage = "";
+      if (updates.showInHeader === undefined) {
+        next.showInHeader = false;
+      }
+      delete next.headerCrop;
+      delete next.heroPoster;
+      delete next.headerPoster;
+      delete next.heroImage;
+      delete next.heroFeatured;
+      delete next.isHero;
+    }
   }
   if (updates.headerCrop !== undefined) {
     const headerCrop = sanitizeHeaderCrop(updates.headerCrop);
-    if (headerCrop) {
+    if (headerCrop && next.headerImage) {
       next.headerCrop = headerCrop;
     } else {
       delete next.headerCrop;
+    }
+  }
+
+  if (hasHeaderUpdate || updates.deletedHeaderImage) {
+    const newHeader = next.headerImage;
+    if (oldHeaderImage && (!newHeader || newHeader !== oldHeaderImage)) {
+      await deleteImageFromR2(oldHeaderImage).catch(() => {});
+    }
+    if (updates.deletedHeaderImage && updates.deletedHeaderImage !== newHeader) {
+      await deleteImageFromR2(updates.deletedHeaderImage).catch(() => {});
     }
   }
   if (updates.description !== undefined) {
@@ -1394,6 +1454,11 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
 
   try {
     await writeCatalogMetadata(metadata, metadataState.file);
+    // Drive fayl descriptionidagi embedded metadata ham yangilansin,
+    // shunda keyingi o'qishlarda eski headerImage qayta chiqmaydi
+    await updateDriveFileMetadata(normalizedFileId, {
+      description: buildCatalogFallbackDescription(embedded.visibleDescription, cleaned, updates),
+    }).catch(() => {});
   } catch (error) {
     if (!isServiceAccountStorageQuotaError(error)) {
       throw error;

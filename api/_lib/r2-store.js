@@ -372,4 +372,44 @@ async function uploadFileToR2(dataUrl, fileNamePrefix, options = {}) {
   return { directUrl: `${publicUrl}/${key}`, key, contentType, size: body.length };
 }
 
-module.exports = { uploadImageToR2, uploadFileToR2, putJsonToR2, getJsonFromR2, getJsonFromR2Signed, getJsonFromR2SignedStrict, deleteFromR2, listR2Objects };
+function extractR2KeyFromUrl(urlOrKey) {
+  if (!urlOrKey || typeof urlOrKey !== "string") return null;
+  const raw = urlOrKey.trim();
+  if (!raw) return null;
+  if (/^(?:img|file)\/[^\s?#]+/i.test(raw)) {
+    return raw.split(/[?#]/)[0];
+  }
+  try {
+    const parsed = new URL(raw);
+    const path = parsed.pathname.replace(/^\/+/,'');
+    if (/^(?:img|file)\/[^\s?#]+/i.test(path)) {
+      return path.split(/[?#]/)[0];
+    }
+  } catch {}
+  const match = raw.match(/(?:^|\/)((?:img|file)\/[a-zA-Z0-9_\-.]+(?:\.[a-zA-Z0-9]+)?)(?:[?#]|$)/i);
+  return match ? match[1] : null;
+}
+
+async function deleteImageFromR2(urlOrKey) {
+  const key = extractR2KeyFromUrl(urlOrKey);
+  if (!key) return null;
+  try {
+    return await deleteFromR2(key);
+  } catch (err) {
+    console.warn(`[r2-store] deleteImageFromR2 failed for key ${key}:`, err?.message || err);
+    return null;
+  }
+}
+
+module.exports = {
+  uploadImageToR2,
+  uploadFileToR2,
+  putJsonToR2,
+  getJsonFromR2,
+  getJsonFromR2Signed,
+  getJsonFromR2SignedStrict,
+  deleteFromR2,
+  listR2Objects,
+  extractR2KeyFromUrl,
+  deleteImageFromR2,
+};

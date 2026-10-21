@@ -307,6 +307,10 @@ function renderCategoryChips() {
 }
 
 function normalizeMovieFromApi(movie) {
+  const headerImage = movie.headerImage !== undefined && movie.headerImage !== null
+    ? String(movie.headerImage).trim()
+    : String(movie.heroPoster || movie.headerPoster || movie.heroImage || '').trim();
+  const showInHeader = Boolean(movie.showInHeader || movie.heroFeatured) && Boolean(headerImage);
   return {
     id: String(movie.id || movie.fileId || movie.driveFileId || ''),
     name: movie.title || movie.fileName || 'Kino',
@@ -314,8 +318,8 @@ function normalizeMovieFromApi(movie) {
     rating: Number(movie.rating || 0),
     hd: String(movie.quality || 'HD').toUpperCase() !== 'SD',
     poster: movie.posterImage || movie.poster || movie.thumbnail || '',
-    headerImage: movie.headerImage || movie.heroPoster || movie.headerPoster || movie.heroImage || '',
-    showInHeader: Boolean(movie.showInHeader || movie.heroFeatured),
+    headerImage,
+    showInHeader,
     description: movie.description || '',
     year: movie.year || '',
     code: movie.code || '',
@@ -1433,6 +1437,13 @@ function bindEvents() {
     if (fileInput) fileInput.value = '';
     if (urlInput) urlInput.value = '';
     updateHeaderPreview('');
+    const showInHeaderCheckbox = document.getElementById('movieShowInHeader');
+    if (showInHeaderCheckbox) {
+      showInHeaderCheckbox.checked = false;
+      const group = document.getElementById('headerImageGroup');
+      if (group) group.style.display = 'none';
+    }
+    markMovieFormDirty();
   });
 
   // Logout
@@ -2174,11 +2185,23 @@ async function handleMovieSubmit(e) {
       updatePayload.posterImage = finalPoster;
     }
 
-    if (!currentMovie || movieData.showInHeader !== Boolean(currentMovie.showInHeader)) {
-      updatePayload.showInHeader = movieData.showInHeader;
-    }
-    if (!currentMovie || hasMovieFieldChanged(movieData.headerImage, currentMovie.headerImage)) {
-      updatePayload.headerImage = movieData.headerImage;
+    const finalHeader = selectedHeaderDataUrl || document.getElementById('movieHeaderImage').value.trim();
+    if (!finalHeader) {
+      const prevHeader = currentMovie?.headerImage || currentMovie?.heroPoster || '';
+      if (prevHeader || currentMovie?.showInHeader) {
+        updatePayload.headerImage = '';
+        updatePayload.showInHeader = false;
+        if (prevHeader) {
+          updatePayload.deletedHeaderImage = prevHeader;
+        }
+      }
+    } else {
+      if (!currentMovie || hasMovieFieldChanged(finalHeader, currentMovie.headerImage)) {
+        updatePayload.headerImage = finalHeader;
+      }
+      if (!currentMovie || movieData.showInHeader !== Boolean(currentMovie.showInHeader)) {
+        updatePayload.showInHeader = movieData.showInHeader;
+      }
     }
 
     if (Object.keys(updatePayload).length === 1) {
@@ -2190,7 +2213,16 @@ async function handleMovieSubmit(e) {
     try {
       setButtonBusy(submitButton, true, 'Saqlanmoqda');
       if (currentMovie) {
-        Object.assign(currentMovie, normalizeMovieFromApi({ ...currentMovie, ...movieData, title: movieData.name, genre: movieData.category, quality: nextQuality, posterImage: finalPoster }));
+        Object.assign(currentMovie, normalizeMovieFromApi({ ...currentMovie, ...movieData, title: movieData.name, genre: movieData.category, quality: nextQuality, posterImage: finalPoster, headerImage: finalHeader, showInHeader: Boolean(finalHeader && movieData.showInHeader) }));
+        if (!finalHeader) {
+          currentMovie.headerImage = '';
+          currentMovie.heroPoster = '';
+          currentMovie.headerPoster = '';
+          currentMovie.heroImage = '';
+          currentMovie.showInHeader = false;
+          currentMovie.heroFeatured = false;
+          currentMovie.headerCrop = null;
+        }
         renderMovies();
       }
 
