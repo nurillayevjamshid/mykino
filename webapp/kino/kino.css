@@ -4856,26 +4856,32 @@ html[data-theme="light"] .page-support__btn:hover {
 /* Premium light mode */
 html[data-theme="light"] {
   color-scheme: light;
-  --text: #0F172A;
-  --muted: #475569;
-  --glass-line: rgba(15, 23, 42, 0.09);
-  --glass: #FFFFFF;
-  --glass-strong: #FFFFFF;
-  --bg-0: #F4F6FB;
-  --bg-1: #FFFFFF;
-  --bg-2: #F8FAFC;
-  --seek-rest: rgba(15, 23, 42, 0.16);
-  --volume-fill: #0F172A;
-  --volume-rest: rgba(15, 23, 42, 0.14);
+  --text: #20173a;
+  --muted: rgba(94, 85, 126, 0.74);
+  --glass-line: rgba(137, 119, 196, 0.16);
+  --glass: rgba(255, 255, 255, 0.88);
+  --glass-strong: rgba(255, 255, 255, 0.96);
+  --bg-0: #f3edff;
+  --bg-1: #fcfbff;
+  --bg-2: #f5f0ff;
+  --seek-rest: rgba(124, 58, 237, 0.16);
+  --volume-fill: #7c3aed;
+  --volume-rest: rgba(124, 58, 237, 0.14);
 }
 
 html[data-theme="light"] body {
   color: var(--text);
-  background: #F4F6FB !important;
+  background:
+    radial-gradient(circle at top left, rgba(167, 139, 250, 0.2), transparent 32%),
+    radial-gradient(circle at top right, rgba(244, 114, 182, 0.12), transparent 28%),
+    linear-gradient(180deg, #fdfcff 0%, #f8f5ff 50%, #f1ebff 100%);
 }
 
 html[data-theme="light"] body::before {
-  display: none !important;
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.5) 24%, transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 36%);
+  opacity: 0.96;
 }
 
 html[data-theme="light"] dialog::backdrop {
