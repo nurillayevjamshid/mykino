@@ -1,18 +1,18 @@
 :root {
   color-scheme: dark;
 
-  /* === SURFACES === */
-  --bg-0: #090c12;
-  --bg-1: #101521;
-  --bg-2: #231718;
-  --bg-elevated: #161b2a;
-  --surface-1: rgba(255, 255, 255, 0.04);
-  --surface-2: rgba(255, 255, 255, 0.08);
-  --surface-3: rgba(255, 255, 255, 0.12);
-  --glass: rgba(255, 255, 255, 0.1);
-  --glass-strong: rgba(255, 255, 255, 0.16);
-  --glass-dark: rgba(8, 10, 15, 0.7);
-  --glass-line: rgba(255, 255, 255, 0.18);
+  /* === SURFACES (Deep Midnight Indigo & Glassmorphism) === */
+  --bg-0: #0f1129;
+  --bg-1: #1b1e44;
+  --bg-2: #161a3c;
+  --bg-elevated: #262b58;
+  --surface-1: rgba(38, 43, 88, 0.55);
+  --surface-2: rgba(48, 54, 108, 0.65);
+  --surface-3: rgba(64, 72, 138, 0.75);
+  --glass: rgba(38, 43, 88, 0.55);
+  --glass-strong: rgba(48, 54, 108, 0.65);
+  --glass-dark: rgba(15, 17, 41, 0.85);
+  --glass-line: rgba(255, 255, 255, 0.12);
 
   /* === WHITE ALPHA SCALE (hover/border/divider uchun) === */
   --w-04: rgba(255, 255, 255, 0.04);
@@ -24,12 +24,12 @@
   --w-64: rgba(255, 255, 255, 0.64);
 
   /* === TEXT IYERARXIYA === */
-  --text: #f7f7fb;
-  --text-1: #f7f7fb;          /* asosiy sarlavha */
-  --text-2: rgba(236, 239, 247, 0.84); /* body */
-  --text-3: rgba(236, 239, 247, 0.64); /* caption / meta */
-  --text-4: rgba(236, 239, 247, 0.40); /* disabled */
-  --muted: rgba(236, 239, 247, 0.72);
+  --text: #ffffff;
+  --text-1: #ffffff;          /* asosiy sarlavha */
+  --text-2: #A5A9C6;          /* body */
+  --text-3: #A5A9C6;          /* caption / meta */
+  --text-4: rgba(165, 169, 198, 0.6); /* disabled */
+  --muted: #A5A9C6;
 
   /* === BRAND / ACCENT === */
   --accent: #ffc73a;
@@ -4856,32 +4856,26 @@ html[data-theme="light"] .page-support__btn:hover {
 /* Premium light mode */
 html[data-theme="light"] {
   color-scheme: light;
-  --text: #20173a;
-  --muted: rgba(94, 85, 126, 0.74);
-  --glass-line: rgba(137, 119, 196, 0.16);
-  --glass: rgba(255, 255, 255, 0.88);
-  --glass-strong: rgba(255, 255, 255, 0.96);
-  --bg-0: #f3edff;
-  --bg-1: #fcfbff;
-  --bg-2: #f5f0ff;
-  --seek-rest: rgba(124, 58, 237, 0.16);
-  --volume-fill: #7c3aed;
-  --volume-rest: rgba(124, 58, 237, 0.14);
+  --text: #0F172A;
+  --muted: #475569;
+  --glass-line: rgba(15, 23, 42, 0.09);
+  --glass: #FFFFFF;
+  --glass-strong: #FFFFFF;
+  --bg-0: #F4F6FB;
+  --bg-1: #FFFFFF;
+  --bg-2: #F8FAFC;
+  --seek-rest: rgba(15, 23, 42, 0.16);
+  --volume-fill: #0F172A;
+  --volume-rest: rgba(15, 23, 42, 0.14);
 }
 
 html[data-theme="light"] body {
   color: var(--text);
-  background:
-    radial-gradient(circle at top left, rgba(167, 139, 250, 0.2), transparent 32%),
-    radial-gradient(circle at top right, rgba(244, 114, 182, 0.12), transparent 28%),
-    linear-gradient(180deg, #fdfcff 0%, #f8f5ff 50%, #f1ebff 100%);
+  background: #F4F6FB !important;
 }
 
 html[data-theme="light"] body::before {
-  background:
-    linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.5) 24%, transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 36%);
-  opacity: 0.96;
+  display: none !important;
 }
 
 html[data-theme="light"] dialog::backdrop {

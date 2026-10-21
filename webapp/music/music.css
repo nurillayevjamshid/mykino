@@ -4,7 +4,7 @@
 
 /* ===== Music view ===== */
 .music-view {
-  background: #0a0a10;
+  background: transparent;
   color: #f5f6fa;
   padding: 14px 0 24px;
   font-family: inherit;
@@ -2463,7 +2463,7 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
     radial-gradient(120% 60% at 15% 0%, rgba(110, 70, 220, 0.28) 0%, rgba(110, 70, 220, 0) 60%),
     radial-gradient(110% 55% at 95% 8%, rgba(255, 90, 190, 0.16) 0%, rgba(255, 90, 190, 0) 55%),
     radial-gradient(130% 70% at 50% 100%, rgba(40, 200, 230, 0.1) 0%, rgba(40, 200, 230, 0) 60%),
-    linear-gradient(180deg, #0a1426 0%, #060b1a 55%, #04080f 100%);
+    transparent;
 }
 
 /* Kategoriya chiplar va qo'shiqchi cardlar — avvalgi (default) holatda
@@ -2483,7 +2483,7 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 .music-view .music-list,
 .music-allsongs .music-list,
 .music-artist-detail .music-list {
-  background: linear-gradient(180deg, rgba(28, 24, 48, 0.62) 0%, rgba(14, 12, 24, 0.62) 100%);
+  background: rgba(38, 43, 88, 0.55); border-radius: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
   border: 1px solid var(--mx-glass-border);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
