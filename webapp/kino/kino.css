@@ -6497,29 +6497,30 @@ html[data-theme="dark"] .app-shell {
     inset 0 0 120px rgba(229, 9, 20, 0.04);
 }
 
-/* Dark rejim — reference dizayndagi chuqur yashil-teal gradient.
-   Light rejimga ta'sir qilmaydi. */
+/* Dark rejim — Deep Midnight Indigo & Glassmorphism */
 html[data-theme="dark"],
 html[data-theme="dark"] body {
   background:
-    linear-gradient(180deg, #061d1f 0%, #021418 46%, #00070a 100%);
+    radial-gradient(circle at 50% 0%, rgba(68, 76, 231, 0.22), transparent 60%),
+    linear-gradient(165deg, #1b1e44 0%, #0f1129 45%, #090a1a 100%);
 }
 
 html[data-theme="dark"] .app-shell {
-  background:
-    radial-gradient(120% 60% at 15% 0%, rgba(64, 157, 146, 0.14) 0%, rgba(64, 157, 146, 0) 60%),
-    radial-gradient(110% 55% at 95% 8%, rgba(64, 139, 126, 0.08) 0%, rgba(64, 139, 126, 0) 55%),
-    radial-gradient(130% 70% at 50% 100%, rgba(27, 92, 83, 0.06) 0%, rgba(27, 92, 83, 0) 60%),
-    linear-gradient(180deg, #08272a 0%, #03171a 55%, #00070a 100%);
+  background: transparent !important;
 }
 
 @media (min-width: 768px) {
   html[data-theme="dark"] body {
     background:
-      linear-gradient(180deg, #061d1f 0%, #021418 46%, #00070a 100%);
+      radial-gradient(circle at 50% 0%, rgba(68, 76, 231, 0.22), transparent 60%),
+      linear-gradient(165deg, #1b1e44 0%, #0f1129 45%, #090a1a 100%);
   }
   html[data-theme="light"] body {
-    background: #ffffff;
+    background:
+      radial-gradient(70vw 46vw at 8% 4%, rgba(159, 220, 202, .42), transparent 64%),
+      radial-gradient(55vw 42vw at 93% 14%, rgba(177, 198, 255, .42), transparent 64%),
+      radial-gradient(70vw 50vw at 50% 110%, rgba(255, 218, 171, .30), transparent 68%),
+      #edf4fb;
   }
 }
 

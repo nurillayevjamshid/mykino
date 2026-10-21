@@ -1056,8 +1056,8 @@ function applyTheme(theme) {
       plainLabel(t(nextTheme === "dark" ? "daytimeMode" : "eveningMode")),
     );
   }
-  const headerHex = nextTheme === "light" ? "#fafafb" : "#0b2d2e";
-  const bgHex = nextTheme === "light" ? "#f7f7f8" : "#000a0c";
+  const headerHex = nextTheme === "light" ? "#edf4fb" : "#1b1e44";
+  const bgHex = nextTheme === "light" ? "#edf4fb" : "#0f1129";
   if (themeColorMeta) {
     themeColorMeta.setAttribute("content", headerHex);
   }
@@ -7595,7 +7595,7 @@ function ensureMusicCss() {
   __musicCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/music/music.css?v=20261013-sound-unmute";
+    link.href = "/static/music/music.css?v=20261021-unified-v1";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -7642,7 +7642,7 @@ function ensurePotcastsCss() {
   __potcastsCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/potcasts/potcasts.css?v=20261016-click-fix-v15";
+    link.href = "/static/potcasts/potcasts.css?v=20261021-unified-v1";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -7681,7 +7681,7 @@ function ensureTvCss() {
   __tvCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/tv/tv.css?v=20261015-fullscreen-clearance";
+    link.href = "/static/tv/tv.css?v=20261021-unified-v1";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);

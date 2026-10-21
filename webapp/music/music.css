@@ -2451,7 +2451,8 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
    Deep blacks + navy/purple gradients, electric purple / cyan / pink accents.
    Scoped to the music section only.
    ============================================================ */
-.music-view {
+html:not([data-theme="light"]) .music-view,
+html[data-theme="dark"] .music-view {
   --mx-purple: #8b5cff;
   --mx-purple-soft: #a98bff;
   --mx-cyan: #34e4ff;
@@ -2480,14 +2481,26 @@ html[data-theme="light"] .music-fullplayer__ctl--primary { color: #fff; }
 }
 
 /* --- Song list (glass card) --- */
-.music-view .music-list,
-.music-allsongs .music-list,
-.music-artist-detail .music-list {
-  background: rgba(38, 43, 88, 0.55); border-radius: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-  border: 1px solid var(--mx-glass-border);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 18px 40px -26px rgba(0, 0, 0, 0.8);
+html:not([data-theme="light"]) .music-view .music-list,
+html:not([data-theme="light"]) .music-allsongs .music-list,
+html:not([data-theme="light"]) .music-artist-detail .music-list,
+html[data-theme="dark"] .music-view .music-list,
+html[data-theme="dark"] .music-allsongs .music-list,
+html[data-theme="dark"] .music-artist-detail .music-list {
+  background: rgba(38, 43, 88, 0.55) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28) !important;
+  border: 1px solid var(--mx-glass-border) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  backdrop-filter: blur(18px) !important;
+}
+
+html[data-theme="light"] .music-view .music-list,
+html[data-theme="light"] .music-allsongs .music-list,
+html[data-theme="light"] .music-artist-detail .music-list {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f5fb 100%) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
 }
 .music-view .music-row.is-playing,
 .music-allsongs .music-row.is-playing,
