@@ -3414,3 +3414,34 @@ html[data-theme="dark"] .music-search-bar {
   border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55) !important;
 }
+
+/* ============================================================
+   Kino Video Camera Icon — kunduzgi rejimda qora, tungi rejimda oq
+   ============================================================ */
+.kino-icon,
+.sidebar__item-icon--kino,
+.sidebar__item[data-sidebar-action="kino-back"] svg,
+.sidebar__item[data-sidebar-action="kino"] svg,
+.brand-logo__svg.kino-icon,
+#sectionSplash .section-splash__logo .kino-icon {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: none !important;
+}
+
+html[data-theme="light"] .kino-icon,
+html[data-theme="light"] .sidebar__item-icon--kino,
+html[data-theme="light"] .sidebar__item[data-sidebar-action="kino-back"] svg,
+html[data-theme="light"] .sidebar__item[data-sidebar-action="kino"] svg,
+html[data-theme="light"] .brand-logo__svg.kino-icon,
+html[data-theme="light"] #sectionSplash .section-splash__logo .kino-icon,
+[data-theme="light"] .kino-icon,
+[data-theme="light"] .sidebar__item-icon--kino,
+[data-theme="light"] .sidebar__item[data-sidebar-action="kino-back"] svg,
+[data-theme="light"] .sidebar__item[data-sidebar-action="kino"] svg,
+[data-theme="light"] .brand-logo__svg.kino-icon,
+[data-theme="light"] #sectionSplash .section-splash__logo .kino-icon {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: none !important;
+}

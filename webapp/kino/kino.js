@@ -8698,7 +8698,7 @@ function syncTopbarSection() {
     : document.body.classList.contains("is-podcasts") ? "podcasts"
     : "kino";
   const icons = {
-    kino: `<svg viewBox="0 0 32 32" class="brand-logo__svg"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg>`,
+    kino: `<svg viewBox="0 0 24 24" class="brand-logo__svg kino-icon" fill="currentColor" aria-hidden="true"><rect x="2" y="5.5" width="13" height="13" rx="3.8"></rect><path d="M16.5 9.8c0-.55.55-.9 1.05-.6l3.65-2.3c.65-.4 1.6.05 1.6.85v8.5c0 .8-.95 1.25-1.6.85l-3.65-2.3c-.5-.3-1.05.05-1.05-.6v-4.4z"></path></svg>`,
     music: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
     podcasts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="13" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>`,
     fifa: `<img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="22" height="22">`,
@@ -8733,9 +8733,9 @@ function syncSidebarSectionItems() {
     kino: {
       action: "kino-back",
       html: `
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
-        <path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path>
+      <svg viewBox="0 0 24 24" fill="currentColor" class="kino-icon sidebar__item-icon--kino" aria-hidden="true">
+        <rect x="2" y="5.5" width="13" height="13" rx="3.8"></rect>
+        <path d="M16.5 9.8c0-.55.55-.9 1.05-.6l3.65-2.3c.65-.4 1.6.05 1.6.85v8.5c0 .8-.95 1.25-1.6.85l-3.65-2.3c-.5-.3-1.05.05-1.05-.6v-4.4z"></path>
       </svg>
       <span data-i18n="kinoNav">${plainLabel(t("kinoNav"))}</span>`,
     },
@@ -8957,7 +8957,7 @@ document.addEventListener("keydown", (e) => {
 // Bo'limlar orasida o'tish yuklash ekrani (Sidebar navigation splash)
 // ============================================================
 const SECTION_SPLASH_ICONS = {
-  kino: `<svg viewBox="0 0 32 32" class="brand-logo__svg" aria-hidden="true"><circle cx="16" cy="16" r="14.4" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M13 11.4 22.2 16 13 20.6Z" fill="currentColor"></path></svg>`,
+  kino: `<svg viewBox="0 0 24 24" class="brand-logo__svg kino-icon" fill="currentColor" aria-hidden="true"><rect x="2" y="5.5" width="13" height="13" rx="3.8"></rect><path d="M16.5 9.8c0-.55.55-.9 1.05-.6l3.65-2.3c.65-.4 1.6.05 1.6.85v8.5c0 .8-.95 1.25-1.6.85l-3.65-2.3c-.5-.3-1.05.05-1.05-.6v-4.4z"></path></svg>`,
   music: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
   podcasts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>`,
   fifa: `<img class="sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44" style="object-fit:contain;display:block;">`,
