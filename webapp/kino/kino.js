@@ -1572,6 +1572,7 @@ async function syncWatchedMoviesFromCloud() {
     for (const item of cloudItems) {
       if (!item || !item.id) continue;
       const key = String(item.id);
+      if (key.startsWith("_yt_") || item._podcast || item._highlight || item.isHighlight) continue;
       const cloudW = Number(item.w || 0);
       if (deletedIds.has(key) || (clearedAt && cloudW < clearedAt)) {
         cloudHasDeleted = true;
@@ -2563,6 +2564,9 @@ async function loadProgressFromBackend(options = {}) {
   for (const [id, rawEntry] of Object.entries(remote)) {
     if (!rawEntry || typeof rawEntry !== "object") continue;
     const idStr = String(id);
+    if (idStr.startsWith("_yt_") || rawEntry._podcast || rawEntry._highlight || rawEntry.isHighlight) {
+      continue;
+    }
     const remoteUpdated = Number(rawEntry.updatedAt || 0);
 
     if (deletedIds.has(idStr) || (clearedAt && remoteUpdated < clearedAt)) {
@@ -2727,16 +2731,44 @@ function syncWatchedCount() {
   }
 }
 
+function isKinoCatalogMovie(entry, catalogMovies) {
+  if (!entry) return false;
+  const id = String(entry.id || "").trim();
+  if (!id || id.startsWith("_yt_") || entry.youtubeVideoId || entry.videoId) return false;
+  if (entry._podcast || entry._highlight || entry.isHighlight) return false;
+  if (entry.type === "podcast" || entry.type === "highlight" || entry.type === "football") return false;
+
+  const list = Array.isArray(catalogMovies) && catalogMovies.length
+    ? catalogMovies
+    : (Array.isArray(movies) && movies.length ? movies : (typeof getViewerMovies === "function" ? getViewerMovies() : []));
+
+  if (list.length > 0) {
+    return list.some((item) =>
+      String(item?.id) === id ||
+      (item?.code && String(item.code) === id) ||
+      (item?.fileId && String(item.fileId) === id) ||
+      (item?.driveFileId && String(item.driveFileId) === id) ||
+      (item?.title && entry?.title && String(item.title).trim().toLowerCase() === String(entry.title).trim().toLowerCase())
+    );
+  }
+
+  return !id.startsWith("_yt_");
+}
+
 function markMovieWatched(movie, progress = 0) {
   if (!movie?.id) return;
+  const idStr = String(movie.id);
+  if (idStr.startsWith("_yt_") || movie._podcast || movie._highlight || movie.isHighlight || movie.youtubeVideoId) {
+    return;
+  }
   unmarkDeletedMovieId(movie.id);
   const store = readWatchedMoviesStore();
-  const existing = store[String(movie.id)];
+  const existing = store[idStr];
   const posterUrl = getPosterImage(movie) || movie?.thumbnail || movie?.cover || existing?.poster || "";
   const now = Date.now();
   const safeProgress = Math.max(0, Math.floor(Number(progress) || 0));
-  store[String(movie.id)] = {
-    id: String(movie.id),
+  store[idStr] = {
+    id: idStr,
     title: movie.title || existing?.title || "Kino",
     poster: posterUrl,
     year: movie.year || existing?.year || "",
@@ -2747,7 +2779,7 @@ function markMovieWatched(movie, progress = 0) {
   writeWatchedMoviesStore(store);
 
   // Sync to server backend so phone and computer stay in sync immediately!
-  queueProgressUpsert(String(movie.id), {
+  queueProgressUpsert(idStr, {
     time: safeProgress,
     duration: Math.max(0, Math.floor(Number(movie.duration) || 0)),
     updatedAt: now,
@@ -2760,11 +2792,14 @@ function markMovieWatched(movie, progress = 0) {
 
 function updateWatchedMovieProgress(movie, progress = 0) {
   if (!movie?.id) return;
+  const idStr = String(movie.id);
+  if (idStr.startsWith("_yt_") || movie._podcast || movie._highlight || movie.isHighlight || movie.youtubeVideoId) {
+    return;
+  }
   const store = readWatchedMoviesStore();
-  const key = String(movie.id);
-  const existing = store[key];
+  const existing = store[idStr];
   if (!existing) return;
-  store[key] = {
+  store[idStr] = {
     ...existing,
     progress: Math.max(0, Math.floor(Number(progress) || 0)),
   };
@@ -2772,9 +2807,57 @@ function updateWatchedMovieProgress(movie, progress = 0) {
 }
 
 function getWatchedMovieEntries() {
+  const catalog = Array.isArray(movies) && movies.length
+    ? movies
+    : (typeof getViewerMovies === "function" ? getViewerMovies() : []);
+
   return Object.values(readWatchedMoviesStore())
-    .filter((entry) => entry && typeof entry === "object")
+    .filter((entry) => entry && typeof entry === "object" && isKinoCatalogMovie(entry, catalog))
     .sort((left, right) => Number(right.watchedAt || 0) - Number(left.watchedAt || 0));
+}
+
+function purgeNonMovieWatchedEntries() {
+  try {
+    const store = readWatchedMoviesStore();
+    const progress = readWatchProgressStore();
+    let changed = false;
+    let progressChanged = false;
+
+    const catalog = Array.isArray(movies) && movies.length
+      ? movies
+      : (typeof getViewerMovies === "function" ? getViewerMovies() : []);
+
+    for (const key of Object.keys(store)) {
+      const entry = store[key];
+      const isBad = !entry || key.startsWith("_yt_") || entry.youtubeVideoId || entry._podcast || entry._highlight || entry.isHighlight || (catalog.length > 0 && !isKinoCatalogMovie(entry, catalog));
+      if (isBad) {
+        delete store[key];
+        changed = true;
+        recordDeletedMovieId(key);
+        queueProgressRemove(key);
+      }
+    }
+
+    for (const key of Object.keys(progress)) {
+      const prog = progress[key];
+      const isBad = !prog || key.startsWith("_yt_") || (catalog.length > 0 && !catalog.some((m) => String(m?.id) === key || String(m?.code) === key || String(m?.fileId) === key || String(m?.driveFileId) === key));
+      if (isBad) {
+        delete progress[key];
+        progressChanged = true;
+        queueProgressRemove(key);
+      }
+    }
+
+    if (changed) {
+      localStorage.setItem(WATCHED_MOVIES_KEY, JSON.stringify(store));
+      pushWatchedMoviesToCloud(store, true);
+      syncWatchedCount();
+    }
+    if (progressChanged) {
+      localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(progress));
+      scheduleProgressSync(100);
+    }
+  } catch (_) {}
 }
 
 function removeWatchedMovie(movieId) {
@@ -2893,10 +2976,14 @@ function getMovieProgressSeconds(movie) {
 
 function saveMovieProgress(movie, currentTime, duration) {
   if (!movie?.id) return;
+  const idStr = String(movie.id);
+  if (idStr.startsWith("_yt_") || movie._podcast || movie._highlight || movie.isHighlight || movie.youtubeVideoId) {
+    return;
+  }
   const safeTime = Math.max(0, Math.floor(Number(currentTime) || 0));
   const safeDuration = Math.max(0, Math.floor(Number(duration) || 0));
   const store = readWatchProgressStore();
-  const key = String(movie.id);
+  const key = idStr;
 
   if (
     !safeDuration ||
@@ -3759,6 +3846,10 @@ function renderProfileHistory() {
       (item?.title && entry?.title && String(item.title).trim().toLowerCase() === String(entry.title).trim().toLowerCase())
     );
 
+    if (catalogMovies.length > 0 && !movie) {
+      continue;
+    }
+
     const fallbackPoster = buildGeneratedPosterDataUrl(movie || { title: entry.title, year: entry.year, quality: "HD" });
     const resolvedPoster = (movie ? getPosterImage(movie) : "") ||
       entry.poster ||
@@ -3968,6 +4059,7 @@ function renderProfileModal() {
   const movieSection = profileModal?.querySelector(".profile-history:not(.profile-history--music)");
   if (movieSection) movieSection.hidden = false;
 
+  purgeNonMovieWatchedEntries();
   renderProfileStats();
   renderProfileHistory();
   loadProgressFromBackend({ force: true }).then(() => {
@@ -5791,6 +5883,8 @@ function persistActiveWatchProgress(currentTime, duration) {
   if (!activeMovie) return;
   if (activeMovie._podcast) {
     savePodcastProgress(activeMovie.youtubeVideoId, currentTime, duration);
+  } else if (activeMovie._highlight || activeMovie.isHighlight || String(activeMovie.id || "").startsWith("_yt_") || activeMovie.youtubeVideoId) {
+    return;
   } else {
     saveMovieProgress(activeMovie, currentTime, duration);
   }
@@ -6719,6 +6813,10 @@ async function openVideoPlayer(movie, options = {}) {
   const requestId = ++activeVideoRequest;
   activeMovie = movie;
   const isPodcastCtx = Boolean(options?._podcast || movie?._podcast);
+  const isHighlightCtx = Boolean(options?._highlight || options?.isHighlight || movie?._highlight || movie?.isHighlight);
+  const isStandaloneYt = String(movie?.id || "").startsWith("_yt_") || Boolean(movie?.youtubeVideoId);
+  const isRealKino = !isPodcastCtx && !isHighlightCtx && !isStandaloneYt;
+
   document.body.classList.toggle("is-podcast-context", isPodcastCtx);
   // startFromBeginning=true bo'lsa boshidan. Potkastlar uchun alohida progress
   // store'idan resume olinadi (kinolardagidek davom ettirib ko'rish).
@@ -6728,10 +6826,12 @@ async function openVideoPlayer(movie, options = {}) {
     pendingResumeTime = getPodcastProgressSeconds(movie?.youtubeVideoId);
   } else if (typeof options?.initialTime === "number") {
     pendingResumeTime = options.initialTime;
-  } else {
+  } else if (isRealKino) {
     pendingResumeTime = getMovieProgressSeconds(movie);
+  } else {
+    pendingResumeTime = 0;
   }
-  if (!isPodcastCtx) {
+  if (isRealKino) {
     markMovieWatched(movie, pendingResumeTime);
     syncWatchedCount();
   }
@@ -10373,6 +10473,7 @@ async function loadMovies() {
   if (cachedRaw && cachedRaw.length) {
     movies = sessionShuffleMovies(cachedRaw.map((movie, index) => normalizeMovie(movie, index)));
     movieLoadState = "ready";
+    purgeNonMovieWatchedEntries();
     syncWatchedCount();
     applyCopy();
     renderMovies();
@@ -10411,6 +10512,7 @@ async function loadMovies() {
     movieLoadError = error.message || t("loadErrorText");
   }
 
+  purgeNonMovieWatchedEntries();
   syncWatchedCount();
   applyCopy();
   renderMovies();
