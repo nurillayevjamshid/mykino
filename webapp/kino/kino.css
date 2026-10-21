@@ -4894,6 +4894,10 @@ html[data-theme="light"] .profile-support {
   background: linear-gradient(135deg, #ffc73a, #ff9a3a);
   color: #1a1106;
   font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   cursor: pointer;
   transition: transform 0.18s ease, opacity 0.18s ease;
 }
@@ -6847,6 +6851,16 @@ html[data-theme="light"] .brand-logo__svg.kino-icon,
 .sidebar__item-icon--podcasts circle {
   fill: currentColor !important;
   stroke: none !important;
+}
+
+/* ============================================================
+   Unified Send / Paper Airplane Icon
+   ============================================================ */
+.send-icon {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
 }
 
 .sidebar__divider {

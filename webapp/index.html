@@ -645,10 +645,9 @@
       </header>
       <div class="fifa-view__promo" hidden></div>
       <button class="fifa-view__promo-share" id="fifaPromoShare" type="button" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
-          <polyline points="16 6 12 2 8 6"></polyline>
-          <line x1="12" y1="2" x2="12" y2="15"></line>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="send-icon" aria-hidden="true">
+          <path d="M22 2 15 22 11 13 2 9 22 2Z"></path>
+          <path d="m11 13 6-6"></path>
         </svg>
         <span id="fifaPromoShareLabel">Translatsiyani yuborish</span>
       </button>
@@ -998,9 +997,9 @@
           <div class="comments__input-row">
             <input class="comments__input" id="commentsInput" type="text" maxlength="500" placeholder="Izoh yozing..." aria-label="Izoh" data-i18n-placeholder="commentsPlaceholder" data-i18n-aria-label="commentsTitle" />
             <button class="comments__submit" type="submit" id="commentsSubmit">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="send-icon" aria-hidden="true">
+                <path d="M22 2 15 22 11 13 2 9 22 2Z"></path>
+                <path d="m11 13 6-6"></path>
               </svg>
             </button>
           </div>
@@ -1130,8 +1129,9 @@
 
         <div class="share-sheet-secondary">
           <button class="share-sheet-btn share-sheet-btn--chat" id="shareChatBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="send-icon" aria-hidden="true">
+              <path d="M22 2 15 22 11 13 2 9 22 2Z"></path>
+              <path d="m11 13 6-6"></path>
             </svg>
             <span>Do'stlarga yuborish</span>
           </button>
@@ -1230,6 +1230,10 @@
       <div class="feedback-card__row">
         <span class="feedback-card__counter" id="feedbackCounter">0 / 2000</span>
         <button class="feedback-card__send" id="feedbackSend" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="send-icon" aria-hidden="true" style="width:16px;height:16px;">
+            <path d="M22 2 15 22 11 13 2 9 22 2Z"></path>
+            <path d="m11 13 6-6"></path>
+          </svg>
           <span id="feedbackSendLabel">Yuborish</span>
         </button>
       </div>
