@@ -80,7 +80,7 @@
     } catch (_) {}
   </script>
   <link rel="stylesheet" href="/static/glass-theme.css?v=20261021-unified-v1" />
-  <link rel="stylesheet" href="/books/books.css?v=20261021-card-list-v1" />
+  <link rel="stylesheet" href="/books/books.css?v=20261021-player-redesign-v1" />
 </head>
 
 <body>
@@ -318,6 +318,12 @@
     <div class="modal-grabber"></div>
 
     <div class="modal-header">
+      <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Yopish">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+
       <span class="modal-badge-label">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
@@ -325,16 +331,18 @@
         </svg>
         <span>Audio kitob</span>
       </span>
-      <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Yopish">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
+
+      <button type="button" class="modal-options-btn" id="modalTopBookmarkBtn" aria-label="Saqlash" title="Saqlash">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <circle cx="5" cy="12" r="2"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+          <circle cx="19" cy="12" r="2"></circle>
         </svg>
       </button>
     </div>
 
     <div class="modal-body">
-      <!-- Big Square Cover Art -->
+      <!-- Big Squircle Cover Art -->
       <div class="modal-cover-wrap" id="modalCoverWrap">
         <img class="modal-cover-image" id="modalCoverImg" src="" alt="Muqova" hidden />
         <div class="modal-cover-fallback" id="modalCoverFallback">📖</div>
@@ -342,6 +350,71 @@
 
       <h2 class="modal-book-title" id="modalTitle">Nomi</h2>
       <div class="modal-book-author" id="modalAuthor">Muallif</div>
+
+      <!-- Complete In-App Player Scrubber & Time -->
+      <div class="modal-player-box">
+        <div class="player-scrubber-wrap">
+          <input type="range" class="scrubber-slider" id="playerScrubber" min="0" max="100" value="0" step="0.1" aria-label="Ijro joyi" />
+          <div class="player-time-row">
+            <span id="playerCurrentTime">0:00</span>
+            <span id="playerDurationTime">14:00</span>
+          </div>
+        </div>
+
+        <!-- In-App Playback Controls: 3 Circular Buttons matching reference design -->
+        <div class="player-controls-row">
+          <button type="button" class="btn-ctrl btn-ctrl-prev" id="btnPrevBook" title="Oldingi kitob" aria-label="Oldingi">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+            </svg>
+          </button>
+
+          <!-- Big In-App Play / Pause Button -->
+          <button type="button" class="btn-ctrl btn-ctrl-main" id="modalPlayBtn" title="Ijro / To'xtatish" aria-label="Ijro">
+            <svg class="icon-play" viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+              <polygon points="6 3 20 12 6 21 6 3"></polygon>
+            </svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" width="30" height="30" fill="currentColor" hidden>
+              <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+              <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+            </svg>
+          </button>
+
+          <button type="button" class="btn-ctrl btn-ctrl-next" id="btnNextBook" title="Keyingi kitob" aria-label="Keyingi">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Secondary Controls: Speed & Watermark/Bookmark -->
+        <div class="player-secondary-row">
+          <button type="button" class="btn-ctrl btn-ctrl-secondary" id="btnRewind" title="-15 sekund" aria-label="Orqaga 15 sekund">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"></path>
+            </svg>
+            <span class="ctrl-subtext">15</span>
+          </button>
+
+          <button type="button" class="btn-speed-toggle" id="btnSpeedToggle" title="Ijro tezligi">
+            <span id="speedLabel">1.0x</span>
+          </button>
+
+          <button type="button" class="btn-modal-bookmark" id="modalBookmarkBtn" aria-label="Saqlash" title="Saqlash">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+            </svg>
+            <span class="bookmark-text" id="modalBookmarkText">Saqlash</span>
+          </button>
+
+          <button type="button" class="btn-ctrl btn-ctrl-secondary" id="btnForward" title="+15 sekund" aria-label="Oldinga 15 sekund">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 17l5-5-5-5M6 17l5-5-5-5"></path>
+            </svg>
+            <span class="ctrl-subtext">15</span>
+          </button>
+        </div>
+      </div>
 
       <!-- 4 Metadata Chips: Janr, O'qigan inson, Hajmi, Vaqti -->
       <div class="modal-meta-grid">
@@ -360,71 +433,6 @@
         <div class="meta-chip">
           <div class="meta-chip-label">Vaqti</div>
           <div class="meta-chip-value" id="modalDuration">14 daqiqa</div>
-        </div>
-      </div>
-
-      <!-- Complete In-App Player Scrubber & Time -->
-      <div class="modal-player-box">
-        <div class="player-scrubber-wrap">
-          <input type="range" class="scrubber-slider" id="playerScrubber" min="0" max="100" value="0" step="0.1" aria-label="Ijro joyi" />
-          <div class="player-time-row">
-            <span id="playerCurrentTime">0:00</span>
-            <span id="playerDurationTime">14:00</span>
-          </div>
-        </div>
-
-        <!-- In-App Playback Controls -->
-        <div class="player-controls-row">
-          <button type="button" class="btn-ctrl" id="btnPrevBook" title="Oldingi kitob" aria-label="Oldingi">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-              <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
-            </svg>
-          </button>
-
-          <button type="button" class="btn-ctrl" id="btnRewind" title="-15 sekund" aria-label="Orqaga 15 sekund">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"></path>
-            </svg>
-            <span class="ctrl-subtext">15</span>
-          </button>
-
-          <!-- Big In-App Play / Pause Button -->
-          <button type="button" class="btn-ctrl btn-ctrl-main" id="modalPlayBtn" title="Ijro / To'xtatish" aria-label="Ijro">
-            <svg class="icon-play" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
-              <polygon points="6 3 20 12 6 21 6 3"></polygon>
-            </svg>
-            <svg class="icon-pause" viewBox="0 0 24 24" width="28" height="28" fill="currentColor" hidden>
-              <rect x="6" y="4" width="4" height="16" rx="1"></rect>
-              <rect x="14" y="4" width="4" height="16" rx="1"></rect>
-            </svg>
-          </button>
-
-          <button type="button" class="btn-ctrl" id="btnForward" title="+15 sekund" aria-label="Oldinga 15 sekund">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M13 17l5-5-5-5M6 17l5-5-5-5"></path>
-            </svg>
-            <span class="ctrl-subtext">15</span>
-          </button>
-
-          <button type="button" class="btn-ctrl" id="btnNextBook" title="Keyingi kitob" aria-label="Keyingi">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-              <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Secondary Controls: Speed & Watermark/Bookmark -->
-        <div class="player-secondary-row">
-          <button type="button" class="btn-speed-toggle" id="btnSpeedToggle" title="Ijro tezligi">
-            <span id="speedLabel">1.0x</span>
-          </button>
-
-          <button type="button" class="btn-modal-bookmark" id="modalBookmarkBtn" aria-label="Saqlash" title="Saqlash">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
-            </svg>
-            <span class="bookmark-text" id="modalBookmarkText">Saqlash</span>
-          </button>
         </div>
       </div>
 

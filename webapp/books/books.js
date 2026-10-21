@@ -217,6 +217,7 @@
     elements.speedLabel = document.getElementById("speedLabel");
     elements.modalBookmarkBtn = document.getElementById("modalBookmarkBtn");
     elements.modalBookmarkText = document.getElementById("modalBookmarkText");
+    elements.modalTopBookmarkBtn = document.getElementById("modalTopBookmarkBtn");
 
     // Sticky Bottom Mini Player
     elements.miniPlayer = document.getElementById("miniPlayer");
@@ -1080,6 +1081,12 @@
 
     // Modal Bookmark Toggle
     elements.modalBookmarkBtn?.addEventListener("click", () => {
+      if (state.currentBook) {
+        toggleBookmark(state.currentBook.id);
+      }
+    });
+
+    elements.modalTopBookmarkBtn?.addEventListener("click", () => {
       if (state.currentBook) {
         toggleBookmark(state.currentBook.id);
       }

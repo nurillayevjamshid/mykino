@@ -7709,7 +7709,7 @@ function ensureMusicCss() {
   __musicCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/music/music.css?v=20261021-audio-only-v1";
+    link.href = "/static/music/music.css?v=20261021-player-redesign-v1";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);

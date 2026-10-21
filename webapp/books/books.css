@@ -892,24 +892,25 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  width: 100%;
 }
 
 .modal-badge-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #9deaff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #ffffff;
 }
 
-.modal-close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+.modal-close-btn,
+.modal-options-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #ffffff;
@@ -917,16 +918,26 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-close-btn:hover,
+.modal-options-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: scale(0.96);
 }
 
 .modal-cover-wrap {
-  width: 140px;
-  height: 140px;
-  margin: 0 auto 16px auto;
-  border-radius: 18px;
+  width: min(80vw, 300px);
+  height: min(80vw, 300px);
+  aspect-ratio: 1 / 1;
+  margin: 6px auto 20px auto;
+  border-radius: 28px;
   overflow: hidden;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
   background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   position: relative;
 }
 
@@ -949,20 +960,21 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
 }
 
 .modal-book-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 800;
   text-align: center;
   color: #ffffff;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 .modal-book-author {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   text-align: center;
-  color: var(--books-muted);
-  margin-bottom: 18px;
+  color: var(--books-muted, #A5A9C6);
+  margin-bottom: 22px;
 }
 
 .modal-meta-grid {
@@ -998,27 +1010,29 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
    In-App Audiobook Player Box (Scrubber, Controls, Speeds)
    ========================================================================== */
 .modal-player-box {
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 18px;
-  padding: 16px;
-  margin-bottom: 18px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: 380px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .player-scrubber-wrap {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .scrubber-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 6px;
+  height: 5px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.15);
   outline: none;
@@ -1032,8 +1046,8 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #9deaff;
-  box-shadow: 0 0 10px rgba(157, 234, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.4);
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 2px 4px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   transition: transform 0.15s;
 }
@@ -1047,8 +1061,8 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
   height: 16px;
   border: none;
   border-radius: 50%;
-  background: #9deaff;
-  box-shadow: 0 0 10px rgba(157, 234, 255, 0.8);
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
   cursor: pointer;
 }
 
@@ -1056,9 +1070,9 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--books-muted);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--books-muted, #A5A9C6);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   padding: 0 2px;
@@ -1068,30 +1082,42 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  margin-bottom: 14px;
+  gap: 24px;
+  margin-top: 18px;
+  margin-bottom: 18px;
 }
 
 .btn-ctrl {
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: #ffffff;
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   position: relative;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   -webkit-tap-highlight-color: transparent;
 }
 
+.btn-ctrl:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: scale(0.96);
+}
+
 .btn-ctrl:active {
   transform: scale(0.92);
-  background: rgba(255, 255, 255, 0.16);
+}
+
+.btn-ctrl-secondary {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
 }
 
 .btn-ctrl .ctrl-subtext {
@@ -1103,18 +1129,23 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
 }
 
 .btn-ctrl-main {
-  width: 60px;
-  height: 60px;
+  width: 76px;
+  height: 76px;
+  min-width: 76px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  border: 1px solid rgba(157, 234, 255, 0.45);
-  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.45);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.45);
   color: #ffffff;
 }
 
+.btn-ctrl-main:hover {
+  background: linear-gradient(135deg, #60a5fa, #2563eb);
+  transform: scale(0.97);
+}
+
 .btn-ctrl-main:active {
-  transform: scale(0.92);
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+  transform: scale(0.93);
 }
 
 .btn-ctrl-main svg {
@@ -1133,21 +1164,37 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
 .player-secondary-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
+  gap: 12px;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .btn-speed-toggle {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 6px 14px;
+  border-radius: 999px;
+  padding: 8px 16px;
   color: #9deaff;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-modal-bookmark {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 8px 16px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
   transition: all 0.18s;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1434,6 +1481,45 @@ html[data-theme="light"] .btn-speed-toggle {
   background: rgba(0, 0, 0, 0.05) !important;
   border-color: rgba(0, 0, 0, 0.1) !important;
   color: #0f172a !important;
+}
+
+html[data-theme="light"] .modal-close-btn,
+html[data-theme="light"] .modal-options-btn {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme="light"] .modal-badge-label {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .modal-cover-wrap {
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme="light"] .btn-ctrl {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme="light"] .btn-ctrl:hover {
+  background: #f8fafc !important;
+}
+
+html[data-theme="light"] .btn-ctrl-main {
+  background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%) !important;
+  border: 1px solid rgba(0, 113, 227, 0.3) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 113, 227, 0.35) !important;
+}
+
+html[data-theme="light"] .scrubber-slider {
+  background: rgba(15, 23, 42, 0.12) !important;
 }
 
 html[data-theme="light"] .topbar-btn {
