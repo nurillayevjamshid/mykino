@@ -2228,3 +2228,31 @@ html[data-theme="dark"] #sectionSplash .section-splash__logo img,
 .sidebar__item[href*="news"] {
   display: none !important;
 }
+
+/* FIFA Match Details (Timeline, Lineup, Stats) Bottom Sheet - Solid Dark/Light Theme */
+.fifa-lineup-modal__sheet,
+html[data-theme="dark"] .fifa-lineup-modal__sheet,
+[data-theme="dark"] .fifa-lineup-modal__sheet {
+  background: #0d1117 !important;
+  color: #f1f5f9 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="light"] .fifa-lineup-modal__sheet {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.is-android .fifa-lineup-modal__backdrop {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+}
+
+html.is-android .fifa-tl-badge {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
