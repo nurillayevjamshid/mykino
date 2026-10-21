@@ -2239,6 +2239,8 @@ module.exports = {
   maybeDeepRestoreCatalogOverrides,
   countMeaningfulMovieOverrides,
   mergeMovieOverridesFillOnly,
+  mergeOverridePreferNonEmpty,
+  cleanupStoredMovieOverride,
   writeCatalogMetadata,
   setCors,
   updateDriveFileMetadata,

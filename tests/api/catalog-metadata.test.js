@@ -575,4 +575,108 @@ describe("katalog metadata wipe himoyasi", () => {
     assert.equal(merged["movie-c"].reactions, undefined, "reactions ko'chirilmaydi");
     assert.equal(filled, 2);
   });
+
+  test("extractR2KeyFromUrl R2 URL va kalitlaridan to'g'ri kalit ajratib oladi", () => {
+    const { extractR2KeyFromUrl } = require("../../api/_lib/r2-store");
+    assert.equal(
+      extractR2KeyFromUrl("https://pub-42c7619e0f49402bb099364c0b589eca.r2.dev/img/header-12345.jpg?t=123"),
+      "img/header-12345.jpg"
+    );
+    assert.equal(
+      extractR2KeyFromUrl("https://r2.myplaylist.uz/img/header-67890.webp#hash"),
+      "img/header-67890.webp"
+    );
+    assert.equal(
+      extractR2KeyFromUrl("img/header-abc.png"),
+      "img/header-abc.png"
+    );
+    assert.equal(extractR2KeyFromUrl("https://example.com/other/test.png"), null);
+    assert.equal(extractR2KeyFromUrl(""), null);
+    assert.equal(extractR2KeyFromUrl(null), null);
+  });
+
+  test("mergeOverridePreferNonEmpty bo'sh headerImage bo'lganda fayl descriptionidagi eski rasmni qayta tiriltirmaydi", () => {
+    const googleDrive = freshGoogleDrive();
+    const base = {
+      headerImage: "https://r2.example.com/img/header-old.jpg",
+      heroPoster: "https://r2.example.com/img/header-old.jpg",
+      showInHeader: true,
+      headerCrop: { ratio: "16:9" },
+      title: "Asl kino"
+    };
+    const top = {
+      headerImage: "",
+      title: "Yangilangan kino"
+    };
+    const result = googleDrive.mergeOverridePreferNonEmpty(base, top);
+    assert.equal(result.headerImage, "", "headerImage bo'sh qolishi shart");
+    assert.equal(result.showInHeader, false, "header rasmi yo'q bo'lsa showInHeader false bo'lishi shart");
+    assert.equal(result.heroPoster, undefined, "eski heroPoster o'chirilishi shart");
+    assert.equal(result.headerCrop, undefined, "headerCrop o'chirilishi shart");
+    assert.equal(result.title, "Yangilangan kino");
+  });
+
+  test("admin gorizontal headerImage ni o'chirganda R2'dan ham o'chirish chaqiriladi va description yangilanadi", async () => {
+    let descriptionPatch = null;
+    let r2DeletedKey = null;
+    const oldHeaderUrl = "https://pub-42c7619e0f49402bb099364c0b589eca.r2.dev/img/header-12345.jpg";
+
+    process.env.R2_ENDPOINT = "https://r2.example.com";
+    process.env.R2_BUCKET = "test-bucket";
+    process.env.R2_ACCESS_KEY_ID = "test-key";
+    process.env.R2_SECRET_ACCESS_KEY = "test-secret";
+    process.env.R2_PUBLIC_URL = "https://pub-42c7619e0f49402bb099364c0b589eca.r2.dev";
+
+    const stub = installFetch([
+      tokenRoute,
+      metaSearchRoute,
+      metaMediaRoute(() => jsonResponse({
+        version: 1,
+        movies: {
+          "movie-header-1": {
+            headerImage: oldHeaderUrl,
+            showInHeader: true,
+            title: "Header Kino"
+          }
+        }
+      })),
+      uploadRoute(),
+      {
+        match: (url, method) => method === "GET" && url.includes("/drive/v3/files/movie-header-1?"),
+        respond: () => jsonResponse({
+          id: "movie-header-1",
+          name: "Header Kino.mp4",
+          mimeType: "video/mp4",
+          description: `[MY_KINO_META]\n${JSON.stringify({ headerImage: oldHeaderUrl, showInHeader: true })}\n[/MY_KINO_META]\nKo'rinadigan tavsif`
+        }),
+      },
+      {
+        match: (url, method) => method === "PATCH" && url.includes("/drive/v3/files/movie-header-1"),
+        respond: (url, init) => {
+          descriptionPatch = JSON.parse(String(init.body));
+          return jsonResponse({ id: "movie-header-1" });
+        },
+      },
+      {
+        match: (url, method) => method === "DELETE" && url.includes("img/header-12345.jpg"),
+        respond: (url) => {
+          r2DeletedKey = "img/header-12345.jpg";
+          return jsonResponse({ ok: true });
+        },
+      },
+    ]);
+    restoreFetch = stub.restore;
+
+    const googleDrive = freshGoogleDrive();
+    const saved = await googleDrive.updateCatalogMovieMetadata("movie-header-1", {
+      headerImage: "",
+      deletedHeaderImage: oldHeaderUrl
+    });
+
+    assert.equal(saved.override.headerImage, "", "katalogda headerImage bo'sh saqlanishi kerak");
+    assert.equal(saved.override.showInHeader, false, "showInHeader false bo'lishi kerak");
+    assert.ok(descriptionPatch, "Drive fayl descriptioni yangilanishi kerak");
+    assert.ok(!descriptionPatch.description.includes(oldHeaderUrl), "eski header rasm Drive descriptionidan ham o'chirilishi kerak");
+    assert.equal(r2DeletedKey, "img/header-12345.jpg", "R2 bucket'dan eski header rasmi o'chirilishi kerak");
+  });
 });
