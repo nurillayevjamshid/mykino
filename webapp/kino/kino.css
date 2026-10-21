@@ -6840,6 +6840,15 @@ html[data-theme="light"] .brand-logo__svg.kino-icon,
   stroke: none !important;
 }
 
+/* ============================================================
+   Podcast Microphone Icon
+   ============================================================ */
+.podcast-icon circle,
+.sidebar__item-icon--podcasts circle {
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
 .sidebar__divider {
   height: 1px;
   background: var(--c-border);
