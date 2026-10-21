@@ -8383,6 +8383,68 @@ function getAvailableCategories() {
   return list;
 }
 
+function getCategoryFlaticonSvg(name) {
+  const norm = normalizeCategoryValue(name);
+  if (/barchasi|all/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>';
+  }
+  if (/jangari|action|boevik/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M13 2 3 14h7v8l11-12h-8l3-8z"/></svg>';
+  }
+  if (/komediya|comedy/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-3.5-9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm7 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm-3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>';
+  }
+  if (/fantastika|sci-fi|fantasy/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M13.13 2.06c-.34-.04-.69.08-.94.33L9.7 4.88c-.37.37-.58.88-.58 1.41v1.89L6.5 10.8A3 3 0 0 0 5 13.43V17l3-1 2 2v-3.57a3 3 0 0 0 .82-2.12l2.62-2.62h1.89c.53 0 1.04-.21 1.41-.58l2.49-2.49c.5-.5.5-1.32-.01-1.82l-4.24-4.24c-.23-.23-.55-.38-.86-.43zM12 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm-8.71 9.29 2 2 1.42-1.42-2-2-1.42 1.42z"/></svg>';
+  }
+  if (/ujas|horror|qorqincli/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10v10l3-2 3 2 2-2 2 2 3-2 3 2V10c0-4.42-3.58-8-8-8zm-3 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm-3 6c-1.33 0-2.42-.78-2.83-1.89l1.89-.63c.18.49.52.52.94.52s.76-.03.94-.52l1.89.63C14.42 15.22 13.33 16 12 16z"/></svg>';
+  }
+  if (/multfilm|animation|kartun/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.49 2 2 6.49 2 12c0 4.96 3.61 9.07 8.35 9.87.66.11 1.15-.43 1.15-1.07v-.94c0-.78.63-1.41 1.41-1.41h1.59c3.03 0 5.5-2.47 5.5-5.5 0-6.07-4.48-10.95-8-10.95zm-5.5 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>';
+  }
+  if (/drama/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M15.5 2H8.5C4.9 2 2 4.9 2 8.5v4c0 3.6 2.9 6.5 6.5 6.5H9v3h2l2.2-3h2.3c3.6 0 6.5-2.9 6.5-6.5v-4C22 4.9 19.1 2 15.5 2zM7.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm9 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm-4.5 7c-2.3 0-3.8-1.5-4-1.7l1.4-1.4c.1.1 1.1 1.1 2.6 1.1s2.5-1 2.6-1.1l1.4 1.4c-.2.2-1.7 1.7-4 1.7z"/></svg>';
+  }
+  if (/triller|thriller/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>';
+  }
+  if (/tarix|history|historical/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M5 19h14a1 1 0 0 0 1-1v-1H4v1a1 1 0 0 0 1 1zm14.5-14a1.5 1.5 0 0 0-1.42 1.01L15.3 11.6l-2.61-5.23a1.5 1.5 0 0 0-2.68 0L7.4 11.6 4.62 6.01A1.5 1.5 0 1 0 3 7.5L5.2 16h13.6l2.2-8.5A1.5 1.5 0 0 0 19.5 5z"/></svg>';
+  }
+  if (/melodrama|romance|sevgi/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+  }
+  if (/sarguzasht|adventure/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm2.19-12.19-5.6 2.4 2.4 5.6 5.6-2.4-2.4-5.6zM12 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>';
+  }
+  if (/hujjatli|documentary/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>';
+  }
+  if (/detektiv|detective/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>';
+  }
+  if (/serial/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>';
+  }
+  if (/oila|family/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>';
+  }
+  if (/sport/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-11.5L14.5 12 12 13.8 9.5 12 11 8.5h2zm-2.8-1.5L8.7 8.3 5.9 7.4A7.88 7.88 0 0 1 10.2 7zm3.6 0A7.88 7.88 0 0 1 18.1 7.4l-2.8.9-1.5-1.3zM5.5 10.2l2.6.8-1 3.1c-.8-.9-1.4-2.1-1.6-3.9zm13 0c-.2 1.8-.8 3-1.6 3.9l-1-3.1 2.6-.8zm-8.8 6.4 1.3-1.6h2l1.3 1.6A7.95 7.95 0 0 1 12 18a7.95 7.95 0 0 1-2.3-1.4z"/></svg>';
+  }
+  if (/harbiy|war/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>';
+  }
+  if (/musiq|music/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+  }
+  if (/anime/.test(norm)) {
+    return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M9.5 2 8 6.5 3.5 8 8 9.5 9.5 14 11 9.5 15.5 8 11 6.5 9.5 2zm8 10-1.06 3.19L13.25 16.25l3.19 1.06L17.5 20.5l1.06-3.19 3.19-1.06-3.19-1.06L17.5 12z"/></svg>';
+  }
+  return '<svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>';
+}
+
 function renderSearchCategoryChips() {
   if (!searchGenresList) return;
   const categories = getAvailableCategories();
@@ -8390,10 +8452,18 @@ function renderSearchCategoryChips() {
 
   const activeNorm = activeCategory !== "all" ? activeCategory : "";
 
-  searchGenresList.innerHTML = categories.map((cat) => {
-    const emoji = getCategoryEmoji(cat.label);
-    const isActive = activeNorm === cat.value;
-    return `<button class="search-genre-chip${isActive ? " is-active" : ""}" type="button" data-category="${escapeAttr(cat.label)}" data-value="${escapeAttr(cat.value)}" aria-pressed="${isActive ? "true" : "false"}">${emoji} ${escapeHtml(cat.label)}</button>`;
+  const allLabel = (typeof t === "function" ? t("all") : "Barchasi") || "Barchasi";
+  const isAllActive = !activeNorm;
+
+  const allChips = [
+    { value: "all", label: allLabel, isAll: true },
+    ...categories.filter((c) => c.value !== "all" && normalizeCategoryValue(c.label) !== "barchasi")
+  ];
+
+  searchGenresList.innerHTML = allChips.map((cat) => {
+    const icon = getCategoryFlaticonSvg(cat.isAll ? "all" : cat.label);
+    const isActive = cat.isAll ? isAllActive : (activeNorm === cat.value);
+    return `<button class="search-genre-chip${isActive ? " is-active" : ""}" type="button" data-category="${escapeAttr(cat.label)}" data-value="${escapeAttr(cat.value)}" aria-pressed="${isActive ? "true" : "false"}">${icon}<span>${escapeHtml(cat.label)}</span></button>`;
   }).join("");
 }
 
@@ -8403,8 +8473,8 @@ function selectSearchCategory(categoryLabel, categoryValue) {
 
   try { haptic.tap?.(); } catch (_) {}
 
-  // If already active, toggle it off back to all
-  if (activeCategory === val) {
+  // If "all" selected or clicking the active one, toggle off back to all
+  if (val === "all" || activeCategory === val) {
     activeCategory = "all";
     if (searchInput) searchInput.value = "";
     query = "";
@@ -8431,7 +8501,7 @@ function selectSearchCategory(categoryLabel, categoryValue) {
     window.__potcasts?.setQuery?.(query);
   }
 
-  if (categoryLabel) {
+  if (categoryLabel && val !== "all") {
     pushRecentSearch(categoryLabel);
   }
 }

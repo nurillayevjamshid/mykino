@@ -1287,13 +1287,12 @@ html.is-android .modal-poster__zoom-badge {
    ============================================================ */
 .search-genres {
   margin-top: 10px;
-  padding: 12px 14px;
-  border-radius: 20px;
-  background: rgba(18, 26, 40, 0.75);
-  border: 1px solid var(--glass-border-soft);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow: var(--glass-shadow);
+  padding: 6px 2px 8px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .search-genres__title {
@@ -1301,18 +1300,19 @@ html.is-android .modal-poster__zoom-badge {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--glass-muted);
+  letter-spacing: 0.08em;
+  color: var(--glass-muted, rgba(255, 255, 255, 0.45));
   margin-bottom: 8px;
+  padding-left: 4px;
 }
 
 .search-genres__list {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 2px;
+  padding: 4px 2px 8px;
 }
 
 .search-genres__list::-webkit-scrollbar {
@@ -1321,38 +1321,58 @@ html.is-android .modal-poster__zoom-badge {
 
 .search-genre-chip {
   flex: 0 0 auto;
-  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 20px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .search-genre-chip:hover {
-  border-color: rgba(157, 234, 255, 0.5);
-  background: rgba(157, 234, 255, 0.14);
-  color: var(--glass-cyan);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
 }
 
 .search-genre-chip:active {
-  transform: scale(0.94);
+  transform: scale(0.95);
 }
 
+/* Active State — exactly like California in reference image */
 .search-genre-chip.is-active {
-  transform: scale(1.05) translateZ(0) !important;
-  background: linear-gradient(135deg, #0284c7, #0ea5e9) !important;
-  border-color: rgba(186, 230, 253, 0.8) !important;
-  color: #fff !important;
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #0a0e1a !important;
   font-weight: 700 !important;
-  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
-  filter: brightness(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  transform: none !important;
+}
+
+.search-genre-chip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  transition: color 0.15s ease;
+}
+
+.search-genre-chip.is-active .search-genre-chip__icon {
+  color: #0a0e1a !important;
 }
 
 /* ============================================================
@@ -1527,25 +1547,37 @@ html.is-android .modal-poster__zoom-badge {
 }
 
 html[data-theme="light"] .search-genres {
-  background: rgba(255, 255, 255, 0.94);
-  border-color: rgba(116, 145, 174, 0.24);
-  box-shadow: 0 14px 32px rgba(15, 19, 26, 0.08);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 html[data-theme="light"] .search-genres__title {
-  color: rgba(15, 23, 42, 0.55);
+  color: #64748b;
 }
 
 html[data-theme="light"] .search-genre-chip {
-  background: rgba(15, 23, 42, 0.04);
-  border-color: rgba(116, 145, 174, 0.2);
-  color: #152235;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #1e293b;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 html[data-theme="light"] .search-genre-chip:hover {
-  background: rgba(2, 132, 199, 0.08);
-  border-color: rgba(2, 132, 199, 0.35);
-  color: #0284c7;
+  background: rgba(0, 0, 0, 0.09);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+}
+
+html[data-theme="light"] .search-genre-chip.is-active {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1) !important;
+}
+
+html[data-theme="light"] .search-genre-chip.is-active .search-genre-chip__icon {
+  color: #0f172a !important;
 }
 
 /* ============================================================

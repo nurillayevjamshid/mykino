@@ -439,16 +439,50 @@
           <span class="search-genres__title">Kategoriyalar</span>
         </div>
         <div class="search-genres__list" id="searchGenresList">
-          <button class="search-genre-chip" type="button" data-genre="Jangari">💥 Jangari</button>
-          <button class="search-genre-chip" type="button" data-genre="Komediya">😂 Komediya</button>
-          <button class="search-genre-chip" type="button" data-genre="Fantastika">🚀 Fantastika</button>
-          <button class="search-genre-chip" type="button" data-genre="Ujas">👻 Ujas</button>
-          <button class="search-genre-chip" type="button" data-genre="Multfilm">🎨 Multfilm</button>
-          <button class="search-genre-chip" type="button" data-genre="Drama">🎭 Drama</button>
-          <button class="search-genre-chip" type="button" data-genre="Triller">🔍 Triller</button>
-          <button class="search-genre-chip" type="button" data-genre="Tarixiy">👑 Tarixiy</button>
-          <button class="search-genre-chip" type="button" data-genre="Melodrama">❤️ Melodrama</button>
-          <button class="search-genre-chip" type="button" data-genre="Sarguzasht">🗺️ Sarguzasht</button>
+          <button class="search-genre-chip is-active" type="button" data-category="Barchasi" data-value="all" aria-pressed="true">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+            <span>Barchasi</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Jangari" data-category="Jangari" data-value="jangari">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M13 2 3 14h7v8l11-12h-8l3-8z"/></svg>
+            <span>Jangari</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Komediya" data-category="Komediya" data-value="komediya">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-3.5-9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm7 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm-3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+            <span>Komediya</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Fantastika" data-category="Fantastika" data-value="fantastika">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M13.13 2.06c-.34-.04-.69.08-.94.33L9.7 4.88c-.37.37-.58.88-.58 1.41v1.89L6.5 10.8A3 3 0 0 0 5 13.43V17l3-1 2 2v-3.57a3 3 0 0 0 .82-2.12l2.62-2.62h1.89c.53 0 1.04-.21 1.41-.58l2.49-2.49c.5-.5.5-1.32-.01-1.82l-4.24-4.24c-.23-.23-.55-.38-.86-.43zM12 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm-8.71 9.29 2 2 1.42-1.42-2-2-1.42 1.42z"/></svg>
+            <span>Fantastika</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Ujas" data-category="Ujas" data-value="ujas">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10v10l3-2 3 2 2-2 2 2 3-2 3 2V10c0-4.42-3.58-8-8-8zm-3 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm-3 6c-1.33 0-2.42-.78-2.83-1.89l1.89-.63c.18.49.52.52.94.52s.76-.03.94-.52l1.89.63C14.42 15.22 13.33 16 12 16z"/></svg>
+            <span>Ujas</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Multfilm" data-category="Multfilm" data-value="multfilm">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.49 2 2 6.49 2 12c0 4.96 3.61 9.07 8.35 9.87.66.11 1.15-.43 1.15-1.07v-.94c0-.78.63-1.41 1.41-1.41h1.59c3.03 0 5.5-2.47 5.5-5.5 0-6.07-4.48-10.95-8-10.95zm-5.5 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+            <span>Multfilm</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Drama" data-category="Drama" data-value="drama">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M15.5 2H8.5C4.9 2 2 4.9 2 8.5v4c0 3.6 2.9 6.5 6.5 6.5H9v3h2l2.2-3h2.3c3.6 0 6.5-2.9 6.5-6.5v-4C22 4.9 19.1 2 15.5 2zM7.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm9 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm-4.5 7c-2.3 0-3.8-1.5-4-1.7l1.4-1.4c.1.1 1.1 1.1 2.6 1.1s2.5-1 2.6-1.1l1.4 1.4c-.2.2-1.7 1.7-4 1.7z"/></svg>
+            <span>Drama</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Triller" data-category="Triller" data-value="triller">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+            <span>Triller</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Tarixiy" data-category="Tarixiy" data-value="tarixiy">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M5 19h14a1 1 0 0 0 1-1v-1H4v1a1 1 0 0 0 1 1zm14.5-14a1.5 1.5 0 0 0-1.42 1.01L15.3 11.6l-2.61-5.23a1.5 1.5 0 0 0-2.68 0L7.4 11.6 4.62 6.01A1.5 1.5 0 1 0 3 7.5L5.2 16h13.6l2.2-8.5A1.5 1.5 0 0 0 19.5 5z"/></svg>
+            <span>Tarixiy</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Melodrama" data-category="Melodrama" data-value="melodrama">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            <span>Melodrama</span>
+          </button>
+          <button class="search-genre-chip" type="button" data-genre="Sarguzasht" data-category="Sarguzasht" data-value="sarguzasht">
+            <svg class="search-genre-chip__icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm2.19-12.19-5.6 2.4 2.4 5.6 5.6-2.4-2.4-5.6zM12 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+            <span>Sarguzasht</span>
+          </button>
         </div>
       </div>
       <div class="search-recents" id="searchRecents" hidden>
