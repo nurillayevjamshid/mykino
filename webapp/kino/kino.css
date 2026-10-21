@@ -7918,13 +7918,16 @@ html[data-theme="dark"] .modal-content h1 {
 
 .hero__dots {
   position: absolute;
-  bottom: 8px;
-  left: 0;
-  right: 0;
+  bottom: 12px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 6px;
-  z-index: 3;
+  z-index: 20;
+  width: auto;
   pointer-events: none;
 }
 
@@ -8336,15 +8339,19 @@ html[data-theme="light"] .topbar-search.is-open .topbar-search__trigger {
 #heroSection .hero__info,
 #heroSection #heroPlayLabel { display: none !important; }
 #heroSection .hero__dots {
-  position: absolute;
-  left: 0; right: 0;
-  bottom: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  z-index: 10;
-  pointer-events: none;
+  position: absolute !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  bottom: 12px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 6px !important;
+  z-index: 20 !important;
+  width: auto !important;
+  max-width: 80% !important;
+  pointer-events: none !important;
 }
 #heroSection .hero__dot {
   width: 6px;
@@ -9656,12 +9663,17 @@ html.is-android .hero__bg.is-loaded {
 /* Hero carousel dots — morph indicator (active dot kengayadi pill ko'rinishida) */
 .hero__dots {
   position: absolute;
-  bottom: 16px;
+  bottom: 12px;
   left: 50%;
+  right: auto;
   transform: translateX(-50%);
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 6px;
-  z-index: 3;
+  z-index: 20;
+  width: auto;
+  pointer-events: none;
 }
 .hero__dot {
   width: 6px;

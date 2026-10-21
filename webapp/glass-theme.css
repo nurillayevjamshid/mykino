@@ -2784,3 +2784,45 @@ html[data-theme="dark"] .music-search-bar {
   pointer-events: none !important;
   z-index: 1 !important;
 }
+
+/* Movie Carousel Card Dots — strictly centered at bottom */
+#heroSection .hero__dots,
+.hero .hero__dots,
+.hero__dots {
+  position: absolute !important;
+  bottom: 12px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 6px !important;
+  z-index: 20 !important;
+  width: auto !important;
+  max-width: 80% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+}
+#heroSection .hero__dot,
+.hero .hero__dot,
+.hero__dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.4) !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+#heroSection .hero__dot.is-active,
+.hero .hero__dot.is-active,
+.hero__dot.is-active {
+  width: 20px !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.7) !important;
+}

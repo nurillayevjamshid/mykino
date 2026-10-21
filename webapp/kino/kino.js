@@ -3108,14 +3108,28 @@ function renderHeroDots() {
     dots.className = "hero__dots";
     heroSection.append(dots);
   }
+  if (!dots.dataset.bound) {
+    dots.dataset.bound = "1";
+    dots.addEventListener("click", (e) => {
+      const dot = e.target.closest("[data-hero-dot]");
+      if (!dot) return;
+      const idx = parseInt(dot.dataset.heroDot, 10);
+      if (!Number.isNaN(idx) && heroSlides[idx]) {
+        heroActiveIndex = idx;
+        renderHeroSlide(heroSlides[heroActiveIndex], false);
+        startHeroAutoRotate();
+      }
+    });
+  }
   const existingDots = dots.querySelectorAll(".hero__dot");
   if (existingDots.length === heroSlides.length) {
     existingDots.forEach((dot, idx) => {
       dot.classList.toggle("is-active", idx === heroActiveIndex);
+      dot.setAttribute("data-hero-dot", String(idx));
     });
   } else {
     dots.innerHTML = heroSlides
-      .map((_, idx) => `<span class="hero__dot${idx === heroActiveIndex ? " is-active" : ""}"></span>`)
+      .map((_, idx) => `<span class="hero__dot${idx === heroActiveIndex ? " is-active" : ""}" data-hero-dot="${idx}"></span>`)
       .join("");
   }
 }
