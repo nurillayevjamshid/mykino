@@ -302,7 +302,7 @@ const WISHLIST_STORAGE_KEY = "kino_wishlist_v1";
 const copy = {
   uz: {
     all: "Barchasi",
-    homeNav: "Kino",
+    homeNav: "Boshiga",
     musicNav: "Musiqa",
     newsNav: "Yangiliklar",
     top: "Top",
@@ -445,7 +445,7 @@ const copy = {
   },
   ru: {
     all: "Все",
-    homeNav: "Kino",
+    homeNav: "Главная",
     musicNav: "Музыка",
     newsNav: "Новости",
     top: "Топ",
@@ -588,7 +588,7 @@ const copy = {
   },
   en: {
     all: "All",
-    homeNav: "Kino",
+    homeNav: "Home",
     musicNav: "Music",
     newsNav: "News",
     top: "Top",
@@ -732,7 +732,7 @@ const copy = {
 };
 
 const fallbackCopy = {
-  homeNav: "Kino",
+  homeNav: "Boshiga",
   musicNav: "Musiqa",
   newsNav: "Yangiliklar",
   loadingTitle: "Kinolar yuklanmoqda...",
@@ -3397,7 +3397,7 @@ function createMovieCard(movie) {
       </span>
       <button class="wishlist-toggle${inWishlist ? " is-active" : ""}" type="button" aria-pressed="${inWishlist ? "true" : "false"}" aria-label="${plainLabel(t("wishlistAdd"))}" data-wishlist-id="${escapeHtml(movie.id)}">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+          <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
         </svg>
       </button>
     </span>
@@ -7178,10 +7178,15 @@ function applyCopy() {
     if (button.closest(".bottom-bar")) return;
     setControlLabel(button, categoriesLabel);
   });
-  document.querySelectorAll('.bottom-bar [data-action="categories"]').forEach((button) => {
-    setControlLabel(button, musicNavLabel);
+  document.querySelectorAll('.bottom-bar--music [data-action="categories"]').forEach((button) => {
+    setControlLabel(button, homeNavLabel);
     const label = button.querySelector(".bottom-bar__label");
-    if (label) label.textContent = musicNavLabel;
+    if (label) label.textContent = homeNavLabel;
+  });
+  document.querySelectorAll('.bottom-bar--podcast [data-action="podcasts-tab"]').forEach((button) => {
+    setControlLabel(button, homeNavLabel);
+    const label = button.querySelector(".bottom-bar__label");
+    if (label) label.textContent = homeNavLabel;
   });
   if (searchInput) searchInput.placeholder = plainLabel(t("placeholder"));
   if (modalDescriptionToggleLabel) {
@@ -8786,7 +8791,7 @@ function syncSidebarSectionItems() {
         lower1.dataset.sidebarAction = "favorites";
         lower1.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+          <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
         </svg>
         <span data-i18n="favoritesNav">${plainLabel(t("favoritesNav"))}</span>`;
 
