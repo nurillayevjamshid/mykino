@@ -2081,7 +2081,7 @@
     iframe.allowFullscreen = true;
     iframe.setAttribute("playsinline", "1");
     iframe.setAttribute("webkit-playsinline", "1");
-    iframe.style.cssText = "width:100%;height:100%;border:0;position:absolute;inset:0;z-index:5;";
+    iframe.style.cssText = "width:100%;height:100%;border:0;position:absolute;inset:0;opacity:0.001;pointer-events:none;z-index:1;";
     musicFullPlayerYtSlot.replaceChildren(iframe);
 
     directIframeEl = iframe;
@@ -2092,7 +2092,7 @@
     requestMusicWakeLock();
 
     if (musicFullPlayerArt) {
-      musicFullPlayerArt.classList.add("has-video");
+      musicFullPlayerArt.classList.remove("has-video");
       musicFullPlayerArt.classList.add("is-playing");
     }
     if (miniPlayerToggle) miniPlayerToggle.dataset.state = "pause";
@@ -2112,8 +2112,7 @@
 
     const mountNode = document.createElement("div");
     mountNode.id = `ytPlayer_${reqId}`;
-    mountNode.style.width = "100%";
-    mountNode.style.height = "100%";
+    mountNode.style.cssText = "width:100%;height:100%;position:absolute;inset:0;opacity:0.001;pointer-events:none;z-index:1;";
     if (musicFullPlayerYtSlot) {
       musicFullPlayerYtSlot.replaceChildren(mountNode);
     }
@@ -2187,7 +2186,7 @@
               if (musicFullPlayerToggle) musicFullPlayerToggle.dataset.state = "pause";
               if (musicFullPlayerArt) {
                 musicFullPlayerArt.classList.add("is-playing");
-                musicFullPlayerArt.classList.add("has-video");
+                musicFullPlayerArt.classList.remove("has-video");
               }
               startMiniProgress();
             } else if (e.data === S.PAUSED) {

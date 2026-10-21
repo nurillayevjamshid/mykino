@@ -2224,15 +2224,19 @@ body.fullplayer-open .mini-player[aria-hidden="false"] {
 .music-fullplayer__art-fallback {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 3;
   background-size: cover;
   background-position: center;
-  transition: opacity 0.3s ease, transform 0.6s ease;
-  opacity: 1;
+  background-repeat: no-repeat;
+  border-radius: 28px;
+  transition: transform 0.6s ease;
+  opacity: 1 !important;
+  display: block !important;
   pointer-events: none;
 }
 .music-fullplayer__art.has-video .music-fullplayer__art-fallback {
-  opacity: 0 !important;
+  opacity: 1 !important;
+  display: block !important;
   pointer-events: none;
 }
 .music-fullplayer__art.is-playing .music-fullplayer__art-fallback {
@@ -2242,17 +2246,19 @@ body.fullplayer-open .mini-player[aria-hidden="false"] {
   0% { transform: scale(1); }
   100% { transform: scale(1.05); }
 }
+/* Audio only: YouTube iframe remains mounted for audio playback but visually hidden behind the cover artwork */
 .music-fullplayer__yt-slot {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  opacity: 1;
-  pointer-events: none;
+  z-index: 1 !important;
+  opacity: 0.001 !important;
+  pointer-events: none !important;
   overflow: hidden;
 }
 .music-fullplayer__art.has-video .music-fullplayer__yt-slot {
-  z-index: 4;
-  pointer-events: auto;
+  z-index: 1 !important;
+  opacity: 0.001 !important;
+  pointer-events: none !important;
 }
 .music-fullplayer__yt-slot iframe,
 .music-fullplayer__yt-slot > div {
@@ -2263,11 +2269,13 @@ body.fullplayer-open .mini-player[aria-hidden="false"] {
   height: 100% !important;
   transform: translate(-50%, -50%);
   border: 0;
-  pointer-events: none;
+  opacity: 0.001 !important;
+  pointer-events: none !important;
 }
 .music-fullplayer__art.has-video .music-fullplayer__yt-slot iframe,
 .music-fullplayer__art.has-video .music-fullplayer__yt-slot > div {
-  pointer-events: auto;
+  opacity: 0.001 !important;
+  pointer-events: none !important;
 }
 .music-fullplayer__info {
   width: min(100%, 380px);

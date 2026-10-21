@@ -2768,3 +2768,19 @@ html[data-theme="dark"] .music-search-bar {
   -webkit-backdrop-filter: blur(16px) !important;
   backdrop-filter: blur(16px) !important;
 }
+
+/* Audio-only music player: always display cover artwork, never show raw video */
+.music-fullplayer__art-fallback,
+.music-fullplayer__art.has-video .music-fullplayer__art-fallback {
+  opacity: 1 !important;
+  display: block !important;
+  z-index: 3 !important;
+}
+.music-fullplayer__yt-slot,
+.music-fullplayer__art.has-video .music-fullplayer__yt-slot,
+.music-fullplayer__yt-slot iframe,
+.music-fullplayer__yt-slot > div {
+  opacity: 0.001 !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
