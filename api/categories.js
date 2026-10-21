@@ -616,19 +616,21 @@ async function writeFifaLiveMatch(match) {
   }
 }
 
+const DEFAULT_FIFA_HIGHLIGHTS_CHANNEL = "https://www.youtube.com/@qsportuzbekistan/videos";
+
 async function readFifaHighlightsConfig() {
   const client = await getRedis();
-  if (!client) return { channelUrl: "", videos: [] };
+  if (!client) return { channelUrl: DEFAULT_FIFA_HIGHLIGHTS_CHANNEL, videos: [] };
   try {
     const raw = await client.get(FIFA_HIGHLIGHTS_KEY);
-    if (!raw) return { channelUrl: "", videos: [] };
+    if (!raw) return { channelUrl: DEFAULT_FIFA_HIGHLIGHTS_CHANNEL, videos: [] };
     const data = JSON.parse(raw);
-    const channelUrl = data && typeof data === "object" ? String(data.channelUrl || "") : "";
+    const channelUrl = data && typeof data === "object" && data.channelUrl ? String(data.channelUrl) : DEFAULT_FIFA_HIGHLIGHTS_CHANNEL;
     const videos = data && Array.isArray(data.videos) ? data.videos : [];
     return { channelUrl, videos, updatedAt: data?.updatedAt || "" };
   } catch (err) {
     console.warn("redis get fifa-highlights xato:", err.message);
-    return { channelUrl: "", videos: [] };
+    return { channelUrl: DEFAULT_FIFA_HIGHLIGHTS_CHANNEL, videos: [] };
   }
 }
 
@@ -885,13 +887,49 @@ function isVideoWithin2Days(timeText, titleText = "", published = null) {
     const pubTime = pubDate.getTime();
     if (!Number.isNaN(pubTime)) {
       const diffHours = (now - pubTime) / (1000 * 60 * 60);
-      // Agar diffHours <= 48.5 bo'lsa (2 kun + 30 min bufer) -> mos keladi
-      if (diffHours >= -2 && diffHours <= 48.5) return true;
-      if (diffHours > 48.5) return false;
+      // Agar diffHours <= 54 bo'lsa (2 kun / 48 soat + 6 soat oraliq) -> mos keladi
+      if (diffHours >= -2 && diffHours <= 54) return true;
+      if (diffHours > 54) return false;
     }
   }
 
-  // 2) Sarlavhada sana bo'lsa (masalan "15.10.2026", "18.10.2026")
+  // 2) YouTube nisbiy vaqti (timeText) — eng yangi va to'g'ri ko'rsatkich
+  const s = String(timeText || "").toLowerCase().trim();
+  if (s) {
+    // Hafta, oy, yil, week, month, year, недел, месяц, год -> ALBATTA 2 kundan eski
+    if (/(?:week|hafta|недел|month|oy|месяц|year|yil|год)/i.test(s)) {
+      return false;
+    }
+
+    // Soatlar, daqiqalar, soniyalar yoki bugungi -> ALBATTA 2 kun ichida (bugun)
+    if (/(?:second|sec|minute|min|hour|soat|daqiqa|минут|час|ч(?:\s|\.|\$|ас)|bugun|today|сегодня|hozir|just now|moment)/i.test(s)) {
+      return true;
+    }
+
+    // Kecha / yesterday / вчера -> 1 kun (mos keladi)
+    if (/(?:yesterday|kecha|вчера)/i.test(s)) {
+      return true;
+    }
+
+    // Kun soni: masalan "1 kun", "2 days", "3 kun", "1 дн", "2 дн", "1 день", "2 дня", "3 дня", "5 дней"
+    const dayMatch = s.match(/([0-9]+)\s*(?:day|days|kun|день|дня|дней|дн\.?|д\.?)/i);
+    if (dayMatch) {
+      const days = parseInt(dayMatch[1], 10);
+      if (!Number.isNaN(days)) {
+        return days <= 2;
+      }
+    }
+
+    const dMatch = s.match(/([0-9]+)\s*d\b/i);
+    if (dMatch) {
+      const days = parseInt(dMatch[1], 10);
+      if (!Number.isNaN(days)) {
+        return days <= 2;
+      }
+    }
+  }
+
+  // 3) Sarlavhada sana bo'lsa (masalan "20.10.2026", "19.10.2026")
   const fullText = (String(timeText || "") + " " + String(titleText || "")).trim();
   const dateMatch = fullText.match(/\b([0-3]?[0-9])\.([0-1]?[0-9])(?:\.(20\d{2}|\d{2}))?\b/);
   if (dateMatch) {
@@ -899,48 +937,20 @@ function isVideoWithin2Days(timeText, titleText = "", published = null) {
     const month = parseInt(dateMatch[2], 10) - 1;
     const curYear = new Date().getFullYear();
     const year = dateMatch[3] ? (dateMatch[3].length === 2 ? 2000 + parseInt(dateMatch[3], 10) : parseInt(dateMatch[3], 10)) : curYear;
-    const videoDate = new Date(year, month, day);
+    // O'yin kechqurun bo'lishini inobatga olib kunning oxirgi soatiga (23:59:59) nisbatan hisoblaymiz
+    const videoDate = new Date(year, month, day, 23, 59, 59);
     if (!Number.isNaN(videoDate.getTime())) {
-      const diffDays = (now - videoDate.getTime()) / (1000 * 60 * 60 * 24);
-      // Agar sana 2 kundan ortiq oldin bo'lsa, qat'iy rad etamiz
-      if (diffDays > 2.2) return false;
-      if (diffDays >= -0.5 && diffDays <= 2.2) return true;
+      const diffHours = (now - videoDate.getTime()) / (1000 * 60 * 60);
+      // Agar o'yin kuni tugaganidan keyin 48 soatdan ko'p o'tmagan bo'lsa -> 2 kunlik
+      if (diffHours <= 48) return true;
+      if (diffHours > 48) return false;
     }
   }
 
   if (!timeText) {
-    // Agar timeText ham, published ham yo'q bo'lsa — eski yoki noma'lum videolarni kiritmaymiz
     return false;
   }
 
-  const s = String(timeText).toLowerCase().trim();
-
-  // 3) Hafta, oy, yil, week, month, year, недел, месяц, год -> ALBATTA 2 kundan eski
-  if (/(?:week|hafta|недел|month|oy|месяц|year|yil|год)/i.test(s)) {
-    return false;
-  }
-
-  // 4) Soatlar, daqiqalar, soniyalar yoki bugungi -> ALBATTA 2 kun ichida
-  // Eslatma: Cyrillic 'ч' uchun \b ishlamaydi, shuning uchun ч(?:\s|\.|$|ас) ishlatiladi
-  if (/(?:second|sec|minute|min|hour|soat|daqiqa|минут|час|ч(?:\s|\.|$)|bugun|today|сегодня|hozir|just now|moment)/i.test(s)) {
-    return true;
-  }
-
-  // 5) Kecha / yesterday / вчера -> 1 kun (mos keladi)
-  if (/(?:yesterday|kecha|вчера)/i.test(s)) {
-    return true;
-  }
-
-  // 6) Kun soni: masalan "1 kun", "2 days", "3 kun", "4 дн", "3 дня", "5 дней"
-  const dayMatch = s.match(/([0-9]+)\s*(?:day|days|kun|день|дня|дней|дн\.?|д\.?)/i);
-  if (dayMatch) {
-    const days = parseInt(dayMatch[1], 10);
-    if (!Number.isNaN(days)) {
-      return days <= 2;
-    }
-  }
-
-  // 7) Agar matnda umumiy raqam bo'lsa (masalan "3 d" yoki boshqa)
   const numMatch = s.match(/([0-9]+)/);
   if (numMatch) {
     const n = parseInt(numMatch[1], 10);
@@ -1164,40 +1174,45 @@ async function scrapeYoutubePage(url, debugObj = null) {
 }
 
 async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
-  let raw = String(channelUrl || "").trim();
-  if (!raw) return [];
+  let raw = String(channelUrl || DEFAULT_FIFA_HIGHLIGHTS_CHANNEL).trim();
+  if (!raw) raw = DEFAULT_FIFA_HIGHLIGHTS_CHANNEL;
   if (/^@[\w.-]+$/.test(raw)) raw = `https://www.youtube.com/${raw}`;
   if (/^UC[\w-]{22}$/.test(raw)) raw = `https://www.youtube.com/channel/${raw}`;
 
-  let channelIdMatch = raw.match(/channel\/(UC[\w-]{22})/);
-  let channelId = channelIdMatch ? channelIdMatch[1] : null;
-
-  let baseVideos = [];
   const normBase = raw.replace(/\/+(featured|shorts|streams|community|about|playlists|videos)\/?$/i, "").replace(/\/+$/, "");
+  const videosUrl = `${normBase}/videos`;
 
   if (debugOut) {
     debugOut.raw = raw;
     debugOut.normBase = normBase;
-    debugOut.baseDiag = {};
-    debugOut.plDiag = {};
+    debugOut.videosUrl = videosUrl;
+    debugOut.videosDiag = {};
   }
-
-  // 1) Agar to'g'ridan-to'g'ri channelId bo'lmasa, kanal sahifasidan channelId va videolarni aniqlash
-  if (!channelId) {
-    const { html, videos } = await scrapeYoutubePage(normBase, debugOut ? debugOut.baseDiag : null);
-    baseVideos = videos;
-    const m = html.match(/"browseId":\s*"(UC[\w-]{22})"/) ||
-              html.match(/"externalId":\s*"(UC[\w-]{22})"/) ||
-              html.match(/channel\/(UC[\w-]{22})/);
-    if (m) channelId = m[1];
-  }
-
-  if (debugOut) debugOut.channelId = channelId;
 
   const videoMap = new Map();
 
-  // 2) Agar channelId aniqlangan bo'lsa, avvalo YouTube'ning rasmiy RSS feed'ini yuklaymiz.
-  // RSS feed o'ta tez (<200ms), bloklanmaydi va har bir video uchun 100% aniq published (ISO 8601) sanasini beradi!
+  // 1) QAT'IY TALAB: Eng avvalo aynan YouTube kanalining /videos (Videolar) bo'limidan scrape qilamiz.
+  // Bu bo'lim barcha to'liq o'yin sharhlari va highlightslarini eng yangisidan boshlab xronologik beradi.
+  const { html: vHtml, videos: vVideos } = await scrapeYoutubePage(videosUrl, debugOut ? debugOut.videosDiag : null);
+  for (const vv of (vVideos || [])) {
+    if (vv.videoId && !videoMap.has(vv.videoId)) {
+      videoMap.set(vv.videoId, vv);
+    }
+  }
+
+  // Kanal ID'sini aniqlash (agar RSS mavjud bo'lsa)
+  let channelIdMatch = raw.match(/channel\/(UC[\w-]{22})/);
+  let channelId = channelIdMatch ? channelIdMatch[1] : null;
+  if (!channelId && vHtml) {
+    const m = vHtml.match(/"browseId":\s*"(UC[\w-]{22})"/) ||
+              vHtml.match(/"externalId":\s*"(UC[\w-]{22})"/) ||
+              vHtml.match(/channel\/(UC[\w-]{22})/) ||
+              vHtml.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/);
+    if (m) channelId = m[1];
+  }
+  if (debugOut) debugOut.channelId = channelId;
+
+  // 2) Agar channelId aniqlangan bo'lsa, YouTube RSS orqali ISO 8601 publication sanalarini to'ldiramiz
   if (channelId) {
     try {
       const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
@@ -1230,15 +1245,21 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
 
           const timeAgo = published ? formatTimeAgoFromDate(new Date(published)) : "";
 
-          videoMap.set(videoId, {
-            videoId,
-            title,
-            timeAgo,
-            duration: "",
-            thumb,
-            url: `https://www.youtube.com/watch?v=${videoId}`,
-            published
-          });
+          const existing = videoMap.get(videoId);
+          if (existing) {
+            existing.published = published;
+            if (!existing.timeAgo && timeAgo) existing.timeAgo = timeAgo;
+          } else {
+            videoMap.set(videoId, {
+              videoId,
+              title,
+              timeAgo,
+              duration: "",
+              thumb,
+              url: `https://www.youtube.com/watch?v=${videoId}`,
+              published
+            });
+          }
         }
       }
     } catch (rssErr) {
@@ -1246,41 +1267,21 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
     }
   }
 
-  // 3) YouTube'ning rasmiy Uploads playlist'ini (UU...) yuklab, duration va qo'shimcha videolarni boyitamiz
-  if (channelId) {
+  // 3) Agar /videos sahifasidan video topilmagan bo'lsa (e.g. YouTube o'zgarishi), asosiy sahifa va playlistdan urinish
+  if (videoMap.size === 0) {
+    if (debugOut) debugOut.baseDiag = {};
+    const { videos: baseVideos } = await scrapeYoutubePage(normBase, debugOut ? debugOut.baseDiag : null);
+    for (const bv of (baseVideos || [])) {
+      if (bv.videoId && !videoMap.has(bv.videoId)) videoMap.set(bv.videoId, bv);
+    }
+  }
+  if (channelId && videoMap.size === 0) {
     const uploadsPlaylistId = channelId.replace(/^UC/, "UU");
     const playlistUrl = `https://www.youtube.com/playlist?list=${uploadsPlaylistId}`;
     if (debugOut) debugOut.playlistUrl = playlistUrl;
     const { videos: plVideos } = await scrapeYoutubePage(playlistUrl, debugOut ? debugOut.plDiag : null);
-    if (plVideos && plVideos.length > 0) {
-      for (const pv of plVideos) {
-        if (!pv.videoId) continue;
-        const existing = videoMap.get(pv.videoId);
-        if (existing) {
-          if (pv.duration && !existing.duration) existing.duration = pv.duration;
-          if (pv.title && pv.title.length > existing.title.length) existing.title = pv.title;
-        } else {
-          videoMap.set(pv.videoId, pv);
-        }
-      }
-    }
-  }
-
-  // 4) Agar RSS ham, playlist ham bo'sh bo'lsa, kanal sahifasi va /videos sahifasini tekshirish
-  if (videoMap.size === 0) {
-    for (const bv of baseVideos) {
-      if (bv.videoId) videoMap.set(bv.videoId, bv);
-    }
-  }
-  if (videoMap.size === 0) {
-    const videosUrl = `${normBase}/videos`;
-    if (debugOut) {
-      debugOut.videosUrl = videosUrl;
-      debugOut.videosDiag = {};
-    }
-    const { videos: vVideos } = await scrapeYoutubePage(videosUrl, debugOut ? debugOut.videosDiag : null);
-    for (const vv of (vVideos || [])) {
-      if (vv.videoId) videoMap.set(vv.videoId, vv);
+    for (const pv of (plVideos || [])) {
+      if (pv.videoId && !videoMap.has(pv.videoId)) videoMap.set(pv.videoId, pv);
     }
   }
 
@@ -1290,7 +1291,6 @@ async function fetchYoutubeHighlightsFromChannel(channelUrl, debugOut = null) {
   }
 
   // QAT'IY TALAB: Faqat va faqat oxirgi 2 kunlik videolarni saralash!
-  // Agar oxirgi 2 kunda qo'shilganlari bo'lmasa, bo'sh array [] qaytadi (eski videolarga fallback YO'Q)!
   const recent = allVideos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
   if (recent.length === 0) {
     if (debugOut) {
@@ -1371,12 +1371,7 @@ async function handleFifaHighlights(request, response) {
       const query = request.query || {};
       const isDebug = query.debug === "1" || query.refresh === "1";
       const cfg = await readFifaHighlightsConfig();
-      const channelUrl = cfg?.channelUrl || "";
-      if (!channelUrl) {
-        response.setHeader("Cache-Control", "public, max-age=60, s-maxage=120");
-        response.status(200).json({ ok: true, channelUrl: "", count: 0, videos: [] });
-        return;
-      }
+      const channelUrl = cfg?.channelUrl || DEFAULT_FIFA_HIGHLIGHTS_CHANNEL;
 
       // Kesh 15 daqiqa amal qiladi, so'ng YouTube'dan avtomatik yangi highlightlar tortiladi
       const FIFA_HIGHLIGHTS_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
@@ -1385,6 +1380,9 @@ async function handleFifaHighlights(request, response) {
       const forceRefresh = query.refresh === "1";
 
       let videos = Array.isArray(cfg?.videos) ? cfg.videos : [];
+      // Avvalo keshdagi videolardan faqat oxirgi 2 kunliklarini saralaymiz
+      videos = videos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
+
       let debugOut = {};
 
       if (isExpired || forceRefresh || videos.length === 0) {
@@ -1402,13 +1400,7 @@ async function handleFifaHighlights(request, response) {
         if (scraped !== null) {
           videos = scraped;
           await writeFifaHighlightsConfig({ channelUrl, videos, updatedAt: new Date().toISOString() });
-        } else {
-          // Scrape vaqtinchalik xato bersa, mavjud keshdan faqat 2 kunliklarini qoldiramiz
-          videos = (Array.isArray(cfg?.videos) ? cfg.videos : []).filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
         }
-      } else {
-        // Kesh muddati o'tmagan bo'lsa ham, 2 kundan o'tib ketgan videolarni qat'iy tozalash
-        videos = videos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
       }
 
       // Qat'iy yakuniy tekshiruv: faqat oxirgi 2 kunlik videolar

@@ -2685,6 +2685,10 @@
     renderMatches();
     renderGroups();
     renderLive();
+    // O'yinlar highlightslarini ham har 5 daqiqada yangilab turish
+    if (Date.now() - fifaHighlightsLoadedAt > 5 * 60 * 1000) {
+      loadAndRenderFifaHighlights(true).catch(() => {});
+    }
   }
   function startFifaPolling() {
     if (fifaPollTimer) return;
@@ -2701,12 +2705,12 @@
   // --- YouTube Highlights (Kunlik o'yinlar sharhi) ---
   let fifaHighlightsCacheData = null;
   let fifaHighlightsLoadedAt = 0;
-  async function loadAndRenderFifaHighlights() {
+  async function loadAndRenderFifaHighlights(force = false) {
     const wrap = document.getElementById("fifaHighlightsWrap");
     if (!wrap) return;
 
     const now = Date.now();
-    if (fifaHighlightsCacheData && now - fifaHighlightsLoadedAt < 120000) {
+    if (!force && fifaHighlightsCacheData && now - fifaHighlightsLoadedAt < 120000) {
       renderFifaHighlightsHtml(wrap, fifaHighlightsCacheData);
       return;
     }
@@ -2738,6 +2742,7 @@
     { pattern: /Лиг[аи]\s+Европы/gi, uz: "Yevropa ligasi", en: "Europa League", ru: "Лига Европы" },
     { pattern: /Лиг[аи]\s+конференций/gi, uz: "Konferensiyalar ligasi", en: "Conference League", ru: "Лига конференций" },
     { pattern: /Премьер-лиг[аи]\s*(Англии)?|АПЛ/gi, uz: "APL", en: "Premier League", ru: "АПЛ" },
+    { pattern: /РПЛ|Российск[аяо-]+\s+премьер-лиг[аи]/gi, uz: "RPL", en: "RPL", ru: "РПЛ" },
     { pattern: /Ла\s*Лиг[аи]|Пример[аы]/gi, uz: "La Liga", en: "La Liga", ru: "Ла Лига" },
     { pattern: /Сери[яи]\s*А/gi, uz: "A Seriya", en: "Serie A", ru: "Серия А" },
     { pattern: /Бундеслиг[аи]/gi, uz: "Bundesliga", en: "Bundesliga", ru: "Бундеслига" },
@@ -2828,6 +2833,17 @@
     "Боруссия Дортмунд": { uz: "Borussiya Dortmund", en: "Borussia Dortmund" },
     "Боруссия Д": { uz: "Borussiya D", en: "Borussia Dortmund" },
     "Байер": { uz: "Bayer", en: "Bayer Leverkusen" },
+    "Родина": { uz: "Rodina", en: "Rodina" },
+    "Оренбург": { uz: "Orenburg", en: "Orenburg" },
+    "Балтика": { uz: "Baltika", en: "Baltika" },
+    "Ростов": { uz: "Rostov", en: "Rostov" },
+    "Спартак": { uz: "Spartak", en: "Spartak" },
+    "Зенит": { uz: "Zenit", en: "Zenit" },
+    "ЦСКА": { uz: "CSKA", en: "CSKA" },
+    "Локомотив": { uz: "Lokomotiv", en: "Lokomotiv" },
+    "Краснодар": { uz: "Krasnodar", en: "Krasnodar" },
+    "Славия Прага": { uz: "Slaviya Praga", en: "Slavia Prague" },
+    "Сабах": { uz: "Sabah", en: "Sabah" },
     "РБ Лейпциг": { uz: "RB Leypsig", en: "RB Leipzig" },
     "Лейпциг": { uz: "Leypsig", en: "RB Leipzig" },
     "Штутгарт": { uz: "Shtutgart", en: "Stuttgart" },

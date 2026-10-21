@@ -172,6 +172,76 @@ describe("api/categories.js football leagues", () => {
         const isLive = value.includes("event=live-");
         return jsonResponse(summaryPayload("event-1", isLive));
       }
+      if (value.includes("youtube.com")) {
+        const mockYtData = {
+          contents: {
+            twoColumnBrowseResultsRenderer: {
+              tabs: [
+                {
+                  tabRenderer: {
+                    content: {
+                      richGridRenderer: {
+                        contents: [
+                          {
+                            richItemRenderer: {
+                              content: {
+                                videoRenderer: {
+                                  videoId: "vid-recent-1",
+                                  title: { runs: [{ text: "Portu — PSV. O'yin sharhi. 20.10.2026" }] },
+                                  publishedTimeText: { simpleText: "7 ч назад" },
+                                  lengthText: { simpleText: "8:15" },
+                                },
+                              },
+                            },
+                          },
+                          {
+                            richItemRenderer: {
+                              content: {
+                                videoRenderer: {
+                                  videoId: "vid-recent-2",
+                                  title: { runs: [{ text: "Barselona — PSJ. O'yin sharhi. 19.10.2026" }] },
+                                  publishedTimeText: { simpleText: "1 дн. назад" },
+                                  lengthText: { simpleText: "9:40" },
+                                },
+                              },
+                            },
+                          },
+                          {
+                            richItemRenderer: {
+                              content: {
+                                videoRenderer: {
+                                  videoId: "vid-old-1",
+                                  title: { runs: [{ text: "Eski o'yin. 15.10.2026" }] },
+                                  publishedTimeText: { simpleText: "5 дн. назад" },
+                                  lengthText: { simpleText: "10:00" },
+                                },
+                              },
+                            },
+                          },
+                          {
+                            richItemRenderer: {
+                              content: {
+                                videoRenderer: {
+                                  videoId: "vid-short-1",
+                                  title: { runs: [{ text: "Gol! #shorts" }] },
+                                  publishedTimeText: { simpleText: "1 ч назад" },
+                                  lengthText: { simpleText: "0:45" },
+                                },
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        };
+        const html = `<html><head></head><body><script>var ytInitialData = ${JSON.stringify(mockYtData)};</script></body></html>`;
+        return new Response(html, { status: 200, headers: { "Content-Type": "text/html" } });
+      }
       throw new Error(`Unexpected URL: ${value}`);
     };
   });
@@ -306,5 +376,18 @@ describe("api/categories.js football leagues", () => {
     // Without single-flight, 5 requests would trigger 5 * (9 leagues * 2 dates + 1 standings) = ~95 fetches!
     // With single-flight, only 1 wave of fetches (19 fetches) is executed!
     assert.ok(fetchCount <= 20, `Fetch count was ${fetchCount}, expected single wave <= 20`);
+  });
+
+  test("returns latest 2 days highlights from qsportuzbekistan/videos and excludes older/shorts", async () => {
+    const req = createMockReq({ method: "GET", url: "/api/categories?type=fifa-highlights&refresh=1" });
+    const res = createMockRes();
+    await handler(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.channelUrl, "https://www.youtube.com/@qsportuzbekistan/videos");
+    assert.equal(res.body.count, 2);
+    assert.deepEqual(res.body.videos.map((v) => v.videoId), ["vid-recent-1", "vid-recent-2"]);
+    assert.equal(res.body.videos.find((v) => v.videoId === "vid-old-1"), undefined);
+    assert.equal(res.body.videos.find((v) => v.videoId === "vid-short-1"), undefined);
   });
 });

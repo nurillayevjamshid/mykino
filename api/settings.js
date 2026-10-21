@@ -388,7 +388,7 @@ async function readPersistedSettings(settings) {
       ticker: normalizeTicker(null),
       preRollAd: normalizePreRollAd(null),
       fifaLive: normalizeFifaLive(null),
-      fifaHighlightsChannel: "",
+      fifaHighlightsChannel: "https://www.youtube.com/@qsportuzbekistan/videos",
       esportsStreams: normalizeEsportsStreams(null),
     };
   }
