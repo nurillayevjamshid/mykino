@@ -3464,3 +3464,14 @@ html[data-theme="light"] #sectionSplash .section-splash__logo .kino-icon,
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
 }
+
+/* ============================================================
+   Unified Profile Icon
+   ============================================================ */
+.profile-icon,
+.sidebar__item-icon--profile {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}

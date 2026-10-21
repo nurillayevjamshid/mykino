@@ -8849,9 +8849,9 @@ function syncSidebarSectionItems() {
 
         lower2.dataset.sidebarAction = "music-profile";
         lower2.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="8" r="4"></circle>
-          <path d="M4 21a8 8 0 0 1 16 0"></path>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="profile-icon sidebar__item-icon--profile" aria-hidden="true">
+          <circle cx="12" cy="7" r="4"></circle>
+          <rect x="4.5" y="14" width="15" height="7" rx="3.5"></rect>
         </svg>
         <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
       } else if (section === "podcasts") {
@@ -8864,9 +8864,9 @@ function syncSidebarSectionItems() {
 
         lower2.dataset.sidebarAction = "podcast-profile";
         lower2.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="8" r="4"></circle>
-          <path d="M4 21a8 8 0 0 1 16 0"></path>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="profile-icon sidebar__item-icon--profile" aria-hidden="true">
+          <circle cx="12" cy="7" r="4"></circle>
+          <rect x="4.5" y="14" width="15" height="7" rx="3.5"></rect>
         </svg>
         <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
       } else {
@@ -8879,9 +8879,9 @@ function syncSidebarSectionItems() {
 
         lower2.dataset.sidebarAction = "profile";
         lower2.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="8" r="4"></circle>
-          <path d="M4 21a8 8 0 0 1 16 0"></path>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="profile-icon sidebar__item-icon--profile" aria-hidden="true">
+          <circle cx="12" cy="7" r="4"></circle>
+          <rect x="4.5" y="14" width="15" height="7" rx="3.5"></rect>
         </svg>
         <span data-i18n="profileNav">${plainLabel(t("profileNav"))}</span>`;
       }
