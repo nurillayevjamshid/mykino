@@ -935,11 +935,37 @@
         <span>To'liq ablojka</span>
       </div>
     </div>
-    <div class="modal-content">
-      <div class="modal-info-card">
-        <h1 id="modalTitle"></h1>
-        <div class="modal-meta" id="modalMeta"></div>
-        <div class="modal-rating" id="modalRating" aria-hidden="true"></div>
+    <div class="modal-card-wrapper">
+      <div class="modal-content">
+        <div class="modal-info-card">
+          <h1 id="modalTitle"></h1>
+          <div class="modal-meta" id="modalMeta"></div>
+          <div class="modal-rating" id="modalRating" aria-hidden="true"></div>
+          <div class="modal-description-wrap" id="modalDescriptionWrap">
+            <p id="modalDescription" class="modal-description"></p>
+          </div>
+          <button class="modal-description-toggle" id="modalDescriptionToggle" type="button" aria-expanded="false" hidden>
+            <span class="modal-description-toggle__label" data-i18n="showMore">Show More</span>
+            <svg class="modal-description-toggle__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="modal-card-dots" aria-hidden="true">
+            <span class="modal-card-dot is-active"></span>
+            <span class="modal-card-dot"></span>
+            <span class="modal-card-dot"></span>
+          </div>
+          <button class="comments-trigger" id="commentsTrigger" type="button" aria-haspopup="dialog" aria-controls="commentsSheet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="comments-trigger__label" data-i18n="commentsTitle">Izohlar</span>
+            <span class="comments-trigger__count" id="commentsTriggerCount">0</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-card-bottom-notch-wrap" aria-hidden="true">
+        <svg class="modal-card-bottom-notch" viewBox="0 0 360 52" preserveAspectRatio="none">
+          <path d="M 0,0 L 0,42 Q 0,52 10,52 L 68,52 C 112,52 136,4 180,4 C 224,4 248,52 292,52 L 350,52 Q 360,52 360,42 L 360,0 Z" />
+        </svg>
         <div class="watch-actions" id="watchActions">
           <button class="watch-button watch-button--pill" id="watchButton" type="button" aria-label="Tomosha qilish" data-i18n-aria-label="watch">
             <span class="watch-button__label" data-i18n="watch">Tomosha qilish</span>
@@ -958,22 +984,7 @@
             </span>
           </button>
         </div>
-        <button class="modal-description-toggle" id="modalDescriptionToggle" type="button" aria-expanded="false">
-          <span class="modal-description-toggle__label" data-i18n="showMore">Show More</span>
-          <svg class="modal-description-toggle__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
-        <button class="comments-trigger" id="commentsTrigger" type="button" aria-haspopup="dialog" aria-controls="commentsSheet">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span class="comments-trigger__label" data-i18n="commentsTitle">Izohlar</span>
-          <span class="comments-trigger__count" id="commentsTriggerCount">0</span>
-        </button>
       </div>
-      <div class="modal-description-wrap" id="modalDescriptionWrap" hidden>
-        <p id="modalDescription" class="modal-description"></p>
-      </div>
-
     </div>
 
     <div class="comments-sheet" id="commentsSheet" hidden aria-hidden="true" role="dialog" aria-label="Izohlar" data-i18n-aria-label="commentsTitle">

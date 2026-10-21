@@ -4385,7 +4385,7 @@ commentsList?.addEventListener("click", (event) => {
 
 function setDescriptionExpanded(expanded) {
   if (!modalDescriptionWrap || !modalDescriptionToggle) return;
-  modalDescriptionWrap.hidden = !expanded;
+  modalDescriptionWrap.classList.toggle("is-expanded", expanded);
   modalDescriptionToggle.classList.toggle("is-expanded", expanded);
   modalDescriptionToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
   if (modalDescriptionToggleLabel) {
@@ -4395,8 +4395,12 @@ function setDescriptionExpanded(expanded) {
 
 function syncDescriptionToggle() {
   if (!modalDescription || !modalDescriptionToggle) return;
-  const hasText = Boolean(String(modalDescription.textContent || "").trim());
-  modalDescriptionToggle.hidden = !hasText;
+  const text = String(modalDescription.textContent || "").trim();
+  const hasText = Boolean(text);
+  if (modalDescriptionWrap) {
+    modalDescriptionWrap.hidden = !hasText;
+  }
+  modalDescriptionToggle.hidden = !hasText || text.length <= 130;
   setDescriptionExpanded(false);
 }
 
