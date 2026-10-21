@@ -5721,6 +5721,15 @@ function updateMiniScreenControlsState() {
   }
   playerMiniToggle.classList.toggle("is-playing", isPlaying);
   playerMiniToggle.setAttribute("aria-label", isPlaying ? "Pauza" : "Play");
+
+  const miniBadge = document.querySelector("#playerMiniBadge");
+  const miniTitle = document.querySelector("#playerMiniTitle");
+  if (miniBadge && activeMovie) {
+    miniBadge.textContent = activeMovie._podcast ? "PODKAST" : (activeMovie._highlight ? "FUTBOL" : "KINO");
+  }
+  if (miniTitle && activeMovie) {
+    miniTitle.textContent = activeMovie.title || (activeMovie._podcast ? "Podkast" : "Kino");
+  }
 }
 
 
@@ -9486,6 +9495,12 @@ playerMiniExpand?.addEventListener("click", (e) => {
   expandVideoPlayer();
 });
 
+document.querySelector(".player-mini-meta")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  hideMiniControls();
+  expandVideoPlayer();
+});
+
 playerMiniToggle?.addEventListener("click", (e) => {
   e.stopPropagation();
   toggleYouTubePlayback();
@@ -9630,9 +9645,9 @@ window.__resetMiniScreenOffset = () => {
     const dy = endY - startY;
 
     // 1) Chetga tez surib yopish (Flick to dismiss)
-    if (Math.abs(dx) > 120 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+    if (Math.abs(dx) > 110 && Math.abs(dx) > Math.abs(dy) * 1.2) {
       videoPlayer.style.transition = "transform 200ms ease, opacity 200ms ease";
-      videoPlayer.style.transform = `translate3d(${dx > 0 ? 360 : -360}px, ${__miniScreenOffsetY + dy}px, 0)`;
+      videoPlayer.style.transform = `translate3d(${dx > 0 ? 460 : -460}px, ${__miniScreenOffsetY + dy}px, 0)`;
       videoPlayer.style.opacity = "0";
       setTimeout(() => {
         videoPlayer.style.transition = "";

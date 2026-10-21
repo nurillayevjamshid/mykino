@@ -1478,21 +1478,30 @@
 
     <!-- Floating Mini-Screen Controls (Podkastlar va video mini-ekran rejimi) -->
     <div class="player-mini-controls" id="playerMiniControls" hidden aria-hidden="true">
-      <button type="button" class="player-mini-btn player-mini-btn--expand" id="playerMiniExpand" aria-label="Kengaytirish">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="15 3 21 3 21 9"></polyline>
-          <polyline points="9 21 3 21 3 15"></polyline>
-          <line x1="21" y1="3" x2="14" y2="10"></line>
-          <line x1="3" y1="21" x2="10" y2="14"></line>
-        </svg>
-      </button>
-      <button type="button" class="player-mini-btn player-mini-btn--toggle" id="playerMiniToggle" aria-label="Play/Pause">
-        <svg class="mini-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
-        <svg class="mini-icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path></svg>
-      </button>
-      <button type="button" class="player-mini-btn player-mini-btn--close" id="playerMiniClose" aria-label="Yopish">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
-      </button>
+      <div class="player-mini-top-row">
+        <div class="player-mini-meta">
+          <span class="player-mini-badge" id="playerMiniBadge">Kino</span>
+          <span class="player-mini-title" id="playerMiniTitle">Kino</span>
+        </div>
+        <button type="button" class="player-mini-btn player-mini-btn--close" id="playerMiniClose" aria-label="Yopish">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="player-mini-center-row">
+        <button type="button" class="player-mini-btn player-mini-btn--expand" id="playerMiniExpand" aria-label="Kengaytirish">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <polyline points="9 21 3 21 3 15"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+        </button>
+        <button type="button" class="player-mini-btn player-mini-btn--toggle" id="playerMiniToggle" aria-label="Play/Pause">
+          <svg class="mini-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 12 7-12 7z"></path></svg>
+          <svg class="mini-icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path></svg>
+        </button>
+      </div>
     </div>
 
     <div class="player-toast" id="playerToast" hidden></div>

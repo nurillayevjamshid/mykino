@@ -3259,3 +3259,158 @@ html[data-theme="dark"] .music-search-bar {
   background: #ffffff !important;
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.7) !important;
 }
+
+/* ============================================================
+   Floating Mini-Screen (Mini Ekran) — Kapsula Card uslubi
+   ekran eni bo'ylab suzuvchi PiP rejimi (namunadagi Live Activity card)
+   ============================================================ */
+.video-player.is-mini-screen {
+  position: fixed !important;
+  left: 12px !important;
+  right: 12px !important;
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 68px) !important;
+  top: auto !important;
+  width: auto !important;
+  max-width: 480px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  aspect-ratio: 545 / 256 !important;
+  height: auto !important;
+  max-height: 235px !important;
+  border-radius: 26px !important;
+  overflow: hidden !important;
+  z-index: 200010 !important;
+  background: #000000 !important;
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.85),
+    0 2px 10px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.16) !important;
+  cursor: grab !important;
+  touch-action: none;
+}
+
+@media (min-width: 768px) {
+  .video-player.is-mini-screen {
+    max-width: 460px !important;
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 74px) !important;
+  }
+}
+
+.video-player.is-mini-screen .video-mount {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 26px !important;
+  overflow: hidden !important;
+  background: #000000 !important;
+}
+
+.video-player.is-mini-screen .video-mount video,
+.video-player.is-mini-screen .video-mount iframe,
+.video-player.is-mini-screen .youtube-player-host {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 26px !important;
+  object-fit: cover !important;
+  pointer-events: none !important;
+}
+
+.video-player.is-mini-screen .player-mini-controls {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 25 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  padding: 12px 16px !important;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.25) 45%, rgba(0, 0, 0, 0.75) 100%) !important;
+  border-radius: 26px !important;
+  box-sizing: border-box !important;
+}
+
+.video-player.is-mini-screen .player-mini-top-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+.video-player.is-mini-screen .player-mini-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.video-player.is-mini-screen .player-mini-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.6px !important;
+  text-transform: uppercase !important;
+  padding: 3px 9px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  flex-shrink: 0 !important;
+}
+
+.video-player.is-mini-screen .player-mini-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7) !important;
+}
+
+.video-player.is-mini-screen .player-mini-center-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 20px !important;
+  width: 100% !important;
+  margin-top: auto !important;
+  margin-bottom: auto !important;
+}
+
+.video-player.is-mini-screen .player-mini-btn,
+.video-player .player-mini-btn,
+.player-mini-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  background: rgba(0, 0, 0, 0.68) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  color: #ffffff !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  transition: transform 140ms ease, background 140ms ease !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+  -webkit-tap-highlight-color: transparent !important;
+  flex-shrink: 0 !important;
+}
+
+.video-player.is-mini-screen .player-mini-btn--toggle,
+.video-player .player-mini-btn--toggle,
+.player-mini-btn--toggle {
+  width: 48px !important;
+  height: 48px !important;
+  background: rgba(255, 255, 255, 0.24) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55) !important;
+}
