@@ -736,24 +736,29 @@
     elements.booksList.innerHTML = list
       .map((book) => {
         const isSaved = state.savedIds.has(String(book.id));
-        const coverSrc = "/books/cover.jpg";
+        const coverSrc = book.coverImage || "/books/cover.jpg";
+        const metaParts = [];
+        if (book.author) metaParts.push(book.author);
+        if (book.duration) metaParts.push(book.duration);
+        else if (book.genre) metaParts.push(book.genre);
+        const subtitle = metaParts.length > 0 ? metaParts.join(" · ") : (book.author || "");
 
         return `
           <div class="book-chart-row" data-id="${book.id}">
-            <!-- Dark Rounded Card Container stretched full width (Click opens in-app player) -->
+            <!-- Card Container stretched full width (Click opens in-app player) -->
             <div class="chart-card" data-action="play-in-app" data-id="${book.id}">
-              <!-- Circular Cover Art -->
+              <!-- Squircle Cover Art -->
               <div class="chart-cover">
                 <img src="${coverSrc}" alt="${escapeHtml(book.title)}" loading="lazy" onerror="this.src='/books/cover.jpg'" />
               </div>
 
-              <!-- Middle Info: Title and Author (Single line, no wrap) -->
+              <!-- Middle Info: Title and Author / Duration (Single line, no wrap) -->
               <div class="chart-info">
                 <div class="chart-title">${escapeHtml(book.title)}</div>
-                <div class="chart-author">${escapeHtml(book.author)}</div>
+                <div class="chart-author">${escapeHtml(subtitle)}</div>
               </div>
 
-              <!-- Right Actions: Watermark Icon and Next Chevron -->
+              <!-- Right Actions: Save Bookmark Icon and Next Chevron -->
               <div class="chart-actions">
                 <button type="button" class="chart-bookmark-btn ${isSaved ? "is-saved" : ""}" data-action="bookmark" data-id="${book.id}" aria-label="Saqlash" title="${isSaved ? "Saqlangandan o'chirish" : "Saqlash"}">
                   <svg viewBox="0 0 24 24" fill="${isSaved ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

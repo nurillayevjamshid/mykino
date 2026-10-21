@@ -6,13 +6,13 @@
 
 :root {
   --books-bg: #0b0e14;
-  --books-card-bg: rgba(255, 255, 255, 0.065);
-  --books-card-hover: rgba(255, 255, 255, 0.11);
-  --books-border: rgba(255, 255, 255, 0.10);
-  --books-border-active: rgba(157, 234, 255, 0.35);
+  --books-card-bg: rgba(22, 26, 56, 0.72);
+  --books-card-hover: rgba(255, 255, 255, 0.045);
+  --books-border: rgba(255, 255, 255, 0.12);
+  --books-border-active: rgba(255, 255, 255, 0.22);
   --books-text: #ffffff;
-  --books-muted: #94a3b8;
-  --books-dim: #64748b;
+  --books-muted: #A5A9C6;
+  --books-dim: rgba(255, 255, 255, 0.50);
   --books-blue: #2563eb;
   --books-tg-blue: #229ed9;
   --books-gold: #f59e0b;
@@ -318,56 +318,72 @@ body.sidebar-open {
 }
 
 /* ==========================================================================
-   Audiobooks List (Clean Stretched Rounded Cards)
+   Audiobooks List (Inset Grouped Card matching Reference Design)
    ========================================================================== */
 .books-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
   width: 100%;
+  background: var(--books-card-bg);
+  border: 1px solid var(--books-border);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  backdrop-filter: var(--glass-blur, blur(16px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(16px));
+  gap: 0;
+}
+
+.books-list:has(.books-empty) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .book-chart-row {
   display: flex;
   align-items: center;
   width: 100%;
+  border-bottom: 1px solid var(--books-border);
+  position: relative;
+  transition: background 0.18s ease;
 }
 
-/* Dark Rounded Container Card stretched full width - Pill Capsule Shape */
+.book-chart-row:last-child {
+  border-bottom: none;
+}
+
+/* Row Card Container stretched full width (Click opens in-app player) */
 .chart-card {
   width: 100%;
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  background: var(--books-card-bg);
-  border: 1px solid var(--books-border);
-  border-radius: 9999px !important;
-  padding: 8px 16px 8px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 12px 14px;
   cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: var(--glass-blur, blur(12px));
-  -webkit-backdrop-filter: var(--glass-blur, blur(12px));
+  transition: background 0.18s ease;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .chart-card:hover {
   background: var(--books-card-hover);
-  border-color: var(--books-border-active);
-  transform: translateY(-1px);
 }
 
 .chart-card:active {
-  transform: scale(0.985);
-  background: var(--books-card-hover);
+  background: var(--books-card-active, rgba(255, 255, 255, 0.08));
 }
 
-/* Circular Cover Artwork inside the card */
+/* Squircle Cover Artwork inside the card (Image 2 style) */
 .chart-cover {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
-  border-radius: 50% !important;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  border-radius: 14px !important;
   aspect-ratio: 1 / 1;
   flex-shrink: 0;
   margin-right: 14px;
@@ -376,21 +392,21 @@ body.sidebar-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-  border: 2px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   position: relative;
 }
 
 .chart-cover img {
   width: 100%;
   height: 100%;
-  border-radius: 50% !important;
+  border-radius: 14px !important;
   aspect-ratio: 1 / 1;
   object-fit: cover;
   display: block;
 }
 
-/* Middle Info: Title and Author - strictly single line, never wrap to new line */
+/* Middle Info: Title and Author / Duration - strictly single line */
 .chart-info {
   flex: 1;
   min-width: 0;
@@ -398,30 +414,32 @@ body.sidebar-open {
   flex-direction: column;
   justify-content: center;
   gap: 3px;
-  padding-right: 12px;
+  padding-right: 10px;
   overflow: hidden;
 }
 
 .chart-title {
   font-size: 15px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--books-text, #ffffff);
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   letter-spacing: -0.01em;
+  line-height: 1.25;
 }
 
 .chart-author {
   font-size: 13px;
   font-weight: 500;
-  color: var(--books-muted);
+  color: var(--books-muted, #A5A9C6);
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+  line-height: 1.2;
 }
 
-/* Right Side Actions Container (Watermark and Next Chevron) */
+/* Right Side Actions Container (Save to Favorites button + Next Chevron icon) */
 .chart-actions {
   display: flex;
   align-items: center;
@@ -429,58 +447,106 @@ body.sidebar-open {
   flex-shrink: 0;
 }
 
-/* Watermark / Bookmark Icon button in list item - circular */
+/* Save to Favorites (Bookmark) Icon button placed directly BEFORE next icon */
 .chart-bookmark-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--books-border);
-  color: var(--books-dim);
+  background: transparent;
+  border: none;
+  color: var(--books-dim, #94a3b8);
   cursor: pointer;
   width: 36px;
   height: 36px;
+  min-width: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 50% !important;
   aspect-ratio: 1 / 1;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
+  padding: 0;
 }
 
 .chart-bookmark-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  transition: transform 0.15s ease, stroke 0.15s ease, fill 0.15s ease;
 }
 
 .chart-bookmark-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.12);
+  color: var(--books-text, #ffffff);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chart-bookmark-btn:active {
+  transform: scale(0.9);
 }
 
 .chart-bookmark-btn.is-saved {
-  color: var(--books-gold) !important;
+  color: var(--books-gold, #f59e0b) !important;
   background: rgba(245, 158, 11, 0.15) !important;
-  border-color: rgba(245, 158, 11, 0.35) !important;
 }
 
-/* Next chevron icon ('>') following the watermark icon - circular touch target */
+.chart-bookmark-btn.is-saved svg {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Next Chevron Icon ('>') placed directly AFTER favorites button */
 .chart-next-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50% !important;
-  aspect-ratio: 1 / 1;
-  color: rgba(255, 255, 255, 0.40);
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  color: var(--books-dim, #94a3b8);
   margin-left: 2px;
   padding: 0;
   flex-shrink: 0;
+  transition: color 0.18s ease, transform 0.18s ease;
 }
 
 .chart-next-icon svg {
   width: 18px;
   height: 18px;
+}
+
+.chart-card:hover .chart-next-icon {
+  color: var(--books-text, #ffffff);
+  transform: translateX(2px);
+}
+
+@media (max-width: 380px) {
+  .chart-card {
+    padding: 10px 10px;
+  }
+  .chart-cover {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px !important;
+    margin-right: 10px;
+  }
+  .chart-cover img {
+    border-radius: 12px !important;
+  }
+  .chart-title {
+    font-size: 14px;
+  }
+  .chart-author {
+    font-size: 12px;
+  }
+  .chart-bookmark-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+  .chart-next-icon {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+  }
 }
 
 /* Empty State */
@@ -1277,14 +1343,39 @@ html[data-theme="dark"] .sidebar__item-img--fifa,
    Light Mode Theme Adaptation (NTV System Glass)
    ========================================================================== */
 html[data-theme="light"] {
-  --books-bg: #f5f8fa;
-  --books-card-bg: rgba(0, 0, 0, 0.04);
-  --books-card-hover: rgba(0, 0, 0, 0.07);
-  --books-border: rgba(0, 0, 0, 0.09);
-  --books-border-active: rgba(0, 0, 0, 0.18);
+  --books-bg: #f4f6fb;
+  --books-card-bg: #ffffff;
+  --books-card-hover: rgba(15, 23, 42, 0.035);
+  --books-border: rgba(15, 23, 42, 0.08);
+  --books-border-active: rgba(15, 23, 42, 0.16);
   --books-text: #0f172a;
-  --books-muted: #475569;
+  --books-muted: #64748b;
   --books-dim: #94a3b8;
+}
+
+html[data-theme="light"] .books-list {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.09) !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-theme="light"] .book-chart-row {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme="light"] .chart-cover {
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: #f1f5f9 !important;
+}
+
+html[data-theme="light"] .chart-bookmark-btn:hover {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-theme="light"] .chart-card:hover .chart-next-icon {
+  color: #0f172a !important;
 }
 
 html[data-theme="light"] body {
