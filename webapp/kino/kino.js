@@ -404,6 +404,7 @@ const copy = {
     musicHistoryTitle: "Oxirgi eshitilgan qo'shiqlar",
     musicHistoryEmpty: "Hali eshitilgan qo'shiq yo'q.",
     commentsTitle: "Izohlar",
+    leaveComment: "Fikr qoldirish",
     commentsEmpty: "Hali izohlar yo'q. Birinchi bo'lib yozing.",
     commentsPlaceholder: "Izoh yozing...",
     resumeFrom: "dan davom etish",
@@ -547,6 +548,7 @@ const copy = {
     musicHistoryTitle: "Недавно прослушанные песни",
     musicHistoryEmpty: "Вы ещё не слушали песни.",
     commentsTitle: "Комментарии",
+    leaveComment: "Оставить отзыв",
     commentsEmpty: "Комментариев пока нет. Напишите первым.",
     commentsPlaceholder: "Напишите комментарий...",
     resumeFrom: "продолжить с",
@@ -690,6 +692,7 @@ const copy = {
     musicHistoryTitle: "Recently played songs",
     musicHistoryEmpty: "No songs played yet.",
     commentsTitle: "Comments",
+    leaveComment: "Leave a review",
     commentsEmpty: "No comments yet. Be the first.",
     commentsPlaceholder: "Write a comment...",
     resumeFrom: "resume from",
@@ -5229,16 +5232,17 @@ function openMovie(movie) {
   const metaItems = [genreText, qualityText].filter(Boolean).map((v) => `<span>${escapeHtml(v)}</span>`);
   modalMeta.innerHTML = metaItems.join('<span class="modal-meta__sep" aria-hidden="true">|</span>');
   const ratingValue = Number(movie.rating);
-  const stars = Number.isFinite(ratingValue) && ratingValue > 0 ? Math.round(ratingValue / 2) : 0;
+  const numericRating = Number.isFinite(ratingValue) && ratingValue > 0 ? ratingValue : 8.0;
+  const filledStars = Math.max(1, Math.min(5, Math.round(numericRating / 2)));
   if (modalRating) {
-    const filled = Math.max(0, Math.min(5, stars));
-    const isWatched = Boolean(readWatchedMoviesStore()[String(movie.id)]);
-    let html = "";
+    let html = '<div class="modal-rating__stars">';
     for (let i = 0; i < 5; i += 1) {
-      html += `<span class="modal-rating__star${i < filled ? " is-filled" : ""}">&#9733;</span>`;
+      html += `<span class="modal-rating__star${i < filledStars ? " is-filled" : ""}">&#9733;</span>`;
     }
+    html += '</div>';
+    html += `<span class="modal-rating__score">${numericRating.toFixed(1)}</span>`;
     modalRating.innerHTML = html;
-    modalRating.hidden = filled === 0 || !isWatched;
+    modalRating.hidden = false;
   }
   modalTitle.textContent = movie.title;
   modalDescription.textContent = movie.description;

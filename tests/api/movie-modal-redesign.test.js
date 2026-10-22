@@ -9,18 +9,20 @@ const glassCssPath = path.join(ROOT, "webapp/glass-theme.css");
 const kinoCssPath = path.join(ROOT, "webapp/kino/kino.css");
 const kinoJsPath = path.join(ROOT, "webapp/kino/kino.js");
 
-test("Movie Modal Modern Design Reference Suite", async (t) => {
+test("Movie Modal Full-Screen Poster & Floating White Card Reference Suite", async (t) => {
   const indexHtml = fs.readFileSync(indexPath, "utf8");
   const glassCss = fs.readFileSync(glassCssPath, "utf8");
   const kinoCss = fs.readFileSync(kinoCssPath, "utf8");
   const kinoJs = fs.readFileSync(kinoJsPath, "utf8");
 
-  await t.test("index.html matches modern rounded poster and pill button design", () => {
+  await t.test("index.html matches full-bleed poster and floating white card layout", () => {
     assert.match(indexHtml, /class="modal-card-wrapper"/, "modal-card-wrapper wrapper present");
-    assert.match(indexHtml, /class="modal-card-dots"/, "pagination indicators present");
-    assert.match(indexHtml, /class="modal-card-dot is-active"/, "active pagination dot present");
+    assert.match(indexHtml, /class="modal-info-card"/, "modal-info-card present");
+    assert.match(indexHtml, /id="modalShareButton"[\s\S]*?class="send-icon"/, "modalShareButton contains send-icon");
     assert.match(indexHtml, /id="watchActions"/, "watchActions present");
     assert.match(indexHtml, /id="watchButton"/, "watchButton present");
+    assert.match(indexHtml, /id="commentsTrigger"/, "commentsTrigger present");
+    assert.match(indexHtml, /data-i18n="leaveComment"/, "commentsTrigger labeled leaveComment (Fikr qoldirish)");
     // Verify scooped notch SVG is removed per user request
     assert.doesNotMatch(indexHtml, /modal-card-bottom-notch-wrap/, "no scooped notch SVG wrap");
     assert.doesNotMatch(indexHtml, /modal-card-bottom-notch/, "no scooped notch SVG element");
@@ -52,19 +54,21 @@ test("Movie Modal Modern Design Reference Suite", async (t) => {
     }
   });
 
-  await t.test("glass-theme.css styles rounded poster, pagination dots and high-contrast pill button", () => {
-    assert.match(glassCss, /\.movie-modal\s+\.modal-poster\s*\{[^}]*border-radius:\s*36px\s+36px\s+38px\s+38px/, "poster card has rounded bottom corners");
-    assert.match(glassCss, /\.modal-card-dots\s*\{/, "modal-card-dots styled");
-    assert.match(glassCss, /\.modal-card-dot\s*\{[^}]*border-radius:\s*50%/, "inactive dots are circular");
-    assert.match(glassCss, /\.modal-card-dot\.is-active\s*\{[^}]*border-radius:\s*9999px/, "active dot is capsule");
+  await t.test("glass-theme.css styles full-bleed poster, circular top controls and floating white card", () => {
+    assert.match(glassCss, /\.movie-modal\s+\.modal-poster\s*\{[^}]*position:\s*absolute\s*!important;/, "poster fills absolute backdrop");
+    assert.match(glassCss, /\.movie-modal\s+\.modal-poster\s*\{[^}]*height:\s*100%\s*!important;/, "poster takes full height");
+    assert.match(glassCss, /\.movie-modal\s+\.modal-close,\s*\.movie-modal\s+\.modal-share\s*\{[^}]*border-radius:\s*50%\s*!important;/, "top buttons are circular");
+    assert.match(glassCss, /\.movie-modal\s+\.modal-info-card\s*\{[^}]*background:\s*#ffffff\s*!important;/, "info card has solid white background");
+    assert.match(glassCss, /\.movie-modal\s+\.modal-info-card\s*\{[^}]*border-radius:\s*28px\s*!important;/, "info card has 28px rounded corners");
     assert.match(glassCss, /\.watch-button\.watch-button--pill\s*\{[^}]*border-radius:\s*9999px\s*!important;/, "watch button is full pill");
-    assert.match(glassCss, /html\[data-theme="dark"\]\s+\.movie-modal\s+\.watch-button\.watch-button--pill[^}]*background:\s*#ffffff\s*!important;[^}]*color:\s*#0b111e\s*!important;/, "dark mode watch button is solid white with dark text");
-    assert.match(glassCss, /html\[data-theme="light"\]\s+\.movie-modal\s+\.watch-button\.watch-button--pill\s*\{[^}]*background:\s*#0f172a\s*!important;[^}]*color:\s*#ffffff\s*!important;/, "light mode watch button is solid dark slate with white text");
+    assert.match(glassCss, /\.movie-modal\s+\.comments-trigger\s*\{[^}]*border-radius:\s*9999px\s*!important;/, "comments button is pill styled");
     // Ensure scoop notch styles are removed
     assert.doesNotMatch(glassCss, /\.modal-card-bottom-notch\s*\{/, "no notch styles");
   });
 
-  await t.test("kino.js handles description toggle and maintains smooth modal interaction", () => {
+  await t.test("kino.js handles openMovie rating display and description toggle", () => {
+    assert.match(kinoJs, /modalRating\.hidden\s*=\s*false;/, "modalRating is always shown in openMovie");
+    assert.match(kinoJs, /modal-rating__stars/, "modal-rating renders star container");
     assert.match(kinoJs, /function setDescriptionExpanded/, "setDescriptionExpanded defined in kino.js");
     assert.match(kinoJs, /function syncDescriptionToggle/, "syncDescriptionToggle defined in kino.js");
     assert.match(kinoJs, /modalDescriptionWrap\.classList\.toggle\("is-expanded"/, "toggles expanded class on description wrap");

@@ -952,10 +952,9 @@
       </svg>
     </button>
     <button class="modal-share" id="modalShareButton" type="button" aria-label="Do'stga ulashish" data-i18n-aria-label="share">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
-        <polyline points="16 6 12 2 8 6"></polyline>
-        <line x1="12" y1="2" x2="12" y2="15"></line>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="send-icon" aria-hidden="true">
+        <path d="M22 2 15 22 11 13 2 9 22 2Z"></path>
+        <path d="m11 13 6-6"></path>
       </svg>
     </button>
     <div class="modal-poster" id="modalPoster" role="button" tabindex="0" aria-label="Ablojkani to'liq ko'rish">
@@ -971,7 +970,7 @@
     </div>
     <div class="modal-card-wrapper">
       <div class="modal-content">
-        <div class="modal-card-dots" aria-hidden="true">
+        <div class="modal-card-dots" aria-hidden="true" hidden>
           <span class="modal-card-dot is-active"></span>
           <span class="modal-card-dot"></span>
           <span class="modal-card-dot"></span>
@@ -984,35 +983,35 @@
             <p id="modalDescription" class="modal-description"></p>
           </div>
           <button class="modal-description-toggle" id="modalDescriptionToggle" type="button" aria-expanded="false" hidden>
-            <span class="modal-description-toggle__label" data-i18n="showMore">Show More</span>
+            <span class="modal-description-toggle__label" data-i18n="showMore">Ko'proq</span>
             <svg class="modal-description-toggle__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
+          <div class="watch-actions" id="watchActions">
+            <button class="watch-resume-chip" id="watchResumeChip" type="button" hidden>
+              <span class="watch-resume-chip__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+              </span>
+              <span class="watch-resume-chip__text">
+                <span class="watch-resume-chip__time" id="watchResumeChipTime"></span>
+                <span class="watch-resume-chip__label" data-i18n="resumeFrom">dan davom etish</span>
+              </span>
+            </button>
+            <button class="watch-button watch-button--pill" id="watchButton" type="button" aria-label="Tomosha qilish" data-i18n-aria-label="watch">
+              <span class="watch-button__label" data-i18n="watch">Tomosha qilish</span>
+              <span class="watch-button__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+              </span>
+              <span class="watch-button__resume" id="watchResumeBadge" hidden></span>
+            </button>
+          </div>
           <button class="comments-trigger" id="commentsTrigger" type="button" aria-haspopup="dialog" aria-controls="commentsSheet">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
-            <span class="comments-trigger__label" data-i18n="commentsTitle">Izohlar</span>
+            <span class="comments-trigger__label" data-i18n="leaveComment">Fikr qoldirish</span>
             <span class="comments-trigger__count" id="commentsTriggerCount">0</span>
           </button>
         </div>
-      </div>
-      <div class="watch-actions" id="watchActions">
-        <button class="watch-resume-chip" id="watchResumeChip" type="button" hidden>
-          <span class="watch-resume-chip__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
-          </span>
-          <span class="watch-resume-chip__text">
-            <span class="watch-resume-chip__time" id="watchResumeChipTime"></span>
-            <span class="watch-resume-chip__label" data-i18n="resumeFrom">dan davom etish</span>
-          </span>
-        </button>
-        <button class="watch-button watch-button--pill" id="watchButton" type="button" aria-label="Tomosha qilish" data-i18n-aria-label="watch">
-          <span class="watch-button__label" data-i18n="watch">Tomosha qilish</span>
-          <span class="watch-button__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
-          </span>
-          <span class="watch-button__resume" id="watchResumeBadge" hidden></span>
-        </button>
       </div>
     </div>
 
