@@ -3898,11 +3898,87 @@ html[data-theme="light"] .topbar-ntv-logo,
 [data-theme="light"] .topbar-ntv-logo,
 html[data-theme="light"] .sidebar-ntv-logo,
 [data-theme="light"] .sidebar-ntv-logo,
-html[data-theme="light"] .splash-ntv-logo,
-[data-theme="light"] .splash-ntv-logo,
 html[data-theme="light"] .section-splash-ntv-logo,
 [data-theme="light"] .section-splash-ntv-logo,
 html[data-theme="light"] .collab-ntv-logo,
 [data-theme="light"] .collab-ntv-logo {
   color: #000000 !important;
+}
+
+/* Mini appga kirishdagi NTV logo: har doim oppoq (#ffffff) va jonli animatsion */
+.splash-screen__brand {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #ffffff !important;
+  transform: translateY(-24px) !important;
+  animation: splashBrandEntrance 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.splash-screen__brand .ntv-logo-svg,
+.splash-ntv-logo,
+.splash-screen .splash-ntv-logo,
+html[data-theme="light"] .splash-ntv-logo,
+[data-theme="light"] .splash-ntv-logo,
+html[data-theme="light"] .splash-screen__brand .ntv-logo-svg,
+html[data-theme="dark"] .splash-ntv-logo,
+[data-theme="dark"] .splash-ntv-logo {
+  height: 52px !important;
+  width: auto !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  transform-origin: center center;
+  animation: splashLogoPulse 2.4s ease-in-out infinite 0.85s !important;
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.65)) drop-shadow(0 0 36px rgba(99, 102, 241, 0.45));
+}
+
+.splash-ntv-path {
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+  animation: splashStrokeDraw 0.85s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.splash-ntv-path--n1 {
+  animation-delay: 0.05s;
+}
+.splash-ntv-path--n2 {
+  animation-delay: 0.12s;
+}
+.splash-ntv-path--t {
+  animation-delay: 0.28s;
+}
+.splash-ntv-path--v {
+  animation-delay: 0.48s;
+}
+
+@keyframes splashBrandEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.88);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-26px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-24px) scale(1);
+  }
+}
+
+@keyframes splashStrokeDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes splashLogoPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.55)) drop-shadow(0 0 32px rgba(99, 102, 241, 0.35));
+  }
+  50% {
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 48px rgba(99, 102, 241, 0.7));
+  }
 }

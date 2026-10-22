@@ -55,7 +55,7 @@ console.log(`run-tests: ${files.length} test file(s)`);
 
 const result = spawnSync(
   process.execPath,
-  ['--test', `--test-reporter=${reporter}`, ...files],
+  ['--test', '--test-concurrency=4', `--test-reporter=${reporter}`, ...files],
   { stdio: 'inherit', cwd: ROOT }
 );
 
