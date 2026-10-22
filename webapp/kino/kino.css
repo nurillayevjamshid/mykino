@@ -13570,11 +13570,11 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   position: relative !important;
   display: block !important;
   border-radius: 22px !important;
-  padding: 14px 16px 18px !important;
-  margin-bottom: 14px !important;
+  padding: 9px 12px 10px !important;
+  margin-bottom: 8px !important;
   background: linear-gradient(135deg, rgba(26, 31, 62, 0.94) 0%, rgba(16, 20, 42, 0.96) 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.32) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28) !important;
   -webkit-backdrop-filter: blur(16px) !important;
   backdrop-filter: blur(16px) !important;
   color: #ffffff !important;
@@ -13585,9 +13585,9 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
 
 @media (max-width: 480px) {
   .fifa-match {
-    padding: 12px 12px 16px !important;
-    border-radius: 20px !important;
-    margin-bottom: 12px !important;
+    padding: 8px 10px 10px !important;
+    border-radius: 22px !important;
+    margin-bottom: 8px !important;
   }
 }
 
@@ -13596,17 +13596,17 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: -4px;
-  margin-bottom: 8px;
+  margin-top: 0;
+  margin-bottom: 4px;
 }
 .fifa-card-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 4px 18px;
+  gap: 5px;
+  padding: 2px 10px;
   border-radius: 999px;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.02em;
   line-height: 1.2;
@@ -13619,8 +13619,8 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   border: none !important;
 }
 .fifa-card-badge__dot {
-  width: 6px !important;
-  height: 6px !important;
+  width: 5px !important;
+  height: 5px !important;
   border-radius: 50% !important;
   background: #000000 !important;
   display: inline-block !important;
@@ -13638,19 +13638,23 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
 
 .fifa-card-competition {
   text-align: center;
-  font-size: 12.5px;
+  font-size: 11px;
   font-weight: 600;
   color: #94a3b8;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
   letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+.fifa-match-league .fifa-card-competition {
+  display: none !important;
 }
 
 .fifa-card-fixture {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 12px;
-  padding: 2px 0 4px;
+  gap: 8px;
+  padding: 0;
 }
 
 .fifa-card-team {
@@ -13658,51 +13662,51 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
 }
 .fifa-card-team__logo-wrap {
   position: relative;
-  width: 52px;
-  height: 52px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
   transition: transform 0.2s ease, border-color 0.2s ease;
   flex-shrink: 0;
 }
 .fifa-card-team.is-fav .fifa-card-team__logo-wrap {
   border-color: rgba(245, 158, 11, 0.65);
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.32);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.32);
 }
 .fifa-card-team__logo-wrap .fifa-team-logo {
-  width: 36px;
-  height: 36px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
   display: block;
 }
 .fifa-card-team__name {
-  font-size: 12.5px;
-  font-weight: 800;
+  font-size: 11.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height: 1.25;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
   color: #ffffff;
   text-align: center;
-  max-width: 120px;
+  max-width: 110px;
   word-break: break-word;
 }
 
 .fifa-team-fav-btn--corner {
   position: absolute;
-  top: -4px;
-  right: -6px;
-  width: 22px;
-  height: 22px;
+  top: -3px;
+  right: -5px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(20, 24, 48, 0.9);
@@ -13713,7 +13717,7 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
   padding: 0;
   z-index: 2;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 .fifa-team-fav-btn--corner:hover {
   transform: scale(1.15);
@@ -13724,8 +13728,8 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   background: rgba(245, 158, 11, 0.25);
 }
 .fifa-team-fav-btn--corner svg {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 .fifa-card-center {
@@ -13734,29 +13738,29 @@ body:has(#videoPlayer:not([hidden])) .offline-banner {
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-width: 86px;
-  padding: 0 4px;
+  min-width: 70px;
+  padding: 0 2px;
 }
 .fifa-card-score {
-  font-size: 30px;
+  font-size: 21px;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   line-height: 1.1;
   color: #ffffff;
-  margin-bottom: 5px;
+  margin-bottom: 2px;
   font-variant-numeric: tabular-nums;
 }
 .fifa-card-score--vs {
-  font-size: 22px;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: rgba(255, 255, 255, 0.7);
 }
 .fifa-card-subtitle {
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.55);
-  max-width: 120px;
+  max-width: 95px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -13807,29 +13811,29 @@ html[data-theme="light"] .fifa-card-badge--time {
 
 @media (max-width: 380px) {
   .fifa-card-team__logo-wrap {
-    width: 44px;
-    height: 44px;
+    width: 34px;
+    height: 34px;
   }
   .fifa-card-team__logo-wrap .fifa-team-logo {
-    width: 28px;
-    height: 28px;
+    width: 22px;
+    height: 22px;
   }
   .fifa-card-team__name {
-    font-size: 11px;
-    max-width: 90px;
+    font-size: 10.5px;
+    max-width: 85px;
   }
   .fifa-card-score {
-    font-size: 25px;
-  }
-  .fifa-card-score--vs {
     font-size: 19px;
   }
+  .fifa-card-score--vs {
+    font-size: 14px;
+  }
   .fifa-card-center {
-    min-width: 70px;
+    min-width: 60px;
   }
   .fifa-card-subtitle {
-    font-size: 11px;
-    max-width: 90px;
+    font-size: 10px;
+    max-width: 85px;
   }
 }
 
@@ -14177,9 +14181,9 @@ html[data-theme="light"] .fifa-fav-filter-chip.is-active {
   background: linear-gradient(135deg, #131826, #0e121d);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   transition: transform 0.18s ease, border-color 0.18s ease;
   cursor: pointer;

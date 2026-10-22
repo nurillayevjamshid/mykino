@@ -1019,7 +1019,7 @@
           </div>
         </div>
 
-        <div class="fifa-next-match-card__footer" style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <div class="fifa-next-match-card__footer" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08);">
           <div class="fifa-next-meta">
             <div>📅 <strong>${esc(dateFormatted)}</strong> <span style="opacity:0.8;font-size:11px;">(Toshkent vaqti)</span></div>
             ${m.venue ? `<div>🏟️ ${esc(m.venue)}</div>` : ''}
