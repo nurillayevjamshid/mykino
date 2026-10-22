@@ -57,6 +57,10 @@ describe("Football Match Statistics & Uzbek Header/Modal Suite", () => {
     assert.match(code, /data-fifa-modal-tab="stats"[^>]*>[\s\S]*?Statistika/);
     assert.match(code, /data-fifa-modal-tab="lineups"[^>]*>[\s\S]*?Tarkiblar/);
 
+    // Exact concise tab names (prevent mobile overflow truncation)
+    assert.match(code, /matchStats:\s*"Statistika"/);
+    assert.match(code, /timeline:\s*"Voqealar"/);
+
     // Removed tabs: commentary and odds must not exist in modal tabs
     assert.doesNotMatch(code, /data-fifa-modal-tab="commentary"/);
     assert.doesNotMatch(code, /data-fifa-modal-tab="odds"/);
@@ -114,5 +118,25 @@ describe("Football Match Statistics & Uzbek Header/Modal Suite", () => {
       assert.match(css, /html\[data-theme="light"\]\s*\.fifa-team-fav-btn--corner[^}]*color:\s*#0f172a\s*!important/);
       assert.match(css, /html\[data-theme="light"\]\s*\.fifa-team-fav-btn--corner[^}]*stroke:\s*#0f172a\s*!important/);
     });
+  });
+
+  test("kino.css and glass-theme.css style match modal cleanly in light mode with green turf and white header", () => {
+    const kinoCss = fs.readFileSync(kinoCssPath, "utf8");
+    const glassCss = fs.readFileSync(glassCssPath, "utf8");
+
+    [kinoCss, glassCss].forEach((css) => {
+      // Light mode match header is clean white, not black
+      assert.match(css, /html\[data-theme="light"\]\s*\.fifa-lineup-match-header\s*\{[^}]*background:\s*#ffffff\s*!important/);
+      assert.match(css, /html\[data-theme="light"\]\s*\.fifa-lineup-team__name\s*\{[^}]*color:\s*#0f172a\s*!important/);
+
+      // Pitch card is green turf, never a void black box
+      assert.match(css, /html\[data-theme="light"\]\s*\.fifa-pitch-card\s*\{[^}]*background:\s*#166534\s*!important/);
+      assert.match(css, /html\[data-theme="light"\]\s*\.fifa-pitch\s*\{[^}]*background:\s*linear-gradient\(180deg,\s*#228b3b/);
+    });
+
+    // Pitch board in kino.css has visible lines (circle, halfline, penalty box)
+    assert.match(kinoCss, /\.fifa-pitch__halfline/);
+    assert.match(kinoCss, /\.fifa-pitch__circle/);
+    assert.match(kinoCss, /\.fifa-pitch__box/);
   });
 });

@@ -4469,3 +4469,173 @@ html[data-theme="light"] .fifa-lineup-star-btn.is-active svg {
   stroke: #f59e0b !important;
   fill: #f59e0b !important;
 }
+
+/* ===== FIFA Match Modal Light Mode (Kunduzgi rejim moslashuvi) ===== */
+html[data-theme="light"] .fifa-lineup-match-header {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  margin-bottom: 12px !important;
+}
+
+html[data-theme="light"] .fifa-lineup-datetime {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .fifa-lineup-team__name {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-lineup-meta-sub {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .fifa-lineup-team__crest-card {
+  background: #ffffff !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme="light"] .fifa-timeline-scrubber__track {
+  background: #e2e8f0 !important;
+}
+
+html[data-theme="light"] .fifa-scrubber-mark {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .fifa-modal-tabs {
+  background: rgba(226, 232, 240, 0.85) !important;
+  border: 1px solid rgba(15, 23, 42, 0.09) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  padding: 4px !important;
+  gap: 4px !important;
+}
+
+html[data-theme="light"] .fifa-modal-tab {
+  background: transparent !important;
+  color: #475569 !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .fifa-modal-tab.is-active {
+  background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 113, 227, 0.3) !important;
+  box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+html[data-theme="light"] .fifa-pitch-switcher {
+  background: rgba(226, 232, 240, 0.85) !important;
+  border: 1px solid rgba(15, 23, 42, 0.09) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+html[data-theme="light"] .fifa-pitch-switch-btn {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .fifa-pitch-switch-btn.is-active {
+  background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.35) !important;
+}
+
+html[data-theme="light"] .fifa-pitch-card {
+  background: #166534 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+html[data-theme="light"] .fifa-pitch {
+  background: linear-gradient(180deg, #228b3b 0%, #166534 50%, #228b3b 100%) !important;
+}
+
+html[data-theme="light"] .fifa-pitch-header {
+  background: rgba(0, 0, 0, 0.22) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .fifa-pitch-title {
+  color: #bbf7d0 !important;
+}
+
+html[data-theme="light"] .fifa-pitch-formation {
+  background: rgba(0, 0, 0, 0.28) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .fifa-stats-periods {
+  background: transparent !important;
+}
+
+html[data-theme="light"] .fifa-stats-period-btn {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .fifa-stats-period-btn.is-active {
+  background: #e11d48 !important;
+  border-color: #e11d48 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.25) !important;
+}
+
+html[data-theme="light"] .fifa-stats-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+html[data-theme="light"] .fifa-stat-val {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-stat-label {
+  color: #334155 !important;
+}
+
+html[data-theme="light"] .fifa-stat-track--home,
+html[data-theme="light"] .fifa-stat-track--away {
+  background: #e2e8f0 !important;
+}
+
+html[data-theme="light"] .fifa-stat-fill--home {
+  background: #2563eb !important;
+}
+
+html[data-theme="light"] .fifa-stat-fill--away {
+  background: #e11d48 !important;
+}
+
+html[data-theme="light"] .fifa-bench-heading span {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-bench-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme="light"] .fifa-bench-name {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-coach-row {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme="light"] .fifa-coach-name {
+  color: #0f172a !important;
+}
