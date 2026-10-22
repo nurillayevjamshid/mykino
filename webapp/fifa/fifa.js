@@ -3672,25 +3672,58 @@
         const photoUrl = p.photo || (p.id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/soccer/players/full/${p.id}.png&w=120&h=120&scale=crop` : "");
         const fallbackEspn = p.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${p.id}.png` : "";
         const photo = photoUrl
-          ? `<img src="${esc(photoUrl)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="if(this.dataset.fallbackApplied !== '1' && '${fallbackEspn}'){ this.dataset.fallbackApplied='1'; this.src='${fallbackEspn}'; } else { this.parentNode.querySelector('.fifa-pitch-player__initials')?.removeAttribute('hidden'); this.remove(); }" />`
+          ? `<img src="${esc(photoUrl)}" alt="${esc(p.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="if(this.dataset.fallbackApplied !== '1' && '${fallbackEspn}'){ this.dataset.fallbackApplied='1'; this.src='${fallbackEspn}'; } else { this.parentNode.querySelector('.fifa-pitch-player__initials')?.removeAttribute('hidden'); this.remove(); }" />`
           : "";
         const initials = (p.name || "?").split(/\s+/).map((s) => s[0] || "").join("").slice(0, 2).toUpperCase();
 
+        // 1. Rating Badge (Top-Right of avatar)
+        let ratingHtml = "";
+        if (p.rating != null || p.motm) {
+          const rVal = typeof p.rating === "number" ? p.rating.toFixed(1) : "";
+          if (p.motm) {
+            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--blue">${rVal} <span class="fifa-rating__star">★</span></span>`;
+          } else if (p.rating >= 7.0) {
+            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--green">${rVal}</span>`;
+          } else if (p.rating >= 6.0) {
+            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--orange">${rVal}</span>`;
+          } else {
+            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--red">${rVal}</span>`;
+          }
+        }
+
+        // 2. Sub Out Badge (Top-Left of avatar with minute + red arrow)
+        let subOutHtml = "";
+        if (p.subOut || p.subOutMinute) {
+          const subMin = p.subOutMinute ? `${esc(p.subOutMinute)} ` : "";
+          subOutHtml = `<span class="fifa-pitch-player__sub-out" title="Almashtirildi">${subMin}<span class="fifa-pitch-player__sub-arrow">←</span></span>`;
+        }
+
+        // 3. Event Badges around avatar (Goals, Assists, Cards)
         const badges = [];
         if (p.goals > 0) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--goal" title="Gol">⚽${p.goals > 1 ? `<sup>${p.goals}</sup>` : ""}</span>`);
-        if (p.redCard) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--red" title="Qizil">🟥</span>`);
-        else if (p.yellowCard) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--yellow" title="Sariq">🟨</span>`);
-        if (p.subOut) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--sub" title="Almashtirildi">🔄</span>`);
+        if (p.assists > 0) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--assist" title="Golli uzatma">👟${p.assists > 1 ? `<sup>${p.assists}</sup>` : ""}</span>`);
+        if (p.redCard) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--red" title="Qizil kartochka">🟥</span>`);
+        else if (p.yellowCard) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--yellow" title="Sariq kartochka">🟨</span>`);
+
+        // 4. Name Row below avatar: Captain + Number + ShortName
+        const capHtml = p.isCaptain ? `<span class="fifa-pitch-player__captain" title="Kapitan">Ⓒ</span> ` : "";
+        const numHtml = num ? `<span class="fifa-pitch-player__number">${esc(num)}</span> ` : "";
+        const sName = p.shortName || shortName(p);
 
         return `
           <div class="fifa-pitch-player" style="top:${topPct.toFixed(1)}%;left:${leftPct.toFixed(1)}%;">
             <div class="fifa-pitch-player__avatar">
-              ${photo}
-              <span class="fifa-pitch-player__initials" ${p.photo ? "hidden" : ""}>${esc(initials)}</span>
-              ${num ? `<span class="fifa-pitch-player__num">${esc(num)}</span>` : ""}
+              ${subOutHtml}
+              ${ratingHtml}
+              <div class="fifa-pitch-player__img-wrap">
+                ${photo}
+                <span class="fifa-pitch-player__initials" ${photoUrl ? "hidden" : ""}>${esc(initials)}</span>
+              </div>
               ${badges.length ? `<div class="fifa-pitch-player__badges">${badges.join("")}</div>` : ""}
             </div>
-            <div class="fifa-pitch-player__name">${esc(p.shortName || shortName(p))}</div>
+            <div class="fifa-pitch-player__name-row">
+              ${capHtml}${numHtml}<span class="fifa-pitch-player__name">${esc(sName)}</span>
+            </div>
           </div>
         `;
       };

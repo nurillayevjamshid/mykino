@@ -11713,109 +11713,205 @@ html[data-theme="light"] .fifa-lineup-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  width: 64px;
+  gap: 2px;
+  width: 74px;
   text-align: center;
+  pointer-events: auto;
+  z-index: 2;
 }
 .fifa-pitch-player__avatar {
   position: relative;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: #1c1c1f;
-  border: 2px solid #fff;
+  background: #18181b;
+  border: 2px solid #ffffff;
   overflow: visible;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+}
+.fifa-pitch-player__img-wrap {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #27272a;
 }
 .fifa-pitch-player__avatar img {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  background: #2a2a2e;
+  object-position: center top;
+  display: block;
 }
 .fifa-pitch-player__initials {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
-  color: #fff;
+  color: #ffffff;
 }
 .fifa-pitch-player__rating {
   position: absolute;
-  top: -4px;
+  top: -5px;
   right: -8px;
   font-size: 10px;
   font-weight: 800;
   padding: 1px 5px;
-  border-radius: 8px;
-  color: #fff;
-  min-width: 24px;
+  border-radius: 9999px;
+  color: #ffffff;
+  min-width: 22px;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.25;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  z-index: 4;
 }
-.fifa-rating__star { font-size: 9px; line-height: 1; }
+.fifa-rating__star { font-size: 9px; line-height: 1; color: #ffffff; }
 .fifa-rating--blue { background: #2563eb; }
 .fifa-rating--green { background: #16a34a; }
-.fifa-rating--orange { background: #ea7c1c; }
+.fifa-rating--orange { background: #ea580c; }
 .fifa-rating--red { background: #dc2626; }
 
-.fifa-pitch-player__sub {
+.fifa-pitch-player__sub-out {
+  position: absolute;
+  top: -5px;
+  left: -8px;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  background: #dc2626;
-  color: #fff;
-  font-size: 10px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(239, 68, 68, 0.75);
+  color: #ffffff;
+  font-size: 9.5px;
   font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 10px;
-  margin-bottom: 2px;
+  padding: 1px 5px;
+  border-radius: 9999px;
+  line-height: 1.2;
   white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  z-index: 4;
 }
-.fifa-pitch-player__sub-icon { font-size: 9px; line-height: 1; }
+.fifa-pitch-player__sub-arrow {
+  color: #ef4444;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
 
-.fifa-pitch-player__line {
+.fifa-pitch-player__badges {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  flex-wrap: nowrap;
+  gap: 2px;
+  z-index: 3;
+}
+.fifa-pitch-badge {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.fifa-pitch-badge--goal,
+.fifa-pitch-badge--assist {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.fifa-pitch-badge--goal sup,
+.fifa-pitch-badge--assist sup {
+  font-size: 8px;
+  font-weight: 800;
+  margin-left: 1px;
+}
+
+.fifa-pitch-player__name-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 2px;
+  max-width: 85px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.fifa-pitch-player__captain {
+  font-size: 10.5px;
+  font-weight: 900;
+  color: #fbbf24;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+  line-height: 1;
+}
+.fifa-pitch-player__number {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.8);
+  line-height: 1;
 }
 .fifa-pitch-player__name {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0,0,0,.85);
-  text-align: center;
-  max-width: 90px;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.8);
+  max-width: 65px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
-.fifa-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 800;
-  min-width: 12px;
-  height: 12px;
-  padding: 0 2px;
-  border-radius: 3px;
-  background: rgba(0,0,0,.55);
-  color: #fff;
+
+@media (max-width: 480px) {
+  .fifa-pitch-player {
+    width: 62px;
+  }
+  .fifa-pitch-player__avatar {
+    width: 38px;
+    height: 38px;
+  }
+  .fifa-pitch-player__rating {
+    font-size: 9px;
+    padding: 0 4px;
+    top: -4px;
+    right: -7px;
+  }
+  .fifa-pitch-player__sub-out {
+    font-size: 8.5px;
+    padding: 0 4px;
+    top: -4px;
+    left: -7px;
+  }
+  .fifa-pitch-badge--goal,
+  .fifa-pitch-badge--assist {
+    width: 15px;
+    height: 15px;
+    font-size: 9px;
+  }
+  .fifa-pitch-player__name {
+    font-size: 10.5px;
+    max-width: 52px;
+  }
+  .fifa-pitch-player__number {
+    font-size: 10px;
+  }
 }
-.fifa-badge sup { font-size: 8px; margin-left: 1px; }
-.fifa-badge--goal { background: transparent; font-size: 11px; padding: 0; }
-.fifa-badge--yellow { background: #facc15; color: #1c1c1f; width: 9px; height: 12px; padding: 0; }
-.fifa-badge--red { background: #dc2626; width: 9px; height: 12px; padding: 0; }
-.fifa-badge--cap { background: #fff; color: #1c1c1f; border-radius: 50%; width: 12px; height: 12px; }
 
 /* --- Pitch Switcher & Card (Image 2 style) --- */
 .fifa-lineups-wrap {
@@ -11896,38 +11992,6 @@ html[data-theme="light"] .fifa-lineup-empty {
   background: rgba(0, 0, 0, .3);
   padding: 2px 8px;
   border-radius: 8px;
-}
-
-.fifa-pitch-player__badges {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  display: flex;
-  gap: 2px;
-  z-index: 3;
-}
-.fifa-pitch-player__num {
-  position: absolute;
-  bottom: -3px;
-  right: -3px;
-  background: #0071e3;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 800;
-  padding: 1px 4px;
-  border-radius: 6px;
-  border: 1.5px solid #fff;
-  line-height: 1.2;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
-  z-index: 2;
-}
-.fifa-pitch-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  line-height: 1;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .6));
 }
 
 /* --- SUBS (Zaxiradagilar - Image 2 style) --- */

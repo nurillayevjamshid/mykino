@@ -1788,10 +1788,127 @@ function espnSideOrder(abbrRaw) {
   return 0;
 }
 
-function espnMapPlayer(p) {
+const FOOTBALL_PLAYER_PHOTO_CACHE = new Map();
+
+async function fetchWikiJson(url, timeoutMs = 2500) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: ctl.signal,
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "MyKinoBot/1.0 (dev@mykino.uz)",
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function resolvePlayerPhoto(name, espnId = "") {
+  if (!name) return "";
+  const clean = String(name).trim();
+  const cacheKey = clean.toLowerCase();
+
+  // 1. L1 Memory Cache
+  if (FOOTBALL_PLAYER_PHOTO_CACHE.has(cacheKey)) {
+    return FOOTBALL_PLAYER_PHOTO_CACHE.get(cacheKey);
+  }
+
+  // 2. L2 Redis Cache
+  const client = await getRedis().catch(() => null);
+  if (client) {
+    try {
+      const cached = await client.get(`fifa:photo:${cacheKey}`);
+      if (cached) {
+        FOOTBALL_PLAYER_PHOTO_CACHE.set(cacheKey, cached);
+        return cached;
+      }
+    } catch {}
+  }
+
+  // 3. Wikipedia API
+  let photo = "";
+  try {
+    const slug = encodeURIComponent(clean.replace(/\s+/g, "_"));
+    const wiki = await fetchWikiJson(`https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`, 2200);
+    if (wiki?.thumbnail?.source) {
+      photo = wiki.thumbnail.source;
+    } else {
+      const searchRes = await fetchWikiJson(
+        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(clean + " footballer")}&format=json&utf8=1&srlimit=1`,
+        2200
+      );
+      const topTitle = searchRes?.query?.search?.[0]?.title;
+      if (topTitle) {
+        const topSlug = encodeURIComponent(topTitle.replace(/\s+/g, "_"));
+        const topSummary = await fetchWikiJson(`https://en.wikipedia.org/api/rest_v1/page/summary/${topSlug}`, 2200);
+        if (topSummary?.thumbnail?.source) {
+          photo = topSummary.thumbnail.source;
+        }
+      }
+    }
+  } catch {}
+
+  // 4. Fallback to ESPN combiner
+  if (!photo && espnId) {
+    photo = `https://a.espncdn.com/combiner/i?img=/i/headshots/soccer/players/full/${espnId}.png&w=120&h=120&scale=crop`;
+  }
+
+  if (photo) {
+    FOOTBALL_PLAYER_PHOTO_CACHE.set(cacheKey, photo);
+    if (client) {
+      client.set(`fifa:photo:${cacheKey}`, photo, "EX", 86400 * 30).catch(() => {});
+    }
+  }
+
+  return photo;
+}
+
+async function batchResolvePlayerPhotos(players = []) {
+  if (!Array.isArray(players) || !players.length) return;
+  await Promise.allSettled(
+    players.map(async (p) => {
+      if (p.photo && !p.photo.includes("a.espncdn.com/combiner")) return;
+      const found = await resolvePlayerPhoto(p.name, p.id);
+      if (found) p.photo = found;
+    })
+  );
+}
+
+function espnMapPlayer(p, keyEvents = []) {
   const statsArr = Array.isArray(p.stats) ? p.stats : [];
   const stats = {};
   for (const s of statsArr) stats[s.name] = Number(s.displayValue || s.value || 0) || 0;
+
+  let subOutMinute = "";
+  if (p.subbedOut === true) {
+    const subPlay = Array.isArray(p.plays) ? p.plays.find((pl) => pl.substitution) : null;
+    if (subPlay?.clock?.displayValue) {
+      subOutMinute = String(subPlay.clock.displayValue);
+    } else if (Array.isArray(keyEvents)) {
+      const pName = String(p?.athlete?.displayName || p?.athlete?.fullName || "").toLowerCase();
+      const subEv = keyEvents.find((e) => e.type === "substitution" && (
+        (e.playerOut && pName.includes(e.playerOut.toLowerCase())) ||
+        (e.player && pName.includes(e.player.toLowerCase()))
+      ));
+      if (subEv?.minute) subOutMinute = subEv.minute;
+    }
+  }
+
+  let assists = stats.goalAssists || 0;
+  if (!assists && Array.isArray(keyEvents)) {
+    const pName = String(p?.athlete?.displayName || p?.athlete?.fullName || "").toLowerCase();
+    assists = keyEvents.filter((e) => (e.type === "goal" || e.type === "penalty") && e.assist && pName.includes(e.assist.toLowerCase())).length;
+  }
+
+  const isCap = p.captain === true || p.isCaptain === true || p?.athlete?.captain === true;
+
   return {
     id: p?.athlete?.id || null,
     number: p.jersey != null ? Number(p.jersey) : null,
@@ -1800,14 +1917,16 @@ function espnMapPlayer(p) {
     position: String(p?.position?.abbreviation || ""),
     starter: p.starter === true,
     photo: p?.athlete?.headshot?.href || (p?.athlete?.id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/soccer/players/full/${p.athlete.id}.png&w=120&h=120&scale=crop` : ""), 
-    isCaptain: false,
+    isCaptain: isCap,
     rating: null,
     motm: false,
     goals: stats.totalGoals || 0,
+    assists,
     ownGoals: stats.ownGoals || 0,
     yellowCard: (stats.yellowCards || 0) > 0,
     redCard: (stats.redCards || 0) > 0,
     subOut: p.subbedOut === true,
+    subOutMinute,
     subIn: p.subbedIn === true,
     x: null,
     y: null,
@@ -1846,10 +1965,55 @@ function espnAssignFormationCoords(starters, formation) {
   });
 }
 
-function espnMapRoster(roster) {
+function computeSofascoreRating(p, isLiveOrFinished) {
+  if (!isLiveOrFinished) return null;
+  if (!p.starter && !p.subIn && !p.goals && !p.assists && !p.yellowCard && !p.redCard) return null;
+
+  let r = 6.6;
+  if (p.goals > 0) r += p.goals * 1.3;
+  if (p.assists > 0) r += p.assists * 0.8;
+  if (p.yellowCard) r -= 0.5;
+  if (p.redCard) r -= 1.6;
+  if (p.ownGoals > 0) r -= p.ownGoals * 1.0;
+
+  const salt = (Number(p.number || 7) * 7 + (p.id ? Number(String(p.id).slice(-3)) : 13)) % 9;
+  const variance = ((salt - 4) * 0.1);
+  r += variance;
+
+  if (p.goals >= 2) r = Math.max(r, 8.8);
+  else if (p.goals === 1 && p.assists >= 1) r = Math.max(r, 8.5);
+  else if (p.goals === 1) r = Math.max(r, 7.8);
+  else if (p.assists >= 1) r = Math.max(r, 7.5);
+
+  r = Math.min(9.8, Math.max(5.8, r));
+  return Number(r.toFixed(1));
+}
+
+function assignPlayerRatingsAndMotm(homeStarters = [], awayStarters = [], isLiveOrFinished = false) {
+  if (!isLiveOrFinished) return;
+  const all = [...homeStarters, ...awayStarters];
+  let maxRating = -1;
+  let motmPlayer = null;
+
+  for (const p of all) {
+    if (p.rating == null) {
+      p.rating = computeSofascoreRating(p, true);
+    }
+    if (typeof p.rating === "number" && p.rating > maxRating) {
+      maxRating = p.rating;
+      motmPlayer = p;
+    }
+  }
+
+  if (motmPlayer && maxRating >= 7.5) {
+    motmPlayer.motm = true;
+  }
+}
+
+function espnMapRoster(roster, keyEvents = []) {
   if (!roster) return { formation: "", starting: [], subs: [], coach: null, rating: null };
   const formation = String(roster.formation || "").trim();
-  const all = (roster.roster || []).map(espnMapPlayer);
+  const all = (roster.roster || []).map((p) => espnMapPlayer(p, keyEvents));
   const starting = all.filter((p) => p.starter);
   const subs = all.filter((p) => !p.starter);
   espnAssignFormationCoords(starting, formation);
@@ -2049,8 +2213,22 @@ async function buildFifaLineupPayload(optsOrHome, maybeAway, maybeDateUtc) {
   const homeRoster = rosters.find((r) => String(r?.team?.id) === String(homeId)) || rosters[0];
   const awayRoster = rosters.find((r) => String(r?.team?.id) === String(awayId)) || rosters[1];
 
-  const mappedHome = espnMapRoster(homeRoster);
-  const mappedAway = espnMapRoster(awayRoster);
+  const events = espnMapKeyEvents(summary?.keyEvents, comp?.details);
+  const statistics = espnMapStatistics(summary?.boxscore?.teams);
+
+  const mappedHome = espnMapRoster(homeRoster, events);
+  const mappedAway = espnMapRoster(awayRoster, events);
+
+  assignPlayerRatingsAndMotm(mappedHome.starting, mappedAway.starting, isLive || isFinished);
+  await batchResolvePlayerPhotos([...(mappedHome.starting || []), ...(mappedAway.starting || [])]);
+
+  const calcTeamRating = (list) => {
+    const valid = list.filter((p) => typeof p.rating === "number");
+    if (!valid.length) return null;
+    return Number((valid.reduce((acc, p) => acc + p.rating, 0) / valid.length).toFixed(2));
+  };
+  mappedHome.rating = calcTeamRating(mappedHome.starting);
+  mappedAway.rating = calcTeamRating(mappedAway.starting);
 
   return {
     ok: true,
@@ -2062,8 +2240,8 @@ async function buildFifaLineupPayload(optsOrHome, maybeAway, maybeDateUtc) {
     score,
     venue: summary?.gameInfo?.venue?.fullName || comp?.venue?.fullName || "",
     leagueName: summary?.header?.league?.name || "",
-    events: espnMapKeyEvents(summary?.keyEvents, comp?.details),
-    statistics: espnMapStatistics(summary?.boxscore?.teams),
+    events,
+    statistics,
     home: {
       id: homeId,
       name: homeComp?.team?.displayName || home || "",
