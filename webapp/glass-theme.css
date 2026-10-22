@@ -4656,3 +4656,16 @@ html[data-theme="light"] .fifa-coach-name {
   height: 22px !important;
   display: block !important;
 }
+
+/* FIFA Highlights Title — Faqat jamoalar nomi, kattaroq va qalin (bold) */
+.fifa-hl-card__title {
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 0.9) !important;
+}
+
+.fifa-all-hl-card__title {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+}

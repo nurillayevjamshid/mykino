@@ -2978,33 +2978,106 @@
     return String(text || "").replace(/[а-яёА-ЯЁ]/g, (ch) => HIGHLIGHT_CYR_MAP[ch] !== undefined ? HIGHLIGHT_CYR_MAP[ch] : ch);
   }
 
+  function extractHighlightTeamsOnly(title) {
+    if (!title) return "";
+    let str = String(title).trim();
+
+    // Strip dates first: e.g. 21.10.2026, 21.10
+    str = str.replace(/\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\b/g, "").trim();
+
+    // Split by common delimiters: dot, pipe, colon, slash, or multi-dashes
+    const segments = str.split(/\s*(?:[.|:/]|--+)\s*/).map((s) => s.trim()).filter(Boolean);
+
+    // Find the segment that contains the match separator (—, –, -, or vs)
+    const matchSegment = segments.find((s) => /\s*(?:[-–—]|\bvs\.?\b)\s*/i.test(s));
+
+    let result = matchSegment || segments[0] || str;
+
+    // Strip tournament & highlight words if any remain inside the segment
+    result = result
+      .replace(/(?:Chempionlar|Yevropa|Konferensiyalar)\s+ligasi[^\n]*/gi, "")
+      .replace(/(?:Premyer-liga|La\s*Liga|Bundesliga|A\s*Seriya|Liga\s*1)[^\n]*/gi, "")
+      .replace(/(?:Лига\s+чемпионов|Лига\s+Европы|Лига\s+конференций)[^\n]*/gi, "")
+      .replace(/(?:o'yin\s+highlightslari|o'yin\s+sharhi|highlightslari|highlights|обзор\s+матча|обзор|sharh)[^\n]*/gi, "")
+      .replace(/(?:barcha\s+gollar|все\s+голы)[^\n]*/gi, "")
+      .replace(/[.,:;!|#]+$/g, "")
+      .trim();
+
+    // Normalize match separator to ' — '
+    result = result.replace(/\s*(?:[-–—]|\bvs\.?\b)\s*/gi, " — ");
+
+    // Strip trailing/leading punctuation
+    result = result.replace(/^[.,:;!\-–—\s]+|[.,:;!\-–—\s]+$/g, "").trim();
+
+    return result || title;
+  }
+
+  function extractHighlightTeamsOnly(title) {
+    if (!title) return "";
+    let str = String(title).trim();
+
+    // Strip dates first: e.g. 21.10.2026, 21.10
+    str = str.replace(/\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\b/g, "").trim();
+
+    // Split by common delimiters: dot, pipe, colon, slash, or multi-dashes
+    const segments = str.split(/\s*(?:[.|:/]|--+)\s*/).map((s) => s.trim()).filter(Boolean);
+
+    // Find the segment that contains the match separator (—, –, -, or vs)
+    const matchSegment = segments.find((s) => /\s*(?:[-–—]|\bvs\.?\b)\s*/i.test(s));
+
+    let result = matchSegment || segments[0] || str;
+
+    // Strip tournament & highlight words if any remain inside the segment
+    result = result
+      .replace(/(?:Chempionlar|Yevropa|Konferensiyalar)\s+ligasi[^\n]*/gi, "")
+      .replace(/(?:Premyer-liga|La\s*Liga|Bundesliga|A\s*Seriya|Liga\s*1)[^\n]*/gi, "")
+      .replace(/(?:Лига\s+чемпионов|Лига\s+Европы|Лига\s+конференций)[^\n]*/gi, "")
+      .replace(/(?:o'yin\s+highlightslari|o'yin\s+sharhi|highlightslari|highlights|обзор\s+матча|обзор|sharh)[^\n]*/gi, "")
+      .replace(/(?:barcha\s+gollar|все\s+голы)[^\n]*/gi, "")
+      .replace(/[.,:;!|#]+$/g, "")
+      .trim();
+
+    // Normalize match separator to ' — '
+    result = result.replace(/\s*(?:[-–—]|\bvs\.?\b)\s*/gi, " — ");
+
+    // Strip trailing/leading punctuation
+    result = result.replace(/^[.,:;!\-–—\s]+|[.,:;!\-–—\s]+$/g, "").trim();
+
+    return result || title;
+  }
+
   function localizeHighlightTitle(raw, lang) {
-    if (!raw || lang === "ru") return raw;
+    if (!raw) return "";
     let t = String(raw).trim();
 
-    // 1) Klublar nomlarini almashtirish (uzunroq nomlar oldinroq)
-    const sortedClubs = Object.keys(HIGHLIGHT_CLUBS).sort((a, b) => b.length - a.length);
-    for (const club of sortedClubs) {
-      const rx = new RegExp("(^|[^а-яёА-ЯЁa-zA-Z])" + club.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&") + "([^а-яёА-ЯЁa-zA-Z]|$)", "gi");
-      const rep = (HIGHLIGHT_CLUBS[club] && (HIGHLIGHT_CLUBS[club][lang] || HIGHLIGHT_CLUBS[club].uz)) || club;
-      t = t.replace(rx, `$1${rep}$2`);
+    if (lang !== "ru") {
+      // 1) Klublar nomlarini almashtirish (uzunroq nomlar oldinroq)
+      const sortedClubs = Object.keys(HIGHLIGHT_CLUBS).sort((a, b) => b.length - a.length);
+      for (const club of sortedClubs) {
+        const rx = new RegExp("(^|[^а-яёА-ЯЁa-zA-Z])" + club.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&") + "([^а-яёА-ЯЁa-zA-Z]|$)", "gi");
+        const rep = (HIGHLIGHT_CLUBS[club] && (HIGHLIGHT_CLUBS[club][lang] || HIGHLIGHT_CLUBS[club].uz)) || club;
+        t = t.replace(rx, `$1${rep}$2`);
+      }
+
+      // 2) Turnirlar, obzor va match atamalarini almashtirish
+      for (const item of HIGHLIGHT_TOURNAMENTS) {
+        t = t.replace(item.pattern, (m, p1) => {
+          let r = item[lang] || item.uz;
+          if (p1 && r.includes("$1")) {
+            r = r.replace("$1", p1);
+          }
+          return r;
+        });
+      }
+
+      // 3) Qolgan kirill so'zlari chiroyli lotin shakliga o'tkaziladi
+      if (lang === "uz" || lang === "en") {
+        t = cyrillicToLatinHighlight(t);
+      }
     }
 
-    // 2) Turnirlar, obzor va match atamalarini almashtirish
-    for (const item of HIGHLIGHT_TOURNAMENTS) {
-      t = t.replace(item.pattern, (m, p1) => {
-        let r = item[lang] || item.uz;
-        if (p1 && r.includes("$1")) {
-          r = r.replace("$1", p1);
-        }
-        return r;
-      });
-    }
-
-    // 3) Qolgan kirill so'zlari chiroyli lotin shakliga o'tkaziladi
-    if (lang === "uz" || lang === "en") {
-      t = cyrillicToLatinHighlight(t);
-    }
+    // 4) Faqat jamoalar nomini qoldirish (User request: faqat jamoalar nomi qolsin)
+    t = extractHighlightTeamsOnly(t);
 
     return t;
   }
