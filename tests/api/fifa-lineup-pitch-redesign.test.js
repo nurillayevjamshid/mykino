@@ -9,7 +9,8 @@ describe('FIFA Lineup Pitch Redesign & Player Photos API Suite', () => {
   const fifaJs = fs.readFileSync(path.join(rootDir, 'webapp/fifa/fifa.js'), 'utf8');
   const kinoCss = fs.readFileSync(path.join(rootDir, 'webapp/kino/kino.css'), 'utf8');
 
-  test('api/categories.js defines Wikipedia photo resolver & batch enrichment', () => {
+  test('api/categories.js defines Wikipedia photo resolver, Sofascore cutouts & batch enrichment', () => {
+    assert.match(categoriesJs, /const KNOWN_PLAYER_CUTOUTS = \{/);
     assert.match(categoriesJs, /const FOOTBALL_PLAYER_PHOTO_CACHE = new Map\(\);/);
     assert.match(categoriesJs, /async function resolvePlayerPhoto\(name/);
     assert.match(categoriesJs, /https:\/\/en\.wikipedia\.org\/api\/rest_v1\/page\/summary\//);
@@ -34,36 +35,37 @@ describe('FIFA Lineup Pitch Redesign & Player Photos API Suite', () => {
     assert.match(fifaJs, /fifa-rating__star.*★/);
   });
 
-  test('webapp/fifa/fifa.js renders top-left sub-out badge with minute and red arrow', () => {
-    assert.match(fifaJs, /fifa-pitch-player__sub-out/);
-    assert.match(fifaJs, /fifa-pitch-player__sub-arrow.*←/);
+  test('webapp/fifa/fifa.js renders top-left sub-out vertical stack with minute and red circle arrow', () => {
+    assert.match(fifaJs, /fifa-pitch-player__sub-stack/);
+    assert.match(fifaJs, /fifa-pitch-player__sub-min/);
+    assert.match(fifaJs, /fifa-pitch-player__sub-circle.*←/);
   });
 
-  test('webapp/fifa/fifa.js renders event badges for goal and assist', () => {
+  test('webapp/fifa/fifa.js renders assist on bottom-left and goal on bottom-right', () => {
+    assert.match(fifaJs, /fifa-pitch-badge--assist/);
     assert.match(fifaJs, /fifa-pitch-badge--goal/);
-    assert.match(fifaJs, /fifa-pitch-badge--assist.*👟/);
   });
 
   test('webapp/fifa/fifa.js renders captain, number, and shortName in name-row below avatar', () => {
     assert.match(fifaJs, /fifa-pitch-player__name-row/);
-    assert.match(fifaJs, /fifa-pitch-player__captain.*Ⓒ/);
+    assert.match(fifaJs, /fifa-pitch-player__captain/);
     assert.match(fifaJs, /fifa-pitch-player__number/);
     assert.match(fifaJs, /fifa-pitch-player__name/);
   });
 
-  test('webapp/kino/kino.css styles avatar circle, rating pill, sub-out badge, and name row', () => {
-    assert.match(kinoCss, /\.fifa-pitch-player__avatar\s*\{[^}]*width:\s*44px/);
-    assert.match(kinoCss, /\.fifa-pitch-player__avatar\s*\{[^}]*border-radius:\s*50%/);
+  test('webapp/kino/kino.css styles avatar circle, black-text rating pill, sub-out stack, and name row', () => {
+    assert.match(kinoCss, /\.fifa-pitch-player__avatar\s*\{[^}]*width:\s*48px/);
+    assert.match(kinoCss, /\.fifa-pitch-player__avatar\s*\{[^}]*background:\s*#383a3f/);
     assert.match(kinoCss, /\.fifa-pitch-player__rating\s*\{[^}]*position:\s*absolute/);
-    assert.match(kinoCss, /\.fifa-pitch-player__rating\s*\{[^}]*right:\s*-8px/);
-    assert.match(kinoCss, /\.fifa-pitch-player__sub-out\s*\{[^}]*position:\s*absolute/);
-    assert.match(kinoCss, /\.fifa-pitch-player__sub-out\s*\{[^}]*left:\s*-8px/);
-    assert.match(kinoCss, /\.fifa-pitch-badge--assist/);
-    assert.match(kinoCss, /\.fifa-pitch-player__name-row/);
-    assert.match(kinoCss, /\.fifa-pitch-player__captain\s*\{[^}]*color:\s*#fbbf24/);
+    assert.match(kinoCss, /\.fifa-pitch-player__rating\s*\{[^}]*color:\s*#000000/);
+    assert.match(kinoCss, /\.fifa-pitch-player__sub-stack\s*\{[^}]*position:\s*absolute/);
+    assert.match(kinoCss, /\.fifa-pitch-player__sub-circle\s*\{[^}]*background:\s*#ef4444/);
+    assert.match(kinoCss, /\.fifa-pitch-badge--assist\s*\{[^}]*position:\s*absolute/);
+    assert.match(kinoCss, /\.fifa-pitch-badge--goal\s*\{[^}]*position:\s*absolute/);
+    assert.match(kinoCss, /\.fifa-pitch\s*\{[^}]*background:\s*#141518/);
   });
 
   test('webapp/kino/kino.css includes mobile responsiveness for pitch player', () => {
-    assert.match(kinoCss, /@media\s*\(max-width:\s*480px\)[\s\S]*?\.fifa-pitch-player__avatar\s*\{[^}]*width:\s*38px/);
+    assert.match(kinoCss, /@media\s*\(max-width:\s*480px\)[\s\S]*?\.fifa-pitch-player__avatar\s*\{[^}]*width:\s*42px/);
   });
 });

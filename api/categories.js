@@ -1788,6 +1788,24 @@ function espnSideOrder(abbrRaw) {
   return 0;
 }
 
+const KNOWN_PLAYER_CUTOUTS = {
+  "kylian mbappe": "https://api.sofascore.app/api/v1/player/826643/image",
+  "mbappe": "https://api.sofascore.app/api/v1/player/826643/image",
+  "vinicius junior": "https://api.sofascore.app/api/v1/player/868812/image",
+  "vinicius jr": "https://api.sofascore.app/api/v1/player/868812/image",
+  "vinicius": "https://api.sofascore.app/api/v1/player/868812/image",
+  "jude bellingham": "https://api.sofascore.app/api/v1/player/991011/image",
+  "bellingham": "https://api.sofascore.app/api/v1/player/991011/image",
+  "federico valverde": "https://api.sofascore.app/api/v1/player/827725/image",
+  "valverde": "https://api.sofascore.app/api/v1/player/827725/image",
+  "erling haaland": "https://api.sofascore.app/api/v1/player/839956/image",
+  "haaland": "https://api.sofascore.app/api/v1/player/839956/image",
+  "lionel messi": "https://api.sofascore.app/api/v1/player/12994/image",
+  "messi": "https://api.sofascore.app/api/v1/player/12994/image",
+  "cristiano ronaldo": "https://api.sofascore.app/api/v1/player/750/image",
+  "ronaldo": "https://api.sofascore.app/api/v1/player/750/image",
+};
+
 const FOOTBALL_PLAYER_PHOTO_CACHE = new Map();
 
 async function fetchWikiJson(url, timeoutMs = 2500) {
@@ -1814,6 +1832,17 @@ async function resolvePlayerPhoto(name, espnId = "") {
   if (!name) return "";
   const clean = String(name).trim();
   const cacheKey = clean.toLowerCase();
+
+  // 0. Known top player cutout (Sofascore HD cutout)
+  if (typeof KNOWN_PLAYER_CUTOUTS !== "undefined" && KNOWN_PLAYER_CUTOUTS[cacheKey]) {
+    return KNOWN_PLAYER_CUTOUTS[cacheKey];
+  }
+  const nameNorm = cacheKey.replace(/[^a-z]/g, "");
+  for (const [k, v] of Object.entries(KNOWN_PLAYER_CUTOUTS || {})) {
+    if (k.replace(/[^a-z]/g, "") === nameNorm || (k.length > 5 && nameNorm.includes(k.replace(/[^a-z]/g, "")))) {
+      return v;
+    }
+  }
 
   // 1. L1 Memory Cache
   if (FOOTBALL_PLAYER_PHOTO_CACHE.has(cacheKey)) {

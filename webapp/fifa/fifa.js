@@ -3656,9 +3656,9 @@
       const renderPitchPlayer = (p, side, isSingleView) => {
         let topPct, leftPct;
         if (isSingleView) {
-          // Tactical pitch mapping: Darvozabon maydon pastida (84%), Hujumchilar maydon tepasida (12%)
+          // Tactical pitch mapping: Darvozabon maydon pastida (85%), Hujumchilar maydon tepasida (10%)
           const progress = Math.max(0, Math.min(1, (p.x - 0.08) / (0.46 - 0.08 || 1)));
-          topPct = 84 - (progress * 72);
+          topPct = 85 - (progress * 74);
           leftPct = p.y * 100;
         } else {
           // Ikkala jamoa maydonda:
@@ -3676,7 +3676,7 @@
           : "";
         const initials = (p.name || "?").split(/\s+/).map((s) => s[0] || "").join("").slice(0, 2).toUpperCase();
 
-        // 1. Rating Badge (Top-Right of avatar)
+        // 1. Rating Badge (Top-Right of avatar) — bold black text on vibrant pill
         let ratingHtml = "";
         if (p.rating != null || p.motm) {
           const rVal = typeof p.rating === "number" ? p.rating.toFixed(1) : "";
@@ -3684,29 +3684,51 @@
             ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--blue">${rVal} <span class="fifa-rating__star">★</span></span>`;
           } else if (p.rating >= 7.0) {
             ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--green">${rVal}</span>`;
-          } else if (p.rating >= 6.0) {
-            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--orange">${rVal}</span>`;
           } else {
-            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--red">${rVal}</span>`;
+            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--orange">${rVal}</span>`;
           }
         }
 
-        // 2. Sub Out Badge (Top-Left of avatar with minute + red arrow)
+        // 2. Sub Out Badge (Top-Left): minute above red circle with white arrow
         let subOutHtml = "";
         if (p.subOut || p.subOutMinute) {
-          const subMin = p.subOutMinute ? `${esc(p.subOutMinute)} ` : "";
-          subOutHtml = `<span class="fifa-pitch-player__sub-out" title="Almashtirildi">${subMin}<span class="fifa-pitch-player__sub-arrow">←</span></span>`;
+          const subMin = p.subOutMinute ? `${esc(p.subOutMinute)}` : "";
+          subOutHtml = `
+            <div class="fifa-pitch-player__sub-stack" title="Almashtirildi ${subMin}">
+              ${subMin ? `<span class="fifa-pitch-player__sub-min">${subMin}</span>` : ""}
+              <span class="fifa-pitch-player__sub-circle">←</span>
+            </div>
+          `;
         }
 
-        // 3. Event Badges around avatar (Goals, Assists, Cards)
-        const badges = [];
-        if (p.goals > 0) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--goal" title="Gol">⚽${p.goals > 1 ? `<sup>${p.goals}</sup>` : ""}</span>`);
-        if (p.assists > 0) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--assist" title="Golli uzatma">👟${p.assists > 1 ? `<sup>${p.assists}</sup>` : ""}</span>`);
-        if (p.redCard) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--red" title="Qizil kartochka">🟥</span>`);
-        else if (p.yellowCard) badges.push(`<span class="fifa-pitch-badge fifa-pitch-badge--yellow" title="Sariq kartochka">🟨</span>`);
+        // 3. Assist Badge (Bottom-Left)
+        let assistHtml = "";
+        if (p.assists > 0) {
+          assistHtml = `<span class="fifa-pitch-badge--assist" title="Golli uzatma">${p.assists > 1 ? `👟<sup>${p.assists}</sup>` : "👟"}</span>`;
+        }
 
-        // 4. Name Row below avatar: Captain + Number + ShortName
-        const capHtml = p.isCaptain ? `<span class="fifa-pitch-player__captain" title="Kapitan">Ⓒ</span> ` : "";
+        // 4. Goal Badge (Bottom-Right)
+        let goalHtml = "";
+        if (p.goals > 0) {
+          if (p.goals === 1) {
+            goalHtml = `<span class="fifa-pitch-badge--goal" title="Gol">⚽</span>`;
+          } else if (p.goals === 2) {
+            goalHtml = `<span class="fifa-pitch-badge--goal is-multiple" title="2 ta gol">⚽⚽</span>`;
+          } else {
+            goalHtml = `<span class="fifa-pitch-badge--goal is-multiple" title="${p.goals} ta gol">⚽<sup>${p.goals}</sup></span>`;
+          }
+        }
+
+        // 5. Card Badge (Bottom-Left)
+        let cardHtml = "";
+        if (p.redCard) {
+          cardHtml = `<span class="fifa-pitch-badge--card fifa-pitch-badge--red" title="Qizil kartochka"></span>`;
+        } else if (p.yellowCard && !p.assists) {
+          cardHtml = `<span class="fifa-pitch-badge--card fifa-pitch-badge--yellow" title="Sariq kartochka"></span>`;
+        }
+
+        // 6. Name Row below avatar: Captain + Number + ShortName
+        const capHtml = p.isCaptain ? `<span class="fifa-pitch-player__captain" title="Kapitan">C</span>` : "";
         const numHtml = num ? `<span class="fifa-pitch-player__number">${esc(num)}</span> ` : "";
         const sName = p.shortName || shortName(p);
 
@@ -3719,7 +3741,9 @@
                 ${photo}
                 <span class="fifa-pitch-player__initials" ${photoUrl ? "hidden" : ""}>${esc(initials)}</span>
               </div>
-              ${badges.length ? `<div class="fifa-pitch-player__badges">${badges.join("")}</div>` : ""}
+              ${assistHtml}
+              ${cardHtml}
+              ${goalHtml}
             </div>
             <div class="fifa-pitch-player__name-row">
               ${capHtml}${numHtml}<span class="fifa-pitch-player__name">${esc(sName)}</span>
