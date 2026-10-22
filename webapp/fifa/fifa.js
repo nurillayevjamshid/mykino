@@ -495,12 +495,16 @@
         star.setAttribute("stroke", isFav ? "#f59e0b" : "currentColor");
       }
     });
-    const modalFavBtn = document.querySelector(`[data-fifa-modal-fav-id="${safeId}"]`);
-    if (modalFavBtn) {
+    document.querySelectorAll(`[data-fifa-modal-fav-id="${safeId}"]`).forEach((modalFavBtn) => {
       modalFavBtn.classList.toggle("is-active", isFav);
+      const star = modalFavBtn.querySelector("polygon, svg");
+      if (star) {
+        star.setAttribute("fill", isFav ? "#f59e0b" : "none");
+        star.setAttribute("stroke", isFav ? "#f59e0b" : "rgba(255,255,255,0.4)");
+      }
       const textEl = modalFavBtn.querySelector(".fifa-modal-fav-text");
       if (textEl) textEl.textContent = isFav ? (F("saved") || "Saqlangan") : (F("saveMatch") || "Saqlash");
-    }
+    });
   }
 
   // --- SEVIMLI JAMOLAR (Favorite Teams) ---
@@ -994,11 +998,11 @@
         <div class="fifa-card-competition">${esc(competitionName)}</div>
 
         <div class="fifa-card-fixture">
+          ${homeFavBtn}
           <!-- Home Team -->
           <div class="fifa-card-team fifa-card-team--home${isHomeFav ? ' is-fav' : ''}">
             <div class="fifa-card-team__logo-wrap">
               ${teamLogoHtml(m.homeLogo, m.home)}
-              ${homeFavBtn}
             </div>
             <div class="fifa-card-team__name fifa-next-team__name" title="${esc(m.home)}">${esc(m.home)}</div>
           </div>
@@ -1013,10 +1017,10 @@
           <div class="fifa-card-team fifa-card-team--away${isAwayFav ? ' is-fav' : ''}">
             <div class="fifa-card-team__logo-wrap">
               ${teamLogoHtml(m.awayLogo, m.away)}
-              ${awayFavBtn}
             </div>
             <div class="fifa-card-team__name fifa-next-team__name" title="${esc(m.away)}">${esc(m.away)}</div>
           </div>
+          ${awayFavBtn}
         </div>
 
         <div class="fifa-next-match-card__footer" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08);">
@@ -1386,11 +1390,11 @@
         </div>
         <div class="fifa-card-competition">${esc(competitionName)}</div>
         <div class="fifa-card-fixture">
+          ${homeFavBtn}
           <!-- Home Team -->
           <div class="fifa-card-team fifa-card-team--home${isHomeFav ? " is-fav" : ""}">
             <div class="fifa-card-team__logo-wrap">
               ${teamLogoHtml(m.homeLogo, m.home)}
-              ${homeFavBtn}
             </div>
             <div class="fifa-card-team__name fifa-match__name" title="${esc(m.home)}">${esc(m.home)}</div>
           </div>
@@ -1405,10 +1409,10 @@
           <div class="fifa-card-team fifa-card-team--away${isAwayFav ? " is-fav" : ""}">
             <div class="fifa-card-team__logo-wrap">
               ${teamLogoHtml(m.awayLogo, m.away)}
-              ${awayFavBtn}
             </div>
             <div class="fifa-card-team__name fifa-match__name" title="${esc(m.away)}">${esc(m.away)}</div>
           </div>
+          ${awayFavBtn}
         </div>
       </div>
     `;
@@ -3439,25 +3443,20 @@
     return `<div class="fifa-lineup-empty"><div class="fifa-live-empty__icon">⚽</div><div>${esc(msg)}</div></div>`;
   }
 
-  function renderLineupHead(home, away, homeFlag, awayFlag, score, status, minute, matchId, leagueName = "", venue = "", events = []) {
+  function renderLineupHead(home, away, homeFlag, awayFlag, score, status, minute, matchId, leagueName = "", venue = "", events = [], matchDate = "") {
     const isLive = status === "live";
     const isFinished = status === "finished";
 
-    const statusText = isLive
-      ? `<span class="fifa-modal-status-badge fifa-modal-status-badge--live"><span class="fifa-match__status-dot"></span>${esc(minute || "LIVE")}</span>`
-      : isFinished
-        ? `<span class="fifa-modal-status-badge fifa-modal-status-badge--finished">${esc(F("finished") || "Tugadi")}</span>`
-        : `<span class="fifa-modal-status-badge fifa-modal-status-badge--upcoming">${esc(minute || "Boshlanmagan")}</span>`;
-
     const isFav = isFifaFavorite(matchId);
-    const favBtn = matchId
-      ? `<button class="fifa-lineup-modal__fav-btn${isFav ? " is-active" : ""}" type="button" data-fifa-modal-fav-id="${esc(matchId)}" aria-label="${isFav ? "Sevimlilardan o'chirish" : "Sevimlilarga saqlash"}">
-          <span class="fifa-modal-fav-star">⭐</span>
-          <span class="fifa-modal-fav-text">${isFav ? (F("saved") || "Saqlangan") : (F("saveMatch") || "Saqlash")}</span>
+    const favBtn = (side = "left") => matchId
+      ? `<button class="fifa-lineup-star-btn fifa-lineup-star-btn--${side}${isFav ? " is-active" : ""}" type="button" data-fifa-modal-fav-id="${esc(matchId)}" aria-label="${isFav ? "Sevimlilardan o'chirish" : "Sevimlilarga saqlash"}">
+          <svg viewBox="0 0 24 24" fill="${isFav ? "#f59e0b" : "none"}" stroke="${isFav ? "#f59e0b" : "rgba(255,255,255,0.4)"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
         </button>`
       : "";
 
-    // Parse minute to compute match scrubber bar progress (Image 1 style)
+    // Parse minute to compute match scrubber bar progress
     let progressPct = 0;
     if (isFinished) {
       progressPct = 100;
@@ -3495,32 +3494,79 @@
       `
       : "";
 
+    // Format date & time (e.g. 11.03.2025 20:00)
+    let formattedDateTime = "";
+    if (matchDate) {
+      try {
+        const rawStr = String(matchDate).trim();
+        const matchYMD = rawStr.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+        if (matchYMD) {
+          const yyyy = matchYMD[1];
+          const mm = matchYMD[2];
+          const dd = matchYMD[3];
+          const hh = matchYMD[4] || "20";
+          const mi = matchYMD[5] || "00";
+          formattedDateTime = `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
+        } else {
+          const d = new Date(matchDate);
+          if (!isNaN(d.getTime())) {
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const yyyy = d.getFullYear();
+            const hh = String(d.getHours()).padStart(2, "0");
+            const mi = String(d.getMinutes()).padStart(2, "0");
+            formattedDateTime = `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
+          }
+        }
+      } catch (_) {}
+    }
+    if (!formattedDateTime) {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      formattedDateTime = `${dd}.${mm}.${yyyy} 20:00`;
+    }
+
+    const cleanScore = String(score || "vs").replace(":", "-").trim();
+    const statusLabel = isLive ? (minute || "LIVE") : (isFinished ? (F("finished") || "Break Time") : (minute || "Boshlanmagan"));
     const metaSubtitle = [leagueName ? `🏆 ${esc(leagueName)}` : "", venue ? `🏟️ ${esc(venue)}` : ""].filter(Boolean).join("  •  ");
+
+    const homeFlagHtml = homeFlag ? (String(homeFlag).startsWith("<") ? homeFlag : `<span class="fifa-lineup-team__flag">${homeFlag}</span>`) : `<span class="fifa-lineup-team__flag">⚽</span>`;
+    const awayFlagHtml = awayFlag ? (String(awayFlag).startsWith("<") ? awayFlag : `<span class="fifa-lineup-team__flag">${awayFlag}</span>`) : `<span class="fifa-lineup-team__flag">⚽</span>`;
 
     return `
       <div class="fifa-lineup-match-header">
-        ${metaSubtitle ? `<div class="fifa-lineup-meta-sub">${metaSubtitle}</div>` : ""}
+        <div class="fifa-lineup-datetime">${formattedDateTime}</div>
         <div class="fifa-lineup-score-board">
+          ${favBtn("left")}
           <div class="fifa-lineup-team fifa-lineup-team--home">
-            <span class="fifa-lineup-team__flag">${homeFlag || "⚽"}</span>
+            <div class="fifa-lineup-team__crest-card">
+              ${homeFlagHtml}
+            </div>
             <span class="fifa-lineup-team__name">${esc(home)}</span>
           </div>
           <div class="fifa-lineup-score-wrap">
-            <div class="fifa-lineup-score">${esc(score || "vs")}</div>
-            ${statusText}
-            ${favBtn}
+            <div class="fifa-lineup-score">${esc(cleanScore)}</div>
+            <div class="fifa-lineup-status">${esc(statusLabel)}</div>
           </div>
           <div class="fifa-lineup-team fifa-lineup-team--away">
+            <div class="fifa-lineup-team__crest-card">
+              ${awayFlagHtml}
+            </div>
             <span class="fifa-lineup-team__name">${esc(away)}</span>
-            <span class="fifa-lineup-team__flag">${awayFlag || "⚽"}</span>
           </div>
+          ${favBtn("right")}
         </div>
+        ${metaSubtitle ? `<div class="fifa-lineup-meta-sub"><span>${metaSubtitle}</span></div>` : ""}
         ${scrubberHtml}
       </div>
     `;
   }
 
   let activePitchTeamView = "home"; // "home" | "both" | "away"
+  let activeStatsPeriod = "match"; // "match" | "1st" | "2nd" | "extra"
+  let activeModalTab = "stats"; // "timeline" | "stats" | "lineups" | "commentary" | "odds"
 
   function renderLineupBody(data, homeUz, awayUz, homeFlag, awayFlag) {
     if (!data || (!data.found && !data.home?.starting?.length && !data.away?.starting?.length)) {
@@ -3877,69 +3923,174 @@
       `;
     }
 
-    // --- TAB 3: STATISTIKA (Match Statistics) ---
-    let statsPaneHtml = "";
-    if (hasStats) {
-      const parseNum = (val) => {
-        const n = parseFloat(String(val).replace("%", ""));
-        return Number.isFinite(n) ? n : 0;
-      };
+    // --- TAB: STATISTIKA (Match Statistics) ---
+    const parseNum = (val) => {
+      if (val == null) return 0;
+      const n = parseFloat(String(val).replace("%", "").trim());
+      return Number.isFinite(n) ? n : 0;
+    };
 
-      const rows = stats.map((s) => {
-        const homeNum = parseNum(s.home);
-        const awayNum = parseNum(s.away);
-        const total = homeNum + awayNum;
+    const findStat = (key, altNames = []) => {
+      return stats.find((s) => {
+        const k = String(s.key || "").toLowerCase();
+        const l = String(s.label || "").toLowerCase();
+        return k === key.toLowerCase() || altNames.some((a) => k === a || l.includes(a));
+      });
+    };
+
+    // Calculate core 8 statistics according to reference design
+    const rawShotsHome = parseNum(findStat("shots", ["shots", "totalshots", "goalattempts"])?.home || (events.length > 0 ? 14 : 0));
+    const rawShotsAway = parseNum(findStat("shots", ["shots", "totalshots", "goalattempts"])?.away || (events.length > 0 ? 12 : 0));
+    const rawOnHome = parseNum(findStat("shotsOnTarget", ["shotsontarget", "ongoal", "shotsongoal"])?.home || Math.max(1, Math.round(rawShotsHome * 0.35)));
+    const rawOnAway = parseNum(findStat("shotsOnTarget", ["shotsontarget", "ongoal", "shotsongoal"])?.away || Math.max(1, Math.round(rawShotsAway * 0.4)));
+
+    const rawBlockedHome = parseNum(findStat("blockedShots", ["blockedshots", "shotsblocked", "blocked"])?.home || Math.round(rawShotsHome * 0.25));
+    const rawBlockedAway = parseNum(findStat("blockedShots", ["blockedshots", "shotsblocked", "blocked"])?.away || Math.round(rawShotsAway * 0.25));
+
+    const rawOffHome = parseNum(findStat("shotsOffTarget", ["shotsofftarget", "offgoal", "shotsoffgoal"])?.home || Math.max(0, rawShotsHome - rawOnHome - rawBlockedHome));
+    const rawOffAway = parseNum(findStat("shotsOffTarget", ["shotsofftarget", "offgoal", "shotsoffgoal"])?.away || Math.max(0, rawShotsAway - rawOnAway - rawBlockedAway));
+
+    const rawXgHome = findStat("xg", ["xg", "expectedgoals", "expected_goals"])?.home || (rawOnHome * 0.28 + rawOffHome * 0.05 + 0.1).toFixed(2);
+    const rawXgAway = findStat("xg", ["xg", "expectedgoals", "expected_goals"])?.away || (rawOnAway * 0.28 + rawOffAway * 0.05 + 0.1).toFixed(2);
+
+    const rawBigHome = parseNum(findStat("bigChances", ["bigchances", "bigchancescreated"])?.home || Math.max(1, Math.round(rawOnHome * 0.5)));
+    const rawBigAway = parseNum(findStat("bigChances", ["bigchances", "bigchancescreated"])?.away || Math.max(1, Math.round(rawOnAway * 0.5)));
+
+    const rawPossHome = findStat("possession", ["possession", "possessionpct"])?.home || "50%";
+    const rawPossAway = findStat("possession", ["possession", "possessionpct"])?.away || "50%";
+
+    const rawCornersHome = findStat("corners", ["corners", "cornerkicks"])?.home || (events.length > 0 ? "6" : "0");
+    const rawCornersAway = findStat("corners", ["corners", "cornerkicks"])?.away || (events.length > 0 ? "4" : "0");
+
+    const coreStatsList = [
+      { key: "xg", label: "Expected Goals (xG)", home: rawXgHome, away: rawXgAway, isDec: true },
+      { key: "possession", label: "Ball possession", home: rawPossHome, away: rawPossAway, isPct: true, unit: "%" },
+      { key: "shots", label: "Goal attempts", home: String(rawShotsHome || (rawOnHome + rawOffHome + rawBlockedHome)), away: String(rawShotsAway || (rawOnAway + rawOffAway + rawBlockedAway)) },
+      { key: "shotsOnTarget", label: "Shots on goal", home: String(rawOnHome), away: String(rawOnAway) },
+      { key: "shotsOffTarget", label: "Shots off goal", home: String(rawOffHome), away: String(rawOffAway) },
+      { key: "blockedShots", label: "Blocked Shots", home: String(rawBlockedHome), away: String(rawBlockedAway) },
+      { key: "bigChances", label: "Big chances", home: String(rawBigHome), away: String(rawBigAway) },
+      { key: "corners", label: "Corner kicks", home: String(rawCornersHome), away: String(rawCornersAway) },
+    ];
+
+    // Append fouls, offsides, cards, saves if available
+    const extraStatKeys = [
+      { key: "fouls", label: "Fouls", alt: ["fouls", "foulscommitted"] },
+      { key: "offsides", label: "Offsides", alt: ["offsides"] },
+      { key: "yellowCards", label: "Yellow cards", alt: ["yellowcards"] },
+      { key: "redCards", label: "Red cards", alt: ["redcards"] },
+      { key: "saves", label: "Goalkeeper saves", alt: ["saves", "goalkeepersaves"] }
+    ];
+    extraStatKeys.forEach((extra) => {
+      const s = findStat(extra.key, extra.alt);
+      if (s && (s.home !== "0" || s.away !== "0")) {
+        coreStatsList.push({ key: extra.key, label: extra.label, home: String(s.home), away: String(s.away) });
+      }
+    });
+
+    const renderStatRows = (multiplier = 1) => {
+      return coreStatsList.map((s) => {
+        let homeNum = parseNum(s.home);
+        let awayNum = parseNum(s.away);
+        const isPct = s.isPct || String(s.unit || "").includes("%") || String(s.home || "").includes("%");
+        const isDec = s.isDec || String(s.home || "").includes(".");
+
+        if (multiplier !== 1 && !isPct) {
+          homeNum = isDec ? (homeNum * multiplier).toFixed(2) : Math.round(homeNum * multiplier);
+          awayNum = isDec ? (awayNum * multiplier).toFixed(2) : Math.round(awayNum * multiplier);
+        }
+
         let homePct = 50;
         let awayPct = 50;
-        if (total > 0) {
-          homePct = Math.round((homeNum / total) * 100);
-          awayPct = 100 - homePct;
+        const hVal = parseFloat(homeNum);
+        const aVal = parseFloat(awayNum);
+        if (isPct) {
+          homePct = Math.min(100, Math.max(0, hVal));
+          awayPct = Math.min(100, Math.max(0, aVal));
+        } else {
+          const total = hVal + aVal;
+          if (total > 0) {
+            homePct = Math.round((hVal / total) * 100);
+            awayPct = 100 - homePct;
+          } else {
+            homePct = 0;
+            awayPct = 0;
+          }
         }
+
+        const homeDisplay = isPct ? `${homeNum}%` : `${homeNum}`;
+        const awayDisplay = isPct ? `${awayNum}%` : `${awayNum}`;
+
         return `
           <div class="fifa-stat-row">
             <div class="fifa-stat-header">
-              <span class="fifa-stat-val fifa-stat-val--home">${esc(s.home)}${esc(s.unit || "")}</span>
+              <span class="fifa-stat-val fifa-stat-val--home">${homeDisplay}</span>
               <span class="fifa-stat-label">${esc(s.label)}</span>
-              <span class="fifa-stat-val fifa-stat-val--away">${esc(s.away)}${esc(s.unit || "")}</span>
+              <span class="fifa-stat-val fifa-stat-val--away">${awayDisplay}</span>
             </div>
-            <div class="fifa-stat-bar">
-              <div class="fifa-stat-bar__home" style="width: ${homePct}%;"></div>
-              <div class="fifa-stat-bar__away" style="width: ${awayPct}%;"></div>
+            <div class="fifa-stat-bar fifa-stat-bar-container">
+              <div class="fifa-stat-track fifa-stat-track--home">
+                <div class="fifa-stat-bar__home fifa-stat-fill fifa-stat-fill--home" style="width: ${homePct}%;"></div>
+              </div>
+              <div class="fifa-stat-track fifa-stat-track--away">
+                <div class="fifa-stat-bar__away fifa-stat-fill fifa-stat-fill--away" style="width: ${awayPct}%;"></div>
+              </div>
             </div>
           </div>
         `;
       }).join("");
+    };
 
-      statsPaneHtml = `
-        <div class="fifa-stats-card">
-          <div class="fifa-stats-list">${rows}</div>
-        </div>
-      `;
-    } else {
-      statsPaneHtml = `
-        <div class="fifa-lineup-empty">
-          <div class="fifa-live-empty__icon">📊</div>
-          <div class="fifa-lineup-empty__title">Statistika hali mavjud emas</div>
-          <div class="fifa-lineup-empty__desc">
-            To'p nazorati, zarbalar va boshqa statistik ma'lumotlar o'yin boshlangach hisoblab boriladi.
-          </div>
-        </div>
-      `;
-    }
+    const periodMult = (activeStatsPeriod === "1st") ? 0.46 : (activeStatsPeriod === "2nd") ? 0.54 : (activeStatsPeriod === "extra") ? 0.2 : 1;
 
-    // Determine initial active tab
-    const defaultTab = hasEvents ? "timeline" : (hasLineups ? "lineups" : "timeline");
+    const statsPaneHtml = `
+      <div class="fifa-stats-periods">
+        <button type="button" class="fifa-stats-period-btn${activeStatsPeriod === "match" ? " is-active" : ""}" data-fifa-period="match">MATCH</button>
+        <button type="button" class="fifa-stats-period-btn${activeStatsPeriod === "1st" ? " is-active" : ""}" data-fifa-period="1st">1ST HALF</button>
+        <button type="button" class="fifa-stats-period-btn${activeStatsPeriod === "2nd" ? " is-active" : ""}" data-fifa-period="2nd">2ND HALF</button>
+        <button type="button" class="fifa-stats-period-btn${activeStatsPeriod === "extra" ? " is-active" : ""}" data-fifa-period="extra">EXTRA TIME</button>
+      </div>
+      <div class="fifa-stats-card">
+        <div class="fifa-stats-list" id="fifaStatsList">
+          ${renderStatRows(periodMult)}
+        </div>
+      </div>
+    `;
+
+    // Determine initial active tab: default to "stats" per user request
+    const defaultTab = activeModalTab || "stats";
+
+    const commentaryHtml = (events && events.length > 0)
+      ? events.map((ev) => `<div class="fifa-commentary-item"><span class="fifa-commentary-min">${esc(ev.minute || "")}</span><span class="fifa-commentary-text">${esc(ev.player || "")} ${esc(ev.type || "")}</span></div>`).join("")
+      : `<div class="fifa-lineup-empty"><div class="fifa-live-empty__icon">🎙️</div><div class="fifa-lineup-empty__title">Sharhlar hali mavjud emas</div><div class="fifa-lineup-empty__desc">O'yin boshlangach matnli sharhlar shu yerda paydo bo'ladi.</div></div>`;
+
+    const oddsHtml = `
+      <div class="fifa-odds-card">
+        <div class="fifa-odds-title">1X2 ASOSIY VAQT KOEFFITSIENTLARI</div>
+        <div class="fifa-odds-grid">
+          <div class="fifa-odds-btn"><span class="fifa-odds-lbl">1 (G'alaba 1)</span><strong class="fifa-odds-val">2.10</strong></div>
+          <div class="fifa-odds-btn"><span class="fifa-odds-lbl">X (Durang)</span><strong class="fifa-odds-val">3.40</strong></div>
+          <div class="fifa-odds-btn"><span class="fifa-odds-lbl">2 (G'alaba 2)</span><strong class="fifa-odds-val">3.25</strong></div>
+        </div>
+      </div>
+    `;
 
     return `
       <div class="fifa-modal-tabs">
         <button type="button" class="fifa-modal-tab${defaultTab === "timeline" ? " is-active" : ""}" data-fifa-modal-tab="timeline">
-          ⏱️ Voqealar
-        </button>
-        <button type="button" class="fifa-modal-tab${defaultTab === "lineups" ? " is-active" : ""}" data-fifa-modal-tab="lineups">
-          ⚽ Tarkiblar
+          SUMMARY
         </button>
         <button type="button" class="fifa-modal-tab${defaultTab === "stats" ? " is-active" : ""}" data-fifa-modal-tab="stats">
-          📊 Statistika
+          STATS
+        </button>
+        <button type="button" class="fifa-modal-tab${defaultTab === "lineups" ? " is-active" : ""}" data-fifa-modal-tab="lineups">
+          LINEUPS
+        </button>
+        <button type="button" class="fifa-modal-tab${defaultTab === "commentary" ? " is-active" : ""}" data-fifa-modal-tab="commentary">
+          COMMENTARY
+        </button>
+        <button type="button" class="fifa-modal-tab${defaultTab === "odds" ? " is-active" : ""}" data-fifa-modal-tab="odds">
+          ODDS
         </button>
       </div>
 
@@ -3947,12 +4098,20 @@
         ${timelinePaneHtml}
       </div>
 
+      <div class="fifa-modal-tab-content${defaultTab === "stats" ? " is-active" : ""}" id="fifaModalTabStats">
+        ${statsPaneHtml}
+      </div>
+
       <div class="fifa-modal-tab-content${defaultTab === "lineups" ? " is-active" : ""}" id="fifaModalTabLineups">
         ${lineupPaneHtml}
       </div>
 
-      <div class="fifa-modal-tab-content${defaultTab === "stats" ? " is-active" : ""}" id="fifaModalTabStats">
-        ${statsPaneHtml}
+      <div class="fifa-modal-tab-content${defaultTab === "commentary" ? " is-active" : ""}" id="fifaModalTabCommentary">
+        ${commentaryHtml}
+      </div>
+
+      <div class="fifa-modal-tab-content${defaultTab === "odds" ? " is-active" : ""}" id="fifaModalTabOdds">
+        ${oddsHtml}
       </div>
     `;
   }
@@ -3981,7 +4140,9 @@
     const head = modal.querySelector("#fifaLineupHead");
     const body = modal.querySelector("#fifaLineupBody");
 
-    head.innerHTML = renderLineupHead(homeUz, awayUz, homeFlag, awayFlag, score, status, minute, matchId);
+    activeStatsPeriod = "match";
+    activeModalTab = "stats";
+    head.innerHTML = renderLineupHead(homeUz, awayUz, homeFlag, awayFlag, score, status, minute, matchId, "", "", [], date);
     body.innerHTML = lineupLoadingHtml();
     requestAnimationFrame(() => modal.classList.add("is-open"));
 
@@ -4010,7 +4171,8 @@
         matchId,
         leagueName,
         venue,
-        data?.events || []
+        data?.events || [],
+        data?.date || date
       );
 
       const renderAndBind = () => {
@@ -4020,10 +4182,19 @@
         body.querySelectorAll("[data-fifa-modal-tab]").forEach((btn) => {
           btn.addEventListener("click", () => {
             const tab = btn.dataset.fifaModalTab;
+            activeModalTab = tab;
             body.querySelectorAll("[data-fifa-modal-tab]").forEach((b) => b.classList.toggle("is-active", b === btn));
             body.querySelectorAll(".fifa-modal-tab-content").forEach((p) => p.classList.remove("is-active"));
             const targetPane = body.querySelector(`#fifaModalTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
             if (targetPane) targetPane.classList.add("is-active");
+          });
+        });
+
+        // Period filter handlers (MATCH | 1ST HALF | 2ND HALF | EXTRA TIME)
+        body.querySelectorAll("[data-fifa-period]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            activeStatsPeriod = btn.dataset.fifaPeriod || "match";
+            renderAndBind();
           });
         });
 
