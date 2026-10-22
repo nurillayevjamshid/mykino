@@ -710,7 +710,7 @@ body,
   border-radius: 36px 36px 0 0 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   border-bottom: none !important;
-  background: #000000 !important;
+  background: #0b111e !important;
   -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
   backdrop-filter: blur(28px) saturate(160%) !important;
   box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
@@ -793,14 +793,18 @@ body,
 
 .movie-modal .modal-poster {
   width: 100%;
-  flex: 1 1 50% !important;
-  max-height: 480px !important;
+  flex: 0 0 auto !important;
+  height: 48dvh !important;
   min-height: 270px !important;
+  max-height: 440px !important;
   position: relative;
+  border-radius: 36px 36px 38px 38px !important;
+  overflow: hidden !important;
   background-size: cover;
   background-position: center 25%;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
 .movie-modal .modal-poster::before {
@@ -860,8 +864,8 @@ html[data-theme="light"] .movie-modal .modal-poster::after {
 /* Subtle "To'liq ablojka" zoom badge on bottom right of the poster */
 .modal-poster__zoom-badge {
   position: absolute;
-  bottom: 46px;
-  right: 16px;
+  bottom: 18px;
+  right: 18px;
   z-index: 4;
   display: inline-flex;
   align-items: center;
@@ -894,16 +898,15 @@ html[data-theme="light"] .movie-modal .modal-poster::after {
   height: 12px;
 }
 
-/* Floating Card Outer Wrapper */
+/* Modal Card Wrapper: content & actions container below poster */
 .modal-card-wrapper {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   position: relative;
   z-index: 5;
-  margin: -36px 14px 18px 14px;
+  margin: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  filter: drop-shadow(0 -8px 24px rgba(0, 0, 0, 0.22));
 }
 
 .movie-modal .modal-content {
@@ -912,31 +915,48 @@ html[data-theme="light"] .movie-modal .modal-poster::after {
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   overscroll-behavior-y: contain !important;
-  padding: 24px 20px 8px 20px !important;
+  padding: 0 20px 10px 20px !important;
   margin: 0 !important;
   position: relative;
   z-index: 5;
-  border-radius: 38px 38px 0 0 !important;
+  border-radius: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   text-align: center !important;
-}
-
-html[data-theme="light"] .movie-modal .modal-content {
-  background: #ffffff !important;
+  background: transparent !important;
   border: none !important;
-  color: #0f172a !important;
   box-shadow: none !important;
 }
 
-html[data-theme="dark"] .movie-modal .modal-content,
-html:not([data-theme="light"]) .movie-modal .modal-content {
-  background: linear-gradient(175deg, #182033 0%, #101626 60%, #0b0f1a 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-bottom: none !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
+/* 3-dot pagination indicators directly below poster card */
+.modal-card-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 16px auto 12px;
+  padding: 0;
+}
+.modal-card-dot {
+  height: 5px;
+  width: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+html[data-theme="light"] .modal-card-dot {
+  background: rgba(15, 23, 42, 0.28);
+}
+.modal-card-dot.is-active {
+  width: 24px;
+  height: 5px;
+  border-radius: 9999px;
+  background: #ffffff;
+}
+html[data-theme="light"] .modal-card-dot.is-active {
+  background: #0f172a;
 }
 
 .movie-modal .modal-info-card {
@@ -950,21 +970,23 @@ html:not([data-theme="light"]) .movie-modal .modal-content {
   box-shadow: none !important;
   border-radius: 0 !important;
   padding: 0 !important;
-  margin: auto 0;
+  margin: 0;
 }
 
 .movie-modal .modal-info-card h1 {
-  font-size: 23px !important;
+  font-size: 22px !important;
   font-weight: 800 !important;
   letter-spacing: -0.025em !important;
-  line-height: 1.24 !important;
-  margin: 0 0 4px 0 !important;
-  max-width: 310px;
+  line-height: 1.25 !important;
+  margin: 0 0 6px 0 !important;
+  max-width: 320px;
+  text-align: center !important;
 }
 html[data-theme="light"] .movie-modal .modal-info-card h1 {
   color: #0f172a !important;
 }
-html[data-theme="dark"] .movie-modal .modal-info-card h1 {
+html[data-theme="dark"] .movie-modal .modal-info-card h1,
+html:not([data-theme="light"]) .movie-modal .modal-info-card h1 {
   color: #ffffff !important;
 }
 
@@ -974,31 +996,38 @@ html[data-theme="dark"] .movie-modal .modal-info-card h1 {
   justify-content: center;
   flex-wrap: wrap;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
-  margin: 0 0 4px 0;
+  margin: 0 0 6px 0;
 }
 html[data-theme="light"] .movie-modal .modal-meta {
   color: #64748b;
 }
-html[data-theme="dark"] .movie-modal .modal-meta {
+html[data-theme="dark"] .movie-modal .modal-meta,
+html:not([data-theme="light"]) .movie-modal .modal-meta {
   color: #94a3b8;
 }
 .movie-modal .modal-meta > span {
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: rgba(148, 163, 184, 0.16);
+  padding: 3px 9px;
+  border-radius: 8px;
+}
+html[data-theme="light"] .movie-modal .modal-meta > span {
+  background: rgba(15, 23, 42, 0.06);
+}
+html[data-theme="dark"] .movie-modal .modal-meta > span,
+html:not([data-theme="light"]) .movie-modal .modal-meta > span {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .movie-modal .modal-description-wrap {
   width: 100%;
-  max-width: 310px;
-  margin: 4px auto 6px;
+  max-width: 320px;
+  margin: 4px auto 8px;
   padding: 0;
 }
 .movie-modal .modal-description {
   font-size: 13.5px;
-  line-height: 1.46;
+  line-height: 1.48;
   margin: 0;
   text-align: center;
   display: -webkit-box;
@@ -1009,8 +1038,9 @@ html[data-theme="dark"] .movie-modal .modal-meta {
 html[data-theme="light"] .movie-modal .modal-description {
   color: #64748b;
 }
-html[data-theme="dark"] .movie-modal .modal-description {
-  color: rgba(255, 255, 255, 0.72);
+html[data-theme="dark"] .movie-modal .modal-description,
+html:not([data-theme="light"]) .movie-modal .modal-description {
+  color: #94a3b8;
 }
 .movie-modal .modal-description-wrap.is-expanded .modal-description {
   display: block;
@@ -1035,39 +1065,17 @@ html[data-theme="dark"] .movie-modal .modal-description {
   display: none !important;
 }
 
-/* 3-dash pagination indicators */
-.modal-card-dots {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin: 6px 0 8px;
-}
-.modal-card-dot {
-  height: 4px;
-  width: 20px;
-  border-radius: 2px;
-  background: rgba(148, 163, 184, 0.35);
-  transition: all 0.2s ease;
-}
-.modal-card-dot.is-active {
-  width: 26px;
-  background: #0f172a;
-}
-html[data-theme="dark"] .modal-card-dot.is-active {
-  background: #ffffff;
-}
-
 /* Comments trigger */
 .movie-modal .comments-trigger {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 12px;
+  padding: 4px 14px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  margin-top: 4px;
   transition: transform 0.15s ease, background 0.15s ease;
 }
 html[data-theme="light"] .movie-modal .comments-trigger {
@@ -1075,7 +1083,8 @@ html[data-theme="light"] .movie-modal .comments-trigger {
   border: 1px solid rgba(15, 23, 42, 0.1);
   color: #475569;
 }
-html[data-theme="dark"] .movie-modal .comments-trigger {
+html[data-theme="dark"] .movie-modal .comments-trigger,
+html:not([data-theme="light"]) .movie-modal .comments-trigger {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #cbd5e1;
@@ -1084,65 +1093,73 @@ html[data-theme="dark"] .movie-modal .comments-trigger {
   transform: scale(0.95);
 }
 
-/* Scoop Notch SVG Wrapper attached to bottom of card */
-.modal-card-bottom-notch-wrap {
-  width: 100%;
-  position: relative;
-  line-height: 0;
+/* Watch Actions container at bottom */
+.movie-modal .watch-actions {
   flex-shrink: 0;
-  margin-top: -1px;
-}
-.modal-card-bottom-notch {
-  display: block;
   width: 100%;
-  height: 52px;
+  box-sizing: border-box;
+  padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0px)) 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+  z-index: 15;
 }
-html[data-theme="light"] .modal-card-bottom-notch {
-  fill: #ffffff;
+html[data-theme="dark"] .movie-modal .watch-actions,
+html:not([data-theme="light"]) .movie-modal .watch-actions {
+  background: linear-gradient(180deg, rgba(11, 17, 30, 0) 0%, rgba(11, 17, 30, 0.95) 30%, #0b111e 100%);
 }
-html[data-theme="dark"] .modal-card-bottom-notch {
-  fill: #0b0f1a;
+html[data-theme="light"] .movie-modal .watch-actions {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.95) 30%, #ffffff 100%);
 }
 
-/* Continue / Watch Button resting inside the scoop */
-.movie-modal .watch-actions {
-  position: absolute;
-  bottom: 4px;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  z-index: 10;
-  pointer-events: none;
-}
 .movie-modal .watch-actions .watch-button,
 .movie-modal .watch-actions .watch-resume-chip {
   pointer-events: auto;
 }
 
+/* High-contrast solid pill Continue/Watch Button */
 .movie-modal .watch-button.watch-button--pill {
-  background: transparent !important;
-  color: #ffffff !important;
+  width: 100% !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  border-radius: 9999px !important;
   border: none !important;
-  box-shadow: none !important;
-  font-size: 15px !important;
-  font-weight: 700 !important;
-  padding: 8px 22px !important;
-  height: 44px !important;
-  min-height: 44px !important;
-  border-radius: 999px !important;
-  display: inline-flex !important;
+  display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
   cursor: pointer !important;
-  letter-spacing: 0.01em !important;
-  transition: transform 0.15s ease, opacity 0.15s ease !important;
+  padding: 0 24px !important;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease !important;
 }
-.movie-modal .watch-button.watch-button--pill::after {
-  content: none !important;
-  display: none !important;
+
+html[data-theme="dark"] .movie-modal .watch-button.watch-button--pill,
+html:not([data-theme="light"]) .movie-modal .watch-button.watch-button--pill {
+  background: #ffffff !important;
+  color: #0b111e !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+}
+html[data-theme="light"] .movie-modal .watch-button.watch-button--pill {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.22) !important;
+}
+
+.movie-modal .watch-button.watch-button--pill:hover {
+  opacity: 0.95;
+  transform: scale(1.01);
+}
+.movie-modal .watch-button.watch-button--pill:active {
+  transform: scale(0.97);
+}
+
+.movie-modal .watch-button.watch-button--pill .watch-button__label {
+  font-weight: 700;
 }
 .movie-modal .watch-button.watch-button--pill .watch-button__icon {
   width: auto;
@@ -1152,35 +1169,38 @@ html[data-theme="dark"] .modal-card-bottom-notch {
   display: inline-flex;
 }
 .movie-modal .watch-button.watch-button--pill .watch-button__icon svg {
-  width: 16px;
-  height: 16px;
-}
-.movie-modal .watch-button.watch-button--pill:hover {
-  opacity: 0.9;
-  transform: scale(1.02);
-}
-.movie-modal .watch-button.watch-button--pill:active {
-  transform: scale(0.96);
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 .movie-modal .watch-resume-chip {
-  background: rgba(46, 124, 246, 0.9) !important;
-  color: #ffffff !important;
-  border-radius: 999px !important;
-  padding: 4px 10px !important;
-  font-size: 11px !important;
+  width: 100% !important;
+  height: 38px !important;
+  border-radius: 9999px !important;
+  padding: 4px 16px !important;
+  font-size: 12.5px !important;
   font-weight: 600 !important;
-  border: none !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: #38bdf8 !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  justify-content: center !important;
+  gap: 6px !important;
   cursor: pointer !important;
+  transition: transform 0.15s ease, background 0.15s ease !important;
+}
+.movie-modal .watch-resume-chip:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+}
+.movie-modal .watch-resume-chip:active {
+  transform: scale(0.98);
 }
 .movie-modal .watch-resume-chip svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }
-
 
 /* ============================================================
    Telegram Photo Viewer Lightbox for Movie Posters
