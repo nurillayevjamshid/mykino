@@ -8,7 +8,7 @@ const kinoCssPath = path.join(ROOT, "webapp/kino/kino.css");
 const glassCssPath = path.join(ROOT, "webapp/glass-theme.css");
 const fifaJsPath = path.join(ROOT, "webapp/fifa/fifa.js");
 
-test("FIFA Compact Match Cards Suite", async (t) => {
+test("FIFA Compact Match Cards & League Section Theme Suite", async (t) => {
   const kinoCss = fs.readFileSync(kinoCssPath, "utf8");
   const glassCss = fs.readFileSync(glassCssPath, "utf8");
   const fifaJs = fs.readFileSync(fifaJsPath, "utf8");
@@ -39,5 +39,15 @@ test("FIFA Compact Match Cards Suite", async (t) => {
     assert.match(kinoCss, /\.fifa-next-match-card\s*\{[^}]*padding:\s*12px\s+14px;/);
     assert.match(glassCss, /\.fifa-next-match-card[^}]*padding:\s*12px\s+14px\s*!important;/);
     assert.match(fifaJs, /class="fifa-next-match-card__footer"[^>]*margin-top:\s*8px;/);
+  });
+
+  await t.test("fifa-match-league has transparent outer container so match cards stand out cleanly without duplicate background", () => {
+    // Outer league container must be transparent in dark and light mode
+    assert.match(glassCss, /\.fifa-match-league[^}]*background:\s*transparent\s*!important;/);
+    assert.match(glassCss, /html\[data-theme="light"\]\s+\.fifa-match-league\s*\{[^}]*background:\s*transparent\s*!important;/);
+
+    // League header has dedicated pill styling
+    assert.match(glassCss, /\.fifa-match-league__head[^}]*display:\s*flex\s*!important;/);
+    assert.match(glassCss, /html\[data-theme="light"\]\s+\.fifa-match-league__head\s*\{[^}]*background:\s*#f1f5f9\s*!important;/);
   });
 });
