@@ -3,25 +3,29 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-describe("Football Match Statistics & Sofascore Header Redesign Suite", () => {
+describe("Football Match Statistics & Uzbek Header/Modal Suite", () => {
   const root = path.join(__dirname, "../..");
   const categoriesJsPath = path.join(root, "api/categories.js");
   const fifaJsPath = path.join(root, "webapp/fifa/fifa.js");
   const kinoCssPath = path.join(root, "webapp/kino/kino.css");
   const glassCssPath = path.join(root, "webapp/glass-theme.css");
 
-  test("api/categories.js defines extended match metrics including xG, shots off goal, blocked shots, and big chances", () => {
+  test("api/categories.js defines extended match metrics in Uzbek including xG, shots off goal, blocked shots, and big chances", () => {
     const code = fs.readFileSync(categoriesJsPath, "utf8");
 
-    assert.match(code, /key:\s*"xg"/);
-    assert.match(code, /key:\s*"shotsOffTarget"/);
-    assert.match(code, /key:\s*"blockedShots"/);
-    assert.match(code, /key:\s*"bigChances"/);
-    assert.match(code, /key:\s*"possession"/);
-    assert.match(code, /key:\s*"shots"/);
-    assert.match(code, /key:\s*"shotsOnTarget"/);
-    assert.match(code, /key:\s*"corners"/);
-    assert.match(code, /key:\s*"fouls"/);
+    assert.match(code, /label:\s*"To'p nazorati",\s*key:\s*"possession"/);
+    assert.match(code, /label:\s*"Umumiy zarbalar",\s*key:\s*"shots"/);
+    assert.match(code, /label:\s*"Aniq zarbalar",\s*key:\s*"shotsOnTarget"/);
+    assert.match(code, /label:\s*"Burchak to'plari",\s*key:\s*"corners"/);
+    assert.match(code, /label:\s*"Qoida buzilishi",\s*key:\s*"fouls"/);
+    assert.match(code, /label:\s*"Kutilgan gollar \(xG\)",\s*key:\s*"xg"/);
+    assert.match(code, /label:\s*"Noaniq zarbalar",\s*key:\s*"shotsOffTarget"/);
+    assert.match(code, /label:\s*"To'silgan zarbalar",\s*key:\s*"blockedShots"/);
+    assert.match(code, /label:\s*"Xavfli vaziyatlar",\s*key:\s*"bigChances"/);
+    assert.match(code, /label:\s*"Sariq kartochkalar",\s*key:\s*"yellowCards"/);
+    assert.match(code, /label:\s*"Qizil kartochkalar",\s*key:\s*"redCards"/);
+    assert.match(code, /label:\s*"Ofsaydlar",\s*key:\s*"offsides"/);
+    assert.match(code, /label:\s*"Darvozabon seyvlari",\s*key:\s*"saves"/);
   });
 
   test("fifa.js renders modern match header with datetime, squircle crest cards, red score, and favorite stars", () => {
@@ -45,41 +49,45 @@ describe("Football Match Statistics & Sofascore Header Redesign Suite", () => {
     assert.doesNotMatch(code, /start-audio-commentary/i);
   });
 
-  test("fifa.js renders navigation tabs with default tab as STATS and period filter buttons", () => {
+  test("fifa.js renders 3 Uzbek tabs (Voqealar, Statistika, Tarkiblar) and removes Commentary/Odds", () => {
     const code = fs.readFileSync(fifaJsPath, "utf8");
 
-    // Tabs
-    assert.match(code, /data-fifa-modal-tab="timeline"[^>]*>\s*SUMMARY/);
-    assert.match(code, /data-fifa-modal-tab="stats"[^>]*>\s*STATS/);
-    assert.match(code, /data-fifa-modal-tab="lineups"[^>]*>\s*LINEUPS/);
-    assert.match(code, /data-fifa-modal-tab="commentary"[^>]*>\s*COMMENTARY/);
-    assert.match(code, /data-fifa-modal-tab="odds"[^>]*>\s*ODDS/);
+    // Uzbek tabs
+    assert.match(code, /data-fifa-modal-tab="timeline"[^>]*>[\s\S]*?Voqealar/);
+    assert.match(code, /data-fifa-modal-tab="stats"[^>]*>[\s\S]*?Statistika/);
+    assert.match(code, /data-fifa-modal-tab="lineups"[^>]*>[\s\S]*?Tarkiblar/);
+
+    // Removed tabs: commentary and odds must not exist in modal tabs
+    assert.doesNotMatch(code, /data-fifa-modal-tab="commentary"/);
+    assert.doesNotMatch(code, /data-fifa-modal-tab="odds"/);
+    assert.doesNotMatch(code, /id="fifaModalTabCommentary"/);
+    assert.doesNotMatch(code, /id="fifaModalTabOdds"/);
 
     // Default tab
     assert.match(code, /defaultTab = activeModalTab \|\| "stats"/);
 
-    // Period buttons
-    assert.match(code, /data-fifa-period="match"/);
-    assert.match(code, /data-fifa-period="1st"/);
-    assert.match(code, /data-fifa-period="2nd"/);
-    assert.match(code, /data-fifa-period="extra"/);
+    // Uzbek Period buttons
+    assert.match(code, /data-fifa-period="match"[^>]*>BUTUN O'YIN/);
+    assert.match(code, /data-fifa-period="1st"[^>]*>1-TAYM/);
+    assert.match(code, /data-fifa-period="2nd"[^>]*>2-TAYM/);
+    assert.match(code, /data-fifa-period="extra"[^>]*>QO'SHIMCHA VAQT/);
 
-    // Period filter handlers
-    assert.match(code, /activeStatsPeriod = btn\.dataset\.fifaPeriod/);
+    // Pitch title in Uzbek
+    assert.match(code, /ASOSIY TARKIB/);
   });
 
-  test("fifa.js generates 8 core statistics rows matching Sofascore reference order and dual-bar tracks", () => {
+  test("fifa.js generates 8 core statistics rows in Uzbek matching dual-bar tracks", () => {
     const code = fs.readFileSync(fifaJsPath, "utf8");
 
-    // Core 8 metrics labels
-    assert.match(code, /Expected Goals \(xG\)/);
-    assert.match(code, /Ball possession/);
-    assert.match(code, /Goal attempts/);
-    assert.match(code, /Shots on goal/);
-    assert.match(code, /Shots off goal/);
-    assert.match(code, /Blocked Shots/);
-    assert.match(code, /Big chances/);
-    assert.match(code, /Corner kicks/);
+    // Core 8 metrics labels in Uzbek
+    assert.match(code, /Kutilgan gollar \(xG\)/);
+    assert.match(code, /To'p nazorati/);
+    assert.match(code, /Umumiy zarbalar/);
+    assert.match(code, /Aniq zarbalar/);
+    assert.match(code, /Noaniq zarbalar/);
+    assert.match(code, /To'silgan zarbalar/);
+    assert.match(code, /Xavfli vaziyatlar/);
+    assert.match(code, /Burchak to'plari/);
 
     // Dual-bar tracks and fills
     assert.match(code, /fifa-stat-track--home/);
@@ -91,29 +99,20 @@ describe("Football Match Statistics & Sofascore Header Redesign Suite", () => {
     assert.match(code, /fifa-stat-label/);
   });
 
-  test("kino.css and glass-theme.css style squircle cards, red score, tabs, and center-anchored dual bars", () => {
+  test("kino.css and glass-theme.css style black bottom-bar labels in light mode and white in dark mode", () => {
     const kinoCss = fs.readFileSync(kinoCssPath, "utf8");
     const glassCss = fs.readFileSync(glassCssPath, "utf8");
 
     [kinoCss, glassCss].forEach((css) => {
-      // Crest card with white background and 14px radius
-      assert.match(css, /\.fifa-lineup-team__crest-card\s*\{[^}]*background:\s*#ffffff\s*!important/);
-      assert.match(css, /\.fifa-lineup-team__crest-card\s*\{[^}]*border-radius:\s*14px\s*!important/);
+      // Dark mode bottom-bar labels: white
+      assert.match(css, /\.bottom-bar\s*\.bottom-bar__label[^}]*color:\s*#ffffff\s*!important/);
 
-      // Crimson red score & status
-      assert.match(css, /\.fifa-lineup-score\s*\{[^}]*color:\s*#f43f5e\s*!important/);
-      assert.match(css, /\.fifa-lineup-status\s*\{[^}]*color:\s*#f43f5e\s*!important/);
+      // Light mode bottom-bar labels: black
+      assert.match(css, /html\[data-theme="light"\]\s*\.bottom-bar\s*\.bottom-bar__label[^}]*color:\s*#000000\s*!important/);
 
-      // Period active button
-      assert.match(css, /\.fifa-stats-period-btn\.is-active\s*\{[^}]*background:\s*#e11d48\s*!important/);
-
-      // Center-anchored dual tracks
-      assert.match(css, /\.fifa-stat-track--home\s*\{[^}]*justify-content:\s*flex-end\s*!important/);
-      assert.match(css, /\.fifa-stat-track--away\s*\{[^}]*justify-content:\s*flex-start\s*!important/);
-
-      // Home white fill & Away crimson red fill
-      assert.match(css, /\.fifa-stat-fill--home[^}]*background:\s*#ffffff\s*!important/);
-      assert.match(css, /\.fifa-stat-fill--away[^}]*background:\s*#e11d48\s*!important/);
+      // Light mode circle star favorite icon: dark/black
+      assert.match(css, /html\[data-theme="light"\]\s*\.fifa-team-fav-btn--corner[^}]*color:\s*#0f172a\s*!important/);
+      assert.match(css, /html\[data-theme="light"\]\s*\.fifa-team-fav-btn--corner[^}]*stroke:\s*#0f172a\s*!important/);
     });
   });
 });

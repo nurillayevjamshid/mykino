@@ -2137,19 +2137,19 @@ function espnMapStatistics(boxscoreTeams) {
   };
 
   const METRICS = [
-    { label: "Ball possession", key: "possession", names: ["possession", "possessionPct", "possessionPercentage"], unit: "%" },
-    { label: "Goal attempts", key: "shots", names: ["shots", "totalShots", "goalAttempts"] },
-    { label: "Shots on goal", key: "shotsOnTarget", names: ["shotsOnTarget", "onGoal", "shotsOnGoal"] },
-    { label: "Corner kicks", key: "corners", names: ["corners", "cornerKicks"] },
-    { label: "Fouls", key: "fouls", names: ["fouls", "foulsCommitted"] },
-    { label: "Expected Goals (xG)", key: "xg", names: ["xg", "expectedgoals", "expected_goals"] },
-    { label: "Shots off goal", key: "shotsOffTarget", names: ["shotsOffTarget", "offGoal", "shotsOffGoal"] },
-    { label: "Blocked Shots", key: "blockedShots", names: ["blockedShots", "shotsBlocked"] },
-    { label: "Big chances", key: "bigChances", names: ["bigChances", "bigChancesCreated"] },
-    { label: "Yellow cards", key: "yellowCards", names: ["yellowCards"] },
-    { label: "Red cards", key: "redCards", names: ["redCards"] },
-    { label: "Offsides", key: "offsides", names: ["offsides"] },
-    { label: "Goalkeeper saves", key: "saves", names: ["saves"] },
+    { label: "To'p nazorati", key: "possession", names: ["possession", "possessionPct", "possessionPercentage"], unit: "%" },
+    { label: "Umumiy zarbalar", key: "shots", names: ["shots", "totalShots", "goalAttempts"] },
+    { label: "Aniq zarbalar", key: "shotsOnTarget", names: ["shotsOnTarget", "onGoal", "shotsOnGoal"] },
+    { label: "Burchak to'plari", key: "corners", names: ["corners", "cornerKicks"] },
+    { label: "Qoida buzilishi", key: "fouls", names: ["fouls", "foulsCommitted"] },
+    { label: "Kutilgan gollar (xG)", key: "xg", names: ["xg", "expectedgoals", "expected_goals"] },
+    { label: "Noaniq zarbalar", key: "shotsOffTarget", names: ["shotsOffTarget", "offGoal", "shotsOffGoal"] },
+    { label: "To'silgan zarbalar", key: "blockedShots", names: ["blockedShots", "shotsBlocked"] },
+    { label: "Xavfli vaziyatlar", key: "bigChances", names: ["bigChances", "bigChancesCreated"] },
+    { label: "Sariq kartochkalar", key: "yellowCards", names: ["yellowCards"] },
+    { label: "Qizil kartochkalar", key: "redCards", names: ["redCards"] },
+    { label: "Ofsaydlar", key: "offsides", names: ["offsides"] },
+    { label: "Darvozabon seyvlari", key: "saves", names: ["saves"] },
   ];
 
   return METRICS.map((m) => {

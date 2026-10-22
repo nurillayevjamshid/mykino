@@ -4408,3 +4408,64 @@ body.fullplayer-open .mini-player[aria-hidden="false"] {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* ===== Pastki navbar (bottom-bar): Kunduzgi qora, Qorong'i oq ===== */
+.bottom-bar .bottom-bar__label,
+.bottom-bar__button .bottom-bar__label,
+.bottom-bar__button.is-active .bottom-bar__label,
+.bottom-bar--movie .bottom-bar__label,
+.bottom-bar--music .bottom-bar__label,
+.bottom-bar--podcast .bottom-bar__label,
+html:not([data-theme="light"]) .bottom-bar .bottom-bar__label,
+html:not([data-theme="light"]) .bottom-bar__button .bottom-bar__label,
+html:not([data-theme="light"]) .bottom-bar__button.is-active .bottom-bar__label,
+html[data-theme="dark"] .bottom-bar .bottom-bar__label,
+html[data-theme="dark"] .bottom-bar__button .bottom-bar__label,
+html[data-theme="dark"] .bottom-bar__button.is-active .bottom-bar__label {
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .bottom-bar .bottom-bar__label,
+html[data-theme="light"] .bottom-bar__button .bottom-bar__label,
+html[data-theme="light"] .bottom-bar__button.is-active .bottom-bar__label,
+html[data-theme="light"] .bottom-bar--movie .bottom-bar__label,
+html[data-theme="light"] .bottom-bar--music .bottom-bar__label,
+html[data-theme="light"] .bottom-bar--podcast .bottom-bar__label {
+  color: #000000 !important;
+}
+
+/* ===== Kunduzgi rejimda dumaloq ichidagi yulduzcha icon (Mening jamoamga saqlash) ===== */
+html[data-theme="light"] .fifa-team-fav-btn--corner,
+html[data-theme="light"] .fifa-team-fav-btn,
+html[data-theme="light"] .fifa-match__fav-btn,
+html[data-theme="light"] .fifa-lineup-star-btn {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.08) !important;
+  border: 1px solid rgba(15, 23, 42, 0.22) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+html[data-theme="light"] .fifa-team-fav-btn--corner svg,
+html[data-theme="light"] .fifa-team-fav-btn svg,
+html[data-theme="light"] .fifa-match__fav-star,
+html[data-theme="light"] .fifa-lineup-star-btn svg {
+  stroke: #0f172a !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .fifa-team-fav-btn--corner.is-active,
+html[data-theme="light"] .fifa-team-fav-btn.is-active,
+html[data-theme="light"] .fifa-match__fav-btn.is-active,
+html[data-theme="light"] .fifa-lineup-star-btn.is-active {
+  color: #d97706 !important;
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.18) !important;
+}
+
+html[data-theme="light"] .fifa-team-fav-btn--corner.is-active svg,
+html[data-theme="light"] .fifa-team-fav-btn.is-active svg,
+html[data-theme="light"] .fifa-match__fav-star.is-active,
+html[data-theme="light"] .fifa-lineup-star-btn.is-active svg {
+  stroke: #f59e0b !important;
+  fill: #f59e0b !important;
+}
