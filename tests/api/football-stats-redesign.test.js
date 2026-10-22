@@ -44,9 +44,10 @@ describe("Football Match Statistics & Uzbek Header/Modal Suite", () => {
     assert.match(code, /favBtn\("left"\)/);
     assert.match(code, /favBtn\("right"\)/);
 
-    // Crucial constraint: NO start audio commentary button
+    // Crucial constraint: NO start audio commentary button & NO match minute scrubber bar
     assert.doesNotMatch(code, /START AUDIO COMMENTARY/i);
     assert.doesNotMatch(code, /start-audio-commentary/i);
+    assert.doesNotMatch(code, /class="fifa-timeline-scrubber-wrap"/);
   });
 
   test("fifa.js renders 3 Uzbek tabs (Voqealar, Statistika, Tarkiblar) and removes Commentary/Odds", () => {

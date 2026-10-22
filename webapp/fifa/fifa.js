@@ -3456,44 +3456,6 @@
         </button>`
       : "";
 
-    // Parse minute to compute match scrubber bar progress
-    let progressPct = 0;
-    if (isFinished) {
-      progressPct = 100;
-    } else if (isLive) {
-      const parsedMin = parseInt(String(minute || "").replace(/[^0-9]/g, ""), 10) || 45;
-      progressPct = Math.min(100, Math.max(5, (parsedMin / 90) * 100));
-    }
-
-    // Milestones pins for scrubber
-    const timelinePins = (events || []).map((ev) => {
-      const minNum = parseInt(String(ev.minute || "").replace(/[^0-9]/g, ""), 10);
-      if (!minNum || minNum <= 0) return "";
-      const posPct = Math.min(96, Math.max(4, (minNum / 90) * 100));
-      let pinIcon = "⚽";
-      if (ev.type === "yellow-card") pinIcon = "🟨";
-      else if (ev.type === "red-card") pinIcon = "🟥";
-      else if (ev.type === "substitution") pinIcon = "🔄";
-      return `<span class="fifa-scrubber-pin" style="left:${posPct.toFixed(1)}%;" title="${esc(ev.player || "")} (${ev.minute})">${pinIcon}</span>`;
-    }).join("");
-
-    const scrubberHtml = (isLive || isFinished || (events && events.length > 0))
-      ? `
-        <div class="fifa-timeline-scrubber-wrap">
-          <div class="fifa-timeline-scrubber">
-            <div class="fifa-timeline-scrubber__track">
-              <div class="fifa-timeline-scrubber__fill" style="width: ${progressPct}%;"></div>
-              <span class="fifa-scrubber-mark fifa-scrubber-mark--start">0'</span>
-              <span class="fifa-scrubber-mark fifa-scrubber-mark--half">45'</span>
-              <span class="fifa-scrubber-mark fifa-scrubber-mark--end">90'</span>
-              ${timelinePins}
-              ${isLive ? `<span class="fifa-scrubber-cursor" style="left:${progressPct}%;"></span>` : ""}
-            </div>
-          </div>
-        </div>
-      `
-      : "";
-
     // Format date & time (e.g. 11.03.2025 20:00)
     let formattedDateTime = "";
     if (matchDate) {
@@ -3561,7 +3523,6 @@
           ${favBtn("right")}
         </div>
         ${metaSubtitle ? `<div class="fifa-lineup-meta-sub"><span>${metaSubtitle}</span></div>` : ""}
-        ${scrubberHtml}
       </div>
     `;
   }
