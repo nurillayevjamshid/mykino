@@ -20,11 +20,22 @@ describe('Kino Video Camera Icon Suite', () => {
   test('index.html uses ntv-logo-svg and ensures NO icon before NTV in sidebar brand', () => {
     const html = fs.readFileSync(indexHtmlPath, 'utf8');
     // Sidebar brand must NOT have kino-icon or camera icon before NTV
-    assert.doesNotMatch(html, /sidebar__brand[\s\S]*?<svg[^>]+class="[^"]*kino-icon/);
+    const sidebarBrandMatch = html.match(/<div[^>]+class="[^"]*sidebar__brand[^"]*"[^>]*>([\s\S]*?)<\/div>/);
+    assert.ok(sidebarBrandMatch, 'sidebar__brand element found');
+    assert.doesNotMatch(sidebarBrandMatch[1], /kino-icon/);
     // Sidebar brand must have the new NTV logo SVG
     assert.match(html, /sidebar__brand[\s\S]*?class="[^"]*sidebar-ntv-logo/);
     // Section splash uses ntv-logo-svg
     assert.match(html, /section-splash__brand[\s\S]*?ntv-logo-svg/);
+  });
+
+  test('topbarSectionBrand in kino section renders kino-icon before NTV logo in topbar', () => {
+    const html = fs.readFileSync(indexHtmlPath, 'utf8');
+    const js = fs.readFileSync(kinoJsPath, 'utf8');
+    // Topbar brand has topbarSectionIcon with kino-icon
+    assert.match(html, /id="topbarSectionIcon"[^>]*>[\s\S]*?class="[^"]*kino-icon/);
+    // syncTopbarSection defines kino-icon for kino section
+    assert.match(js, /kino:\s*`<svg[^>]+class="[^"]*kino-icon/);
   });
 
   test('ntv-logo-svg is styled pure black in light mode and pure white in dark mode', () => {

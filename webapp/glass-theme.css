@@ -4639,3 +4639,20 @@ html[data-theme="light"] .fifa-coach-row {
 html[data-theme="light"] .fifa-coach-name {
   color: #0f172a !important;
 }
+
+/* Topbar centered brand section icon sizing */
+.topbar.topbar--centered .brand-section__icon {
+  width: 24px !important;
+  height: 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 24px !important;
+}
+
+.topbar.topbar--centered .brand-section__icon svg,
+.topbar.topbar--centered .brand-section__icon .kino-icon {
+  width: 22px !important;
+  height: 22px !important;
+  display: block !important;
+}

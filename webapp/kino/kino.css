@@ -7218,20 +7218,24 @@ html[data-theme="dark"] .soon-badge {
   flex: 0 0 auto;
 }
 .topbar.topbar--centered .brand--section {
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
+  display: inline-flex;
+  align-items: center;
 }
 .brand-section__icon {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 30px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
   color: var(--c-text);
 }
-.brand-section__icon svg {
-  width: 30px;
-  height: 30px;
+.brand-section__icon svg,
+.brand-section__icon .kino-icon {
+  width: 22px !important;
+  height: 22px !important;
   display: block;
 }
 .brand--section .brand-text {

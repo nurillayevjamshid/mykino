@@ -8706,7 +8706,7 @@ function syncTopbarSection() {
     : document.body.classList.contains("is-podcasts") ? "podcasts"
     : "kino";
   const icons = {
-    kino: "",
+    kino: `<svg viewBox="0 0 24 24" class="brand-logo__svg kino-icon" fill="currentColor" aria-hidden="true"><rect x="2" y="5.5" width="13" height="13" rx="3.8"></rect><path d="M16.5 9.8c0-.55.55-.9 1.05-.6l3.65-2.3c.65-.4 1.6.05 1.6.85v8.5c0 .8-.95 1.25-1.6.85l-3.65-2.3c-.5-.3-1.05.05-1.05-.6v-4.4z"></path></svg>`,
     music: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
     podcasts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar__item-icon--podcasts podcast-icon" aria-hidden="true"><rect x="8" y="2" width="8" height="12" rx="4"></rect><circle cx="12" cy="5.2" r="0.9" fill="currentColor" stroke="none" style="fill:currentColor;stroke:none;"></circle><path d="M10.2 8h3.6" stroke-width="1.8"></path><circle cx="12" cy="10.8" r="0.9" fill="currentColor" stroke="none" style="fill:currentColor;stroke:none;"></circle><path d="M5 10v1.5a7 7 0 0 0 14 0V10"></path><line x1="12" y1="18.5" x2="12" y2="22"></line></svg>`,
     fifa: `<img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="22" height="22">`,
