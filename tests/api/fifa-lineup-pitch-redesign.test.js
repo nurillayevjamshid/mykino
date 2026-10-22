@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 
-describe('FIFA Lineup Pitch Redesign & Player Photos API Suite', () => {
+describe('FIFA Lineup Pitch Redesign & Flashscore Player Cards API Suite', () => {
   const rootDir = path.resolve(__dirname, '../..');
   const categoriesJs = fs.readFileSync(path.join(rootDir, 'api/categories.js'), 'utf8');
   const fifaJs = fs.readFileSync(path.join(rootDir, 'webapp/fifa/fifa.js'), 'utf8');
@@ -27,45 +27,49 @@ describe('FIFA Lineup Pitch Redesign & Player Photos API Suite', () => {
     assert.match(categoriesJs, /motm/);
   });
 
-  test('webapp/fifa/fifa.js renders top-right rating pill with MOTM star and color classes', () => {
+  test('webapp/fifa/fifa.js defines and exports renderFlashscorePitchPlayer', () => {
+    assert.match(fifaJs, /function renderFlashscorePitchPlayer\(p,\s*opts/);
+    assert.match(fifaJs, /window\.renderFlashscorePitchPlayer\s*=\s*renderFlashscorePitchPlayer/);
+  });
+
+  test('webapp/fifa/fifa.js renders right-shoulder rating badge with color classes and MOTM star', () => {
     assert.match(fifaJs, /fifa-pitch-player__rating/);
     assert.match(fifaJs, /fifa-rating--blue/);
     assert.match(fifaJs, /fifa-rating--green/);
     assert.match(fifaJs, /fifa-rating--orange/);
+    assert.match(fifaJs, /fifa-rating--red/);
     assert.match(fifaJs, /fifa-rating__star.*★/);
   });
 
-  test('webapp/fifa/fifa.js renders top-left sub-out vertical stack with minute and red circle arrow', () => {
-    assert.match(fifaJs, /fifa-pitch-player__sub-stack/);
-    assert.match(fifaJs, /fifa-pitch-player__sub-min/);
-    assert.match(fifaJs, /fifa-pitch-player__sub-circle.*←/);
-  });
-
-  test('webapp/fifa/fifa.js renders assist on bottom-left and goal on bottom-right', () => {
-    assert.match(fifaJs, /fifa-pitch-badge--assist/);
+  test('webapp/fifa/fifa.js renders left-side events container with sub-out arrow, cards, goals, and assists', () => {
+    assert.match(fifaJs, /fifa-pitch-player__events/);
+    assert.match(fifaJs, /fifa-pitch-badge--sub/);
+    assert.match(fifaJs, /fifa-pitch-badge--sub-arrow.*↓/);
+    assert.match(fifaJs, /fifa-pitch-badge--card/);
     assert.match(fifaJs, /fifa-pitch-badge--goal/);
+    assert.match(fifaJs, /fifa-pitch-badge--assist/);
   });
 
-  test('webapp/fifa/fifa.js renders captain, number, and shortName in name-row below avatar', () => {
+  test('webapp/fifa/fifa.js renders captain, number, and shortName in single name-row below portrait', () => {
     assert.match(fifaJs, /fifa-pitch-player__name-row/);
     assert.match(fifaJs, /fifa-pitch-player__captain/);
     assert.match(fifaJs, /fifa-pitch-player__number/);
     assert.match(fifaJs, /fifa-pitch-player__name/);
   });
 
-  test('webapp/kino/kino.css styles avatar circle, black-text rating pill, sub-out stack, and name row', () => {
+  test('webapp/kino/kino.css styles Flashscore cutout portrait without circle border-radius, rectangular rating, and left events', () => {
     assert.match(kinoCss, /\.fifa-pitch-player__avatar\s*\{[^}]*width:\s*48px/);
-    assert.match(kinoCss, /\.fifa-pitch-player__avatar\s*\{[^}]*background:\s*#383a3f/);
+    assert.match(kinoCss, /\.fifa-pitch-player__avatar\s*\{[^}]*border-radius:\s*0\s*!important/);
+    assert.match(kinoCss, /\.fifa-pitch-player__avatar\s*\{[^}]*background:\s*transparent\s*!important/);
     assert.match(kinoCss, /\.fifa-pitch-player__rating\s*\{[^}]*position:\s*absolute/);
-    assert.match(kinoCss, /\.fifa-pitch-player__rating\s*\{[^}]*color:\s*#000000/);
-    assert.match(kinoCss, /\.fifa-pitch-player__sub-stack\s*\{[^}]*position:\s*absolute/);
-    assert.match(kinoCss, /\.fifa-pitch-player__sub-circle\s*\{[^}]*background:\s*#ef4444/);
-    assert.match(kinoCss, /\.fifa-pitch-badge--assist\s*\{[^}]*position:\s*absolute/);
-    assert.match(kinoCss, /\.fifa-pitch-badge--goal\s*\{[^}]*position:\s*absolute/);
-    assert.match(kinoCss, /\.fifa-pitch\s*\{[^}]*background:\s*#141518/);
+    assert.match(kinoCss, /\.fifa-pitch-player__rating\s*\{[^}]*border-radius:\s*3px\s*!important/);
+    assert.match(kinoCss, /\.fifa-pitch-player__events\s*\{[^}]*position:\s*absolute/);
+    assert.match(kinoCss, /\.fifa-pitch-badge--sub\s*,\s*\.fifa-pitch-player__sub-stack\s*\{[^}]*background:\s*#dc2626\s*!important/);
+    assert.match(kinoCss, /\.fifa-pitch-player__name-row\s*\{[^}]*display:\s*inline-flex/);
   });
 
   test('webapp/kino/kino.css includes mobile responsiveness for pitch player', () => {
     assert.match(kinoCss, /@media\s*\(max-width:\s*480px\)[\s\S]*?\.fifa-pitch-player__avatar\s*\{[^}]*width:\s*42px/);
+    assert.match(kinoCss, /@media\s*\(max-width:\s*480px\)[\s\S]*?\.fifa-pitch-player__rating\s*\{[^}]*font-size:\s*9\.5px/);
   });
 });

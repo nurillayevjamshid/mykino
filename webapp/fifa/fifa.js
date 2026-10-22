@@ -3370,37 +3370,134 @@
     return out.join("");
   }
 
-  function buildPitchPlayerHtml(p, side) {
-    // side: 'home' | 'away'. Coords: x (0..1 own goal→opp goal), y (0..1 left→right)
-    const x = typeof p.x === "number" ? p.x : 0.5;
-    const y = typeof p.y === "number" ? p.y : 0.5;
-    const topPct = side === "home" ? x * 50 : 100 - x * 50;
-    const leftPct = side === "home" ? y * 100 : (1 - y) * 100;
+  /**
+   * Flashscore Uslubidagi Taktik Tarkib (Lineup / Formation) O'yinchi Kartochkasi
+   * @param {Object} p - O'yinchi obyekti
+   * @param {Object} [opts={}] - { side: 'home'|'away', isSingleView: boolean }
+   * @returns {string} HTML kartochka
+   */
+  function renderFlashscorePitchPlayer(p, opts = {}) {
+    if (!p) return "";
+    const side = opts.side || "home";
+    const isSingleView = Boolean(opts.isSingleView);
+
+    // Maydon koordinatalari (topPct, leftPct)
+    let topPct, leftPct;
+    if (isSingleView) {
+      // Yagona jamoa ko'rinishi: Darvozabon 85% (pastda), Hujumchilar 11% (tepada)
+      const px = typeof p.x === "number" ? p.x : 0.25;
+      const progress = Math.max(0, Math.min(1, (px - 0.08) / (0.46 - 0.08 || 1)));
+      topPct = 85 - (progress * 74);
+      leftPct = (typeof p.y === "number" ? p.y : 0.5) * 100;
+    } else {
+      // Ikkala jamoa maydonda:
+      // Mezbon pastdan tepaga (GK 92% -> Hujum 54%)
+      // Mehmon tepadan pastga (GK 8% -> Hujum 46%)
+      const px = typeof p.x === "number" ? p.x : 0.25;
+      const py = typeof p.y === "number" ? p.y : 0.5;
+      topPct = side === "home" ? (92 - (px / 0.5) * 38) : (8 + (px / 0.5) * 38);
+      leftPct = side === "home" ? (py * 100) : ((1 - py) * 100);
+    }
+
     const num = p.number != null ? String(p.number) : "";
+    const sName = p.shortName || shortName(p);
     const initials = (p.name || "?").split(/\s+/).map((s) => s[0] || "").join("").slice(0, 2).toUpperCase();
-    const photo = p.photo
-      ? `<img src="${esc(p.photo)}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.querySelector('.fifa-pitch-player__initials')?.removeAttribute('hidden'); this.remove()">`
+
+    // 1. Shaffof orqa fonli (cutout / transparent PNG) portret — doiraviy ramkasiz bevosita maydon ustida
+    const photoUrl = p.photo || (p.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${p.id}.png` : "");
+    const fallbackEspn = p.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${p.id}.png` : "";
+    const photo = photoUrl
+      ? `<img class="fifa-pitch-player__img" src="${esc(photoUrl)}" alt="${esc(p.name || sName)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="if(this.dataset.fallbackApplied !== '1' && '${fallbackEspn}' && this.src !== '${fallbackEspn}'){ this.dataset.fallbackApplied='1'; this.src='${fallbackEspn}'; } else { this.style.display='none'; this.parentNode.querySelector('.fifa-pitch-player__initials')?.removeAttribute('hidden'); }" />`
       : "";
-    const ratingVal = p.motm ? `${p.rating != null ? p.rating.toFixed(1) : ""}<span class="fifa-rating__star">★</span>` : (p.rating != null ? p.rating.toFixed(1) : "");
-    const rating = (p.rating != null || p.motm)
-      ? `<span class="fifa-pitch-player__rating ${ratingColor(p.rating, p.motm)}">${ratingVal}</span>`
-      : "";
-    const subOutLabel = typeof p.subOut === "number" ? `${p.subOut}'` : "";
-    const subBubble = p.subOut
-      ? `<span class="fifa-pitch-player__sub fifa-pitch-player__sub--out" title="Almashtirildi${subOutLabel ? ` ${subOutLabel}` : ""}">${subOutLabel}<span class="fifa-pitch-player__sub-icon">↓</span></span>`
-      : "";
-    const nameLine = num ? `${esc(num)} ${esc(shortName(p))}` : esc(shortName(p));
+
+    // 2. Baho (Rating badge) — O'ng yon/yelka qismida burchakli kichik to'rtburchak:
+    // 7.0+ yashil, 6.0-6.9 to'q sariq, <6.0 qizil, MOTM yulduzcha bilan
+    let ratingHtml = "";
+    if (p.rating != null || p.motm) {
+      const rVal = typeof p.rating === "number" ? p.rating.toFixed(1) : "";
+      let colorClass = "fifa-rating--orange";
+      if (p.motm) {
+        colorClass = "fifa-rating--blue fifa-rating--motm";
+      } else if (p.rating >= 7.0) {
+        colorClass = "fifa-rating--green";
+      } else if (p.rating < 6.0) {
+        colorClass = "fifa-rating--red";
+      } else {
+        colorClass = "fifa-rating--orange";
+      }
+      const star = p.motm ? ` <span class="fifa-rating__star">★</span>` : "";
+      ratingHtml = `<span class="fifa-pitch-player__rating ${colorClass}">${rVal}${star}</span>`;
+    }
+
+    // 3. O'yin hodisalari (Chap yon/yelkaga ixcham badge'lar guruhi)
+    // Almashtirish strelkasi
+    let subOutHtml = "";
+    if (p.subOut || p.subOutMinute) {
+      const subMin = p.subOutMinute ? `${esc(p.subOutMinute)}` : "";
+      subOutHtml = `
+        <span class="fifa-pitch-badge fifa-pitch-badge--sub fifa-pitch-player__sub-stack" title="Almashtirildi ${subMin}">
+          <span class="fifa-pitch-badge--sub-arrow fifa-pitch-player__sub-circle">↓</span>
+          ${subMin ? `<span class="fifa-pitch-badge--sub-min fifa-pitch-player__sub-min">${subMin}</span>` : ""}
+        </span>
+      `;
+    }
+
+    // Sariq / qizil kartochka
+    let cardHtml = "";
+    if (p.redCard) {
+      cardHtml = `<span class="fifa-pitch-badge fifa-pitch-badge--card fifa-pitch-badge--red" title="Qizil kartochka"></span>`;
+    } else if (p.yellowCard) {
+      cardHtml = `<span class="fifa-pitch-badge fifa-pitch-badge--card fifa-pitch-badge--yellow" title="Sariq kartochka"></span>`;
+    }
+
+    // Gol
+    let goalHtml = "";
+    if (p.goals > 0) {
+      const countHtml = p.goals > 1 ? `<sup class="fifa-badge-count">${p.goals}</sup>` : "";
+      goalHtml = `<span class="fifa-pitch-badge fifa-pitch-badge--goal${p.goals > 1 ? " is-multiple" : ""}" title="${p.goals} ta gol">⚽${countHtml}</span>`;
+    }
+
+    // Golli uzatma (Assist)
+    let assistHtml = "";
+    if (p.assists > 0) {
+      const aCountHtml = p.assists > 1 ? `<sup class="fifa-badge-count">${p.assists}</sup>` : "";
+      assistHtml = `<span class="fifa-pitch-badge fifa-pitch-badge--assist" title="${p.assists} ta golli uzatma">👟${aCountHtml}</span>`;
+    }
+
+    const hasEvents = Boolean(subOutHtml || cardHtml || goalHtml || assistHtml);
+    const eventsHtml = hasEvents ? `
+      <div class="fifa-pitch-player__events">
+        ${subOutHtml}
+        ${cardHtml}
+        ${goalHtml}
+        ${assistHtml}
+      </div>
+    ` : "";
+
+    // 4. Ism va Raqam: O'yinchining pastki qismida bitta qatorda ("10 Buendia")
+    const capHtml = p.isCaptain ? `<span class="fifa-pitch-player__captain" title="Kapitan">C</span>` : "";
+    const numHtml = num ? `<span class="fifa-pitch-player__number">${esc(num)}</span> ` : "";
+
     return `
-      <div class="fifa-pitch-player" style="top:${topPct.toFixed(2)}%;left:${leftPct.toFixed(2)}%;">
-        ${subBubble}
+      <div class="fifa-pitch-player" style="top:${topPct.toFixed(1)}%;left:${leftPct.toFixed(1)}%;">
         <div class="fifa-pitch-player__avatar">
-          ${photo}
-          <span class="fifa-pitch-player__initials" ${p.photo ? "hidden" : ""}>${esc(initials)}</span>
-          ${rating}
+          ${eventsHtml}
+          <div class="fifa-pitch-player__img-wrap">
+            ${photo}
+            <span class="fifa-pitch-player__initials" ${photoUrl ? "hidden" : ""}>${esc(initials)}</span>
+          </div>
+          ${ratingHtml}
         </div>
-        <div class="fifa-pitch-player__line">${playerInlineBadgesHtml(p)}<span class="fifa-pitch-player__name">${nameLine}</span></div>
+        <div class="fifa-pitch-player__name-row">
+          ${capHtml}${numHtml}<span class="fifa-pitch-player__name">${esc(sName)}</span>
+        </div>
       </div>
     `;
+  }
+  try { if (typeof window !== "undefined") { window.renderFlashscorePitchPlayer = renderFlashscorePitchPlayer; } } catch (_) {}
+
+  function buildPitchPlayerHtml(p, side) {
+    return renderFlashscorePitchPlayer(p, { side, isSingleView: false });
   }
 
   function buildBenchPlayerHtml(p, opts = {}) {
@@ -3735,104 +3832,7 @@
     // --- TAB 2: TARKIBLAR (Lineup & Starting XI Pitch - Image 2) ---
     let lineupPaneHtml = "";
     if (hasLineups) {
-      const renderPitchPlayer = (p, side, isSingleView) => {
-        let topPct, leftPct;
-        if (isSingleView) {
-          // Tactical pitch mapping: Darvozabon maydon pastida (85%), Hujumchilar maydon tepasida (10%)
-          const progress = Math.max(0, Math.min(1, (p.x - 0.08) / (0.46 - 0.08 || 1)));
-          topPct = 85 - (progress * 74);
-          leftPct = p.y * 100;
-        } else {
-          // Ikkala jamoa maydonda:
-          // Mezbon yuqoriga hujum qiladi: GK pastda (92%), Hujum 54%
-          // Mehmon pastga hujum qiladi: GK tepada (8%), Hujum 46%
-          topPct = side === "home" ? (92 - (p.x / 0.5) * 38) : (8 + (p.x / 0.5) * 38);
-          leftPct = side === "home" ? (p.y * 100) : ((1 - p.y) * 100);
-        }
-
-        const num = p.number != null ? String(p.number) : "";
-        const photoUrl = p.photo || (p.id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/soccer/players/full/${p.id}.png&w=120&h=120&scale=crop` : "");
-        const fallbackEspn = p.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${p.id}.png` : "";
-        const photo = photoUrl
-          ? `<img src="${esc(photoUrl)}" alt="${esc(p.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="if(this.dataset.fallbackApplied !== '1' && '${fallbackEspn}'){ this.dataset.fallbackApplied='1'; this.src='${fallbackEspn}'; } else { this.parentNode.querySelector('.fifa-pitch-player__initials')?.removeAttribute('hidden'); this.remove(); }" />`
-          : "";
-        const initials = (p.name || "?").split(/\s+/).map((s) => s[0] || "").join("").slice(0, 2).toUpperCase();
-
-        // 1. Rating Badge (Top-Right of avatar) — bold black text on vibrant pill
-        let ratingHtml = "";
-        if (p.rating != null || p.motm) {
-          const rVal = typeof p.rating === "number" ? p.rating.toFixed(1) : "";
-          if (p.motm) {
-            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--blue">${rVal} <span class="fifa-rating__star">★</span></span>`;
-          } else if (p.rating >= 7.0) {
-            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--green">${rVal}</span>`;
-          } else {
-            ratingHtml = `<span class="fifa-pitch-player__rating fifa-rating--orange">${rVal}</span>`;
-          }
-        }
-
-        // 2. Sub Out Badge (Top-Left): minute above red circle with white arrow
-        let subOutHtml = "";
-        if (p.subOut || p.subOutMinute) {
-          const subMin = p.subOutMinute ? `${esc(p.subOutMinute)}` : "";
-          subOutHtml = `
-            <div class="fifa-pitch-player__sub-stack" title="Almashtirildi ${subMin}">
-              ${subMin ? `<span class="fifa-pitch-player__sub-min">${subMin}</span>` : ""}
-              <span class="fifa-pitch-player__sub-circle">←</span>
-            </div>
-          `;
-        }
-
-        // 3. Assist Badge (Bottom-Left)
-        let assistHtml = "";
-        if (p.assists > 0) {
-          assistHtml = `<span class="fifa-pitch-badge--assist" title="Golli uzatma">${p.assists > 1 ? `👟<sup>${p.assists}</sup>` : "👟"}</span>`;
-        }
-
-        // 4. Goal Badge (Bottom-Right)
-        let goalHtml = "";
-        if (p.goals > 0) {
-          if (p.goals === 1) {
-            goalHtml = `<span class="fifa-pitch-badge--goal" title="Gol">⚽</span>`;
-          } else if (p.goals === 2) {
-            goalHtml = `<span class="fifa-pitch-badge--goal is-multiple" title="2 ta gol">⚽⚽</span>`;
-          } else {
-            goalHtml = `<span class="fifa-pitch-badge--goal is-multiple" title="${p.goals} ta gol">⚽<sup>${p.goals}</sup></span>`;
-          }
-        }
-
-        // 5. Card Badge (Bottom-Left)
-        let cardHtml = "";
-        if (p.redCard) {
-          cardHtml = `<span class="fifa-pitch-badge--card fifa-pitch-badge--red" title="Qizil kartochka"></span>`;
-        } else if (p.yellowCard && !p.assists) {
-          cardHtml = `<span class="fifa-pitch-badge--card fifa-pitch-badge--yellow" title="Sariq kartochka"></span>`;
-        }
-
-        // 6. Name Row below avatar: Captain + Number + ShortName
-        const capHtml = p.isCaptain ? `<span class="fifa-pitch-player__captain" title="Kapitan">C</span>` : "";
-        const numHtml = num ? `<span class="fifa-pitch-player__number">${esc(num)}</span> ` : "";
-        const sName = p.shortName || shortName(p);
-
-        return `
-          <div class="fifa-pitch-player" style="top:${topPct.toFixed(1)}%;left:${leftPct.toFixed(1)}%;">
-            <div class="fifa-pitch-player__avatar">
-              ${subOutHtml}
-              ${ratingHtml}
-              <div class="fifa-pitch-player__img-wrap">
-                ${photo}
-                <span class="fifa-pitch-player__initials" ${photoUrl ? "hidden" : ""}>${esc(initials)}</span>
-              </div>
-              ${assistHtml}
-              ${cardHtml}
-              ${goalHtml}
-            </div>
-            <div class="fifa-pitch-player__name-row">
-              ${capHtml}${numHtml}<span class="fifa-pitch-player__name">${esc(sName)}</span>
-            </div>
-          </div>
-        `;
-      };
+      const renderPitchPlayer = (p, side, isSingleView) => renderFlashscorePitchPlayer(p, { side, isSingleView });
 
       const isSingle = activePitchTeamView !== "both";
       const targetTeam = activePitchTeamView === "away" ? away : home;
