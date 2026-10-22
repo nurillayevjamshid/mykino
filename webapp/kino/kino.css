@@ -14751,3 +14751,95 @@ html[data-theme="light"] .fifa-confirm-modal__btn--cancel {
 .sidebar__item[href*="news"] {
   display: none !important;
 }
+
+
+/* ============================================================
+   NTV Minimalist Brand Logo (Dynamic Day/Night Theme)
+   Reference: Arch (∩) with left-leg fade, rounded T, rounded V
+   ============================================================ */
+
+.ntv-logo-svg {
+  height: 22px;
+  width: auto;
+  aspect-ratio: 294 / 84;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.topbar .ntv-logo-svg,
+.topbar-ntv-logo {
+  height: 20px !important;
+  width: auto !important;
+}
+
+.sidebar__brand .ntv-logo-svg,
+.sidebar-ntv-logo {
+  height: 24px !important;
+  width: auto !important;
+}
+
+.collab-brand__ntv .ntv-logo-svg,
+.collab-ntv-logo {
+  height: 18px !important;
+  width: auto !important;
+}
+
+.splash-screen__brand .ntv-logo-svg,
+.splash-ntv-logo {
+  height: 48px !important;
+  width: auto !important;
+}
+
+.section-splash__brand .ntv-logo-svg,
+.section-splash-ntv-logo {
+  height: 32px !important;
+  width: auto !important;
+}
+
+/* Sidebar ochilganda NTV oldida icon bo'lmasin */
+.sidebar__brand .brand-logo,
+.sidebar__brand .brand-logo__svg,
+.sidebar__brand .kino-icon {
+  display: none !important;
+}
+
+.sidebar__brand {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+/* Tungi rejimda (Dark theme): PURE WHITE (#ffffff) */
+html:not([data-theme="light"]) .ntv-logo-svg,
+html[data-theme="dark"] .ntv-logo-svg,
+[data-theme="dark"] .ntv-logo-svg,
+html:not([data-theme="light"]) .sidebar__brand,
+html[data-theme="dark"] .sidebar__brand,
+[data-theme="dark"] .sidebar__brand,
+html:not([data-theme="light"]) .collab-brand__ntv,
+html[data-theme="dark"] .collab-brand__ntv,
+[data-theme="dark"] .collab-brand__ntv {
+  color: #ffffff !important;
+}
+
+/* Kunduzgi rejimda (Light theme): PURE BLACK (#000000) */
+html[data-theme="light"] .ntv-logo-svg,
+[data-theme="light"] .ntv-logo-svg,
+html[data-theme="light"] .sidebar__brand,
+[data-theme="light"] .sidebar__brand,
+html[data-theme="light"] .collab-brand__ntv,
+[data-theme="light"] .collab-brand__ntv,
+html[data-theme="light"] .topbar-ntv-logo,
+[data-theme="light"] .topbar-ntv-logo,
+html[data-theme="light"] .sidebar-ntv-logo,
+[data-theme="light"] .sidebar-ntv-logo,
+html[data-theme="light"] .splash-ntv-logo,
+[data-theme="light"] .splash-ntv-logo,
+html[data-theme="light"] .section-splash-ntv-logo,
+[data-theme="light"] .section-splash-ntv-logo,
+html[data-theme="light"] .collab-ntv-logo,
+[data-theme="light"] .collab-ntv-logo {
+  color: #000000 !important;
+}

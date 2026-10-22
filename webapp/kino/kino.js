@@ -8702,7 +8702,7 @@ function syncTopbarSection() {
     : document.body.classList.contains("is-podcasts") ? "podcasts"
     : "kino";
   const icons = {
-    kino: `<svg viewBox="0 0 24 24" class="brand-logo__svg kino-icon" fill="currentColor" aria-hidden="true"><rect x="2" y="5.5" width="13" height="13" rx="3.8"></rect><path d="M16.5 9.8c0-.55.55-.9 1.05-.6l3.65-2.3c.65-.4 1.6.05 1.6.85v8.5c0 .8-.95 1.25-1.6.85l-3.65-2.3c-.5-.3-1.05.05-1.05-.6v-4.4z"></path></svg>`,
+    kino: "",
     music: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
     podcasts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar__item-icon--podcasts podcast-icon" aria-hidden="true"><rect x="8" y="2" width="8" height="12" rx="4"></rect><circle cx="12" cy="5.2" r="0.9" fill="currentColor" stroke="none" style="fill:currentColor;stroke:none;"></circle><path d="M10.2 8h3.6" stroke-width="1.8"></path><circle cx="12" cy="10.8" r="0.9" fill="currentColor" stroke="none" style="fill:currentColor;stroke:none;"></circle><path d="M5 10v1.5a7 7 0 0 0 14 0V10"></path><line x1="12" y1="18.5" x2="12" y2="22"></line></svg>`,
     fifa: `<img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="22" height="22">`,
@@ -8998,7 +8998,20 @@ function ensureSectionSplash() {
     <div class="section-splash__spinner" id="sectionSplashSpinner" aria-hidden="true"></div>
     <div class="section-splash__brand">
       <span class="section-splash__logo" id="sectionSplashLogo" aria-hidden="true"></span>
-      <span class="section-splash__name"><span>NTV</span></span>
+      <span class="section-splash__name"><svg viewBox="0 0 294 84" class="ntv-logo-svg section-splash-ntv-logo" fill="none" aria-label="NTV" role="img">
+          <defs>
+            <linearGradient id="ntv-fade-dynsplash" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="currentColor" stop-opacity="1"/>
+              <stop offset="25%" stop-color="currentColor" stop-opacity="0.8"/>
+              <stop offset="60%" stop-color="currentColor" stop-opacity="0.25"/>
+              <stop offset="90%" stop-color="currentColor" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M 7 35 A 32 32 0 0 1 71 39 L 71 77" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M 7 35 L 7 77" stroke="url(#ntv-fade-dynsplash)" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 100 7 L 176 7 M 138 7 L 138 77" stroke="currentColor" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 203 7 L 244 77 L 285 7" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg></span>
     </div>
   `;
   document.body.appendChild(el);

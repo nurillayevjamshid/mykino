@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 294 84" fill="none" role="img" aria-label="NTV">
+  <defs>
+    <linearGradient id="ntv-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="1"/>
+      <stop offset="25%" stop-color="currentColor" stop-opacity="0.8"/>
+      <stop offset="60%" stop-color="currentColor" stop-opacity="0.25"/>
+      <stop offset="90%" stop-color="currentColor" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M 7 35 A 32 32 0 0 1 71 39 L 71 77" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 7 35 L 7 77" stroke="url(#ntv-fade)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M 100 7 L 176 7 M 138 7 L 138 77" stroke="currentColor" stroke-width="14" stroke-linecap="round"/>
+  <path d="M 203 7 L 244 77 L 285 7" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

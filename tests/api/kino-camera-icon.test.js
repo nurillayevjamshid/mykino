@@ -10,29 +10,34 @@ describe('Kino Video Camera Icon Suite', () => {
   const kinoCssPath = path.join(root, 'webapp/kino/kino.css');
   const glassCssPath = path.join(root, 'webapp/glass-theme.css');
 
-  test('kino.js defines the video camera icon in ITEMS.kino, icons.kino, and SECTION_SPLASH_ICONS', () => {
+  test('kino.js defines the video camera icon in ITEMS.kino for section switching', () => {
     const js = fs.readFileSync(kinoJsPath, 'utf8');
     assert.match(js, /kino-icon\s+sidebar__item-icon--kino/);
     assert.match(js, /<rect[^>]+rx="3\.8"[^>]*><\/rect>/);
     assert.match(js, /<path[^>]+d="M16\.5\s+9\.8/);
   });
 
-  test('index.html uses video camera icon in section splash and sidebar brand', () => {
+  test('index.html uses ntv-logo-svg and ensures NO icon before NTV in sidebar brand', () => {
     const html = fs.readFileSync(indexHtmlPath, 'utf8');
-    assert.match(html, /id="sectionSplashLogo"[^>]*>[\s\S]*?<svg[^>]+class="[^"]*kino-icon/);
-    assert.match(html, /sidebar__brand[\s\S]*?<svg[^>]+class="[^"]*kino-icon/);
-    assert.match(html, /kino:\s*'<svg[^>]+class="[^"]*kino-icon/);
+    // Sidebar brand must NOT have kino-icon or camera icon before NTV
+    assert.doesNotMatch(html, /sidebar__brand[\s\S]*?<svg[^>]+class="[^"]*kino-icon/);
+    // Sidebar brand must have the new NTV logo SVG
+    assert.match(html, /sidebar__brand[\s\S]*?class="[^"]*sidebar-ntv-logo/);
+    // Section splash uses ntv-logo-svg
+    assert.match(html, /section-splash__brand[\s\S]*?ntv-logo-svg/);
   });
 
-  test('kino.css and glass-theme.css style kino-icon white in dark mode and black in light mode', () => {
+  test('ntv-logo-svg is styled pure black in light mode and pure white in dark mode', () => {
     const kinoCss = fs.readFileSync(kinoCssPath, 'utf8');
     const glassCss = fs.readFileSync(glassCssPath, 'utf8');
 
     for (const css of [kinoCss, glassCss]) {
-      assert.match(css, /\.kino-icon[\s\S]*?color:\s*#ffffff\s*!important/i);
-      assert.match(css, /\.kino-icon[\s\S]*?fill:\s*#ffffff\s*!important/i);
-      assert.match(css, /html\[data-theme="light"\]\s+\.kino-icon[\s\S]*?color:\s*#000000\s*!important/i);
-      assert.match(css, /html\[data-theme="light"\]\s+\.kino-icon[\s\S]*?fill:\s*#000000\s*!important/i);
+      // Dark mode: pure white (#ffffff)
+      assert.match(css, /\.ntv-logo-svg[\s\S]*?color:\s*#ffffff\s*!important/i);
+      // Light mode: pure black (#000000)
+      assert.match(css, /html\[data-theme="light"\][\s\S]*?\.ntv-logo-svg[\s\S]*?color:\s*#000000\s*!important/i);
+      // Sidebar brand has no icon rule
+      assert.match(css, /\.sidebar__brand\s+\.brand-logo[\s\S]*?display:\s*none\s*!important/i);
     }
   });
 });
