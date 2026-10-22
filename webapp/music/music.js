@@ -122,6 +122,13 @@
   const musicRetryBtn = document.getElementById("musicRetryBtn");
 
   const miniPlayer = document.getElementById("miniPlayer");
+  let __miniPlayerOffsetY = 0;
+  let justDraggedMiniPlayer = false;
+
+  window.__resetMiniPlayerOffset = () => {
+    __miniPlayerOffsetY = 0;
+    if (miniPlayer) miniPlayer.style.transform = "";
+  };
   const miniPlayerTitle = document.getElementById("miniPlayerTitle");
   const miniPlayerArtistEl = document.getElementById("miniPlayerArtist");
   const miniPlayerToggle = document.getElementById("miniPlayerToggle");
@@ -2472,12 +2479,21 @@
   function showMiniPlayer() {
     if (!miniPlayer) return;
     miniPlayer.removeAttribute("hidden");
-    requestAnimationFrame(() => miniPlayer.setAttribute("aria-hidden", "false"));
+    requestAnimationFrame(() => {
+      miniPlayer.setAttribute("aria-hidden", "false");
+      if (__miniPlayerOffsetY !== 0) {
+        miniPlayer.style.transform = `translate3d(-50%, ${__miniPlayerOffsetY}px, 0)`;
+      } else {
+        miniPlayer.style.transform = "";
+      }
+    });
   }
 
   function hideMiniPlayer() {
     if (!miniPlayer) return;
     miniPlayer.setAttribute("aria-hidden", "true");
+    miniPlayer.style.transform = "";
+    __miniPlayerOffsetY = 0;
     musicUserPlaying = false;
     userManuallyPaused = true;
     releaseMusicWakeLock();
@@ -2898,7 +2914,13 @@
   miniPlayerClose?.addEventListener("click", hideMiniPlayer);
   document.getElementById("miniPlayerPrev")?.addEventListener("click", () => playRelative(-1));
   document.getElementById("miniPlayerNext")?.addEventListener("click", () => playRelative(1));
-  const expandMiniPlayer = () => {
+  const expandMiniPlayer = (e) => {
+    if (justDraggedMiniPlayer) {
+      if (e) {
+        try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
+      }
+      return;
+    }
     const track = musicAllTracks.find((t) => trackKey(t) === musicCurrentTrackKey);
     if (track) openMusicFullPlayer(track);
   };
@@ -2910,12 +2932,148 @@
     const id = miniLikeEl?.dataset.id;
     if (id) handleSaveButtonClick(id);
   });
-  document.querySelector(".mini-player__bar")?.addEventListener("click", (e) => {
-    try {
-      const bar = e.currentTarget;
-      const rect = bar.getBoundingClientRect();
+  // ===== Mini-pleyer ekranda erkin tepa-pastga surish va chetga surib yopish (xuddi kinolardek) =====
+  (function setupMiniPlayerDrag() {
+    if (!miniPlayer) return;
+    let startX = 0;
+    let startY = 0;
+    let isDragging = false;
+    let hasMoved = false;
+
+    const getPos = (e) => {
+      if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+      return { x: e.clientX, y: e.clientY };
+    };
+
+    const isInteractive = (target) => {
+      return !!target.closest(".mini-player__btn, .mini-player__bar, input");
+    };
+
+    const onDragStart = (e) => {
+      if (miniPlayer.getAttribute("aria-hidden") === "true") return;
+      if (e.touches && e.touches.length > 1) return;
+      if (isInteractive(e.target)) return;
+
+      const pos = getPos(e);
+      startX = pos.x;
+      startY = pos.y;
+      isDragging = true;
+      hasMoved = false;
+      miniPlayer.classList.add("is-dragging");
+      miniPlayer.style.transition = "none";
+    };
+
+    const onDragMove = (e) => {
+      if (!isDragging) return;
+      const pos = getPos(e);
+      const dx = pos.x - startX;
+      const dy = pos.y - startY;
+
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        hasMoved = true;
+      }
+
+      const H = window.innerHeight || document.documentElement.clientHeight || 700;
+      const playerH = miniPlayer.offsetHeight || 84;
+      const topSafe = 68;
+      const maxUpward = -(H - playerH - topSafe - 88);
+      const maxDownward = 50;
+
+      let targetY = __miniPlayerOffsetY + dy;
+      if (targetY < maxUpward) {
+        targetY = maxUpward + (targetY - maxUpward) * 0.25;
+      } else if (targetY > maxDownward) {
+        targetY = maxDownward + (targetY - maxDownward) * 0.25;
+      }
+
+      miniPlayer.style.transform = `translate3d(calc(-50% + ${dx}px), ${targetY}px, 0)`;
+    };
+
+    const onDragEnd = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      miniPlayer.classList.remove("is-dragging");
+
+      const changedTouch = e.changedTouches ? e.changedTouches[0] : null;
+      const endX = changedTouch ? changedTouch.clientX : (e.clientX || startX);
+      const endY = changedTouch ? changedTouch.clientY : (e.clientY || startY);
+      const dx = endX - startX;
+      const dy = endY - startY;
+
+      // 1) Chetga tez surib yopish (Flick to dismiss - xuddi kinolardek)
+      if (Math.abs(dx) > 110 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        miniPlayer.style.transition = "transform 200ms ease, opacity 200ms ease";
+        miniPlayer.style.transform = `translate3d(calc(-50% + ${dx > 0 ? 460 : -460}px), ${__miniPlayerOffsetY + dy}px, 0)`;
+        miniPlayer.style.opacity = "0";
+        setTimeout(() => {
+          miniPlayer.style.transition = "";
+          miniPlayer.style.transform = "";
+          miniPlayer.style.opacity = "";
+          __miniPlayerOffsetY = 0;
+          hideMiniPlayer();
+        }, 200);
+        return;
+      }
+
+      // 2) Harakat qilinmagan bo'lsa (oddiy bosish)
+      if (!hasMoved) {
+        return;
+      }
+
+      justDraggedMiniPlayer = true;
+      setTimeout(() => { justDraggedMiniPlayer = false; }, 200);
+
+      // 3) Tepa-pastga surilgan holatda o'sha balandlikda mustahkam qoldirish (xuddi kinolardek)
+      const H = window.innerHeight || document.documentElement.clientHeight || 700;
+      const playerH = miniPlayer.offsetHeight || 84;
+      const topSafe = 68;
+      const maxUpward = -(H - playerH - topSafe - 88);
+      const maxDownward = 10;
+
+      let finalY = __miniPlayerOffsetY + dy;
+      finalY = Math.max(maxUpward, Math.min(maxDownward, finalY));
+      __miniPlayerOffsetY = finalY;
+
+      miniPlayer.style.transition = "transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1)";
+      miniPlayer.style.transform = `translate3d(-50%, ${__miniPlayerOffsetY}px, 0)`;
+      setTimeout(() => {
+        if (miniPlayer && miniPlayer.getAttribute("aria-hidden") !== "true") {
+          miniPlayer.style.transition = "";
+        }
+      }, 240);
+    };
+
+    miniPlayer.addEventListener("touchstart", onDragStart, { passive: true });
+    miniPlayer.addEventListener("touchmove", onDragMove, { passive: true });
+    miniPlayer.addEventListener("touchend", onDragEnd, { passive: true });
+    miniPlayer.addEventListener("touchcancel", onDragEnd, { passive: true });
+
+    // Desktop mouse drag
+    miniPlayer.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      if (isInteractive(e.target)) return;
+      onDragStart(e);
+      const onMouseMove = (me) => onDragMove(me);
+      const onMouseUp = (me) => {
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+        onDragEnd(me);
+      };
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    });
+  })();
+
+  // Progress bar touch scrub (musiqaning vaqtini/joyini surish)
+  const miniBarEl = document.querySelector(".mini-player__bar");
+  if (miniBarEl) {
+    const handleSeek = (clientX) => {
+      const rect = miniBarEl.getBoundingClientRect();
       if (!rect.width) return;
-      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      if (miniPlayerBarFill) miniPlayerBarFill.style.width = `${pct * 100}%`;
       if (currentPlayingType === "audio" && nativeAudioPlayer) {
         const dur = nativeAudioPlayer.duration || 0;
         if (dur > 0) {
@@ -2926,8 +3084,35 @@
         const dur = ytPlayer.getDuration() || 0;
         if (dur > 0) ytPlayer.seekTo(dur * pct, true);
       }
-    } catch (_) {}
-  });
+    };
+
+    miniBarEl.addEventListener("click", (e) => {
+      handleSeek(e.clientX);
+    });
+
+    let isScrubbing = false;
+    miniBarEl.addEventListener("touchstart", (e) => {
+      e.stopPropagation();
+      isScrubbing = true;
+      if (e.touches[0]) handleSeek(e.touches[0].clientX);
+    }, { passive: false });
+
+    miniBarEl.addEventListener("touchmove", (e) => {
+      if (!isScrubbing) return;
+      e.stopPropagation();
+      if (e.cancelable) e.preventDefault();
+      if (e.touches[0]) handleSeek(e.touches[0].clientX);
+    }, { passive: false });
+
+    const endScrub = (e) => {
+      if (isScrubbing) {
+        e.stopPropagation();
+        isScrubbing = false;
+      }
+    };
+    miniBarEl.addEventListener("touchend", endScrub);
+    miniBarEl.addEventListener("touchcancel", endScrub);
+  }
 
   document.querySelectorAll(".bottom-bar [data-filter='all']").forEach((b) => b.addEventListener("click", closeMusicView));
   document.querySelectorAll(".bottom-bar [data-action='favorites'], .bottom-bar [data-action='catalog']").forEach((b) => b.addEventListener("click", closeMusicView));
