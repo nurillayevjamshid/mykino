@@ -1904,7 +1904,7 @@
       if (res.ok) {
         const json = await res.json();
         const m = json && json.match;
-        const sourceUrl = m && (m.youtubeUrl || m.telegramUrl);
+        const sourceUrl = m && (m.streamUrl || m.youtubeUrl || m.telegramUrl);
         if (m && m.isLive && sourceUrl) {
           window.fifaLiveConfig = {
             enabled: true,
@@ -1994,7 +1994,53 @@
     return true;
   }
 
-  function openFifaLiveChannel(url) {
+  function openIframeLiveModal(url, title) {
+    const target = String(url || "").trim();
+    if (!target || !/^https?:\/\//i.test(target)) return false;
+    let modal = document.getElementById("fifaIframeLiveModal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "fifaIframeLiveModal";
+      modal.setAttribute("role", "dialog");
+      modal.setAttribute("aria-modal", "true");
+      modal.style.cssText = "position:fixed;inset:0;z-index:10000;background:rgba(3,8,16,.96);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;";
+      modal.innerHTML = `
+        <div style="position:relative;width:min(100%,1080px);height:min(100%,88vh);background:#000;border-radius:18px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(15,23,42,.95);border-bottom:1px solid rgba(255,255,255,.1);">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;"></span>
+              <span id="fifaIframeTitle" style="color:#fff;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 120px);">Jonli Translatsiya</span>
+            </div>
+            <button type="button" id="fifaIframeLiveClose" aria-label="Yopish" style="width:34px;height:34px;border:1px solid rgba(255,255,255,.25);border-radius:50%;background:rgba(255,255,255,.1);color:#fff;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+          </div>
+          <iframe id="fifaIframeLiveFrame" title="Live stream" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="width:100%;flex:1;border:0;display:block;background:#000;"></iframe>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      const close = () => {
+        const frame = modal.querySelector("#fifaIframeLiveFrame");
+        if (frame) frame.src = "about:blank";
+        modal.hidden = true;
+        modal.style.display = "none";
+        document.body.classList.remove("fifa-hls-open");
+      };
+      modal.querySelector("#fifaIframeLiveClose")?.addEventListener("click", close);
+      modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
+    }
+    const frame = modal.querySelector("#fifaIframeLiveFrame");
+    const titleEl = modal.querySelector("#fifaIframeTitle");
+    if (titleEl) titleEl.textContent = title || "Jonli Translatsiya";
+    if (frame) {
+      frame.title = title || "Live stream";
+      frame.src = target;
+    }
+    modal.hidden = false;
+    modal.style.display = "flex";
+    document.body.classList.add("fifa-hls-open");
+    return true;
+  }
+
+  function openFifaLiveChannel(url, matchTitle = "FIFA jonli efiri") {
     const target = String(url || "").trim();
     if (!target) return;
     if (openYoutubeLiveModal(target, "FIFA jonli efiri")) return;
@@ -2006,6 +2052,10 @@
     // HLS oqim (.m3u8) — hls.js / native HLS pleyer
     if (/\.m3u8(\?|$)/i.test(target)) {
       openLivePlayerModal(target, "hls");
+      return;
+    }
+    // Iframe embed yoki veb-sayt translatsiyasi
+    if (openIframeLiveModal(target, matchTitle)) {
       return;
     }
     try {

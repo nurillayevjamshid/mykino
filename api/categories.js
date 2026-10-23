@@ -1,5 +1,6 @@
 const { authorizeRequest, requireAdmin, requireVerifiedUser } = require("./_lib/auth");
 const { uploadImageToR2, uploadFileToR2 } = require("./_lib/r2-store");
+const { extractStream } = require("./_lib/stream-extractor");
 
 const REDIS_KEY = "categories:v1";
 const POD_LANGS_KEY = "podcast-langs:v1";
@@ -562,7 +563,7 @@ function extractYoutubeLiveId(value) {
   return /^[\w-]{6,20}$/.test(id) ? id : "";
 }
 
-function normalizeFifaLiveMatch(body) {
+async function normalizeFifaLiveMatch(body) {
   const title = String(body?.title || "").trim().slice(0, 120);
   if (!title) {
     const err = new Error("Match nomi (title) kerak.");
@@ -571,13 +572,24 @@ function normalizeFifaLiveMatch(body) {
   }
   const coverUrl = String(body?.coverUrl || "").trim();
   const sourceUrl = String(body?.youtubeUrl || body?.streamUrl || body?.telegramUrl || "").trim();
-  const youtubeId = extractYoutubeLiveId(sourceUrl);
-  const telegramUrl = youtubeId ? "" : normalizeFifaLiveTelegramUrl(sourceUrl);
-  if (!youtubeId && !telegramUrl) {
-    const err = new Error("YouTube Live, HLS (.m3u8) yoki Cloudflare WHEP havolasini kiriting.");
+  if (!sourceUrl) {
+    const err = new Error("Jonli efir, YouTube yoki veb-sayt havolasini kiriting.");
     err.statusCode = 400;
     throw err;
   }
+
+  // Universal Stream Extractor orqali havolani avtomatik tahlil qilish
+  const extracted = await extractStream(sourceUrl);
+  if (!extracted || !extracted.success || !extracted.stream_url) {
+    const err = new Error(extracted?.error || "Ushbu havoladan jonli efir oqimini aniqlab bo'lmadi.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const finalStreamUrl = extracted.stream_url;
+  const streamType = extracted.type || "iframe";
+  const youtubeId = extracted.video_id || extractYoutubeLiveId(finalStreamUrl) || "";
+
   const startsAtRaw = String(body?.startsAt || "").trim();
   let startsAt = "";
   if (startsAtRaw) {
@@ -585,7 +597,20 @@ function normalizeFifaLiveMatch(body) {
     if (!Number.isNaN(d.getTime())) startsAt = d.toISOString();
   }
   const isLive = Boolean(body?.isLive);
-  return { title, coverUrl, telegramUrl, youtubeUrl: youtubeId ? sourceUrl : "", youtubeId, startsAt, isLive, updatedAt: new Date().toISOString() };
+
+  return {
+    title,
+    coverUrl,
+    streamUrl: finalStreamUrl,
+    streamType,
+    originalUrl: sourceUrl,
+    telegramUrl: finalStreamUrl,
+    youtubeUrl: youtubeId ? finalStreamUrl : "",
+    youtubeId,
+    startsAt,
+    isLive,
+    updatedAt: new Date().toISOString()
+  };
 }
 
 async function readFifaLiveMatch() {
@@ -834,7 +859,7 @@ async function handleFifaLive(request, response) {
       response.status(200).json({ ok: true, match: null });
       return;
     }
-    const match = normalizeFifaLiveMatch(body);
+    const match = await normalizeFifaLiveMatch(body);
     const ok = await writeFifaLiveMatch(match);
     if (!ok) { response.status(500).json({ ok: false, error: "Saqlash muvaffaqiyatsiz." }); return; }
     response.status(200).json({ ok: true, match });

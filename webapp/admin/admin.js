@@ -5387,7 +5387,7 @@ async function loadFifaLiveMatch() {
     const liveEl = document.getElementById('fifaLiveIsLive');
     if (coverEl) coverEl.value = m.coverUrl || '';
     if (titleEl) titleEl.value = m.title || '';
-    if (tgEl) tgEl.value = m.youtubeUrl || m.telegramUrl || '';
+    if (tgEl) tgEl.value = m.originalUrl || m.youtubeUrl || m.telegramUrl || m.streamUrl || '';
     if (startEl) startEl.value = fifaLiveIsoToLocalInput(m.startsAt);
     if (liveEl) liveEl.checked = Boolean(m.isLive);
     fifaLiveUploadedUrl = m.coverUrl || '';
@@ -5406,11 +5406,11 @@ async function saveFifaLiveMatch() {
   const isLive = document.getElementById('fifaLiveIsLive')?.checked || false;
 
   if (!title) { setFifaLiveStatus("O'yin nomini kiriting.", 'error'); return; }
-  if (!streamUrl) { setFifaLiveStatus("YouTube Live yoki OBS stream havolasini kiriting.", 'error'); return; }
+  if (!streamUrl) { setFifaLiveStatus("Jonli efir yoki strim havolasini kiriting.", 'error'); return; }
 
   const startsAt = startsAtLocal ? new Date(startsAtLocal).toISOString() : '';
 
-  setFifaLiveStatus('Saqlanmoqda...');
+  setFifaLiveStatus("Tahlil qilinmoqda va saqlanmoqda...");
   try {
     const res = await fetch('/api/categories?type=fifa-live', {
       method: 'POST',
@@ -5419,7 +5419,7 @@ async function saveFifaLiveMatch() {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    setFifaLiveStatus(isLive ? "Saqlandi. Card mini app'da JONLI badge bilan ko'rinadi." : 'Saqlandi.', 'ok');
+    setFifaLiveStatus(isLive ? `Saqlandi (${json.match?.streamType || 'strim'}). Card mini app'da JONLI badge bilan ko'rinadi.` : 'Saqlandi.', 'ok');
   } catch (err) {
     setFifaLiveStatus(`Xato: ${err.message}`, 'error');
   }
