@@ -2012,17 +2012,17 @@
       modal.id = "fifaIframeLiveModal";
       modal.setAttribute("role", "dialog");
       modal.setAttribute("aria-modal", "true");
-      modal.style.cssText = "position:fixed;inset:0;z-index:10000;background:rgba(3,8,16,.96);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;";
+      modal.style.cssText = "position:fixed;inset:0;z-index:10000;background:#000;display:flex;flex-direction:column;box-sizing:border-box;margin:0;padding:0;";
       modal.innerHTML = `
-        <div style="position:relative;width:min(100%,1080px);height:min(100%,88vh);background:#000;border-radius:18px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(15,23,42,.95);border-bottom:1px solid rgba(255,255,255,.1);">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;"></span>
-              <span id="fifaIframeTitle" style="color:#fff;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 120px);">Jonli Translatsiya</span>
+        <div style="position:relative;width:100%;height:100%;flex:1;background:#000;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="position:absolute;top:max(env(safe-area-inset-top, 10px), 10px);left:12px;right:12px;z-index:50;display:flex;align-items:center;justify-content:space-between;pointer-events:none;">
+            <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:24px;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);pointer-events:auto;">
+              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 10px #ef4444;"></span>
+              <span id="fifaIframeTitle" style="color:#fff;font-size:13px;font-weight:700;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Jonli Translatsiya</span>
             </div>
-            <button type="button" id="fifaIframeLiveClose" aria-label="Yopish" style="width:34px;height:34px;border:1px solid rgba(255,255,255,.25);border-radius:50%;background:rgba(255,255,255,.1);color:#fff;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+            <button type="button" id="fifaIframeLiveClose" aria-label="Yopish" style="width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;box-shadow:0 4px 16px rgba(0,0,0,.5);">&times;</button>
           </div>
-          <iframe id="fifaIframeLiveFrame" title="Live stream" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="width:100%;flex:1;border:0;display:block;background:#000;"></iframe>
+          <iframe id="fifaIframeLiveFrame" title="Live stream" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="width:100%;height:100%;flex:1;border:0;display:block;background:#000;"></iframe>
         </div>
       `;
       document.body.appendChild(modal);
