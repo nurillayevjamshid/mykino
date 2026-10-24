@@ -74,23 +74,70 @@ function extractDirectWhep(input) {
 }
 
 /**
- * VK Video Live (live.vkvideo.ru) va VK Embed havolalarini aniqlash
+ * VK Video Live (live.vkvideo.ru) va VK Embed havolalarini tahlil qilish
+ * To'g'ridan-to'g'ri toza HLS (.m3u8) oqimini ajratib oladi (VPN va mobil cheklovsiz ishlashi uchun)
  */
-function extractVkVideo(input) {
+async function extractVkVideo(input) {
   if (!input || typeof input !== 'string') return null;
   const trimmed = input.trim();
 
-  // live.vkvideo.ru kanallari (masalan, https://live.vkvideo.ru/channel30008599)
+  // live.vkvideo.ru (masalan, https://live.vkvideo.ru/channel36642664/stream/sl_396583 yoki embed)
   if (trimmed.includes('live.vkvideo.ru')) {
-    const match = trimmed.match(/live\.vkvideo\.ru\/(?:app\/embed\/)?([a-zA-Z0-9_.-]+)/i);
-    if (match && match[1]) {
-      return {
-        success: true,
-        type: 'iframe',
-        stream_url: `https://live.vkvideo.ru/app/embed/${match[1]}?autoplay=true`,
-        original_url: input
-      };
+    let target = trimmed;
+    if (target.includes('<iframe')) {
+      const m = target.match(/src=["']([^"']+)["']/i);
+      if (m && m[1]) target = m[1].trim();
     }
+    if (target.includes('/app/embed/')) {
+      target = target.replace('/app/embed/', '/');
+    }
+    if (!target.startsWith('http://') && !target.startsWith('https://')) {
+      target = 'https://' + target;
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      const res = await fetch(target, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': DEFAULT_HEADERS['User-Agent'],
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Referer': 'https://live.vkvideo.ru/'
+        }
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const html = await res.text();
+        const m = html.match(/"type"\s*:\s*"live_hls"\s*,\s*"url"\s*:\s*"([^"]+)"/i)
+               || html.match(/"url"\s*:\s*"([^"]+)"\s*,\s*"type"\s*:\s*"live_hls"/i)
+               || html.match(/(https?:\\\/\\\/[a-zA-Z0-9_\-\.]+\.okcdn\.ru\\\/hls\\\/[^\s"'<>]+\.m3u8(?:\?[^\s"'<>]*)?)/i)
+               || html.match(/(https?:\/\/[a-zA-Z0-9_\-\.]+\.okcdn\.ru\/hls\/[^\s"'<>]+\.m3u8(?:\?[^\s"'<>]*)?)/i);
+
+        if (m && m[1]) {
+          const directM3u8 = m[1].replace(/\\u002F/g, '/').replace(/\\/g, '');
+          return {
+            success: true,
+            type: 'hls',
+            stream_url: directM3u8,
+            original_url: input
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[VK Extractor] HTML tahlilida xato:', e.message);
+    }
+
+    // Agar jonli hls topilmasa, embed URL ga o'tamiz
+    const chanMatch = trimmed.match(/live\.vkvideo\.ru\/(?:app\/embed\/)?([a-zA-Z0-9_.-]+)/i);
+    return {
+      success: true,
+      type: 'iframe',
+      stream_url: chanMatch && chanMatch[1] ? `https://live.vkvideo.ru/app/embed/${chanMatch[1]}?autoplay=true` : target,
+      original_url: input
+    };
   }
 
   // vk.com yoki vkvideo.ru video_ext.php embed
