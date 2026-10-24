@@ -2020,7 +2020,13 @@
               <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 10px #ef4444;"></span>
               <span id="fifaIframeTitle" style="color:#fff;font-size:13px;font-weight:700;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Jonli Translatsiya</span>
             </div>
-            <button type="button" id="fifaIframeLiveClose" aria-label="Yopish" style="width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;box-shadow:0 4px 16px rgba(0,0,0,.5);">&times;</button>
+            <div style="display:flex;align-items:center;gap:8px;pointer-events:auto;">
+              <button type="button" id="fifaIframeOpenExternal" aria-label="Brauzerda ochish" style="height:36px;padding:0 12px;border-radius:20px;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Ochish ↗
+              </button>
+              <button type="button" id="fifaIframeLiveClose" aria-label="Yopish" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.5);">&times;</button>
+            </div>
           </div>
           <iframe id="fifaIframeLiveFrame" title="Live stream" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="width:100%;height:100%;flex:1;border:0;display:block;background:#000;"></iframe>
         </div>
@@ -2034,6 +2040,16 @@
         document.body.classList.remove("fifa-hls-open");
       };
       modal.querySelector("#fifaIframeLiveClose")?.addEventListener("click", close);
+      modal.querySelector("#fifaIframeOpenExternal")?.addEventListener("click", () => {
+        const f = modal.querySelector("#fifaIframeLiveFrame");
+        const u = f?.src && f.src !== "about:blank" ? f.src : target;
+        try {
+          if (window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(u);
+          else window.open(u, "_blank", "noopener");
+        } catch (_) {
+          window.open(u, "_blank", "noopener");
+        }
+      });
       modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
     }
     const frame = modal.querySelector("#fifaIframeLiveFrame");
