@@ -73,6 +73,39 @@ function extractDirectWhep(input) {
   return null;
 }
 
+/**
+ * VK Video Live (live.vkvideo.ru) va VK Embed havolalarini aniqlash
+ */
+function extractVkVideo(input) {
+  if (!input || typeof input !== 'string') return null;
+  const trimmed = input.trim();
+
+  // live.vkvideo.ru kanallari (masalan, https://live.vkvideo.ru/channel30008599)
+  if (trimmed.includes('live.vkvideo.ru')) {
+    const match = trimmed.match(/live\.vkvideo\.ru\/(?:app\/embed\/)?([a-zA-Z0-9_.-]+)/i);
+    if (match && match[1]) {
+      return {
+        success: true,
+        type: 'iframe',
+        stream_url: `https://live.vkvideo.ru/app/embed/${match[1]}?autoplay=true`,
+        original_url: input
+      };
+    }
+  }
+
+  // vk.com yoki vkvideo.ru video_ext.php embed
+  if (trimmed.includes('vk.com/video_ext.php') || trimmed.includes('vkvideo.ru/video_ext.php')) {
+    return {
+      success: true,
+      type: 'iframe',
+      stream_url: trimmed,
+      original_url: input
+    };
+  }
+
+  return null;
+}
+
 function extractIframe(input) {
   if (!input || typeof input !== 'string') return null;
   const trimmed = input.trim();
@@ -298,6 +331,10 @@ async function extractStream(inputUrl) {
   const yt = extractYouTube(clean);
   if (yt) return yt;
 
+  // 1.5. VK Video Live (live.vkvideo.ru yoki vk.com/video_ext.php)
+  const vk = extractVkVideo(clean);
+  if (vk) return vk;
+
   // 2. To'g'ridan-to'g'ri HLS (.m3u8)
   const hls = extractDirectHls(clean);
   if (hls) return hls;
@@ -333,6 +370,7 @@ async function extractStream(inputUrl) {
 module.exports = {
   extractStream,
   extractYouTube,
+  extractVkVideo,
   extractDirectHls,
   extractDirectWhep,
   extractIframe,

@@ -1401,11 +1401,9 @@ async function updateCatalogMovieMetadata(fileId, updates = {}) {
           : updates.heroImage;
     const cleanHeader = trimString(rawHeader);
     next.headerImage = cleanHeader;
-    if (!cleanHeader) {
+    if (!cleanHeader || updates.showInHeader === false) {
       next.headerImage = "";
-      if (updates.showInHeader === undefined) {
-        next.showInHeader = false;
-      }
+      next.showInHeader = false;
       delete next.headerCrop;
       delete next.heroPoster;
       delete next.headerPoster;

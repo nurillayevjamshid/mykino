@@ -1995,7 +1995,16 @@
   }
 
   function openIframeLiveModal(url, title) {
-    const target = String(url || "").trim();
+    let target = String(url || "").trim();
+    if (target.includes('<iframe')) {
+      const m = target.match(/src=["']([^"']+)["']/i);
+      if (m && m[1]) target = m[1].trim();
+    }
+    if (target.startsWith('//')) target = 'https:' + target;
+    if (target.includes('live.vkvideo.ru')) {
+      const match = target.match(/live\.vkvideo\.ru\/(?:app\/embed\/)?([a-zA-Z0-9_.-]+)/i);
+      if (match && match[1]) target = `https://live.vkvideo.ru/app/embed/${match[1]}?autoplay=true`;
+    }
     if (!target || !/^https?:\/\//i.test(target)) return false;
     let modal = document.getElementById("fifaIframeLiveModal");
     if (!modal) {

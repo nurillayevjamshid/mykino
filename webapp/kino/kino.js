@@ -2383,8 +2383,11 @@ function normalizeMovie(movie, index = 0) {
     sourceUrl,
     webViewLink: resolveAppUrl(String(movie?.webViewLink || "").trim()),
     mimeType: String(movie?.mimeType || "").trim(),
-    headerImage: cfImage(proxyPosterUrl(resolveAppUrl(firstUsableImage(movie?.headerImage, movie?.heroPoster))), 1280),
-    showInHeader: toBooleanFlag(movie?.showInHeader ?? movie?.heroFeatured),
+    headerImage: (firstUsableImage(movie?.headerImage, movie?.heroPoster) ? cfImage(proxyPosterUrl(resolveAppUrl(firstUsableImage(movie?.headerImage, movie?.heroPoster))), 1280) : ""),
+    showInHeader: Boolean(toBooleanFlag(movie?.showInHeader ?? movie?.heroFeatured) && firstUsableImage(movie?.headerImage, movie?.heroPoster)),
+    createdTime: movie?.createdTime || movie?.createdAt || movie?.addedAt || movie?.uploadDate || "",
+    modifiedTime: movie?.modifiedTime || movie?.updatedAt || "",
+    rawIndex: Number.isFinite(movie?.rawIndex) ? movie.rawIndex : (Number.isFinite(movie?._rawIndex) ? movie._rawIndex : index),
   };
 
   if (!normalized.videoUrl && normalized.driveFileId) {
@@ -3079,7 +3082,32 @@ let heroTransitionTimer = null;
 const preloadedHeroUrls = new Set();
 
 function pickHeroSlides() {
-  return movies.filter((m) => m && m.showInHeader && (m.headerImage || getPosterImage(m)));
+  const eligible = movies.filter((m) => m && Boolean(m.showInHeader) && Boolean(m.headerImage && String(m.headerImage).trim()));
+  return eligible.slice().sort((a, b) => {
+    const timeA = a?.createdTime ? new Date(a.createdTime).getTime() : 0;
+    const timeB = b?.createdTime ? new Date(b.createdTime).getTime() : 0;
+    if (timeA && timeB && timeA !== timeB) {
+      return timeB - timeA;
+    }
+    if (timeA && !timeB) return -1;
+    if (!timeA && timeB) return 1;
+
+    const modA = a?.modifiedTime ? new Date(a.modifiedTime).getTime() : 0;
+    const modB = b?.modifiedTime ? new Date(b.modifiedTime).getTime() : 0;
+    if (modA && modB && modA !== modB) {
+      return modB - modA;
+    }
+    if (modA && !modB) return -1;
+    if (!modA && modB) return 1;
+
+    const idxA = Number.isFinite(a?.rawIndex) ? a.rawIndex : 999999;
+    const idxB = Number.isFinite(b?.rawIndex) ? b.rawIndex : 999999;
+    if (idxA !== idxB) {
+      return idxA - idxB;
+    }
+
+    return 0;
+  });
 }
 
 // Barcha slaydlar rasmlarini oldindan keshga yuklab oladi — slayd almashganda
@@ -3087,7 +3115,7 @@ function pickHeroSlides() {
 function preloadHeroImages() {
   if (!heroSlides || !heroSlides.length) return;
   heroSlides.forEach((movie) => {
-    const url = String(movie.headerImage || getPosterImage(movie) || "").trim();
+    const url = String(movie.headerImage || "").trim();
     if (url && !preloadedHeroUrls.has(url)) {
       preloadedHeroUrls.add(url);
       const img = new Image();
@@ -3109,7 +3137,7 @@ function renderHeroSlide(movie, immediate = false) {
 
   if (heroShimmer) heroShimmer.hidden = true;
 
-  const imageUrl = String(movie.headerImage || getPosterImage(movie) || "").trim();
+  const imageUrl = String(movie.headerImage || "").trim();
   const safeUrl = imageUrl
     ? `url('${imageUrl.replaceAll("'", "%27")}')`
     : "linear-gradient(135deg, #1f1f1f, #050505)";
@@ -10330,9 +10358,9 @@ function preloadPosters(movieList) {
 function awaitFirstPostersReady(movieList, { firstCount = 3, timeoutMs = 250 } = {}) {
   const urls = [];
   if (Array.isArray(movieList)) {
-    const heroMovie = movieList.find((m) => m && m.showInHeader && (m.headerImage || m.posterImage));
+    const heroMovie = movieList.find((m) => m && m.showInHeader && m.headerImage);
     if (heroMovie) {
-      const heroUrl = String(heroMovie.headerImage || heroMovie.posterImage || "").trim();
+      const heroUrl = String(heroMovie.headerImage || "").trim();
       if (heroUrl && !heroUrl.startsWith("data:") && !heroUrl.startsWith("blob:")) urls.push(heroUrl);
     }
     for (const m of movieList.slice(0, firstCount)) {

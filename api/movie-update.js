@@ -164,7 +164,11 @@ module.exports = async function handler(request, response) {
     } else if (hasOwn(body, "heroImage")) {
       updates.heroImage = body.heroImage;
     }
-    if (updates.headerImage === "" && !hasOwn(body, "showInHeader")) {
+    if (updates.headerImage === "" || body.showInHeader === false || updates.showInHeader === false || !trimString(updates.headerImage)) {
+      updates.headerImage = "";
+      updates.heroPoster = "";
+      updates.headerPoster = "";
+      updates.heroImage = "";
       updates.showInHeader = false;
     }
     if (hasOwn(body, "headerCrop")) {

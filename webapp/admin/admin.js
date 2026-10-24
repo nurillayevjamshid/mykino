@@ -2185,23 +2185,25 @@ async function handleMovieSubmit(e) {
       updatePayload.posterImage = finalPoster;
     }
 
-    const finalHeader = selectedHeaderDataUrl || document.getElementById('movieHeaderImage').value.trim();
+    const isShowInHeaderChecked = Boolean(document.getElementById('movieShowInHeader')?.checked);
+    const rawHeaderInput = (selectedHeaderDataUrl || document.getElementById('movieHeaderImage')?.value || '').trim();
+    const finalHeader = isShowInHeaderChecked ? rawHeaderInput : '';
+
     if (!finalHeader) {
       const prevHeader = currentMovie?.headerImage || currentMovie?.heroPoster || '';
-      if (prevHeader || currentMovie?.showInHeader) {
-        updatePayload.headerImage = '';
-        updatePayload.showInHeader = false;
-        if (prevHeader) {
-          updatePayload.deletedHeaderImage = prevHeader;
-        }
+      updatePayload.headerImage = '';
+      updatePayload.heroPoster = '';
+      updatePayload.headerPoster = '';
+      updatePayload.heroImage = '';
+      updatePayload.showInHeader = false;
+      if (prevHeader) {
+        updatePayload.deletedHeaderImage = prevHeader;
       }
     } else {
       if (!currentMovie || hasMovieFieldChanged(finalHeader, currentMovie.headerImage)) {
         updatePayload.headerImage = finalHeader;
       }
-      if (!currentMovie || movieData.showInHeader !== Boolean(currentMovie.showInHeader)) {
-        updatePayload.showInHeader = movieData.showInHeader;
-      }
+      updatePayload.showInHeader = true;
     }
 
     if (Object.keys(updatePayload).length === 1) {
