@@ -1877,7 +1877,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
         </span>
       </div>`;
-    const open = () => openFifaLiveChannel(cfg.channelUrl);
+    const open = () => openFifaLiveChannel(cfg.channelUrl, cfg.title, cfg.originalUrl);
     promo.onclick = open;
     promo.onkeydown = (e) => {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
@@ -1909,6 +1909,7 @@
           window.fifaLiveConfig = {
             enabled: true,
             channelUrl: sourceUrl,
+            originalUrl: m.originalUrl || sourceUrl,
             youtubeId: m.youtubeId || "",
             imageUrl: m.coverUrl || "",
             title: m.title || "Futbol jonli efiri",
@@ -1994,7 +1995,15 @@
     return true;
   }
 
-  function openIframeLiveModal(url, title) {
+  function openIframeLiveModal(url, title, rawOriginalUrl) {
+    let browserUrl = rawOriginalUrl ? String(rawOriginalUrl).trim() : String(url || "").trim();
+    if (browserUrl.includes('<iframe')) {
+      const bm = browserUrl.match(/src=["']([^"']+)["']/i);
+      if (bm && bm[1]) browserUrl = bm[1].trim();
+    }
+    if (browserUrl.includes('live.vkvideo.ru/app/embed/')) {
+      browserUrl = browserUrl.replace('/app/embed/', '/');
+    }
     let target = String(url || "").trim();
     if (target.includes('<iframe')) {
       const m = target.match(/src=["']([^"']+)["']/i);
@@ -2065,7 +2074,7 @@
     return true;
   }
 
-  function openFifaLiveChannel(url, matchTitle = "FIFA jonli efiri") {
+  function openFifaLiveChannel(url, matchTitle = "FIFA jonli efiri", rawOriginalUrl = "") {
     const target = String(url || "").trim();
     if (!target) return;
     if (openYoutubeLiveModal(target, "FIFA jonli efiri")) return;
@@ -2080,7 +2089,7 @@
       return;
     }
     // Iframe embed yoki veb-sayt translatsiyasi
-    if (openIframeLiveModal(target, matchTitle)) {
+    if (openIframeLiveModal(target, matchTitle, rawOriginalUrl)) {
       return;
     }
     try {

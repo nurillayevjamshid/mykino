@@ -81,71 +81,53 @@ async function extractVkVideo(input) {
   if (!input || typeof input !== 'string') return null;
   const trimmed = input.trim();
 
-  // live.vkvideo.ru (masalan, https://live.vkvideo.ru/channel36642664/stream/sl_396583 yoki embed)
+  // 1. live.vkvideo.ru (masalan, https://live.vkvideo.ru/channel36642664/stream/sl_396583 yoki embed)
   if (trimmed.includes('live.vkvideo.ru')) {
     let target = trimmed;
     if (target.includes('<iframe')) {
       const m = target.match(/src=["']([^"']+)["']/i);
       if (m && m[1]) target = m[1].trim();
     }
-    if (target.includes('/app/embed/')) {
-      target = target.replace('/app/embed/', '/');
-    }
     if (!target.startsWith('http://') && !target.startsWith('https://')) {
       target = 'https://' + target;
     }
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
-      const res = await fetch(target, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': DEFAULT_HEADERS['User-Agent'],
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Referer': 'https://live.vkvideo.ru/'
-        }
-      });
-      clearTimeout(timeoutId);
+    // VK Live embed oqimi (serverlessdan m3u8 ajratilmaydi, chunki okcdn IP cheklovi 403 beradi)
+    const chanMatch = target.match(/live\.vkvideo\.ru\/(?:app\/embed\/)?([a-zA-Z0-9_.-]+)/i);
+    const embedUrl = chanMatch && chanMatch[1] ? `https://live.vkvideo.ru/app/embed/${chanMatch[1]}?autoplay=true` : target;
 
-      if (res.ok) {
-        const html = await res.text();
-        const m = html.match(/"type"\s*:\s*"live_hls"\s*,\s*"url"\s*:\s*"([^"]+)"/i)
-               || html.match(/"url"\s*:\s*"([^"]+)"\s*,\s*"type"\s*:\s*"live_hls"/i)
-               || html.match(/(https?:\\\/\\\/[a-zA-Z0-9_\-\.]+\.okcdn\.ru\\\/hls\\\/[^\s"'<>]+\.m3u8(?:\?[^\s"'<>]*)?)/i)
-               || html.match(/(https?:\/\/[a-zA-Z0-9_\-\.]+\.okcdn\.ru\/hls\/[^\s"'<>]+\.m3u8(?:\?[^\s"'<>]*)?)/i);
-
-        if (m && m[1]) {
-          const directM3u8 = m[1].replace(/\\u002F/g, '/').replace(/\\/g, '');
-          return {
-            success: true,
-            type: 'hls',
-            stream_url: directM3u8,
-            original_url: input
-          };
-        }
-      }
-    } catch (e) {
-      console.warn('[VK Extractor] HTML tahlilida xato:', e.message);
-    }
-
-    // Agar jonli hls topilmasa, embed URL ga o'tamiz
-    const chanMatch = trimmed.match(/live\.vkvideo\.ru\/(?:app\/embed\/)?([a-zA-Z0-9_.-]+)/i);
     return {
       success: true,
       type: 'iframe',
-      stream_url: chanMatch && chanMatch[1] ? `https://live.vkvideo.ru/app/embed/${chanMatch[1]}?autoplay=true` : target,
+      stream_url: embedUrl,
+      original_url: target
+    };
+  }
+
+  // 2. vk.com yoki vkvideo.ru video_ext.php embed
+  if (trimmed.includes('vk.com/video_ext.php') || trimmed.includes('vkvideo.ru/video_ext.php')) {
+    let target = trimmed;
+    if (target.includes('<iframe')) {
+      const m = target.match(/src=["']([^"']+)["']/i);
+      if (m && m[1]) target = m[1].trim();
+    }
+    return {
+      success: true,
+      type: 'iframe',
+      stream_url: target,
       original_url: input
     };
   }
 
-  // vk.com yoki vkvideo.ru video_ext.php embed
-  if (trimmed.includes('vk.com/video_ext.php') || trimmed.includes('vkvideo.ru/video_ext.php')) {
+  // 3. vk.com/video-XXX_YYY yoki vkvideo.ru/video-XXX_YYY oddiy havolalari
+  const vkVideoMatch = trimmed.match(/(?:vk\.com|vkvideo\.ru)\/video(-?\d+)_(\d+)/i);
+  if (vkVideoMatch) {
+    const oid = vkVideoMatch[1];
+    const id = vkVideoMatch[2];
     return {
       success: true,
       type: 'iframe',
-      stream_url: trimmed,
+      stream_url: `https://vk.com/video_ext.php?oid=${oid}&id=${id}&autoplay=1`,
       original_url: input
     };
   }
