@@ -294,7 +294,7 @@ function normalizeFifaStreamUrl(value) {
         return { url: `https://vk.ru/video_ext.php?oid=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(videoMatch[2])}`, provider: "vk" };
       }
     }
-    if (host === "vk.com" || host.endsWith(".vk.com") || host === "vkvideo.ru" || host.endsWith(".vkvideo.ru")) {
+    if (host === "vk.com" || host.endsWith(".vk.com") || host === "vk.ru" || host.endsWith(".vk.ru") || host === "vkvideo.ru" || host.endsWith(".vkvideo.ru")) {
       return { url: parsed.toString().slice(0, 800), provider: "vk" };
     }
   } catch (_) {}
