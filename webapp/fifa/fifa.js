@@ -1508,8 +1508,13 @@
     const list = Array.isArray(streams) ? streams.filter((item) => item && item.url) : [];
     wrap.hidden = !list.length;
     if (!list.length) { wrap.innerHTML = ""; return; }
-    const youtubeCards = list.filter((stream) => stream.provider === "youtube").map((stream) => `<article class="fifa-youtube-live-card"><div class="fifa-youtube-live-card__head"><div><span class="fifa-streams-promo-kicker">YOUTUBE LIVE</span><h3>${esc(stream.title || "Futbol jonli efiri")}</h3></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div><div class="fifa-stream-promo-card__frame-wrap"><iframe class="fifa-stream-card__frame" src="${esc(stream.url)}" title="${esc(stream.title || "Futbol jonli efiri")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div></article>`).join("");
-    const vkButtons = list.filter((stream) => stream.provider !== "youtube").map((stream) => `<a class="fifa-stream-button" href="${esc(stream.originalUrl || stream.url)}" target="_blank" rel="noopener noreferrer"><span class="fifa-stream-button__dot"></span><span>${esc(stream.title || "Futbol jonli efiri")}</span><span class="fifa-stream-button__arrow">↗</span></a>`).join("");
+    const isYoutubeStream = (stream) => stream.provider === "youtube" || /(?:youtube\.com|youtu\.be)/i.test(`${stream.originalUrl || ""} ${stream.url || ""}`);
+    const youtubeCards = list.filter(isYoutubeStream).map((stream) => {
+      const title = stream.title || "Futbol jonli efiri";
+      const originalUrl = stream.originalUrl || stream.url;
+      return `<article class="fifa-youtube-live-card"><div class="fifa-youtube-live-card__head"><div><span class="fifa-streams-promo-kicker">YOUTUBE LIVE</span><h3>${esc(title)}</h3></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div><div class="fifa-stream-card__frame-wrap"><iframe class="fifa-stream-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div><a class="fifa-youtube-live-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer">YouTube’da ochish <span>↗</span></a></article>`;
+    }).join("");
+    const vkButtons = list.filter((stream) => !isYoutubeStream(stream)).map((stream) => `<a class="fifa-stream-button" href="${esc(stream.originalUrl || stream.url)}" target="_blank" rel="noopener noreferrer"><span class="fifa-stream-button__dot"></span><span>${esc(stream.title || "Futbol jonli efiri")}</span><span class="fifa-stream-button__arrow">↗</span></a>`).join("");
     wrap.innerHTML = `<div class="fifa-streams-promo-head"><div><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h2>Futbol translyatsiyasi</h2></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div>${youtubeCards}${vkButtons ? `<div class="fifa-stream-buttons">${vkButtons}</div>` : ""}`;
   }
   async function renderFifaStreamsPanel(force = false) {

@@ -6,6 +6,13 @@ const settingsHandler = require("../../api/settings");
 
 describe("FIFA live stream buttons", () => {
   const root = path.resolve(__dirname, "../..");
+  test("normalizes YouTube Live links into playable iframe URLs", () => {
+    assert.deepEqual(settingsHandler.normalizeFifaStreamUrl("https://www.youtube.com/live/BUEGXoCVl7w?si=test"), {
+      provider: "youtube",
+      url: "https://www.youtube-nocookie.com/embed/BUEGXoCVl7w?rel=0",
+    });
+  });
+
   test("normalizes the exact VK Sport video link into an iframe URL", () => {
     const normalized = settingsHandler.normalizeFifaStreamUrl("https://vksport.m.vkvideo.ru/video-214218677_456253161");
     assert.deepEqual(normalized, {
@@ -45,6 +52,8 @@ describe("FIFA live stream buttons", () => {
     assert.match(fifa, /async function loadFifaStreams\(/);
     assert.match(fifa, /class="fifa-stream-button"/);
     assert.match(fifa, /target="_blank"/);
+    assert.match(fifa, /fifa-youtube-live-card/);
+    assert.match(fifa, /YouTube’da ochish/);
   });
 
   test("provides admin controls for adding and saving stream links", () => {
