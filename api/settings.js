@@ -287,6 +287,13 @@ function normalizeFifaStreamUrl(value) {
         return { url: `https://live.vkvideo.ru/app/embed/${encodeURIComponent(channelMatch[1])}`, provider: "vk" };
       }
     }
+    if (host.endsWith(".vkvideo.ru") || host === "vkvideo.ru") {
+      const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
+      if (videoMatch) {
+        const ownerId = videoMatch[1].startsWith("-") ? videoMatch[1] : `-${videoMatch[1]}`;
+        return { url: `https://vk.ru/video_ext.php?oid=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(videoMatch[2])}`, provider: "vk" };
+      }
+    }
     if (host === "vk.com" || host.endsWith(".vk.com") || host === "vkvideo.ru" || host.endsWith(".vkvideo.ru")) {
       return { url: parsed.toString().slice(0, 800), provider: "vk" };
     }
