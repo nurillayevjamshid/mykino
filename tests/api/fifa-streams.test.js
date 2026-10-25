@@ -10,8 +10,22 @@ describe("FIFA live stream tab", () => {
     const normalized = settingsHandler.normalizeFifaStreamUrl("https://vksport.m.vkvideo.ru/video-214218677_456253161");
     assert.deepEqual(normalized, {
       provider: "vk",
-      url: "https://vk.ru/video_ext.php?oid=-214218677&id=456253161",
+      url: "https://vk.com/video_ext.php?oid=-214218677&id=456253161&hd=2",
     });
+  });
+
+  test("accepts VK desktop/mobile variants and preserves extra query parameters", () => {
+    for (const source of [
+      "https://vk.com/video-214218677_456253161",
+      "https://m.vk.com/video-214218677_456253161",
+      "https://vkvideo.ru/video-214218677_456253161",
+    ]) {
+      assert.equal(settingsHandler.normalizeFifaStreamUrl(source).url, "https://vk.com/video_ext.php?oid=-214218677&id=456253161&hd=2");
+    }
+    assert.equal(
+      settingsHandler.normalizeFifaStreamUrl("https://vk.com/video-214218677_456253161?hash=abc123").url,
+      "https://vk.com/video_ext.php?oid=-214218677&id=456253161&hd=2&hash=abc123",
+    );
   });
 
   test("includes the requested YouTube and VK defaults", () => {
@@ -20,7 +34,6 @@ describe("FIFA live stream tab", () => {
     assert.match(settings, /live\.vkvideo\.ru\/channel30008599\/stream\/sl_393740/);
     assert.match(settings, /youtube-nocookie\.com\/embed/);
     assert.match(settings, /live\.vkvideo\.ru\/app\/embed/);
-    assert.match(settings, /video_ext\.php\?oid=/);
   });
 
   test("renders a dedicated football stream tab and panel", () => {
@@ -30,6 +43,8 @@ describe("FIFA live stream tab", () => {
     assert.match(html, /id="fifaPanelStreams"/);
     assert.match(fifa, /async function loadFifaStreams\(\)/);
     assert.match(fifa, /class="fifa-stream-card__frame"/);
+    assert.match(fifa, /referrerpolicy="no-referrer"/);
+    assert.match(fifa, /VK orqali tomosha qilish/);
     assert.match(fifa, /tab === "streams"/);
   });
 
