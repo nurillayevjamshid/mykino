@@ -50,7 +50,8 @@ describe("FIFA live stream buttons", () => {
     assert.doesNotMatch(html, /data-fifa-tab="streams"/);
     assert.doesNotMatch(html, /id="fifaPanelStreams"/);
     assert.match(fifa, /async function loadFifaStreams\(/);
-    assert.match(fifa, /class="fifa-stream-button"/);
+    assert.match(fifa, /class="fifa-vk-live-card"/);
+    assert.doesNotMatch(fifa, /class="fifa-stream-button"/);
     assert.match(fifa, /target="_blank"/);
     assert.match(fifa, /fifa-youtube-live-card/);
     assert.match(fifa, /YouTube’da ochish/);
@@ -63,6 +64,7 @@ describe("FIFA live stream buttons", () => {
     assert.match(html, /id="fifaStreamsAddBtn"/);
     assert.match(html, /id="fifaStreamsSaveBtn"/);
     assert.match(js, /body: JSON\.stringify\(\{ fifaStreams: rows \}\)/);
+    assert.match(js, /String\(item\.url \|\| item\.originalUrl/);
     assert.match(js, /YouTube Live yoki VK linki/);
     assert.match(js, /video card/);
   });
