@@ -270,53 +270,24 @@ function normalizePreRollAd(raw, adCdnMap = null) {
   };
 }
 
+const DEFAULT_FIFA_STREAMS = [
+  { id: "youtube-live", title: "YouTube jonli efir", url: "https://www.youtube.com/live/BUEGXoCVl7w?si=TGQo6e3C51k8tWvL", enabled: true },
+  { id: "vk-live", title: "VK Video jonli efir", url: "https://live.vkvideo.ru/channel30008599/stream/sl_393740", enabled: true },
+];
 function normalizeFifaStreamUrl(value) {
-  const raw = trimString(value);
-  if (!raw) return { url: "", provider: "" };
+  const raw = trimString(value); if (!raw) return { url: "", provider: "" };
   const yt = raw.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([\w-]{10,12})/i);
-  if (yt) return {
-    url: `https://www.youtube.com/embed/${yt[1]}?autoplay=0&rel=0&modestbranding=1`,
-    provider: "youtube",
-  };
-  try {
-    const parsed = new URL(raw);
-    const host = parsed.hostname.toLowerCase();
-    if (host === "live.vkvideo.ru" || host.endsWith(".live.vkvideo.ru")) {
-      const channelMatch = parsed.pathname.match(/^\/([^/]+)\/stream\//i);
-      if (channelMatch) {
-        return { url: `https://live.vkvideo.ru/app/embed/${encodeURIComponent(channelMatch[1])}`, provider: "vk" };
-      }
-    }
-    if (host.endsWith(".vkvideo.ru") || host === "vkvideo.ru") {
-      const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
-      if (videoMatch) {
-        const ownerId = videoMatch[1].startsWith("-") ? videoMatch[1] : `-${videoMatch[1]}`;
-        return { url: `https://vk.ru/video_ext.php?oid=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(videoMatch[2])}`, provider: "vk" };
-      }
-    }
-    if (host === "vk.com" || host.endsWith(".vk.com") || host === "vk.ru" || host.endsWith(".vk.ru") || host === "vkvideo.ru" || host.endsWith(".vkvideo.ru")) {
-      return { url: parsed.toString().slice(0, 800), provider: "vk" };
-    }
+  if (yt) return { url: `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0`, provider: "youtube" };
+  try { const parsed = new URL(raw); const host = parsed.hostname.toLowerCase();
+    if (host === "live.vkvideo.ru" || host.endsWith(".live.vkvideo.ru")) { const m = parsed.pathname.match(/^\/([^/]+)\/stream\//i); if (m) return { url: `https://live.vkvideo.ru/app/embed/${encodeURIComponent(m[1])}`, provider: "vk" }; }
+    if (host === "vk.com" || host.endsWith(".vk.com") || host === "vk.ru" || host.endsWith(".vk.ru") || host === "vkvideo.ru" || host.endsWith(".vkvideo.ru")) return { url: parsed.toString().slice(0,800), provider: "vk" };
   } catch (_) {}
   return { url: "", provider: "" };
 }
 function normalizeFifaStreams(raw) {
-  const list = Array.isArray(raw) ? raw : [];
-  return list.slice(0, 8).map((item, index) => {
-    const source = typeof item === "string" ? { url: item } : (item && typeof item === "object" ? item : {});
-    const normalized = normalizeFifaStreamUrl(source.url || source.originalUrl || source.link);
-    return {
-      id: trimString(source.id || `fifa-stream-${index + 1}`).slice(0, 80),
-      title: trimString(source.title || (normalized.provider === "vk" ? "VK Video jonli efir" : "YouTube jonli efir")).slice(0, 120),
-      url: normalized.url,
-      originalUrl: trimString(source.originalUrl || source.url || source.link).slice(0, 800),
-      imageUrl: readStoredPublicImageUrl(source.imageUrl || source.coverUrl),
-      provider: normalized.provider,
-      enabled: source.enabled !== false,
-    };
-  }).filter((item) => item.url && item.provider);
+  const list = raw === undefined ? DEFAULT_FIFA_STREAMS : (Array.isArray(raw) ? raw : []);
+  return list.slice(0,8).map((item,index) => { const source = typeof item === "string" ? {url:item} : (item && typeof item === "object" ? item : {}); const normalized=normalizeFifaStreamUrl(source.url || source.originalUrl || source.link); return { id:trimString(source.id || `fifa-stream-${index+1}`).slice(0,80), title:trimString(source.title || (normalized.provider === "vk" ? "VK Video jonli efir" : "YouTube jonli efir")).slice(0,120), url:normalized.url, originalUrl:trimString(source.originalUrl || source.url || source.link).slice(0,800), provider:normalized.provider, enabled:source.enabled !== false }; }).filter((item)=>item.url && item.provider && item.enabled);
 }
-
 function normalizeEsportsStartAt(value) {
   const raw = trimString(value);
   if (!raw) return "";
@@ -420,7 +391,7 @@ async function readPersistedSettings(settings) {
       ticker: normalizeTicker(null),
       preRollAd: normalizePreRollAd(null),
       fifaHighlightsChannel: "https://www.youtube.com/@qsportuzbekistan/videos",
-      fifaStreams: [],
+      fifaStreams: normalizeFifaStreams(undefined),
       esportsStreams: normalizeEsportsStreams(null),
     };
   }
