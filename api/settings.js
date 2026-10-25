@@ -288,11 +288,11 @@ function normalizeFifaStreamUrl(value) {
       }
     }
     // VK Sport mobile video pages use the stable video_ext embed endpoint.
-    if (host === "vksport.m.vkvideo.ru" && /^\/video-[-\d]+_[0-9]+$/i.test(parsed.pathname)) {
+    if ((host === "vksport.m.vkvideo.ru" || host === "m.vkvideo.ru") && /^\/video-[-\d]+_[0-9]+$/i.test(parsed.pathname)) {
       const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
       if (videoMatch) {
         const ownerId = videoMatch[1].startsWith("-") ? videoMatch[1] : `-${videoMatch[1]}`;
-        return { url: `https://vk.ru/video_ext.php?oid=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(videoMatch[2])}`, provider: "vk" };
+        return { url: `https://vkvideo.ru/video_ext.php?oid=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(videoMatch[2])}`, provider: "vk" };
       }
     }
     // Other VK mobile video pages remain on their original URL.
@@ -303,7 +303,7 @@ function normalizeFifaStreamUrl(value) {
       const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
       if (videoMatch) {
         const ownerId = videoMatch[1].startsWith("-") ? videoMatch[1] : `-${videoMatch[1]}`;
-        return { url: `https://vk.ru/video_ext.php?oid=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(videoMatch[2])}`, provider: "vk" };
+        return { url: `https://vkvideo.ru/video_ext.php?oid=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(videoMatch[2])}`, provider: "vk" };
       }
     }
     if (host === "vk.com" || host.endsWith(".vk.com") || host === "vk.ru" || host.endsWith(".vk.ru") || host === "vkvideo.ru" || host.endsWith(".vkvideo.ru")) {
