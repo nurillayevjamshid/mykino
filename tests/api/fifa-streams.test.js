@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const settingsHandler = require("../../api/settings");
 
-describe("FIFA live stream tab", () => {
+describe("FIFA live stream buttons", () => {
   const root = path.resolve(__dirname, "../..");
   test("normalizes the exact VK Sport video link into an iframe URL", () => {
     const normalized = settingsHandler.normalizeFifaStreamUrl("https://vksport.m.vkvideo.ru/video-214218677_456253161");
@@ -36,16 +36,15 @@ describe("FIFA live stream tab", () => {
     assert.match(settings, /live\.vkvideo\.ru\/app\/embed/);
   });
 
-  test("renders a dedicated football stream tab and panel", () => {
+  test("renders football stream buttons between the hero and highlights", () => {
     const html = fs.readFileSync(path.join(root, "webapp/index.html"), "utf8");
     const fifa = fs.readFileSync(path.join(root, "webapp/fifa/fifa.js"), "utf8");
-    assert.match(html, /data-fifa-tab="streams"[^>]*>Futbol stream</);
-    assert.match(html, /id="fifaPanelStreams"/);
-    assert.match(fifa, /async function loadFifaStreams\(\)/);
-    assert.match(fifa, /class="fifa-stream-card__frame"/);
-    assert.match(fifa, /referrerpolicy="no-referrer"/);
-    assert.match(fifa, /VK orqali tomosha qilish/);
-    assert.match(fifa, /tab === "streams"/);
+    assert.match(html, /id="fifaStreamsPromoWrap"/);
+    assert.doesNotMatch(html, /data-fifa-tab="streams"/);
+    assert.doesNotMatch(html, /id="fifaPanelStreams"/);
+    assert.match(fifa, /async function loadFifaStreams\(/);
+    assert.match(fifa, /class="fifa-stream-button"/);
+    assert.match(fifa, /target="_blank"/);
   });
 
   test("provides admin controls for adding and saving stream links", () => {
@@ -54,6 +53,8 @@ describe("FIFA live stream tab", () => {
     assert.match(html, /id="fifaStreamsForm"/);
     assert.match(html, /id="fifaStreamsAddBtn"/);
     assert.match(html, /id="fifaStreamsSaveBtn"/);
-    assert.match(js, /body:JSON\.stringify\(\{fifaStreams:rows\}\)/);
+    assert.match(js, /body: JSON\.stringify\(\{ fifaStreams: rows \}\)/);
+    assert.match(js, /Button nomi/);
+    assert.match(js, /VK Live linki/);
   });
 });
