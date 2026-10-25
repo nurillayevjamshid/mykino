@@ -1469,6 +1469,50 @@
       });
     });
   }
+
+  let fifaStreamsCache = null;
+  let fifaStreamsLoading = null;
+  function streamProviderLabel(stream) {
+    return stream.provider === "vk" ? "VK Video" : "YouTube Live";
+  }
+  async function loadFifaStreams(force = false) {
+    if (!force && Array.isArray(fifaStreamsCache)) return fifaStreamsCache;
+    if (fifaStreamsLoading && !force) return fifaStreamsLoading;
+    fifaStreamsLoading = (async () => {
+      try {
+        const local = Array.isArray(window.__fifaStreams) ? window.__fifaStreams : null;
+        // Bo'sh shell snapshot serverda saqlangan streamlar borligini anglatmaydi.
+        // Faqat ichida haqiqiy URL bor local snapshotdan foydalanamiz.
+        if (local && local.some((item) => item && item.url) && !force) {
+          fifaStreamsCache = local.filter((item) => item && item.url);
+          return fifaStreamsCache;
+        }
+        const res = await fetch("/api/settings", { headers: { Accept: "application/json" }, cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        fifaStreamsCache = Array.isArray(data?.fifaStreams) ? data.fifaStreams.filter((item) => item && item.url) : [];
+        window.__fifaStreams = fifaStreamsCache;
+        return fifaStreamsCache;
+      } catch (_) {
+        fifaStreamsCache = [];
+        return fifaStreamsCache;
+      } finally {
+        fifaStreamsLoading = null;
+      }
+    })();
+    return fifaStreamsLoading;
+  }
+  function renderFifaStreamsPromo(streams) {
+    const wrap = document.getElementById("fifaStreamsPromoWrap");
+    if (!wrap) return;
+    const list = Array.isArray(streams) ? streams.filter((item) => item && item.url) : [];
+    wrap.hidden = !list.length;
+    if (!list.length) { wrap.innerHTML = ""; return; }
+    wrap.innerHTML = `<div class="fifa-streams-promo-head"><div><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h2>Futbol translyatsiyasi</h2></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div><div class="fifa-stream-buttons">${list.map((stream) => `<a class="fifa-stream-button" href="${esc(stream.originalUrl || stream.url)}" target="_blank" rel="noopener noreferrer"><span class="fifa-stream-button__dot"></span><span>${esc(stream.title || "Futbol jonli efiri")}</span><span class="fifa-stream-button__arrow">↗</span></a>`).join("")}</div>`;
+  }
+  async function renderFifaStreamsPanel(force = false) {
+    renderFifaStreamsPromo(await loadFifaStreams(force));
+  }
   // --- Render: Jonli efir ---
   function renderLive() {
     const panel = document.getElementById("fifaPanelLive");
@@ -1788,10 +1832,6 @@
     `;
   }
 
-  // --- Futbol translatsiyasi ---
-  let fifaStreamsCache = [];
-  async function loadFifaStreams() { try { const res=await fetch("/api/settings",{headers:{Accept:"application/json"},cache:"no-store"}); if(!res.ok) throw new Error(`HTTP ${res.status}`); const data=await res.json(); fifaStreamsCache=Array.isArray(data?.fifaStreams)?data.fifaStreams.filter((item)=>item&&item.url):[]; } catch (_) { fifaStreamsCache=[]; } renderFifaStreams(); }
-  function renderFifaStreams() { const panel=document.getElementById("fifaPanelStreams"); if(!panel)return; if(!fifaStreamsCache.length){panel.innerHTML=`<div class="fifa-streams-panel"><div class="fifa-streams-empty">Hozircha futbol translatsiyasi mavjud emas.</div></div>`;return;} panel.innerHTML=`<div class="fifa-streams-panel"><p class="fifa-streams-panel__intro">Jonli futbol translatsiyalarini shu yerda tomosha qiling.</p>${fifaStreamsCache.map((stream)=>{ const isVk=stream.provider==="vk"; return `<article class="fifa-stream-card"><div class="fifa-stream-card__head"><div><span class="fifa-stream-card__provider">${esc(isVk?"VK Video Live":"YouTube Live")}</span><h2 class="fifa-stream-card__title">${esc(stream.title||"Futbol jonli efiri")}</h2></div></div><div class="fifa-stream-card__frame-wrap"><iframe class="fifa-stream-card__frame" src="${esc(stream.url)}" title="${esc(stream.title||"Futbol translatsiyasi")}" referrerpolicy="no-referrer" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen width="100%" height="100%" loading="lazy"></iframe></div><a class="fifa-stream-card__open" href="${esc(stream.originalUrl||stream.url)}" target="_blank" rel="noopener noreferrer">${isVk?"VK orqali tomosha qilish":"Manbani yangi oynada ochish"}</a></article>`; }).join("")}</div>`; }
   // --- Tab switching ---
   function setActiveTab(tab) {
     fifaView.querySelectorAll(".fifa-tab").forEach((b) => {
@@ -1816,9 +1856,6 @@
     } else if (tab === "favorites") {
       ensureUpcomingMatchesLoaded().catch(() => {});
       renderFifaFavorites();
-    } else if (tab === "streams") {
-      renderFifaStreams();
-      if (!fifaStreamsCache.length) loadFifaStreams();
     }
   }
 
@@ -3764,8 +3801,8 @@
         const favsActive = document.getElementById("fifaPanelFavorites")?.classList.contains("is-active");
         if (groupsActive) renderGroups();
         else if (favsActive) renderFifaFavorites();
-        else if (document.getElementById("fifaPanelStreams")?.classList.contains("is-active")) renderFifaStreams();
         else renderMatches();
+        renderFifaStreamsPromo(fifaStreamsCache || []);
       } catch (_) {}
     });
   } catch (_) {}
@@ -3775,7 +3812,7 @@
     updateFifaTabs();
     ensureUpcomingMatchesLoaded().catch(() => {});
     loadAndRenderFifaHighlights().catch(() => {});
-    loadFifaStreams().catch(() => {});
+    loadFifaStreams().then(renderFifaStreamsPromo).catch(() => {});
   } catch (_) {}
 })();
 

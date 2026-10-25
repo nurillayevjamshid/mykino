@@ -5459,13 +5459,44 @@ document.getElementById('fifaHighlightsDeleteBtn')?.addEventListener('click', de
 
 
 // ============================================================
-// Futbol translatsiyasi (YouTube Live / VK Video)
-let fifaStreamsLoaded=false; let fifaStreamsDraft=[];
-function setFifaStreamsStatus(text,kind=""){const el=document.getElementById("fifaStreamsStatus");if(!el)return;el.textContent=text||"";el.style.color=kind==="error"?"#ef4444":kind==="ok"?"#22c55e":"var(--text-muted,#666)";}
-function renderFifaStreamsForm(){const wrap=document.getElementById("fifaStreamsForm");if(!wrap)return;wrap.innerHTML=fifaStreamsDraft.map((item,index)=>`<div class="form-card" style="padding:14px;margin-bottom:10px;border:1px solid var(--border,#e5e7eb);"><div class="form-row"><div class="form-group" style="flex:2"><label>YouTube yoki VK Video linki</label><input class="form-input" data-fifa-field="url" data-index="${index}" value="${escapeHtml(item.originalUrl||item.url||"")}" placeholder="https://www.youtube.com/live/... yoki https://live.vkvideo.ru/..." type="url"></div><div class="form-group" style="flex:1"><label>Nomi</label><input class="form-input" data-fifa-field="title" data-index="${index}" value="${escapeHtml(item.title||"")}" placeholder="Futbol jonli efiri" maxlength="120"></div></div><button type="button" class="btn btn-secondary" data-fifa-stream-remove="${index}">O'chirish</button></div>`).join("");wrap.querySelectorAll("[data-fifa-field]").forEach((el)=>el.addEventListener("input",()=>{const i=Number(el.dataset.index);fifaStreamsDraft[i][el.dataset.fifaField]=el.value;}));wrap.querySelectorAll("[data-fifa-stream-remove]").forEach((el)=>el.addEventListener("click",()=>{fifaStreamsDraft.splice(Number(el.dataset.fifaStreamRemove),1);renderFifaStreamsForm();}));}
-async function loadFifaStreamsSettings(){if(fifaStreamsLoaded)return;try{const res=await fetch("/api/settings",{cache:"no-store"});const data=await res.json();fifaStreamsDraft=Array.isArray(data.fifaStreams)?data.fifaStreams:[];fifaStreamsLoaded=true;renderFifaStreamsForm();}catch(err){setFifaStreamsStatus(`Yuklashda xato: ${err.message}`,"error");}}
-async function saveFifaStreams(){const rows=fifaStreamsDraft.map((item)=>({id:item.id,url:String(item.originalUrl||item.url||"").trim(),title:String(item.title||"").trim(),enabled:true})).filter((item)=>item.url);if(rows.some((item)=>!/^https?:\/\//i.test(item.url))){setFifaStreamsStatus("Link https:// bilan boshlanishi kerak.","error");return;}if(rows.some((item)=>!/(youtube\.com|youtu\.be|vkvideo\.ru|vk\.com|vk\.ru)/i.test(item.url))){setFifaStreamsStatus("Faqat YouTube yoki VK Video linklari qabul qilinadi.","error");return;}try{const res=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fifaStreams:rows})});const data=await res.json();if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);fifaStreamsDraft=data.fifaStreams||rows;renderFifaStreamsForm();setFifaStreamsStatus("Saqlandi.","ok");}catch(err){setFifaStreamsStatus(`Xato: ${err.message}`,"error");}}
-document.getElementById("fifaStreamsAddBtn")?.addEventListener("click",()=>{fifaStreamsDraft.push({id:`fifa-stream-${Date.now()}`,url:"",title:"",enabled:true});renderFifaStreamsForm();});document.getElementById("fifaStreamsSaveBtn")?.addEventListener("click",saveFifaStreams);
+// Futbol translyatsiyasi buttonlari (VK Live / VK Video)
+let fifaStreamsLoaded = false;
+let fifaStreamsDraft = [];
+function setFifaStreamsStatus(text, kind = "") {
+  const el = document.getElementById("fifaStreamsStatus"); if (!el) return;
+  el.textContent = text || ""; el.style.color = kind === "error" ? "#ef4444" : kind === "ok" ? "#22c55e" : "var(--text-muted, #666)";
+}
+function renderFifaStreamsForm() {
+  const wrap = document.getElementById("fifaStreamsForm"); if (!wrap) return;
+  if (!fifaStreamsDraft.length) fifaStreamsDraft = [{ id: `fifa-stream-${Date.now()}`, url: "", title: "", enabled: true }];
+  wrap.innerHTML = fifaStreamsDraft.map((item, index) => `<div class="fifa-admin-stream-row" data-fifa-stream-row="${index}">
+    <div class="fifa-admin-stream-row__top"><strong>Translyatsiya ${index + 1}</strong><button type="button" class="btn btn-secondary" data-fifa-stream-remove="${index}" ${fifaStreamsDraft.length === 1 ? "disabled" : ""}>O'chirish</button></div>
+    <div class="form-row"><div class="form-group" style="flex:1"><label>Button nomi</label><input class="form-input" data-fifa-field="title" data-index="${index}" value="${escapeHtml(item.title || "")}" placeholder="Masalan: Real Madrid — Barcelona" maxlength="120"></div><div class="form-group" style="flex:2"><label>VK Live linki</label><input class="form-input" data-fifa-field="url" data-index="${index}" value="${escapeHtml(item.originalUrl || item.url || "")}" placeholder="https://m.vkvideo.ru/video-..." type="url"><small class="form-hint">Saqlangandan keyin futbol bo'limida shu nomdagi button chiqadi.</small></div></div>
+  </div>`).join("");
+  wrap.querySelectorAll("[data-fifa-field]").forEach((el) => el.addEventListener("input", () => { const i = Number(el.dataset.index); fifaStreamsDraft[i][el.dataset.fifaField] = el.type === "checkbox" ? el.checked : el.value; }));
+  wrap.querySelectorAll("[data-fifa-stream-remove]").forEach((el) => el.addEventListener("click", () => { fifaStreamsDraft.splice(Number(el.dataset.fifaStreamRemove), 1); renderFifaStreamsForm(); }));
+}
+async function loadFifaStreamsSettings() {
+  if (fifaStreamsLoaded) return;
+  try { const res = await fetch("/api/settings", { cache: "no-store" }); const data = await res.json(); fifaStreamsDraft = Array.isArray(data.fifaStreams) ? data.fifaStreams : []; fifaStreamsLoaded = true; renderFifaStreamsForm(); }
+  catch (err) { setFifaStreamsStatus(`Yuklashda xato: ${err.message}`, "error"); renderFifaStreamsForm(); }
+}
+async function saveFifaStreams() {
+  const rows = fifaStreamsDraft.map((item) => ({ id: item.id, enabled: true, url: String(item.originalUrl || item.url || "").trim(), title: String(item.title || "").trim() })).filter((item) => item.url);
+  if (rows.some((item) => !/^https?:\/\//i.test(item.url))) { setFifaStreamsStatus("Har bir link https:// bilan boshlanishi kerak.", "error"); return; }
+  if (rows.some((item) => !/(youtube\.com|youtu\.be|vk\.com|vkvideo\.ru)/i.test(item.url))) { setFifaStreamsStatus("Faqat YouTube yoki VK Video linklari qabul qilinadi.", "error"); return; }
+  setFifaStreamsStatus("Stream sozlamalari saqlanmoqda…");
+  try { const res = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fifaStreams: rows }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`); fifaStreamsDraft = data.fifaStreams || rows; renderFifaStreamsForm(); setFifaStreamsStatus("Saqlandi. Buttonlar futbol bo'limida ko'rinadi.", "ok"); }
+  catch (err) { setFifaStreamsStatus(`Xato: ${err.message}`, "error"); }
+}
+async function deleteFifaStreams() {
+  if (!confirm("Barcha futbol translyatsiya kartalarini o'chirmoqchimisiz?")) return;
+  try { const res = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fifaStreams: [] }) }); if (!res.ok) throw new Error(`HTTP ${res.status}`); fifaStreamsDraft = []; renderFifaStreamsForm(); setFifaStreamsStatus("Barcha kartalar o'chirildi.", "ok"); }
+  catch (err) { setFifaStreamsStatus(`Xato: ${err.message}`, "error"); }
+}
+document.getElementById("fifaStreamsAddBtn")?.addEventListener("click", () => { fifaStreamsDraft.push({ id: `fifa-stream-${Date.now()}`, url: "", title: "", enabled: true }); renderFifaStreamsForm(); });
+document.getElementById("fifaStreamsSaveBtn")?.addEventListener("click", saveFifaStreams);
+document.getElementById("fifaStreamsDeleteBtn")?.addEventListener("click", deleteFifaStreams);
 // ============================================================
 // Kibersport YouTube translatsiyalari
 const esportsStreamDefaults = [
