@@ -1481,7 +1481,9 @@
     fifaStreamsLoading = (async () => {
       try {
         const local = Array.isArray(window.__fifaStreams) ? window.__fifaStreams : null;
-        if (local && !force) {
+        // Bo'sh shell snapshot serverda saqlangan streamlar borligini anglatmaydi.
+        // Faqat ichida haqiqiy URL bor local snapshotdan foydalanamiz.
+        if (local && local.some((item) => item && item.enabled !== false && item.url) && !force) {
           fifaStreamsCache = local.filter((item) => item && item.enabled !== false && item.url);
           return fifaStreamsCache;
         }
