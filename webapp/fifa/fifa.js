@@ -1519,12 +1519,8 @@
       const open = () => {
         const stream = list[Number(cover.dataset.fifaStreamOpen)];
         if (!stream?.url) return;
-        // VK mobile video pages do not render reliably inside Telegram's iframe.
-        // Open the original VK page directly instead of replacing the card with a
-        // blank iframe screen.
-        const target = stream.originalUrl || stream.url;
-        const popup = window.open(target, "_blank", "noopener,noreferrer");
-        if (!popup) window.location.href = target;
+        openedFifaStreamIds.add(String(stream.id || Number(cover.dataset.fifaStreamOpen)));
+        renderFifaStreamsPromo(list);
       };
       cover.addEventListener("click", open);
       cover.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
