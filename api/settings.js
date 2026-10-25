@@ -280,7 +280,15 @@ function normalizeFifaStreamUrl(value) {
   if (yt) return { url: `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0`, provider: "youtube" };
   try { const parsed = new URL(raw); const host = parsed.hostname.toLowerCase();
     if (host === "live.vkvideo.ru" || host.endsWith(".live.vkvideo.ru")) { const m = parsed.pathname.match(/^\/([^/]+)\/stream\//i); if (m) return { url: `https://live.vkvideo.ru/app/embed/${encodeURIComponent(m[1])}`, provider: "vk" }; }
-    if (host === "vk.com" || host.endsWith(".vk.com") || host === "vk.ru" || host.endsWith(".vk.ru") || host === "vkvideo.ru" || host.endsWith(".vkvideo.ru")) return { url: parsed.toString().slice(0,800), provider: "vk" };
+    if (host.endsWith(".vkvideo.ru") || host === "vkvideo.ru") {
+      const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
+      if (videoMatch) { const ownerId = videoMatch[1].startsWith("-") ? videoMatch[1] : `-${videoMatch[1]}`; return { url: `https://vk.ru/video_ext.php?oid=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(videoMatch[2])}`, provider: "vk" }; }
+    }
+    if (host === "vk.com" || host.endsWith(".vk.com") || host === "vk.ru" || host.endsWith(".vk.ru")) {
+      const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
+      if (videoMatch) { const ownerId = videoMatch[1].startsWith("-") ? videoMatch[1] : `-${videoMatch[1]}`; return { url: `https://vk.ru/video_ext.php?oid=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(videoMatch[2])}`, provider: "vk" }; }
+      return { url: parsed.toString().slice(0,800), provider: "vk" };
+    }
   } catch (_) {}
   return { url: "", provider: "" };
 }
@@ -547,3 +555,5 @@ module.exports = async function handler(request, response) {
     response.status(err.statusCode || 500).json({ ok: false, error: err.message });
   }
 };
+
+module.exports.normalizeFifaStreamUrl = normalizeFifaStreamUrl;
