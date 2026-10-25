@@ -1500,26 +1500,23 @@
     })();
     return fifaStreamsLoading;
   }
-  function renderFifaStreams(streams) {
-    const panel = document.getElementById("fifaPanelStreams");
-    if (!panel) return;
-    const list = Array.isArray(streams) ? streams : [];
-    if (!list.length) {
-      panel.innerHTML = `<div class="fifa-streams-empty"><div class="fifa-live-empty__icon">📺</div><div class="fifa-live-empty__title">Hozircha futbol translyatsiyasi yo'q</div><div>Admin paneldan YouTube Live yoki VK Video linkini qo'shing.</div></div>`;
-      return;
-    }
-    panel.innerHTML = `<div class="fifa-streams-head"><div><h2>Futbol translyatsiyasi</h2><p>Jonli efirlar</p></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div><div class="fifa-streams-list">${list.map((stream) => `
-      <article class="fifa-stream-card">
-        <div class="fifa-stream-card__head"><div><span class="fifa-stream-card__provider">${esc(streamProviderLabel(stream))}</span><h3>${esc(stream.title || "Futbol jonli efiri")}</h3></div><span class="fifa-stream-card__dot"></span></div>
-        <div class="fifa-stream-card__frame-wrap"><iframe class="fifa-stream-card__frame" src="${esc(stream.url)}" title="${esc(stream.title || "Futbol translyatsiyasi")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>
+  function renderFifaStreamsPromo(streams) {
+    const wrap = document.getElementById("fifaStreamsPromoWrap");
+    if (!wrap) return;
+    const list = Array.isArray(streams) ? streams.filter((item) => item && item.enabled !== false && item.url) : [];
+    wrap.hidden = !list.length;
+    if (!list.length) { wrap.innerHTML = ""; return; }
+    wrap.innerHTML = `<div class="fifa-streams-promo-head"><div><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h2>Futbol translyatsiyasi</h2></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div><div class="fifa-streams-promo-list">${list.map((stream) => `
+      <article class="fifa-stream-promo-card">
+        <div class="fifa-stream-promo-card__cover${stream.imageUrl ? " has-image" : ""}"${stream.imageUrl ? ` style="background-image:url('${esc(stream.imageUrl)}')"` : ""}>
+          <div class="fifa-stream-promo-card__shade"></div><div class="fifa-stream-promo-card__copy"><span class="fifa-stream-card__provider">${esc(streamProviderLabel(stream))}</span><h3>${esc(stream.title || "Futbol jonli efiri")}</h3></div><span class="fifa-stream-promo-card__play">▶</span>
+        </div>
+        <div class="fifa-stream-promo-card__frame-wrap"><iframe class="fifa-stream-card__frame" src="${esc(stream.url)}" title="${esc(stream.title || "Futbol translyatsiyasi")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>
         <div class="fifa-stream-card__actions"><span>Jonli video</span><a href="${esc(stream.originalUrl || stream.url)}" target="_blank" rel="noopener noreferrer">${stream.provider === "vk" ? "VK Video’da ochish" : "YouTube’da ochish"} ↗</a></div>
       </article>`).join("")}</div>`;
   }
   async function renderFifaStreamsPanel(force = false) {
-    const panel = document.getElementById("fifaPanelStreams");
-    if (!panel) return;
-    panel.innerHTML = `<div class="fifa-streams-loading"><div class="fifa-streams-spinner"></div><div>Translyatsiyalar yuklanmoqda…</div></div>`;
-    renderFifaStreams(await loadFifaStreams(force));
+    renderFifaStreamsPromo(await loadFifaStreams(force));
   }
   // --- Render: Jonli efir ---
   function renderLive() {
@@ -1861,8 +1858,6 @@
       renderMatches();
     } else if (tab === "live") {
       renderLive();
-    } else if (tab === "streams") {
-      renderFifaStreamsPanel();
     } else if (tab === "favorites") {
       ensureUpcomingMatchesLoaded().catch(() => {});
       renderFifaFavorites();
@@ -3809,11 +3804,10 @@
         if (!fifaView || fifaView.hidden) return;
         const groupsActive = document.getElementById("fifaPanelGroups")?.classList.contains("is-active");
         const favsActive = document.getElementById("fifaPanelFavorites")?.classList.contains("is-active");
-        const streamsActive = document.getElementById("fifaPanelStreams")?.classList.contains("is-active");
         if (groupsActive) renderGroups();
         else if (favsActive) renderFifaFavorites();
-        else if (streamsActive) renderFifaStreamsPanel(true);
         else renderMatches();
+        renderFifaStreamsPromo(fifaStreamsCache || []);
       } catch (_) {}
     });
   } catch (_) {}
@@ -3823,6 +3817,7 @@
     updateFifaTabs();
     ensureUpcomingMatchesLoaded().catch(() => {});
     loadAndRenderFifaHighlights().catch(() => {});
+    loadFifaStreams().then(renderFifaStreamsPromo).catch(() => {});
   } catch (_) {}
 })();
 

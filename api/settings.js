@@ -310,6 +310,7 @@ function normalizeFifaStreams(raw) {
       title: trimString(source.title || (normalized.provider === "vk" ? "VK Video jonli efir" : "YouTube jonli efir")).slice(0, 120),
       url: normalized.url,
       originalUrl: trimString(source.originalUrl || source.url || source.link).slice(0, 800),
+      imageUrl: readStoredPublicImageUrl(source.imageUrl || source.coverUrl),
       provider: normalized.provider,
       enabled: source.enabled !== false,
     };
