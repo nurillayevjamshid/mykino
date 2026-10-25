@@ -5468,14 +5468,13 @@ function setFifaStreamsStatus(text, kind = "") {
 }
 function renderFifaStreamsForm() {
   const wrap = document.getElementById("fifaStreamsForm"); if (!wrap) return;
-  if (!fifaStreamsDraft.length) fifaStreamsDraft = [{ id: `fifa-stream-${Date.now()}`, url: "", title: "", imageUrl: "", enabled: false }];
+  if (!fifaStreamsDraft.length) fifaStreamsDraft = [{ id: `fifa-stream-${Date.now()}`, url: "", title: "", imageUrl: "", enabled: true }];
   wrap.innerHTML = fifaStreamsDraft.map((item, index) => `<div class="fifa-admin-stream-row" data-fifa-stream-row="${index}">
     <div class="fifa-admin-stream-row__top"><strong>Translyatsiya ${index + 1}</strong><button type="button" class="btn btn-secondary" data-fifa-stream-remove="${index}" ${fifaStreamsDraft.length === 1 ? "disabled" : ""}>O'chirish</button></div>
     <div class="form-row"><div class="form-group" style="flex:2"><label>VK yoki YouTube linki</label><input class="form-input" data-fifa-field="url" data-index="${index}" value="${escapeHtml(item.originalUrl || item.url || "")}" placeholder="https://vksport.m.vkvideo.ru/video-..." type="url"></div><div class="form-group" style="flex:1"><label>O'yin nomi</label><input class="form-input" data-fifa-field="title" data-index="${index}" value="${escapeHtml(item.title || "")}" placeholder="Masalan: Real Madrid — Barcelona" maxlength="120"></div></div>
-    <div class="form-row"><div class="form-group" style="flex:2"><label>Oblojka rasmi URL</label><input class="form-input" data-fifa-field="imageUrl" data-index="${index}" value="${escapeHtml(item.imageUrl || "")}" placeholder="https://.../cover.jpg" type="url"><small class="form-hint">Rasmning to'g'ridan-to'g'ri https URL manzilini kiriting.</small></div><label class="fifa-admin-stream-toggle"><input type="checkbox" data-fifa-field="enabled" data-index="${index}" ${item.enabled !== false ? "checked" : ""}><span>ON — kartani ko'rsatish</span></label></div>
+    <div class="form-group"><label>Oblojka rasmi URL</label><input class="form-input" data-fifa-field="imageUrl" data-index="${index}" value="${escapeHtml(item.imageUrl || "")}" placeholder="https://.../cover.jpg" type="url"><small class="form-hint">Rasmning to'g'ridan-to'g'ri https URL manzilini kiriting. Link saqlanganda translyatsiya avtomatik ko'rinadi.</small></div>
   </div>`).join("");
   wrap.querySelectorAll("[data-fifa-field]").forEach((el) => el.addEventListener("input", () => { const i = Number(el.dataset.index); fifaStreamsDraft[i][el.dataset.fifaField] = el.type === "checkbox" ? el.checked : el.value; }));
-  wrap.querySelectorAll("[data-fifa-field][type=checkbox]").forEach((el) => el.addEventListener("change", () => { fifaStreamsDraft[Number(el.dataset.index)].enabled = el.checked; }));
   wrap.querySelectorAll("[data-fifa-stream-remove]").forEach((el) => el.addEventListener("click", () => { fifaStreamsDraft.splice(Number(el.dataset.fifaStreamRemove), 1); renderFifaStreamsForm(); }));
 }
 async function loadFifaStreamsSettings() {
@@ -5497,7 +5496,7 @@ async function deleteFifaStreams() {
   try { const res = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fifaStreams: [] }) }); if (!res.ok) throw new Error(`HTTP ${res.status}`); fifaStreamsDraft = []; renderFifaStreamsForm(); setFifaStreamsStatus("Barcha kartalar o'chirildi.", "ok"); }
   catch (err) { setFifaStreamsStatus(`Xato: ${err.message}`, "error"); }
 }
-document.getElementById("fifaStreamsAddBtn")?.addEventListener("click", () => { fifaStreamsDraft.push({ id: `fifa-stream-${Date.now()}`, url: "", title: "", imageUrl: "", enabled: false }); renderFifaStreamsForm(); });
+document.getElementById("fifaStreamsAddBtn")?.addEventListener("click", () => { fifaStreamsDraft.push({ id: `fifa-stream-${Date.now()}`, url: "", title: "", imageUrl: "", enabled: true }); renderFifaStreamsForm(); });
 document.getElementById("fifaStreamsSaveBtn")?.addEventListener("click", saveFifaStreams);
 document.getElementById("fifaStreamsDeleteBtn")?.addEventListener("click", deleteFifaStreams);
 // ============================================================

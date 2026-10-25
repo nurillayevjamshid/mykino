@@ -1483,14 +1483,14 @@
         const local = Array.isArray(window.__fifaStreams) ? window.__fifaStreams : null;
         // Bo'sh shell snapshot serverda saqlangan streamlar borligini anglatmaydi.
         // Faqat ichida haqiqiy URL bor local snapshotdan foydalanamiz.
-        if (local && local.some((item) => item && item.enabled !== false && item.url) && !force) {
-          fifaStreamsCache = local.filter((item) => item && item.enabled !== false && item.url);
+        if (local && local.some((item) => item && item.url) && !force) {
+          fifaStreamsCache = local.filter((item) => item && item.url);
           return fifaStreamsCache;
         }
         const res = await fetch("/api/settings", { headers: { Accept: "application/json" }, cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        fifaStreamsCache = Array.isArray(data?.fifaStreams) ? data.fifaStreams.filter((item) => item && item.enabled !== false && item.url) : [];
+        fifaStreamsCache = Array.isArray(data?.fifaStreams) ? data.fifaStreams.filter((item) => item && item.url) : [];
         window.__fifaStreams = fifaStreamsCache;
         return fifaStreamsCache;
       } catch (_) {
@@ -1505,17 +1505,36 @@
   function renderFifaStreamsPromo(streams) {
     const wrap = document.getElementById("fifaStreamsPromoWrap");
     if (!wrap) return;
-    const list = Array.isArray(streams) ? streams.filter((item) => item && item.enabled !== false && item.url) : [];
+    const list = Array.isArray(streams) ? streams.filter((item) => item && item.url) : [];
     wrap.hidden = !list.length;
     if (!list.length) { wrap.innerHTML = ""; return; }
-    wrap.innerHTML = `<div class="fifa-streams-promo-head"><div><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h2>Futbol translyatsiyasi</h2></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div><div class="fifa-streams-promo-list">${list.map((stream) => `
+    wrap.innerHTML = `<div class="fifa-streams-promo-head"><div><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h2>Futbol translyatsiyasi</h2></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div><div class="fifa-streams-promo-list">${list.map((stream, index) => `
       <article class="fifa-stream-promo-card">
-        <div class="fifa-stream-promo-card__cover${stream.imageUrl ? " has-image" : ""}"${stream.imageUrl ? ` style="background-image:url('${esc(stream.imageUrl)}')"` : ""}>
+        <div class="fifa-stream-promo-card__cover${stream.imageUrl ? " has-image" : ""}" data-fifa-stream-open="${index}" role="button" tabindex="0" aria-label="${esc(stream.title || "Futbol translyatsiyasini ochish")}"${stream.imageUrl ? ` style="background-image:url('${esc(stream.imageUrl)}')"` : ""}>
           <div class="fifa-stream-promo-card__shade"></div><div class="fifa-stream-promo-card__copy"><span class="fifa-stream-card__provider">${esc(streamProviderLabel(stream))}</span><h3>${esc(stream.title || "Futbol jonli efiri")}</h3></div><span class="fifa-stream-promo-card__play">▶</span>
         </div>
-        <div class="fifa-stream-promo-card__frame-wrap"><iframe class="fifa-stream-card__frame" src="${esc(stream.url)}" title="${esc(stream.title || "Futbol translyatsiyasi")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>
-        <div class="fifa-stream-card__actions"><span>Jonli video</span><a href="${esc(stream.originalUrl || stream.url)}" target="_blank" rel="noopener noreferrer">${stream.provider === "vk" ? "VK Video’da ochish" : "YouTube’da ochish"} ↗</a></div>
       </article>`).join("")}</div>`;
+    wrap.querySelectorAll("[data-fifa-stream-open]").forEach((cover) => {
+      const open = () => {
+        const stream = list[Number(cover.dataset.fifaStreamOpen)];
+        if (!stream?.url || cover.dataset.opened === "true") return;
+        cover.dataset.opened = "true";
+        cover.classList.add("is-open");
+        const frame = document.createElement("iframe");
+        frame.className = "fifa-stream-card__frame";
+        frame.src = stream.url;
+        frame.title = stream.title || "Futbol translyatsiyasi";
+        frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+        frame.allowFullscreen = true;
+        frame.loading = "eager";
+        const frameWrap = document.createElement("div");
+        frameWrap.className = "fifa-stream-promo-card__frame-wrap";
+        frameWrap.appendChild(frame);
+        cover.replaceWith(frameWrap);
+      };
+      cover.addEventListener("click", open);
+      cover.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
+    });
   }
   async function renderFifaStreamsPanel(force = false) {
     renderFifaStreamsPromo(await loadFifaStreams(force));
