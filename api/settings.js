@@ -287,6 +287,12 @@ function normalizeFifaStreamUrl(value) {
         return { url: `https://live.vkvideo.ru/app/embed/${encodeURIComponent(channelMatch[1])}`, provider: "vk" };
       }
     }
+    // VK mobile/sport video pages were the working embed format in the mini-app.
+    // Do not convert them to vk.ru/video_ext: VK may show a false policy block
+    // on that alternate endpoint even when the original video page is playable.
+    if (/^(?:[^.]+\.)?m\.vkvideo\.ru$/i.test(host) && /^\/video-[-\d]+_[0-9]+$/i.test(parsed.pathname)) {
+      return { url: parsed.toString().slice(0, 800), provider: "vk" };
+    }
     if (host.endsWith(".vkvideo.ru") || host === "vkvideo.ru") {
       const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
       if (videoMatch) {
