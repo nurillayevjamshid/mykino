@@ -10886,6 +10886,7 @@ async function loadAppSettings() {
     });
     if (response.ok) {
       const data = await response.json();
+      window.__fifaStreams = Array.isArray(data?.fifaStreams) ? data.fifaStreams : [];
       if (data && data.ad && data.ad.enabled && data.ad.imageUrl) {
         pendingAd = data.ad;
       } else {

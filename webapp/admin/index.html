@@ -1112,7 +1112,7 @@
           <div class="section-header">
             <h2>Futbol bo'limi sozlamalari</h2>
             <div class="section-header__hint" style="color:var(--text-muted);font-size:13px;">
-              YouTube kunlik futbol o'yinlari sharhlari (highlight) va FIFA jonli efir promo kartasini boshqarish.
+              YouTube kunlik futbol o'yinlari sharhlari (highlight) va futbol translyatsiya linklarini boshqarish.
             </div>
           </div>
 
@@ -1156,7 +1156,15 @@
               <div id="fifaHighlightsPreviewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;"></div>
             </div>
           </div>
-
+          <!-- 2. Futbol translyatsiyasi -->
+          <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:820px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><span style="font-size:26px;">📺</span><div><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text);">Futbol translyatsiyasi</h3><div style="font-size:13px;color:var(--text-muted);margin-top:2px;">YouTube Live yoki VK Video Live linklarini kiriting. Har bir link mini-appdagi alohida playerda chiqadi.</div></div></div>
+            <div class="form-group"><label for="fifaStreamsInput">Translyatsiya linklari</label><textarea id="fifaStreamsInput" class="form-input" rows="4" placeholder="https://www.youtube.com/live/BUEGXoCVl7w?si=...
+https://live.vkvideo.ru/channel30008599/stream/sl_393740"></textarea><small class="form-hint">YouTube Live, YouTube watch/youtu.be va live.vkvideo.ru yoki vk.com linklari qabul qilinadi. Har bir link alohida qatorda bo'lsin.</small></div>
+            <div class="form-group"><label for="fifaStreamsTitle">Umumiy sarlavha (ixtiyoriy)</label><input id="fifaStreamsTitle" class="form-input" maxlength="120" placeholder="Futbol jonli efiri"></div>
+            <div class="modal-actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;"><button type="button" class="btn btn-secondary" id="fifaStreamsDeleteBtn">O'chirish</button><button type="button" class="btn btn-primary" id="fifaStreamsSaveBtn">Saqlash</button></div>
+            <div id="fifaStreamsStatus" style="margin-top:12px;font-size:13px;"></div>
+          </div>
         </section>
 
         <!-- Kibersport translatsiyalar Section -->

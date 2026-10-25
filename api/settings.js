@@ -270,6 +270,45 @@ function normalizePreRollAd(raw, adCdnMap = null) {
   };
 }
 
+function normalizeFifaStreamUrl(value) {
+  const raw = trimString(value);
+  if (!raw) return { url: "", provider: "" };
+  const yt = raw.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([\w-]{10,12})/i);
+  if (yt) return {
+    url: `https://www.youtube.com/embed/${yt[1]}?autoplay=0&rel=0&modestbranding=1`,
+    provider: "youtube",
+  };
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.toLowerCase();
+    if (host === "live.vkvideo.ru" || host.endsWith(".live.vkvideo.ru")) {
+      const channelMatch = parsed.pathname.match(/^\/([^/]+)\/stream\//i);
+      if (channelMatch) {
+        return { url: `https://live.vkvideo.ru/app/embed/${encodeURIComponent(channelMatch[1])}`, provider: "vk" };
+      }
+    }
+    if (host === "vk.com" || host.endsWith(".vk.com") || host === "vkvideo.ru" || host.endsWith(".vkvideo.ru")) {
+      return { url: parsed.toString().slice(0, 800), provider: "vk" };
+    }
+  } catch (_) {}
+  return { url: "", provider: "" };
+}
+function normalizeFifaStreams(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  return list.slice(0, 8).map((item, index) => {
+    const source = typeof item === "string" ? { url: item } : (item && typeof item === "object" ? item : {});
+    const normalized = normalizeFifaStreamUrl(source.url || source.originalUrl || source.link);
+    return {
+      id: trimString(source.id || `fifa-stream-${index + 1}`).slice(0, 80),
+      title: trimString(source.title || (normalized.provider === "vk" ? "VK Video jonli efir" : "YouTube jonli efir")).slice(0, 120),
+      url: normalized.url,
+      originalUrl: trimString(source.originalUrl || source.url || source.link).slice(0, 800),
+      provider: normalized.provider,
+      enabled: source.enabled !== false,
+    };
+  }).filter((item) => item.url && item.provider);
+}
+
 function normalizeEsportsStartAt(value) {
   const raw = trimString(value);
   if (!raw) return "";
@@ -341,6 +380,7 @@ async function readPersistedSettings(settings) {
     hasOwn(settings, "ticker") ||
     hasOwn(settings, "preRollAd") ||
     hasOwn(settings, "fifaHighlightsChannel") ||
+    hasOwn(settings, "fifaStreams") ||
     hasOwn(settings, "esportsStreams")
   ) {
     return {
@@ -349,6 +389,7 @@ async function readPersistedSettings(settings) {
       ticker: normalizeTicker(settings.ticker),
       preRollAd: normalizePreRollAd(settings.preRollAd, settings.adCdn),
       fifaHighlightsChannel: trimString(settings.fifaHighlightsChannel || "").slice(0, 500),
+      fifaStreams: normalizeFifaStreams(settings.fifaStreams),
       esportsStreams: normalizeEsportsStreams(settings.esportsStreams),
     };
   }
@@ -361,6 +402,7 @@ async function readPersistedSettings(settings) {
       ticker: normalizeTicker(folderSettings.ticker),
       preRollAd: normalizePreRollAd(folderSettings.preRollAd, folderSettings.adCdn),
       fifaHighlightsChannel: trimString(folderSettings.fifaHighlightsChannel || "").slice(0, 500),
+      fifaStreams: normalizeFifaStreams(folderSettings.fifaStreams),
       esportsStreams: normalizeEsportsStreams(folderSettings.esportsStreams),
     };
   } catch {
@@ -370,6 +412,7 @@ async function readPersistedSettings(settings) {
       ticker: normalizeTicker(null),
       preRollAd: normalizePreRollAd(null),
       fifaHighlightsChannel: "https://www.youtube.com/@qsportuzbekistan/videos",
+      fifaStreams: [],
       esportsStreams: normalizeEsportsStreams(null),
     };
   }
@@ -478,6 +521,9 @@ module.exports = async function handler(request, response) {
       if (hasOwn(body, "fifaHighlightsChannel")) {
         nextSettings.fifaHighlightsChannel = trimString(body.fifaHighlightsChannel).slice(0, 500);
       }
+      if (hasOwn(body, "fifaStreams")) {
+        nextSettings.fifaStreams = normalizeFifaStreams(body.fifaStreams);
+      }
       if (hasOwn(body, "esportsStreams")) {
         const incoming = body.esportsStreams && typeof body.esportsStreams === "object" ? body.esportsStreams : {};
         nextSettings.esportsStreams = normalizeEsportsStreams(incoming);
@@ -511,6 +557,7 @@ module.exports = async function handler(request, response) {
         ticker: normalizeTicker(nextSettings.ticker),
         preRollAd: normalizePreRollAd(nextSettings.preRollAd),
         fifaHighlightsChannel: nextSettings.fifaHighlightsChannel || "",
+        fifaStreams: normalizeFifaStreams(nextSettings.fifaStreams),
         esportsStreams: normalizeEsportsStreams(nextSettings.esportsStreams),
       });
       return;
