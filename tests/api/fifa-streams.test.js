@@ -54,7 +54,7 @@ describe("FIFA live stream buttons", () => {
     assert.match(html, /id="fifaStreamsAddBtn"/);
     assert.match(html, /id="fifaStreamsSaveBtn"/);
     assert.match(js, /body: JSON\.stringify\(\{ fifaStreams: rows \}\)/);
-    assert.match(js, /Button nomi/);
-    assert.match(js, /VK Live linki/);
+    assert.match(js, /YouTube Live yoki VK linki/);
+    assert.match(js, /video card/);
   });
 });

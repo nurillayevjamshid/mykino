@@ -5459,7 +5459,7 @@ document.getElementById('fifaHighlightsDeleteBtn')?.addEventListener('click', de
 
 
 // ============================================================
-// Futbol translyatsiyasi buttonlari (VK Live / VK Video)
+// Futbol translyatsiyasi (YouTube Live card / VK button)
 let fifaStreamsLoaded = false;
 let fifaStreamsDraft = [];
 function setFifaStreamsStatus(text, kind = "") {
@@ -5471,7 +5471,7 @@ function renderFifaStreamsForm() {
   if (!fifaStreamsDraft.length) fifaStreamsDraft = [{ id: `fifa-stream-${Date.now()}`, url: "", title: "", enabled: true }];
   wrap.innerHTML = fifaStreamsDraft.map((item, index) => `<div class="fifa-admin-stream-row" data-fifa-stream-row="${index}">
     <div class="fifa-admin-stream-row__top"><strong>Translyatsiya ${index + 1}</strong><button type="button" class="btn btn-secondary" data-fifa-stream-remove="${index}" ${fifaStreamsDraft.length === 1 ? "disabled" : ""}>O'chirish</button></div>
-    <div class="form-row"><div class="form-group" style="flex:1"><label>Button nomi</label><input class="form-input" data-fifa-field="title" data-index="${index}" value="${escapeHtml(item.title || "")}" placeholder="Masalan: Real Madrid — Barcelona" maxlength="120"></div><div class="form-group" style="flex:2"><label>VK Live linki</label><input class="form-input" data-fifa-field="url" data-index="${index}" value="${escapeHtml(item.originalUrl || item.url || "")}" placeholder="https://m.vkvideo.ru/video-..." type="url"><small class="form-hint">Saqlangandan keyin futbol bo'limida shu nomdagi button chiqadi.</small></div></div>
+    <div class="form-row"><div class="form-group" style="flex:1"><label>Nom</label><input class="form-input" data-fifa-field="title" data-index="${index}" value="${escapeHtml(item.title || "")}" placeholder="Masalan: Real Madrid — Barcelona" maxlength="120"></div><div class="form-group" style="flex:2"><label>YouTube Live yoki VK linki</label><input class="form-input" data-fifa-field="url" data-index="${index}" value="${escapeHtml(item.originalUrl || item.url || "")}" placeholder="https://www.youtube.com/live/... yoki https://m.vkvideo.ru/video-..." type="url"><small class="form-hint">YouTube linki mini-ilovada video card, VK linki esa button bo'lib chiqadi.</small></div></div>
   </div>`).join("");
   wrap.querySelectorAll("[data-fifa-field]").forEach((el) => el.addEventListener("input", () => { const i = Number(el.dataset.index); fifaStreamsDraft[i][el.dataset.fifaField] = el.type === "checkbox" ? el.checked : el.value; }));
   wrap.querySelectorAll("[data-fifa-stream-remove]").forEach((el) => el.addEventListener("click", () => { fifaStreamsDraft.splice(Number(el.dataset.fifaStreamRemove), 1); renderFifaStreamsForm(); }));
@@ -5484,7 +5484,7 @@ async function loadFifaStreamsSettings() {
 async function saveFifaStreams() {
   const rows = fifaStreamsDraft.map((item) => ({ id: item.id, enabled: true, url: String(item.originalUrl || item.url || "").trim(), title: String(item.title || "").trim() })).filter((item) => item.url);
   if (rows.some((item) => !/^https?:\/\//i.test(item.url))) { setFifaStreamsStatus("Har bir link https:// bilan boshlanishi kerak.", "error"); return; }
-  if (rows.some((item) => !/(youtube\.com|youtu\.be|vk\.com|vkvideo\.ru)/i.test(item.url))) { setFifaStreamsStatus("Faqat YouTube yoki VK Video linklari qabul qilinadi.", "error"); return; }
+  if (rows.some((item) => !/(youtube\.com|youtu\.be|vk\.com|vk\.ru|vkvideo\.ru)/i.test(item.url))) { setFifaStreamsStatus("Faqat YouTube yoki VK Video linklari qabul qilinadi.", "error"); return; }
   setFifaStreamsStatus("Stream sozlamalari saqlanmoqda…");
   try { const res = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fifaStreams: rows }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`); fifaStreamsDraft = data.fifaStreams || rows; renderFifaStreamsForm(); setFifaStreamsStatus("Saqlandi. Buttonlar futbol bo'limida ko'rinadi.", "ok"); }
   catch (err) { setFifaStreamsStatus(`Xato: ${err.message}`, "error"); }
