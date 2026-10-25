@@ -1,10 +1,8 @@
 const { authorizeRequest, requireAdmin, requireVerifiedUser } = require("./_lib/auth");
 const { uploadImageToR2, uploadFileToR2 } = require("./_lib/r2-store");
-const { extractStream } = require("./_lib/stream-extractor");
 
 const REDIS_KEY = "categories:v1";
 const POD_LANGS_KEY = "podcast-langs:v1";
-const FIFA_LIVE_KEY = "fifa-live:v1";
 const FIFA_HIGHLIGHTS_KEY = "fifa-highlights:v1";
 const POD_LANG_DEFAULTS = {
   uz: { name: "O'zbekcha", image: "" },
@@ -518,129 +516,6 @@ async function buildFootballPayload(dateKey, activeLeagueId) {
   };
 }
 
-// =========================================================================
-// FIFA Live Match (admin tomonidan boshqariladi) — bitta o'yin uchun MVP.
-// Telegram kanal/post linki + ablojka rasm. Mini app FIFA bo'limidagi promo
-// card'da ko'rsatiladi va bosilganda tg.openTelegramLink orqali ochiladi.
-// =========================================================================
-function normalizeFifaLiveTelegramUrl(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  if (!/^https?:\/\//i.test(raw)) {
-    const err = new Error("Stream havola https:// bilan boshlanishi kerak.");
-    err.statusCode = 400;
-    throw err;
-  }
-  let parsed;
-  try { parsed = new URL(raw); } catch (_) {
-    const err = new Error("Stream havola noto'g'ri URL.");
-    err.statusCode = 400;
-    throw err;
-  }
-  const path = parsed.pathname;
-  const isHls = /\.m3u8$/i.test(path);
-  const isWhep = /\/webRTC\/play(\?|$)/i.test(path);
-  if (!isHls && !isWhep) {
-    const err = new Error("Stream havola HLS playlist (.m3u8) yoki Cloudflare WHEP playback URL (.../webRTC/play) bo'lishi kerak.");
-    err.statusCode = 400;
-    throw err;
-  }
-  return raw;
-}
-
-function extractYoutubeLiveId(value) {
-  const raw = String(value || "").trim();
-  if (!raw || !/^https?:\/\//i.test(raw)) return "";
-  let parsed;
-  try { parsed = new URL(raw); } catch (_) { return ""; }
-  const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
-  if (host === "youtu.be") {
-    const id = parsed.pathname.split("/").filter(Boolean)[0] || "";
-    return /^[\w-]{6,20}$/.test(id) ? id : "";
-  }
-  if (host !== "youtube.com" && host !== "m.youtube.com" && host !== "youtube-nocookie.com") return "";
-  const id = parsed.searchParams.get("v") || parsed.pathname.match(/\/(?:live|embed|shorts)\/([\w-]{6,20})/i)?.[1] || "";
-  return /^[\w-]{6,20}$/.test(id) ? id : "";
-}
-
-async function normalizeFifaLiveMatch(body) {
-  const title = String(body?.title || "").trim().slice(0, 120);
-  if (!title) {
-    const err = new Error("Match nomi (title) kerak.");
-    err.statusCode = 400;
-    throw err;
-  }
-  const coverUrl = String(body?.coverUrl || "").trim();
-  const sourceUrl = String(body?.youtubeUrl || body?.streamUrl || body?.telegramUrl || "").trim();
-  if (!sourceUrl) {
-    const err = new Error("Jonli efir, YouTube yoki veb-sayt havolasini kiriting.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  // Universal Stream Extractor orqali havolani avtomatik tahlil qilish
-  const extracted = await extractStream(sourceUrl);
-  if (!extracted || !extracted.success || !extracted.stream_url) {
-    const err = new Error(extracted?.error || "Ushbu havoladan jonli efir oqimini aniqlab bo'lmadi.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const finalStreamUrl = extracted.stream_url;
-  const streamType = extracted.type || "iframe";
-  const youtubeId = extracted.video_id || extractYoutubeLiveId(finalStreamUrl) || "";
-
-  const startsAtRaw = String(body?.startsAt || "").trim();
-  let startsAt = "";
-  if (startsAtRaw) {
-    const d = new Date(startsAtRaw);
-    if (!Number.isNaN(d.getTime())) startsAt = d.toISOString();
-  }
-  const isLive = Boolean(body?.isLive);
-
-  return {
-    title,
-    coverUrl,
-    streamUrl: finalStreamUrl,
-    streamType,
-    originalUrl: sourceUrl,
-    telegramUrl: finalStreamUrl,
-    youtubeUrl: youtubeId ? finalStreamUrl : "",
-    youtubeId,
-    startsAt,
-    isLive,
-    updatedAt: new Date().toISOString()
-  };
-}
-
-async function readFifaLiveMatch() {
-  const client = await getRedis();
-  if (!client) return null;
-  try {
-    const raw = await client.get(FIFA_LIVE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (!data || typeof data !== "object" || !data.title || (!data.telegramUrl && !data.youtubeUrl && !data.youtubeId)) return null;
-    return data;
-  } catch (err) {
-    console.warn("redis get fifa-live xato:", err.message);
-    return null;
-  }
-}
-
-async function writeFifaLiveMatch(match) {
-  const client = await getRedis();
-  if (!client) return false;
-  try {
-    if (match) await client.set(FIFA_LIVE_KEY, JSON.stringify(match));
-    else await client.del(FIFA_LIVE_KEY);
-    return true;
-  } catch (err) {
-    console.warn("redis set fifa-live xato:", err.message);
-    return false;
-  }
-}
-
 const DEFAULT_FIFA_HIGHLIGHTS_CHANNEL = "https://www.youtube.com/@qsportuzbekistan/videos";
 
 async function readFifaHighlightsConfig() {
@@ -825,44 +700,6 @@ async function handleTvChannels(request, response) {
     const ok = await writeTvChannels(normalized);
     if (!ok) { response.status(500).json({ ok: false, error: "Saqlash muvaffaqiyatsiz." }); return; }
     response.status(200).json({ ok: true, channels: normalized });
-  } catch (err) {
-    response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
-  }
-}
-
-async function handleFifaLive(request, response) {
-  if (request.method === "GET") {
-    try {
-      const match = await readFifaLiveMatch();
-      response.setHeader("Cache-Control", "public, max-age=15, s-maxage=30, stale-while-revalidate=120");
-      response.status(200).json({ ok: true, match });
-    } catch (err) {
-      response.status(500).json({ ok: false, error: err.message || "Yuklab bo'lmadi." });
-    }
-    return;
-  }
-  // Yozish — faqat administrator
-  if (!(await requireAdmin(request, response))) return;
-  try {
-    const body = await readBody(request);
-    if (body.action === "upload") {
-      const url = await handleUpload({ ...body, name: body.name || "fifa-live" });
-      response.status(200).json({ ok: true, url });
-      return;
-    }
-    if (!isRedisEnabled()) {
-      response.status(503).json({ ok: false, error: "Vercel Redis sozlanmagan." });
-      return;
-    }
-    if (request.method === "DELETE" || body.action === "delete") {
-      await writeFifaLiveMatch(null);
-      response.status(200).json({ ok: true, match: null });
-      return;
-    }
-    const match = await normalizeFifaLiveMatch(body);
-    const ok = await writeFifaLiveMatch(match);
-    if (!ok) { response.status(500).json({ ok: false, error: "Saqlash muvaffaqiyatsiz." }); return; }
-    response.status(200).json({ ok: true, match });
   } catch (err) {
     response.status(err.statusCode || 400).json({ ok: false, error: err.message || "Yaroqsiz so'rov." });
   }
@@ -2385,10 +2222,6 @@ module.exports = async function handler(request, response) {
   }
   if (earlyType === "fifa-upcoming") {
     await handleFifaUpcoming(request, response);
-    return;
-  }
-  if (earlyType === "fifa-live") {
-    await handleFifaLive(request, response);
     return;
   }
   if (earlyType === "fifa-highlights") {

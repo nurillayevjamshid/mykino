@@ -8,16 +8,13 @@ describe('Unified Send Icon Suite', () => {
   const pathRegex = /M22\s+2\s+15\s+22\s+11\s+13\s+2\s+9\s+22\s+2Z/;
   const innerFoldRegex = /m11\s+13\s+6-6/;
 
-  test('webapp/index.html uses the unified send icon in comments, share-chat, and fifa promo', () => {
+  test('webapp/index.html uses the unified send icon in comments and share-chat', () => {
     const html = fs.readFileSync(path.join(root, 'webapp/index.html'), 'utf8');
 
     // commentsSubmit button
     assert.match(html, /id="commentsSubmit"[\s\S]*?class="send-icon"/);
     // shareChatBtn
     assert.match(html, /id="shareChatBtn"[\s\S]*?class="send-icon"/);
-    // fifaPromoShare
-    assert.match(html, /id="fifaPromoShare"[\s\S]*?class="send-icon"/);
-
     assert.match(html, pathRegex);
     assert.match(html, innerFoldRegex);
   });

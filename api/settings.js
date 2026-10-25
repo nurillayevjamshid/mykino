@@ -270,21 +270,6 @@ function normalizePreRollAd(raw, adCdnMap = null) {
   };
 }
 
-// FIFA "Jonli efir" promo karta — Telegram jonli efir (translatsiya) havolasiga ulanadi.
-// channelUrl: t.me/kanal?livestream=... yoki boshqa t.me/tg havola.
-function normalizeFifaLive(raw) {
-  const source = raw && typeof raw === "object" ? raw : {};
-  const channelUrl = normalizeAdTelegramUrl(source.channelUrl || "");
-  return {
-    enabled: Boolean(source.enabled),
-    channelUrl,
-    title: trimString(source.title).slice(0, 80),
-    subtitle: trimString(source.subtitle).slice(0, 120),
-    buttonText: trimString(source.buttonText).slice(0, 40),
-    imageUrl: source.imageUrl ? normalizePublicImageUrl(source.imageUrl) : "",
-  };
-}
-
 function normalizeEsportsStartAt(value) {
   const raw = trimString(value);
   if (!raw) return "";
@@ -355,7 +340,6 @@ async function readPersistedSettings(settings) {
     hasOwn(settings, "ad") ||
     hasOwn(settings, "ticker") ||
     hasOwn(settings, "preRollAd") ||
-    hasOwn(settings, "fifaLive") ||
     hasOwn(settings, "fifaHighlightsChannel") ||
     hasOwn(settings, "esportsStreams")
   ) {
@@ -364,7 +348,6 @@ async function readPersistedSettings(settings) {
       ad: normalizeAd(settings.ad),
       ticker: normalizeTicker(settings.ticker),
       preRollAd: normalizePreRollAd(settings.preRollAd, settings.adCdn),
-      fifaLive: normalizeFifaLive(settings.fifaLive),
       fifaHighlightsChannel: trimString(settings.fifaHighlightsChannel || "").slice(0, 500),
       esportsStreams: normalizeEsportsStreams(settings.esportsStreams),
     };
@@ -377,7 +360,6 @@ async function readPersistedSettings(settings) {
       ad: normalizeAd(folderSettings.ad),
       ticker: normalizeTicker(folderSettings.ticker),
       preRollAd: normalizePreRollAd(folderSettings.preRollAd, folderSettings.adCdn),
-      fifaLive: normalizeFifaLive(folderSettings.fifaLive),
       fifaHighlightsChannel: trimString(folderSettings.fifaHighlightsChannel || "").slice(0, 500),
       esportsStreams: normalizeEsportsStreams(folderSettings.esportsStreams),
     };
@@ -387,7 +369,6 @@ async function readPersistedSettings(settings) {
       ad: normalizeAd(null),
       ticker: normalizeTicker(null),
       preRollAd: normalizePreRollAd(null),
-      fifaLive: normalizeFifaLive(null),
       fifaHighlightsChannel: "https://www.youtube.com/@qsportuzbekistan/videos",
       esportsStreams: normalizeEsportsStreams(null),
     };
@@ -494,9 +475,6 @@ module.exports = async function handler(request, response) {
         nextSettings.preRollAd = normalizePreRollAd(body.preRollAd);
       }
 
-      if (hasOwn(body, "fifaLive")) {
-        nextSettings.fifaLive = normalizeFifaLive(body.fifaLive);
-      }
       if (hasOwn(body, "fifaHighlightsChannel")) {
         nextSettings.fifaHighlightsChannel = trimString(body.fifaHighlightsChannel).slice(0, 500);
       }
@@ -532,7 +510,6 @@ module.exports = async function handler(request, response) {
         ad: normalizeAd(nextSettings.ad),
         ticker: normalizeTicker(nextSettings.ticker),
         preRollAd: normalizePreRollAd(nextSettings.preRollAd),
-        fifaLive: normalizeFifaLive(nextSettings.fifaLive),
         fifaHighlightsChannel: nextSettings.fifaHighlightsChannel || "",
         esportsStreams: normalizeEsportsStreams(nextSettings.esportsStreams),
       });

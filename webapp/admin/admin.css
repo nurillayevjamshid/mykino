@@ -2288,7 +2288,7 @@ body { background: radial-gradient(circle at 72% -10%, #f9fbff 0, var(--page-bg)
   /* Music / podcast / category action groups stay compact instead of full-width cards. */
   #musicForm .modal-actions, #podcastForm .modal-actions, #categoryForm .modal-actions,
   #podLangsEditor + .modal-actions, #ytChannelForm .modal-actions,
-  #adSection .modal-actions, #fifaLiveSection .modal-actions,
+  #adSection .modal-actions,
   #esportsStreamsSection .modal-actions, #tvSection .modal-actions { max-width: 100%; }
   #musicAddCategoryBtn { width: auto !important; min-height: 42px; }
   #podcastLangPicker { gap: 7px !important; }
@@ -2330,9 +2330,9 @@ body { background: radial-gradient(circle at 72% -10%, #f9fbff 0, var(--page-bg)
   }
 
   /* Save / clear controls in content sections should never look like giant cards. */
-  #adSection .form-card, #fifaLiveSection .form-card, #broadcastForm, #tvChForm { padding: 17px !important; border-radius: 18px !important; }
-  #adSection .modal-actions, #fifaLiveSection .modal-actions { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  #adSection .modal-actions .btn, #fifaLiveSection .modal-actions .btn { min-height: 42px; }
+  #adSection .form-card, #broadcastForm, #tvChForm { padding: 17px !important; border-radius: 18px !important; }
+  #adSection .modal-actions { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  #adSection .modal-actions .btn { min-height: 42px; }
   #preRollAdReloadBtn { width: auto !important; min-height: 40px; padding: 8px 12px; }
   #esportsStreamsSection .btn, #tvSection .btn { min-height: 40px; padding: 9px 12px; font-size: 13px; }
   #tvChSearch, #tvChGroupFilter { max-width: none !important; width: 100%; }

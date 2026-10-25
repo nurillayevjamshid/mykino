@@ -10764,9 +10764,6 @@ function startMoviesPolling() {
 
 let pendingAd = null;
 let activePreRollAd = null;
-// FIFA "Jonli efir" konfiguratsiyasi — fifa.js (alohida fayl) ham o'qiydi,
-// shuning uchun window'ga bog'lab qo'yilgan.
-window.fifaLiveConfig = null;
 
 const loadedGoogleFontsForApp = new Set();
 function ensureGoogleFontInApp(fontName) {
@@ -10913,37 +10910,6 @@ async function loadAppSettings() {
       } else {
         activePreRollAd = null;
       }
-      // FIFA "Jonli efir" promo kartasi — admin /api/categories?type=fifa-live dan o'qiladi
-      try {
-        const liveRes = await fetch(buildApiUrl("/api/categories?type=fifa-live"), {
-          headers: { Accept: "application/json" },
-        });
-        if (liveRes.ok) {
-          const liveJson = await liveRes.json();
-          const m = liveJson && liveJson.match;
-          if (m && m.isLive && m.telegramUrl) {
-            fifaLiveConfig = {
-              enabled: true,
-              channelUrl: m.telegramUrl,
-              imageUrl: m.coverUrl || "",
-              title: m.title || "Futbol jonli efiri",
-              subtitle: "Futbol uchrashuvlarini jonli tomosha qiling",
-              buttonText: "Tomosha qilish",
-            };
-            window.fifaLiveConfig = fifaLiveConfig;
-          } else {
-            fifaLiveConfig = null;
-            window.fifaLiveConfig = null;
-          }
-        } else {
-          fifaLiveConfig = null;
-          window.fifaLiveConfig = null;
-        }
-      } catch (_) {
-        fifaLiveConfig = null;
-        window.fifaLiveConfig = null;
-      }
-      try { window.renderFifaLivePromo?.(); } catch (_) {}
     } else {
       renderAdTicker(null);
     }

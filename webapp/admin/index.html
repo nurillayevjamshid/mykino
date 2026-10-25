@@ -77,7 +77,7 @@
               <span class="nav-text">Reklama</span>
             </a>
           </li>
-          <li class="nav-item" data-section="fifaLive">
+          <li class="nav-item" data-section="fifa">
             <a href="#" class="nav-link">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -1107,8 +1107,8 @@
 
         </section>
 
-        <!-- Futbol Section (YouTube Highlights + FIFA Jonli Promo) -->
-        <section class="content-section" id="fifaLiveSection">
+        <!-- Futbol YouTube highlights section -->
+        <section class="content-section" id="fifaSection">
           <div class="section-header">
             <h2>Futbol bo'limi sozlamalari</h2>
             <div class="section-header__hint" style="color:var(--text-muted);font-size:13px;">
@@ -1157,81 +1157,6 @@
             </div>
           </div>
 
-          <!-- 2. FIFA Jonli efir (Promo card) -->
-          <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:820px;">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-              <span style="font-size:26px;">🔴</span>
-              <div>
-                <h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text);">FIFA jonli efir (Promo card)</h3>
-                <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">
-                  FIFA bo'limi tepasida chiqadigan jonli efir promo kartasi.
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Ablojka rasm (16:9 tavsiya)</label>
-              <div class="poster-upload" id="fifaLiveUploadArea" style="aspect-ratio:16/9;max-width:480px;">
-                <input type="file" id="fifaLiveImageFile" class="poster-upload-input" accept="image/*">
-                <div class="poster-upload-content" id="fifaLiveUploadContent">
-                  <div class="poster-upload-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/>
-                      <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                  </div>
-                  <div class="poster-upload-text">Ablojka yuklash</div>
-                  <div class="poster-upload-hint">Tavsiya: 16:9 (gorizontal) · Max 5MB</div>
-                </div>
-                <img src="" alt="Ablojka" id="fifaLiveImagePreview" class="poster-upload-preview" style="display:none;">
-              </div>
-              <div style="margin-top:10px;">
-                <input type="text" id="fifaLiveCoverUrl" class="form-input" placeholder="Yoki rasm URL'ini kiriting (https://...)">
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>O'yin nomi</label>
-              <input type="text" id="fifaLiveTitle" class="form-input" maxlength="120" placeholder="Argentina vs Brazil">
-            </div>
-
-            <div class="form-group">
-              <label>Jonli efir havolasi (Veb-sayt, YouTube Live yoki OBS stream)</label>
-              <input type="text" id="fifaLiveTelegramUrl" class="form-input" placeholder="VK Video <iframe> kodi, live.vkvideo.ru havolasi, YouTube yoki .m3u8">
-              <small class="form-hint">YouTube Live havolasini (<code>youtube.com/live/...</code>, <code>watch?v=...</code> yoki <code>youtu.be/...</code>) kiriting — efir futbol bo‘limi ichida ochiladi.<br>
-                OBS/Cloudflare Live Input uchun ikkitadan birini yopishtiring:<br>
-                &bull; <b>HLS Manifest URL</b> &mdash; <code>.../manifest/video.m3u8</code> (RTMPS ingest uchun, 15-30 sek kechikish)<br>
-                &bull; <b>WebRTC (WHEP) Playback URL</b> &mdash; <code>.../webRTC/play</code> (WHIP ingest uchun, 1-2 sek past kechikish)
-              </small>
-            </div>
-
-            <div class="form-group">
-              <label>Boshlanish vaqti (ixtiyoriy)</label>
-              <input type="datetime-local" id="fifaLiveStartsAt" class="form-input">
-              <small class="form-hint">Foydalanuvchiga countdown ko'rsatish uchun.</small>
-            </div>
-
-            <div class="form-group" style="display:flex;align-items:center;gap:12px;">
-              <label for="fifaLiveIsLive" style="margin:0;">JONLI efir holati</label>
-              <label class="ad-visibility-toggle" for="fifaLiveIsLive">
-                <input type="checkbox" id="fifaLiveIsLive" class="ad-visibility-toggle__input">
-                <span class="ad-visibility-toggle__track" aria-hidden="true">
-                  <span class="ad-visibility-toggle__text ad-visibility-toggle__text--off">OFF</span>
-                  <span class="ad-visibility-toggle__text ad-visibility-toggle__text--on">LIVE</span>
-                  <span class="ad-visibility-toggle__knob"></span>
-                </span>
-              </label>
-              <small class="form-hint" style="margin:0;">ON bo'lsa card'da qizil "🔴 JONLI" badge chiqadi.</small>
-            </div>
-
-            <div class="modal-actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
-              <button type="button" class="btn btn-secondary" id="fifaLiveDeleteBtn">O'chirish</button>
-              <button type="button" class="btn btn-primary" id="fifaLiveSaveBtn">Saqlash</button>
-            </div>
-
-            <div id="fifaLiveSaveStatus" style="margin-top:12px;font-size:13px;"></div>
-          </div>
         </section>
 
         <!-- Kibersport translatsiyalar Section -->
