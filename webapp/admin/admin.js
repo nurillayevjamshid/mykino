@@ -5492,7 +5492,7 @@ async function saveFifaStreams() {
   // VK sahifasi o'rniga embed pleyerni ochadigan bo'lib qoladi.
   const rows = fifaStreamsDraft.map((item) => ({ id: item.id, enabled: true, url: String(item.originalUrl || item.url || "").trim(), title: String(item.title || "").trim() })).filter((item) => item.url);
   if (rows.some((item) => !/^https?:\/\//i.test(item.url))) { setFifaStreamsStatus("Har bir link https:// bilan boshlanishi kerak.", "error"); return; }
-  if (rows.some((item) => !/(youtube\.com|youtu\.be|vk\.com|vk\.ru|vkvideo\.ru|\.m3u8)/i.test(item.url))) { setFifaStreamsStatus("Faqat YouTube, VK Video yoki HLS (.m3u8) linklari qabul qilinadi.", "error"); return; }
+  if (rows.some((item) => !/(youtube\.com|youtu\.be|vk\.com|vk\.ru|vkvideo\.ru|\.m3u8|:\d+\/)/i.test(item.url))) { setFifaStreamsStatus("Faqat YouTube, VK Video yoki HLS (.m3u8) linklari qabul qilinadi.", "error"); return; }
   setFifaStreamsStatus("Stream sozlamalari saqlanmoqda…");
   try { const res = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fifaStreams: rows }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`); fifaStreamsDraft = data.fifaStreams || rows; renderFifaStreamsForm(); setFifaStreamsStatus("Saqlandi. Stream cardlari futbol bo'limida ko'rinadi.", "ok"); }
   catch (err) { setFifaStreamsStatus(`Xato: ${err.message}`, "error"); }

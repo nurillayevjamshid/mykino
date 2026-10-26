@@ -10,6 +10,11 @@ describe("FIFA live stream buttons", () => {
       provider: "hls",
       url: "http://server.sibfungold.info:8080/live/pacha-man1/e0VaVPskUa/48687.m3u8",
     });
+    // Foydalanuvchi yuborgan to'g'ridan-to'g'ri Xtream Codes formati:
+    assert.deepEqual(settingsHandler.normalizeFifaStreamUrl("http://server.sibfungold.info:8080/pacha-man1/e0VaVPskUa/48687"), {
+      provider: "hls",
+      url: "http://server.sibfungold.info:8080/live/pacha-man1/e0VaVPskUa/48687.m3u8",
+    });
   });
 
   const root = path.resolve(__dirname, "../..");

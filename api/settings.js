@@ -284,6 +284,13 @@ function normalizeFifaStreamUrl(value) {
       if (/\.m3u8(?:$|\?)/i.test(parsed.pathname) || parsed.pathname.endsWith(".m3u8")) {
         return { url: parsed.toString().slice(0, 800), provider: "hls" };
       }
+      const xtreamMatch = parsed.pathname.match(/^\/(?:live\/)?([^/]+)\/([^/]+)\/(\d+)(?:\.m3u8)?$/i);
+      if (xtreamMatch) {
+        return {
+          url: `${parsed.protocol}//${parsed.host}/live/${xtreamMatch[1]}/${xtreamMatch[2]}/${xtreamMatch[3]}.m3u8`,
+          provider: "hls",
+        };
+      }
     }
     if (/\/video_ext\.php$/i.test(parsed.pathname)) return { url: parsed.toString().slice(0, 800), provider: "vk" };
     // VK Video Live: /<kanal>/stream/<efir> → /app/embed/<kanal>/stream/<efir>.
