@@ -280,7 +280,14 @@ function normalizeFifaStreamUrl(value) {
   if (yt) return { url: `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0`, provider: "youtube" };
   try { const parsed = new URL(raw); const host = parsed.hostname.toLowerCase();
     if (/\/video_ext\.php$/i.test(parsed.pathname)) return { url: parsed.toString().slice(0, 800), provider: "vk" };
-    if (host === "live.vkvideo.ru" || host.endsWith(".live.vkvideo.ru")) { const m = parsed.pathname.match(/^\/([^/]+)\/stream\//i); if (m) return { url: `https://live.vkvideo.ru/app/embed/${encodeURIComponent(m[1])}`, provider: "vk" }; }
+    // VK Video Live: /<kanal>/stream/<efir> → /app/embed/<kanal>/stream/<efir>.
+    // Efir ID'si tashlab yuborilsa embed faqat kanalning asosiy efirini ko'rsatadi
+    // va boshqa efir ketayotgan bo'lsa ham "Стример не в сети" chiqadi.
+    if (host === "live.vkvideo.ru" || host.endsWith(".live.vkvideo.ru")) {
+      if (/^\/app\/embed\/[^/]+/i.test(parsed.pathname)) return { url: `https://live.vkvideo.ru${parsed.pathname.replace(/\/+$/, "")}`, provider: "vk" };
+      const m = parsed.pathname.match(/^\/([^/]+)(?:\/stream\/([^/]+))?\/?$/i);
+      if (m && m[1].toLowerCase() !== "app") return { url: `https://live.vkvideo.ru/app/embed/${encodeURIComponent(m[1])}${m[2] ? `/stream/${encodeURIComponent(m[2])}` : ""}`, provider: "vk" };
+    }
     if (host.endsWith(".vkvideo.ru") || host === "vkvideo.ru" || host === "vk.com" || host.endsWith(".vk.com") || host === "vk.ru" || host.endsWith(".vk.ru")) {
       const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
       if (videoMatch) {
@@ -298,7 +305,7 @@ function normalizeFifaStreamUrl(value) {
 }
 function normalizeFifaStreams(raw) {
   const list = raw === undefined ? DEFAULT_FIFA_STREAMS : (Array.isArray(raw) ? raw : []);
-  return list.slice(0,8).map((item,index) => { const source = typeof item === "string" ? {url:item} : (item && typeof item === "object" ? item : {}); const normalized=normalizeFifaStreamUrl(source.url || source.originalUrl || source.link); return { id:trimString(source.id || `fifa-stream-${index+1}`).slice(0,80), title:trimString(source.title || (normalized.provider === "vk" ? "VK Video jonli efir" : "YouTube jonli efir")).slice(0,120), url:normalized.url, originalUrl:trimString(source.originalUrl || source.url || source.link).slice(0,800), provider:normalized.provider, enabled:source.enabled !== false }; }).filter((item)=>item.url && item.provider && item.enabled);
+  return list.slice(0,8).map((item,index) => { const source = typeof item === "string" ? {url:item} : (item && typeof item === "object" ? item : {}); const normalized=normalizeFifaStreamUrl(source.originalUrl || source.url || source.link); return { id:trimString(source.id || `fifa-stream-${index+1}`).slice(0,80), title:trimString(source.title || (normalized.provider === "vk" ? "VK Video jonli efir" : "YouTube jonli efir")).slice(0,120), url:normalized.url, originalUrl:trimString(source.originalUrl || source.url || source.link).slice(0,800), provider:normalized.provider, enabled:source.enabled !== false }; }).filter((item)=>item.url && item.provider && item.enabled);
 }
 function normalizeEsportsStartAt(value) {
   const raw = trimString(value);
@@ -561,3 +568,4 @@ module.exports = async function handler(request, response) {
 };
 
 module.exports.normalizeFifaStreamUrl = normalizeFifaStreamUrl;
+module.exports.normalizeFifaStreams = normalizeFifaStreams;

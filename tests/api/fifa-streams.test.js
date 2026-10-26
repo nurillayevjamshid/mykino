@@ -28,6 +28,30 @@ describe("FIFA live stream buttons", () => {
     });
   });
 
+  test("keeps the stream ID of VK Video Live links in the embed URL", () => {
+    assert.deepEqual(settingsHandler.normalizeFifaStreamUrl("https://live.vkvideo.ru/channel34397329/stream/sl_408845"), {
+      provider: "vk",
+      url: "https://live.vkvideo.ru/app/embed/channel34397329/stream/sl_408845",
+    });
+    assert.equal(settingsHandler.normalizeFifaStreamUrl("https://live.vkvideo.ru/channel34397329").url, "https://live.vkvideo.ru/app/embed/channel34397329");
+    assert.equal(
+      settingsHandler.normalizeFifaStreamUrl("https://live.vkvideo.ru/app/embed/channel34397329/stream/sl_408845").url,
+      "https://live.vkvideo.ru/app/embed/channel34397329/stream/sl_408845",
+    );
+  });
+
+  test("re-derives the embed URL from the saved original link", () => {
+    // Avval saqlangan yozuv: url eski (efir ID'siz) embed, originalUrl esa asl link.
+    const [stream] = settingsHandler.normalizeFifaStreams([{
+      id: "s1",
+      title: "Barselona vs Real Madrid",
+      url: "https://live.vkvideo.ru/app/embed/channel34397329",
+      originalUrl: "https://live.vkvideo.ru/channel34397329/stream/sl_408845",
+    }]);
+    assert.equal(stream.url, "https://live.vkvideo.ru/app/embed/channel34397329/stream/sl_408845");
+    assert.equal(stream.originalUrl, "https://live.vkvideo.ru/channel34397329/stream/sl_408845");
+  });
+
   test("accepts VK desktop/mobile variants and preserves extra query parameters", () => {
     for (const source of [
       "https://vk.com/video-214218677_456253161",
