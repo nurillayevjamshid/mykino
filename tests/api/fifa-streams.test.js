@@ -17,7 +17,7 @@ describe("FIFA live stream buttons", () => {
     const normalized = settingsHandler.normalizeFifaStreamUrl("https://vksport.m.vkvideo.ru/video-214218677_456253161");
     assert.deepEqual(normalized, {
       provider: "vk",
-      url: "https://vk.com/video_ext.php?oid=-214218677&id=456253161&hd=2",
+      url: "https://vk.ru/video_ext.php?oid=-214218677&id=456253161",
     });
   });
 
@@ -27,11 +27,11 @@ describe("FIFA live stream buttons", () => {
       "https://m.vk.com/video-214218677_456253161",
       "https://vkvideo.ru/video-214218677_456253161",
     ]) {
-      assert.equal(settingsHandler.normalizeFifaStreamUrl(source).url, "https://vk.com/video_ext.php?oid=-214218677&id=456253161&hd=2");
+      assert.equal(settingsHandler.normalizeFifaStreamUrl(source).url, "https://vk.ru/video_ext.php?oid=-214218677&id=456253161");
     }
     assert.equal(
       settingsHandler.normalizeFifaStreamUrl("https://vk.com/video-214218677_456253161?hash=abc123").url,
-      "https://vk.com/video_ext.php?oid=-214218677&id=456253161&hd=2&hash=abc123",
+      "https://vk.ru/video_ext.php?oid=-214218677&id=456253161&hash=abc123",
     );
   });
 

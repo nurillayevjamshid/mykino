@@ -281,22 +281,17 @@ function normalizeFifaStreamUrl(value) {
   try { const parsed = new URL(raw); const host = parsed.hostname.toLowerCase();
     if (/\/video_ext\.php$/i.test(parsed.pathname)) return { url: parsed.toString().slice(0, 800), provider: "vk" };
     if (host === "live.vkvideo.ru" || host.endsWith(".live.vkvideo.ru")) { const m = parsed.pathname.match(/^\/([^/]+)\/stream\//i); if (m) return { url: `https://live.vkvideo.ru/app/embed/${encodeURIComponent(m[1])}`, provider: "vk" }; }
-    if (host.endsWith(".vkvideo.ru") || host === "vkvideo.ru") {
+    if (host.endsWith(".vkvideo.ru") || host === "vkvideo.ru" || host === "vk.com" || host.endsWith(".vk.com") || host === "vk.ru" || host.endsWith(".vk.ru")) {
       const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
       if (videoMatch) {
-        const params = new URLSearchParams({ oid: videoMatch[1], id: videoMatch[2], hd: "2" });
-        parsed.searchParams.forEach((paramValue, paramName) => { if (!params.has(paramName)) params.set(paramName, paramValue); });
-        return { url: `https://vk.com/video_ext.php?${params.toString()}`, provider: "vk" };
+        const ownerId = videoMatch[1].startsWith("-") ? videoMatch[1] : `-${videoMatch[1]}`;
+        const params = new URLSearchParams();
+        params.set("oid", ownerId);
+        params.set("id", videoMatch[2]);
+        if (parsed.searchParams.has("hash")) params.set("hash", parsed.searchParams.get("hash"));
+        return { url: `https://vk.ru/video_ext.php?${params.toString()}`, provider: "vk" };
       }
-    }
-    if (host === "vk.com" || host.endsWith(".vk.com") || host === "vk.ru" || host.endsWith(".vk.ru")) {
-      const videoMatch = parsed.pathname.match(/^\/video(-?\d+)_([0-9]+)$/i);
-      if (videoMatch) {
-        const params = new URLSearchParams({ oid: videoMatch[1], id: videoMatch[2], hd: "2" });
-        parsed.searchParams.forEach((paramValue, paramName) => { if (!params.has(paramName)) params.set(paramName, paramValue); });
-        return { url: `https://vk.com/video_ext.php?${params.toString()}`, provider: "vk" };
-      }
-      return { url: parsed.toString().slice(0,800), provider: "vk" };
+      return { url: parsed.toString().slice(0, 800), provider: "vk" };
     }
   } catch (_) {}
   return { url: "", provider: "" };
