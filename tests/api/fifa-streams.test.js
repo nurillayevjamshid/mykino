@@ -43,16 +43,18 @@ describe("FIFA live stream buttons", () => {
     assert.match(settings, /live\.vkvideo\.ru\/app\/embed/);
   });
 
-  test("renders football streams inside dedicated tab and panel", () => {
+  test("renders football stream buttons between the hero and highlights", () => {
     const html = fs.readFileSync(path.join(root, "webapp/index.html"), "utf8");
     const fifa = fs.readFileSync(path.join(root, "webapp/fifa/fifa.js"), "utf8");
-    assert.match(html, /data-fifa-tab="streams"/);
-    assert.match(html, /id="fifaPanelStreams"/);
-    assert.doesNotMatch(html, /id="fifaStreamsPromoWrap"/);
+    assert.match(html, /id="fifaStreamsPromoWrap"/);
+    assert.doesNotMatch(html, /data-fifa-tab="streams"/);
+    assert.doesNotMatch(html, /id="fifaPanelStreams"/);
     assert.match(fifa, /async function loadFifaStreams\(/);
-    assert.match(fifa, /function renderFifaStreams\(/);
-    assert.match(fifa, /fifa-stream-card__frame/);
+    assert.match(fifa, /class="fifa-vk-live-card"/);
+    assert.doesNotMatch(fifa, /class="fifa-stream-button"/);
     assert.match(fifa, /target="_blank"/);
+    assert.match(fifa, /fifa-youtube-live-card/);
+    assert.match(fifa, /YouTube’da ochish/);
   });
 
   test("provides admin controls for adding and saving stream links", () => {
