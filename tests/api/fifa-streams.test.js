@@ -5,6 +5,13 @@ const path = require("node:path");
 const settingsHandler = require("../../api/settings");
 
 describe("FIFA live stream buttons", () => {
+  test("normalizes HLS .m3u8 stream links into playable stream URLs", () => {
+    assert.deepEqual(settingsHandler.normalizeFifaStreamUrl("http://server.sibfungold.info:8080/live/pacha-man1/e0VaVPskUa/48687.m3u8"), {
+      provider: "hls",
+      url: "http://server.sibfungold.info:8080/live/pacha-man1/e0VaVPskUa/48687.m3u8",
+    });
+  });
+
   const root = path.resolve(__dirname, "../..");
   test("normalizes YouTube Live links into playable iframe URLs", () => {
     assert.deepEqual(settingsHandler.normalizeFifaStreamUrl("https://www.youtube.com/live/BUEGXoCVl7w?si=test"), {

@@ -271,6 +271,7 @@ function normalizePreRollAd(raw, adCdnMap = null) {
 }
 
 const DEFAULT_FIFA_STREAMS = [
+  { id: "varzish-live", title: "Varzish TV", url: "http://server.sibfungold.info:8080/live/pacha-man1/e0VaVPskUa/48687.m3u8", enabled: true },
   { id: "youtube-live", title: "YouTube jonli efir", url: "https://www.youtube.com/live/BUEGXoCVl7w?si=TGQo6e3C51k8tWvL", enabled: false },
   { id: "vk-live", title: "VK Video jonli efir", url: "https://live.vkvideo.ru/channel30008599/stream/sl_393740", enabled: false },
 ];
@@ -279,6 +280,11 @@ function normalizeFifaStreamUrl(value) {
   const yt = raw.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([\w-]{10,12})/i);
   if (yt) return { url: `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0`, provider: "youtube" };
   try { const parsed = new URL(raw); const host = parsed.hostname.toLowerCase();
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      if (/\.m3u8(?:$|\?)/i.test(parsed.pathname) || parsed.pathname.endsWith(".m3u8")) {
+        return { url: parsed.toString().slice(0, 800), provider: "hls" };
+      }
+    }
     if (/\/video_ext\.php$/i.test(parsed.pathname)) return { url: parsed.toString().slice(0, 800), provider: "vk" };
     // VK Video Live: /<kanal>/stream/<efir> → /app/embed/<kanal>/stream/<efir>.
     // Efir ID'si tashlab yuborilsa embed faqat kanalning asosiy efirini ko'rsatadi
@@ -305,7 +311,7 @@ function normalizeFifaStreamUrl(value) {
 }
 function normalizeFifaStreams(raw) {
   const list = raw === undefined ? DEFAULT_FIFA_STREAMS : (Array.isArray(raw) ? raw : []);
-  return list.slice(0,8).map((item,index) => { const source = typeof item === "string" ? {url:item} : (item && typeof item === "object" ? item : {}); const normalized=normalizeFifaStreamUrl(source.originalUrl || source.url || source.link); return { id:trimString(source.id || `fifa-stream-${index+1}`).slice(0,80), title:trimString(source.title || (normalized.provider === "vk" ? "VK Video jonli efir" : "YouTube jonli efir")).slice(0,120), url:normalized.url, originalUrl:trimString(source.originalUrl || source.url || source.link).slice(0,800), provider:normalized.provider, enabled:source.enabled !== false }; }).filter((item)=>item.url && item.provider && item.enabled);
+  return list.slice(0,8).map((item,index) => { const source = typeof item === "string" ? {url:item} : (item && typeof item === "object" ? item : {}); const normalized=normalizeFifaStreamUrl(source.originalUrl || source.url || source.link); return { id:trimString(source.id || `fifa-stream-${index+1}`).slice(0,80), title:trimString(source.title || (normalized.provider === "vk" ? "VK Video jonli efir" : normalized.provider === "hls" ? "Varzish TV / HLS Live" : "YouTube jonli efir")).slice(0,120), url:normalized.url, originalUrl:trimString(source.originalUrl || source.url || source.link).slice(0,800), provider:normalized.provider, enabled:source.enabled !== false }; }).filter((item)=>item.url && item.provider && item.enabled);
 }
 function normalizeEsportsStartAt(value) {
   const raw = trimString(value);

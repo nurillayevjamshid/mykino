@@ -1499,6 +1499,21 @@
     })();
     return fifaStreamsLoading;
   }
+    let hlsLibLoading = null;
+  function loadHlsLib() {
+    if (window.Hls) return Promise.resolve(window.Hls);
+    if (hlsLibLoading) return hlsLibLoading;
+    hlsLibLoading = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";
+      s.async = true;
+      s.onload = () => resolve(window.Hls);
+      s.onerror = () => { hlsLibLoading = null; reject(new Error("hls.js yuklanmadi")); };
+      document.head.appendChild(s);
+    });
+    return hlsLibLoading;
+  }
+
   function renderFifaStreamsPromo(streams) {
     const wrap = document.getElementById("fifaStreamsPromoWrap");
     if (!wrap) return;
@@ -1520,6 +1535,12 @@
       const title = stream.title || "Futbol jonli efiri";
       const originalUrl = stream.originalUrl || stream.url;
       const isYoutube = isYoutubeStream(stream);
+      const isHls = stream.provider === "hls" || /\.m3u8(?:$|\?)/i.test(stream.url);
+      if (isHls) {
+        const provider = /(?:varzish)/i.test(title) ? "Varzish TV" : "HLS Live";
+        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div>`;
+        return `<article class="fifa-efir-card fifa-efir-card--hls" data-hls-src="${esc(stream.url)}">${head}<div class="fifa-efir-card__player"><video class="fifa-efir-card__video" playsinline controls preload="metadata"></video></div><a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a></article>`;
+      }
       const isEmbed = isYoutube || /(?:video_ext\.php|app\/embed)/i.test(stream.url);
       if (!isEmbed) {
         return `<a class="fifa-vk-live-card" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><div class="fifa-vk-live-card__body"><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h3>${esc(title)}</h3><span class="fifa-vk-live-card__hint">Translyatsiyani ochish <b>↗</b></span></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></a>`;
@@ -1532,6 +1553,24 @@
       }
       return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div><a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a></article>`;
     }).join("");
+
+    wrap.querySelectorAll(".fifa-efir-card--hls").forEach((card) => {
+      const video = card.querySelector("video");
+      const src = card.dataset.hlsSrc;
+      if (!video || !src) return;
+      if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = src;
+      } else {
+        loadHlsLib().then((Hls) => {
+          if (!Hls || !Hls.isSupported()) { video.src = src; return; }
+          const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+          hls.loadSource(src);
+          hls.attachMedia(video);
+        }).catch(() => {
+          video.src = src;
+        });
+      }
+    });
   }
   // Telegram ichida tashqi havolani Telegram'ning o'z brauzerida ochamiz.
   document.getElementById("fifaStreamsPromoWrap")?.addEventListener("click", (event) => {
