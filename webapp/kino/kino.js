@@ -5257,8 +5257,10 @@ function openMovie(movie) {
     : "linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)";
   const genreText = String(movie.genre || "").trim();
   const qualityText = String(movie.quality || "").trim();
-  const metaItems = [genreText, qualityText].filter(Boolean).map((v) => `<span>${escapeHtml(v)}</span>`);
-  modalMeta.innerHTML = metaItems.join('<span class="modal-meta__sep" aria-hidden="true">|</span>');
+  // Har bir janr alohida chip: "Dramma, Melodramma, Hind kino" → 3 ta chip.
+  const genreChips = genreText.split(/\s*[,|/]\s*/).filter(Boolean);
+  const metaItems = [...genreChips, qualityText].filter(Boolean).map((v) => `<span class="modal-meta__chip">${escapeHtml(v)}</span>`);
+  modalMeta.innerHTML = metaItems.join("");
   const ratingValue = Number(movie.rating);
   const numericRating = Number.isFinite(ratingValue) && ratingValue > 0 ? ratingValue : 8.0;
   const filledStars = Math.max(1, Math.min(5, Math.round(numericRating / 2)));
@@ -11479,7 +11481,7 @@ initApp();
     const target = e.target;
     const isGrabber = Boolean(target && (target.closest("#movieModalGrabberZone") || target.closest(".modal-poster")));
     const content = movieModal.querySelector(".modal-content");
-    const isAtTop = !content || content.scrollTop <= 0;
+    const isAtTop = (!content || content.scrollTop <= 0) && movieModal.scrollTop <= 0;
     canDrag = isGrabber || isAtTop;
   };
 
@@ -12191,7 +12193,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261026-vk-live-mobile-v1";
+    script.src = "/static/fifa/fifa.js?v=20261026-poster-card-v1";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);

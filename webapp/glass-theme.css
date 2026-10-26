@@ -4679,3 +4679,137 @@ html[data-theme="light"] .fifa-lineup-star-btn {
   flex: 0 0 32px !important;
   padding: 0 !important;
 }
+
+/* ============================================================
+   Kino modali — "poster card" dizayni: tepada yumaloq poster,
+   ostida markazlangan nom, janr chiplari, reyting va qora pill tugma.
+   #movieModal bilan yozilgan — yuqoridagi .movie-modal qoidalaridan ustun.
+   ============================================================ */
+#movieModal.movie-modal--poster-card {
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+#movieModal.movie-modal--poster-card .modal-poster {
+  position: relative !important;
+  inset: auto !important;
+  flex: 1 1 0 !important;
+  min-height: 210px !important;
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
+  align-self: stretch !important;
+  margin: 34px 14px 0 !important;
+  border-radius: 26px !important;
+  overflow: hidden !important;
+  background-color: #10161f !important;
+  background-size: cover !important;
+  background-position: center top !important;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.06) !important;
+  z-index: 1 !important;
+  cursor: zoom-in;
+}
+#movieModal.movie-modal--poster-card .modal-poster::before {
+  border-radius: inherit !important;
+}
+#movieModal.movie-modal--poster-card .modal-close,
+#movieModal.movie-modal--poster-card .modal-share {
+  top: 46px !important;
+}
+#movieModal.movie-modal--poster-card .modal-share { left: 26px !important; right: auto !important; }
+#movieModal.movie-modal--poster-card .modal-close { right: 26px !important; left: auto !important; }
+
+#movieModal.movie-modal--poster-card .modal-card-wrapper {
+  position: relative !important;
+  flex: 0 1 auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 14px max(14px, env(safe-area-inset-bottom)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+#movieModal.movie-modal--poster-card .modal-content {
+  min-height: 0 !important;
+  max-height: none !important;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+#movieModal.movie-modal--poster-card .modal-info-card {
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 18px 6px 2px !important;
+  gap: 0 !important;
+}
+
+#movieModal.movie-modal--poster-card .modal-info-card h1 {
+  margin: 0 0 10px !important;
+  color: #0f172a !important;
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: uppercase !important;
+}
+
+#movieModal.movie-modal--poster-card .modal-meta {
+  gap: 8px !important;
+  margin: 0 0 10px !important;
+}
+#movieModal.movie-modal--poster-card .modal-meta > .modal-meta__chip {
+  padding: 5px 13px !important;
+  border: 1px solid rgba(15, 23, 42, 0.22) !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: #1e293b !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+}
+
+#movieModal.movie-modal--poster-card .modal-rating {
+  flex-direction: row-reverse !important;
+  gap: 6px !important;
+  margin: 0 0 10px !important;
+}
+#movieModal.movie-modal--poster-card .modal-rating__score {
+  color: #0f172a !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+#movieModal.movie-modal--poster-card .modal-description {
+  color: #475569 !important;
+}
+
+/* "dan davom etish" faqat ko'rishni davom ettirish mumkin bo'lganda chiqsin:
+   yuqoridagi `display: inline-flex !important` [hidden] ni bosib ketardi. */
+#movieModal .watch-resume-chip[hidden] {
+  display: none !important;
+}
+
+#movieModal.movie-modal--poster-card .watch-actions {
+  margin-top: 12px !important;
+}
+#movieModal.movie-modal--poster-card .watch-button--pill {
+  width: 100% !important;
+  height: 54px !important;
+  border-radius: 999px !important;
+  background: #0f172a !important;
+  color: #fff !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.28) !important;
+}
+#movieModal.movie-modal--poster-card .comments-trigger {
+  margin-top: 10px !important;
+  background: transparent !important;
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+  box-shadow: none !important;
+}

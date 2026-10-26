@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261026-vk-live-mobile-v1" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261026-poster-card-v1" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Early platform detection and Telegram WebApp Fullscreen initialization -->
   <script>
@@ -142,7 +142,7 @@
       filter: invert(1) brightness(1.2) !important;
     }
   </style>
-  <link rel="stylesheet" href="/static/glass-theme.css?v=20261026-star-round-v1" />
+  <link rel="stylesheet" href="/static/glass-theme.css?v=20261026-poster-card-v1" />
 </head>
 
 <body>
@@ -933,7 +933,7 @@
     </nav>
   </main>
 
-  <dialog class="movie-modal" id="movieModal">
+  <dialog class="movie-modal movie-modal--poster-card" id="movieModal">
     <div class="movie-modal__grabber-zone" id="movieModalGrabberZone" aria-hidden="true">
       <div class="movie-modal__grabber"></div>
     </div>
@@ -1684,7 +1684,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261026-vk-live-mobile-v1"></script>
+  <script src="/static/kino/kino.js?v=20261026-poster-card-v1"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
