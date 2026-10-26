@@ -12193,7 +12193,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261026-varzish-hls-v1";
+    script.src = "/static/fifa/fifa.js?v=20261026-ads-modal-v1";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -12329,5 +12329,101 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("kino-lang-change", () => setTimeout(sync, 60));
 
     sync();
+  });
+})();
+
+// ============================================================
+// Reklama oynasi — navbar'dagi "odamlar" ikonkasi ochadi.
+// Obunachilar soni admin paneldagi ro'yxat bilan bir xil manbadan olinadi
+// (/api/users?action=subscriber-count) va oyna ochiq turganda har daqiqa yangilanadi.
+// ============================================================
+(() => {
+  const modal = document.getElementById("adsInfoModal");
+  const trigger = document.getElementById("topbarAdsButton");
+  if (!modal || !trigger) return;
+  const numberEl = document.getElementById("adsSubscriberCount");
+  const heroCountEl = document.getElementById("adsHeroCount");
+  let lastCount = null;
+  let refreshTimer = null;
+
+  const formatCount = (value) => Math.round(value).toLocaleString("ru-RU").replace(/ /g, " ");
+
+  const renderCount = (target) => {
+    heroCountEl.textContent = formatCount(target);
+    const from = lastCount === null ? Math.max(0, target * 0.85) : lastCount;
+    lastCount = target;
+    if (from === target || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      numberEl.textContent = formatCount(target);
+      return;
+    }
+    const started = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - started) / 900);
+      const eased = 1 - Math.pow(1 - t, 3);
+      numberEl.textContent = formatCount(from + (target - from) * eased);
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+
+  const loadCount = async () => {
+    try {
+      const res = await fetch("/api/users?action=subscriber-count", { headers: { Accept: "application/json" }, cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const count = Number(data?.count);
+      if (Number.isFinite(count) && count > 0) renderCount(count);
+    } catch (_) {
+      if (lastCount === null) numberEl.textContent = "—";
+    }
+  };
+
+  const close = () => {
+    if (!modal.open) return;
+    modal.classList.add("is-closing");
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+    tgBackUnregister("ads-sheet");
+    setTimeout(() => {
+      modal.classList.remove("is-closing");
+      try { modal.close(); } catch (_) { modal.removeAttribute("open"); }
+    }, 220);
+  };
+
+  const open = () => {
+    try { modal.showModal(); } catch (_) { modal.setAttribute("open", ""); }
+    tgBackRegister("ads-sheet", close);
+    try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light"); } catch (_) {}
+    loadCount();
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(loadCount, 60 * 1000);
+  };
+
+  trigger.addEventListener("click", open);
+  modal.addEventListener("cancel", (event) => { event.preventDefault(); close(); });
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal || event.target.closest("[data-ads-close]")) close();
+  });
+
+  modal.querySelector("[data-ads-telegram]")?.addEventListener("click", (event) => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg?.openTelegramLink) return;
+    event.preventDefault();
+    tg.openTelegramLink(event.currentTarget.href);
+  });
+
+  modal.querySelector("[data-ads-copy]")?.addEventListener("click", async (event) => {
+    const value = event.currentTarget.dataset.adsCopy;
+    let copied = false;
+    try { await navigator.clipboard.writeText(value); copied = true; } catch (_) {
+      const input = document.createElement("textarea");
+      input.value = value;
+      input.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(input);
+      input.select();
+      try { copied = document.execCommand("copy"); } catch (_) {}
+      input.remove();
+    }
+    showToast(copied ? "Raqam nusxalandi" : value);
   });
 })();

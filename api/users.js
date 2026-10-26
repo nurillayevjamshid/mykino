@@ -339,6 +339,57 @@ async function handleAdminLogout(request, response) {
   response.status(200).json({ ok: true });
 }
 
+// Barcha manbalardan obunachilarni yig'ib, admin panelda ko'rinadigan ro'yxatni qaytaradi.
+async function readMergedUsers() {
+  const repoBackupUsers = readUsersFromRepoBackup();
+  const [r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
+    (async () => {
+      try { return { ok: true, users: await readUsersFromR2() }; }
+      catch (e) { return { ok: false, error: e?.message || String(e) }; }
+    })(),
+    (async () => {
+      try { return { ok: true, users: await readUsersFromR2Backups() }; }
+      catch (e) { return { ok: false, error: e?.message || String(e) }; }
+    })(),
+    (async () => {
+      try { return { ok: true, users: await readUsersFromBlob() }; }
+      catch (e) { return { ok: false, error: e?.message || String(e) }; }
+    })(),
+    (async () => {
+      try { return { ok: true, users: (await tryProxyFromBot()) || [] }; }
+      catch (e) { return { ok: false, error: e?.message || String(e) }; }
+    })(),
+    (async () => {
+      try {
+        const metadataState = await readCatalogMetadata();
+        return { ok: true, users: readUsersFromMetadata(metadataState.data), hasFile: Boolean(metadataState.file), rawUsers: metadataState.data?.users };
+      } catch (e) { return { ok: false, error: e?.message || String(e) }; }
+    })(),
+  ]);
+  const allMerged = mergeUsers(r2Outcome.users || [], backupOutcome.users || [], repoBackupUsers, blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
+  // Bot almashgandan oldingi obunachilarni chiqarib tashlaymiz (faqat o'qishda).
+  const merged = filterByBotLaunch(allMerged);
+  return { repoBackupUsers, r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome, allMerged, merged };
+}
+
+// Mini app'dagi "Reklama" oynasi uchun faqat obunachilar soni (ro'yxatning o'zi emas).
+// Admin panel bilan bir xil son; har so'rovda barcha manbalarni o'qimaslik uchun 60s kesh.
+const SUBSCRIBER_COUNT_TTL_MS = 60 * 1000;
+let subscriberCountCache = { value: null, at: 0 };
+async function handleSubscriberCount(request, response) {
+  response.setHeader("Cache-Control", "no-store, max-age=0");
+  if (request.method !== "GET") { response.status(405).json({ ok: false, error: "GET kerak" }); return; }
+  const now = Date.now();
+  if (subscriberCountCache.value === null || now - subscriberCountCache.at > SUBSCRIBER_COUNT_TTL_MS) {
+    const { merged } = await readMergedUsers();
+    subscriberCountCache = { value: merged.length, at: now };
+  }
+  response.status(200).json({ ok: true, count: subscriberCountCache.value, updatedAt: new Date(subscriberCountCache.at).toISOString() });
+}
+function isSubscriberCountRoute(reqUrl) {
+  return /[?&]action=subscriber-count(?:&|$)/.test(reqUrl);
+}
+
 function isAdminLoginRoute(reqUrl) {
   return /[?&]action=admin-login(?:&|$)/.test(reqUrl);
 }
@@ -358,6 +409,10 @@ module.exports = async function handler(request, response) {
   }
 
   const reqUrl = request.url || "";
+  if (isSubscriberCountRoute(reqUrl)) {
+    try { return await handleSubscriberCount(request, response); }
+    catch (err) { response.status(500).json({ ok: false, error: err?.message || "internal error" }); return; }
+  }
   const isPhotoRequest = /\/user-photo(?:\?|$|\.)/i.test(reqUrl) || /[?&]_photo=1/.test(reqUrl);
   if (isPhotoRequest) {
     return handleUserPhoto(request, response);
@@ -379,34 +434,7 @@ module.exports = async function handler(request, response) {
       if (!(await requireAdmin(request, response))) return;
       const debugMatch = /[?&]_debug=([^&]+)/.exec(reqUrl);
       const isDebug = debugMatch && safeCompareAdminPassword(decodeURIComponent(debugMatch[1]));
-      const repoBackupUsers = readUsersFromRepoBackup();
-      const [r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
-        (async () => {
-          try { return { ok: true, users: await readUsersFromR2() }; }
-          catch (e) { return { ok: false, error: e?.message || String(e) }; }
-        })(),
-        (async () => {
-          try { return { ok: true, users: await readUsersFromR2Backups() }; }
-          catch (e) { return { ok: false, error: e?.message || String(e) }; }
-        })(),
-        (async () => {
-          try { return { ok: true, users: await readUsersFromBlob() }; }
-          catch (e) { return { ok: false, error: e?.message || String(e) }; }
-        })(),
-        (async () => {
-          try { return { ok: true, users: (await tryProxyFromBot()) || [] }; }
-          catch (e) { return { ok: false, error: e?.message || String(e) }; }
-        })(),
-        (async () => {
-          try {
-            const metadataState = await readCatalogMetadata();
-            return { ok: true, users: readUsersFromMetadata(metadataState.data), hasFile: Boolean(metadataState.file), rawUsers: metadataState.data?.users };
-          } catch (e) { return { ok: false, error: e?.message || String(e) }; }
-        })(),
-      ]);
-      const allMerged = mergeUsers(r2Outcome.users || [], backupOutcome.users || [], repoBackupUsers, blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
-      // Bot almashgandan oldingi obunachilarni chiqarib tashlaymiz (faqat o'qishda).
-      const merged = filterByBotLaunch(allMerged);
+      const { repoBackupUsers, r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome, allMerged, merged } = await readMergedUsers();
       if (isDebug) {
         response.status(200).json({
           merged,

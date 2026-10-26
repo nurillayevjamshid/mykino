@@ -4813,3 +4813,151 @@ html[data-theme="light"] .fifa-lineup-star-btn {
   border: 1px solid rgba(15, 23, 42, 0.14) !important;
   box-shadow: none !important;
 }
+/* ============================================================
+   Reklama oynasi (navbar'dagi "odamlar" ikonkasi) — bottom sheet
+   ============================================================ */
+.topbar.topbar--centered .topbar-controls--minimal {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.topbar-ads__trigger {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--c-surface-2) !important;
+  border: 1px solid var(--c-border) !important;
+  color: var(--c-text) !important;
+  box-shadow: none !important;
+}
+.topbar-ads__trigger .icon-svg { width: 18px; height: 18px; }
+.topbar-ads__trigger:active { transform: scale(0.94); }
+
+#adsInfoModal {
+  --ads-bg: #f4f6fb;
+  --ads-card: #ffffff;
+  --ads-text: #0f172a;
+  --ads-muted: #64748b;
+  --ads-border: rgba(15, 23, 42, 0.08);
+  --ads-accent: #2aa3ef;
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100dvh - 48px);
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 28px 28px 0 0;
+  background: var(--ads-bg);
+  color: var(--ads-text);
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  box-shadow: 0 -18px 50px rgba(15, 23, 42, 0.22);
+  animation: adsSheetIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#adsInfoModal::backdrop {
+  background: rgba(8, 12, 22, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#adsInfoModal.is-closing { animation: adsSheetOut 0.22s ease forwards; }
+@keyframes adsSheetIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes adsSheetOut { to { transform: translateY(100%); } }
+
+html[data-theme="dark"] #adsInfoModal {
+  --ads-bg: #0d121c;
+  --ads-card: #151c2a;
+  --ads-text: #f1f5f9;
+  --ads-muted: #94a3b8;
+  --ads-border: rgba(255, 255, 255, 0.08);
+}
+
+.ads-sheet__panel { padding: 8px 16px max(18px, env(safe-area-inset-bottom)); }
+.ads-sheet__grabber { width: 40px; height: 5px; margin: 0 auto 10px; border-radius: 999px; background: rgba(100, 116, 139, 0.35); }
+.ads-sheet__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+#adsInfoModal .ads-sheet__title { margin: 0 !important; font-size: 20px !important; font-weight: 800 !important; letter-spacing: -0.01em; color: var(--ads-text) !important; }
+.ads-sheet__close {
+  width: 34px; height: 34px; display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--ads-border); border-radius: 50%;
+  background: var(--ads-card); color: var(--ads-text); cursor: pointer;
+}
+.ads-sheet__close svg { width: 16px; height: 16px; }
+
+.ads-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 16px;
+  border-radius: 24px;
+  background: radial-gradient(120% 90% at 100% 0%, rgba(255, 255, 255, 0.22), transparent 55%), linear-gradient(135deg, #1d8cf8 0%, #4f46e5 55%, #7c3aed 100%);
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(79, 70, 229, 0.32);
+}
+.ads-hero__badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+  border-radius: 999px; background: rgba(255, 255, 255, 0.18);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+}
+.ads-hero__badge i { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.3); animation: adsPulse 1.6s infinite; }
+@keyframes adsPulse { 50% { opacity: 0.45; } }
+#adsInfoModal .ads-hero__title { margin: 12px 0 6px !important; color: #fff !important; font-size: 21px !important; font-weight: 800 !important; line-height: 1.2 !important; }
+.ads-hero__text { margin: 0; font-size: 13px; line-height: 1.45; color: rgba(255, 255, 255, 0.82); }
+.ads-hero__stat {
+  margin-top: 14px; padding: 14px 12px; border-radius: 18px; text-align: center;
+  background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.ads-hero__number { display: block; font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ads-hero__label { display: block; margin-top: 6px; font-size: 12px; color: rgba(255, 255, 255, 0.8); }
+
+#adsInfoModal .ads-section-title { margin: 18px 4px 10px !important; font-size: 13px !important; font-weight: 700 !important; color: var(--ads-muted) !important; }
+.ads-types { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ads-type {
+  display: flex; flex-direction: column; gap: 4px; padding: 14px;
+  border: 1px solid var(--ads-border); border-radius: 20px; background: var(--ads-card);
+}
+.ads-type--wide { grid-column: 1 / -1; }
+#adsInfoModal .ads-type strong { margin-top: 6px; font-size: 15px; font-weight: 800; color: var(--ads-text); }
+.ads-type > span:last-child { font-size: 12px; line-height: 1.4; color: var(--ads-muted); }
+.ads-type__icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; }
+.ads-type__icon svg { width: 20px; height: 20px; }
+.ads-type__icon--blue { background: rgba(42, 163, 239, 0.14); color: #1d8cf8; }
+.ads-type__icon--rose { background: rgba(244, 63, 94, 0.13); color: #f43f5e; }
+.ads-type__icon--violet { background: rgba(124, 58, 237, 0.14); color: #7c3aed; }
+
+.ads-contact {
+  margin-top: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  border: 1px solid var(--ads-border); border-radius: 24px; background: var(--ads-card);
+}
+.ads-contact__person { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.ads-contact__avatar {
+  width: 52px; height: 52px; flex: 0 0 52px; display: grid; place-items: center; border-radius: 50%;
+  background: linear-gradient(135deg, #2aa3ef, #4f46e5); color: #fff; font-size: 18px; font-weight: 800;
+}
+#adsInfoModal .ads-contact__person strong { display: block; font-size: 16px; font-weight: 800; color: var(--ads-text); }
+.ads-contact__handle { display: block; font-size: 13px; color: var(--ads-muted); }
+.ads-contact__hours { display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 12px; font-weight: 700; color: #16a34a; }
+.ads-contact__hours i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ads-contact__btn {
+  display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 14px; white-space: nowrap;
+  border-radius: 16px; background: rgba(100, 116, 139, 0.1); color: var(--ads-text);
+  font-size: 14px; font-weight: 700; text-decoration: none; -webkit-tap-highlight-color: transparent;
+}
+.ads-contact__btn svg { width: 19px; height: 19px; flex: 0 0 19px; color: #16a34a; }
+.ads-contact__btn small { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ads-muted); }
+.ads-contact__btn--primary { background: linear-gradient(135deg, #2aa3ef, #1d8cf8); color: #fff; box-shadow: 0 10px 22px rgba(29, 140, 248, 0.32); }
+.ads-contact__btn--primary svg { color: #fff; }
+.ads-contact__btn--primary small { color: rgba(255, 255, 255, 0.85); }
+.ads-contact__btn:active, .ads-contact__copy:active { transform: scale(0.98); }
+.ads-contact__copy {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; align-self: center;
+  padding: 8px 14px; border: 0; border-radius: 999px; background: transparent;
+  color: var(--ads-muted); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.ads-contact__copy svg { width: 15px; height: 15px; }
