@@ -1565,6 +1565,14 @@
       const video = card.querySelector("video");
       const src = card.dataset.hlsSrc;
       if (!video || !src) return;
+      // Oqim ishlamasa pleyerning "buzilgan" belgisi o'rniga tushunarli xabar ko'rsatamiz.
+      const markOffline = () => {
+        if (card.classList.contains("is-offline")) return;
+        card.classList.add("is-offline");
+        video.removeAttribute("controls");
+        card.querySelector(".fifa-efir-card__player")?.insertAdjacentHTML("beforeend", `<div class="fifa-efir-card__offline"><strong>Efir hozir mavjud emas</strong><span>Birozdan keyin qayta urinib ko‘ring</span></div>`);
+      };
+      video.addEventListener("error", markOffline);
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = src;
       } else {
@@ -1572,6 +1580,7 @@
           if (!Hls || !Hls.isSupported()) { video.src = src; return; }
           // Bo'limni ochgan har bir foydalanuvchi efirni yuklab yubormasin — faqat play bosilganda.
           const hls = new Hls({ enableWorker: true, lowLatencyMode: true, autoStartLoad: false });
+          hls.on(Hls.Events.ERROR, (_, data) => { if (data?.fatal) { hls.destroy(); markOffline(); } });
           hls.loadSource(src);
           hls.attachMedia(video);
           video.addEventListener("play", () => hls.startLoad(), { once: true });

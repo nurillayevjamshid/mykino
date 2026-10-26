@@ -5984,6 +5984,43 @@ function loadFifaTvHlsLib() {
   return fifaTvHlsLib;
 }
 
+// Kanal yoqilishidan oldin oqim haqiqatan o'ynashini tekshiradi: birinchi kadr kelsa — ishlaydi.
+// O'lik, geobloklangan yoki maxsus header talab qiladigan oqimlar shu yerda to'xtaydi.
+function probeFifaTvStream(url, timeoutMs = 15000) {
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  return new Promise((resolve) => {
+    let hls = null;
+    let done = false;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (hls) hls.destroy();
+      video.removeAttribute("src");
+      video.load();
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    video.addEventListener("loadeddata", () => finish(true), { once: true });
+    video.addEventListener("error", () => finish(false), { once: true });
+    (async () => {
+      if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = url;
+      } else {
+        const Hls = await loadFifaTvHlsLib();
+        if (!Hls?.isSupported()) { finish(false); return; }
+        hls = new Hls();
+        hls.on(Hls.Events.ERROR, (_, data) => { if (data?.fatal) finish(false); });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+      }
+      video.play().catch(() => {});
+    })().catch(() => finish(false));
+  });
+}
+
 function closeFifaTvPreview() {
   const wrap = document.getElementById("fifaTvPreview");
   const video = document.getElementById("fifaTvPreviewVideo");
@@ -6030,14 +6067,24 @@ document.getElementById("fifaTvList")?.addEventListener("click", (event) => {
   const tryBtn = event.target.closest("[data-fifa-tv-try]");
   if (tryBtn) previewFifaTvChannel(tryBtn.dataset.fifaTvTry);
 });
-document.getElementById("fifaTvList")?.addEventListener("change", (event) => {
+document.getElementById("fifaTvList")?.addEventListener("change", async (event) => {
   const toggle = event.target.closest("[data-fifa-tv-toggle]");
   if (!toggle) return;
   if (fifaTvState.busy) { toggle.checked = !toggle.checked; return; }
   const channel = fifaTvState.channels.find((ch) => ch.url === toggle.dataset.fifaTvToggle);
   if (!channel) return;
+  if (!toggle.checked) { setFifaTvStatus("O'chirilmoqda…"); saveFifaTv(null); return; }
+  // Yoqishdan oldin oqimni sinaymiz — ishlamaydigan kanal foydalanuvchilarga chiqmasin.
+  fifaTvState.busy = true;
+  setFifaTvStatus(`«${channel.name}» tekshirilmoqda… (15 soniyagacha)`);
+  const works = await probeFifaTvStream(channel.url);
+  fifaTvState.busy = false;
+  if (!works) {
+    toggle.checked = false;
+    setFifaTvStatus(`«${channel.name}» ishlamayapti — oqim o'chgan, geobloklangan yoki maxsus header talab qiladi. Boshqa kanalni tanlang.`, "error");
+    return;
+  }
   // Faqat bitta kanal: yoqilgani boshqasini avtomatik o'chiradi.
-  const active = toggle.checked ? { id: channel.tvgId || channel.url, name: channel.name, url: channel.url, logo: channel.logo, group: channel.group } : null;
-  setFifaTvStatus(active ? `«${channel.name}» yoqilmoqda…` : "O'chirilmoqda…");
-  saveFifaTv(active);
+  setFifaTvStatus(`«${channel.name}» yoqilmoqda…`);
+  saveFifaTv({ id: channel.tvgId || channel.url, name: channel.name, url: channel.url, logo: channel.logo, group: channel.group });
 });

@@ -90,6 +90,9 @@ describe("FIFA live stream buttons", () => {
     assert.match(adminJs, /JSON\.stringify\(\{ fifaTv: \{ playlistUrl: fifaTvState\.playlistUrl, active \} \}\)/);
     assert.match(fifa, /data\?\.fifaTv\?\.active/);
     assert.match(fifa, /autoStartLoad: false/);
+    // Ishlamaydigan oqim yoqilmaydi va mini ilovada tushunarli xabar chiqadi.
+    assert.match(adminJs, /const works = await probeFifaTvStream\(channel\.url\)/);
+    assert.match(fifa, /Efir hozir mavjud emas/);
   });
 
   test("accepts VK desktop/mobile variants and preserves extra query parameters", () => {
