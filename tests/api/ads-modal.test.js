@@ -9,9 +9,11 @@ describe("Advertising modal", () => {
   const kino = fs.readFileSync(path.join(root, "webapp/kino/kino.js"), "utf8");
   const users = fs.readFileSync(path.join(root, "api/users.js"), "utf8");
 
-  test("puts the ads trigger in the shared topbar controls", () => {
-    const controls = html.slice(html.indexOf('class="topbar-controls'), html.indexOf('class="topbar-search"'));
-    assert.match(controls, /id="topbarAdsButton"/);
+  test("puts the ads trigger rightmost in the shared topbar, after search", () => {
+    const controlsStart = html.indexOf('class="topbar-controls');
+    const controls = html.slice(controlsStart, html.indexOf("</header>", controlsStart));
+    assert.ok(controls.indexOf('class="topbar-search"') !== -1);
+    assert.ok(controls.indexOf('id="topbarAdsButton"') > controls.indexOf('class="topbar-search"'));
     assert.match(html, /<dialog class="ads-sheet" id="adsInfoModal"/);
   });
 
