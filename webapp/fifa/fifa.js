@@ -1523,7 +1523,7 @@
       }
       return `<a class="fifa-vk-live-card" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer"><div class="fifa-vk-live-card__body"><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h3>${esc(title)}</h3><span class="fifa-vk-live-card__hint">Translyatsiyani ochish <b>↗</b></span></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></a>`;
     }).join("");
-    wrap.innerHTML = `<div class="fifa-streams-promo-head"><div><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h2>Futbol translyatsiyasi</h2></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div>${youtubeCards}${vkCards}`;
+    wrap.innerHTML = `${youtubeCards}${vkCards}`;
   }
   async function renderFifaStreamsPanel(force = false) {
     renderFifaStreamsPromo(await loadFifaStreams(force));
