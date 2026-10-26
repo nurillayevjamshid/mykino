@@ -320,6 +320,37 @@ function normalizeFifaStreams(raw) {
   const list = raw === undefined ? DEFAULT_FIFA_STREAMS : (Array.isArray(raw) ? raw : []);
   return list.slice(0,8).map((item,index) => { const source = typeof item === "string" ? {url:item} : (item && typeof item === "object" ? item : {}); const normalized=normalizeFifaStreamUrl(source.originalUrl || source.url || source.link); return { id:trimString(source.id || `fifa-stream-${index+1}`).slice(0,80), title:trimString(source.title || (normalized.provider === "vk" ? "VK Video jonli efir" : normalized.provider === "hls" ? "Varzish TV / HLS Live" : "YouTube jonli efir")).slice(0,120), url:normalized.url, originalUrl:trimString(source.originalUrl || source.url || source.link).slice(0,800), provider:normalized.provider, enabled:source.enabled !== false }; }).filter((item)=>item.url && item.provider && item.enabled);
 }
+// Futbol bo'limidagi TV kanal: admin M3U pleylistdan (masalan iptv-org) bitta kanalni yoqadi.
+// Faqat pleylist linki va yoqilgan kanal saqlanadi — butun ro'yxat admin panelda o'qiladi.
+const DEFAULT_FIFA_TV_PLAYLIST = "https://iptv-org.github.io/iptv/categories/sports.m3u";
+function normalizeHttpUrl(value, max = 800) {
+  const raw = trimString(value);
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString().slice(0, max) : "";
+  } catch (_) {
+    return "";
+  }
+}
+function normalizeFifaTv(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const active = source.active && typeof source.active === "object" ? source.active : null;
+  // Mini ilova https'da ochiladi — http oqimni brauzer bloklaydi, shuning uchun faqat https.
+  const activeUrl = active ? normalizeHttpUrl(active.url) : "";
+  return {
+    playlistUrl: normalizeHttpUrl(source.playlistUrl, 500) || DEFAULT_FIFA_TV_PLAYLIST,
+    active: activeUrl.startsWith("https://")
+      ? {
+          id: trimString(active.id).slice(0, 120),
+          name: trimString(active.name).slice(0, 120) || "TV kanal",
+          url: activeUrl,
+          logo: normalizeHttpUrl(active.logo, 500),
+          group: trimString(active.group).slice(0, 60),
+        }
+      : null,
+  };
+}
 function normalizeEsportsStartAt(value) {
   const raw = trimString(value);
   if (!raw) return "";
@@ -392,6 +423,7 @@ async function readPersistedSettings(settings) {
     hasOwn(settings, "preRollAd") ||
     hasOwn(settings, "fifaHighlightsChannel") ||
     hasOwn(settings, "fifaStreams") ||
+    hasOwn(settings, "fifaTv") ||
     hasOwn(settings, "esportsStreams")
   ) {
     return {
@@ -401,6 +433,7 @@ async function readPersistedSettings(settings) {
       preRollAd: normalizePreRollAd(settings.preRollAd, settings.adCdn),
       fifaHighlightsChannel: trimString(settings.fifaHighlightsChannel || "").slice(0, 500),
       fifaStreams: normalizeFifaStreams(settings.fifaStreams),
+      fifaTv: normalizeFifaTv(settings.fifaTv),
       esportsStreams: normalizeEsportsStreams(settings.esportsStreams),
     };
   }
@@ -414,6 +447,7 @@ async function readPersistedSettings(settings) {
       preRollAd: normalizePreRollAd(folderSettings.preRollAd, folderSettings.adCdn),
       fifaHighlightsChannel: trimString(folderSettings.fifaHighlightsChannel || "").slice(0, 500),
       fifaStreams: normalizeFifaStreams(folderSettings.fifaStreams),
+      fifaTv: normalizeFifaTv(folderSettings.fifaTv),
       esportsStreams: normalizeEsportsStreams(folderSettings.esportsStreams),
     };
   } catch {
@@ -424,6 +458,7 @@ async function readPersistedSettings(settings) {
       preRollAd: normalizePreRollAd(null),
       fifaHighlightsChannel: "https://www.youtube.com/@qsportuzbekistan/videos",
       fifaStreams: normalizeFifaStreams(undefined),
+      fifaTv: normalizeFifaTv(null),
       esportsStreams: normalizeEsportsStreams(null),
     };
   }
@@ -535,6 +570,9 @@ module.exports = async function handler(request, response) {
       if (hasOwn(body, "fifaStreams")) {
         nextSettings.fifaStreams = normalizeFifaStreams(body.fifaStreams);
       }
+      if (hasOwn(body, "fifaTv")) {
+        nextSettings.fifaTv = normalizeFifaTv(body.fifaTv);
+      }
       if (hasOwn(body, "esportsStreams")) {
         const incoming = body.esportsStreams && typeof body.esportsStreams === "object" ? body.esportsStreams : {};
         nextSettings.esportsStreams = normalizeEsportsStreams(incoming);
@@ -569,6 +607,7 @@ module.exports = async function handler(request, response) {
         preRollAd: normalizePreRollAd(nextSettings.preRollAd),
         fifaHighlightsChannel: nextSettings.fifaHighlightsChannel || "",
         fifaStreams: normalizeFifaStreams(nextSettings.fifaStreams),
+        fifaTv: normalizeFifaTv(nextSettings.fifaTv),
         esportsStreams: normalizeEsportsStreams(nextSettings.esportsStreams),
       });
       return;
@@ -582,3 +621,4 @@ module.exports = async function handler(request, response) {
 
 module.exports.normalizeFifaStreamUrl = normalizeFifaStreamUrl;
 module.exports.normalizeFifaStreams = normalizeFifaStreams;
+module.exports.normalizeFifaTv = normalizeFifaTv;

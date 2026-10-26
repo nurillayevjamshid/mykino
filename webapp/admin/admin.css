@@ -3165,3 +3165,50 @@ body { background: radial-gradient(circle at 72% -10%, #f9fbff 0, var(--page-bg)
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
+
+/* Futbol: M3U pleylistdan TV kanallar (faqat bittasi yoqiladi) */
+.fifa-tv-admin__load { display: flex; gap: 10px; }
+.fifa-tv-admin__load .form-input { flex: 1; min-width: 0; }
+.fifa-tv-admin__search { margin-top: 14px; }
+.fifa-tv-admin__active[hidden], .fifa-tv-admin__search[hidden], .fifa-tv-admin__preview[hidden] { display: none !important; }
+.fifa-tv-admin__active {
+  display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px;
+  border: 1px solid rgba(30, 201, 140, 0.35); border-radius: 12px; background: var(--accent-teal-soft, #e3faf0);
+}
+.fifa-tv-admin__active strong { display: block; color: var(--text); font-size: 14px; }
+.fifa-tv-admin__active small { color: var(--text-secondary, #4b5563); font-size: 12px; }
+.fifa-tv-admin__active .btn { margin-left: auto; }
+.fifa-tv-admin__live-dot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; background: #e2123b; box-shadow: 0 0 0 4px rgba(226, 18, 59, 0.15); }
+.fifa-tv-admin__list {
+  display: flex; flex-direction: column; max-height: 520px; overflow: auto; margin-top: 10px;
+  border: 1px solid var(--border, #e3e6ec); border-radius: 12px;
+}
+.fifa-tv-admin__list:empty { display: none; }
+.fifa-tv-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border, #e3e6ec); }
+.fifa-tv-row:last-child { border-bottom: 0; }
+.fifa-tv-row.is-on { background: var(--primary-soft, #eef0ff); }
+.fifa-tv-row.is-disabled { opacity: 0.55; }
+.fifa-tv-row__logo {
+  width: 40px; height: 40px; flex: 0 0 40px; border-radius: 10px; object-fit: contain;
+  background: var(--bg-elevated, #f1f3f9); padding: 4px; box-sizing: border-box;
+}
+.fifa-tv-row__info { flex: 1; min-width: 0; }
+.fifa-tv-row__name { display: block; overflow: hidden; color: var(--text); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.fifa-tv-row__meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 3px; color: var(--text-secondary, #4b5563); font-size: 12px; }
+.fifa-tv-badge { padding: 1px 7px; border-radius: 6px; background: var(--bg-elevated, #f1f3f9); font-size: 11px; font-weight: 600; }
+.fifa-tv-badge--warn { background: #fef2f2; color: #b91c1c; }
+.fifa-tv-row__try { padding: 6px 10px !important; font-size: 12px !important; }
+.fifa-tv-switch { position: relative; width: 44px; height: 26px; flex: 0 0 44px; }
+.fifa-tv-switch input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.fifa-tv-switch input:disabled { cursor: not-allowed; }
+.fifa-tv-switch span { position: absolute; inset: 0; border-radius: 999px; background: #cbd5e1; transition: background 0.18s ease; }
+.fifa-tv-switch span::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.18s ease;
+}
+.fifa-tv-switch input:checked + span { background: var(--accent-teal, #1ec98c); }
+.fifa-tv-switch input:checked + span::after { transform: translateX(18px); }
+.fifa-tv-switch input:focus-visible + span { outline: 2px solid var(--primary, #3d4adf); outline-offset: 2px; }
+.fifa-tv-admin__preview { margin-top: 14px; overflow: hidden; border-radius: 12px; background: #000; }
+.fifa-tv-admin__preview video { display: block; width: 100%; max-height: 360px; background: #000; }
+.fifa-tv-admin__preview-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; background: #0f172a; color: #e2e8f0; font-size: 13px; }

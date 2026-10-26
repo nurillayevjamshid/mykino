@@ -64,6 +64,34 @@ describe("FIFA live stream buttons", () => {
     assert.equal(stream.originalUrl, "https://live.vkvideo.ru/channel34397329/stream/sl_408845");
   });
 
+  test("stores only the playlist URL and one https TV channel", () => {
+    assert.deepEqual(settingsHandler.normalizeFifaTv(null), {
+      playlistUrl: "https://iptv-org.github.io/iptv/categories/sports.m3u",
+      active: null,
+    });
+    const tv = settingsHandler.normalizeFifaTv({
+      playlistUrl: "https://example.com/list.m3u",
+      active: { id: "ACISportTV.it", name: "ACI Sport TV", url: "https://example.com/aci/index.m3u8", logo: "https://example.com/aci.png", group: "Sports" },
+    });
+    assert.equal(tv.playlistUrl, "https://example.com/list.m3u");
+    assert.equal(tv.active.url, "https://example.com/aci/index.m3u8");
+    assert.equal(tv.active.name, "ACI Sport TV");
+    // Mini ilova https'da — http oqim brauzerda bloklanadi, shuning uchun saqlanmaydi.
+    assert.equal(settingsHandler.normalizeFifaTv({ active: { name: "X", url: "http://1.2.3.4:8080/x.m3u8" } }).active, null);
+  });
+
+  test("admin lists M3U channels with a single-on toggle and the football card shows the active one", () => {
+    const adminHtml = fs.readFileSync(path.join(root, "webapp/admin/index.html"), "utf8");
+    const adminJs = fs.readFileSync(path.join(root, "webapp/admin/admin.js"), "utf8");
+    const fifa = fs.readFileSync(path.join(root, "webapp/fifa/fifa.js"), "utf8");
+    assert.match(adminHtml, /id="fifaTvPlaylistUrl"/);
+    assert.match(adminHtml, /id="fifaTvList"/);
+    assert.match(adminJs, /function parseM3uPlaylist\(/);
+    assert.match(adminJs, /JSON\.stringify\(\{ fifaTv: \{ playlistUrl: fifaTvState\.playlistUrl, active \} \}\)/);
+    assert.match(fifa, /data\?\.fifaTv\?\.active/);
+    assert.match(fifa, /autoStartLoad: false/);
+  });
+
   test("accepts VK desktop/mobile variants and preserves extra query parameters", () => {
     for (const source of [
       "https://vk.com/video-214218677_456253161",

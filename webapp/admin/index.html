@@ -1163,6 +1163,23 @@
             <div class="modal-actions" style="display:flex;gap:10px;justify-content:space-between;margin-top:14px;"><button type="button" class="btn btn-secondary" id="fifaStreamsAddBtn">+ Button qo‘shish</button><div style="display:flex;gap:10px;"><button type="button" class="btn btn-secondary" id="fifaStreamsDeleteBtn">Barchasini o‘chirish</button><button type="button" class="btn btn-primary" id="fifaStreamsSaveBtn">Saqlash</button></div></div>
             <div id="fifaStreamsStatus" style="margin-top:12px;font-size:13px;"></div>
           </div>
+          <!-- 3. TV kanallar (M3U pleylist) -->
+          <div class="form-card fifa-tv-admin" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:900px;margin-top:16px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><span style="font-size:26px;">📡</span><div><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text);">TV kanallar (M3U pleylist)</h3><div style="font-size:13px;color:var(--text-muted);margin-top:2px;">Pleylist linkini kiritib «Yuklash»ni bosing. Kanalni yoqsangiz, u futbol bo‘limida jonli efir bo‘lib chiqadi. Bir vaqtda faqat bitta kanal yoqiladi.</div></div></div>
+            <div class="fifa-tv-admin__load">
+              <input class="form-input" id="fifaTvPlaylistUrl" type="url" placeholder="https://iptv-org.github.io/iptv/categories/sports.m3u" autocomplete="off">
+              <button type="button" class="btn btn-primary" id="fifaTvLoadBtn">Yuklash</button>
+            </div>
+            <div class="fifa-tv-admin__active" id="fifaTvActive" hidden></div>
+            <div class="fifa-tv-admin__preview" id="fifaTvPreview" hidden>
+              <video id="fifaTvPreviewVideo" controls playsinline muted></video>
+              <div class="fifa-tv-admin__preview-bar"><span id="fifaTvPreviewName"></span><button type="button" class="btn btn-secondary" id="fifaTvPreviewClose">Yopish</button></div>
+            </div>
+            <input class="form-input fifa-tv-admin__search" id="fifaTvSearch" type="search" placeholder="Kanal qidirish…" autocomplete="off" hidden>
+            <div id="fifaTvStatus" style="margin-top:12px;font-size:13px;"></div>
+            <div class="fifa-tv-admin__list" id="fifaTvList"></div>
+            <small class="form-hint" style="display:block;margin-top:12px;">Faqat ochiq va ko‘rsatishga ruxsat berilgan kanallarni yoqing (masalan, FIFA+, Red Bull TV, davlat telekanallari). «HTTP» belgili kanallar mini ilovada ishlamaydi: ilova https orqali ochiladi va brauzer shifrlanmagan oqimni bloklaydi.</small>
+          </div>
         </section>
         <!-- Kibersport translatsiyalar Section -->
         <section class="content-section" id="esportsStreamsSection">

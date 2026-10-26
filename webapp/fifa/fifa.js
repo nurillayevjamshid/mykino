@@ -1487,7 +1487,11 @@
         const res = await fetch("/api/settings", { headers: { Accept: "application/json" }, cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        fifaStreamsCache = Array.isArray(data?.fifaStreams) ? data.fifaStreams.filter((item) => item && item.url) : [];
+        const streams = Array.isArray(data?.fifaStreams) ? data.fifaStreams.filter((item) => item && item.url) : [];
+        // Admin M3U pleylistdan yoqqan TV kanal — boshqa efirlardan oldin turadi.
+        const tv = data?.fifaTv?.active;
+        const tvStreams = tv?.url ? [{ id: `tv-${tv.id || tv.url}`, title: tv.name || "TV kanal", url: tv.url, originalUrl: tv.url, provider: "hls", logo: tv.logo || "", isTv: true }] : [];
+        fifaStreamsCache = [...tvStreams, ...streams];
         window.__fifaStreams = fifaStreamsCache;
         return fifaStreamsCache;
       } catch (_) {
@@ -1537,9 +1541,12 @@
       const isYoutube = isYoutubeStream(stream);
       const isHls = stream.provider === "hls" || /\.m3u8(?:$|\?)/i.test(stream.url);
       if (isHls) {
-        const provider = /(?:varzish)/i.test(title) ? "Varzish TV" : "HLS Live";
-        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div>`;
-        return `<article class="fifa-efir-card fifa-efir-card--hls" data-hls-src="${esc(stream.url)}">${head}<div class="fifa-efir-card__player"><video class="fifa-efir-card__video" playsinline controls preload="metadata"></video></div><a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a></article>`;
+        const provider = stream.isTv ? "TV kanal" : (/(?:varzish)/i.test(title) ? "Varzish TV" : "HLS Live");
+        const logo = stream.isTv && stream.logo ? `<img class="fifa-efir-card__logo" src="${esc(stream.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
+        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__brand">${logo}<div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div>`;
+        // TV kanalning "ochish" havolasi xom .m3u8 bo'lardi — foydasiz, shuning uchun ko'rsatmaymiz.
+        const openLink = stream.isTv ? "" : `<a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a>`;
+        return `<article class="fifa-efir-card fifa-efir-card--hls" data-hls-src="${esc(stream.url)}">${head}<div class="fifa-efir-card__player"><video class="fifa-efir-card__video" playsinline controls preload="none"></video></div>${openLink}</article>`;
       }
       const isEmbed = isYoutube || /(?:video_ext\.php|app\/embed)/i.test(stream.url);
       if (!isEmbed) {
@@ -1563,9 +1570,11 @@
       } else {
         loadHlsLib().then((Hls) => {
           if (!Hls || !Hls.isSupported()) { video.src = src; return; }
-          const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+          // Bo'limni ochgan har bir foydalanuvchi efirni yuklab yubormasin — faqat play bosilganda.
+          const hls = new Hls({ enableWorker: true, lowLatencyMode: true, autoStartLoad: false });
           hls.loadSource(src);
           hls.attachMedia(video);
+          video.addEventListener("play", () => hls.startLoad(), { once: true });
         }).catch(() => {
           video.src = src;
         });
