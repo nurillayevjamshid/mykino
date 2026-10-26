@@ -669,6 +669,59 @@ async function handleFifaFavorites(request, response) {
   return response.status(405).json({ ok: false, error: "Method not allowed." });
 }
 
+// Jonli efirni hozir ko'rib turganlar soni: har bir tomoshabin ~30 soniyada
+// "men shu yerdaman" signalini yuboradi, oxirgi 70 soniyada signal bergan
+// tasdiqlangan Telegram foydalanuvchilari sanaladi (Redis sorted set).
+const FIFA_VIEWERS_KEY = "fifa:viewers:v1";
+const FIFA_VIEWERS_TTL_MS = 70 * 1000;
+const fifaViewersMemory = new Map();
+
+async function countFifaViewers({ join, leave } = {}) {
+  const now = Date.now();
+  const cutoff = now - FIFA_VIEWERS_TTL_MS;
+  const client = await getRedis().catch(() => null);
+  if (client) {
+    try {
+      const tx = client.multi();
+      if (join) tx.zAdd(FIFA_VIEWERS_KEY, { score: now, value: join });
+      if (leave) tx.zRem(FIFA_VIEWERS_KEY, leave);
+      tx.zRemRangeByScore(FIFA_VIEWERS_KEY, 0, cutoff);
+      tx.zCard(FIFA_VIEWERS_KEY);
+      tx.pExpire(FIFA_VIEWERS_KEY, FIFA_VIEWERS_TTL_MS * 2);
+      const results = await tx.exec();
+      return Number(results[results.length - 2]) || 0;
+    } catch (err) {
+      console.warn("redis fifa-viewers xato:", err.message);
+    }
+  }
+  // Redis bo'lmasa — instansiya xotirasi (lokal ishga tushirish va testlar uchun)
+  if (join) fifaViewersMemory.set(join, now);
+  if (leave) fifaViewersMemory.delete(leave);
+  for (const [id, at] of fifaViewersMemory) {
+    if (at <= cutoff) fifaViewersMemory.delete(id);
+  }
+  return fifaViewersMemory.size;
+}
+
+async function handleFifaViewers(request, response) {
+  response.setHeader("Cache-Control", "no-store, max-age=0");
+  if (request.method === "GET") {
+    const viewers = await countFifaViewers();
+    return response.status(200).json({ ok: true, viewers });
+  }
+  if (!["POST", "DELETE", "OPTIONS"].includes(request.method)) {
+    return response.status(405).json({ ok: false, error: "Method not allowed." });
+  }
+  // Sonni sun'iy oshirib bo'lmasin — faqat initData'si tasdiqlangan foydalanuvchi sanaladi.
+  const user = await requireVerifiedUser(request, response);
+  if (!user) return;
+  const userId = request.verifiedUserId;
+  const viewers = request.method === "POST"
+    ? await countFifaViewers({ join: userId })
+    : await countFifaViewers({ leave: userId });
+  return response.status(200).json({ ok: true, viewers });
+}
+
 async function handleTvChannels(request, response) {
   if (request.method === "GET") {
     try {
@@ -2244,6 +2297,10 @@ module.exports = async function handler(request, response) {
   }
   if (earlyType === "fifa-favorites") {
     await handleFifaFavorites(request, response);
+    return;
+  }
+  if (earlyType === "fifa-viewers") {
+    await handleFifaViewers(request, response);
     return;
   }
 

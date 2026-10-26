@@ -1528,6 +1528,8 @@
     const signature = JSON.stringify(list.map((stream) => [stream.url, stream.title, stream.originalUrl]));
     if (wrap.dataset.streamsSignature === signature) return;
     wrap.dataset.streamsSignature = signature;
+    fifaViewersHasStreams = list.length > 0;
+    syncFifaViewers();
     if (!list.length) { wrap.innerHTML = ""; return; }
     const isYoutubeStream = (stream) => stream.provider === "youtube" || /(?:youtube\.com|youtu\.be)/i.test(`${stream.originalUrl || ""} ${stream.url || ""}`);
     // VK Video Live telefonda mobil saytini beradi, u esa /app/embed yo'lini tanimaydi
@@ -1535,6 +1537,7 @@
     // brauzerida ochadigan cover ko'rsatamiz; kompyuterda pleyer card ichida qoladi.
     const platform = String(window.Telegram?.WebApp?.platform || "").toLowerCase();
     const isPhone = /^(ios|android)/.test(platform) || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+    const livePill = `<span class="fifa-streams-live-pill"><i></i> LIVE<span class="fifa-streams-viewers" data-fifa-viewers hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C6.5 5 2.7 9.4 1.5 12c1.2 2.6 5 7 10.5 7s9.3-4.4 10.5-7C21.3 9.4 17.5 5 12 5Zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Zm0-2.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg><b></b></span></span>`;
     wrap.innerHTML = list.map((stream) => {
       const title = stream.title || "Futbol jonli efiri";
       const originalUrl = stream.originalUrl || stream.url;
@@ -1543,23 +1546,24 @@
       if (isHls) {
         const provider = stream.isTv ? "TV kanal" : (/(?:varzish)/i.test(title) ? "Varzish TV" : "HLS Live");
         const logo = stream.isTv && stream.logo ? `<img class="fifa-efir-card__logo" src="${esc(stream.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
-        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__brand">${logo}<div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div>`;
+        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__brand">${logo}<div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div></div>${livePill}</div>`;
         // TV kanalning "ochish" havolasi xom .m3u8 bo'lardi — foydasiz, shuning uchun ko'rsatmaymiz.
         const openLink = stream.isTv ? "" : `<a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a>`;
         return `<article class="fifa-efir-card fifa-efir-card--hls" data-hls-src="${esc(stream.url)}">${head}<div class="fifa-efir-card__player"><video class="fifa-efir-card__video" playsinline controls preload="none"></video></div>${openLink}</article>`;
       }
       const isEmbed = isYoutube || /(?:video_ext\.php|app\/embed)/i.test(stream.url);
       if (!isEmbed) {
-        return `<a class="fifa-vk-live-card" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><div class="fifa-vk-live-card__body"><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h3>${esc(title)}</h3><span class="fifa-vk-live-card__hint">Translyatsiyani ochish <b>↗</b></span></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></a>`;
+        return `<a class="fifa-vk-live-card" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><div class="fifa-vk-live-card__body"><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h3>${esc(title)}</h3><span class="fifa-vk-live-card__hint">Translyatsiyani ochish <b>↗</b></span></div>${livePill}</a>`;
       }
       const isVkLive = /live\.vkvideo\.ru\/app\/embed/i.test(stream.url);
       const provider = isYoutube ? "YouTube" : (isVkLive ? "VK Video Live" : "VK Video");
-      const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div>`;
+      const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div>${livePill}</div>`;
       if (isVkLive && isPhone) {
         return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><a class="fifa-efir-card__cover" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><span class="fifa-efir-card__play" aria-hidden="true"></span><span class="fifa-efir-card__cover-text">Efirni ko‘rish</span><small>VK Video Live’da ochiladi</small></a></div></article>`;
       }
       return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div><a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a></article>`;
     }).join("");
+    paintFifaViewers();
 
     wrap.querySelectorAll(".fifa-efir-card--hls").forEach((card) => {
       const video = card.querySelector("video");
@@ -1598,6 +1602,69 @@
     event.preventDefault();
     try { openLink.call(window.Telegram.WebApp, link.href); } catch (_) { window.open(link.href, "_blank", "noopener"); }
   });
+  // --- Jonli efirni hozir ko'rib turganlar soni ---
+  // Futbol bo'limi ochiq va efir kartasi bor ekan, har 30 soniyada serverga
+  // "shu yerdaman" signali yuboriladi; javobda umumiy son keladi.
+  const FIFA_VIEWERS_BEAT_MS = 30 * 1000;
+  const FIFA_VIEWERS_URL = "/api/categories?type=fifa-viewers";
+  let fifaViewersCount = 0;
+  let fifaViewersHasStreams = false;
+  let fifaViewersTimer = null;
+  function formatViewers(n) {
+    if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, "")}K`;
+    return String(n);
+  }
+  function paintFifaViewers() {
+    document.querySelectorAll("[data-fifa-viewers]").forEach((el) => {
+      el.hidden = !(fifaViewersCount > 0);
+      el.setAttribute("aria-label", `${fifaViewersCount} kishi ko'rmoqda`);
+      const num = el.querySelector("b");
+      if (num) num.textContent = formatViewers(fifaViewersCount);
+    });
+  }
+  async function sendFifaViewersBeat() {
+    const initData = window.Telegram?.WebApp?.initData;
+    try {
+      // Telegram'dan tashqarida faqat sonni o'qiymiz — tasdiqlanmagan tomoshabin sanalmaydi.
+      const res = await fetch(FIFA_VIEWERS_URL, {
+        method: initData ? "POST" : "GET",
+        headers: initData ? { "X-TG-Init-Data": initData } : {},
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (fifaViewersTimer && Number.isFinite(data?.viewers)) {
+        fifaViewersCount = data.viewers;
+        paintFifaViewers();
+      }
+    } catch (_) {}
+  }
+  function leaveFifaViewers() {
+    const initData = window.Telegram?.WebApp?.initData;
+    if (!initData) return;
+    try {
+      fetch(FIFA_VIEWERS_URL, { method: "DELETE", headers: { "X-TG-Init-Data": initData }, keepalive: true }).catch(() => {});
+    } catch (_) {}
+  }
+  function syncFifaViewers() {
+    const active = fifaViewersHasStreams && !document.hidden && Boolean(fifaView && !fifaView.hidden);
+    if (active && !fifaViewersTimer) {
+      fifaViewersTimer = setInterval(sendFifaViewersBeat, FIFA_VIEWERS_BEAT_MS);
+      sendFifaViewersBeat();
+    } else if (!active && fifaViewersTimer) {
+      clearInterval(fifaViewersTimer);
+      fifaViewersTimer = null;
+      leaveFifaViewers();
+    }
+  }
+  document.addEventListener("visibilitychange", syncFifaViewers);
+  window.addEventListener("pagehide", () => {
+    if (!fifaViewersTimer) return;
+    clearInterval(fifaViewersTimer);
+    fifaViewersTimer = null;
+    leaveFifaViewers();
+  });
+
   async function renderFifaStreamsPanel(force = false) {
     renderFifaStreamsPromo(await loadFifaStreams(force));
   }
@@ -2515,6 +2582,7 @@
   async function openFifaView() {
     fifaView.hidden = false;
     document.body.classList.add("is-fifa");
+    syncFifaViewers();
     try { loadAndRenderFifaHighlights(); } catch (_) {}
     // Loading placeholder darhol ko'rinsin
     renderMatches();
@@ -2535,6 +2603,7 @@
     fifaView.hidden = true;
     document.body.classList.remove("is-fifa");
     stopFifaPolling();
+    syncFifaViewers();
     try { window.tgBackUnregister?.("fifa-lineup"); } catch (_) {}
     try { window.tgBackUnregister?.("fifa"); } catch (_) {}
     try { window.setFilter?.("all"); } catch (_) {}
