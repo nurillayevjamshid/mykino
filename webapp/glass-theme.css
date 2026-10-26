@@ -4669,3 +4669,13 @@ html[data-theme="light"] .fifa-coach-name {
   font-size: 16px !important;
   font-weight: 800 !important;
 }
+
+/* Kunduzgi rejimda FIFA match modalidagi yulduzcha icon (dumaloq) */
+.fifa-lineup-star-btn,
+html[data-theme="light"] .fifa-lineup-star-btn {
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  flex: 0 0 32px !important;
+  padding: 0 !important;
+}
