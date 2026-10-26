@@ -5459,7 +5459,7 @@ document.getElementById('fifaHighlightsDeleteBtn')?.addEventListener('click', de
 
 
 // ============================================================
-// Futbol translyatsiyasi (YouTube Live card / VK button)
+// Futbol translyatsiyasi (VK Video / YouTube Live pleyerli card)
 let fifaStreamsLoaded = false;
 let fifaStreamsDraft = [];
 function setFifaStreamsStatus(text, kind = "") {
@@ -5471,9 +5471,14 @@ function renderFifaStreamsForm() {
   if (!fifaStreamsDraft.length) fifaStreamsDraft = [{ id: `fifa-stream-${Date.now()}`, url: "", title: "", enabled: true }];
   wrap.innerHTML = fifaStreamsDraft.map((item, index) => `<div class="fifa-admin-stream-row" data-fifa-stream-row="${index}">
     <div class="fifa-admin-stream-row__top"><strong>Translyatsiya ${index + 1}</strong><button type="button" class="btn btn-secondary" data-fifa-stream-remove="${index}" ${fifaStreamsDraft.length === 1 ? "disabled" : ""}>O'chirish</button></div>
-    <div class="form-row"><div class="form-group" style="flex:1"><label>Nom</label><input class="form-input" data-fifa-field="title" data-index="${index}" value="${escapeHtml(item.title || "")}" placeholder="Masalan: Real Madrid — Barcelona" maxlength="120"></div><div class="form-group" style="flex:2"><label>YouTube Live yoki VK linki</label><input class="form-input" data-fifa-field="url" data-index="${index}" value="${escapeHtml(item.originalUrl || item.url || "")}" placeholder="https://www.youtube.com/live/... yoki https://m.vkvideo.ru/video-..." type="url"><small class="form-hint">YouTube linki mini-ilovada video card, VK linki esa button bo'lib chiqadi.</small></div></div>
+    <div class="form-row"><div class="form-group" style="flex:1"><label>Nom</label><input class="form-input" data-fifa-field="title" data-index="${index}" value="${escapeHtml(item.title || "")}" placeholder="Masalan: Real Madrid — Barcelona" maxlength="120"></div><div class="form-group" style="flex:2"><label>YouTube Live yoki VK linki</label><input class="form-input" data-fifa-field="url" data-index="${index}" value="${escapeHtml(item.originalUrl || item.url || "")}" placeholder="https://www.youtube.com/live/... yoki https://m.vkvideo.ru/video-..." type="url"><small class="form-hint">VK Video (masalan https://vksport.m.vkvideo.ru/video-221212132_456248840) yoki YouTube Live linki futbol bo'limida pleyerli video card bo'lib chiqadi.</small></div></div>
   </div>`).join("");
-  wrap.querySelectorAll("[data-fifa-field]").forEach((el) => el.addEventListener("input", () => { const i = Number(el.dataset.index); fifaStreamsDraft[i][el.dataset.fifaField] = el.type === "checkbox" ? el.checked : el.value; }));
+  wrap.querySelectorAll("[data-fifa-field]").forEach((el) => el.addEventListener("input", () => {
+    const i = Number(el.dataset.index); const field = el.dataset.fifaField;
+    fifaStreamsDraft[i][field] = el.type === "checkbox" ? el.checked : el.value;
+    // Input foydalanuvchi kiritgan asl linkni ko'rsatadi — uni originalUrl'da ham saqlaymiz.
+    if (field === "url") fifaStreamsDraft[i].originalUrl = el.value;
+  }));
   wrap.querySelectorAll("[data-fifa-stream-remove]").forEach((el) => el.addEventListener("click", () => { fifaStreamsDraft.splice(Number(el.dataset.fifaStreamRemove), 1); renderFifaStreamsForm(); }));
 }
 async function loadFifaStreamsSettings() {
@@ -5482,9 +5487,10 @@ async function loadFifaStreamsSettings() {
   catch (err) { setFifaStreamsStatus(`Yuklashda xato: ${err.message}`, "error"); renderFifaStreamsForm(); }
 }
 async function saveFifaStreams() {
-  // Input o'zgartirilganda `url` yangi qiymatni saqlaydi; eski `originalUrl`
-  // faqat API'dan kelgan, tahrirlanmagan qiymat uchun fallback bo'ladi.
-  const rows = fifaStreamsDraft.map((item) => ({ id: item.id, enabled: true, url: String(item.url || item.originalUrl || "").trim(), title: String(item.title || "").trim() })).filter((item) => item.url);
+  // API `url` ni embed manzilga aylantirib qaytaradi, asl link esa `originalUrl` da.
+  // Asl linkni yuboramiz — aks holda qayta saqlashda "VK Video'da ochish" tugmasi
+  // VK sahifasi o'rniga embed pleyerni ochadigan bo'lib qoladi.
+  const rows = fifaStreamsDraft.map((item) => ({ id: item.id, enabled: true, url: String(item.originalUrl || item.url || "").trim(), title: String(item.title || "").trim() })).filter((item) => item.url);
   if (rows.some((item) => !/^https?:\/\//i.test(item.url))) { setFifaStreamsStatus("Har bir link https:// bilan boshlanishi kerak.", "error"); return; }
   if (rows.some((item) => !/(youtube\.com|youtu\.be|vk\.com|vk\.ru|vkvideo\.ru)/i.test(item.url))) { setFifaStreamsStatus("Faqat YouTube yoki VK Video linklari qabul qilinadi.", "error"); return; }
   setFifaStreamsStatus("Stream sozlamalari saqlanmoqda…");

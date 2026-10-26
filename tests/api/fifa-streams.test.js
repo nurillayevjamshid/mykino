@@ -21,6 +21,13 @@ describe("FIFA live stream buttons", () => {
     });
   });
 
+  test("normalizes a VK Sport live broadcast link from the admin panel", () => {
+    assert.deepEqual(settingsHandler.normalizeFifaStreamUrl("https://vksport.m.vkvideo.ru/video-221212132_456248840"), {
+      provider: "vk",
+      url: "https://vk.ru/video_ext.php?oid=-221212132&id=456248840",
+    });
+  });
+
   test("accepts VK desktop/mobile variants and preserves extra query parameters", () => {
     for (const source of [
       "https://vk.com/video-214218677_456253161",
@@ -53,8 +60,10 @@ describe("FIFA live stream buttons", () => {
     assert.match(fifa, /class="fifa-vk-live-card"/);
     assert.doesNotMatch(fifa, /class="fifa-stream-button"/);
     assert.match(fifa, /target="_blank"/);
-    assert.match(fifa, /fifa-youtube-live-card/);
-    assert.match(fifa, /YouTube’da ochish/);
+    assert.match(fifa, /class="fifa-efir-card"/);
+    assert.match(fifa, /class="fifa-efir-card__frame"/);
+    assert.match(fifa, /’da ochish/);
+    assert.match(fifa, /streamsSignature/);
   });
 
   test("provides admin controls for adding and saving stream links", () => {
@@ -64,7 +73,8 @@ describe("FIFA live stream buttons", () => {
     assert.match(html, /id="fifaStreamsAddBtn"/);
     assert.match(html, /id="fifaStreamsSaveBtn"/);
     assert.match(js, /body: JSON\.stringify\(\{ fifaStreams: rows \}\)/);
-    assert.match(js, /String\(item\.url \|\| item\.originalUrl/);
+    assert.match(js, /String\(item\.originalUrl \|\| item\.url/);
+    assert.match(js, /if \(field === "url"\) fifaStreamsDraft\[i\]\.originalUrl = el\.value/);
     assert.match(js, /YouTube Live yoki VK linki/);
     assert.match(js, /video card/);
   });

@@ -8699,8 +8699,11 @@ function syncSidebarSettings() {
 syncSidebarSettings();
 
 // Kibersport / News / havola orqali kelgan bo'lim yo'nalishini ishga tushirish.
+// setTimeout(0): showSectionSplash va openFifaView quyida e'lon qilingan
+// const/let'larga tayanadi (SECTION_SPLASH_ICONS, __fifaModulePromise). Darhol
+// chaqirilsa TDZ xatosi skriptning qolgan qismini to'xtatib, splash abadiy qoladi.
 const requestedSection = pageParams.get('section');
-if (requestedSection) {
+if (requestedSection) setTimeout(() => {
   const splashKey = (requestedSection === 'football' || requestedSection === 'fifa') ? 'fifa' : requestedSection;
   showSectionSplash(splashKey);
   try {
@@ -8715,7 +8718,7 @@ if (requestedSection) {
     ensureTelegramFullscreen();
     hideSectionSplash();
   }, 1500);
-}
+}, 0);
 
 // Sidebar yuqori 3 slot — joriy bo'limdan boshqa bo'limlarga o'tish tugmalari.
 // Tartib har bo'limda qat'iy:
@@ -12188,7 +12191,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261026-clean-live-card-v1";
+    script.src = "/static/fifa/fifa.js?v=20261026-vk-live-card-v1";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
