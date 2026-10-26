@@ -92,6 +92,11 @@ describe("FIFA live stream buttons", () => {
     assert.match(fifa, /autoStartLoad: false/);
     // Ishlamaydigan oqim yoqilmaydi va mini ilovada tushunarli xabar chiqadi.
     assert.match(adminJs, /const works = await probeFifaTvStream\(channel\.url\)/);
+    // Faqat https va tekshirilgan futbol kanallari; pullik kanallar ro'yxatga kiritilmagan.
+    assert.match(adminJs, /const playable = all\.filter\(\(ch\) => !ch\.isHttp\)/);
+    assert.match(adminJs, /"Sport\.uz@SD": /);
+    assert.match(adminJs, /"FIFAPlus\.uk@English": /);
+    assert.doesNotMatch(adminJs, /"(?:beINSports1Turk\.tr|ESPN2\.nl|SSport\.tr|TyCSports\.ar)@/);
     assert.match(fifa, /Efir hozir mavjud emas/);
   });
 

@@ -5848,6 +5848,64 @@ document.getElementById('tvChFormLogo')?.addEventListener('input', syncTvChLogoP
 // Futbol: M3U pleylistdan TV kanallar. Butun ro'yxat shu yerda o'qiladi,
 // serverga faqat pleylist linki va yoqilgan bitta kanal saqlanadi (fifaTv).
 const FIFA_TV_DEFAULT_PLAYLIST = "https://iptv-org.github.io/iptv/categories/sports.m3u";
+// Pleylistdan faqat oxirgi 1–2 yilda futbol ko'rsatgan bepul/rasmiy kanallar qoladi
+// (2026-oktabr holatiga internetdan tekshirilgan). Kalit — tvg-id, qiymat — dalil.
+// Pullik kanallar (beIN Turk, ESPN, S Sport, Eurosport, TyC, Tigo, DAZN va h.k.)
+// pleylistda bo'lsa ham norasmiy retranslyatsiya — ataylab kiritilmagan.
+const FIFA_TV_FOOTBALL_CHANNELS = {
+  "FIFAPlus.uk@English": "FIFA+ — dunyo ligalari, jonli o'yinlar",
+  "FIFAPlus.uk@French": "FIFA+ — dunyo ligalari, jonli o'yinlar",
+  "FIFAPlus.uk@German": "FIFA+ — dunyo ligalari, jonli o'yinlar",
+  "FIFAPlus.uk@HispanicAmerica": "FIFA+ — dunyo ligalari, jonli o'yinlar",
+  "FIFAPlus.uk@Italy": "FIFA+ — dunyo ligalari, jonli o'yinlar",
+  "FIFAPlus.uk@Portuguese": "FIFA+ — dunyo ligalari, jonli o'yinlar",
+  "FIFAPlus.uk@Spain": "FIFA+ — dunyo ligalari, jonli o'yinlar",
+  "FIFAPlus.uk@UnitedStates": "FIFA+ — dunyo ligalari, jonli o'yinlar",
+  "FIFAPlusWomen.uk@English": "FIFA+ — ayollar futboli",
+  "ASpor.tr@SD": "Turkiya kubogi (2025-26)",
+  "TRTSpor.tr@SD": "TFF 1. Lig, UEFA kubogi o'yinlari (2025-26)",
+  "HTSporTV.tr@SD": "TFF 2. va 3. Lig (2024-25)",
+  "Sportitalia.it@SD": "Saudiya Pro Ligasi, Argentina, Primavera (2025-26)",
+  "SportitaliaSolocalcio.it@SD": "Saudiya Pro Ligasi, Afrika kubogi 2025",
+  "CBSSportsGolazoNetwork.us@SD": "Jonli o'yinlar, Baller League (2026)",
+  "GolazoNetwork.us@SD": "Jonli o'yinlar, Baller League (2026)",
+  "beINSPORTSXTRA.us@SD": "Süper Lig, Ligue 1 — tanlangan o'yinlar",
+  "RealMadridTV.es@SD": "Real Madrid Castilla o'yinlari",
+  "LazioStyleChannel.it@HD": "Lazio Primavera, o'rtoqlik o'yinlari (2025)",
+  "DDSports.in@SD": "Indian Football League (2025-26)",
+  "DDSports.in@HD": "Indian Football League (2025-26)",
+  "TSports.bd@SD": "Jahon chempionati 2026, futzal ligasi",
+  "LEquipe.fr@SD": "JCh-2026 saralash o'yinlari",
+  "Belarus5.by@SD": "Belarus chempionati, terma jamoa",
+  "Belarus5.by@Internet": "Belarus chempionati, terma jamoa",
+  "Sport.uz@SD": "O'zbekiston Superligasi, U-17 JCh 2025",
+  "TurkmenistanSport.tm@SD": "Turkmaniston Ýokary Ligasi",
+  "Sport.kg@SD": "Jahon chempionati 2026",
+  "CBCSport.az@HD": "Ozarbayjon Premyer-ligasi (2025-26)",
+  "MNBSport.mn@SD": "Jahon chempionati 2026",
+  "VarzeshTV.ir@SD": "Eron Pro Ligasi (2025-26)",
+  "KTVSport.kw@SD": "Fors ko'rfazi kubogi 2024, Quvayt ligasi",
+  "KTVSportPlus.kw@SD": "Fors ko'rfazi kubogi 2024, Quvayt ligasi",
+  "OmanSportsTV.om@SD": "Ummon Pro Ligasi, Fors ko'rfazi kubogi 2026",
+  "BahrainSports1.bh@SD": "Bahrayn Premyer-ligasi (2025-26)",
+  "BahrainSports2.bh@SD": "Bahrayn Premyer-ligasi (2025-26)",
+  "SharjahSports.ae@SD": "BAA Pro Ligasi, Prezident kubogi (2025-26)",
+  "AlIraqiaSport.iq@SD": "Iroq Yulduzlar Ligasi (2025-26)",
+  "CCTV5Plus.cn@SD": "Jahon chempionati 2026",
+  "SukanRTM.my@SD": "Malayziya Superligasi (2024-25)",
+  "TSports7.th@SD": "SEA Games 2025",
+  "MRTVSports.mm@SD": "Myanma Milliy Ligasi",
+  "HTVSports.vn@SD": "V.League (2026-27)",
+  "VTV6.vn@HD": "V.League (2026-27)",
+  "SanMarinoRTVSport.sm@SD": "San-Marino chempionati",
+  "Teledeporte.es@SD": "LaLiga, Qirol kubogi (2025-26)",
+  "Esport3.es@SD": "Barça ayollar jamoasi, Chempionlar Ligasi",
+  "PlutoTVEsportes.us@BR": "Ayollar Libertadores kubogi 2025",
+  "FuboSportsNetwork.us@SD": "Millatlar Ligasi (2024-25)",
+  "CRTVSportsandEntertainment.cm@SD": "Kamerun Elite One",
+  "NSports.br@SD": "Braziliya Serie B, shtat chempionatlari",
+  "TDMSports.mo@SD": "Jahon chempionati 2026",
+};
 let fifaTvState = { playlistUrl: "", active: null, channels: [], query: "", loadedOnce: false, busy: false };
 let fifaTvHls = null;
 let fifaTvHlsLib = null;
@@ -5898,18 +5956,17 @@ function renderFifaTvList() {
   const q = fifaTvState.query.trim().toLowerCase();
   const activeUrl = fifaTvState.active?.url || "";
   const rows = fifaTvState.channels
-    .filter((ch) => !q || `${ch.name} ${ch.group} ${ch.tvgId}`.toLowerCase().includes(q))
-    // Yoqilgan kanal doim tepada, keyin https, oxirida http.
-    .sort((a, b) => (b.url === activeUrl) - (a.url === activeUrl) || a.isHttp - b.isHttp);
+    .filter((ch) => !q || `${ch.name} ${ch.group} ${ch.tvgId} ${ch.footballNote}`.toLowerCase().includes(q))
+    // Yoqilgan kanal doim tepada.
+    .sort((a, b) => (b.url === activeUrl) - (a.url === activeUrl));
   list.innerHTML = rows.map((ch) => {
     const on = ch.url === activeUrl;
     const badges = [
-      ch.group ? `<span class="fifa-tv-badge">${escapeHtml(ch.group)}</span>` : "",
-      ch.isHttp ? `<span class="fifa-tv-badge fifa-tv-badge--warn" title="Mini ilova https orqali ochiladi — http oqim bloklanadi">HTTP · ishlamaydi</span>` : "",
+      ch.footballNote ? `<span class="fifa-tv-badge fifa-tv-badge--football">⚽ ${escapeHtml(ch.footballNote)}</span>` : (ch.group ? `<span class="fifa-tv-badge">${escapeHtml(ch.group)}</span>` : ""),
       ch.needsOptions ? `<span class="fifa-tv-badge" title="Pleylistda maxsus header talab qilingan — brauzerda ochilmasligi mumkin">Maxsus header</span>` : "",
     ].join("");
     const logo = ch.logo ? `<img class="fifa-tv-row__logo" src="${escapeHtml(ch.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">` : `<span class="fifa-tv-row__logo"></span>`;
-    return `<div class="fifa-tv-row${on ? " is-on" : ""}${ch.isHttp ? " is-disabled" : ""}">${logo}<div class="fifa-tv-row__info"><span class="fifa-tv-row__name">${escapeHtml(ch.name)}</span><div class="fifa-tv-row__meta">${badges}</div></div><button type="button" class="btn btn-secondary fifa-tv-row__try" data-fifa-tv-try="${escapeHtml(ch.url)}" ${ch.isHttp ? "disabled" : ""}>Sinash</button><label class="fifa-tv-switch" title="${ch.isHttp ? "HTTP kanal yoqilmaydi" : "Futbol bo'limida ko'rsatish"}"><input type="checkbox" role="switch" data-fifa-tv-toggle="${escapeHtml(ch.url)}" ${on ? "checked" : ""} ${ch.isHttp ? "disabled" : ""} aria-label="${escapeHtml(ch.name)}"><span></span></label></div>`;
+    return `<div class="fifa-tv-row${on ? " is-on" : ""}">${logo}<div class="fifa-tv-row__info"><span class="fifa-tv-row__name">${escapeHtml(ch.name)}</span><div class="fifa-tv-row__meta">${badges}</div></div><button type="button" class="btn btn-secondary fifa-tv-row__try" data-fifa-tv-try="${escapeHtml(ch.url)}">Sinash</button><label class="fifa-tv-switch" title="Futbol bo'limida ko'rsatish"><input type="checkbox" role="switch" data-fifa-tv-toggle="${escapeHtml(ch.url)}" ${on ? "checked" : ""} aria-label="${escapeHtml(ch.name)}"><span></span></label></div>`;
   }).join("");
   if (fifaTvState.channels.length && !rows.length) list.innerHTML = `<div class="fifa-tv-row"><span class="fifa-tv-row__name">Hech narsa topilmadi</span></div>`;
 }
@@ -5940,13 +5997,21 @@ async function loadFifaTvPlaylist() {
   try {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const channels = parseM3uPlaylist(await res.text());
-    if (!channels.length) throw new Error("pleylistda kanal topilmadi");
+    const all = parseM3uPlaylist(await res.text());
+    // http oqimni https mini ilova o'ynata olmaydi — ro'yxatdan butunlay olib tashlaymiz.
+    const playable = all.filter((ch) => !ch.isHttp);
+    if (!playable.length) throw new Error("pleylistda https kanal topilmadi");
+    const football = playable
+      .filter((ch) => FIFA_TV_FOOTBALL_CHANNELS[ch.tvgId])
+      .map((ch) => ({ ...ch, footballNote: FIFA_TV_FOOTBALL_CHANNELS[ch.tvgId] }));
+    // Boshqa (o'zingizning) pleylistda tekshirilgan kanal bo'lmasa — barcha https kanallar.
+    const channels = football.length ? football : playable.map((ch) => ({ ...ch, footballNote: "" }));
     const changed = url !== fifaTvState.playlistUrl;
     fifaTvState.playlistUrl = url;
     fifaTvState.channels = channels;
-    const httpsCount = channels.filter((ch) => !ch.isHttp).length;
-    setFifaTvStatus(`${channels.length} ta kanal yuklandi (${httpsCount} tasi mini ilovada ishlay oladi).`, "ok");
+    setFifaTvStatus(football.length
+      ? `${channels.length} ta futbol kanali (${all.length} tadan: http va futbol ko'rsatmaydiganlar olib tashlandi).`
+      : `${channels.length} ta https kanal yuklandi (tekshirilgan futbol kanallari ro'yxatida yo'q).`, "ok");
     renderFifaTvList();
     if (changed) await saveFifaTv(fifaTvState.active);
   } catch (err) {
