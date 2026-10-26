@@ -88,6 +88,9 @@ describe("FIFA live stream buttons", () => {
     assert.match(fifa, /class="fifa-efir-card__frame"/);
     assert.match(fifa, /’da ochish/);
     assert.match(fifa, /streamsSignature/);
+    // Telefonda VK Live embed yuklanmaydi — iframe o'rniga ochish cover'i.
+    assert.match(fifa, /isVkLive && isPhone/);
+    assert.match(fifa, /class="fifa-efir-card__cover"/);
   });
 
   test("provides admin controls for adding and saving stream links", () => {

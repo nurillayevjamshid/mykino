@@ -1511,6 +1511,11 @@
     wrap.dataset.streamsSignature = signature;
     if (!list.length) { wrap.innerHTML = ""; return; }
     const isYoutubeStream = (stream) => stream.provider === "youtube" || /(?:youtube\.com|youtu\.be)/i.test(`${stream.originalUrl || ""} ${stream.url || ""}`);
+    // VK Video Live telefonda mobil saytini beradi, u esa /app/embed yo'lini tanimaydi
+    // va pleyer cheksiz yuklanib turadi. Telefonda iframe o'rniga efirni Telegram
+    // brauzerida ochadigan cover ko'rsatamiz; kompyuterda pleyer card ichida qoladi.
+    const platform = String(window.Telegram?.WebApp?.platform || "").toLowerCase();
+    const isPhone = /^(ios|android)/.test(platform) || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
     wrap.innerHTML = list.map((stream) => {
       const title = stream.title || "Futbol jonli efiri";
       const originalUrl = stream.originalUrl || stream.url;
@@ -1519,8 +1524,13 @@
       if (!isEmbed) {
         return `<a class="fifa-vk-live-card" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><div class="fifa-vk-live-card__body"><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h3>${esc(title)}</h3><span class="fifa-vk-live-card__hint">Translyatsiyani ochish <b>↗</b></span></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></a>`;
       }
-      const provider = isYoutube ? "YouTube" : "VK Video";
-      return `<article class="fifa-efir-card"><div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div><div class="fifa-efir-card__player"><iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div><a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a></article>`;
+      const isVkLive = /live\.vkvideo\.ru\/app\/embed/i.test(stream.url);
+      const provider = isYoutube ? "YouTube" : (isVkLive ? "VK Video Live" : "VK Video");
+      const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div><span class="fifa-streams-live-pill"><i></i> LIVE</span></div>`;
+      if (isVkLive && isPhone) {
+        return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><a class="fifa-efir-card__cover" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><span class="fifa-efir-card__play" aria-hidden="true"></span><span class="fifa-efir-card__cover-text">Efirni ko‘rish</span><small>VK Video Live’da ochiladi</small></a></div></article>`;
+      }
+      return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div><a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a></article>`;
     }).join("");
   }
   // Telegram ichida tashqi havolani Telegram'ning o'z brauzerida ochamiz.
