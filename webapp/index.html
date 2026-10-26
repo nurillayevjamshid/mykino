@@ -677,18 +677,19 @@
       <header class="fifa-view__hero">
         <div class="fifa-view__hero-bg" aria-hidden="true"></div>
       </header>
-      <div class="fifa-streams-promo-wrap" id="fifaStreamsPromoWrap" hidden></div>
       <!-- Highlights (YouTube o'yinlar sharhi - header card va tablar oralig'ida) -->
       <div class="fifa-highlights-wrap" id="fifaHighlightsWrap" hidden></div>
 
       <nav class="fifa-tabs" role="tablist" aria-label="Futbol bo‘limlari">
         <button class="fifa-tab is-active" type="button" role="tab" data-fifa-tab="matches" aria-selected="true" data-i18n="fifaTabMatches">O‘yinlar</button>
         <button class="fifa-tab" type="button" role="tab" data-fifa-tab="groups" aria-selected="false" data-i18n="fifaTabGroups">Turnir jadvali</button>
+        <button class="fifa-tab" type="button" role="tab" data-fifa-tab="streams" aria-selected="false">Futbol translyatsiyasi</button>
         <button class="fifa-tab" type="button" role="tab" data-fifa-tab="favorites" aria-selected="false" data-i18n="fifaTabFavorites">Mening jamoam</button>
       </nav>
       <div class="fifa-panels">
         <div class="fifa-panel is-active" id="fifaPanelMatches" role="tabpanel"></div>
         <div class="fifa-panel" id="fifaPanelGroups" role="tabpanel" hidden></div>
+        <div class="fifa-panel" id="fifaPanelStreams" role="tabpanel" hidden></div>
         <div class="fifa-panel" id="fifaPanelFavorites" role="tabpanel" hidden></div>
       </div>
       <div class="fifa-view__spacer"></div>
@@ -1684,7 +1685,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261026-fifa-highlights-fix-v2"></script>
+  <script src="/static/kino/kino.js?v=20261026-fifa-stream-tab-v1"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
