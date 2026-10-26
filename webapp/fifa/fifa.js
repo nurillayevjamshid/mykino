@@ -1900,11 +1900,29 @@
   }
 
   // --- YouTube Highlights (Kunlik o'yinlar sharhi) ---
+  const FIFA_HIGHLIGHTS_STORAGE_KEY = "fifa_highlights_cache_v1";
   let fifaHighlightsCacheData = null;
   let fifaHighlightsLoadedAt = 0;
+
+  // LocalStorage'dan zudlik bilan tiklash (0ms kechikish)
+  try {
+    const storedHl = localStorage.getItem(FIFA_HIGHLIGHTS_STORAGE_KEY);
+    if (storedHl) {
+      const parsedHl = JSON.parse(storedHl);
+      if (Array.isArray(parsedHl) && parsedHl.length) {
+        fifaHighlightsCacheData = parsedHl;
+      }
+    }
+  } catch (_) {}
+
   async function loadAndRenderFifaHighlights(force = false) {
     const wrap = document.getElementById("fifaHighlightsWrap");
     if (!wrap) return;
+
+    // Agar keshda mavjud bo'lsa va wrap bo'sh yoki yashirin bo'lsa, zudlik bilan chizamiz
+    if (fifaHighlightsCacheData && fifaHighlightsCacheData.length && (wrap.hidden || !wrap.children.length)) {
+      renderFifaHighlightsHtml(wrap, fifaHighlightsCacheData);
+    }
 
     const now = Date.now();
     if (!force && fifaHighlightsCacheData && now - fifaHighlightsLoadedAt < 120000) {
@@ -1914,17 +1932,25 @@
 
     try {
       const res = await fetch("/api/categories?type=fifa-highlights", {
-        headers: { Accept: "application/json" }
+        headers: { Accept: "application/json" },
+        cache: "no-store"
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const videos = Array.isArray(data?.videos) ? data.videos : [];
-      fifaHighlightsCacheData = videos;
-      fifaHighlightsLoadedAt = now;
-      renderFifaHighlightsHtml(wrap, videos);
+      if (videos.length > 0) {
+        fifaHighlightsCacheData = videos;
+        fifaHighlightsLoadedAt = now;
+        try { localStorage.setItem(FIFA_HIGHLIGHTS_STORAGE_KEY, JSON.stringify(videos)); } catch (_) {}
+        renderFifaHighlightsHtml(wrap, videos);
+      } else if (!fifaHighlightsCacheData || !fifaHighlightsCacheData.length) {
+        wrap.hidden = true;
+      }
     } catch (err) {
       console.warn("Fifa highlights load failed:", err);
-      if (!fifaHighlightsCacheData || !fifaHighlightsCacheData.length) {
+      if (fifaHighlightsCacheData && fifaHighlightsCacheData.length) {
+        renderFifaHighlightsHtml(wrap, fifaHighlightsCacheData);
+      } else {
         wrap.hidden = true;
       }
     }
@@ -2115,40 +2141,6 @@
 
   function cyrillicToLatinHighlight(text) {
     return String(text || "").replace(/[а-яёА-ЯЁ]/g, (ch) => HIGHLIGHT_CYR_MAP[ch] !== undefined ? HIGHLIGHT_CYR_MAP[ch] : ch);
-  }
-
-  function extractHighlightTeamsOnly(title) {
-    if (!title) return "";
-    let str = String(title).trim();
-
-    // Strip dates first: e.g. 21.10.2026, 21.10
-    str = str.replace(/\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\b/g, "").trim();
-
-    // Split by common delimiters: dot, pipe, colon, slash, or multi-dashes
-    const segments = str.split(/\s*(?:[.|:/]|--+)\s*/).map((s) => s.trim()).filter(Boolean);
-
-    // Find the segment that contains the match separator (—, –, -, or vs)
-    const matchSegment = segments.find((s) => /\s*(?:[-–—]|\bvs\.?\b)\s*/i.test(s));
-
-    let result = matchSegment || segments[0] || str;
-
-    // Strip tournament & highlight words if any remain inside the segment
-    result = result
-      .replace(/(?:Chempionlar|Yevropa|Konferensiyalar)\s+ligasi[^\n]*/gi, "")
-      .replace(/(?:Premyer-liga|La\s*Liga|Bundesliga|A\s*Seriya|Liga\s*1)[^\n]*/gi, "")
-      .replace(/(?:Лига\s+чемпионов|Лига\s+Европы|Лига\s+конференций)[^\n]*/gi, "")
-      .replace(/(?:o'yin\s+highlightslari|o'yin\s+sharhi|highlightslari|highlights|обзор\s+матча|обзор|sharh)[^\n]*/gi, "")
-      .replace(/(?:barcha\s+gollar|все\s+голы)[^\n]*/gi, "")
-      .replace(/[.,:;!|#]+$/g, "")
-      .trim();
-
-    // Normalize match separator to ' — '
-    result = result.replace(/\s*(?:[-–—]|\bvs\.?\b)\s*/gi, " — ");
-
-    // Strip trailing/leading punctuation
-    result = result.replace(/^[.,:;!\-–—\s]+|[.,:;!\-–—\s]+$/g, "").trim();
-
-    return result || title;
   }
 
   function extractHighlightTeamsOnly(title) {

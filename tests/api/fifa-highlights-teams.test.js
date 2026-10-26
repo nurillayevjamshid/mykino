@@ -16,7 +16,7 @@ describe("FIFA Highlights Teams-Only Title & Typography Suite", () => {
     assert.match(fifaJs, /extractHighlightTeamsOnly\(t\)/);
 
     // Extract function to verify its behavior directly on test titles
-    const fnMatch = fifaJs.match(/function extractHighlightTeamsOnly\(title\)\s*\{([\s\S]*?)\n\s*\}\n/);
+    const fnMatch = fifaJs.match(/function extractHighlightTeamsOnly\(title\)\s*\{([\s\S]*?)\r?\n\s*\}\r?\n/);
     assert.ok(fnMatch, "extractHighlightTeamsOnly function found in fifa.js");
 
     const extractTeams = new Function("title", fnMatch[1]);

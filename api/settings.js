@@ -271,8 +271,8 @@ function normalizePreRollAd(raw, adCdnMap = null) {
 }
 
 const DEFAULT_FIFA_STREAMS = [
-  { id: "youtube-live", title: "YouTube jonli efir", url: "https://www.youtube.com/live/BUEGXoCVl7w?si=TGQo6e3C51k8tWvL", enabled: true },
-  { id: "vk-live", title: "VK Video jonli efir", url: "https://live.vkvideo.ru/channel30008599/stream/sl_393740", enabled: true },
+  { id: "youtube-live", title: "YouTube jonli efir", url: "https://www.youtube.com/live/BUEGXoCVl7w?si=TGQo6e3C51k8tWvL", enabled: false },
+  { id: "vk-live", title: "VK Video jonli efir", url: "https://live.vkvideo.ru/channel30008599/stream/sl_393740", enabled: false },
 ];
 function normalizeFifaStreamUrl(value) {
   const raw = trimString(value); if (!raw) return { url: "", provider: "" };

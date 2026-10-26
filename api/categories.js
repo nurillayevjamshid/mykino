@@ -1266,7 +1266,13 @@ async function handleFifaHighlights(request, response) {
       }
 
       // Qat'iy yakuniy tekshiruv: faqat oxirgi 2 kunlik videolar
-      videos = videos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
+      let filtered = videos.filter((v) => isVideoWithin2Days(v.timeAgo, v.title, v.published));
+      // Fallback: agar so'nggi 2 kunda video chiqmagan bo'lsa (masalan o'yinlar bo'lmagan kunlar),
+      // bo'lim bo'm-bo'sh bo'lib yo'qolib qolmasligi uchun kanaldagi eng so'nggi videolarni ko'rsatamiz
+      if (filtered.length === 0 && Array.isArray(cfg?.videos) && cfg.videos.length > 0) {
+        filtered = cfg.videos.slice(0, 9);
+      }
+      videos = filtered;
 
       const payload = {
         ok: true,
