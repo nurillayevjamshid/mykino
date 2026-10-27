@@ -1116,8 +1116,16 @@
             </div>
           </div>
 
+          <!-- Bo'limlar tab bo'lib turadi — bir vaqtda faqat tanlangani ko'rinadi -->
+          <div class="music-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--border,#e3e6ec);">
+            <button type="button" class="music-tab is-active" data-fifa-tab="highlights" role="tab" aria-selected="true" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid var(--primary,#3b82f6);font-weight:600;color:var(--text,#111);cursor:pointer;">YouTube o'yinlar sharhi</button>
+            <button type="button" class="music-tab" data-fifa-tab="streams" role="tab" aria-selected="false" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">Futbol jonli efiri</button>
+            <button type="button" class="music-tab" data-fifa-tab="tv" role="tab" aria-selected="false" style="padding:10px 18px;background:transparent;border:0;border-bottom:2px solid transparent;font-weight:600;color:var(--text-muted,#666);cursor:pointer;">TV kanallar</button>
+          </div>
+
           <!-- 1. YouTube O'yinlar sharhi (Highlights) Card -->
-          <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:820px;margin-bottom:24px;">
+          <div data-fifa-tabpanel="highlights">
+          <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:820px;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
               <span style="font-size:26px;">⚽</span>
               <div>
@@ -1156,15 +1164,19 @@
               <div id="fifaHighlightsPreviewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;"></div>
             </div>
           </div>
+          </div>
           <!-- 2. Futbol translyatsiyasi -->
+          <div data-fifa-tabpanel="streams" hidden>
           <div class="form-card" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:900px;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><span style="font-size:26px;">📺</span><div><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text);">Futbol jonli efiri</h3><div style="font-size:13px;color:var(--text-muted);margin-top:2px;">Nom va YouTube Live yoki VK linkini kiriting. YouTube stream header ostida video card, VK stream esa button bo‘lib highlightslar ustida ko‘rinadi.</div></div></div>
             <div id="fifaStreamsForm"></div>
             <div class="modal-actions" style="display:flex;gap:10px;justify-content:space-between;margin-top:14px;"><button type="button" class="btn btn-secondary" id="fifaStreamsAddBtn">+ Button qo‘shish</button><div style="display:flex;gap:10px;"><button type="button" class="btn btn-secondary" id="fifaStreamsDeleteBtn">Barchasini o‘chirish</button><button type="button" class="btn btn-primary" id="fifaStreamsSaveBtn">Saqlash</button></div></div>
             <div id="fifaStreamsStatus" style="margin-top:12px;font-size:13px;"></div>
           </div>
+          </div>
           <!-- 3. TV kanallar (M3U pleylist) -->
-          <div class="form-card fifa-tv-admin" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:900px;margin-top:16px;">
+          <div data-fifa-tabpanel="tv" hidden>
+          <div class="form-card fifa-tv-admin" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:900px;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><span style="font-size:26px;">📡</span><div><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text);">TV kanallar (M3U pleylist)</h3><div style="font-size:13px;color:var(--text-muted);margin-top:2px;">Pleylist linkini kiritib «Yuklash»ni bosing. Kanalni yoqsangiz, u futbol bo‘limida jonli efir bo‘lib chiqadi. Bir vaqtda faqat bitta kanal yoqiladi.</div></div></div>
             <div class="fifa-tv-admin__load">
               <input class="form-input" id="fifaTvPlaylistUrl" type="url" placeholder="https://iptv-org.github.io/iptv/categories/sports.m3u" autocomplete="off">
@@ -1179,6 +1191,7 @@
             <div id="fifaTvStatus" style="margin-top:12px;font-size:13px;"></div>
             <div class="fifa-tv-admin__list" id="fifaTvList"></div>
             <small class="form-hint" style="display:block;margin-top:12px;">Ro‘yxatda faqat oxirgi 1–2 yilda futbol ko‘rsatgan bepul/rasmiy kanallar qoldirilgan (har birining yonida dalil). http kanallar olib tashlangan — mini ilova https orqali ochiladi va ularni o‘ynata olmaydi. Kanal yoqilishidan oldin oqim avtomatik sinab ko‘riladi.</small>
+          </div>
           </div>
         </section>
         <!-- Kibersport translatsiyalar Section -->
@@ -1529,6 +1542,6 @@
     }
   </style>
 
-  <script src="/admin/admin.js?v=20261016-fifa-highlights-v3"></script>
+  <script src="/admin/admin.js?v=20261027-fifa-tabs-v1"></script>
 </body>
 </html>

@@ -25,6 +25,20 @@ describe("FIFA live stream buttons", () => {
     assert.ok(fs.existsSync(path.resolve(__dirname, "../../webapp/assets/fifa-live-poster.webp")));
   });
 
+  test("admin football settings are tabs, one panel visible at a time", () => {
+    const adminHtml = fs.readFileSync(path.resolve(__dirname, "../../webapp/admin/index.html"), "utf8");
+    const adminJs = fs.readFileSync(path.resolve(__dirname, "../../webapp/admin/admin.js"), "utf8");
+    for (const key of ["highlights", "streams", "tv"]) {
+      assert.match(adminHtml, new RegExp(`data-fifa-tab="${key}"`));
+    }
+    assert.match(adminHtml, /<div data-fifa-tabpanel="highlights">/);
+    assert.match(adminHtml, /<div data-fifa-tabpanel="streams" hidden>/);
+    assert.match(adminHtml, /<div data-fifa-tabpanel="tv" hidden>/);
+    assert.match(adminJs, /p\.hidden = p\.dataset\.fifaTabpanel !== fifaTab\.dataset\.fifaTab/);
+    // Musiqa tablari futbol tablariga tegmasligi kerak.
+    assert.match(adminJs, /querySelectorAll\('\.music-tab\[data-music-tab\]'\)/);
+  });
+
   const root = path.resolve(__dirname, "../..");
   test("normalizes YouTube Live links into playable iframe URLs", () => {
     assert.deepEqual(settingsHandler.normalizeFifaStreamUrl("https://www.youtube.com/live/BUEGXoCVl7w?si=test"), {

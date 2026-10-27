@@ -3560,9 +3560,24 @@ async function uploadArtistImageFile(file) {
 }
 
 document.addEventListener('click', (e) => {
+  // Futbol bo'limi tablari: bir vaqtda faqat tanlangan karta ko'rinadi.
+  const fifaTab = e.target.closest('[data-fifa-tab]');
+  if (fifaTab) {
+    document.querySelectorAll('[data-fifa-tab]').forEach((t) => {
+      const active = t === fifaTab;
+      t.classList.toggle('is-active', active);
+      t.setAttribute('aria-selected', String(active));
+      t.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
+      t.style.color = active ? 'var(--text,#111)' : 'var(--text-muted,#666)';
+    });
+    document.querySelectorAll('[data-fifa-tabpanel]').forEach((p) => {
+      p.hidden = p.dataset.fifaTabpanel !== fifaTab.dataset.fifaTab;
+    });
+    return;
+  }
   const tab = e.target.closest('[data-music-tab]');
   if (tab) {
-    document.querySelectorAll('.music-tab').forEach((t) => {
+    document.querySelectorAll('.music-tab[data-music-tab]').forEach((t) => {
       const active = t === tab;
       t.classList.toggle('is-active', active);
       t.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
