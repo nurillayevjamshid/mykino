@@ -175,4 +175,15 @@ describe("FIFA live stream buttons", () => {
     assert.match(js, /YouTube Live yoki VK linki/);
     assert.match(js, /video card/);
   });
+
+  test("live streams show an invite link that opens the bot on the football section", () => {
+    const fifa = fs.readFileSync(path.resolve(__dirname, "../../webapp/fifa/fifa.js"), "utf8");
+    const css = fs.readFileSync(path.resolve(__dirname, "../../webapp/kino/kino.css"), "utf8");
+    assert.match(fifa, /class="fifa-efir-invite"[^>]*data-fifa-invite/);
+    assert.match(fifa, /startapp=fifa/);
+    assert.match(fifa, /https:\/\/t\.me\/share\/url\?url=/);
+    assert.match(fifa, /openTelegramLink\(inviteUrl\)/);
+    assert.match(fifa, /shareLive: "Do'stlarni jonli efirga taklif qilish"/);
+    assert.match(css, /\.fifa-efir-invite\{/);
+  });
 });

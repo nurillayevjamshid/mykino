@@ -51,6 +51,8 @@
       noFavoritesTitle: "Sevimli o'yinlar hali yo'q",
       noFavoritesText: "O'zingiz yoqtirgan jamoalar (Real Madrid, Arsenal, Paxtakor...) o'yinlarini va gollarini bitta joyga yig'ish uchun matchlardagi ⭐ belgisini bosing.",
       exploreMatches: "O'yinlar ro'yxatini ko'rish",
+      shareLive: "Do'stlarni jonli efirga taklif qilish",
+      shareLiveText: "NTV botida jonli efirni birga ko'ramiz — bir bosish bilan ochiladi 👇",
       shareMatch: "Ulashish",
       shareMatchText: "Ushbu qiziqarli o'yin va gollarni ko'ring:",
       allTeams: "Barchasi",
@@ -94,7 +96,7 @@
       headCoach: "Главный тренер",
       mute: "Выключить звук",
       unmute: "Включить звук",
-      shareLive: "Поделиться трансляцией",
+      shareLive: "Пригласить друзей на трансляцию",
       shareLiveText: "Смотрите прямую трансляцию в боте NTV — открывается одним нажатием 👇",
       statsAndEvents: "Статистика и события",
       lineups: "Составы",
@@ -151,7 +153,7 @@
       headCoach: "Head coach",
       mute: "Mute",
       unmute: "Unmute",
-      shareLive: "Share the broadcast",
+      shareLive: "Invite friends to the live stream",
       shareLiveText: "Watch the live broadcast in the NTV bot — opens with one tap 👇",
       statsAndEvents: "Stats & Events",
       lineups: "Lineups",
@@ -1563,7 +1565,7 @@
         return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><a class="fifa-efir-card__cover" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><span class="fifa-efir-card__play" aria-hidden="true"></span><span class="fifa-efir-card__cover-text">Efirni ko‘rish</span><small>VK Video Live’da ochiladi</small></a></div></article>`;
       }
       return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div><a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a></article>`;
-    }).join("");
+    }).join("") + `<a class="fifa-efir-invite" href="${esc(buildFifaInviteUrl())}" data-fifa-invite><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8a3 3 0 1 0-2.9-3.7L8.9 6.1a3 3 0 1 0 0 5.8l3.2 1.8a3 3 0 1 0 1-1.7L9.9 10.2a3 3 0 0 0 0-1.4l3.2-1.8A3 3 0 0 0 15 8Z"/></svg><span>${esc(F("shareLive"))}</span></a>`;
     paintFifaViewers();
 
     wrap.querySelectorAll(".fifa-efir-card--hls").forEach((card) => {
@@ -1595,8 +1597,27 @@
       }
     });
   }
+  // Jonli efirga taklif havolasi: startapp=fifa bosilganda mini app to'g'ridan-to'g'ri
+  // futbol bo'limida ochiladi (kino.js'dagi tryHandleFifaDeepLink).
+  function buildFifaInviteUrl() {
+    const botUsername = String(window.MYKINO_BOT_USERNAME || "myntv_bot").replace(/^@/, "");
+    const inviteLink = `https://t.me/${botUsername}?startapp=fifa`;
+    return `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(`⚽ ${F("shareLiveText")}`)}`;
+  }
   // Telegram ichida tashqi havolani Telegram'ning o'z brauzerida ochamiz.
   document.getElementById("fifaStreamsPromoWrap")?.addEventListener("click", (event) => {
+    const invite = event.target.closest?.("[data-fifa-invite]");
+    if (invite) {
+      event.preventDefault();
+      // Matn joriy tilda bo'lishi uchun havolani bosilgan paytda yig'amiz.
+      const inviteUrl = buildFifaInviteUrl();
+      const tgApp = window.Telegram?.WebApp;
+      try {
+        if (typeof tgApp?.openTelegramLink === "function") tgApp.openTelegramLink(inviteUrl);
+        else window.open(inviteUrl, "_blank", "noopener");
+      } catch (_) { window.open(inviteUrl, "_blank", "noopener"); }
+      return;
+    }
     const link = event.target.closest?.("[data-fifa-stream-open]");
     const openLink = window.Telegram?.WebApp?.openLink;
     if (!link || typeof openLink !== "function") return;
