@@ -5272,8 +5272,11 @@ function openMovie(movie) {
     movieModal.style.transform = "";
   }
   const posterImage = getPosterImage(movie);
-  modalPoster.style.backgroundImage = posterImage
-    ? `url('${posterImage.replaceAll("'", "%27")}'), linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)`
+  // Uch qatlam: ustida butun ablojka (contain), ostida qoraytirilgan o'sha rasm
+  // (cover) — poster quti enidan kesilmaydi va yon tomonlar bo'sh qolmaydi.
+  const posterUrl = posterImage ? `url('${posterImage.replaceAll("'", "%27")}')` : "";
+  modalPoster.style.backgroundImage = posterUrl
+    ? `${posterUrl}, linear-gradient(rgba(10, 14, 22, 0.6), rgba(10, 14, 22, 0.6)), ${posterUrl}`
     : "linear-gradient(135deg, #253142, #10161f 58%, #2b1b1d)";
   const genreText = String(movie.genre || "").trim();
   const qualityText = String(movie.quality || "").trim();

@@ -67,8 +67,10 @@ test("Movie Modal Full-Screen Poster & Floating White Card Reference Suite", asy
   });
 
   await t.test("poster card shows the whole poster and puts both actions on one row", () => {
-    // Ablojka kesilmaydi: 2:3 quti + contain.
-    assert.match(glassCss, /#movieModal\.movie-modal--poster-card \.modal-poster \{[^}]*aspect-ratio: 2 \/ 3 !important;[^}]*background-size: contain, cover !important;/);
+    // Ablojka to'liq enda, lekin kesilmaydi: ustida contain, ostida qoraytirilgan cover.
+    assert.match(glassCss, /#movieModal\.movie-modal--poster-card \.modal-poster \{[^}]*flex: 1 1 0 !important;[^}]*background-size: contain, cover, cover !important;/);
+    assert.match(kinoJs, /`\$\{posterUrl\}, linear-gradient\(rgba\(10, 14, 22, 0\.6\), rgba\(10, 14, 22, 0\.6\)\), \$\{posterUrl\}`/);
+    assert.match(glassCss, /\.watch-button--pill \{[^}]*background: #2563eb !important;[^}]*box-shadow: none !important;/);
     // Fikr chapda, Tomosha o'ngda — bitta qatorda.
     const row = indexHtml.match(/<div class="modal-action-row">([\s\S]*?)<\/button>\s*<\/div>\s*<\/div>/);
     assert.ok(row, "modal-action-row wraps both buttons");
