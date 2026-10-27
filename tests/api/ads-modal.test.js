@@ -27,6 +27,9 @@ describe("Advertising modal", () => {
       assert.match(html, new RegExp(`src="/static/assets/ads/ads-type-${name}\\.webp"`));
       assert.ok(fs.existsSync(path.join(root, `webapp/assets/ads/ads-type-${name}.webp`)));
     }
+    // Skrinshot kesilmasdan, to'liq ko'rinishi kerak.
+    const css = fs.readFileSync(path.join(root, "webapp/glass-theme.css"), "utf8");
+    assert.match(css, /\.ads-preview--shot img \{[^}]*object-fit: contain/);
     assert.doesNotMatch(html, /class="ads-types"/);
     assert.match(kino, /getElementById\("adsCarouselTrack"\)/);
   });

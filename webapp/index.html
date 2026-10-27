@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261027-ads-shots-v1" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261027-ads-shots-v2" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Early platform detection and Telegram WebApp Fullscreen initialization -->
   <script>
@@ -142,7 +142,7 @@
       filter: invert(1) brightness(1.2) !important;
     }
   </style>
-  <link rel="stylesheet" href="/static/glass-theme.css?v=20261027-ads-shots-v1" />
+  <link rel="stylesheet" href="/static/glass-theme.css?v=20261027-ads-shots-v2" />
 </head>
 
 <body>
@@ -979,8 +979,8 @@
                 <span>Mini ilovaga har kirganda ekranda rasmli reklama oynasi chiqadi. «Havolaga o'tish» tugmasi sizning manzilingizga olib boradi.</span>
               </div>
             </header>
-            <div class="ads-preview ads-preview--shot">
-              <img src="/static/assets/ads/ads-type-banner.webp" alt="Mini ilovaga kirganda chiqadigan rasmli reklama oynasi" loading="lazy" decoding="async" style="object-position: 50% 52%">
+            <div class="ads-preview ads-preview--shot" style="--ads-shot: url('/static/assets/ads/ads-type-banner.webp')">
+              <img src="/static/assets/ads/ads-type-banner.webp" alt="Mini ilovaga kirganda chiqadigan rasmli reklama oynasi" loading="lazy" decoding="async">
             </div>
           </article>
           <article class="ads-slide" aria-roledescription="slide" aria-label="2 / 3">
@@ -993,8 +993,8 @@
                 <span>E'loningiz bosh sahifa tepasida yuguruvchi matn bo'lib aylanib turadi. Bosilganda havolangizdagi manzilga o'tadi.</span>
               </div>
             </header>
-            <div class="ads-preview ads-preview--shot">
-              <img src="/static/assets/ads/ads-type-ticker.webp" alt="Bosh sahifa tepasidagi yuguruvchi reklama qatori" loading="lazy" decoding="async" style="object-position: 50% 8%">
+            <div class="ads-preview ads-preview--shot" style="--ads-shot: url('/static/assets/ads/ads-type-ticker.webp')">
+              <img src="/static/assets/ads/ads-type-ticker.webp" alt="Bosh sahifa tepasidagi yuguruvchi reklama qatori" loading="lazy" decoding="async">
             </div>
           </article>
           <article class="ads-slide" aria-roledescription="slide" aria-label="3 / 3">
@@ -1007,8 +1007,8 @@
                 <span>Bot barcha obunachilarga sizning matningiz, rasmingiz va havola tugmasi bilan xabar yuboradi.</span>
               </div>
             </header>
-            <div class="ads-preview ads-preview--shot">
-              <img src="/static/assets/ads/ads-type-bot.webp" alt="Bot obunachilariga yuborilgan reklama xabari" loading="lazy" decoding="async" style="object-position: 50% 52%">
+            <div class="ads-preview ads-preview--shot" style="--ads-shot: url('/static/assets/ads/ads-type-bot.webp')">
+              <img src="/static/assets/ads/ads-type-bot.webp" alt="Bot obunachilariga yuborilgan reklama xabari" loading="lazy" decoding="async">
             </div>
           </article>
         </div>
@@ -1797,7 +1797,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261027-ads-shots-v1"></script>
+  <script src="/static/kino/kino.js?v=20261027-ads-shots-v2"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });

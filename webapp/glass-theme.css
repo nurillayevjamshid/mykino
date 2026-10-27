@@ -4986,5 +4986,7 @@ html[data-theme="dark"] #adsInfoModal {
 .ads-carousel__dots button.is-active { width: 22px; background: #4f46e5; }
 
 /* Reklama turi rasmi: haqiqiy ilova skrinshoti, telefon ekranidek qirqilgan */
-.ads-preview { position: relative; overflow: hidden; height: 300px; border-radius: 16px; background: #0f172a; box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08); }
-.ads-preview--shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ads-preview { position: relative; overflow: hidden; height: 440px; border-radius: 16px; background: #0f172a; box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08); }
+/* Skrinshot butunligicha (kesilmasdan) ko'rinadi; yon tomonlar o'sha rasmning xira nusxasi bilan to'ladi. */
+.ads-preview--shot::before { content: ""; position: absolute; inset: -24px; background: var(--ads-shot) center / cover no-repeat; filter: blur(18px) brightness(0.75); transform: scale(1.1); }
+.ads-preview--shot img { position: relative; display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35)); }
