@@ -21,8 +21,12 @@ describe("Advertising modal", () => {
     assert.match(html, /id="adsCarouselTrack"/);
     assert.equal((html.match(/<article class="ads-slide"/g) || []).length, 3);
     assert.equal((html.match(/data-ads-slide="\d"/g) || []).length, 3);
-    for (const title of ["Botda xabar", "Pin xabar", "Kino posteri"]) assert.match(html, new RegExp(`<strong>${title}</strong>`));
-    assert.match(html, /class="ads-preview ads-preview--posters"/);
+    for (const title of ["Kirish banneri", "Yuguruvchi qator", "Botda xabar"]) assert.match(html, new RegExp(`<strong>${title}</strong>`));
+    // Har bir tur haqiqiy ilova skrinshoti bilan ko'rsatiladi.
+    for (const name of ["banner", "ticker", "bot"]) {
+      assert.match(html, new RegExp(`src="/static/assets/ads/ads-type-${name}\\.webp"`));
+      assert.ok(fs.existsSync(path.join(root, `webapp/assets/ads/ads-type-${name}.webp`)));
+    }
     assert.doesNotMatch(html, /class="ads-types"/);
     assert.match(kino, /getElementById\("adsCarouselTrack"\)/);
   });
