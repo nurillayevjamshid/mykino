@@ -17,6 +17,16 @@ describe("Advertising modal", () => {
     assert.match(html, /<dialog class="ads-sheet" id="adsInfoModal"/);
   });
 
+  test("shows ad types as a swipeable carousel with a preview per type", () => {
+    assert.match(html, /id="adsCarouselTrack"/);
+    assert.equal((html.match(/<article class="ads-slide"/g) || []).length, 3);
+    assert.equal((html.match(/data-ads-slide="\d"/g) || []).length, 3);
+    for (const title of ["Botda xabar", "Pin xabar", "Kino posteri"]) assert.match(html, new RegExp(`<strong>${title}</strong>`));
+    assert.match(html, /class="ads-preview ads-preview--posters"/);
+    assert.doesNotMatch(html, /class="ads-types"/);
+    assert.match(kino, /getElementById\("adsCarouselTrack"\)/);
+  });
+
   test("shows the admin's contact details", () => {
     assert.match(html, /href="https:\/\/t\.me\/nurillaevv"/);
     assert.match(html, /href="tel:\+998950919966"/);

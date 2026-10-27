@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261026-tv-offline-v1" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261027-ads-carousel-v1" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Early platform detection and Telegram WebApp Fullscreen initialization -->
   <script>
@@ -142,7 +142,7 @@
       filter: invert(1) brightness(1.2) !important;
     }
   </style>
-  <link rel="stylesheet" href="/static/glass-theme.css?v=20261026-tv-offline-v1" />
+  <link rel="stylesheet" href="/static/glass-theme.css?v=20261027-ads-carousel-v1" />
 </head>
 
 <body>
@@ -966,28 +966,73 @@
       </section>
 
       <h4 class="ads-section-title">Reklama turlari</h4>
-      <div class="ads-types">
-        <article class="ads-type">
-          <span class="ads-type__icon ads-type__icon--blue" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"></path><path d="M22 2 15 22l-4-9-9-4 20-7z"></path></svg>
-          </span>
-          <strong>Botda xabar</strong>
-          <span>Hamma obunachiga, muddatli (o'zi o'chadi)</span>
-        </article>
-        <article class="ads-type">
-          <span class="ads-type__icon ads-type__icon--rose" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"></path><path d="M9 10.8V5h6v5.8l2.5 3.2h-11z"></path><path d="M8 5h8"></path></svg>
-          </span>
-          <strong>Pin xabar</strong>
-          <span>Chat tepasida turadi</span>
-        </article>
-        <article class="ads-type ads-type--wide">
-          <span class="ads-type__icon ads-type__icon--violet" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M3 9h18"></path><path d="m7 4 2 5"></path><path d="m12 4 2 5"></path><path d="m17 4 2 5"></path></svg>
-          </span>
-          <strong>Kino posteri</strong>
-          <span>Poster kanali va katalogda</span>
-        </article>
+      <!-- Reklama turlari: qo'lda suriladigan carousel — har slaydda mazmun va reklamaning ko'rinishi -->
+      <div class="ads-carousel" id="adsCarousel" role="region" aria-roledescription="carousel" aria-label="Reklama turlari">
+        <div class="ads-carousel__track" id="adsCarouselTrack">
+          <article class="ads-slide" aria-roledescription="slide" aria-label="1 / 3">
+            <header class="ads-slide__head">
+              <span class="ads-type__icon ads-type__icon--blue" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"></path><path d="M22 2 15 22l-4-9-9-4 20-7z"></path></svg>
+              </span>
+              <div>
+                <strong>Botda xabar</strong>
+                <span>Bot barcha obunachilarga rasm, matn va tugmali xabar yuboradi. Belgilangan muddat tugagach xabar o'zi o'chadi.</span>
+              </div>
+            </header>
+            <div class="ads-preview ads-preview--chat" aria-hidden="true">
+              <div class="ads-chat__bar"><span class="ads-chat__avatar">N</span><b>NTV bot</b><small>bot</small></div>
+              <div class="ads-chat__body">
+                <div class="ads-bubble">
+                  <div class="ads-bubble__media"><span>Sizning<br>reklamangiz</span></div>
+                  <p>🔥 Yangi kafe ochildi! Mini app foydalanuvchilariga <b>−20%</b> chegirma.</p>
+                  <small class="ads-bubble__meta">⏱ 24 soatdan keyin o'chadi · 12:30</small>
+                </div>
+                <div class="ads-bubble__button">Batafsil ↗</div>
+              </div>
+            </div>
+          </article>
+          <article class="ads-slide" aria-roledescription="slide" aria-label="2 / 3">
+            <header class="ads-slide__head">
+              <span class="ads-type__icon ads-type__icon--rose" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"></path><path d="M9 10.8V5h6v5.8l2.5 3.2h-11z"></path><path d="M8 5h8"></path></svg>
+              </span>
+              <div>
+                <strong>Pin xabar</strong>
+                <span>E'loningiz bot chatining eng tepasiga mahkamlanadi — har bir obunachi botni ochganda birinchi bo'lib ko'radi.</span>
+              </div>
+            </header>
+            <div class="ads-preview ads-preview--chat" aria-hidden="true">
+              <div class="ads-chat__bar"><span class="ads-chat__avatar">N</span><b>NTV bot</b><small>bot</small></div>
+              <div class="ads-pin"><span class="ads-pin__line"></span><div><b>Mahkamlangan xabar</b><span>🚗 Avtosalon: kreditga 0% boshlang'ich to'lov…</span></div><span class="ads-pin__icon">📌</span></div>
+              <div class="ads-chat__body ads-chat__body--muted">
+                <div class="ads-ghost ads-ghost--in"></div>
+                <div class="ads-ghost ads-ghost--out"></div>
+                <div class="ads-ghost ads-ghost--in ads-ghost--short"></div>
+              </div>
+            </div>
+          </article>
+          <article class="ads-slide" aria-roledescription="slide" aria-label="3 / 3">
+            <header class="ads-slide__head">
+              <span class="ads-type__icon ads-type__icon--violet" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M3 9h18"></path><path d="m7 4 2 5"></path><path d="m12 4 2 5"></path><path d="m17 4 2 5"></path></svg>
+              </span>
+              <div>
+                <strong>Kino posteri</strong>
+                <span>Brendingiz kino posteri sifatida poster kanalida va mini app katalogida kinolar qatorida turadi.</span>
+              </div>
+            </header>
+            <div class="ads-preview ads-preview--posters" aria-hidden="true">
+              <div class="ads-poster ads-poster--a"><span>Kino</span></div>
+              <div class="ads-poster ads-poster--ad"><em>REKLAMA</em><b>Sizning<br>brendingiz</b><small>Batafsil →</small></div>
+              <div class="ads-poster ads-poster--b"><span>Serial</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="ads-carousel__dots" id="adsCarouselDots">
+          <button type="button" class="is-active" data-ads-slide="0" aria-label="Botda xabar"></button>
+          <button type="button" data-ads-slide="1" aria-label="Pin xabar"></button>
+          <button type="button" data-ads-slide="2" aria-label="Kino posteri"></button>
+        </div>
       </div>
 
       <section class="ads-contact">
@@ -1768,7 +1813,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261026-tv-offline-v1"></script>
+  <script src="/static/kino/kino.js?v=20261027-ads-carousel-v1"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });

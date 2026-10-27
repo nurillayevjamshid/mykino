@@ -12193,7 +12193,7 @@ function ensureFifaModule() {
   if (__fifaModulePromise) return __fifaModulePromise;
   __fifaModulePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261026-tv-offline-v1";
+    script.src = "/static/fifa/fifa.js?v=20261027-ads-carousel-v1";
     script.onload = () => resolve(window.__fifa);
     script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -12426,4 +12426,32 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     showToast(copied ? "Raqam nusxalandi" : value);
   });
+})();
+// Reklama turlari carousel: qo'lda suriladi; nuqtalar joriy slaydni ko'rsatadi va bosilganda o'tkazadi.
+(() => {
+  const track = document.getElementById("adsCarouselTrack");
+  const dots = [...document.querySelectorAll("#adsCarouselDots [data-ads-slide]")];
+  if (!track || !dots.length) return;
+  const slides = [...track.children];
+  const setActive = (index) => dots.forEach((dot, i) => {
+    dot.classList.toggle("is-active", i === index);
+    dot.setAttribute("aria-current", i === index ? "true" : "false");
+  });
+  // Slaydning track ichidagi boshlanishi (snap nuqtasi) — padding hisobga olingan holda.
+  const slideStart = (slide) => {
+    const pad = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+    return track.scrollLeft + slide.getBoundingClientRect().left - track.getBoundingClientRect().left - pad;
+  };
+  let frame = 0;
+  track.addEventListener("scroll", () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      const distances = slides.map((slide) => Math.abs(slideStart(slide) - track.scrollLeft));
+      setActive(distances.indexOf(Math.min(...distances)));
+    });
+  }, { passive: true });
+  dots.forEach((dot) => dot.addEventListener("click", () => {
+    const slide = slides[Number(dot.dataset.adsSlide)];
+    if (slide) track.scrollTo({ left: slideStart(slide), behavior: "smooth" });
+  }));
 })();
