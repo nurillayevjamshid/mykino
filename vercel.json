@@ -43,6 +43,12 @@
       ]
     },
     {
+      "source": "/shaxmat(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+      ]
+    },
+    {
       "source": "/beta",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, max-age=0" }
@@ -61,7 +67,7 @@
     { "src": "api/music.js", "use": "@vercel/node" },
     { "src": "api/categories.js", "use": "@vercel/node" },
     { "src": "api/settings.js", "use": "@vercel/node" },
-    { "src": "api/users.js", "use": "@vercel/node" },
+    { "src": "api/users.js", "use": "@vercel/node", "config": { "includeFiles": ["webapp/shaxmat/chess-engine.js", "webapp/shaxmat/checkers-engine.js"] } },
     { "src": "api/broadcast.js", "use": "@vercel/node" },
     { "src": "api/telegram-webhook.js", "use": "@vercel/node" },
     { "src": "api/drive-stream.js", "use": "@vercel/node" },
@@ -92,6 +98,7 @@
     { "src": "/api/settings", "dest": "/api/settings.js" },
     { "src": "/api/users", "dest": "/api/users.js" },
     { "src": "/api/user-photo", "dest": "/api/users.js?_photo=1" },
+    { "src": "/api/games", "dest": "/api/users.js?_games=1" },
     { "src": "/api/broadcast", "dest": "/api/broadcast.js" },
     { "src": "/api/telegram-webhook", "dest": "/api/telegram-webhook.js" },
     { "src": "/api/drive-stream/(.*)", "dest": "/api/drive-stream.js?fileId=$1" },
@@ -115,6 +122,9 @@
     { "src": "/books", "dest": "/webapp/books/index.html" },
     { "src": "/books/", "dest": "/webapp/books/index.html" },
     { "src": "/books/(.*)", "dest": "/webapp/books/$1" },
+    { "src": "/shaxmat", "dest": "/webapp/shaxmat/index.html" },
+    { "src": "/shaxmat/", "dest": "/webapp/shaxmat/index.html" },
+    { "src": "/shaxmat/(.*)", "dest": "/webapp/shaxmat/$1" },
     { "src": "/static/(.*)", "dest": "/webapp/$1" },
     { "src": "/", "dest": "/webapp/index.html" }
   ]

@@ -22,6 +22,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="/static/kino/kino.css?v=20261027-fifa-invite-v1" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Shaxmat/shashka taklif havolasi: t.me/bot?startapp=shaxmat_<xona> — o'yinga o'tkazamiz.
+       Bir marta: o'yindan bosh sahifaga qaytganda qayta yo'naltirilmasin. -->
+  <script>
+    (function () {
+      try {
+        var sp = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.start_param) || "";
+        var m = /^shaxmat_([a-z0-9]{4,16})$/i.exec(sp);
+        if (!m) return;
+        var key = "shaxmat_redirected_" + m[1].toLowerCase();
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, "1");
+        location.replace("/shaxmat/?room=" + m[1].toLowerCase());
+      } catch (_) {}
+    })();
+  </script>
   <!-- Early platform detection and Telegram WebApp Fullscreen initialization -->
   <script>
     try {

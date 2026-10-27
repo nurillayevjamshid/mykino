@@ -403,6 +403,9 @@ module.exports = async function handler(request, response) {
   // user obtains the session cookie in the first place.
   if (isAdminLoginRoute(reqUrl0)) return handleAdminLogin(request, response);
   if (isAdminLogoutRoute(reqUrl0)) return handleAdminLogout(request, response);
+  // Shaxmat/shashka xonalari o'z tokenlari bilan ishlaydi: do'st havolani
+  // Telegram'dan tashqarida (oddiy brauzerda) ochsa ham o'ynay oladi.
+  if (/\/api\/games(?:\?|$)/.test(reqUrl0) || /[?&]_games=1/.test(reqUrl0)) return require("./_lib/games").handleGames(request, response);
 
   if (!(await authorizeRequest(request, response))) {
     return;

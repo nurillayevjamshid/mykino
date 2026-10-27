@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="uz" data-theme="light">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4f1ea" />
+  <title>NTV — Shaxmat va shashka</title>
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem("kino_theme") || localStorage.getItem("app_theme");
+        var tgScheme = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.colorScheme;
+        document.documentElement.setAttribute("data-theme", stored === "dark" || (!stored && tgScheme === "dark") ? "dark" : "light");
+      } catch (_) {}
+    })();
+  </script>
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/shaxmat/shaxmat.css?v=20261027-games-v1" />
+</head>
+
+<body>
+  <div class="app">
+    <!-- ============ Bosh ekran ============ -->
+    <section class="view" id="homeView">
+      <header class="topbar">
+        <button class="icon-btn" id="homeBack" type="button" aria-label="Orqaga">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
+        </button>
+        <h1 class="topbar__title">O'yinlar</h1>
+        <button class="icon-btn" id="soundToggle" type="button" aria-label="Ovoz">
+          <svg class="icon-sound-on" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" /></svg>
+          <svg class="icon-sound-off" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M17 9l5 6M22 9l-5 6" /></svg>
+        </button>
+      </header>
+
+      <div class="game-picker" role="tablist">
+        <button class="game-card is-active" type="button" role="tab" data-game="chess">
+          <span class="game-card__art game-card__art--chess" aria-hidden="true">♞&#xFE0E;</span>
+          <span class="game-card__name">Shaxmat</span>
+          <span class="game-card__hint">Klassik qoidalar</span>
+        </button>
+        <button class="game-card" type="button" role="tab" data-game="checkers">
+          <span class="game-card__art game-card__art--checkers" aria-hidden="true"><i></i><i></i></span>
+          <span class="game-card__name">Shashka</span>
+          <span class="game-card__hint">Rus shashkasi</span>
+        </button>
+      </div>
+
+      <div class="modes">
+        <button class="mode mode--primary" type="button" data-mode="online">
+          <span class="mode__icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19a5.5 5.5 0 0111 0" /><circle cx="17" cy="9" r="2.6" /><path d="M15.5 14.2A4.6 4.6 0 0121 18.6" /></svg></span>
+          <span class="mode__text"><b>Do'st bilan online</b><small>Havola yuborasiz — do'stingiz bosib qo'shiladi</small></span>
+          <svg class="mode__chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+        </button>
+        <button class="mode" type="button" data-mode="ai">
+          <span class="mode__icon"><svg viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="11" rx="3" /><path d="M12 3v4M9 12h.01M15 12h.01M9.5 15.5h5" /></svg></span>
+          <span class="mode__text"><b>Kompyuterga qarshi</b><small>Oson, o'rta yoki qiyin daraja</small></span>
+          <svg class="mode__chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+        </button>
+        <button class="mode" type="button" data-mode="local">
+          <span class="mode__icon"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5" /><path d="M10.5 18.5h3" /></svg></span>
+          <span class="mode__text"><b>Bir telefonda ikki kishi</b><small>Navbatma-navbat yuring</small></span>
+          <svg class="mode__chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+        </button>
+      </div>
+
+      <div class="resume" id="resumeBlock" hidden>
+        <h2 class="section-title">Davom etayotgan o'yinlar</h2>
+        <div class="resume__list" id="resumeList"></div>
+      </div>
+    </section>
+
+    <!-- ============ O'yin ekrani ============ -->
+    <section class="view" id="gameView" hidden>
+      <header class="topbar">
+        <button class="icon-btn" id="gameBack" type="button" aria-label="Orqaga">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
+        </button>
+        <div class="topbar__center">
+          <h1 class="topbar__title" id="gameTitle">Shaxmat</h1>
+          <span class="topbar__sub" id="gameSubtitle"></span>
+        </div>
+        <button class="icon-btn" id="flipButton" type="button" aria-label="Taxtani aylantirish">
+          <svg viewBox="0 0 24 24"><path d="M4 9a8 8 0 0114-3l2 2M20 4v4h-4M20 15a8 8 0 01-14 3l-2-2M4 20v-4h4" /></svg>
+        </button>
+      </header>
+
+      <div class="player player--top" id="playerTop">
+        <span class="player__avatar"></span>
+        <span class="player__info">
+          <span class="player__name"></span>
+          <span class="player__meta"></span>
+        </span>
+        <span class="player__clock" hidden></span>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board" id="board" aria-label="O'yin taxtasi"></div>
+        <div class="board-overlay" id="inviteOverlay" hidden>
+          <div class="invite">
+            <div class="invite__pulse" aria-hidden="true"><span></span></div>
+            <h2>Do'stingizni taklif qiling</h2>
+            <p>Havolani yuboring. Do'stingiz uni bosishi bilan o'yin boshlanadi.</p>
+            <button class="btn btn--primary btn--block" id="inviteShare" type="button">
+              <svg viewBox="0 0 24 24"><path d="M21 4L3 11l6 2 2 6 3-4 5 4 2-15z" /></svg>
+              Telegramda yuborish
+            </button>
+            <button class="btn btn--ghost btn--block" id="inviteCopy" type="button">Havolani nusxalash</button>
+            <span class="invite__code">Xona kodi: <b id="inviteCode"></b></span>
+          </div>
+        </div>
+        <div class="board-overlay board-overlay--clear" id="promotionOverlay" hidden>
+          <div class="promotion" id="promotionChoices"></div>
+        </div>
+      </div>
+
+      <div class="player player--bottom" id="playerBottom">
+        <span class="player__avatar"></span>
+        <span class="player__info">
+          <span class="player__name"></span>
+          <span class="player__meta"></span>
+        </span>
+        <span class="player__clock" hidden></span>
+      </div>
+
+      <div class="status" id="statusLine" role="status"></div>
+
+      <div class="draw-offer" id="drawOffer" hidden>
+        <span>Raqib durang taklif qilmoqda</span>
+        <button class="btn btn--sm btn--ghost" id="drawDecline" type="button">Rad etish</button>
+        <button class="btn btn--sm btn--primary" id="drawAccept" type="button">Qabul qilish</button>
+      </div>
+
+      <div class="moves" id="moveList" aria-label="Yurishlar"></div>
+
+      <div class="actions" id="actionBar"></div>
+    </section>
+  </div>
+
+  <!-- ============ Sozlash oynasi ============ -->
+  <div class="sheet" id="setupSheet" hidden>
+    <div class="sheet__backdrop" data-close-sheet></div>
+    <div class="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+      <span class="sheet__grabber"></span>
+      <h2 class="sheet__title" id="setupTitle"></h2>
+      <div class="field" id="levelField">
+        <span class="field__label">Daraja</span>
+        <div class="chips" data-option="level">
+          <button type="button" class="chip" data-value="1">Oson</button>
+          <button type="button" class="chip is-active" data-value="2">O'rta</button>
+          <button type="button" class="chip" data-value="3">Qiyin</button>
+        </div>
+      </div>
+      <div class="field" id="timeField">
+        <span class="field__label">Vaqt</span>
+        <div class="chips" data-option="timeControl">
+          <button type="button" class="chip is-active" data-value="none">Cheksiz</button>
+          <button type="button" class="chip" data-value="1+0">1 daq</button>
+          <button type="button" class="chip" data-value="3+2">3 + 2</button>
+          <button type="button" class="chip" data-value="5+0">5 daq</button>
+          <button type="button" class="chip" data-value="10+0">10 daq</button>
+        </div>
+      </div>
+      <div class="field" id="colorField">
+        <span class="field__label">Rangingiz</span>
+        <div class="chips" data-option="color">
+          <button type="button" class="chip" data-value="w"><i class="swatch swatch--w"></i>Oq</button>
+          <button type="button" class="chip is-active" data-value="random"><i class="swatch swatch--r"></i>Tasodifiy</button>
+          <button type="button" class="chip" data-value="b"><i class="swatch swatch--b"></i>Qora</button>
+        </div>
+      </div>
+      <button class="btn btn--primary btn--block btn--lg" id="setupStart" type="button">Boshlash</button>
+    </div>
+  </div>
+
+  <!-- ============ Natija oynasi ============ -->
+  <div class="sheet" id="resultSheet" hidden>
+    <div class="sheet__backdrop" data-close-sheet></div>
+    <div class="sheet__panel sheet__panel--center" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+      <div class="result__badge" id="resultBadge"></div>
+      <h2 class="sheet__title" id="resultTitle"></h2>
+      <p class="result__reason" id="resultReason"></p>
+      <button class="btn btn--primary btn--block btn--lg" id="resultAgain" type="button">Qayta o'ynash</button>
+      <button class="btn btn--ghost btn--block" id="resultMenu" type="button">Menyuga qaytish</button>
+    </div>
+  </div>
+
+  <!-- ============ Tasdiqlash oynasi ============ -->
+  <div class="sheet" id="confirmSheet" hidden>
+    <div class="sheet__backdrop" data-close-sheet></div>
+    <div class="sheet__panel sheet__panel--center" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h2 class="sheet__title" id="confirmTitle"></h2>
+      <p class="result__reason" id="confirmText"></p>
+      <div class="sheet__row">
+        <button class="btn btn--ghost" id="confirmNo" type="button">Bekor qilish</button>
+        <button class="btn btn--danger" id="confirmYes" type="button">Ha</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script>window.MYKINO_BOT_USERNAME = "myntv_bot";</script>
+  <script src="/shaxmat/chess-engine.js?v=20261027-games-v1"></script>
+  <script src="/shaxmat/checkers-engine.js?v=20261027-games-v1"></script>
+  <script src="/shaxmat/shaxmat.js?v=20261027-games-v1"></script>
+</body>
+
+</html>
