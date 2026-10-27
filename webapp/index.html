@@ -142,7 +142,7 @@
       filter: invert(1) brightness(1.2) !important;
     }
   </style>
-  <link rel="stylesheet" href="/static/glass-theme.css?v=20261027-ads-shots-v2" />
+  <link rel="stylesheet" href="/static/glass-theme.css?v=20261027-poster-modal-v1" />
 </head>
 
 <body>
@@ -1091,31 +1091,34 @@
             <span class="modal-description-toggle__label" data-i18n="showMore">Ko'proq</span>
             <svg class="modal-description-toggle__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
-          <div class="watch-actions" id="watchActions">
-            <button class="watch-resume-chip" id="watchResumeChip" type="button" hidden>
-              <span class="watch-resume-chip__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
-              </span>
-              <span class="watch-resume-chip__text">
-                <span class="watch-resume-chip__time" id="watchResumeChipTime"></span>
-                <span class="watch-resume-chip__label" data-i18n="resumeFrom">dan davom etish</span>
-              </span>
-            </button>
-            <button class="watch-button watch-button--pill" id="watchButton" type="button" aria-label="Tomosha qilish" data-i18n-aria-label="watch">
-              <span class="watch-button__label" data-i18n="watch">Tomosha qilish</span>
-              <span class="watch-button__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
-              </span>
-              <span class="watch-button__resume" id="watchResumeBadge" hidden></span>
-            </button>
-          </div>
-          <button class="comments-trigger" id="commentsTrigger" type="button" aria-haspopup="dialog" aria-controls="commentsSheet">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-            <span class="comments-trigger__label" data-i18n="leaveComment">Fikr qoldirish</span>
-            <span class="comments-trigger__count" id="commentsTriggerCount">0</span>
+          <button class="watch-resume-chip" id="watchResumeChip" type="button" hidden>
+            <span class="watch-resume-chip__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+            </span>
+            <span class="watch-resume-chip__text">
+              <span class="watch-resume-chip__time" id="watchResumeChipTime"></span>
+              <span class="watch-resume-chip__label" data-i18n="resumeFrom">dan davom etish</span>
+            </span>
           </button>
+          <!-- Fikr chapda, ko'k "Tomosha qilish" o'ngda — bitta qatorda -->
+          <div class="modal-action-row">
+            <button class="comments-trigger" id="commentsTrigger" type="button" aria-haspopup="dialog" aria-controls="commentsSheet">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span class="comments-trigger__label" data-i18n="leaveComment">Fikr qoldirish</span>
+              <span class="comments-trigger__count" id="commentsTriggerCount">0</span>
+            </button>
+            <div class="watch-actions" id="watchActions">
+              <button class="watch-button watch-button--pill" id="watchButton" type="button" aria-label="Tomosha qilish" data-i18n-aria-label="watch">
+                <span class="watch-button__label" data-i18n="watch">Tomosha qilish</span>
+                <span class="watch-button__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+                </span>
+                <span class="watch-button__resume" id="watchResumeBadge" hidden></span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

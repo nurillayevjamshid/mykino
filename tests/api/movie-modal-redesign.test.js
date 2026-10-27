@@ -66,6 +66,17 @@ test("Movie Modal Full-Screen Poster & Floating White Card Reference Suite", asy
     assert.doesNotMatch(glassCss, /\.modal-card-bottom-notch\s*\{/, "no notch styles");
   });
 
+  await t.test("poster card shows the whole poster and puts both actions on one row", () => {
+    // Ablojka kesilmaydi: 2:3 quti + contain.
+    assert.match(glassCss, /#movieModal\.movie-modal--poster-card \.modal-poster \{[^}]*aspect-ratio: 2 \/ 3 !important;[^}]*background-size: contain, cover !important;/);
+    // Fikr chapda, Tomosha o'ngda — bitta qatorda.
+    const row = indexHtml.match(/<div class="modal-action-row">([\s\S]*?)<\/button>\s*<\/div>\s*<\/div>/);
+    assert.ok(row, "modal-action-row wraps both buttons");
+    assert.ok(row[1].indexOf('id="commentsTrigger"') < row[1].indexOf('id="watchButton"'));
+    assert.match(glassCss, /\.modal-action-row \{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\) !important;/);
+    assert.match(glassCss, /#movieModal\.movie-modal--poster-card \.watch-button--pill \{[^}]*background: #2563eb !important;/);
+  });
+
   await t.test("kino.js handles openMovie rating display and description toggle", () => {
     assert.match(kinoJs, /modalRating\.hidden\s*=\s*false;/, "modalRating is always shown in openMovie");
     assert.match(kinoJs, /modal-rating__stars/, "modal-rating renders star container");
