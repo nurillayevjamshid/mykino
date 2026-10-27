@@ -206,6 +206,21 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+// Holat matnlari rangi CSS'da ([data-tone]) — har joyda alohida hex yozilmaydi.
+function setTone(el, kind) {
+  if (!el) return;
+  if (kind === 'error' || kind === 'ok' || kind === 'warn' || kind === 'info') el.dataset.tone = kind;
+  else delete el.dataset.tone;
+}
+
+// Jadval va kartalardagi amal tugmalari uchun bir xil SVG ikonlar.
+const ADMIN_ICONS = {
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16l13-8Z"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>',
+};
+
 const NATURAL_SORT_COLLATOR = new Intl.Collator('uz', { numeric: true, sensitivity: 'base' });
 
 function stripFileExtension(value) {
@@ -384,7 +399,7 @@ async function fetchMovies(force = false) {
               </svg>
               <h3>Kinolarni yuklashda xatolik!</h3>
               <p>${escapeHtml(error.message)}</p>
-              <button class="btn btn-primary" onclick="fetchMovies()" style="margin-top: 12px;">Qayta urinish</button>
+              <button class="btn btn-primary" onclick="fetchMovies()">Qayta urinish</button>
             </div>
           </td>
         </tr>
@@ -412,8 +427,12 @@ function tgHaptic(kind = 'light') {
   } catch (_) { /* ignore */ }
 }
 
+// telegram-web-app.js oddiy brauzerda ham yuklanadi — u yerda themeParams bo'sh
+// bo'lib, oq fonni :root ga yozib qo'yadi va qorong'i rejimni buzadi.
+const isInsideTelegram = () => Boolean(tg && tg.initData);
+
 function applyTelegramTheme() {
-  if (!tg || !tg.themeParams) return;
+  if (!isInsideTelegram() || !tg.themeParams) return;
   const tp = tg.themeParams;
   const root = document.documentElement;
   const set = (cssVar, val) => { if (val) root.style.setProperty(cssVar, val); };
@@ -512,7 +531,7 @@ function toggleTheme() {
 // Initialize
 async function init() {
   // Telegram first — overrides local theme if inside Mini App
-  if (tg) {
+  if (isInsideTelegram()) {
     try {
       tg.ready();
       tg.expand();
@@ -761,7 +780,7 @@ async function fetchUsers(force = false) {
             <div class="empty-state error-state">
               <h3>Obunachilarni yuklashda xatolik!</h3>
               <p>${escapeHtml(error.message)}</p>
-              <button class="btn btn-primary" onclick="fetchUsers()" style="margin-top: 12px;">Qayta urinish</button>
+              <button class="btn btn-primary" onclick="fetchUsers()">Qayta urinish</button>
             </div>
           </td>
         </tr>
@@ -928,8 +947,8 @@ function renderUsers() {
             <span class="user-id-chip">ID: ${escapeHtml(String(user.telegram_id || '-'))}</span>
           </div>
           <div class="user-dates-line mobile-only">
-            <span>📅 ${escapeHtml(user.started_at || '-')}</span>
-            <span>⏱️ ${formatLastActive(user.last_active)}</span>
+            <span>Start: ${escapeHtml(user.started_at || '-')}</span>
+            <span>Faol: ${formatLastActive(user.last_active)}</span>
           </div>
         </div>
       </td>
@@ -1250,16 +1269,16 @@ function bindEvents() {
         body.innerHTML = `<div class="kino-category-empty">Hammasi joyida — "Kino" kategoriyali (kategoriyasi belgilanmagan) kinolar yo'q.</div>`;
       } else {
         body.innerHTML = `
-          <p class="form-hint" style="margin:0 0 12px;">Quyidagi <strong>${onlyKino.length}</strong> ta kinoda faqat "Kino" placeholder kategoriya turibdi — haqiqiy kategoriya tayinlash kerak.</p>
+          <p class="form-hint form-hint--lead">Quyidagi <strong>${onlyKino.length}</strong> ta kinoda faqat "Kino" placeholder kategoriya turibdi — haqiqiy kategoriya tayinlash kerak.</p>
           <ul class="kino-category-list">
             ${onlyKino.map(m => `
               <li>
-                <img src="${escapeHtml(m.poster ? proxiedPoster(m.poster) : POSTER_PLACEHOLDER)}" alt="" style="width:36px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="retryPoster(this)">
-                <div style="flex:1;min-width:0;">
-                  <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(m.name)}</div>
+                <img src="${escapeHtml(m.poster ? proxiedPoster(m.poster) : POSTER_PLACEHOLDER)}" alt="" class="thumb-sm" onerror="retryPoster(this)">
+                <div class="kc-info">
+                  <div class="kc-name">${escapeHtml(m.name)}</div>
                   <div class="kc-code">${escapeHtml(m.code || m.id)}</div>
                 </div>
-                <button type="button" class="btn btn-secondary" data-edit-kino-id="${escapeHtml(m.id)}" style="padding:6px 10px;font-size:12px;">Tahrirlash</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-edit-kino-id="${escapeHtml(m.id)}">Tahrirlash</button>
               </li>
             `).join('')}
           </ul>
@@ -1682,8 +1701,8 @@ function renderMovies() {
       </td>
       <td class="col-header desktop-only">
         ${movie.headerImage ? `
-          <img src="${escapeHtml(proxiedPoster(movie.headerImage))}" alt="Header" class="movie-header-preview" loading="lazy" decoding="async" style="width: 80px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);" onerror="this.style.display='none'">
-        ` : '<span style="color:var(--text-muted); font-size: 11px;">Yo\'q</span>'}
+          <img src="${escapeHtml(proxiedPoster(movie.headerImage))}" alt="Header" class="movie-header-preview" loading="lazy" decoding="async" onerror="this.style.display='none'">
+        ` : '<span class="muted">Yo\'q</span>'}
       </td>
       <td class="col-title">
         <div class="movie-title-wrap">
@@ -1693,7 +1712,7 @@ function renderMovies() {
             ${movie.code ? `<span class="movie-chip code-chip">#${escapeHtml(movie.code)}</span>` : ''}
             ${movie.year ? `<span class="movie-chip">${escapeHtml(movie.year)}</span>` : ''}
             ${movie.category ? `<span class="movie-chip cat-chip">${escapeHtml(movie.category)}</span>` : ''}
-            <span class="movie-chip rating-chip">⭐ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>
+            <span class="movie-chip rating-chip">★ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>
             <span class="badge ${movie.hd ? 'badge-hd' : 'badge-sd'}">${movie.hd ? 'HD' : 'SD'}</span>
           </div>
         </div>
@@ -1701,7 +1720,7 @@ function renderMovies() {
       <td class="col-year desktop-only">${escapeHtml(movie.year || '-')}</td>
       <td class="col-category desktop-only">${escapeHtml(movie.category || '-')}</td>
       <td class="col-rating desktop-only">
-        <span class="rating">⭐ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>
+        <span class="rating"><span data-tone="warn">★</span> ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>
       </td>
       <td class="col-badge desktop-only">
         <span class="badge ${movie.hd ? 'badge-hd' : 'badge-sd'}">
@@ -1710,7 +1729,7 @@ function renderMovies() {
       </td>
       <td class="col-actions">
         <div class="actions">
-          <button class="btn-icon edit" data-action="edit" data-movie-id="${escapeHtml(movie.id)}" title="Tahrirlash">✏️</button>
+          <button class="btn-icon edit" data-action="edit" data-movie-id="${escapeHtml(movie.id)}" title="Tahrirlash" aria-label="Tahrirlash">${ADMIN_ICONS.edit}</button>
         </div>
       </td>
     </tr>
@@ -1870,15 +1889,15 @@ async function openR2PosterPicker() {
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.id = 'r2PickerOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(8,10,16,0.82);display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.className = 'picker-overlay';
     overlay.innerHTML = `
-      <div style="background:var(--bg-card,#141927);border-radius:16px;max-width:720px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.08);">
+      <div class="picker">
+        <div class="picker__head">
           <strong>R2'dagi rasmlar</strong>
-          <button type="button" id="r2PickerClose" class="btn btn-secondary" style="padding:4px 12px;">Yopish</button>
+          <button type="button" id="r2PickerClose" class="btn btn-secondary btn-sm">Yopish</button>
         </div>
-        <div id="r2PickerBody" style="overflow-y:auto;padding:12px;">
-          <div style="text-align:center;padding:30px;color:var(--text-muted,#8b93a7);">Yuklanmoqda...</div>
+        <div id="r2PickerBody" class="picker__body">
+          <div class="placeholder-text">Yuklanmoqda...</div>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -1904,19 +1923,17 @@ async function openR2PosterPicker() {
       r2ImagesCache = data.images || [];
     }
     if (!r2ImagesCache.length) {
-      body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted,#8b93a7);">R2 bucket\'da rasm topilmadi.</div>';
+      body.innerHTML = '<div class="placeholder-text">R2 bucket\'da rasm topilmadi.</div>';
       return;
     }
     body.innerHTML = `
-      <div style="font-size:12px;color:var(--text-muted,#8b93a7);margin-bottom:10px;">
+      <p class="form-hint form-hint--lead">
         Jami: ${r2ImagesCache.length} ta rasm (yangi yuklanganlari birinchi). Kerakli posterni bosing.
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;">
+      </p>
+      <div class="picker__grid">
         ${r2ImagesCache.map((img) => `
-          <button type="button" class="r2-pick-item" data-url="${escapeHtml(img.url)}"
-                  style="border:none;padding:0;background:#0e1220;border-radius:10px;overflow:hidden;cursor:pointer;aspect-ratio:2/3;">
-            <img src="${escapeHtml(img.url)}" alt="" loading="lazy" decoding="async"
-                 style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'">
+          <button type="button" class="r2-pick-item" data-url="${escapeHtml(img.url)}">
+            <img src="${escapeHtml(img.url)}" alt="" loading="lazy" decoding="async" onerror="this.parentElement.style.display='none'">
           </button>`).join('')}
       </div>`;
     body.querySelectorAll('.r2-pick-item').forEach((btn) => {
@@ -1932,7 +1949,7 @@ async function openR2PosterPicker() {
       });
     });
   } catch (err) {
-    body.innerHTML = `<div style="text-align:center;padding:30px;color:#f87171;">${escapeHtml(err.message || 'Xatolik')}</div>`;
+    body.innerHTML = `<div class="placeholder-text" data-tone="error">${escapeHtml(err.message || 'Xatolik')}</div>`;
   }
 }
 
@@ -2241,13 +2258,13 @@ async function handleMovieSubmit(e) {
         const pushEnabled = document.getElementById('moviePushEnabled')?.checked;
         if (pushEnabled) {
           const pushResultEl = document.getElementById('moviePushResult');
-          if (pushResultEl) pushResultEl.innerHTML = '<span style="color:#888;">📨 Push yuborilmoqda...</span>';
+          if (pushResultEl) { pushResultEl.textContent = 'Push yuborilmoqda...'; setTone(pushResultEl, ''); }
           try {
             await sendMoviePush(id, movieData, finalPoster, result.movie);
-            if (pushResultEl) pushResultEl.innerHTML = '<span style="color:#16a34a;">✅ Push yuborildi.</span>';
+            if (pushResultEl) { pushResultEl.textContent = 'Push yuborildi.'; setTone(pushResultEl, 'ok'); }
             showNotification('Kino yangilandi va push yuborildi! ✅');
           } catch (err) {
-            if (pushResultEl) pushResultEl.innerHTML = `<span style="color:#dc2626;">❌ Push xato: ${err.message}</span>`;
+            if (pushResultEl) { pushResultEl.textContent = `Push xato: ${err.message}`; setTone(pushResultEl, 'error'); }
             showNotification('Kino yangilandi, lekin push yuborilmadi: ' + err.message, 'error');
           }
           await fetchMovies();
@@ -2345,8 +2362,6 @@ function switchMovieTab(name) {
   document.querySelectorAll('.movie-tab').forEach(tab => {
     const active = tab.dataset.movieTab === name;
     tab.classList.toggle('is-active', active);
-    tab.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
-    tab.style.color = active ? 'var(--text,#111)' : 'var(--text-muted,#666)';
   });
   document.querySelectorAll('.movie-tabpanel').forEach(panel => {
     panel.hidden = panel.dataset.movieTabpanel !== name;
@@ -2364,8 +2379,6 @@ function switchAdTab(name) {
     const active = tab.dataset.adTab === name;
     tab.classList.toggle('is-active', active);
     tab.setAttribute('aria-selected', active ? 'true' : 'false');
-    tab.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
-    tab.style.color = active ? 'var(--text,#111)' : 'var(--text-muted,#666)';
   });
   document.querySelectorAll('.ad-tab-item').forEach(item => {
     item.classList.toggle('is-active', item.dataset.adTabItem === name);
@@ -2417,7 +2430,7 @@ async function fetchSeries(force = false) {
   }
   if (grid && (force || !cached?.data)) {
     grid.innerHTML = `
-      <div class="loading-state" style="grid-column:1/-1;">
+      <div class="loading-state">
         <div class="loading-spinner"></div>
         <p>Seriallar yuklanmoqda...</p>
       </div>
@@ -2445,10 +2458,10 @@ async function fetchSeries(force = false) {
     filteredSeries = [];
     if (grid) {
       grid.innerHTML = `
-        <div class="empty-state error-state" style="grid-column:1/-1;">
+        <div class="empty-state error-state">
           <h3>Seriallarni yuklashda xatolik!</h3>
           <p>${escapeHtml(error.message)}</p>
-          <button class="btn btn-primary" onclick="fetchSeries()" style="margin-top:12px;">Qayta urinish</button>
+          <button class="btn btn-primary" onclick="fetchSeries()">Qayta urinish</button>
         </div>
       `;
     }
@@ -2479,7 +2492,7 @@ function renderSeries() {
 
   if (list.length === 0) {
     grid.innerHTML = `
-      <div class="empty-state" style="grid-column:1/-1;">
+      <div class="empty-state">
         <h3>${seriesSearchQuery ? 'Qidiruv natijasi yo\'q' : 'Hozircha seriallar yo\'q'}</h3>
         <p>${seriesSearchQuery
           ? `"${escapeHtml(seriesSearchQuery)}" bo'yicha topilmadi`
@@ -2490,12 +2503,11 @@ function renderSeries() {
   }
 
   grid.innerHTML = list.map(s => `
-    <div class="series-card" data-series-id="${escapeHtml(s.id)}" title="Tahrirlash"
-         style="cursor:pointer;border:1px solid var(--border,#e3e6ec);border-radius:14px;overflow:hidden;background:var(--surface-bg,#fff);">
-      <div style="aspect-ratio:2/3;background:#1a1f2e center/cover no-repeat;background-image:url('${escapeHtml(s.poster || '')}');"></div>
-      <div style="padding:10px 12px;">
-        <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.name)}</div>
-        <div style="font-size:12px;color:var(--text-muted,#888);margin-top:3px;">${s.episodeCount} ta qism</div>
+    <div class="series-card media-card" data-series-id="${escapeHtml(s.id)}" title="Tahrirlash">
+      <div class="media-card__thumb" style="background-image:url('${escapeHtml(s.poster || '')}');"></div>
+      <div class="media-card__body">
+        <div class="media-card__title">${escapeHtml(s.name)}</div>
+        <div class="media-card__meta">${s.episodeCount} ta qism</div>
       </div>
     </div>
   `).join('');
@@ -2522,15 +2534,15 @@ function renderSeriesEpisodes(series) {
   if (!wrap) return;
   const eps = Array.isArray(series.episodes) ? series.episodes : [];
   if (!eps.length) {
-    wrap.innerHTML = `<p class="form-hint" style="padding:8px 2px;">Bu serialda hali qism (video fayl) yo'q.</p>`;
+    wrap.innerHTML = `<p class="placeholder-text">Bu serialda hali qism (video fayl) yo'q.</p>`;
     return;
   }
   wrap.innerHTML = eps.map((ep, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border,#e3e6ec);border-radius:10px;background:var(--surface-bg,#fff);">
-      <span style="flex:0 0 28px;width:28px;height:28px;border-radius:999px;background:var(--primary,#3b82f6);color:#fff;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;">${i + 1}</span>
-      <input type="text" class="form-input series-episode-input" data-ep-id="${escapeHtml(ep.id)}" data-default-title="${escapeHtml(ep.defaultTitle || '')}" value="${escapeHtml(ep.title || '')}" style="flex:1;margin:0;" placeholder="Qism nomi">
-      <label style="display:inline-flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--text-muted,#888);white-space:nowrap;">Fasl
-        <input type="number" min="1" max="99" class="form-input series-episode-season" data-ep-id="${escapeHtml(ep.id)}" data-current-season="${escapeHtml(String(ep.season || 1))}" value="${escapeHtml(String(ep.season || 1))}" style="width:64px;margin:0;padding:6px 8px;text-align:center;">
+    <div class="list-row series-episode-row">
+      <span class="list-row__num">${i + 1}</span>
+      <input type="text" class="form-input series-episode-input" data-ep-id="${escapeHtml(ep.id)}" data-default-title="${escapeHtml(ep.defaultTitle || '')}" value="${escapeHtml(ep.title || '')}" placeholder="Qism nomi">
+      <label class="list-row__season">Fasl
+        <input type="number" min="1" max="99" class="form-input series-episode-season" data-ep-id="${escapeHtml(ep.id)}" data-current-season="${escapeHtml(String(ep.season || 1))}" value="${escapeHtml(String(ep.season || 1))}">
       </label>
     </div>
   `).join('');
@@ -2787,16 +2799,16 @@ function renderBroadcastPreview() {
   const asHtml = document.getElementById('broadcastParseHtml').checked;
 
   if (!text && !photo) {
-    preview.innerHTML = '<div style="opacity:0.5;">Matn kiriting...</div>';
+    preview.innerHTML = '<div class="tg-preview__placeholder">Matn kiriting...</div>';
     return;
   }
 
   const textHtml = asHtml ? text.replace(/\n/g, '<br>') : escapeBroadcastHtml(text).replace(/\n/g, '<br>');
   const photoHtml = photo
-    ? `<div style="margin-bottom:10px;border-radius:10px;overflow:hidden;"><img src="${escapeBroadcastHtml(photo)}" style="width:100%;display:block;max-height:240px;object-fit:cover;" onerror="this.style.display='none'"></div>`
+    ? `<div class="tg-preview__photo"><img src="${escapeBroadcastHtml(photo)}" alt="" onerror="this.style.display='none'"></div>`
     : '';
   const buttonHtml = (btnText && btnUrl)
-    ? `<div style="margin-top:12px;"><div style="display:inline-block;padding:8px 16px;background:#3390ec;color:#fff;border-radius:6px;font-weight:500;font-size:13px;">${escapeBroadcastHtml(btnText)}</div></div>`
+    ? `<div class="tg-preview__button">${escapeBroadcastHtml(btnText)}</div>`
     : '';
   preview.innerHTML = `${photoHtml}<div>${textHtml}</div>${buttonHtml}`;
 }
@@ -2833,11 +2845,11 @@ async function submitBroadcast(event) {
   const disablePreview = document.getElementById('broadcastDisablePreview').checked;
 
   if (!text && !photoUrl) {
-    resultEl.innerHTML = '<div style="color:#d33;padding:10px;background:#fee;border-radius:8px;">Matn yoki rasm kerak.</div>';
+    resultEl.innerHTML = '<div class="alert alert--error">Matn yoki rasm kerak.</div>';
     return;
   }
   if ((buttonText && !buttonUrl) || (!buttonText && buttonUrl)) {
-    resultEl.innerHTML = '<div style="color:#d33;padding:10px;background:#fee;border-radius:8px;">Tugma uchun ham matn, ham URL kerak.</div>';
+    resultEl.innerHTML = '<div class="alert alert--error">Tugma uchun ham matn, ham URL kerak.</div>';
     return;
   }
   if (!confirm('Barcha obunachilarga yuborilsinmi? Bekor qilib bo\'lmaydi.')) return;
@@ -2847,7 +2859,7 @@ async function submitBroadcast(event) {
 
   sendBtn.disabled = true;
   sendBtn.textContent = 'Yuborilmoqda...';
-  resultEl.innerHTML = '<div style="padding:10px;background:#eef5ff;border-radius:8px;">Yuborilmoqda, kuting...</div>';
+  resultEl.innerHTML = '<div class="alert alert--info">Yuborilmoqda, kuting...</div>';
 
   try {
     const resp = await fetch('/api/broadcast', {
@@ -2859,18 +2871,18 @@ async function submitBroadcast(event) {
     const data = await resp.json();
     if (!resp.ok || !data.ok) {
       if (resp.status === 401) { localStorage.removeItem('adminPassword'); localStorage.removeItem('adminLoggedIn'); }
-      resultEl.innerHTML = `<div style="color:#d33;padding:10px;background:#fee;border-radius:8px;">Xato: ${escapeBroadcastHtml(data.error || 'Noma\'lum')}</div>`;
+      resultEl.innerHTML = `<div class="alert alert--error">Xato: ${escapeBroadcastHtml(data.error || 'Noma\'lum')}</div>`;
     } else {
       const errorList = Array.isArray(data.errors) && data.errors.length
-        ? `<details style="margin-top:8px;"><summary>Xatolar (${data.errors.length})</summary><pre style="font-size:11px;max-height:200px;overflow:auto;">${escapeBroadcastHtml(JSON.stringify(data.errors, null, 2))}</pre></details>`
+        ? `<details><summary>Xatolar (${data.errors.length})</summary><pre>${escapeBroadcastHtml(JSON.stringify(data.errors, null, 2))}</pre></details>`
         : '';
-      resultEl.innerHTML = `<div style="padding:12px;background:#e8f5e9;border-radius:8px;color:#1b5e20;">
-        ✅ <strong>Tugadi.</strong> Yuborildi: <strong>${data.sent}</strong>, xato: <strong>${data.failed}</strong>, jami: ${data.total}. (${Math.round(data.elapsedMs / 100) / 10}s)
+      resultEl.innerHTML = `<div class="alert alert--success">
+        <strong>Tugadi.</strong> Yuborildi: <strong>${data.sent}</strong>, xato: <strong>${data.failed}</strong>, jami: ${data.total}. (${Math.round(data.elapsedMs / 100) / 10}s)
         ${errorList}
       </div>`;
     }
   } catch (error) {
-    resultEl.innerHTML = `<div style="color:#d33;padding:10px;background:#fee;border-radius:8px;">Tarmoq xatosi: ${escapeBroadcastHtml(error.message)}</div>`;
+    resultEl.innerHTML = `<div class="alert alert--error">Tarmoq xatosi: ${escapeBroadcastHtml(error.message)}</div>`;
   } finally {
     sendBtn.disabled = false;
     sendBtn.textContent = 'Yuborish';
@@ -3066,7 +3078,7 @@ async function fetchMusic(force = false) {
       summary.textContent = isPersistent
         ? `Persistent Redis ulangan · ${musicTracks.length} ta qo'shiq`
         : `Faqat seed (Redis sozlanmagan) · ${musicTracks.length} ta qo'shiq`;
-      summary.style.color = isPersistent ? '#3ecf8e' : '#ffb84d';
+      setTone(summary, isPersistent ? 'ok' : 'warn');
     }
   };
   if (cached?.data && !force) {
@@ -3129,8 +3141,8 @@ function renderMusicTable() {
       <td class="col-ytid desktop-only"><code>${escapeHtml(t.youtubeId)}</code></td>
       <td class="col-actions">
         <div class="actions">
-          <a class="btn-icon view" href="https://www.youtube.com/watch?v=${escapeHtml(t.youtubeId)}" target="_blank" rel="noopener" title="YouTube'da ochish">▶️</a>
-          <button class="btn-icon delete" data-music-delete="${escapeHtml(t.youtubeId)}|${escapeHtml(t.title)}|${escapeHtml(t.artist)}" title="O'chirish">🗑️</button>
+          <a class="btn-icon view" href="https://www.youtube.com/watch?v=${escapeHtml(t.youtubeId)}" target="_blank" rel="noopener" title="YouTube'da ochish" aria-label="YouTube'da ochish">${ADMIN_ICONS.play}</a>
+          <button class="btn-icon delete" data-music-delete="${escapeHtml(t.youtubeId)}|${escapeHtml(t.title)}|${escapeHtml(t.artist)}" title="O'chirish" aria-label="O'chirish">${ADMIN_ICONS.trash}</button>
         </div>
       </td>
     </tr>
@@ -3205,17 +3217,17 @@ document.getElementById('musicForm')?.addEventListener('submit', (e) => {
   const youtubeId = extractYoutubeId(link);
   const hint = document.getElementById('musicLinkHint');
   if (!youtubeId) {
-    if (hint) { hint.textContent = "YouTube link noto'g'ri."; hint.style.color = '#ff6b6b'; }
+    if (hint) { hint.textContent = "YouTube link noto'g'ri."; setTone(hint, 'error'); }
     return;
   }
   const categories = [...musicFormCategories];
   const catHint = document.getElementById('musicCategoryHint');
   if (!categories.length) {
-    if (catHint) { catHint.textContent = 'Kamida bitta kategoriya tanlang.'; catHint.style.color = '#ff6b6b'; }
+    if (catHint) { catHint.textContent = 'Kamida bitta kategoriya tanlang.'; setTone(catHint, 'error'); }
     return;
   }
-  if (catHint) { catHint.textContent = 'Kamida bitta kategoriya tanlang.'; catHint.style.color = ''; }
-  if (hint) { hint.textContent = `Video ID: ${youtubeId}`; hint.style.color = ''; }
+  if (catHint) { catHint.textContent = 'Kamida bitta kategoriya tanlang.'; setTone(catHint, ''); }
+  if (hint) { hint.textContent = `Video ID: ${youtubeId}`; setTone(hint, ''); }
   addMusicTrack({ title, artist, categories, youtubeId }, e.target.querySelector('button[type="submit"]'));
   e.target.reset();
   musicFormCategories.clear();
@@ -3272,8 +3284,8 @@ document.getElementById('musicLink')?.addEventListener('input', (e) => {
   const hint = document.getElementById('musicLinkHint');
   if (!hint) return;
   const id = extractYoutubeId(e.target.value);
-  if (id) { hint.textContent = `Video ID: ${id}`; hint.style.color = ''; }
-  else { hint.textContent = 'Video ID havoladan avtomatik ajratiladi.'; hint.style.color = ''; }
+  if (id) { hint.textContent = `Video ID: ${id}`; setTone(hint, ''); }
+  else { hint.textContent = 'Video ID havoladan avtomatik ajratiladi.'; setTone(hint, ''); }
 });
 
 document.getElementById('musicExportBtn')?.addEventListener('click', exportMusicJSON);
@@ -3362,14 +3374,14 @@ function findArtistRecord(name) {
 }
 
 function artistCardHtml(name, subtitle, rec) {
-  const img = rec?.image ? `<img src="${escapeHtml(rec.image)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">` : '';
-  const overlay = rec?.image ? `<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.65) 100%);"></div>` : '';
+  const img = rec?.image ? `<img class="artist-card__img" src="${escapeHtml(rec.image)}" alt="">` : '';
+  const overlay = rec?.image ? `<div class="artist-card__shade"></div>` : '';
   return `
-    <button type="button" class="artist-card" data-artist-edit="${escapeHtml(name)}" style="position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;border:1px solid var(--border,#e3e6ec);background:#f1f3f7;padding:0;cursor:pointer;text-align:left;">
+    <button type="button" class="artist-card${rec?.image ? ' artist-card--image' : ''}" data-artist-edit="${escapeHtml(name)}">
       ${img}${overlay}
-      <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 12px;color:${rec?.image ? '#fff' : '#111'};">
-        <div style="font-weight:700;font-size:15px;line-height:1.1;">${escapeHtml(name)}</div>
-        <div style="font-size:12px;opacity:0.85;margin-top:2px;">${escapeHtml(subtitle)}</div>
+      <div class="artist-card__text">
+        <div class="artist-card__name">${escapeHtml(name)}</div>
+        <div class="artist-card__meta">${escapeHtml(subtitle)}</div>
       </div>
     </button>`;
 }
@@ -3415,7 +3427,7 @@ function fillArtistTracks(name) {
   }
   tbody.innerHTML = list.map((t) => `
     <tr>
-      <td><img src="https://i.ytimg.com/vi/${escapeHtml(t.youtubeId)}/mqdefault.jpg" alt="" style="width:60px;height:34px;object-fit:cover;border-radius:6px;"></td>
+      <td><img src="https://i.ytimg.com/vi/${escapeHtml(t.youtubeId)}/mqdefault.jpg" alt="" class="music-cover-img" loading="lazy"></td>
       <td><strong>${escapeHtml(t.title)}</strong></td>
       <td><span class="badge">${escapeHtml(t.category || 'Boshqa')}</span></td>
       <td><code>${escapeHtml(t.youtubeId)}</code></td>
@@ -3567,8 +3579,6 @@ document.addEventListener('click', (e) => {
       const active = t === fifaTab;
       t.classList.toggle('is-active', active);
       t.setAttribute('aria-selected', String(active));
-      t.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
-      t.style.color = active ? 'var(--text,#111)' : 'var(--text-muted,#666)';
     });
     document.querySelectorAll('[data-fifa-tabpanel]').forEach((p) => {
       p.hidden = p.dataset.fifaTabpanel !== fifaTab.dataset.fifaTab;
@@ -3580,8 +3590,6 @@ document.addEventListener('click', (e) => {
     document.querySelectorAll('.music-tab[data-music-tab]').forEach((t) => {
       const active = t === tab;
       t.classList.toggle('is-active', active);
-      t.style.borderBottomColor = active ? 'var(--primary,#3b82f6)' : 'transparent';
-      t.style.color = active ? 'var(--text,#111)' : 'var(--text-muted,#666)';
     });
     document.querySelectorAll('[data-music-tabpanel]').forEach((p) => {
       p.hidden = p.dataset.musicTabpanel !== tab.dataset.musicTab;
@@ -3654,21 +3662,21 @@ function renderYtChannels() {
     const initial = (name && name[0] ? name[0] : '?').toUpperCase();
     const needsFix = !c.snapshot?.title || !c.snapshot?.avatar;
     const avatarHtml = image
-      ? `<img src="${escapeHtml(image)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'yt-ch-fallback',textContent:${JSON.stringify(initial)}}));Object.assign(this.parentNode.querySelector('.yt-ch-fallback')?.style||{},{width:'64px',height:'64px',borderRadius:'50%',background:'#dbe1ea',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'700',fontSize:'24px',color:'#555',flexShrink:'0'});" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:#f1f3f7;flex-shrink:0;">`
-      : `<div style="width:64px;height:64px;border-radius:50%;background:#dbe1ea;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:#555;flex-shrink:0;">${escapeHtml(initial)}</div>`;
+      ? `<img class="avatar" src="${escapeHtml(image)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'avatar',textContent:${escapeHtml(JSON.stringify(initial))}}));">`
+      : `<div class="avatar">${escapeHtml(initial)}</div>`;
     return `
-      <div class="yt-channel-card" style="border:1px solid var(--border,#e3e6ec);border-radius:14px;overflow:hidden;background:var(--card,#fff);padding:14px;">
-        <div style="display:flex;gap:12px;align-items:center;">
+      <div class="yt-channel-card entity-card">
+        <div class="entity-card__head">
           ${avatarHtml}
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:700;font-size:15px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(name)}</div>
-            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:2px;">${videoCount} ta video${c.syncStatus === 'syncing' ? ' · <span style="color:#0284c7;">🔄 Navbatda yuklanmoqda...</span>' : ''}${c.snapshot?.title && c.snapshot.title !== name ? ' · ' + escapeHtml(c.snapshot.title) : ''}${needsFix ? ' · <span style="color:#d97706;">⚠ YT ma\'lumoti yo\'q</span>' : ''}</div>
+          <div class="entity-card__info">
+            <div class="entity-card__title">${escapeHtml(name)}</div>
+            <div class="entity-card__meta">${videoCount} ta video${c.syncStatus === 'syncing' ? ' · <span data-tone="info">Navbatda yuklanmoqda...</span>' : ''}${c.snapshot?.title && c.snapshot.title !== name ? ' · ' + escapeHtml(c.snapshot.title) : ''}${needsFix ? ' · <span data-tone="warn">YT ma\'lumoti yo\'q</span>' : ''}</div>
           </div>
         </div>
-        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
-          <button class="btn btn-secondary" data-ytch-edit="${escapeHtml(c.channelId)}" style="flex:1;min-width:90px;">Tahrirlash</button>
-          <button class="btn btn-secondary" data-ytch-refresh="${escapeHtml(c.channelId)}" style="flex:1;min-width:90px;">Yangilash</button>
-          <button class="btn btn-danger" data-ytch-delete="${escapeHtml(c.channelId)}|${escapeHtml(name)}" style="flex:1;min-width:90px;">O'chirish</button>
+        <div class="entity-card__actions">
+          <button class="btn btn-secondary btn-sm" data-ytch-edit="${escapeHtml(c.channelId)}">Tahrirlash</button>
+          <button class="btn btn-secondary btn-sm" data-ytch-refresh="${escapeHtml(c.channelId)}">Yangilash</button>
+          <button class="btn btn-danger-soft btn-sm" data-ytch-delete="${escapeHtml(c.channelId)}|${escapeHtml(name)}">O'chirish</button>
         </div>
       </div>`;
   }).join('');
@@ -3914,7 +3922,7 @@ function resetCategoryForm() {
   const btn = document.getElementById('categorySubmitBtn');
   if (btn) btn.textContent = "+ Qo'shish";
   const hint = document.getElementById('categoryImageHint');
-  if (hint) { hint.textContent = "Yoki pastdagi URL maydoniga to'g'ridan-to'g'ri link kiriting."; hint.style.color = ''; }
+  if (hint) { hint.textContent = "Yoki pastdagi URL maydoniga to'g'ridan-to'g'ri link kiriting."; setTone(hint, ''); }
 }
 
 async function fetchCategories(force = false) {
@@ -3931,7 +3939,7 @@ async function fetchCategories(force = false) {
       summary.textContent = ok
         ? `Redis ulangan · ${categoriesList.length} ta saqlangan, ${movieCats.length} ta kinolarda`
         : `Redis sozlanmagan · ${categoriesList.length} ta saqlangan`;
-      summary.style.color = ok ? '#3ecf8e' : '#ffb84d';
+      setTone(summary, ok ? 'ok' : 'warn');
     }
     renderCategoriesTable();
   };
@@ -3992,12 +4000,12 @@ function renderCategoriesTable() {
       ? `<img src="${escapeHtml(c.image)}" alt="" class="cat-cover-img" loading="lazy">`
       : '<span class="cat-no-image">Rasm yo\'q</span>';
     const statusBadge = c.source === 'movie'
-      ? '<span class="badge badge-cat badge-cat-movie" style="background:#fff3cd;color:#856404;">Kinolarda</span>'
+      ? '<span class="badge badge-cat badge-cat-movie">Kinolarda</span>'
       : c.source === 'saved'
-        ? '<span class="badge badge-cat badge-cat-saved" style="background:#d1e7dd;color:#0f5132;">Saqlangan</span>'
+        ? '<span class="badge badge-cat badge-cat-saved">Saqlangan</span>'
         : c.source === 'series'
-          ? '<span class="badge badge-cat badge-cat-series" style="background:#e7d6ff;color:#5a2a99;">Seriallar</span>'
-          : '<span class="badge badge-cat badge-cat-both" style="background:#cfe2ff;color:#084298;">Ikkalasi</span>';
+          ? '<span class="badge badge-cat badge-cat-series">Seriallar</span>'
+          : '<span class="badge badge-cat badge-cat-both">Ikkalasi</span>';
     const editKey = c.id ? `data-cat-edit="${escapeHtml(c.id)}"` : `data-cat-attach="${escapeHtml(c.name)}"`;
     const editLabel = c.image ? 'Tahrirlash' : 'Rasm yuklash';
     const deleteBtn = c.id
@@ -4058,21 +4066,21 @@ document.getElementById('categoryImageFile')?.addEventListener('change', async (
   const hint = document.getElementById('categoryImageHint');
   if (!file) return;
   if (file.size > 5 * 1024 * 1024) {
-    if (hint) { hint.textContent = 'Fayl 5MB dan katta.'; hint.style.color = '#ff6b6b'; }
+    if (hint) { hint.textContent = 'Fayl 5MB dan katta.'; setTone(hint, 'error'); }
     e.target.value = '';
     return;
   }
   try {
-    if (hint) { hint.textContent = 'Yuklanmoqda...'; hint.style.color = ''; }
+    if (hint) { hint.textContent = 'Yuklanmoqda...'; setTone(hint, ''); }
     let dataUrl = await readFileAsDataUrl(file);
     dataUrl = await compressImageDataUrl(dataUrl);
     const url = await uploadCategoryImage(dataUrl, (document.getElementById('categoryName').value || 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-'));
     categoryUploadedUrl = url;
     document.getElementById('categoryImageUrl').value = url;
     setCategoryPreview(url);
-    if (hint) { hint.textContent = "Yuklandi ✅"; hint.style.color = '#3ecf8e'; }
+    if (hint) { hint.textContent = "Yuklandi ✅"; setTone(hint, 'ok'); }
   } catch (err) {
-    if (hint) { hint.textContent = `Yuklash xatosi: ${err.message}`; hint.style.color = '#ff6b6b'; }
+    if (hint) { hint.textContent = `Yuklash xatosi: ${err.message}`; setTone(hint, 'error'); }
   }
 });
 
@@ -4192,7 +4200,7 @@ function setAdStatus(msg, kind) {
   const el = document.getElementById('adSaveStatus');
   if (!el) return;
   el.textContent = msg || '';
-  el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
+  setTone(el, kind);
 }
 function updateAdLivePreview() {
   const image = (document.getElementById('adImageUrl')?.value || adUploadedUrl || '').trim();
@@ -4434,7 +4442,7 @@ function setTickerStatus(msg, kind = 'info') {
   const el = document.getElementById('tickerSaveStatus');
   if (!el) return;
   el.textContent = msg;
-  el.style.color = kind === 'error' ? '#ef4444' : (kind === 'ok' ? '#22c55e' : '#6b7280');
+  setTone(el, kind);
 }
 
 function updateTickerLivePreview() {
@@ -4475,7 +4483,7 @@ function updateTickerLivePreview() {
   const statusLabel = document.getElementById('tickerStatusLabel');
   if (statusLabel) {
     statusLabel.textContent = enabled ? 'ON · faol' : "OFF · o'chirilgan";
-    statusLabel.style.color = enabled ? '#22c55e' : '#ef4444';
+    setTone(statusLabel, enabled ? 'ok' : 'error');
   }
 
   const fontLabel = document.getElementById('tickerFontLabel');
@@ -4487,7 +4495,7 @@ function updateTickerLivePreview() {
   const linkLabel = document.getElementById('tickerLinkLabel');
   if (linkLabel) {
     if (linkUrl) {
-      linkLabel.innerHTML = `<span style="color:#2563eb;word-break:break-all;">${linkUrl}</span> (faol)`;
+      linkLabel.innerHTML = `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener">${escapeHtml(linkUrl)}</a> (faol)`;
     } else {
       linkLabel.textContent = "Mavjud emas (bosganda havola ochilmaydi)";
     }
@@ -4495,7 +4503,11 @@ function updateTickerLivePreview() {
 
   const fontHint = document.getElementById('tickerFontPreviewHint');
   if (fontHint) {
-    fontHint.innerHTML = `Tanlangan shrift: <strong style="font-family:'${fontFamily}', sans-serif;">${fontFamily}</strong>`;
+    fontHint.textContent = 'Tanlangan shrift: ';
+    const strong = document.createElement('strong');
+    strong.textContent = fontFamily;
+    strong.style.fontFamily = `"${fontFamily}", sans-serif`;
+    fontHint.appendChild(strong);
   }
 }
 
@@ -4508,15 +4520,11 @@ function setTickerBgMode(mode) {
   if (mode === 'solid') {
     solidTab?.classList.add('is-active');
     gradTab?.classList.remove('is-active');
-    if (solidTab) { solidTab.style.background = '#fff'; solidTab.style.color = 'var(--text, #111)'; solidTab.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }
-    if (gradTab) { gradTab.style.background = 'transparent'; gradTab.style.color = 'var(--text-muted, #666)'; gradTab.style.boxShadow = 'none'; }
     if (solidPanel) solidPanel.style.display = 'block';
     if (gradPanel) gradPanel.style.display = 'none';
   } else {
     gradTab?.classList.add('is-active');
     solidTab?.classList.remove('is-active');
-    if (gradTab) { gradTab.style.background = '#fff'; gradTab.style.color = 'var(--text, #111)'; gradTab.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }
-    if (solidTab) { solidTab.style.background = 'transparent'; solidTab.style.color = 'var(--text-muted, #666)'; solidTab.style.boxShadow = 'none'; }
     if (gradPanel) gradPanel.style.display = 'block';
     if (solidPanel) solidPanel.style.display = 'none';
   }
@@ -4788,7 +4796,7 @@ function setPreRollStatus(msg, kind) {
   const el = document.getElementById('preRollAdSaveStatus');
   if (!el) return;
   el.textContent = msg || '';
-  el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
+  setTone(el, kind);
 }
 
 let preRollAdVideos = [];
@@ -4803,7 +4811,7 @@ function setPreRollListStatus(msg, kind) {
   const el = document.getElementById('preRollAdListStatus');
   if (!el) return;
   el.textContent = msg || '';
-  el.style.color = kind === 'error' ? '#dc3545' : (kind === 'ok' ? '#3ecf8e' : 'var(--text-muted)');
+  setTone(el, kind);
 }
 
 function setPreRollVideoPreview(url) {
@@ -4858,19 +4866,19 @@ function renderPreRollVideoList() {
   const container = document.getElementById('preRollAdVideoList');
   if (!container) return;
   if (!preRollAdVideos.length) {
-    container.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px;">Drive'da "reklama" papkasi yoki video topilmadi. Drive katalog ildizida <strong>"reklama"</strong> nomli papka oching va u yerga mp4 yuklang, keyin "Yangilash"ni bosing.</div>`;
+    container.innerHTML = `<div class="placeholder-text">Drive'da "reklama" papkasi yoki video topilmadi. Drive katalog ildizida <strong>"reklama"</strong> nomli papka oching va u yerga mp4 yuklang, keyin "Yangilash"ni bosing.</div>`;
     return;
   }
   container.innerHTML = preRollAdVideos.map((v) => {
     const dur = formatDurationMs(v.durationMs);
     const size = formatBytes(v.size);
     return `
-      <label class="preroll-video-item" data-id="${v.id}" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;background:#fff;border:1px solid var(--border,#e3e6ec);transition:border-color .15s,background .15s;">
-        <input type="radio" name="preRollAdVideoRadio" value="${v.id}" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(v.name)}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
-            ${dur ? `⏱ ${dur} · ` : ''}${size}${v.modifiedTime ? ` · ${new Date(v.modifiedTime).toLocaleDateString()}` : ''}
+      <label class="preroll-video-item" data-id="${v.id}">
+        <input type="radio" name="preRollAdVideoRadio" value="${v.id}">
+        <div class="list-row__info">
+          <div class="list-row__title">${escapeHtml(v.name)}</div>
+          <div class="list-row__meta">
+            ${dur ? `${dur} · ` : ''}${size}${v.modifiedTime ? ` · ${new Date(v.modifiedTime).toLocaleDateString()}` : ''}
           </div>
         </div>
       </label>
@@ -5041,33 +5049,33 @@ function renderPodcasts() {
   }
   grid.innerHTML = podcastChannels.map((c) => {
     const s = c.snapshot || {};
-    const banner = s.banner ? `background:url('${escapeHtml(s.banner)}') center/cover no-repeat;` : 'background:linear-gradient(135deg,#3d4adf,#7c4ad4);';
+    const bannerStyle = s.banner ? ` style="background-image:url('${escapeHtml(s.banner)}')"` : '';
     return `
-      <div class="podcast-admin-card" style="border:1px solid var(--border,#e3e6ec);border-radius:14px;overflow:hidden;background:var(--card,#fff);">
-        <div style="height:80px;${banner}"></div>
-        <div style="display:flex;gap:12px;padding:14px;align-items:flex-start;margin-top:-30px;">
-          <img src="${escapeHtml(s.avatar || '')}" alt="" style="width:56px;height:56px;border-radius:50%;border:3px solid var(--card,#fff);object-fit:cover;background:#eee;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:700;font-size:15px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.title || c.channelId)}</div>
-            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:2px;">${escapeHtml(s.handle || '')}</div>
-            <div style="font-size:12px;color:var(--text-muted,#666);margin-top:4px;">${formatCount(s.subscriberCount)} obunachi · ${formatCount(s.videoCount)} video</div>
+      <div class="podcast-admin-card">
+        <div class="podcast-admin-card__banner"${bannerStyle}></div>
+        <div class="podcast-admin-card__head">
+          <img class="avatar" src="${escapeHtml(s.avatar || '')}" alt="">
+          <div class="entity-card__info">
+            <div class="entity-card__title">${escapeHtml(s.title || c.channelId)}</div>
+            <div class="entity-card__meta">${escapeHtml(s.handle || '')}</div>
           </div>
         </div>
-        <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;">
+        <div class="podcast-admin-card__body">
+          <div class="entity-card__meta">${formatCount(s.subscriberCount)} obunachi · ${formatCount(s.videoCount)} video</div>
           <div>
-            <div style="font-size:12px;font-weight:600;color:var(--text-muted,#666);margin-bottom:4px;">Kategoriya (til)</div>
+            <p class="field-sublabel">Kategoriya (til)</p>
             <div class="pod-lang-row">
               ${['uz','ru','en'].map((l) => `<button type="button" class="pod-lang-mini${(c.lang || '') === l ? ' is-active' : ''}" data-pod-set-lang="${escapeHtml(c.channelId)}|${l}">${POD_LANG_LABEL[l]}</button>`).join('')}
             </div>
           </div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none;">
-            <input type="checkbox" ${c.featured ? 'checked' : ''} data-pod-featured="${escapeHtml(c.channelId)}" style="width:18px;height:18px;accent-color:var(--primary,#3b82f6);cursor:pointer;">
+          <label class="check">
+            <input type="checkbox" ${c.featured ? 'checked' : ''} data-pod-featured="${escapeHtml(c.channelId)}">
             <span>Header sectionda ko'rsatish</span>
           </label>
-          <div style="display:flex;gap:8px;">
-            <a class="btn btn-secondary" href="https://www.youtube.com/channel/${escapeHtml(c.channelId)}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:13px;padding:8px;">YouTube</a>
-            <button class="btn btn-secondary" data-pod-refresh="${escapeHtml(c.channelId)}" style="font-size:13px;padding:8px 12px;">↻</button>
-            <button class="btn btn-danger" data-pod-delete="${escapeHtml(c.channelId)}|${escapeHtml(s.title || c.channelId)}" style="font-size:13px;padding:8px 12px;">O'chirish</button>
+          <div class="entity-card__actions">
+            <a class="btn btn-secondary btn-sm" href="https://www.youtube.com/channel/${escapeHtml(c.channelId)}" target="_blank" rel="noopener">YouTube</a>
+            <button class="btn btn-secondary btn-sm" data-pod-refresh="${escapeHtml(c.channelId)}" title="Yangilash">${ADMIN_ICONS.refresh}</button>
+            <button class="btn btn-danger-soft btn-sm" data-pod-delete="${escapeHtml(c.channelId)}|${escapeHtml(s.title || c.channelId)}">O'chirish</button>
           </div>
         </div>
       </div>
@@ -5079,7 +5087,7 @@ async function addPodcastChannel(input) {
   const btn = document.getElementById('podcastSubmitBtn');
   const hint = document.getElementById('podcastInputHint');
   setButtonBusy(btn, true, "Qo'shilmoqda");
-  if (hint) { hint.textContent = 'YouTube\'dan ma\'lumot olinmoqda...'; hint.style.color = ''; }
+  if (hint) { hint.textContent = 'YouTube\'dan ma\'lumot olinmoqda...'; setTone(hint, ''); }
   try {
     const r = await fetch(`${API_URL}/podcasts`, {
       method: 'POST',
@@ -5091,9 +5099,9 @@ async function addPodcastChannel(input) {
     podcastChannels = Array.isArray(data.channels) ? data.channels : podcastChannels;
     renderPodcasts();
     document.getElementById('podcastInput').value = '';
-    if (hint) { hint.textContent = `Qo'shildi: ${data.channel?.snapshot?.title || ''}`; hint.style.color = '#28a745'; }
+    if (hint) { hint.textContent = `Qo'shildi: ${data.channel?.snapshot?.title || ''}`; setTone(hint, 'ok'); }
   } catch (err) {
-    if (hint) { hint.textContent = 'Xato: ' + err.message; hint.style.color = '#ff6b6b'; }
+    if (hint) { hint.textContent = 'Xato: ' + err.message; setTone(hint, 'error'); }
   } finally {
     setButtonBusy(btn, false);
   }
@@ -5209,20 +5217,20 @@ function renderPodLangsEditor() {
   root.innerHTML = POD_LANG_KEYS.map((k) => {
     const e = podLangsState[k] || POD_LANG_DEFAULTS[k];
     const img = e.image
-      ? `<img src="${escapeHtml(e.image)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
-      : `<span style="color:#999;font-size:12px;">Rasm yo'q</span>`;
+      ? `<img src="${escapeHtml(e.image)}" alt="">`
+      : `<span>Rasm yo'q</span>`;
     return `
-      <div class="pod-lang-card" data-pod-lang-card="${k}" style="border:1px solid var(--border,#e3e6ec);border-radius:14px;padding:14px;background:var(--card,#fff);display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:54px;height:54px;border-radius:14px;overflow:hidden;background:#f1f3f7;display:flex;align-items:center;justify-content:center;flex:0 0 auto;" data-pod-lang-preview>${img}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted,#666);font-weight:700;">${k.toUpperCase()}</div>
-            <input type="text" class="form-input" data-pod-lang-name value="${escapeHtml(e.name || '')}" placeholder="Nomi" style="margin-top:4px;">
+      <div class="pod-lang-card" data-pod-lang-card="${k}">
+        <div class="pod-lang-card__head">
+          <div class="pod-lang-card__thumb" data-pod-lang-preview>${img}</div>
+          <div class="entity-card__info">
+            <div class="pod-lang-card__code">${k.toUpperCase()}</div>
+            <input type="text" class="form-input" data-pod-lang-name value="${escapeHtml(e.name || '')}" placeholder="Nomi">
           </div>
         </div>
-        <label class="btn btn-secondary" style="font-size:13px;padding:8px 10px;text-align:center;cursor:pointer;">
+        <label class="btn btn-secondary btn-sm">
           Rasm yuklash
-          <input type="file" accept="image/*" data-pod-lang-file style="display:none;">
+          <input type="file" accept="image/*" data-pod-lang-file hidden>
         </label>
         <input type="text" class="form-input" data-pod-lang-url value="${escapeHtml(e.image || '')}" placeholder="https://... (yoki yuklashdan keyin avto)">
       </div>
@@ -5241,9 +5249,9 @@ async function fetchPodLangs() {
       podLangsState[k] = { name: e.name || POD_LANG_DEFAULTS[k].name, image: e.image || '' };
     });
     renderPodLangsEditor();
-    if (hint) { hint.textContent = 'Yuklandi'; hint.style.color = ''; }
+    if (hint) { hint.textContent = 'Yuklandi'; setTone(hint, ''); }
   } catch (err) {
-    if (hint) { hint.textContent = 'Xato: ' + err.message; hint.style.color = '#ff6b6b'; }
+    if (hint) { hint.textContent = 'Xato: ' + err.message; setTone(hint, 'error'); }
   }
 }
 
@@ -5283,15 +5291,15 @@ document.getElementById('podLangsEditor')?.addEventListener('change', async (e) 
     const card = fileInput.closest('[data-pod-lang-card]');
     const hint = document.getElementById('podLangsHint');
     try {
-      if (hint) { hint.textContent = 'Rasm yuklanmoqda...'; hint.style.color = ''; }
+      if (hint) { hint.textContent = 'Rasm yuklanmoqda...'; setTone(hint, ''); }
       const url = await uploadPodLangImage(fileInput.files[0]);
       const urlInput = card.querySelector('[data-pod-lang-url]');
       if (urlInput) urlInput.value = url;
       const preview = card.querySelector('[data-pod-lang-preview]');
-      if (preview) preview.innerHTML = `<img src="${escapeHtml(url)}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
-      if (hint) { hint.textContent = 'Rasm yuklandi. "Saqlash" tugmasini bosing.'; hint.style.color = '#28a745'; }
+      if (preview) preview.innerHTML = `<img src="${escapeHtml(url)}" alt="">`;
+      if (hint) { hint.textContent = 'Rasm yuklandi. "Saqlash" tugmasini bosing.'; setTone(hint, 'ok'); }
     } catch (err) {
-      if (hint) { hint.textContent = 'Xato: ' + err.message; hint.style.color = '#ff6b6b'; }
+      if (hint) { hint.textContent = 'Xato: ' + err.message; setTone(hint, 'error'); }
     } finally {
       fileInput.value = '';
     }
@@ -5306,8 +5314,8 @@ document.getElementById('podLangsEditor')?.addEventListener('input', (e) => {
   const val = urlInput.value.trim();
   if (preview) {
     preview.innerHTML = val
-      ? `<img src="${escapeHtml(val)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
-      : `<span style="color:#999;font-size:12px;">Rasm yo'q</span>`;
+      ? `<img src="${escapeHtml(val)}" alt="">`
+      : `<span>Rasm yo'q</span>`;
   }
 });
 
@@ -5324,10 +5332,10 @@ document.getElementById('podLangsSaveBtn')?.addEventListener('click', async () =
     });
     const data = await r.json();
     if (!r.ok || !data.ok) throw new Error(data.error || 'Saqlab bo\'lmadi.');
-    if (hint) { hint.textContent = 'Saqlandi ✅'; hint.style.color = '#28a745'; }
+    if (hint) { hint.textContent = 'Saqlandi ✅'; setTone(hint, 'ok'); }
     showNotification('Til kategoriyalari saqlandi');
   } catch (err) {
-    if (hint) { hint.textContent = 'Xato: ' + err.message; hint.style.color = '#ff6b6b'; }
+    if (hint) { hint.textContent = 'Xato: ' + err.message; setTone(hint, 'error'); }
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Saqlash'; }
   }
@@ -5364,7 +5372,7 @@ function setFifaHighlightsStatus(msg, kind) {
   const el = document.getElementById('fifaHighlightsStatus');
   if (!el) return;
   el.textContent = msg || '';
-  el.style.color = kind === 'error' ? '#ef4444' : kind === 'ok' ? '#22c55e' : 'var(--text-muted, #666)';
+  setTone(el, kind);
 }
 
 function renderFifaHighlightsPreview(videos) {
@@ -5386,19 +5394,15 @@ function renderFifaHighlightsPreview(videos) {
   grid.innerHTML = list.map((v) => {
     const thumb = v.thumb || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
     return `
-      <div style="background:var(--bg-subtle,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);display:flex;flex-direction:column;">
-        <div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;">
-          <img src="${escapeHtml(thumb)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy">
-          ${v.duration ? `<span style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.8);color:#fff;font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;">${escapeHtml(v.duration)}</span>` : ''}
-          ${v.timeAgo ? `<span style="position:absolute;top:6px;left:6px;background:rgba(31,86,184,0.88);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">${escapeHtml(v.timeAgo)}</span>` : ''}
+      <div class="video-card">
+        <div class="video-card__thumb">
+          <img src="${escapeHtml(thumb)}" alt="" loading="lazy">
+          ${v.duration ? `<span class="video-card__tag video-card__tag--duration">${escapeHtml(v.duration)}</span>` : ''}
+          ${v.timeAgo ? `<span class="video-card__tag video-card__tag--age">${escapeHtml(v.timeAgo)}</span>` : ''}
         </div>
-        <div style="padding:10px;flex:1;display:flex;flex-direction:column;justify-content:space-between;">
-          <div style="font-size:12.5px;font-weight:600;color:var(--text,#111);line-height:1.35;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;" title="${escapeHtml(v.title)}">
-            ${escapeHtml(v.title)}
-          </div>
-          <a href="https://www.youtube.com/watch?v=${v.videoId}" target="_blank" rel="noopener" style="font-size:11px;color:#3b82f6;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
-            YouTube'da ko'rish ➔
-          </a>
+        <div class="video-card__body">
+          <div class="video-card__title" title="${escapeHtml(v.title)}">${escapeHtml(v.title)}</div>
+          <a class="video-card__link" href="https://www.youtube.com/watch?v=${escapeHtml(v.videoId)}" target="_blank" rel="noopener">YouTube'da ko'rish ↗</a>
         </div>
       </div>
     `;
@@ -5479,14 +5483,14 @@ let fifaStreamsLoaded = false;
 let fifaStreamsDraft = [];
 function setFifaStreamsStatus(text, kind = "") {
   const el = document.getElementById("fifaStreamsStatus"); if (!el) return;
-  el.textContent = text || ""; el.style.color = kind === "error" ? "#ef4444" : kind === "ok" ? "#22c55e" : "var(--text-muted, #666)";
+  el.textContent = text || ""; setTone(el, kind);
 }
 function renderFifaStreamsForm() {
   const wrap = document.getElementById("fifaStreamsForm"); if (!wrap) return;
   if (!fifaStreamsDraft.length) fifaStreamsDraft = [{ id: `fifa-stream-${Date.now()}`, url: "", title: "", enabled: true }];
   wrap.innerHTML = fifaStreamsDraft.map((item, index) => `<div class="fifa-admin-stream-row" data-fifa-stream-row="${index}">
-    <div class="fifa-admin-stream-row__top"><strong>Translyatsiya ${index + 1}</strong><button type="button" class="btn btn-secondary" data-fifa-stream-remove="${index}" ${fifaStreamsDraft.length === 1 ? "disabled" : ""}>O'chirish</button></div>
-    <div class="form-row"><div class="form-group" style="flex:1"><label>Nom</label><input class="form-input" data-fifa-field="title" data-index="${index}" value="${escapeHtml(item.title || "")}" placeholder="Masalan: Real Madrid — Barcelona" maxlength="120"></div><div class="form-group" style="flex:2"><label>YouTube Live yoki VK linki</label><input class="form-input" data-fifa-field="url" data-index="${index}" value="${escapeHtml(item.originalUrl || item.url || "")}" placeholder="https://www.youtube.com/live/..., https://m.vkvideo.ru/... yoki https://.../stream.m3u8" type="url"><small class="form-hint">VK Video (masalan https://vksport.m.vkvideo.ru/video-221212132_456248840) yoki YouTube Live linki futbol bo'limida pleyerli video card bo'lib chiqadi. VK Video Live (live.vkvideo.ru) efiri telefonda card ichida o'ynamaydi — u yerda bosilganda VK'da ochiladi.</small></div></div>
+    <div class="fifa-admin-stream-row__top"><strong>Translyatsiya ${index + 1}</strong><button type="button" class="btn btn-danger-soft btn-sm" data-fifa-stream-remove="${index}" ${fifaStreamsDraft.length === 1 ? "disabled" : ""}>O'chirish</button></div>
+    <div class="form-row"><div class="form-group"><label>Nom</label><input class="form-input" data-fifa-field="title" data-index="${index}" value="${escapeHtml(item.title || "")}" placeholder="Masalan: Real Madrid — Barcelona" maxlength="120"></div><div class="form-group"><label>YouTube Live yoki VK linki</label><input class="form-input" data-fifa-field="url" data-index="${index}" value="${escapeHtml(item.originalUrl || item.url || "")}" placeholder="https://www.youtube.com/live/..., https://m.vkvideo.ru/... yoki https://.../stream.m3u8" type="url"><small class="form-hint">VK Video (masalan https://vksport.m.vkvideo.ru/video-221212132_456248840) yoki YouTube Live linki futbol bo'limida pleyerli video card bo'lib chiqadi. VK Video Live (live.vkvideo.ru) efiri telefonda card ichida o'ynamaydi — u yerda bosilganda VK'da ochiladi.</small></div></div>
   </div>`).join("");
   wrap.querySelectorAll("[data-fifa-field]").forEach((el) => el.addEventListener("input", () => {
     const i = Number(el.dataset.index); const field = el.dataset.fifaField;
@@ -5530,7 +5534,7 @@ const esportsStreamDefaults = [
 let esportsStreamsLoaded = false;
 function setEsportsStreamsStatus(text, kind = '') {
   const el = document.getElementById('esportsStreamsStatus');
-  if (el) { el.textContent = text; el.style.color = kind === 'error' ? '#dc2626' : kind === 'ok' ? '#16a34a' : ''; }
+  if (el) { el.textContent = text; setTone(el, kind); }
 }
 function esportsLocalDate(iso) {
   if (!iso) return '';
@@ -5544,51 +5548,51 @@ function renderEsportsStreams(items) {
   if (!wrap) return;
   const activeKey = wrap.dataset.activeKey || items[0]?.key || 'cs';
   wrap.innerHTML = `
-    <div class="music-tabs" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap;">
-      ${items.map((item) => `<button type="button" class="btn ${item.key === activeKey ? 'btn-primary' : 'btn-secondary'}" data-esports-tab="${item.key}">${escapeHtml(item.label)}</button>`).join('')}
+    <div class="tabs tabs--inner" role="tablist">
+      ${items.map((item) => `<button type="button" class="tab${item.key === activeKey ? ' is-active' : ''}" role="tab" data-esports-tab="${item.key}">${escapeHtml(item.label)}</button>`).join('')}
     </div>
     ${items.map((item) => `
       <div data-esports-panel="${item.key}" ${item.key !== activeKey ? 'hidden' : ''}>
-        <div class="card-block" style="border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:16px;">
-          <h3 style="margin:0 0 14px;font-size:16px;">${escapeHtml(item.label)} translatsiyasi</h3>
+        <div class="card-head">
+          <h3>${escapeHtml(item.label)} translatsiyasi</h3>
+        </div>
           <div class="form-row">
-            <div class="form-group" style="flex:1;"><label>Bo‘lim nomi</label><input class="form-input" data-esports-field="label" data-esports-key="${item.key}" value="${escapeHtml(item.label)}" maxlength="60"></div>
-            <div class="form-group" style="flex:2;"><label>YouTube linki</label><input class="form-input" data-esports-field="youtubeUrl" data-esports-key="${item.key}" value="${escapeHtml(item.youtubeUrl || '')}" placeholder="https://youtube.com/live/..." type="url"></div>
+            <div class="form-group"><label>Bo‘lim nomi</label><input class="form-input" data-esports-field="label" data-esports-key="${item.key}" value="${escapeHtml(item.label)}" maxlength="60"></div>
+            <div class="form-group"><label>YouTube linki</label><input class="form-input" data-esports-field="youtubeUrl" data-esports-key="${item.key}" value="${escapeHtml(item.youtubeUrl || '')}" placeholder="https://youtube.com/live/..." type="url"></div>
           </div>
           <div class="form-row">
-            <div class="form-group" style="flex:1;"><label>Stream sarlavhasi</label><input class="form-input" data-esports-field="title" data-esports-key="${item.key}" value="${escapeHtml(item.title || '')}" placeholder="Masalan: CS2 Grand Final"></div>
-            <div class="form-group" style="flex:1;"><label>Qo‘shimcha ma’lumot</label><input class="form-input" data-esports-field="meta" data-esports-key="${item.key}" value="${escapeHtml(item.meta || '')}" placeholder="Grand Final"></div>
+            <div class="form-group"><label>Stream sarlavhasi</label><input class="form-input" data-esports-field="title" data-esports-key="${item.key}" value="${escapeHtml(item.title || '')}" placeholder="Masalan: CS2 Grand Final"></div>
+            <div class="form-group"><label>Qo‘shimcha ma’lumot</label><input class="form-input" data-esports-field="meta" data-esports-key="${item.key}" value="${escapeHtml(item.meta || '')}" placeholder="Grand Final"></div>
           </div>
-          <div class="form-row" style="align-items:end;">
-            <div class="form-group" style="flex:1;"><label>Boshlanish vaqti</label><input class="form-input" data-esports-field="startAt" data-esports-key="${item.key}" value="${esportsLocalDate(item.startAt)}" type="datetime-local"><small class="form-hint">Bo‘sh qoldirilsa, hozir boshlanadi.</small></div>
-            <div class="form-group" style="flex:0 0 auto;"><button type="button" class="btn btn-secondary" data-esports-start-now="${item.key}">Hozir boshlash</button></div>
+          <div class="form-row form-row--end">
+            <div class="form-group"><label>Boshlanish vaqti</label><input class="form-input" data-esports-field="startAt" data-esports-key="${item.key}" value="${esportsLocalDate(item.startAt)}" type="datetime-local"><small class="form-hint">Bo‘sh qoldirilsa, hozir boshlanadi.</small></div>
+            <div class="form-group"><button type="button" class="btn btn-secondary" data-esports-start-now="${item.key}">Hozir boshlash</button><small class="form-hint">&nbsp;</small></div>
           </div>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" data-esports-field="isLive" data-esports-key="${item.key}" ${item.isLive ? 'checked' : ''}> Hozir jonli efirda</label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;"><input type="checkbox" data-esports-field="enabled" data-esports-key="${item.key}" ${item.enabled !== false ? 'checked' : ''}> Foydalanuvchilarga ko‘rsatish</label>
-          <h3 style="margin:22px 0 10px;">So‘nggi haylaytlar</h3>
-          <div style="display:grid;gap:10px;">
+          <div class="check-list">
+            <label class="check"><input type="checkbox" data-esports-field="isLive" data-esports-key="${item.key}" ${item.isLive ? 'checked' : ''}> Hozir jonli efirda</label>
+            <label class="check"><input type="checkbox" data-esports-field="enabled" data-esports-key="${item.key}" ${item.enabled !== false ? 'checked' : ''}> Foydalanuvchilarga ko‘rsatish</label>
+          </div>
+          <h4 class="subsection-title">So‘nggi haylaytlar</h4>
+          <div>
             ${Array.from({ length: 3 }, (_, index) => {
               const highlight = Array.isArray(item.highlights) ? (item.highlights[index] || {}) : {};
-              return `<div style="padding:12px;border:1px solid var(--border,#e5e7eb);border-radius:10px;">
-                <strong>${index + 1}-haylayt</strong>
-                <div class="form-row" style="margin-top:8px;">
-                  <div class="form-group" style="flex:1;"><label>Sarlavha</label><input class="form-input" data-esports-highlight-field="title" data-esports-highlight-index="${index}" data-esports-key="${item.key}" value="${escapeHtml(highlight.title || '')}" placeholder="Haylayt nomi" maxlength="120"></div>
-                  <div class="form-group" style="flex:1;"><label>Izoh</label><input class="form-input" data-esports-highlight-field="subtitle" data-esports-highlight-index="${index}" data-esports-key="${item.key}" value="${escapeHtml(highlight.subtitle || '')}" placeholder="Bugun · 05 daqiqa" maxlength="160"></div>
+              return `<div class="subcard">
+                <div class="subcard__title">${index + 1}-haylayt</div>
+                <div class="form-row">
+                  <div class="form-group"><label>Sarlavha</label><input class="form-input" data-esports-highlight-field="title" data-esports-highlight-index="${index}" data-esports-key="${item.key}" value="${escapeHtml(highlight.title || '')}" placeholder="Haylayt nomi" maxlength="120"></div>
+                  <div class="form-group"><label>Izoh</label><input class="form-input" data-esports-highlight-field="subtitle" data-esports-highlight-index="${index}" data-esports-key="${item.key}" value="${escapeHtml(highlight.subtitle || '')}" placeholder="Bugun · 05 daqiqa" maxlength="160"></div>
                 </div>
                 <div class="form-group"><label>YouTube video linki</label><input class="form-input" data-esports-highlight-field="youtubeUrl" data-esports-highlight-index="${index}" data-esports-key="${item.key}" value="${escapeHtml(highlight.youtubeUrl || '')}" placeholder="https://youtu.be/..." type="url"></div>
               </div>`;
             }).join('')}
           </div>
-        </div>
       </div>`).join('')}`;
   wrap.dataset.activeKey = activeKey;
   wrap.querySelectorAll('[data-esports-tab]').forEach((button) => button.addEventListener('click', () => {
     const key = button.dataset.esportsTab;
     wrap.dataset.activeKey = key;
     wrap.querySelectorAll('[data-esports-tab]').forEach((tab) => {
-      const active = tab.dataset.esportsTab === key;
-      tab.classList.toggle('btn-primary', active);
-      tab.classList.toggle('btn-secondary', !active);
+      tab.classList.toggle('is-active', tab.dataset.esportsTab === key);
     });
     wrap.querySelectorAll('[data-esports-panel]').forEach((panel) => {
       panel.hidden = panel.dataset.esportsPanel !== key;
@@ -5675,7 +5679,7 @@ function tvChSetStatus(text, kind) {
   const el = document.getElementById('tvChStatus');
   if (!el) return;
   el.textContent = text || '';
-  el.style.color = kind === 'error' ? '#dc2626' : kind === 'ok' ? '#16a34a' : 'var(--text-muted)';
+  setTone(el, kind);
 }
 
 function tvChEsc(s) {
@@ -5730,18 +5734,17 @@ function renderTvChannelsAdmin() {
     .filter(({ ch }) => (!q || ch.name.toLowerCase().includes(q)) && (!grp || (ch.group || 'General') === grp));
   if (countEl) countEl.textContent = `${rows.length} / ${tvChannelsAdmin.length} kanal`;
   list.innerHTML = rows.map(({ ch, idx }) => `
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border-color,#e5e7eb);border-radius:10px;margin-bottom:8px;">
-      <img src="${tvChEsc(ch.logo)}" alt="" referrerpolicy="no-referrer" loading="lazy"
-           style="width:40px;height:40px;object-fit:contain;background:#fff;border-radius:8px;flex:0 0 auto;"
+    <div class="list-row">
+      <img class="list-row__logo" src="${tvChEsc(ch.logo)}" alt="" referrerpolicy="no-referrer" loading="lazy"
            onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tvChEsc(ch.name)}</div>
-        <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tvChEsc(ch.group || 'General')} · ${tvChEsc(ch.url)}</div>
+      <div class="list-row__info">
+        <div class="list-row__title">${tvChEsc(ch.name)}</div>
+        <div class="list-row__meta">${tvChEsc(ch.group || 'General')} · ${tvChEsc(ch.url)}</div>
       </div>
-      <button type="button" class="btn btn-secondary" data-tv-edit="${idx}" style="flex:0 0 auto;">Tahrirlash</button>
-      <button type="button" class="btn btn-secondary" data-tv-del="${idx}" style="flex:0 0 auto;color:#dc2626;">O'chirish</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-tv-edit="${idx}">Tahrirlash</button>
+      <button type="button" class="btn btn-danger-soft btn-sm" data-tv-del="${idx}">O'chirish</button>
     </div>
-  `).join('') || '<div style="color:var(--text-muted);padding:20px;text-align:center;">Kanal topilmadi.</div>';
+  `).join('') || '<div class="placeholder-text">Kanal topilmadi.</div>';
 
   list.querySelectorAll('[data-tv-edit]').forEach((b) =>
     b.addEventListener('click', () => openTvChForm(Number(b.dataset.tvEdit))));
@@ -5928,7 +5931,7 @@ let fifaTvHlsLib = null;
 function setFifaTvStatus(text, kind = "") {
   const el = document.getElementById("fifaTvStatus"); if (!el) return;
   el.textContent = text || "";
-  el.style.color = kind === "error" ? "#ef4444" : kind === "ok" ? "#16a34a" : "var(--text-muted, #666)";
+  setTone(el, kind);
 }
 
 function parseM3uPlaylist(text) {
