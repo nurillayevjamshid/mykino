@@ -183,6 +183,39 @@ test("games API: checkers moves, draw offers, resign and timeouts", async () => 
   assert.equal((await move(third.id, third.w, { from: "e2", to: "e4" })).body.code, "ENDED");
 });
 
+test("games API: every time category is accepted and the clock starts once both players are in", async () => {
+  for (const tc of ["1+0", "2+1", "3+0", "3+2", "5+0", "10+0", "10+5", "15+10", "30+0", "30+20"]) {
+    const res = await post({ action: "create", game: "chess", timeControl: tc });
+    assert.equal(res.body.room.timeControl, tc);
+  }
+  const waiting = await post({ action: "create", game: "chess", color: "w", timeControl: "15+10" });
+  assert.equal(waiting.body.room.clock.running, null, "no clock while waiting for the friend");
+  const id = waiting.body.room.id;
+  await post({ action: "join", room: id });
+  const entry = _memoryRooms.get(id);
+  const room = JSON.parse(entry.json);
+  room.clock.turnStartedAt -= 5000;
+  entry.json = JSON.stringify(room);
+  const res = await call("GET", null, { url: `/api/games?room=${id}&since=0` });
+  assert.equal(res.body.room.clock.running, "w", "white's clock runs before the first move");
+  assert.ok(res.body.room.clock.w <= 15 * 60000 - 5000);
+  assert.equal(res.body.room.clock.b, 15 * 60000);
+});
+
+test("games page: time categories, local clocks and a computer that never hangs", () => {
+  const js = fs.readFileSync(path.join(ROOT, "webapp/shaxmat/shaxmat.js"), "utf8");
+  for (const name of ["Bullet", "Blits", "Rapid", "Klassik", "Cheksiz"]) assert.match(js, new RegExp(`name: "${name}"`));
+  assert.match(js, /function pressLocalClock\(s, mover\)/);
+  assert.match(js, /endLocal\(\{ winner: opposite\(color\), reason: "timeout" \}\)/);
+  // Worker xato bersa yoki javob bermasa — shu sahifada hisoblanadi.
+  assert.match(js, /w\.addEventListener\("error", onError\)/);
+  assert.match(js, /timer = setTimeout\(\(\) => \{\s*worker = false;/);
+  assert.match(js, /function chooseHere\(game, state, level, timeMs\)/);
+  const html = fs.readFileSync(path.join(ROOT, "webapp/shaxmat/index.html"), "utf8");
+  assert.match(html, /id="tcCats"/);
+  assert.match(html, /id="tcOptions"/);
+});
+
 test("games API: rejects bad input and foreign origins", async () => {
   assert.equal((await post({ action: "create", game: "go" })).statusCode, 400);
   assert.equal((await post({ action: "fly" })).statusCode, 400);

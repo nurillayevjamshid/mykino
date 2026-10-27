@@ -18,13 +18,12 @@ const LONG_POLL_MS = 7000;
 const POLL_STEP_MS = 450;
 const ONLINE_WINDOW_MS = 20000;
 const ROOM_ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
-const TIME_CONTROLS = {
-  none: { base: 0, inc: 0 },
-  "1+0": { base: 60, inc: 0 },
-  "3+2": { base: 180, inc: 2 },
-  "5+0": { base: 300, inc: 0 },
-  "10+0": { base: 600, inc: 0 },
-};
+// Bullet, Blits, Rapid va Klassik: "daqiqa+soniya" (har yurishdan keyin qo'shiladi).
+const TIME_CONTROLS = { none: { base: 0, inc: 0 } };
+for (const tc of ["1+0", "2+1", "3+0", "3+2", "5+0", "10+0", "10+5", "15+10", "30+0", "30+20"]) {
+  const [min, inc] = tc.split("+").map(Number);
+  TIME_CONTROLS[tc] = { base: min * 60, inc };
+}
 
 const ENGINES = {
   chess: {
@@ -191,7 +190,7 @@ function freshGame(room) {
   room.result = null;
   room.drawOffer = null;
   room.rematch = { w: false, b: false };
-  room.clock = tc.base ? { w: tc.base * 1000, b: tc.base * 1000, turnStartedAt: 0 } : null;
+  room.clock = tc.base ? { w: tc.base * 1000, b: tc.base * 1000, turnStartedAt: Date.now() } : null;
   room.status = room.players.w && room.players.b ? "active" : "waiting";
 }
 
@@ -199,8 +198,9 @@ function turnOf(room) {
   return room.state.turn;
 }
 
+// Soat ikkinchi o'yinchi qo'shilgan zahoti oqlar uchun yura boshlaydi.
 function clockRunning(room) {
-  return Boolean(room.clock) && room.status === "active" && room.moves.length >= 1;
+  return Boolean(room.clock) && room.status === "active";
 }
 
 // Navbatdagi tomonning vaqti tugaganini tekshiradi; tugagan bo'lsa o'yin yakunlanadi.
@@ -297,6 +297,7 @@ async function joinRoom(request, body) {
     const t = newToken();
     room.players[free] = { name, token: t, joinedAt: Date.now(), lastSeen: Date.now() };
     room.status = "active";
+    if (room.clock) room.clock.turnStartedAt = Date.now();
     issued = { color: free, token: t };
     return null;
   });

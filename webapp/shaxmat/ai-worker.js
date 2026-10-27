@@ -1,5 +1,5 @@
 // Kompyuter yurishini alohida oqimda hisoblaydi — taxta qotib qolmasligi uchun.
-importScripts("/shaxmat/chess-engine.js?v=20261027-games-v1", "/shaxmat/checkers-engine.js?v=20261027-games-v1");
+importScripts("/shaxmat/chess-engine.js?v=20261027-games-v2", "/shaxmat/checkers-engine.js?v=20261027-games-v2");
 
 self.onmessage = (event) => {
   const { id, game, state, level, timeMs } = event.data || {};

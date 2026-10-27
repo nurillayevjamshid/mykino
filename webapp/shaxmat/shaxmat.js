@@ -10,11 +10,26 @@
   const Checkers = window.CheckersEngine;
   const BOT_USERNAME = String(window.MYKINO_BOT_USERNAME || "myntv_bot").replace(/^@/, "");
   const API = "/api/games";
-  const ASSET_VERSION = "20261027-games-v1";
+  const ASSET_VERSION = "20261027-games-v2";
   const STORE_ROOMS = "games_online_rooms";
   const STORE_LOCAL = "games_local_";
   const STORE_SOUND = "games_sound";
   const LEVEL_NAMES = { 1: "Oson", 2: "O'rta", 3: "Qiyin" };
+  const STORE_TIME = "games_time_control";
+  // Vaqt turlari: daqiqa + har yurishdan keyin qo'shiladigan soniya.
+  const TIME_CATEGORIES = [
+    { id: "bullet", name: "Bullet", icon: "⚡", options: ["1+0", "2+1"] },
+    { id: "blitz", name: "Blits", icon: "🔥", options: ["3+0", "3+2", "5+0"] },
+    { id: "rapid", name: "Rapid", icon: "⏱", options: ["10+0", "10+5", "15+10"] },
+    { id: "classical", name: "Klassik", icon: "🏛", options: ["30+0", "30+20"] },
+    { id: "none", name: "Cheksiz", icon: "∞", options: ["none"] },
+  ];
+  const categoryOf = (tc) => TIME_CATEGORIES.find((c) => c.options.includes(tc)) || TIME_CATEGORIES[TIME_CATEGORIES.length - 1];
+  function parseTimeControl(tc) {
+    const m = /^(\d+)\+(\d+)$/.exec(String(tc || ""));
+    return m ? { base: Number(m[1]) * 60000, inc: Number(m[2]) * 1000 } : null;
+  }
+  const timeControlLabel = (tc) => (parseTimeControl(tc) ? `${categoryOf(tc).name} ${tc}` : "vaqtsiz");
   const COLOR_NAMES = { w: "Oqlar", b: "Qoralar" };
   const GLYPH = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
   const PIECE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
@@ -184,7 +199,48 @@
   // ---------------- Bosh ekran ----------------
   let selectedGame = "chess";
   let setupMode = null;
-  const setupOptions = { level: "2", timeControl: "none", color: "random" };
+  const savedTime = readJson(STORE_TIME, "10+0");
+  const setupOptions = { level: "2", timeControl: TIME_CATEGORIES.some((c) => c.options.includes(savedTime)) ? savedTime : "10+0", color: "random" };
+
+  function renderTimePicker() {
+    const active = categoryOf(setupOptions.timeControl);
+    const cats = $("tcCats");
+    cats.textContent = "";
+    for (const cat of TIME_CATEGORIES) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tc-cat" + (cat === active ? " is-active" : "");
+      btn.innerHTML = '<span class="tc-cat__icon"></span><span class="tc-cat__name"></span>';
+      btn.querySelector(".tc-cat__icon").textContent = cat.icon;
+      btn.querySelector(".tc-cat__name").textContent = cat.name;
+      btn.addEventListener("click", () => {
+        if (cat !== active) setTimeControl(cat.options[cat.options.length > 2 ? 1 : 0]);
+      });
+      cats.appendChild(btn);
+    }
+    const opts = $("tcOptions");
+    opts.textContent = "";
+    opts.hidden = active.id === "none";
+    for (const tc of active.options) {
+      const [min, inc] = tc.split("+");
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip" + (tc === setupOptions.timeControl ? " is-active" : "");
+      chip.textContent = inc === "0" ? `${min} daqiqa` : `${min} + ${inc}`;
+      chip.addEventListener("click", () => setTimeControl(tc));
+      opts.appendChild(chip);
+    }
+    const parsed = parseTimeControl(setupOptions.timeControl);
+    $("tcHint").textContent = parsed
+      ? `Har biringizga ${parsed.base / 60000} daqiqa${parsed.inc ? `, har yurishdan keyin +${parsed.inc / 1000} soniya` : ""}`
+      : "Vaqt cheklanmaydi";
+  }
+
+  function setTimeControl(tc) {
+    setupOptions.timeControl = tc;
+    writeJson(STORE_TIME, tc);
+    renderTimePicker();
+  }
 
   function showView(name) {
     $("homeView").hidden = name !== "home";
@@ -200,9 +256,10 @@
   function openSetup(mode) {
     setupMode = mode;
     const title = ADAPTERS[selectedGame].title;
-    $("setupTitle").textContent = mode === "online" ? `${title}: do'st bilan online` : `${title}: kompyuterga qarshi`;
+    $("setupTitle").textContent = `${title}: ${mode === "online" ? "do'st bilan online" : mode === "ai" ? "kompyuterga qarshi" : "bir telefonda"}`;
     $("levelField").hidden = mode !== "ai";
-    $("timeField").hidden = mode !== "online";
+    $("colorField").hidden = mode === "local";
+    renderTimePicker();
     $("setupStart").textContent = mode === "online" ? "O'yin yaratish" : "Boshlash";
     openSheet("setupSheet");
   }
@@ -331,6 +388,10 @@
 
   function startLocal(game, mode, options = {}) {
     const s = newSession(game, mode);
+    s.timeControl = options.timeControl || "none";
+    const tc = parseTimeControl(s.timeControl);
+    if (tc) s.clock = { w: tc.base, b: tc.base, inc: tc.inc, running: "w" };
+    s.clockAt = Date.now();
     if (mode === "ai") {
       s.level = Number(options.level) || 2;
       s.myColor = options.color === "w" || options.color === "b" ? options.color : Math.random() < 0.5 ? "w" : "b";
@@ -349,6 +410,8 @@
       myColor: session.myColor,
       level: session.level,
       result: session.result,
+      timeControl: session.timeControl,
+      clock: snapshotClock(session),
       updatedAt: Date.now(),
     });
   }
@@ -364,6 +427,10 @@
       level: saved.level || 2,
       result: saved.result || null,
       resultShown: Boolean(saved.result),
+      timeControl: saved.timeControl || "none",
+      // Ilovadan chiqib turilgan vaqt hisoblanmaydi.
+      clock: saved.clock || null,
+      clockAt: Date.now(),
     }));
   }
 
@@ -585,6 +652,23 @@
   let clockTimer = null;
   let clockRefreshRequested = false;
 
+  // Joriy qoldiq vaqtlar (yurayotgan tomondan o'tgan vaqt ayirilgan holda).
+  function snapshotClock(s) {
+    if (!s.clock) return null;
+    const c = Object.assign({}, s.clock);
+    if (c.running && !s.result) c[c.running] = Math.max(0, c[c.running] - (Date.now() - s.clockAt));
+    return c;
+  }
+
+  // Kompyuter va bir telefondagi o'yinda soat shu yerda yuritiladi.
+  function pressLocalClock(s, mover) {
+    if (!s.clock) return;
+    const now = Date.now();
+    s.clock[mover] = Math.max(0, s.clock[mover] - (now - s.clockAt)) + (s.clock.inc || 0);
+    s.clock.running = s.result ? null : opposite(mover);
+    s.clockAt = now;
+  }
+
   function clockValue(color) {
     const c = session?.clock;
     if (!c) return null;
@@ -608,7 +692,12 @@
       if (value == null) continue;
       clockEl.textContent = formatClock(value);
       clockEl.classList.toggle("is-low", value < 20000 && session.clock.running === color);
-      if (value <= 0 && session.clock.running === color && !clockRefreshRequested) {
+      if (value <= 0 && session.clock.running === color && session.mode !== "online" && !session.result) {
+        cancelAi();
+        endLocal({ winner: opposite(color), reason: "timeout" });
+        return;
+      }
+      if (value <= 0 && session.clock.running === color && session.mode === "online" && !clockRefreshRequested) {
         clockRefreshRequested = true;
         refreshRoom().finally(() => { setTimeout(() => { clockRefreshRequested = false; }, 1500); });
       }
@@ -737,8 +826,9 @@
     if (waiting) $("inviteCode").textContent = s.room.toUpperCase();
     const offer = s.mode === "online" && !s.result && s.drawOffer && s.myColor && s.drawOffer !== s.myColor;
     $("drawOffer").hidden = !offer;
-    const sub = s.mode === "online" ? (s.myColor ? `Online · ${s.timeControl && s.timeControl !== "none" ? s.timeControl.replace("+0", " daq") : "vaqtsiz"}` : "Tomosha")
-      : s.mode === "ai" ? `Kompyuter · ${LEVEL_NAMES[s.level]}` : "Bir telefonda";
+    const tc = timeControlLabel(s.timeControl);
+    const sub = s.mode === "online" ? (s.myColor ? `Online · ${tc}` : "Tomosha")
+      : s.mode === "ai" ? `Kompyuter · ${LEVEL_NAMES[s.level]} · ${tc}` : `Bir telefonda · ${tc}`;
     $("gameSubtitle").textContent = sub;
   }
 
@@ -830,7 +920,8 @@
   function commitMove(move, opts = {}) {
     const s = session;
     const notation = s.adapter.notation(s.state, move);
-    s.history.push({ state: s.state, moves: s.moves.slice(), lastMove: s.lastMove });
+    const mover = s.state.turn;
+    s.history.push({ state: s.state, moves: s.moves.slice(), lastMove: s.lastMove, clock: snapshotClock(s) });
     if (s.history.length > 300) s.history.shift();
     s.state = s.adapter.apply(s.state, move);
     s.moves.push(notation);
@@ -840,8 +931,9 @@
     const status = s.adapter.status(s.state);
     s.legal = status.over ? [] : s.adapter.legal(s.state);
     playMoveSound(move, notation);
-    if (s.mode !== "online" && status.over) {
-      s.result = { winner: status.winner, reason: status.reason };
+    if (s.mode !== "online") {
+      if (status.over) s.result = { winner: status.winner, reason: status.reason };
+      pressLocalClock(s, mover);
     }
     render({ animate: { from: move.from, to: s.adapter.dest(move) } });
     if (s.mode === "online") {
@@ -870,6 +962,10 @@
     s.state = snap.state;
     s.moves = snap.moves;
     s.lastMove = snap.lastMove;
+    if (snap.clock) {
+      s.clock = Object.assign({}, snap.clock, { running: snap.state.turn });
+      s.clockAt = Date.now();
+    }
     s.result = null;
     s.resultShown = false;
     s.legal = s.adapter.legal(s.state);
@@ -883,10 +979,14 @@
   function restartLocal() {
     const s = session;
     closeSheet("resultSheet");
-    startLocal(s.game, s.mode, { level: s.level, color: s.myColor });
+    startLocal(s.game, s.mode, { level: s.level, color: s.myColor, timeControl: s.timeControl });
   }
 
   function endLocal(status) {
+    if (session.clock?.running) {
+      session.clock = snapshotClock(session);
+      session.clock.running = null;
+    }
     session.result = { winner: status.winner, reason: status.reason };
     session.legal = [];
     clearSelection();
@@ -909,23 +1009,60 @@
     return worker;
   }
 
+  // Har doim yurish qaytaradi: hisoblash xato bersa — tasodifiy qonuniy yurish.
+  function chooseHere(game, state, level, timeMs) {
+    const engine = game === "chess" ? Chess : Checkers;
+    try {
+      const move = engine.chooseMove(state, level, timeMs ? { timeMs } : {});
+      if (move) return move;
+    } catch (err) {
+      console.error("games ai:", err);
+    }
+    const legal = engine.legalMoves(state);
+    return legal.length ? legal[Math.floor(Math.random() * legal.length)] : null;
+  }
+
+  // Alohida oqim (Web Worker) ishlamasa, xato bersa yoki javob kechiksa —
+  // yurish shu sahifaning o'zida hisoblanadi, kompyuter hech qachon qotib qolmaydi.
   function computeMove(game, state, level, timeMs) {
     const id = ++aiRequest;
     const w = getWorker();
     return new Promise((resolve) => {
-      if (w) {
-        const onMessage = (e) => {
-          if (e.data?.id !== id) return;
+      let done = false;
+      let timer = null;
+      const finish = (move) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (w) {
           w.removeEventListener("message", onMessage);
-          resolve(e.data.move);
-        };
-        w.addEventListener("message", onMessage);
+          w.removeEventListener("error", onError);
+        }
+        resolve(move);
+      };
+      const runHere = () => setTimeout(() => finish(chooseHere(game, state, level, timeMs)), 30);
+      function onMessage(e) {
+        if (e.data?.id !== id) return;
+        if (e.data.move) finish(e.data.move);
+        else runHere();
+      }
+      function onError(e) {
+        e?.preventDefault?.();
+        worker = false; // keyingi safar to'g'ridan-to'g'ri shu yerda
+        runHere();
+      }
+      if (!w) return runHere();
+      w.addEventListener("message", onMessage);
+      w.addEventListener("error", onError);
+      timer = setTimeout(() => {
+        worker = false;
+        try { w.terminate(); } catch (_) {}
+        runHere();
+      }, (timeMs || 1800) + 1200);
+      try {
         w.postMessage({ id, game, state, level, timeMs });
-      } else {
-        setTimeout(() => {
-          const engine = game === "chess" ? Chess : Checkers;
-          resolve(engine.chooseMove(state, level, timeMs ? { timeMs } : {}));
-        }, 30);
+      } catch (_) {
+        runHere();
       }
     }).then((move) => (id === aiRequest ? move : null));
   }
@@ -941,11 +1078,12 @@
     render();
     const started = Date.now();
     const raw = await computeMove(s.game, s.state, s.level);
-    if (session !== s || !raw) return;
+    if (session !== s || !s.aiThinking) return;
     await sleep(Math.max(0, 450 - (Date.now() - started)));
     if (session !== s || !s.aiThinking) return;
     s.aiThinking = false;
-    const move = s.legal.find((m) => s.adapter.same(m, raw));
+    const pick = raw || chooseHere(s.game, s.state, 1, 300);
+    const move = pick && s.legal.find((m) => s.adapter.same(m, pick));
     if (move) commitMove(move);
     else render();
   }
@@ -1370,7 +1508,6 @@
     }));
     document.querySelectorAll(".mode").forEach((el) => el.addEventListener("click", () => {
       const mode = el.dataset.mode;
-      if (mode === "local") return startLocal(selectedGame, "local");
       openSetup(mode);
     }));
     document.querySelectorAll(".chips").forEach((group) => {
@@ -1384,7 +1521,7 @@
     $("setupStart").addEventListener("click", () => {
       if (setupMode === "online") return createOnline(selectedGame, setupOptions);
       closeSheet("setupSheet");
-      startLocal(selectedGame, "ai", setupOptions);
+      startLocal(selectedGame, setupMode, setupOptions);
     });
     document.querySelectorAll("[data-close-sheet]").forEach((el) => el.addEventListener("click", () => closeSheet(el.closest(".sheet").id)));
     $("homeBack").addEventListener("click", goBack);

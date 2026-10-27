@@ -373,7 +373,7 @@
   const orderMoves = (moves) => moves.sort((a, b) => orderKey(b) - orderKey(a));
 
   function chooseMove(state, level = 2, options = {}) {
-    const settings = { 1: { depth: 1, noise: 120, ms: 400 }, 2: { depth: 2, noise: 25, ms: 900 }, 3: { depth: 4, noise: 0, ms: 1800 } }[level] || { depth: 2, noise: 25, ms: 900 };
+    const settings = { 1: { depth: 1, noise: 120, ms: 400 }, 2: { depth: 3, noise: 12, ms: 1000 }, 3: { depth: 4, noise: 0, ms: 1800 } }[level] || { depth: 3, noise: 12, ms: 1000 };
     const deadline = Date.now() + (options.timeMs || settings.ms);
     const random = options.random || Math.random;
     let nodes = 0;

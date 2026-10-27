@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/shaxmat/shaxmat.css?v=20261027-games-v1" />
+  <link rel="stylesheet" href="/shaxmat/shaxmat.css?v=20261027-games-v2" />
 </head>
 
 <body>
@@ -157,14 +157,10 @@
         </div>
       </div>
       <div class="field" id="timeField">
-        <span class="field__label">Vaqt</span>
-        <div class="chips" data-option="timeControl">
-          <button type="button" class="chip is-active" data-value="none">Cheksiz</button>
-          <button type="button" class="chip" data-value="1+0">1 daq</button>
-          <button type="button" class="chip" data-value="3+2">3 + 2</button>
-          <button type="button" class="chip" data-value="5+0">5 daq</button>
-          <button type="button" class="chip" data-value="10+0">10 daq</button>
-        </div>
+        <span class="field__label">Vaqt nazorati</span>
+        <div class="tc-cats" id="tcCats"></div>
+        <div class="chips" id="tcOptions"></div>
+        <span class="field__hint" id="tcHint"></span>
       </div>
       <div class="field" id="colorField">
         <span class="field__label">Rangingiz</span>
@@ -206,9 +202,9 @@
   <div class="toast" id="toast" role="status" hidden></div>
 
   <script>window.MYKINO_BOT_USERNAME = "myntv_bot";</script>
-  <script src="/shaxmat/chess-engine.js?v=20261027-games-v1"></script>
-  <script src="/shaxmat/checkers-engine.js?v=20261027-games-v1"></script>
-  <script src="/shaxmat/shaxmat.js?v=20261027-games-v1"></script>
+  <script src="/shaxmat/chess-engine.js?v=20261027-games-v2"></script>
+  <script src="/shaxmat/checkers-engine.js?v=20261027-games-v2"></script>
+  <script src="/shaxmat/shaxmat.js?v=20261027-games-v2"></script>
 </body>
 
 </html>
