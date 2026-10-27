@@ -1490,7 +1490,8 @@
         const streams = Array.isArray(data?.fifaStreams) ? data.fifaStreams.filter((item) => item && item.url) : [];
         // Admin M3U pleylistdan yoqqan TV kanal — boshqa efirlardan oldin turadi.
         const tv = data?.fifaTv?.active;
-        const tvStreams = tv?.url ? [{ id: `tv-${tv.id || tv.url}`, title: tv.name || "TV kanal", url: tv.url, originalUrl: tv.url, provider: "hls", logo: tv.logo || "", isTv: true }] : [];
+        // Kanal nomi va logosi o'rniga o'zimizning brend nomi va poster ko'rsatiladi.
+        const tvStreams = tv?.url ? [{ id: `tv-${tv.id || tv.url}`, title: "NTV Futbol stream", url: tv.url, originalUrl: tv.url, provider: "hls", poster: FIFA_TV_POSTER, isTv: true }] : [];
         fifaStreamsCache = [...tvStreams, ...streams];
         window.__fifaStreams = fifaStreamsCache;
         return fifaStreamsCache;
@@ -1503,6 +1504,7 @@
     })();
     return fifaStreamsLoading;
   }
+  const FIFA_TV_POSTER = "/static/assets/fifa-live-poster.webp";
     let hlsLibLoading = null;
   function loadHlsLib() {
     if (window.Hls) return Promise.resolve(window.Hls);
@@ -1545,11 +1547,10 @@
       const isHls = stream.provider === "hls" || /\.m3u8(?:$|\?)/i.test(stream.url);
       if (isHls) {
         const provider = stream.isTv ? "TV kanal" : (/(?:varzish)/i.test(title) ? "Varzish TV" : "HLS Live");
-        const logo = stream.isTv && stream.logo ? `<img class="fifa-efir-card__logo" src="${esc(stream.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
-        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__brand">${logo}<div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div></div>${livePill}</div>`;
+        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__brand"><div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div></div>${livePill}</div>`;
         // TV kanalning "ochish" havolasi xom .m3u8 bo'lardi — foydasiz, shuning uchun ko'rsatmaymiz.
         const openLink = stream.isTv ? "" : `<a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a>`;
-        return `<article class="fifa-efir-card fifa-efir-card--hls" data-hls-src="${esc(stream.url)}">${head}<div class="fifa-efir-card__player"><video class="fifa-efir-card__video" playsinline controls preload="none"></video></div>${openLink}</article>`;
+        return `<article class="fifa-efir-card fifa-efir-card--hls${stream.poster ? " fifa-efir-card--poster" : ""}" data-hls-src="${esc(stream.url)}">${head}<div class="fifa-efir-card__player"><video class="fifa-efir-card__video" playsinline controls preload="none"${stream.poster ? ` poster="${esc(stream.poster)}"` : ""}></video></div>${openLink}</article>`;
       }
       const isEmbed = isYoutube || /(?:video_ext\.php|app\/embed)/i.test(stream.url);
       if (!isEmbed) {

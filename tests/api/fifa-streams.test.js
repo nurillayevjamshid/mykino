@@ -17,6 +17,14 @@ describe("FIFA live stream buttons", () => {
     });
   });
 
+  test("shows the admin TV channel as NTV Futbol stream with the NTV poster", () => {
+    const fifa = fs.readFileSync(path.resolve(__dirname, "../../webapp/fifa/fifa.js"), "utf8");
+    assert.match(fifa, /title: "NTV Futbol stream"/);
+    assert.match(fifa, /const FIFA_TV_POSTER = "\/static\/assets\/fifa-live-poster\.webp"/);
+    assert.match(fifa, / poster="\$\{esc\(stream\.poster\)\}"/);
+    assert.ok(fs.existsSync(path.resolve(__dirname, "../../webapp/assets/fifa-live-poster.webp")));
+  });
+
   const root = path.resolve(__dirname, "../..");
   test("normalizes YouTube Live links into playable iframe URLs", () => {
     assert.deepEqual(settingsHandler.normalizeFifaStreamUrl("https://www.youtube.com/live/BUEGXoCVl7w?si=test"), {
