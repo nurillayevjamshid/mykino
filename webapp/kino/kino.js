@@ -1849,12 +1849,27 @@ function filteredMovies() {
 
     if (q) {
       if (!movie._searchIndex) {
-        movie._searchIndex = `${movie?.title || ""} ${movie?.genre || ""} ${movie?.year || ""} ${movie?.code || ""}`.toLowerCase();
+        movie._searchIndex = normalizeSearchText(`${movie?.title || ""} ${movie?.genre || ""} ${movie?.year || ""} ${movie?.code || ""}`);
       }
-      return movie._searchIndex.includes(q);
+      return movie._searchIndex.includes(normalizeSearchText(q));
     }
 
     return true;
+  });
+}
+
+// O'zbekcha apostroflar (ʻ ‘ ’ `) har xil yozilsa ham bir xil topilsin.
+function normalizeSearchText(value) {
+  return String(value || "").toLowerCase().replace(/[ʻʼ‘’`´]/g, "'").replace(/\s+/g, " ").trim();
+}
+
+// Qidiruv natijasida seriallar ham chiqadi (ular alohida /api/series katalogida).
+function filteredSeries() {
+  const q = normalizeSearchText(query);
+  if (!q || activeFilter !== "all" || activeCategory !== "all") return [];
+  return seriesCatalog.filter((series) => {
+    if (!series._searchIndex) series._searchIndex = normalizeSearchText(series.title);
+    return series._searchIndex.includes(q);
   });
 }
 
@@ -3813,7 +3828,12 @@ function renderMovies() {
       grid.append(renderFavoritesPageHeader());
     }
     const list = movieLoadState === "ready" ? filteredMovies() : [];
-    if (list.length === 0 && movieLoadState === "ready") {
+    if (query && !seriesCatalogLoaded) loadSeriesCatalog();
+    const seriesMatches = movieLoadState === "ready" ? filteredSeries() : [];
+    for (const series of seriesMatches) {
+      grid.append(createSeriesCard(series));
+    }
+    if (list.length === 0 && seriesMatches.length === 0 && movieLoadState === "ready") {
       const emptyState = document.createElement("div");
       emptyState.className = "empty-state";
       emptyState.innerHTML = `
@@ -8119,8 +8139,9 @@ async function loadSeriesCatalog() {
   renderSeriesListGrid();
   // Asosiy sahifa ochiq bo'lsa, "Seriallar" qatori ko'rinishi uchun qayta render
   try {
-    const onHome = activeFilter === "all" && activeCategory === "all" && !query;
-    if (onHome && typeof renderMovies === "function") renderMovies();
+    // Qidiruv natijasi ochiq bo'lsa ham — seriallar kech yuklansa ro'yxatga qo'shilsin.
+    const onHomeOrSearch = activeFilter === "all" && activeCategory === "all";
+    if (onHomeOrSearch && typeof renderMovies === "function") renderMovies();
   } catch (_) {}
 }
 
