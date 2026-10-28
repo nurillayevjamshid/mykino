@@ -1,0 +1,21 @@
+name: Football jobs
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send reminders and settle predictions
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          curl -fsS --max-time 60 \
+            -H "X-API-Key: ${BOT_TOKEN}" \
+            -H "X-Admin-Password: ${ADMIN_PASSWORD}" \
+            "https://www.myplaylist.uz/api/categories?type=fifa-cron"
