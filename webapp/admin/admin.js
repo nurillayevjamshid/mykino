@@ -5924,7 +5924,19 @@ const FIFA_TV_FOOTBALL_CHANNELS = {
   "NSports.br@SD": "Braziliya Serie B, shtat chempionatlari",
   "TDMSports.mo@SD": "Jahon chempionati 2026",
 };
-let fifaTvState = { playlistUrl: "", active: null, channels: [], query: "", loadedOnce: false, busy: false };
+// Pleylistdan qat'i nazar doim ro'yxatda turadigan bepul kanallar (to'g'ridan-to'g'ri havolalar).
+// http://185.121.1.163:8083/FootballHD ataylab yo'q — http oqimni https mini ilova o'ynata olmaydi.
+const FIFA_TV_EXTRA_CHANNELS = [
+  { name: "CBS Sports Golazo (720p)", url: "https://dai.google.com/linear/hls/event/7f3Wv6f7QEKfQna22jHqLQ/master.m3u8", tvgId: "CBSSportsGolazoNetwork.us@SD", footballNote: "Jonli o'yinlar, Baller League (2026)" },
+  { name: "TRT 1", url: "https://tv-trt1.medya.trt.com.tr/master.m3u8", tvgId: "TRT1.tr@SD", footballNote: "UEFA Chempionlar Ligasi o'yinlari" },
+  { name: "TRT 1 (zaxira)", url: "https://trt.daioncdn.net/trt-1/master.m3u8?app=web", tvgId: "TRT1.tr@SD", footballNote: "UEFA Chempionlar Ligasi — zaxira oqim" },
+  { name: "TRT Spor", url: "https://corestream.siteyaptim.live/trt-spor/index.m3u8", tvgId: "TRTSpor.tr@SD", footballNote: "TFF 1. Lig, UEFA kubogi o'yinlari (2025-26)" },
+  { name: "Varzish TV (Tojikiston, 1080p)", url: "https://live.teleradiocom.tj/8/3m.m3u8", tvgId: "Varzish.tj@SD", footballNote: "Tojikiston ligasi, terma jamoa" },
+].map((ch) => ({ ...ch, logo: "", group: "Sports", needsOptions: false, isHttp: false, id: ch.url }));
+// «Hammasini tekshirish» ishlamagan deb topgan kanallar shu brauzerda 24 soat yashirin turadi.
+const FIFA_TV_DEAD_KEY = "fifa_tv_dead_v1";
+const FIFA_TV_DEAD_TTL_MS = 24 * 60 * 60 * 1000;
+let fifaTvState = { playlistUrl: "", active: null, allChannels: [], channels: [], query: "", loadedOnce: false, busy: false };
 let fifaTvHls = null;
 let fifaTvHlsLib = null;
 
@@ -6007,6 +6019,68 @@ async function saveFifaTv(active) {
   }
 }
 
+function readFifaTvDead() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(FIFA_TV_DEAD_KEY) || "{}");
+    const now = Date.now();
+    return Object.fromEntries(Object.entries(raw).filter(([, at]) => now - Number(at) < FIFA_TV_DEAD_TTL_MS));
+  } catch (_) {
+    return {};
+  }
+}
+
+function writeFifaTvDead(dead) {
+  try { localStorage.setItem(FIFA_TV_DEAD_KEY, JSON.stringify(dead)); } catch (_) {}
+}
+
+// Yoqilgan kanal ishlamasa ham ko'rinib tursin — aks holda uni o'chirib bo'lmaydi.
+function applyFifaTvDead() {
+  const dead = readFifaTvDead();
+  const activeUrl = fifaTvState.active?.url || "";
+  fifaTvState.channels = fifaTvState.allChannels.filter((ch) => ch.url === activeUrl || !dead[ch.url]);
+  return fifaTvState.allChannels.length - fifaTvState.channels.length;
+}
+
+function setFifaTvChannels(channels) {
+  // Qo'shimcha kanallar tepada; pleylistda ham bo'lsa takrorlanmaydi.
+  const extraUrls = new Set(FIFA_TV_EXTRA_CHANNELS.map((ch) => ch.url));
+  fifaTvState.allChannels = [...FIFA_TV_EXTRA_CHANNELS, ...channels.filter((ch) => !extraUrls.has(ch.url))];
+  return applyFifaTvDead();
+}
+
+async function checkAllFifaTvChannels() {
+  if (fifaTvState.busy || !fifaTvState.allChannels.length) return;
+  const btn = document.getElementById("fifaTvCheckBtn");
+  fifaTvState.busy = true;
+  if (btn) btn.disabled = true;
+  const queue = [...fifaTvState.allChannels];
+  const total = queue.length;
+  const dead = {};
+  let checked = 0;
+  // Bir vaqtda 3 tadan — brauzer o'nlab video oqimini birdan ochib qotib qolmasin.
+  const worker = async () => {
+    while (queue.length) {
+      const channel = queue.shift();
+      const works = await probeFifaTvStream(channel.url, 12000);
+      if (!works) dead[channel.url] = Date.now();
+      checked += 1;
+      setFifaTvStatus(`Tekshirilmoqda: ${checked}/${total}…`);
+    }
+  };
+  try {
+    await Promise.all([worker(), worker(), worker()]);
+    writeFifaTvDead(dead);
+    const hidden = applyFifaTvDead();
+    const deadCount = Object.keys(dead).length;
+    const activeDead = Boolean(fifaTvState.active && dead[fifaTvState.active.url]);
+    setFifaTvStatus(`${total - deadCount} ta kanal ishlayapti, ${hidden} ta ishlamaydigani yashirildi.${activeDead ? ` Diqqat: yoqilgan «${fifaTvState.active.name}» ishlamayapti — boshqasini yoqing.` : ""}`, activeDead ? "error" : "ok");
+  } finally {
+    fifaTvState.busy = false;
+    if (btn) btn.disabled = false;
+    renderFifaTvList();
+  }
+}
+
 async function loadFifaTvPlaylist() {
   const input = document.getElementById("fifaTvPlaylistUrl");
   const url = String(input?.value || "").trim() || FIFA_TV_DEFAULT_PLAYLIST;
@@ -6026,14 +6100,18 @@ async function loadFifaTvPlaylist() {
     const channels = football.length ? football : playable.map((ch) => ({ ...ch, footballNote: "" }));
     const changed = url !== fifaTvState.playlistUrl;
     fifaTvState.playlistUrl = url;
-    fifaTvState.channels = channels;
+    const hidden = setFifaTvChannels(channels);
+    const hiddenNote = hidden ? ` ${hidden} tasi oxirgi tekshiruvda ishlamagani uchun yashirin.` : "";
     setFifaTvStatus(football.length
-      ? `${channels.length} ta futbol kanali (${all.length} tadan: http va futbol ko'rsatmaydiganlar olib tashlandi).`
-      : `${channels.length} ta https kanal yuklandi (tekshirilgan futbol kanallari ro'yxatida yo'q).`, "ok");
+      ? `${fifaTvState.channels.length} ta futbol kanali (${all.length} tadan: http va futbol ko'rsatmaydiganlar olib tashlandi).${hiddenNote}`
+      : `${fifaTvState.channels.length} ta https kanal yuklandi (tekshirilgan futbol kanallari ro'yxatida yo'q).${hiddenNote}`, "ok");
     renderFifaTvList();
     if (changed) await saveFifaTv(fifaTvState.active);
   } catch (err) {
-    setFifaTvStatus(`Pleylistni yuklab bo'lmadi: ${err.message}. Link to'g'ri va CORS ochiq ekanini tekshiring.`, "error");
+    // Pleylist ochilmasa ham qo'shimcha kanallar ro'yxatda qoladi.
+    setFifaTvChannels([]);
+    renderFifaTvList();
+    setFifaTvStatus(`Pleylistni yuklab bo'lmadi: ${err.message}. Link to'g'ri va CORS ochiq ekanini tekshiring. Qo'shimcha kanallar ko'rsatildi.`, "error");
   }
 }
 
@@ -6140,6 +6218,7 @@ async function previewFifaTvChannel(url) {
 }
 
 document.getElementById("fifaTvLoadBtn")?.addEventListener("click", loadFifaTvPlaylist);
+document.getElementById("fifaTvCheckBtn")?.addEventListener("click", checkAllFifaTvChannels);
 document.getElementById("fifaTvPlaylistUrl")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); loadFifaTvPlaylist(); } });
 document.getElementById("fifaTvSearch")?.addEventListener("input", (event) => { fifaTvState.query = event.target.value; renderFifaTvList(); });
 document.getElementById("fifaTvPreviewClose")?.addEventListener("click", closeFifaTvPreview);
