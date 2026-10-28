@@ -5,7 +5,7 @@
 //
 // Redis kalitlar:
 //   music:channels:v1               — kanallar ro'yxati (snapshot + videos cache)
-//   music:channels:view:v1:<chId>   — kanal sahifa cache (10 min)
+//   music:channels:view:v1:<chId>   — kanal sahifa cache (eskirgan, faqat tozalanadi)
 
 const YT_API_BASE = "https://www.googleapis.com/youtube/v3";
 const CHANNELS_KEY = "music:channels:v1";
@@ -447,8 +447,9 @@ async function handleMusicChannelsRequest(request, response) {
           videos = await fetchChannelVideos(snapshot.uploadsPlaylistId, MAX_VIDEOS_PER_CHANNEL);
         } catch (err) {
           console.warn(`[music-channels] Refresh paytida ogohlantirish: ${err.message}`);
-          videos = list[idx].videos || [];
         }
+        // YouTube xato bersa (masalan kvota tugagan) bo'sh ro'yxat keladi — saqlangan qo'shiqlar o'chib ketmasin.
+        if (!videos.length) videos = list[idx].videos || [];
 
         list[idx] = normalizeStored({
           ...list[idx],

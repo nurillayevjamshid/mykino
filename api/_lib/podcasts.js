@@ -5,7 +5,12 @@
 
 const YT_API_BASE = "https://www.googleapis.com/youtube/v3";
 const CHANNELS_KEY = "podcasts:channels:v1";
-const CHANNEL_CACHE_TTL = 600; // 10 daqiqa
+// YouTube Data API kuniga 10 000 birlik beradi — 10 daqiqalik kesh uni kun yarmida tugatardi.
+const CHANNEL_CACHE_TTL = 6 * 60 * 60; // 6 soat
+// YouTube xato bergan (masalan kvota tugagan) bo'lsa — eski natija ko'rsatiladi, 15 daqiqadan keyin qayta urinish.
+const CHANNEL_RETRY_TTL = 15 * 60;
+// Oxirgi to'liq natija: YouTube ishlamay qolganda bo'sh sahifa o'rniga shu ko'rsatiladi.
+const CHANNEL_LAST_GOOD_TTL = 30 * 24 * 60 * 60;
 
 const {
   yieldToEventLoop,
@@ -251,28 +256,46 @@ async function fetchPlaylists(channelId, maxResults = 25) {
     }));
   } catch (err) {
     console.warn(`[podcasts] Playlists olishda xato (${channelId}): ${err.message}`);
-    return [];
+    return null;
   }
 }
 
-async function getChannelView(channelId) {
+function channelViewKeys(channelId) {
   // v3 — eski (60-cap'li) cache'larni invalid qilish
-  const cacheKey = `podcasts:view:v3:${channelId}`;
+  return { fresh: `podcasts:view:v3:${channelId}`, lastGood: `podcasts:view:last:v1:${channelId}` };
+}
+
+async function getChannelView(channelId) {
+  const keys = channelViewKeys(channelId);
   const redis = await getRedis();
+  let lastGood = null;
   if (redis) {
     try {
-      const cached = await redis.get(cacheKey);
+      const [cached, last] = await Promise.all([redis.get(keys.fresh), redis.get(keys.lastGood)]);
       if (cached) return JSON.parse(cached);
+      if (last) lastGood = JSON.parse(last);
     } catch (_) {}
   }
+  const cacheFor = async (view, ttl) => {
+    if (!redis) return;
+    try { await redis.set(keys.fresh, JSON.stringify(view), { EX: ttl }); } catch (_) {}
+  };
+
   // Kanal snapshot — agar stored bo'lsa ham, yangilab olamiz (banner va sub o'zgaradi)
-  const chResp = await fetchWithRetry(
-    () => ytFetch("channels", {
-      part: "snippet,brandingSettings,statistics,contentDetails",
-      id: channelId,
-    }),
-    { maxRetries: 2, delayMs: 500 }
-  );
+  let chResp;
+  try {
+    chResp = await fetchWithRetry(
+      () => ytFetch("channels", {
+        part: "snippet,brandingSettings,statistics,contentDetails",
+        id: channelId,
+      }),
+      { maxRetries: 2, delayMs: 500 }
+    );
+  } catch (err) {
+    if (!lastGood) throw err;
+    await cacheFor(lastGood, CHANNEL_RETRY_TTL);
+    return lastGood;
+  }
   const item = chResp?.items?.[0];
   if (!item) throw Object.assign(new Error("Kanal topilmadi."), { statusCode: 404 });
   const channel = shapeChannel(item);
@@ -282,13 +305,24 @@ async function getChannelView(channelId) {
     fetchPlaylists(channelId, 25),
   ]);
 
-  const videosAll = videosSettled.status === "fulfilled" ? videosSettled.value : [];
-  const playlists = playlistsSettled.status === "fulfilled" ? playlistsSettled.value : [];
+  let videosAll = videosSettled.status === "fulfilled" ? videosSettled.value : [];
+  let playlists = playlistsSettled.status === "fulfilled" ? playlistsSettled.value : null;
+  // Kanalda video bor, lekin ro'yxat bo'sh keldi — YouTube xato bergan (playlistItems xatoni yutadi).
+  const videosFailed = !videosAll.length && channel.videoCount > 0;
+  const playlistsFailed = playlists === null;
+  if (videosFailed) videosAll = [...(lastGood?.videos || []), ...(lastGood?.shorts || [])];
+  if (playlistsFailed) playlists = lastGood?.playlists || [];
   const videos = videosAll.filter((v) => !v.isShort);
   const shorts = videosAll.filter((v) => v.isShort);
   const view = { channel, videos, shorts, playlists, fetchedAt: Date.now() };
+  if (videosFailed || playlistsFailed) {
+    // Chala natija oxirgi to'liq natijani bosib ketmaydi va uzoq keshlanmaydi.
+    await cacheFor(view, CHANNEL_RETRY_TTL);
+    return view;
+  }
+  await cacheFor(view, CHANNEL_CACHE_TTL);
   if (redis) {
-    try { await redis.set(cacheKey, JSON.stringify(view), { EX: CHANNEL_CACHE_TTL }); } catch (_) {}
+    try { await redis.set(keys.lastGood, JSON.stringify(view), { EX: CHANNEL_LAST_GOOD_TTL }); } catch (_) {}
   }
   return view;
 }
@@ -467,7 +501,8 @@ async function handlePodcastsRequest(request, response) {
         // Cache'ni ham tozalash
         try {
           const r = await getRedis();
-          if (r) await r.del(`podcasts:view:v3:${channelId}`);
+          const keys = channelViewKeys(channelId);
+          if (r) await r.del([keys.fresh, keys.lastGood]);
         } catch (_) {}
         response.status(200).json({ ok: true, channels: next });
         return;
@@ -507,7 +542,7 @@ async function handlePodcastsRequest(request, response) {
         await writeChannels(list);
         try {
           const r = await getRedis();
-          if (r) await r.del(`podcasts:view:v3:${channelId}`);
+          if (r) await r.del(channelViewKeys(channelId).fresh);
         } catch (_) {}
         response.status(200).json({ ok: true, channel: list[idx] });
         return;
@@ -539,4 +574,4 @@ async function handlePodcastsRequest(request, response) {
   }
 }
 
-module.exports = { handlePodcastsRequest };
+module.exports = { handlePodcastsRequest, getChannelView };
