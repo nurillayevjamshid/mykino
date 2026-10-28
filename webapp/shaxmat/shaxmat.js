@@ -10,7 +10,7 @@
   const Checkers = window.CheckersEngine;
   const BOT_USERNAME = String(window.MYKINO_BOT_USERNAME || "myntv_bot").replace(/^@/, "");
   const API = "/api/games";
-  const ASSET_VERSION = "20261028-games-ui";
+  const ASSET_VERSION = "20261028-games-ui2";
   const STORE_ROOMS = "games_online_rooms";
   const STORE_LOCAL = "games_local_";
   const STORE_SOUND = "games_sound";
@@ -125,14 +125,18 @@
       tg.onEvent?.("contentSafeAreaChanged", applyInsets);
       tg.onEvent?.("fullscreenChanged", applyInsets);
     } catch (_) {}
-    try {
-      const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
-      tg.setHeaderColor?.(bg);
-      tg.setBackgroundColor?.(bg);
-    } catch (_) {}
+    applyHeaderColor();
     try {
       tg.BackButton.onClick(goBack);
       tg.BackButton.show();
+    } catch (_) {}
+  }
+
+  function applyHeaderColor() {
+    try {
+      const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+      tg?.setHeaderColor?.(bg);
+      tg?.setBackgroundColor?.(bg);
     } catch (_) {}
   }
 
@@ -239,6 +243,80 @@
 
   function syncSoundButton() {
     $("soundToggle").classList.toggle("is-muted", !soundOn);
+    $("soundToggle").setAttribute("aria-checked", String(soundOn));
+  }
+
+  // ---------------- Yon menyu ----------------
+  const isDark = () => document.documentElement.getAttribute("data-theme") === "dark";
+  function syncThemeToggle() {
+    $("themeToggle").setAttribute("aria-checked", String(isDark()));
+  }
+  function toggleTheme() {
+    const next = isDark() ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    // Asosiy ilova bilan bir xil kalit — bo'limlar orasida mavzu saqlanadi.
+    try { localStorage.setItem("kino_theme", next); } catch (_) {}
+    syncThemeToggle();
+    applyHeaderColor();
+    haptic("light");
+  }
+  function openDrawer() {
+    $("drawer").hidden = false;
+    $("menuButton").setAttribute("aria-expanded", "true");
+    haptic("light");
+  }
+  function closeDrawer() {
+    $("drawer").hidden = true;
+    $("menuButton").setAttribute("aria-expanded", "false");
+  }
+
+  // ---------------- Foydalanuvchilar soni va reklama ----------------
+  // Asosiy ilovadagi reklama oynasi bilan bir xil manba.
+  let adsTimer = null;
+  let usersCount = null;
+  const formatCount = (n) => Math.round(n).toLocaleString("ru-RU").replace(/\s/g, " ");
+  function compactCount(n) {
+    if (n < 10000) return formatCount(n);
+    if (n < 1000000) return `${(n / 1000).toFixed(n < 100000 ? 1 : 0).replace(/\.0$/, "")}K`;
+    return `${(n / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  function renderUsersCount() {
+    const text = usersCount == null ? "—" : formatCount(usersCount);
+    $("usersCount").textContent = usersCount == null ? "—" : compactCount(usersCount);
+    $("adsCount").textContent = text;
+    $("adsHeroCount").textContent = text;
+  }
+  async function loadUsersCount() {
+    try {
+      const res = await fetch("/api/users?action=subscriber-count", { headers: { Accept: "application/json" }, cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const count = Number(data?.count);
+      if (Number.isFinite(count) && count > 0) {
+        usersCount = count;
+        renderUsersCount();
+      }
+    } catch (_) {}
+  }
+  function openAds() {
+    openSheet("adsSheet");
+    haptic("light");
+    loadUsersCount();
+    clearInterval(adsTimer);
+    adsTimer = setInterval(loadUsersCount, 60 * 1000);
+  }
+  async function copyPhone(value) {
+    let copied = false;
+    try { await navigator.clipboard.writeText(value); copied = true; } catch (_) {
+      const input = document.createElement("textarea");
+      input.value = value;
+      input.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(input);
+      input.select();
+      try { copied = document.execCommand("copy"); } catch (_) {}
+      input.remove();
+    }
+    toast(copied ? "Raqam nusxalandi" : value);
   }
 
   // ---------------- Toast va oynalar ----------------
@@ -252,8 +330,14 @@
   }
 
   function openSheet(id) { $(id).hidden = false; }
-  function closeSheet(id) { $(id).hidden = true; }
-  const openSheets = () => ["setupSheet", "resultSheet", "confirmSheet"].filter((id) => !$(id).hidden);
+  function closeSheet(id) {
+    $(id).hidden = true;
+    if (id === "adsSheet") {
+      clearInterval(adsTimer);
+      adsTimer = null;
+    }
+  }
+  const openSheets = () => ["setupSheet", "resultSheet", "confirmSheet", "adsSheet"].filter((id) => !$(id).hidden);
 
   let confirmHandler = null;
   function confirmAction(title, text, yesLabel, onYes) {
@@ -1504,6 +1588,10 @@
   }
 
   function goBack() {
+    if (!$("drawer").hidden) {
+      closeDrawer();
+      return;
+    }
     const sheets = openSheets();
     if (sheets.length) {
       sheets.forEach(closeSheet);
@@ -1606,7 +1694,16 @@
       startLocal(selectedGame, setupMode, gameOptions(selectedGame));
     });
     document.querySelectorAll("[data-close-sheet]").forEach((el) => el.addEventListener("click", () => closeSheet(el.closest(".sheet").id)));
-    $("homeBack").addEventListener("click", goBack);
+    $("menuButton").addEventListener("click", openDrawer);
+    document.querySelectorAll("[data-close-drawer]").forEach((el) => el.addEventListener("click", closeDrawer));
+    $("themeToggle").addEventListener("click", toggleTheme);
+    $("adsButton").addEventListener("click", openAds);
+    $("adsCopy").addEventListener("click", (e) => copyPhone(e.currentTarget.dataset.phone));
+    $("adsTelegram").addEventListener("click", (e) => {
+      if (!tg?.openTelegramLink) return;
+      e.preventDefault();
+      tg.openTelegramLink(e.currentTarget.href);
+    });
     $("gameBack").addEventListener("click", goBack);
     $("themeButton").addEventListener("click", nextBoardTheme);
     $("flipButton").addEventListener("click", () => {
@@ -1665,6 +1762,8 @@
   function init() {
     setupTelegram();
     syncSoundButton();
+    syncThemeToggle();
+    loadUsersCount();
     applyBoardTheme(readJson(STORE_BOARD, "wood"));
     renderHero();
     bindUi();

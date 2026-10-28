@@ -22,24 +22,37 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/shaxmat/shaxmat.css?v=20261028-games-ui" />
+  <link rel="stylesheet" href="/shaxmat/shaxmat.css?v=20261028-games-ui2" />
 </head>
 
 <body>
   <div class="app">
     <!-- ============ Bosh ekran ============ -->
     <section class="view" id="homeView">
-      <header class="topbar">
-        <button class="icon-btn" id="homeBack" type="button" aria-label="Orqaga">
-          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
+      <header class="topbar topbar--home">
+        <button class="icon-btn" id="menuButton" type="button" aria-label="Menyu" aria-controls="drawer" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
         </button>
-        <div class="topbar__brand">
-          <h1 class="topbar__title">O'yinlar</h1>
-          <span class="topbar__sub">Shaxmat · Shashka</span>
+        <div class="brand" aria-label="NTV O'yinlar">
+          <span class="brand__icon" aria-hidden="true">♞&#xFE0E;</span>
+          <svg viewBox="0 0 294 84" class="ntv-logo" fill="none" aria-label="NTV" role="img">
+            <defs>
+              <linearGradient id="ntv-fade-games" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="currentColor" stop-opacity="1" />
+                <stop offset="25%" stop-color="currentColor" stop-opacity="0.8" />
+                <stop offset="60%" stop-color="currentColor" stop-opacity="0.25" />
+                <stop offset="90%" stop-color="currentColor" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M 7 35 A 32 32 0 0 1 71 39 L 71 77" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M 7 35 L 7 77" stroke="url(#ntv-fade-games)" stroke-width="14" stroke-linecap="round" />
+            <path d="M 100 7 L 176 7 M 138 7 L 138 77" stroke="currentColor" stroke-width="14" stroke-linecap="round" />
+            <path d="M 203 7 L 244 77 L 285 7" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
         </div>
-        <button class="icon-btn" id="soundToggle" type="button" aria-label="Ovoz">
-          <svg class="icon-sound-on" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" /></svg>
-          <svg class="icon-sound-off" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M17 9l5 6M22 9l-5 6" /></svg>
+        <button class="users-btn" id="adsButton" type="button" aria-label="Reklama" aria-haspopup="dialog" aria-controls="adsSheet">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9.5" r="3" /><path d="M6.5 20.5v-.6a5.5 5.5 0 0 1 11 0v.6" /><circle cx="5" cy="6.5" r="2.2" /><path d="M1.8 14.8a3.6 3.6 0 0 1 4.6-3.4" /><circle cx="19" cy="6.5" r="2.2" /><path d="M22.2 14.8a3.6 3.6 0 0 0-4.6-3.4" /></svg>
+          <b id="usersCount">—</b>
         </button>
       </header>
 
@@ -183,6 +196,123 @@
     </section>
   </div>
 
+  <!-- ============ Yon menyu ============ -->
+  <div class="drawer" id="drawer" hidden>
+    <div class="drawer__backdrop" data-close-drawer></div>
+    <aside class="drawer__panel" aria-label="Asosiy menyu">
+      <div class="drawer__head">
+        <span class="drawer__brand"><svg viewBox="0 0 294 84" class="ntv-logo ntv-logo--drawer" fill="none" aria-label="NTV" role="img">
+            <defs>
+              <linearGradient id="ntv-fade-drawer" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="currentColor" stop-opacity="1" />
+                <stop offset="25%" stop-color="currentColor" stop-opacity="0.8" />
+                <stop offset="60%" stop-color="currentColor" stop-opacity="0.25" />
+                <stop offset="90%" stop-color="currentColor" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M 7 35 A 32 32 0 0 1 71 39 L 71 77" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M 7 35 L 7 77" stroke="url(#ntv-fade-drawer)" stroke-width="14" stroke-linecap="round" />
+            <path d="M 100 7 L 176 7 M 138 7 L 138 77" stroke="currentColor" stroke-width="14" stroke-linecap="round" />
+            <path d="M 203 7 L 244 77 L 285 7" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+          </svg></span>
+        <button class="icon-btn" type="button" data-close-drawer aria-label="Yopish">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <nav class="drawer__nav">
+        <a class="drawer__item" href="/">
+          <svg viewBox="0 0 24 24" class="is-filled"><rect x="2" y="5.5" width="13" height="13" rx="3.8" /><path d="M16.5 9.8c0-.55.55-.9 1.05-.6l3.65-2.3c.65-.4 1.6.05 1.6.85v8.5c0 .8-.95 1.25-1.6.85l-3.65-2.3c-.5-.3-1.05.05-1.05-.6v-4.4z" /></svg>
+          <span>Kinolar</span>
+        </a>
+        <a class="drawer__item" href="/?section=football">
+          <img src="/static/assets/futbol-ball.png" alt="" width="22" height="22" />
+          <span>Futbol</span>
+        </a>
+        <a class="drawer__item" href="/?section=music">
+          <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+          <span>Musiqa</span>
+        </a>
+        <a class="drawer__item" href="/?section=podcasts">
+          <svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="12" rx="4" /><path d="M5 10v1.5a7 7 0 0 0 14 0V10M12 18.5V22" /></svg>
+          <span>Potkastlar</span>
+        </a>
+        <a class="drawer__item" href="/books">
+          <svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
+          <span>Audio kitoblar</span>
+        </a>
+        <button class="drawer__item is-active" type="button" data-close-drawer>
+          <span class="drawer__glyph" aria-hidden="true">♞&#xFE0E;</span>
+          <span>Shaxmat va shashka</span>
+        </button>
+      </nav>
+      <span class="drawer__title">Sozlamalar</span>
+      <div class="drawer__settings">
+        <button class="drawer__row" id="soundToggle" type="button" role="switch" aria-label="Ovoz">
+          <svg class="icon-sound-on" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" /></svg>
+          <svg class="icon-sound-off" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M17 9l5 6M22 9l-5 6" /></svg>
+          <span>Ovoz</span>
+          <i class="switch" aria-hidden="true"></i>
+        </button>
+        <button class="drawer__row" id="themeToggle" type="button" role="switch" aria-label="Tungi rejim">
+          <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+          <span>Tungi rejim</span>
+          <i class="switch" aria-hidden="true"></i>
+        </button>
+      </div>
+      <span class="drawer__foot">NTV · © 2026</span>
+    </aside>
+  </div>
+
+  <!-- ============ Reklama oynasi ============ -->
+  <div class="sheet" id="adsSheet" hidden>
+    <div class="sheet__backdrop" data-close-sheet></div>
+    <div class="sheet__panel ads" role="dialog" aria-modal="true" aria-labelledby="adsTitle">
+      <span class="sheet__grabber"></span>
+      <div class="ads__head">
+        <h2 class="sheet__title" id="adsTitle">Reklama</h2>
+        <button class="icon-btn icon-btn--sm" type="button" data-close-sheet aria-label="Yopish">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <section class="ads__hero">
+        <span class="ads__live"><i></i>Jonli auditoriya</span>
+        <h3>E'loningizni <span id="adsHeroCount">—</span> kishi ko'rsin</h3>
+        <p>Bot, Mini App va kanallarimiz orqali — kino, musiqa, futbol va o'yin ishqibozlariga.</p>
+        <div class="ads__stat"><b id="adsCount">—</b><small>bot obunachisi · har daqiqa yangilanadi</small></div>
+      </section>
+      <span class="field__label">Reklama turlari</span>
+      <div class="ads__types">
+        <article class="ads__type">
+          <img src="/static/assets/ads/ads-type-banner.webp" alt="Mini ilovaga kirganda chiqadigan rasmli reklama oynasi" loading="lazy" />
+          <b>Kirish banneri</b>
+          <small>Mini ilovaga har kirganda rasmli reklama oynasi chiqadi.</small>
+        </article>
+        <article class="ads__type">
+          <img src="/static/assets/ads/ads-type-ticker.webp" alt="Bosh sahifa tepasidagi yuguruvchi reklama qatori" loading="lazy" />
+          <b>Yuguruvchi qator</b>
+          <small>E'loningiz bosh sahifa tepasida aylanib turadi.</small>
+        </article>
+        <article class="ads__type">
+          <img src="/static/assets/ads/ads-type-bot.webp" alt="Bot obunachilariga yuborilgan reklama xabari" loading="lazy" />
+          <b>Botda xabar</b>
+          <small>Bot barcha obunachilarga matn, rasm va havola yuboradi.</small>
+        </article>
+      </div>
+      <div class="ads__contact">
+        <span class="ads__avatar" aria-hidden="true">JN</span>
+        <span class="ads__person"><b>Reklama menejeri</b><small>@nurillaevv · 09:00–22:00</small></span>
+      </div>
+      <a class="btn btn--primary btn--block btn--lg" id="adsTelegram" href="https://t.me/nurillaevv">
+        <svg viewBox="0 0 24 24"><path d="M21 4L3 11l6 2 2 6 3-4 5 4 2-15z" /></svg>
+        Telegramda yozish
+      </a>
+      <div class="sheet__row">
+        <a class="btn btn--ghost" href="tel:+998950919966">+998 95 091 99 66</a>
+        <button class="btn btn--ghost" id="adsCopy" type="button" data-phone="+998950919966">Raqamni nusxalash</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ Sozlash oynasi ============ -->
   <div class="sheet" id="setupSheet" hidden>
     <div class="sheet__backdrop" data-close-sheet></div>
@@ -244,9 +374,9 @@
   <div class="toast" id="toast" role="status" hidden></div>
 
   <script>window.MYKINO_BOT_USERNAME = "myntv_bot";</script>
-  <script src="/shaxmat/chess-engine.js?v=20261028-games-ui"></script>
-  <script src="/shaxmat/checkers-engine.js?v=20261028-games-ui"></script>
-  <script src="/shaxmat/shaxmat.js?v=20261028-games-ui"></script>
+  <script src="/shaxmat/chess-engine.js?v=20261028-games-ui2"></script>
+  <script src="/shaxmat/checkers-engine.js?v=20261028-games-ui2"></script>
+  <script src="/shaxmat/shaxmat.js?v=20261028-games-ui2"></script>
 </body>
 
 </html>
