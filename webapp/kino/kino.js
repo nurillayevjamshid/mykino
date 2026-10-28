@@ -12215,13 +12215,20 @@ let __fifaModulePromise = null;
 function ensureFifaModule() {
   if (window.__fifa) return Promise.resolve(window.__fifa);
   if (__fifaModulePromise) return __fifaModulePromise;
-  __fifaModulePromise = new Promise((resolve, reject) => {
+  const loadScript = (src) => new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/fifa/fifa.js?v=20261028-fifa-tv-card";
-    script.onload = () => resolve(window.__fifa);
-    script.onerror = (err) => { __fifaModulePromise = null; reject(err); };
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
     document.head.appendChild(script);
   });
+  // Prognoz, eslatma va reaksiyalar moduli (fifa-fun.js) fifa.js'dan oldin yuklanadi;
+  // u yuklanmasa ham futbol bo'limi odatdagidek ishlayveradi.
+  __fifaModulePromise = loadScript("/static/fifa/fifa-fun.js?v=20261028-fifa-fun-v1")
+    .catch(() => null)
+    .then(() => loadScript("/static/fifa/fifa.js?v=20261028-fifa-fun-v2"))
+    .then(() => window.__fifa)
+    .catch((err) => { __fifaModulePromise = null; throw err; });
   return __fifaModulePromise;
 }
 

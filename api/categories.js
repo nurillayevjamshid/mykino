@@ -2275,6 +2275,22 @@ module.exports = async function handler(request, response) {
   // FIFA route — auth talab qilmaydi (umumiy public data)
   const earlyUrl = new URL(request.url || "/", "http://localhost");
   const earlyType = String(earlyUrl.searchParams.get("type") || "").toLowerCase();
+  // Prognoz, eslatma va reaksiyalar: o'z avtorizatsiyasi bilan ishlaydi.
+  const footballFun = {
+    "fifa-predict": "handlePredictions",
+    "fifa-remind": "handleReminders",
+    "fifa-reactions": "handleReactions",
+    "fifa-cron": "handleFootballCron",
+  }[earlyType];
+  if (earlyType.startsWith("fifa")) {
+    const fun = require("./_lib/football-fun");
+    // Futbol bo'limiga kelgan so'rovlar navbatdagi eslatmalarni ham yuborib turadi.
+    if (earlyType !== "fifa-cron") await fun.runFootballJobs({ opportunistic: true }).catch(() => null);
+    if (footballFun) {
+      await fun[footballFun](request, response);
+      return;
+    }
+  }
   if (earlyType === "fifa") {
     await handleFifa(request, response);
     return;

@@ -1375,6 +1375,7 @@
 
     return `
       <div class="fifa-match fifa-match--clickable${isLive ? " fifa-match--live" : isFinished ? " fifa-match--finished" : ""}"${dataAttr}>
+        ${window.FifaFun?.bellHtml?.(m) || ""}
         <div class="fifa-card-badge-wrap">
           ${badgeHtml}
         </div>
@@ -1565,8 +1566,10 @@
         return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><a class="fifa-efir-card__cover" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><span class="fifa-efir-card__play" aria-hidden="true"></span><span class="fifa-efir-card__cover-text">Efirni ko‘rish</span><small>VK Video Live’da ochiladi</small></a></div></article>`;
       }
       return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div><a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a></article>`;
-    }).join("") + `<a class="fifa-efir-invite" href="${esc(buildFifaInviteUrl())}" data-fifa-invite><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8a3 3 0 1 0-2.9-3.7L8.9 6.1a3 3 0 1 0 0 5.8l3.2 1.8a3 3 0 1 0 1-1.7L9.9 10.2a3 3 0 0 0 0-1.4l3.2-1.8A3 3 0 0 0 15 8Z"/></svg><span>${esc(F("shareLive"))}</span></a>`;
+    }).join("") + `<div class="fifa-react" data-fifa-react></div><a class="fifa-efir-invite" href="${esc(buildFifaInviteUrl())}" data-fifa-invite><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8a3 3 0 1 0-2.9-3.7L8.9 6.1a3 3 0 1 0 0 5.8l3.2 1.8a3 3 0 1 0 1-1.7L9.9 10.2a3 3 0 0 0 0-1.4l3.2-1.8A3 3 0 0 0 15 8Z"/></svg><span>${esc(F("shareLive"))}</span></a>`;
     paintFifaViewers();
+    // Efir ostidagi emoji reaksiyalar (fifa-fun.js).
+    window.FifaFun?.mountReactions?.(wrap.querySelector("[data-fifa-react]"));
 
     wrap.querySelectorAll(".fifa-efir-card--hls").forEach((card) => {
       const video = card.querySelector("video");
@@ -2033,6 +2036,10 @@
     } else if (tab === "favorites") {
       ensureUpcomingMatchesLoaded().catch(() => {});
       renderFifaFavorites();
+    } else if (tab === "predict") {
+      window.FifaFun?.renderPredictPanel?.(document.getElementById("fifaPanelPredict"), {
+        getUpcoming: () => ensureUpcomingMatchesLoaded().catch(() => []),
+      });
     }
   }
 
@@ -2605,6 +2612,8 @@
     fifaView.hidden = false;
     document.body.classList.add("is-fifa");
     syncFifaViewers();
+    // Qaysi o'yinlarga eslatma qo'yilganini bilib, qo'ng'iroqchalarni bo'yaymiz.
+    window.FifaFun?.loadReminders?.();
     try { loadAndRenderFifaHighlights(); } catch (_) {}
     // Loading placeholder darhol ko'rinsin
     renderMatches();
@@ -3692,6 +3701,14 @@
 
   // Delegate click on matches and favorites panel
   fifaView.addEventListener("click", (e) => {
+    // 0) "Eslatib qo'y" qo'ng'iroqchasi — o'yin kartasini ochmasdan eslatmani yoqadi/o'chiradi.
+    const remindBtn = e.target.closest?.("[data-fifa-remind]");
+    if (remindBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.FifaFun?.toggleReminder?.(remindBtn);
+      return;
+    }
     // 0a) Asosiy FIFA bo'limlarini tanlash (.fifa-tab: O'yinlar, Jonli efir, Guruhlar, Sevimlilar)
     const tabBtn = e.target.closest?.(".fifa-tab");
     if (tabBtn && tabBtn.dataset.fifaTab) {

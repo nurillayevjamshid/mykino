@@ -1,0 +1,221 @@
+/* Futbol: prognoz o'yini, eslatma qo'ng'iroqchasi va jonli reaksiyalar. */
+.fifa-view {
+  --ff-card: linear-gradient(135deg, rgba(26, 31, 62, 0.94) 0%, rgba(16, 20, 42, 0.96) 100%);
+  --ff-surface: rgba(255, 255, 255, 0.06);
+  --ff-surface-2: rgba(255, 255, 255, 0.1);
+  --ff-border: rgba(255, 255, 255, 0.12);
+  --ff-text: #ffffff;
+  --ff-muted: rgba(255, 255, 255, 0.62);
+  --ff-accent: #a3e635;
+  --ff-accent-ink: #14200a;
+  --ff-blue: #3b82f6;
+  --ff-gold: #f59e0b;
+}
+html[data-theme="light"] .fifa-view {
+  --ff-card: #ffffff;
+  --ff-surface: #f1f5f9;
+  --ff-surface-2: #e2e8f0;
+  --ff-border: #e2e8f0;
+  --ff-text: #0f172a;
+  --ff-muted: #64748b;
+  --ff-accent: #65a30d;
+  --ff-accent-ink: #ffffff;
+}
+
+/* ---------- Eslatma qo'ng'iroqchasi ---------- */
+.ff-bell {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 6;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--ff-border);
+  background: var(--ff-surface);
+  color: var(--ff-muted);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.ff-bell svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ff-bell:active { transform: scale(0.88); }
+.ff-bell.is-on { color: var(--ff-gold); border-color: var(--ff-gold); background: rgba(245, 158, 11, 0.18); }
+.ff-bell.is-on svg { fill: currentColor; animation: ff-ring 0.6s ease; }
+@keyframes ff-ring { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(14deg); } 50% { transform: rotate(-12deg); } 75% { transform: rotate(6deg); } }
+.ff-card .ff-bell { position: static; width: 28px; height: 28px; margin-left: 4px; }
+
+/* ---------- Prognoz paneli ---------- */
+.ff-wrap { display: flex; flex-direction: column; gap: 12px; color: var(--ff-text); }
+.ff-loading { padding: 28px 0; text-align: center; color: var(--ff-muted); font-size: 13px; }
+
+.ff-hero {
+  border-radius: 22px;
+  padding: 14px;
+  background: radial-gradient(120% 140% at 100% 0%, rgba(163, 230, 53, 0.22), transparent 55%), var(--ff-card);
+  border: 1px solid var(--ff-border);
+}
+.ff-hero__top { display: flex; gap: 12px; align-items: flex-start; }
+.ff-hero__icon { font-size: 30px; line-height: 1; }
+.ff-hero h3 { margin: 0 0 3px; font-size: 17px; font-weight: 800; }
+.ff-hero p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ff-muted); }
+.ff-hero p b { color: var(--ff-text); }
+.ff-hero__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.ff-hero__stats span {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 8px 4px; border-radius: 14px; background: var(--ff-surface); font-size: 12px; color: var(--ff-muted);
+}
+.ff-hero__stats b { font-size: 17px; color: var(--ff-text); }
+.ff-hero__stats small { font-size: 11px; }
+.ff-hero__note { margin-top: 10px !important; padding: 8px 10px; border-radius: 12px; background: var(--ff-surface); }
+
+.ff-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--ff-surface); border: 1px solid var(--ff-border); }
+.ff-seg__btn {
+  border: 0; border-radius: 10px; padding: 8px 4px; background: transparent; color: var(--ff-muted);
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ff-seg__btn.is-active { background: var(--ff-accent); color: var(--ff-accent-ink); }
+
+.ff-body { display: flex; flex-direction: column; gap: 8px; }
+.ff-day { margin: 6px 2px 0; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ff-muted); }
+
+.ff-card {
+  border-radius: 20px; padding: 10px 12px 12px; background: var(--ff-card); border: 1px solid var(--ff-border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+.ff-card__head { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ff-muted); }
+.ff-card__league { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.ff-card__time { font-weight: 800; color: var(--ff-text); padding: 2px 8px; border-radius: 999px; background: var(--ff-surface); }
+.ff-card__body { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; margin-top: 8px; }
+.ff-team { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
+.ff-team img, .ff-logo-fallback { width: 40px; height: 40px; object-fit: contain; }
+.ff-logo-fallback { display: grid; place-items: center; border-radius: 50%; background: var(--ff-surface-2); font-weight: 800; }
+.ff-team span { font-size: 12.5px; font-weight: 700; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ff-score { display: flex; align-items: center; gap: 6px; }
+.ff-score__sep { font-size: 22px; font-weight: 800; color: var(--ff-muted); }
+.ff-step { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ff-step output { min-width: 42px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: var(--ff-surface); font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ff-step button {
+  width: 42px; height: 24px; border: 0; border-radius: 8px; background: var(--ff-surface-2); color: var(--ff-text);
+  font: inherit; font-size: 17px; font-weight: 800; line-height: 1; cursor: pointer; padding: 0;
+}
+.ff-step button:active { transform: scale(0.92); }
+.ff-step button:disabled { opacity: 0.35; }
+.ff-card__foot { display: flex; justify-content: center; margin-top: 10px; }
+.ff-save {
+  width: 100%; height: 40px; border: 0; border-radius: 12px; background: var(--ff-accent); color: var(--ff-accent-ink);
+  font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+}
+.ff-save:disabled { opacity: 0.7; }
+.ff-saved { font-size: 13.5px; font-weight: 700; color: var(--ff-accent); padding: 9px 0; }
+.ff-saved b { color: var(--ff-text); }
+.ff-card__hint { font-size: 12.5px; color: var(--ff-muted); padding: 8px 0; }
+
+.ff-dist { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+.ff-dist__bar { display: flex; height: 7px; border-radius: 999px; overflow: hidden; gap: 2px; }
+.ff-dist__bar i { display: block; min-width: 3px; }
+.ff-dist__bar .is-home { background: var(--ff-blue); }
+.ff-dist__bar .is-draw { background: var(--ff-muted); opacity: 0.6; }
+.ff-dist__bar .is-away { background: #ef4444; }
+.ff-dist__legend { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--ff-muted); }
+.ff-dist__legend span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ff-dist small { font-size: 11px; color: var(--ff-muted); text-align: center; }
+
+.ff-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.ff-chip {
+  border: 1px solid var(--ff-border); border-radius: 999px; padding: 7px 13px; background: var(--ff-surface); color: var(--ff-muted);
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.ff-chip.is-active { border-color: var(--ff-accent); color: var(--ff-text); background: rgba(163, 230, 53, 0.16); }
+
+.ff-board { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ff-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 16px;
+  background: var(--ff-card); border: 1px solid var(--ff-border);
+}
+.ff-row.is-me, .ff-row--me-outside { border-color: var(--ff-accent); background: rgba(163, 230, 53, 0.12); }
+.ff-row__rank { width: 26px; text-align: center; font-weight: 800; font-size: 15px; color: var(--ff-muted); }
+.ff-row__avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--ff-blue); color: #fff; font-weight: 800; flex: none; }
+.ff-row__name { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ff-row__name small { font-size: 11.5px; font-weight: 500; color: var(--ff-muted); }
+.ff-row__pts { font-size: 12px; color: var(--ff-muted); white-space: nowrap; }
+.ff-row__pts b { font-size: 17px; color: var(--ff-text); }
+
+.ff-pick {
+  position: relative; display: flex; flex-direction: column; gap: 6px; padding: 10px 56px 10px 12px; border-radius: 16px;
+  background: var(--ff-card); border: 1px solid var(--ff-border);
+}
+.ff-pick__teams { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; font-weight: 700; }
+.ff-pick__teams span { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ff-pick__teams img, .ff-pick__teams .ff-logo-fallback { width: 20px; height: 20px; flex: none; font-size: 10px; }
+.ff-pick__meta { display: flex; gap: 12px; font-size: 12px; color: var(--ff-muted); }
+.ff-pick__meta b { color: var(--ff-text); }
+.ff-badge {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  min-width: 38px; padding: 6px 8px; border-radius: 12px; text-align: center; font-size: 12px; font-weight: 800;
+  background: var(--ff-surface); color: var(--ff-muted);
+}
+.ff-badge--pts { background: var(--ff-accent); color: var(--ff-accent-ink); font-size: 15px; }
+.ff-badge--pts.is-zero { background: var(--ff-surface-2); color: var(--ff-muted); }
+.ff-badge--wait { font-size: 11px; }
+
+.ff-empty { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 28px 16px; text-align: center; border-radius: 20px; background: var(--ff-surface); }
+.ff-empty span { font-size: 34px; }
+.ff-empty strong { font-size: 15px; }
+.ff-empty p { margin: 0; font-size: 12.5px; color: var(--ff-muted); line-height: 1.45; }
+
+.ff-toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); z-index: 9999;
+  transform: translate(-50%, 8px); max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 14px;
+  background: rgba(15, 23, 42, 0.94); color: #fff; font-size: 13px; font-weight: 600; text-align: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.ff-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- Jonli reaksiyalar ---------- */
+.fifa-react { position: relative; margin: 8px 0 4px; }
+.frx-layer { position: absolute; left: 0; right: 0; bottom: 100%; height: 260px; pointer-events: none; overflow: hidden; z-index: 8; }
+.frx-float {
+  position: absolute; bottom: -10px; left: var(--x); font-size: var(--size); line-height: 1;
+  animation: frx-rise var(--dur) cubic-bezier(0.25, 0.6, 0.4, 1) forwards; will-change: transform, opacity;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
+}
+@keyframes frx-rise {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  12% { opacity: 1; transform: translate(calc(var(--drift) * 0.2), -30px) scale(1.05); }
+  100% { transform: translate(var(--drift), -250px) scale(0.9); opacity: 0; }
+}
+.frx-bar {
+  display: flex; align-items: center; gap: 5px; padding: 6px; border-radius: 999px;
+  background: var(--ff-surface); border: 1px solid var(--ff-border); overflow-x: auto; scrollbar-width: none;
+}
+.frx-bar::-webkit-scrollbar { display: none; }
+.frx-btn {
+  flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--ff-surface-2);
+  font-size: 19px; line-height: 1; cursor: pointer; padding: 0; transition: transform 0.12s ease;
+}
+.frx-btn:active { transform: scale(0.85); }
+.frx-btn.is-pop { animation: frx-pop 0.3s ease; }
+@keyframes frx-pop { 50% { transform: scale(1.25); } }
+.frx-count { margin-left: auto; padding: 0 10px 0 4px; font-size: 12px; font-weight: 700; color: var(--ff-muted); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .frx-float { animation-duration: 1.2s; }
+}
+
+/* To'rtinchi "Prognoz" tabi qo'shilgach nomlar kesilmasin: sig'masa yonga suriladi. */
+html body .fifa-view .fifa-tabs {
+  overflow-x: auto !important;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+html body .fifa-view .fifa-tabs::-webkit-scrollbar { display: none; }
+html body .fifa-view .fifa-tabs .fifa-tab {
+  flex: 1 0 auto !important;
+  min-width: max-content !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  overflow: visible !important;
+  scroll-snap-align: center;
+}
