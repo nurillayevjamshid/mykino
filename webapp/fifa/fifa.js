@@ -1492,8 +1492,8 @@
         const streams = Array.isArray(data?.fifaStreams) ? data.fifaStreams.filter((item) => item && item.url) : [];
         // Admin M3U pleylistdan yoqqan TV kanal — boshqa efirlardan oldin turadi.
         const tv = data?.fifaTv?.active;
-        // Kanal nomi va logosi o'rniga o'zimizning brend nomi va poster ko'rsatiladi.
-        const tvStreams = tv?.url ? [{ id: `tv-${tv.id || tv.url}`, title: "NTV Futbol stream", url: tv.url, originalUrl: tv.url, provider: "hls", poster: FIFA_TV_POSTER, isTv: true }] : [];
+        // Kanal nomi va logosi o'rniga admin yozgan sarlavha va poster, bo'lmasa brend nomi va standart poster.
+        const tvStreams = tv?.url ? [{ id: `tv-${tv.id || tv.url}`, title: tv.title || "NTV Futbol stream", url: tv.url, originalUrl: tv.url, provider: "hls", poster: tv.poster || FIFA_TV_POSTER, isTv: true }] : [];
         fifaStreamsCache = [...tvStreams, ...streams];
         window.__fifaStreams = fifaStreamsCache;
         return fifaStreamsCache;
@@ -1529,7 +1529,7 @@
     wrap.hidden = !list.length;
     // Ro'yxat o'zgarmagan bo'lsa iframe'ni qayta yaratmaymiz — aks holda
     // (masalan til almashganda) jonli efir boshidan yuklanib, to'xtab qoladi.
-    const signature = JSON.stringify(list.map((stream) => [stream.url, stream.title, stream.originalUrl]));
+    const signature = JSON.stringify(list.map((stream) => [stream.url, stream.title, stream.originalUrl, stream.poster]));
     if (wrap.dataset.streamsSignature === signature) return;
     wrap.dataset.streamsSignature = signature;
     fifaViewersHasStreams = list.length > 0;

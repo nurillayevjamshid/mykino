@@ -17,9 +17,9 @@ describe("FIFA live stream buttons", () => {
     });
   });
 
-  test("shows the admin TV channel as NTV Futbol stream with the NTV poster", () => {
+  test("shows the admin TV channel as NTV Futbol stream with the NTV poster by default", () => {
     const fifa = fs.readFileSync(path.resolve(__dirname, "../../webapp/fifa/fifa.js"), "utf8");
-    assert.match(fifa, /title: "NTV Futbol stream"/);
+    assert.match(fifa, /title: tv\.title \|\| "NTV Futbol stream"/);
     assert.match(fifa, /const FIFA_TV_POSTER = "\/static\/assets\/fifa-live-poster\.webp"/);
     assert.match(fifa, / poster="\$\{esc\(stream\.poster\)\}"/);
     assert.ok(fs.existsSync(path.resolve(__dirname, "../../webapp/assets/fifa-live-poster.webp")));
@@ -100,6 +100,26 @@ describe("FIFA live stream buttons", () => {
     assert.equal(tv.active.name, "ACI Sport TV");
     // Mini ilova https'da — http oqim brauzerda bloklanadi, shuning uchun saqlanmaydi.
     assert.equal(settingsHandler.normalizeFifaTv({ active: { name: "X", url: "http://1.2.3.4:8080/x.m3u8" } }).active, null);
+  });
+
+  test("keeps the admin's card title and https poster for the active TV channel", () => {
+    const tv = settingsHandler.normalizeFifaTv({
+      active: { name: "TRT 1", url: "https://example.com/trt1.m3u8", title: "  Arsenal — Liverpool  ", poster: "https://cdn.example.com/arsenal-liverpool.jpg" },
+    });
+    assert.equal(tv.active.title, "Arsenal — Liverpool");
+    assert.equal(tv.active.poster, "https://cdn.example.com/arsenal-liverpool.jpg");
+    // http poster https mini ilovada ochilmaydi — saqlanmaydi, standart poster chiqadi.
+    const insecure = settingsHandler.normalizeFifaTv({ active: { name: "TRT 1", url: "https://example.com/trt1.m3u8", poster: "http://cdn.example.com/p.jpg" } });
+    assert.equal(insecure.active.poster, "");
+    assert.equal(insecure.active.title, "");
+
+    const adminJs = fs.readFileSync(path.join(root, "webapp/admin/admin.js"), "utf8");
+    const fifa = fs.readFileSync(path.join(root, "webapp/fifa/fifa.js"), "utf8");
+    assert.match(adminJs, /id="fifaTvCardTitle"/);
+    assert.match(adminJs, /id="fifaTvCardPosterFile"/);
+    assert.match(adminJs, /function updateFifaTvCardPreview\(/);
+    assert.match(fifa, /title: tv\.title \|\| "NTV Futbol stream"/);
+    assert.match(fifa, /poster: tv\.poster \|\| FIFA_TV_POSTER/);
   });
 
   test("admin lists M3U channels with a single-on toggle and the football card shows the active one", () => {

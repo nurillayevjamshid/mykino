@@ -5971,12 +5971,99 @@ function parseM3uPlaylist(text) {
   return channels;
 }
 
+// Mini ilovadagi efir kartasining standart sarlavhasi va posteri (webapp/fifa/fifa.js bilan bir xil).
+const FIFA_TV_CARD_DEFAULT_TITLE = "NTV Futbol stream";
+const FIFA_TV_CARD_DEFAULT_POSTER = "/static/assets/fifa-live-poster.webp";
+
 function renderFifaTvActive() {
   const el = document.getElementById("fifaTvActive"); if (!el) return;
   const active = fifaTvState.active;
   el.hidden = !active;
   if (!active) { el.innerHTML = ""; return; }
-  el.innerHTML = `<span class="fifa-tv-admin__live-dot" aria-hidden="true"></span><div><strong>Efirda: ${escapeHtml(active.name)}</strong><small>Futbol bo'limida shu kanal ko'rinmoqda</small></div><button type="button" class="btn btn-secondary" data-fifa-tv-off>O'chirish</button>`;
+  el.innerHTML = `<div class="fifa-tv-admin__active-row"><span class="fifa-tv-admin__live-dot" aria-hidden="true"></span><div><strong>Efirda: ${escapeHtml(active.name)}</strong><small>Futbol bo'limida shu kanal ko'rinmoqda</small></div><button type="button" class="btn btn-secondary" data-fifa-tv-off>O'chirish</button></div>
+    <div class="fifa-tv-card-editor">
+      <div class="fifa-tv-card-editor__fields">
+        <div class="form-group">
+          <label for="fifaTvCardTitle">Kartadagi sarlavha</label>
+          <input class="form-input" id="fifaTvCardTitle" type="text" maxlength="120" placeholder="Masalan: Arsenal — Liverpool" value="${escapeHtml(active.title || "")}" autocomplete="off">
+          <small class="form-hint">Bo'sh qolsa «${escapeHtml(FIFA_TV_CARD_DEFAULT_TITLE)}» chiqadi.</small>
+        </div>
+        <div class="form-group">
+          <label for="fifaTvCardPoster">Poster rasmi</label>
+          <div class="fifa-tv-card-editor__poster">
+            <input class="form-input" id="fifaTvCardPoster" type="url" placeholder="https://… rasm linki" value="${escapeHtml(active.poster || "")}" autocomplete="off">
+            <label class="btn btn-secondary">Yuklash<input type="file" id="fifaTvCardPosterFile" accept="image/*" hidden></label>
+            <button type="button" class="btn btn-secondary" id="fifaTvCardPosterReset" title="Standart posterga qaytarish">Standart</button>
+          </div>
+          <small class="form-hint">Link qo'ying yoki rasm yuklang — 16:9 o'lchamdagisi eng yaxshi chiqadi. Bo'sh qolsa standart poster chiqadi.</small>
+        </div>
+        <div class="fifa-tv-card-editor__actions">
+          <button type="button" class="btn btn-primary" id="fifaTvCardSave">Saqlash</button>
+          <span class="status-text" id="fifaTvCardStatus"></span>
+        </div>
+      </div>
+      <div class="fifa-tv-card-editor__preview-wrap">
+        <span class="fifa-tv-card-editor__preview-label">Mini ilovada shunday ko'rinadi</span>
+        <article class="fifa-tv-card-preview" aria-label="Mini ilovadagi efir kartasi ko'rinishi">
+          <div class="fifa-tv-card-preview__head"><div><span class="fifa-tv-card-preview__kicker">TV kanal</span><h4 id="fifaTvCardPreviewTitle"></h4></div><span class="fifa-tv-card-preview__live"><i></i> LIVE</span></div>
+          <div class="fifa-tv-card-preview__player" id="fifaTvCardPreviewPlayer"><span class="fifa-tv-card-preview__play" aria-hidden="true"></span><span class="fifa-tv-card-preview__error" id="fifaTvCardPreviewError" hidden>Rasm ochilmadi — linkni tekshiring</span></div>
+        </article>
+      </div>
+    </div>`;
+  updateFifaTvCardPreview();
+}
+
+function updateFifaTvCardPreview() {
+  const titleEl = document.getElementById("fifaTvCardPreviewTitle");
+  const player = document.getElementById("fifaTvCardPreviewPlayer");
+  const errorEl = document.getElementById("fifaTvCardPreviewError");
+  if (!titleEl || !player) return;
+  titleEl.textContent = document.getElementById("fifaTvCardTitle")?.value.trim() || FIFA_TV_CARD_DEFAULT_TITLE;
+  const poster = document.getElementById("fifaTvCardPoster")?.value.trim() || FIFA_TV_CARD_DEFAULT_POSTER;
+  // Rasm haqiqatan ochilishini tekshiramiz — buzuq link bo'lsa admin darhol ko'radi.
+  const img = new Image();
+  img.onload = () => {
+    if (errorEl) errorEl.hidden = true;
+    player.style.backgroundImage = `url("${poster.replaceAll('"', "%22")}")`;
+  };
+  img.onerror = () => {
+    if (errorEl) errorEl.hidden = false;
+    player.style.backgroundImage = "";
+  };
+  img.src = poster;
+}
+
+function setFifaTvCardStatus(text, kind = "") {
+  const el = document.getElementById("fifaTvCardStatus"); if (!el) return;
+  el.textContent = text || "";
+  setTone(el, kind);
+}
+
+async function uploadFifaTvCardPoster(file) {
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { setFifaTvCardStatus("Faqat rasm fayl yuklash mumkin.", "error"); return; }
+  setFifaTvCardStatus("Rasm yuklanmoqda…");
+  try {
+    const compressed = await compressImageDataUrl(await readFileAsDataUrl(file), 1280, 720, 0.86);
+    const url = proxiedPoster(await uploadCategoryImage(compressed, "fifa-tv-poster"));
+    const input = document.getElementById("fifaTvCardPoster");
+    if (input) input.value = url;
+    updateFifaTvCardPreview();
+    setFifaTvCardStatus("Rasm yuklandi. Ko'rinishni tekshirib «Saqlash»ni bosing.", "ok");
+  } catch (err) {
+    setFifaTvCardStatus(`Rasm yuklanmadi: ${err.message}`, "error");
+  }
+}
+
+async function saveFifaTvCard() {
+  const active = fifaTvState.active;
+  if (!active || fifaTvState.busy) return;
+  const title = document.getElementById("fifaTvCardTitle")?.value.trim() || "";
+  const poster = document.getElementById("fifaTvCardPoster")?.value.trim() || "";
+  if (poster && !poster.startsWith("https://")) { setFifaTvCardStatus("Rasm linki https:// bilan boshlanishi kerak.", "error"); return; }
+  setFifaTvCardStatus("Saqlanmoqda…");
+  await saveFifaTv({ ...active, title, poster });
+  setFifaTvCardStatus(fifaTvState.active ? "Saqlandi — mini ilovada yangi sarlavha va poster chiqadi." : "Saqlanmadi.", fifaTvState.active ? "ok" : "error");
 }
 
 function renderFifaTvList() {
@@ -6224,6 +6311,21 @@ document.getElementById("fifaTvSearch")?.addEventListener("input", (event) => { 
 document.getElementById("fifaTvPreviewClose")?.addEventListener("click", closeFifaTvPreview);
 document.getElementById("fifaTvActive")?.addEventListener("click", (event) => {
   if (event.target.closest("[data-fifa-tv-off]") && !fifaTvState.busy) saveFifaTv(null);
+  if (event.target.closest("#fifaTvCardSave")) saveFifaTvCard();
+  if (event.target.closest("#fifaTvCardPosterReset")) {
+    const input = document.getElementById("fifaTvCardPoster");
+    if (input) input.value = "";
+    updateFifaTvCardPreview();
+  }
+});
+document.getElementById("fifaTvActive")?.addEventListener("input", (event) => {
+  if (event.target.id === "fifaTvCardTitle" || event.target.id === "fifaTvCardPoster") updateFifaTvCardPreview();
+});
+document.getElementById("fifaTvActive")?.addEventListener("change", (event) => {
+  if (event.target.id === "fifaTvCardPosterFile") {
+    uploadFifaTvCardPoster(event.target.files?.[0]);
+    event.target.value = "";
+  }
 });
 document.getElementById("fifaTvList")?.addEventListener("click", (event) => {
   const tryBtn = event.target.closest("[data-fifa-tv-try]");
@@ -6248,5 +6350,6 @@ document.getElementById("fifaTvList")?.addEventListener("change", async (event) 
   }
   // Faqat bitta kanal: yoqilgani boshqasini avtomatik o'chiradi.
   setFifaTvStatus(`«${channel.name}» yoqilmoqda…`);
-  saveFifaTv({ id: channel.tvgId || channel.url, name: channel.name, url: channel.url, logo: channel.logo, group: channel.group });
+  // Boshqa kanalga (masalan zaxira oqimga) o'tilsa ham kartadagi sarlavha va poster saqlanib qoladi.
+  saveFifaTv({ id: channel.tvgId || channel.url, name: channel.name, url: channel.url, logo: channel.logo, group: channel.group, title: fifaTvState.active?.title || "", poster: fifaTvState.active?.poster || "" });
 });

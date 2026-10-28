@@ -347,6 +347,10 @@ function normalizeFifaTv(raw) {
           url: activeUrl,
           logo: normalizeHttpUrl(active.logo, 500),
           group: trimString(active.group).slice(0, 60),
+          // Mini ilovadagi efir kartasi: admin yozgan sarlavha (masalan «Arsenal — Liverpool»)
+          // va poster. Bo'sh qolsa mini ilova standart nom va posterni ko'rsatadi.
+          title: trimString(active.title).slice(0, 120),
+          poster: normalizeHttpUrl(active.poster).startsWith("https://") ? normalizeHttpUrl(active.poster) : "",
         }
       : null,
   };

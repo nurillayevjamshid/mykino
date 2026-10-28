@@ -1454,10 +1454,30 @@ input[type="checkbox"], input[type="radio"] {
 .fifa-tv-admin__load { display: flex; gap: 8px; }
 .fifa-tv-admin__load .form-input { flex: 1; min-width: 0; }
 .fifa-tv-admin__search { margin-top: 12px; }
-.fifa-tv-admin__active { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 14px; border: 1px solid var(--success); border-radius: var(--radius-md); background: var(--success-bg); }
-.fifa-tv-admin__active strong { display: block; color: var(--text); font-size: var(--fs-md); }
-.fifa-tv-admin__active small { color: var(--text-secondary); font-size: var(--fs-xs); }
-.fifa-tv-admin__active .btn { margin-left: auto; }
+.fifa-tv-admin__active { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--success); border-radius: var(--radius-md); background: var(--success-bg); }
+.fifa-tv-admin__active-row { display: flex; align-items: center; gap: 12px; }
+.fifa-tv-admin__active-row strong { display: block; color: var(--text); font-size: var(--fs-md); }
+.fifa-tv-admin__active-row small { color: var(--text-secondary); font-size: var(--fs-xs); }
+.fifa-tv-admin__active-row .btn { margin-left: auto; }
+/* Yoqilgan kanal: mini ilovadagi efir kartasining sarlavhasi/posteri va jonli ko'rinishi */
+.fifa-tv-card-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 18px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.fifa-tv-card-editor__poster { display: flex; gap: 8px; }
+.fifa-tv-card-editor__poster .form-input { flex: 1; min-width: 0; }
+.fifa-tv-card-editor__poster .btn { flex: none; }
+.fifa-tv-card-editor__actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fifa-tv-card-editor__preview-label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: var(--fs-sm); font-weight: 600; }
+/* Ko'rinish mini ilovadagi .fifa-efir-card bilan bir xil (webapp/kino/kino.css) */
+.fifa-tv-card-preview { overflow: hidden; border: 1px solid rgba(255, 255, 255, .08); border-radius: 20px; background: #141924; box-shadow: 0 10px 28px rgba(0, 0, 0, .28); color: #ffffff; }
+.fifa-tv-card-preview__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 12px; }
+.fifa-tv-card-preview__head > div { min-width: 0; }
+.fifa-tv-card-preview__kicker { display: inline-block; color: #ff5c7c; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.fifa-tv-card-preview__head h4 { margin: 4px 0 0; overflow: hidden; color: inherit; font-size: 16px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.fifa-tv-card-preview__live { display: inline-flex; flex: none; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(255, 92, 124, .18); color: #ff5c7c; font-size: 11px; font-weight: 800; letter-spacing: .06em; line-height: 1; }
+.fifa-tv-card-preview__live i { width: 6px; height: 6px; border-radius: 50%; background: #ff5c7c; }
+.fifa-tv-card-preview__player { position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; background: #000000 center / contain no-repeat; }
+.fifa-tv-card-preview__play { width: 54px; height: 54px; border-radius: 50%; background: rgba(0, 0, 0, .55); box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
+.fifa-tv-card-preview__play::after { content: ""; display: block; margin: 16px 0 0 21px; border-style: solid; border-width: 11px 0 11px 17px; border-color: transparent transparent transparent #ffffff; }
+.fifa-tv-card-preview__error { position: absolute; inset: auto 0 0; padding: 8px 12px; background: rgba(226, 18, 59, .85); color: #ffffff; font-size: var(--fs-xs); font-weight: 700; text-align: center; }
 .fifa-tv-admin__live-dot { flex: 0 0 9px; width: 9px; height: 9px; border-radius: 50%; background: #e2123b; box-shadow: 0 0 0 4px rgba(226, 18, 59, 0.15); }
 .fifa-tv-admin__list { display: flex; flex-direction: column; max-height: 520px; overflow: auto; margin-top: 10px; border: 1px solid var(--border); border-radius: var(--radius-md); }
 .fifa-tv-admin__list:empty { display: none; }
@@ -1645,6 +1665,9 @@ input[type="checkbox"], input[type="radio"] {
   .command-palette-content { width: 100%; max-height: 80vh; border-radius: var(--radius-xl); }
 
   .fifa-tv-admin__load { flex-wrap: wrap; }
+  .fifa-tv-card-editor { grid-template-columns: 1fr; }
+  .fifa-tv-card-editor__poster { flex-wrap: wrap; }
+  .fifa-tv-card-editor__poster .form-input { flex-basis: 100%; }
   .fifa-tv-admin__load .btn { flex: 1 1 auto; }
   .fifa-tv-row { flex-wrap: wrap; }
   .fifa-tv-row__info { flex-basis: calc(100% - 52px); }
