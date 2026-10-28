@@ -10,12 +10,21 @@
   const Checkers = window.CheckersEngine;
   const BOT_USERNAME = String(window.MYKINO_BOT_USERNAME || "myntv_bot").replace(/^@/, "");
   const API = "/api/games";
-  const ASSET_VERSION = "20261027-games-v2";
+  const ASSET_VERSION = "20261028-games-ui";
   const STORE_ROOMS = "games_online_rooms";
   const STORE_LOCAL = "games_local_";
   const STORE_SOUND = "games_sound";
   const LEVEL_NAMES = { 1: "Oson", 2: "O'rta", 3: "Qiyin" };
   const STORE_TIME = "games_time_control";
+  const STORE_BOARD = "games_board_theme";
+  const STORE_STATS = "games_stats";
+  const BOARD_THEMES = [
+    { id: "wood", name: "Yog'och" },
+    { id: "green", name: "Yashil" },
+    { id: "blue", name: "Moviy" },
+    { id: "purple", name: "Binafsha" },
+    { id: "marble", name: "Marmar" },
+  ];
   // Vaqt turlari: daqiqa + har yurishdan keyin qo'shiladigan soniya.
   const TIME_CATEGORIES = [
     { id: "bullet", name: "Bullet", icon: "⚡", options: ["1+0", "2+1"] },
@@ -168,6 +177,65 @@
     lose: () => [392, 330, 262].forEach((f, i) => tone(f, 0.22, { gain: 0.1, delay: i * 0.12 })),
     notify: () => { tone(660, 0.09, { gain: 0.1 }); tone(880, 0.12, { gain: 0.1, delay: 0.1 }); },
   };
+
+  // ---------------- Taxta rangi ----------------
+  function applyBoardTheme(id) {
+    const theme = BOARD_THEMES.find((t) => t.id === id) || BOARD_THEMES[0];
+    if (theme.id === "wood") document.documentElement.removeAttribute("data-board");
+    else document.documentElement.setAttribute("data-board", theme.id);
+    return theme;
+  }
+  function nextBoardTheme() {
+    const current = readJson(STORE_BOARD, "wood");
+    const i = BOARD_THEMES.findIndex((t) => t.id === current);
+    const theme = applyBoardTheme(BOARD_THEMES[(i + 1) % BOARD_THEMES.length].id);
+    writeJson(STORE_BOARD, theme.id);
+    toast(`Taxta: ${theme.name}`, 1400);
+    haptic("light");
+  }
+
+  // ---------------- Statistika ----------------
+  function readStats() {
+    return Object.assign({ wins: 0, draws: 0, losses: 0 }, readJson(STORE_STATS, {}));
+  }
+  function recordResult(outcome) {
+    const stats = readStats();
+    stats[outcome] += 1;
+    writeJson(STORE_STATS, stats);
+  }
+  function rankName(wins) {
+    if (wins >= 50) return "Grossmeyster";
+    if (wins >= 20) return "Usta";
+    if (wins >= 5) return "Havaskor";
+    return "Yangi o'yinchi";
+  }
+  function renderHero() {
+    const name = myName();
+    $("heroName").textContent = name;
+    $("heroAvatar").textContent = name.trim().charAt(0).toUpperCase() || "?";
+    const stats = readStats();
+    $("statPlayed").textContent = stats.wins + stats.draws + stats.losses;
+    $("statWins").textContent = stats.wins;
+    $("statDraws").textContent = stats.draws;
+    $("statLosses").textContent = stats.losses;
+    $("heroRank").textContent = rankName(stats.wins);
+  }
+
+  function launchConfetti() {
+    const box = $("confetti");
+    box.textContent = "";
+    const colors = ["#f59e0b", "#6d5dfc", "#22b8f0", "#10b981", "#ef4444", "#fde68a"];
+    for (let i = 0; i < 46; i++) {
+      const bit = document.createElement("i");
+      bit.style.left = Math.random() * 100 + "%";
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDelay = Math.random() * 0.35 + "s";
+      bit.style.setProperty("--dx", (Math.random() - 0.5) * 160 + "px");
+      bit.style.setProperty("--rot", (Math.random() - 0.5) * 900 + "deg");
+      box.appendChild(bit);
+    }
+    setTimeout(() => { box.textContent = ""; }, 2600);
+  }
 
   function syncSoundButton() {
     $("soundToggle").classList.toggle("is-muted", !soundOn);
@@ -1116,13 +1184,17 @@
       let badge = "🤝";
       if (r.winner) badge = mine ? (r.winner === s.myColor ? "🏆" : "😔") : "🏆";
       if (r.reason === "cancelled") badge = "✖️";
+      const won = r.winner && (!mine || r.winner === s.myColor);
       $("resultBadge").textContent = badge;
+      $("resultBadge").dataset.tone = r.reason === "cancelled" ? "" : won ? "win" : r.winner ? "lose" : "";
+      if (mine && r.reason !== "cancelled") recordResult(!r.winner ? "draws" : r.winner === s.myColor ? "wins" : "losses");
       $("resultTitle").textContent = r.reason === "cancelled" ? "O'yin bekor qilindi" : resultHeadline(r);
       $("resultReason").textContent = r.reason === "cancelled" ? "" : REASONS[r.reason] || "";
       const canRematch = s.mode !== "online" || (s.myColor && r.reason !== "cancelled");
       $("resultAgain").hidden = !canRematch;
       $("resultAgain").textContent = s.mode === "online" ? "Qayta o'ynash (ranglar almashadi)" : "Qayta o'ynash";
       openSheet("resultSheet");
+      if (won && r.reason !== "cancelled") launchConfetti();
       if (mine && r.winner) (r.winner === s.myColor ? sounds.win : sounds.lose)();
       haptic(mine && r.winner && r.winner !== s.myColor ? "error" : "success");
     }, 650);
@@ -1418,6 +1490,7 @@
     closeSheet("resultSheet");
     $("promotionOverlay").hidden = true;
     renderResumeList();
+    renderHero();
     showView("home");
   }
 
@@ -1526,6 +1599,7 @@
     document.querySelectorAll("[data-close-sheet]").forEach((el) => el.addEventListener("click", () => closeSheet(el.closest(".sheet").id)));
     $("homeBack").addEventListener("click", goBack);
     $("gameBack").addEventListener("click", goBack);
+    $("themeButton").addEventListener("click", nextBoardTheme);
     $("flipButton").addEventListener("click", () => {
       if (!session) return;
       session.flipped = !session.flipped;
@@ -1582,6 +1656,8 @@
   function init() {
     setupTelegram();
     syncSoundButton();
+    applyBoardTheme(readJson(STORE_BOARD, "wood"));
+    renderHero();
     bindUi();
     const params = new URLSearchParams(location.search);
     if (params.get("game") === "checkers") selectGame("checkers");
