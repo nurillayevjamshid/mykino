@@ -12226,7 +12226,7 @@ function ensureFifaModule() {
   // u yuklanmasa ham futbol bo'limi odatdagidek ishlayveradi.
   __fifaModulePromise = loadScript("/static/fifa/fifa-fun.js?v=20261028-fifa-fun-v1")
     .catch(() => null)
-    .then(() => loadScript("/static/fifa/fifa.js?v=20261029-invite-title"))
+    .then(() => loadScript("/static/fifa/fifa.js?v=20261029-no-kicker"))
     .then(() => window.__fifa)
     .catch((err) => { __fifaModulePromise = null; throw err; });
   return __fifaModulePromise;

@@ -1550,18 +1550,19 @@
       const isHls = stream.provider === "hls" || /\.m3u8(?:$|\?)/i.test(stream.url);
       if (isHls) {
         const provider = stream.isTv ? "TV kanal" : (/(?:varzish)/i.test(title) ? "Varzish TV" : "HLS Live");
-        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__brand"><div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div></div>${livePill}</div>`;
+        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__brand"><div class="fifa-efir-card__titles"><h3>${esc(title)}</h3></div></div>${livePill}</div>`;
         // TV kanalning "ochish" havolasi xom .m3u8 bo'lardi — foydasiz, shuning uchun ko'rsatmaymiz.
         const openLink = stream.isTv ? "" : `<a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a>`;
         return `<article class="fifa-efir-card fifa-efir-card--hls${stream.poster ? " fifa-efir-card--poster" : ""}" data-hls-src="${esc(stream.url)}">${head}<div class="fifa-efir-card__player"><video class="fifa-efir-card__video" playsinline controls preload="none"${stream.poster ? ` poster="${esc(stream.poster)}"` : ""}></video></div>${openLink}</article>`;
       }
       const isEmbed = isYoutube || /(?:video_ext\.php|app\/embed)/i.test(stream.url);
       if (!isEmbed) {
-        return `<a class="fifa-vk-live-card" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><div class="fifa-vk-live-card__body"><span class="fifa-streams-promo-kicker">JONLI EFIR</span><h3>${esc(title)}</h3><span class="fifa-vk-live-card__hint">Translyatsiyani ochish <b>↗</b></span></div>${livePill}</a>`;
+        return `<a class="fifa-vk-live-card" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><div class="fifa-vk-live-card__body"><h3>${esc(title)}</h3><span class="fifa-vk-live-card__hint">Translyatsiyani ochish <b>↗</b></span></div>${livePill}</a>`;
       }
       const isVkLive = /live\.vkvideo\.ru\/app\/embed/i.test(stream.url);
       const provider = isYoutube ? "YouTube" : (isVkLive ? "VK Video Live" : "VK Video");
-      const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><span class="fifa-streams-promo-kicker">${provider}</span><h3>${esc(title)}</h3></div>${livePill}</div>`;
+      // Kartaning tepasida faqat o'yin nomi va LIVE — manba (VK Video, YouTube, TV kanal) yozilmaydi.
+      const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><h3>${esc(title)}</h3></div>${livePill}</div>`;
       if (isVkLive && isPhone) {
         return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><a class="fifa-efir-card__cover" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><span class="fifa-efir-card__play" aria-hidden="true"></span><span class="fifa-efir-card__cover-text">Efirni ko‘rish</span><small>VK Video Live’da ochiladi</small></a></div></article>`;
       }

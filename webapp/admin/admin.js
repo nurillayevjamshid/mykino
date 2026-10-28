@@ -6005,7 +6005,7 @@ function renderFifaTvActive() {
       <div class="fifa-tv-card-editor__preview-wrap">
         <span class="fifa-tv-card-editor__preview-label">Mini ilovada shunday ko'rinadi</span>
         <article class="fifa-tv-card-preview" aria-label="Mini ilovadagi efir kartasi ko'rinishi">
-          <div class="fifa-tv-card-preview__head"><div><span class="fifa-tv-card-preview__kicker">TV kanal</span><h4 id="fifaTvCardPreviewTitle"></h4></div><span class="fifa-tv-card-preview__live"><i></i> LIVE</span></div>
+          <div class="fifa-tv-card-preview__head"><div><h4 id="fifaTvCardPreviewTitle"></h4></div><span class="fifa-tv-card-preview__live"><i></i> LIVE</span></div>
           <div class="fifa-tv-card-preview__player" id="fifaTvCardPreviewPlayer"><span class="fifa-tv-card-preview__play" aria-hidden="true"></span><span class="fifa-tv-card-preview__error" id="fifaTvCardPreviewError" hidden>Rasm ochilmadi — linkni tekshiring</span></div>
         </article>
       </div>

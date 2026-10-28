@@ -1470,8 +1470,7 @@ input[type="checkbox"], input[type="radio"] {
 .fifa-tv-card-preview { overflow: hidden; border: 1px solid rgba(255, 255, 255, .08); border-radius: 20px; background: #141924; box-shadow: 0 10px 28px rgba(0, 0, 0, .28); color: #ffffff; }
 .fifa-tv-card-preview__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 12px; }
 .fifa-tv-card-preview__head > div { min-width: 0; }
-.fifa-tv-card-preview__kicker { display: inline-block; color: #ff5c7c; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.fifa-tv-card-preview__head h4 { margin: 4px 0 0; overflow: hidden; color: inherit; font-size: 16px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.fifa-tv-card-preview__head h4 { margin: 0; overflow: hidden; color: inherit; font-size: 16px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .fifa-tv-card-preview__live { display: inline-flex; flex: none; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(255, 92, 124, .18); color: #ff5c7c; font-size: 11px; font-weight: 800; letter-spacing: .06em; line-height: 1; }
 .fifa-tv-card-preview__live i { width: 6px; height: 6px; border-radius: 50%; background: #ff5c7c; }
 .fifa-tv-card-preview__player { position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; background: #000000 center / contain no-repeat; }
