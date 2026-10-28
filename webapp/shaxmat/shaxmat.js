@@ -321,13 +321,22 @@
     document.querySelectorAll(".game-card").forEach((el) => el.classList.toggle("is-active", el.dataset.game === game));
   }
 
+  // Shashkada vaqt nazorati yo'q — soat faqat shaxmatda.
+  function gameOptions(game) {
+    return game === "checkers" ? Object.assign({}, setupOptions, { timeControl: "none" }) : setupOptions;
+  }
+
   function openSetup(mode) {
     setupMode = mode;
+    const timed = selectedGame === "chess";
+    // Shashkada bir telefonda o'ynash uchun sozlanadigan narsa qolmaydi.
+    if (!timed && mode === "local") return startLocal(selectedGame, mode, gameOptions(selectedGame));
     const title = ADAPTERS[selectedGame].title;
     $("setupTitle").textContent = `${title}: ${mode === "online" ? "do'st bilan online" : mode === "ai" ? "kompyuterga qarshi" : "bir telefonda"}`;
     $("levelField").hidden = mode !== "ai";
     $("colorField").hidden = mode === "local";
-    renderTimePicker();
+    $("timeField").hidden = !timed;
+    if (timed) renderTimePicker();
     $("setupStart").textContent = mode === "online" ? "O'yin yaratish" : "Boshlash";
     openSheet("setupSheet");
   }
@@ -894,9 +903,9 @@
     if (waiting) $("inviteCode").textContent = s.room.toUpperCase();
     const offer = s.mode === "online" && !s.result && s.drawOffer && s.myColor && s.drawOffer !== s.myColor;
     $("drawOffer").hidden = !offer;
-    const tc = timeControlLabel(s.timeControl);
-    const sub = s.mode === "online" ? (s.myColor ? `Online · ${tc}` : "Tomosha")
-      : s.mode === "ai" ? `Kompyuter · ${LEVEL_NAMES[s.level]} · ${tc}` : `Bir telefonda · ${tc}`;
+    const tc = parseTimeControl(s.timeControl) ? ` · ${timeControlLabel(s.timeControl)}` : "";
+    const sub = s.mode === "online" ? (s.myColor ? `Online${tc}` : "Tomosha")
+      : s.mode === "ai" ? `Kompyuter · ${LEVEL_NAMES[s.level]}${tc}` : `Bir telefonda${tc}`;
     $("gameSubtitle").textContent = sub;
   }
 
@@ -1592,9 +1601,9 @@
       });
     });
     $("setupStart").addEventListener("click", () => {
-      if (setupMode === "online") return createOnline(selectedGame, setupOptions);
+      if (setupMode === "online") return createOnline(selectedGame, gameOptions(selectedGame));
       closeSheet("setupSheet");
-      startLocal(selectedGame, setupMode, setupOptions);
+      startLocal(selectedGame, setupMode, gameOptions(selectedGame));
     });
     document.querySelectorAll("[data-close-sheet]").forEach((el) => el.addEventListener("click", () => closeSheet(el.closest(".sheet").id)));
     $("homeBack").addEventListener("click", goBack);
