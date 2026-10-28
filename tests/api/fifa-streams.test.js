@@ -188,6 +188,9 @@ describe("FIFA live stream buttons", () => {
     // VK efiri ilova ichida qoladi: VK'ga olib chiqadigan havola yo'q, pleyer tugmalari sandbox'da.
     assert.match(fifa, /sandbox="allow-scripts allow-same-origin allow-presentation"/);
     assert.match(fifa, /const openLink = isYoutube \?/);
+    // Taklif xabarida admin bergan o'yin nomi bo'ladi; standart sarlavhalar qo'shilmaydi.
+    assert.match(fifa, /const matchTitle = getFifaInviteMatchTitle\(\)/);
+    assert.match(fifa, /"ntv futbol stream"/);
     assert.match(fifa, /streamsSignature/);
     // Telefonda VK Live embed yuklanmaydi — iframe o'rniga ochish cover'i.
     assert.match(fifa, /isVkLive && isPhone/);

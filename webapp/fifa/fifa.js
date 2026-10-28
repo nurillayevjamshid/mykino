@@ -1606,10 +1606,20 @@
   }
   // Jonli efirga taklif havolasi: startapp=fifa bosilganda mini app to'g'ridan-to'g'ri
   // futbol bo'limida ochiladi (kino.js'dagi tryHandleFifaDeepLink).
+  // Standart (admin yozmagan) sarlavhalar taklif xabariga qo'shilmaydi — ular o'yin nomini bildirmaydi.
+  const FIFA_GENERIC_STREAM_TITLES = new Set(["ntv futbol stream", "futbol jonli efiri", "vk video jonli efir", "youtube jonli efir", "varzish tv / hls live"]);
+  function getFifaInviteMatchTitle() {
+    const title = String((fifaStreamsCache || []).find((stream) => stream && stream.url)?.title || "").trim();
+    return title && !FIFA_GENERIC_STREAM_TITLES.has(title.toLowerCase()) ? title : "";
+  }
   function buildFifaInviteUrl() {
     const botUsername = String(window.MYKINO_BOT_USERNAME || "myntv_bot").replace(/^@/, "");
     const inviteLink = `https://t.me/${botUsername}?startapp=fifa`;
-    return `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(`⚽ ${F("shareLiveText")}`)}`;
+    // Admin efirga bergan nom (masalan «Manchester City vs Brighton») xabarda alohida qatorda turadi,
+    // shunda do'st qaysi o'yin translyatsiyasiga chaqirilayotganini darhol ko'radi.
+    const matchTitle = getFifaInviteMatchTitle();
+    const text = matchTitle ? `⚽ ${matchTitle}\n${F("shareLiveText")}` : `⚽ ${F("shareLiveText")}`;
+    return `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(text)}`;
   }
   // Telegram ichida tashqi havolani Telegram'ning o'z brauzerida ochamiz.
   document.getElementById("fifaStreamsPromoWrap")?.addEventListener("click", (event) => {
