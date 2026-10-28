@@ -185,6 +185,9 @@ describe("FIFA live stream buttons", () => {
     assert.match(fifa, /class="fifa-efir-card"/);
     assert.match(fifa, /class="fifa-efir-card__frame"/);
     assert.match(fifa, /’da ochish/);
+    // VK efiri ilova ichida qoladi: VK'ga olib chiqadigan havola yo'q, pleyer tugmalari sandbox'da.
+    assert.match(fifa, /sandbox="allow-scripts allow-same-origin allow-presentation"/);
+    assert.match(fifa, /const openLink = isYoutube \?/);
     assert.match(fifa, /streamsSignature/);
     // Telefonda VK Live embed yuklanmaydi — iframe o'rniga ochish cover'i.
     assert.match(fifa, /isVkLive && isPhone/);

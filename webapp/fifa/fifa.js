@@ -1565,7 +1565,11 @@
       if (isVkLive && isPhone) {
         return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><a class="fifa-efir-card__cover" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><span class="fifa-efir-card__play" aria-hidden="true"></span><span class="fifa-efir-card__cover-text">Efirni ko‘rish</span><small>VK Video Live’da ochiladi</small></a></div></article>`;
       }
-      return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div><a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a></article>`;
+      // VK efiri mini ilova ichida qoladi: pastdagi «VK Video'da ochish» havolasi yo'q, iframe esa
+      // sandbox'da — pleyer ichidagi tugmalar (Apple belgisi, VK logosi) VK'ga olib chiqa olmaydi.
+      const sandbox = isYoutube ? "" : ` sandbox="allow-scripts allow-same-origin allow-presentation"`;
+      const openLink = isYoutube ? `<a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a>` : "";
+      return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"${sandbox}></iframe></div>${openLink}</article>`;
     }).join("") + `<div class="fifa-react" data-fifa-react></div><a class="fifa-efir-invite" href="${esc(buildFifaInviteUrl())}" data-fifa-invite><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8a3 3 0 1 0-2.9-3.7L8.9 6.1a3 3 0 1 0 0 5.8l3.2 1.8a3 3 0 1 0 1-1.7L9.9 10.2a3 3 0 0 0 0-1.4l3.2-1.8A3 3 0 0 0 15 8Z"/></svg><span>${esc(F("shareLive"))}</span></a>`;
     paintFifaViewers();
     // Efir ostidagi emoji reaksiyalar (fifa-fun.js).
