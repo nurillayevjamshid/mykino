@@ -12,8 +12,8 @@ jobs:
     steps:
       - name: Send reminders and settle predictions
         env:
-          BOT_TOKEN: ${{ secrets.8980482884:AAHxzAZd2AD-9_cb_hUGVxc1USlfrD4hUzg }}
-          ADMIN_PASSWORD: ${{ secrets.jamnr }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
           curl -fsS --max-time 60 \
             -H "X-API-Key: ${BOT_TOKEN}" \
