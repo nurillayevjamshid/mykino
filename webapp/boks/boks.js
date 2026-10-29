@@ -10,7 +10,10 @@
      /api/boks               -> efir, terma jamoa, janglar videolari (admin panelda boshqariladi;
                                 videolar YouTube kanaldan, shorts va qisqa kliplarsiz; pin qilinganlar boshida)
      /api/boks?resource=news -> @boxinguzbekistan Telegram kanalidagi xabarlar
-     /static/boks/boks.json  -> hamkor ma'lumoti, raqamlar va turnirlar taqvimi
+     /static/boks/boks.json  -> hamkor ma'lumoti va hero kartadagi raqamlar
+
+   Uzun ro'yxatlar (janglar, yangiliklar) pastga cheksiz davom etadi: oxiriga yetganda
+   keyingi qism serverdan olinib, mavjud kartalar qayta chizilmasdan oxiriga qo'shiladi.
    ========================================================================== */
 (function initBoksModule() {
   "use strict";
@@ -21,23 +24,16 @@
   var DATA_URL = "/static/boks/boks.json";
   var API_URL = "/api/boks";
   var MONTHS = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"];
-  var HOME_FIGHTS = 4;
 
   var TABS = [
     { key: "live", label: "Efir" },
     { key: "fights", label: "Janglar" },
     { key: "news", label: "Yangiliklar" },
-    { key: "events", label: "Turnirlar" },
     { key: "team", label: "Terma jamoa" }
   ];
 
-  var ICON_GLOVE =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M8 15.5V19a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-3.5"></path>' +
-    '<path d="M8 15.5h9"></path>' +
-    '<path d="M17 15.5c1.8-.9 3-2.8 3-5V8a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v1"></path>' +
-    '<path d="M8 15.5c-1.8-.6-3-2.2-3-4.2A2.3 2.3 0 0 1 7.3 9H10a2 2 0 0 1 0 4H8"></path>' +
-    "</svg>";
+  // Bir juft boks qo'lqoplari (to'ldirilgan) — sidebar, splash va admin bilan bir xil
+  var ICON_GLOVE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g transform="rotate(-12 7 11)"><rect x="2.5" y="2" width="7.9" height="12.3" rx="3.6"></rect><ellipse cx="10.4" cy="9.6" rx="1.6" ry="2.4"></ellipse><rect x="3.2" y="15.1" width="6.4" height="4.6" rx="1.1"></rect></g><g transform="translate(0.6 1.6)"><rect x="13.6" y="2" width="7.9" height="12.3" rx="3.6"></rect><ellipse cx="13.6" cy="9.6" rx="1.6" ry="2.4"></ellipse><rect x="14.4" y="15.1" width="6.4" height="4.6" rx="1.1"></rect></g></svg>';
   var ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7V5Z"/></svg>';
   var ICON_PIN = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .7 1.7L15 6.4v4.1l2.6 2.6A1 1 0 0 1 17 15h-4v5.5a1 1 0 0 1-2 0V15H7a1 1 0 0 1-.7-1.7L9 10.5V6.4L7.3 4.7A1 1 0 0 1 8 3h8Z"/></svg>';
   var ICON_SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>';
@@ -45,6 +41,10 @@
   var ICON_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
   var ICON_MEDAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="15" r="6"></circle><path d="M8.5 10 6 3h4l2 4 2-4h4l-2.5 7"></path></svg>';
   var ICON_TG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.3 13.1l-4.8-1.5c-1-.3-1.1-1 .2-1.5L20.5 2.9c.9-.3 1.6.2 1.4 1.4Z"/></svg>';
+
+  function newList() {
+    return { items: [], total: 0, nextOffset: null, loading: false, failed: false, seq: 0 };
+  }
 
   var state = {
     tab: "live",
@@ -54,7 +54,8 @@
     loading: false,
     playingId: null,
     query: "",
-    list: { items: [], total: 0, nextOffset: null, loading: false, failed: false },
+    // all — qidiruvsiz ro'yxat (Efir va Janglar), search — qidiruv natijalari
+    lists: { all: newList(), search: newList() },
     news: { posts: [], nextBefore: null, loaded: false, loading: false, failed: false }
   };
 
@@ -101,19 +102,6 @@
     return ytId ? "https://i.ytimg.com/vi/" + encodeURIComponent(ytId) + "/hqdefault.jpg" : "";
   }
 
-  // "2026-11-04" -> Date (mahalliy vaqt, UTC siljishisiz)
-  function parseDay(value) {
-    var m = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!m) return null;
-    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  }
-
-  function formatDay(value) {
-    var d = parseDay(value);
-    if (!d) return String(value || "");
-    return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear();
-  }
-
   function formatDuration(sec) {
     sec = Math.max(0, Math.round(Number(sec) || 0));
     var h = Math.floor(sec / 3600);
@@ -144,17 +132,6 @@
     return d.getDate() + " " + MONTHS[d.getMonth()] + (sameYear ? "" : " " + d.getFullYear()) + ", " + pad(d.getHours()) + ":" + pad(d.getMinutes());
   }
 
-  function eventStatus(ev) {
-    var from = parseDay(ev.dateFrom || ev.date);
-    var to = parseDay(ev.dateTo) || from;
-    if (!from) return "soon";
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (today < from) return "soon";
-    if (today > to) return "done";
-    return "live";
-  }
-
   function initials(name) {
     return String(name || "")
       .split(/\s+/)
@@ -164,7 +141,7 @@
       .join("");
   }
 
-  // Qidiruv uchun: kichik harf, o'/g' tutuqlarining hamma ko'rinishi bitta belgiga.
+  // Tezkor filtr tugmasi faolligini solishtirish uchun: kichik harf, tutuqlar bir xil.
   function normalizeText(value) {
     return String(value || "")
       .toLowerCase()
@@ -297,7 +274,7 @@
       frame =
         '<button class="boks-stream__preview" type="button" data-boks-play="' + esc(s.id) + '"' +
         ' data-boks-title="' + esc(s.title || "Jonli efir") + '" aria-label="Efirni tomosha qilish">' +
-        '<img src="' + thumbUrl(s.id) + '" alt="" loading="lazy">' +
+        '<img src="' + thumbUrl(s.id) + '" alt="" loading="lazy" decoding="async">' +
         '<span class="boks-stream__play">' + ICON_PLAY + "</span>" +
         "</button>" +
         (s.isLive ? '<span class="boks-stream__badge"><span class="boks-live-pill__dot"></span>LIVE</span>' : "");
@@ -311,20 +288,17 @@
     return '<div class="boks-stream"><div class="boks-stream__frame">' + frame + "</div>" + meta + "</div>";
   }
 
+  // Efir tabi: efir kartasi, ostida "Boks janglari" — pastga cheksiz davom etadi.
   function renderLive() {
-    var html = renderStreamCard();
-    var pinned = pinnedFights();
-    var latest = state.list.items;
-    var pick = (pinned.length ? pinned : latest).slice(0, HOME_FIGHTS);
-    var total = pinned.length + state.list.total;
-    html +=
-      '<div class="boks-section-head">' +
-      '<h3 class="boks-section-title">' + (pinned.length ? "Tanlangan janglar" : "So'nggi janglar") + "</h3>" +
-      (total ? '<button class="boks-link" type="button" data-boks-tab="fights">Barchasi (' + formatCount(total) + ")</button>" : "") +
-      "</div>";
-    if (!state.api && !state.apiFailed) return html + loader();
-    if (!pick.length) return html + empty("Janglar tez orada", "Terma jamoa janglarining videolari shu yerda paydo bo'ladi.");
-    return html + '<div class="boks-fights boks-fights--rail">' + pick.map(featuredCard).join("") + "</div>";
+    var all = state.lists.all;
+    var total = pinnedFights().length + all.total;
+    return (
+      renderStreamCard() +
+      '<h3 class="boks-section-title">Boks janglari' +
+      (total ? ' <span class="boks-section-title__count">' + formatCount(total) + "</span>" : "") +
+      "</h3>" +
+      renderAllFights()
+    );
   }
 
   /* ---------------------------------------------------------------
@@ -350,7 +324,7 @@
     return (
       '<button class="boks-fight boks-fight--featured" type="button" data-boks-play="' + esc(v.videoId) + '" data-boks-title="' + esc(v.title) + '">' +
       '<span class="boks-fight__thumb">' +
-      '<img src="' + esc(v.thumb || thumbUrl(v.videoId)) + '" alt="" loading="lazy">' +
+      '<img src="' + esc(v.thumb || thumbUrl(v.videoId)) + '" alt="" loading="lazy" decoding="async">' +
       (v.pinned ? '<span class="boks-fight__pin">' + ICON_PIN + "Tanlangan</span>" : "") +
       (v.durationSec ? '<span class="boks-fight__dur">' + formatDuration(v.durationSec) + "</span>" : "") +
       '<span class="boks-fight__play">' + ICON_PLAY + "</span>" +
@@ -367,7 +341,7 @@
     return (
       '<button class="boks-fight boks-fight--row" type="button" data-boks-play="' + esc(v.videoId) + '" data-boks-title="' + esc(v.title) + '">' +
       '<span class="boks-fight__thumb">' +
-      '<img src="' + esc(v.thumb || thumbUrl(v.videoId)) + '" alt="" loading="lazy">' +
+      '<img src="' + esc(v.thumb || thumbUrl(v.videoId)) + '" alt="" loading="lazy" decoding="async">' +
       (v.pinned ? '<span class="boks-fight__pin boks-fight__pin--dot" aria-label="Tanlangan">' + ICON_PIN + "</span>" : "") +
       (v.durationSec ? '<span class="boks-fight__dur">' + formatDuration(v.durationSec) + "</span>" : "") +
       "</span>" +
@@ -376,6 +350,33 @@
       '<span class="boks-fight__meta">' + esc(metaLine(v)) + "</span>" +
       "</span>" +
       "</button>"
+    );
+  }
+
+  // Ro'yxat oxiridagi "sentinel": ko'rinishga kirganda keyingi qism yuklanadi.
+  function sentinel(key, hasMore, failed) {
+    if (!hasMore) return '<div class="boks-sentinel" data-boks-sentinel="' + key + '" hidden></div>';
+    return (
+      '<div class="boks-sentinel" data-boks-sentinel="' + key + '">' +
+      (failed ? '<button class="boks-more" type="button" data-boks-retry="' + key + '">Qayta urinish</button>' : loader()) +
+      "</div>"
+    );
+  }
+
+  // Pin qilinganlar (katta kartalar) + barcha janglar (qatorlar) — qidiruvsiz ro'yxat.
+  function renderAllFights() {
+    var l = state.lists.all;
+    if (!state.api && !state.apiFailed) return loader();
+    var pinned = pinnedFights();
+    if (!pinned.length && !l.items.length) {
+      return state.apiFailed || (state.api && state.api.videosError)
+        ? empty("Videolar yuklanmadi", "Internetni tekshirib, birozdan so'ng qayta urinib ko'ring.")
+        : empty("Janglar tez orada", "Terma jamoa janglarining videolari shu yerda paydo bo'ladi.");
+    }
+    return (
+      (pinned.length ? '<div class="boks-fights boks-fights--pinned">' + pinned.map(featuredCard).join("") + "</div>" : "") +
+      '<div class="boks-fights" data-boks-rows="all">' + l.items.map(rowCard).join("") + "</div>" +
+      sentinel("all", l.nextOffset != null, l.failed)
     );
   }
 
@@ -397,42 +398,16 @@
   }
 
   function renderFightResults() {
-    var l = state.list;
-    if ((!state.api && !state.apiFailed) || (l.loading && !l.items.length)) return loader();
-    if (state.query) {
-      if (l.failed && !l.items.length) return empty("Qidiruv ishlamadi", "Internetni tekshirib, qayta urinib ko'ring.");
-      if (!l.items.length) return empty("Hech narsa topilmadi", "Boshqa so'z bilan qidiring — masalan, bokschining familiyasi (lotincha: Jalolov).");
-      return (
-        '<p class="boks-count">' + formatCount(l.total) + " ta jang topildi</p>" +
-        '<div class="boks-fights">' + l.items.map(rowCard).join("") + "</div>" + moreButton()
-      );
-    }
-
-    var pinned = pinnedFights();
-    if (!pinned.length && !l.items.length) {
-      return state.apiFailed || (state.api && state.api.videosError)
-        ? empty("Videolar yuklanmadi", "Internetni tekshirib, birozdan so'ng qayta urinib ko'ring.")
-        : empty("Janglar tez orada", "Terma jamoa janglarining videolari shu yerda paydo bo'ladi.");
-    }
-    var html = "";
-    if (pinned.length) {
-      html +=
-        '<h3 class="boks-section-title boks-section-title--pin"><span class="boks-pin-dot">' + ICON_PIN + "</span>Tanlangan janglar</h3>" +
-        '<div class="boks-fights">' + pinned.map(featuredCard).join("") + "</div>";
-    }
-    if (l.items.length) {
-      html +=
-        '<h3 class="boks-section-title">Barcha janglar <span class="boks-section-title__count">' + formatCount(l.total) + "</span></h3>" +
-        '<div class="boks-fights">' + l.items.map(rowCard).join("") + "</div>" + moreButton();
-    }
-    return html;
-  }
-
-  function moreButton() {
-    var l = state.list;
-    if (l.nextOffset == null) return "";
-    return '<button class="boks-more" type="button" data-boks-more' + (l.loading ? " disabled" : "") + ">" +
-      (l.loading ? "Yuklanmoqda…" : "Yana ko'rsatish") + "</button>";
+    if (!state.query) return renderAllFights();
+    var l = state.lists.search;
+    if (l.loading && !l.items.length) return loader();
+    if (l.failed && !l.items.length) return empty("Qidiruv ishlamadi", "Internetni tekshirib, qayta urinib ko'ring.");
+    if (!l.items.length) return empty("Hech narsa topilmadi", "Boshqa so'z bilan qidiring — masalan, bokschining familiyasi (lotincha: Jalolov).");
+    return (
+      '<p class="boks-count">' + formatCount(l.total) + " ta jang topildi</p>" +
+      '<div class="boks-fights" data-boks-rows="search">' + l.items.map(rowCard).join("") + "</div>" +
+      sentinel("search", l.nextOffset != null, l.failed)
+    );
   }
 
   function refreshFightResults() {
@@ -443,39 +418,69 @@
     boksView.querySelectorAll("[data-boks-quick]").forEach(function (b) {
       b.classList.toggle("is-active", normalizeText(state.query) === normalizeText(b.dataset.boksQuick));
     });
+    observeSentinels();
   }
 
-  // Ro'yxatni serverdan olish: yangi qidiruv (append=false) yoki keyingi sahifa (append=true).
-  // Kech kelgan eski javob yangi qidiruv natijasini bosib ketmasligi uchun seq tekshiriladi.
-  var listSeq = 0;
-  function loadFightList(append) {
-    var l = state.list;
-    var seq = ++listSeq;
-    var offset = append ? l.nextOffset || 0 : 0;
+  // Ro'yxatni serverdan olish. append=false — yangi qidiruv; append=true — keyingi qism
+  // (mavjud kartalar qayta chizilmaydi, faqat oxiriga qo'shiladi).
+  // Kech kelgan eski javob yangi natijani bosib ketmasligi uchun seq tekshiriladi.
+  function loadFightList(key, append) {
+    var l = state.lists[key];
+    if (append && (l.loading || l.nextOffset == null)) return;
+    var seq = ++l.seq;
+    var offset = append ? l.nextOffset : 0;
     l.loading = true;
     l.failed = false;
-    if (!append) { l.items = []; l.total = 0; l.nextOffset = null; }
-    refreshFightResults();
-    var url = API_URL + "?resource=fights&offset=" + offset + (state.query ? "&q=" + encodeURIComponent(state.query.trim()) : "");
+    if (!append) {
+      l.items = [];
+      l.total = 0;
+      l.nextOffset = null;
+      refreshFightResults();
+    }
+    var q = key === "search" ? state.query.trim() : "";
+    var url = API_URL + "?resource=fights&offset=" + offset + (q ? "&q=" + encodeURIComponent(q) : "");
     fetch(url, { headers: { Accept: "application/json" } })
       .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
       .then(function (json) {
-        if (seq !== listSeq) return;
-        l.items = (append ? l.items : []).concat(list(json && json.videos));
+        if (seq !== l.seq) return;
+        var incoming = list(json && json.videos);
+        l.items = l.items.concat(incoming);
         l.total = Number(json && json.total) || 0;
         l.nextOffset = json && json.nextOffset != null ? json.nextOffset : null;
-      })
-      .catch(function () { if (seq === listSeq) l.failed = true; })
-      .then(function () {
-        if (seq !== listSeq) return;
         l.loading = false;
-        if (state.tab === "fights") refreshFightResults();
+        if (append) appendRows(key, incoming);
+        else if (state.tab === "fights") refreshFightResults();
+      })
+      .catch(function () {
+        if (seq !== l.seq) return;
+        l.loading = false;
+        l.failed = true;
+        if (append) updateSentinel(key, true, true);
+        else if (state.tab === "fights") refreshFightResults();
       });
+  }
+
+  function appendRows(key, items) {
+    var rows = boksView.querySelector('[data-boks-rows="' + key + '"]');
+    if (rows && items.length) rows.insertAdjacentHTML("beforeend", items.map(rowCard).join(""));
+    var l = state.lists[key];
+    updateSentinel(key, l.nextOffset != null, false);
+  }
+
+  function updateSentinel(key, hasMore, failed) {
+    var el = boksView.querySelector('[data-boks-sentinel="' + key + '"]');
+    if (!el) return;
+    el.outerHTML = sentinel(key, hasMore, failed);
+    observeSentinels();
   }
 
   function setQuery(value) {
     state.query = String(value || "");
-    loadFightList(false);
+    if (state.query.trim()) loadFightList("search", false);
+    else {
+      state.lists.search.seq++;
+      refreshFightResults();
+    }
   }
 
   /* ---------------------------------------------------------------
@@ -486,7 +491,7 @@
     if (photos.length) {
       return (
         '<div class="boks-post__media">' +
-        '<img src="' + esc(photos[0]) + '" alt="" loading="lazy">' +
+        '<img src="' + esc(photos[0]) + '" alt="" loading="lazy" decoding="async">' +
         (photos.length > 1 ? '<span class="boks-post__album">+' + (photos.length - 1) + " rasm</span>" : "") +
         "</div>"
       );
@@ -494,7 +499,7 @@
     if (post.videoUrl) {
       return (
         '<div class="boks-post__media">' +
-        (post.videoThumb ? '<img src="' + esc(post.videoThumb) + '" alt="" loading="lazy">' : '<span class="boks-post__media-fill"></span>') +
+        (post.videoThumb ? '<img src="' + esc(post.videoThumb) + '" alt="" loading="lazy" decoding="async">' : '<span class="boks-post__media-fill"></span>') +
         '<span class="boks-post__play">' + ICON_PLAY + "</span>" +
         (post.videoDuration ? '<span class="boks-fight__dur">' + esc(post.videoDuration) + "</span>" : "") +
         "</div>"
@@ -513,68 +518,78 @@
     );
   }
 
+  function postCard(post) {
+    return (
+      '<article class="boks-post" data-boks-post="' + post.id + '">' +
+      newsMeta(post) +
+      newsMedia(post) +
+      '<h4 class="boks-post__title">' + esc(post.title) + "</h4>" +
+      (post.lead && post.lead !== post.title ? '<p class="boks-post__lead">' + esc(post.lead) + "</p>" : "") +
+      '<span class="boks-post__more">Batafsil o\'qish</span>' +
+      "</article>"
+    );
+  }
+
   function renderNews() {
     var news = state.news;
     if (!news.loaded) {
-      if (!news.loading) loadNews();
+      if (!news.loading) loadNews(false);
       return loader();
     }
     if (!news.posts.length) {
       return news.failed
         ? empty("Yangiliklar yuklanmadi", "Birozdan so'ng qayta urinib ko'ring.") +
-          '<button class="boks-more" type="button" data-boks-news-retry>Qayta urinish</button>'
+          '<button class="boks-more" type="button" data-boks-retry="news">Qayta urinish</button>'
         : empty("Yangiliklar tez orada", "Federatsiyaning rasmiy yangiliklari shu yerda e'lon qilinadi.");
     }
-    var cards = news.posts.map(function (post) {
-      return (
-        '<article class="boks-post" data-boks-post="' + post.id + '" tabindex="0">' +
-        newsMeta(post) +
-        newsMedia(post) +
-        '<h4 class="boks-post__title">' + esc(post.title) + "</h4>" +
-        (post.lead && post.lead !== post.title ? '<p class="boks-post__lead">' + esc(post.lead) + "</p>" : "") +
-        '<span class="boks-post__more">Batafsil o\'qish</span>' +
-        "</article>"
-      );
-    }).join("");
-    var more = news.nextBefore
-      ? '<button class="boks-more" type="button" data-boks-news-more' + (news.loading ? " disabled" : "") + ">" +
-        (news.loading ? "Yuklanmoqda…" : "Oldingi yangiliklar") + "</button>"
-      : "";
     return (
       '<button class="boks-channel" type="button" data-boks-link="https://t.me/boxinguzbekistan">' +
       '<span class="boks-channel__icon">' + ICON_TG + "</span>" +
       '<span class="boks-channel__text"><b>@boxinguzbekistan</b><small>Telegram kanal</small></span>' +
       '<span class="boks-channel__cta">Obuna</span>' +
       "</button>" +
-      '<div class="boks-posts">' + cards + "</div>" + more
+      '<div class="boks-posts" data-boks-rows="news">' + news.posts.map(postCard).join("") + "</div>" +
+      sentinel("news", Boolean(news.nextBefore), news.failed)
     );
   }
 
   function loadNews(append) {
     var news = state.news;
-    if (news.loading) return;
+    if (news.loading || (append && !news.nextBefore)) return;
     news.loading = true;
-    var url = API_URL + "?resource=news" + (append && news.nextBefore ? "&before=" + news.nextBefore : "");
+    news.failed = false;
+    var url = API_URL + "?resource=news" + (append ? "&before=" + news.nextBefore : "");
     fetch(url, { headers: { Accept: "application/json" } })
       .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
       .then(function (json) {
-        var incoming = list(json && json.posts);
-        var seen = {};
-        news.posts = (append ? news.posts.concat(incoming) : incoming).filter(function (p) {
-          if (seen[p.id]) return false;
-          seen[p.id] = true;
+        var known = {};
+        news.posts.forEach(function (p) { known[p.id] = true; });
+        var incoming = list(json && json.posts).filter(function (p) {
+          if (known[p.id]) return false;
+          known[p.id] = true;
           return true;
         });
+        news.posts = append ? news.posts.concat(incoming) : incoming;
         news.nextBefore = json && json.nextBefore;
-        news.failed = false;
-      })
-      .catch(function () { news.failed = true; })
-      .then(function () {
         news.loading = false;
         news.loaded = true;
-        if (!boksView.hidden && state.tab === "news") renderPanel();
+        if (state.tab !== "news" || boksView.hidden) return;
+        var rows = boksView.querySelector('[data-boks-rows="news"]');
+        if (append && rows) {
+          if (incoming.length) rows.insertAdjacentHTML("beforeend", incoming.map(postCard).join(""));
+          updateSentinel("news", Boolean(news.nextBefore), false);
+        } else {
+          renderPanel();
+        }
+      })
+      .catch(function () {
+        news.loading = false;
+        news.failed = true;
+        news.loaded = true;
+        if (state.tab !== "news" || boksView.hidden) return;
+        if (append) updateSentinel("news", true, true);
+        else renderPanel();
       });
-    if (append && state.tab === "news") renderPanel();
   }
 
   /* --- To'liq xabar oynasi (bottom sheet) --- */
@@ -599,7 +614,7 @@
     var media = "";
     if (photos.length) {
       media = '<div class="boks-sheet__gallery' + (photos.length > 1 ? " is-multi" : "") + '">' +
-        photos.map(function (p) { return '<img src="' + esc(p) + '" alt="" loading="lazy">'; }).join("") + "</div>";
+        photos.map(function (p) { return '<img src="' + esc(p) + '" alt="" loading="lazy" decoding="async">'; }).join("") + "</div>";
     } else if (post.videoUrl) {
       media = '<video class="boks-sheet__video" src="' + esc(post.videoUrl) + '"' +
         (post.videoThumb ? ' poster="' + esc(post.videoThumb) + '"' : "") + " controls playsinline></video>";
@@ -631,46 +646,6 @@
   }
 
   /* ---------------------------------------------------------------
-     Turnirlar
-     --------------------------------------------------------------- */
-  function renderEvents() {
-    // Avval davom etayotgan/kutilayotganlar (yaqinidan), so'ng yakunlanganlar (yangisidan)
-    var items = list((state.base || {}).events).slice().sort(function (a, b) {
-      var aDone = eventStatus(a) === "done";
-      var bDone = eventStatus(b) === "done";
-      if (aDone !== bDone) return aDone ? 1 : -1;
-      var cmp = String(a.dateFrom || a.date || "").localeCompare(String(b.dateFrom || b.date || ""));
-      return aDone ? -cmp : cmp;
-    });
-    if (!items.length) {
-      return empty("Turnirlar taqvimi tez orada", "Terma jamoa ishtirok etadigan musobaqalar shu yerda ko'rinadi.");
-    }
-    var LABELS = { live: "Davom etmoqda", soon: "Kutilmoqda", done: "Yakunlangan" };
-    return '<div class="boks-events">' + items.map(function (ev) {
-      var from = parseDay(ev.dateFrom || ev.date);
-      var status = eventStatus(ev);
-      var range = ev.dateTo && ev.dateTo !== ev.dateFrom
-        ? formatDay(ev.dateFrom || ev.date) + " — " + formatDay(ev.dateTo)
-        : formatDay(ev.dateFrom || ev.date);
-      var url = safeUrl(ev.url);
-      return (
-        '<article class="boks-event boks-event--' + status + '">' +
-        '<div class="boks-event__date">' +
-        '<span class="boks-event__day">' + (from ? from.getDate() : "—") + "</span>" +
-        '<span class="boks-event__month">' + (from ? MONTHS[from.getMonth()] : "") + "</span>" +
-        "</div>" +
-        '<div class="boks-event__body">' +
-        '<h4 class="boks-event__name">' + esc(ev.name) + "</h4>" +
-        '<p class="boks-event__meta">' + esc([ev.city, range].filter(Boolean).join(" · ")) + "</p>" +
-        '<span class="boks-event__status">' + LABELS[status] + "</span>" +
-        "</div>" +
-        (url ? '<button class="boks-link boks-event__link" type="button" data-boks-link="' + esc(url) + '">Batafsil</button>' : "") +
-        "</article>"
-      );
-    }).join("") + "</div>";
-  }
-
-  /* ---------------------------------------------------------------
      Terma jamoa
      --------------------------------------------------------------- */
   function renderTeam() {
@@ -684,7 +659,7 @@
       return (
         '<article class="boks-boxer">' +
         '<div class="boks-boxer__photo">' +
-        (photo ? '<img src="' + esc(photo) + '" alt="' + esc(b.name) + '" loading="lazy">' : '<span class="boks-boxer__initials">' + esc(initials(b.name)) + "</span>") +
+        (photo ? '<img src="' + esc(photo) + '" alt="' + esc(b.name) + '" loading="lazy" decoding="async">' : '<span class="boks-boxer__initials">' + esc(initials(b.name)) + "</span>") +
         (b.weight ? '<span class="boks-boxer__weight">' + esc(b.weight) + "</span>" : "") +
         "</div>" +
         '<div class="boks-boxer__body">' +
@@ -713,10 +688,10 @@
     if (!panel) return;
     var html = state.tab === "fights" ? renderFights()
       : state.tab === "news" ? renderNews()
-      : state.tab === "events" ? renderEvents()
-      : state.tab === "team" ? renderTeam()
+      : state.tab === "team" ? renderTeam() + renderLinks()
       : renderLive();
-    panel.innerHTML = html + (state.tab === "live" ? renderLinks() : "");
+    panel.innerHTML = html;
+    observeSentinels();
   }
 
   function renderAll() {
@@ -738,6 +713,33 @@
       });
     }
     renderPanel();
+  }
+
+  /* ---------------------------------------------------------------
+     Cheksiz ro'yxat — sentinel ko'rinishga kirganda keyingi qism
+     --------------------------------------------------------------- */
+  var sentinelObserver = null;
+  function onSentinel(entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting || boksView.hidden) return;
+      var key = entry.target.dataset.boksSentinel;
+      if (key === "news") loadNews(true);
+      else if (state.lists[key] && !state.lists[key].failed) loadFightList(key, true);
+    });
+  }
+
+  function observeSentinels() {
+    if (typeof IntersectionObserver === "undefined") return;
+    if (!sentinelObserver) {
+      sentinelObserver = new IntersectionObserver(onSentinel, {
+        root: document.getElementById("appShell") || null,
+        rootMargin: "0px 0px 700px 0px"
+      });
+    }
+    sentinelObserver.disconnect();
+    boksView.querySelectorAll("[data-boks-sentinel]:not([hidden])").forEach(function (el) {
+      sentinelObserver.observe(el);
+    });
   }
 
   function play(ytId, title) {
@@ -773,17 +775,14 @@
       .then(function (json) {
         state.api = json && typeof json === "object" ? json : {};
         state.apiFailed = false;
-        // Qidiruvsiz birinchi sahifa asosiy javob bilan keladi
-        if (!state.query) {
-          listSeq++;
-          state.list = {
-            items: list(state.api.videos),
-            total: Number(state.api.total) || 0,
-            nextOffset: state.api.nextOffset != null ? state.api.nextOffset : null,
-            loading: false,
-            failed: false
-          };
-        }
+        // Qidiruvsiz birinchi qism asosiy javob bilan keladi
+        var all = state.lists.all;
+        all.seq++;
+        all.items = list(state.api.videos);
+        all.total = Number(state.api.total) || 0;
+        all.nextOffset = state.api.nextOffset != null ? state.api.nextOffset : null;
+        all.loading = false;
+        all.failed = false;
       })
       .catch(function () { if (!state.api) state.apiFailed = true; });
     Promise.all([baseReq, apiReq]).then(function () {
@@ -834,20 +833,23 @@
       setQuery(next);
       return;
     }
-    if (t.closest("[data-boks-more]")) { loadFightList(true); return; }
-    if (t.closest("[data-boks-news-more]")) { loadNews(true); return; }
-    if (t.closest("[data-boks-news-retry]")) {
-      state.news.loaded = false;
-      renderPanel();
+    var retry = t.closest("[data-boks-retry]");
+    if (retry) {
+      var key = retry.dataset.boksRetry;
+      if (key === "news") {
+        if (state.news.posts.length) loadNews(true);
+        else { state.news.loaded = false; renderPanel(); }
+      } else if (state.lists[key]) {
+        state.lists[key].failed = false;
+        loadFightList(key, true);
+        updateSentinel(key, true, false);
+      }
       return;
     }
     var post = t.closest("[data-boks-post]");
     if (post) openPost(post.dataset.boksPost);
   }
   boksView.addEventListener("click", onClick);
-  boksView.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && e.target.matches && e.target.matches("[data-boks-post]")) openPost(e.target.dataset.boksPost);
-  });
 
   /* ---------------------------------------------------------------
      Tashqi interfeys
@@ -870,6 +872,7 @@
     closeSheet();
     boksView.hidden = true;
     document.body.classList.remove("is-boks");
+    if (sentinelObserver) sentinelObserver.disconnect();
     try { window.tgBackUnregister?.("boks"); } catch (_) {}
     if (state.playingId) {
       state.playingId = null;

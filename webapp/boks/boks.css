@@ -219,12 +219,6 @@ body.is-boks .coming-soon-view { display: none !important; }
 
 .boks-panel { margin-top: 14px; }
 
-.boks-section-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
 .boks-section-title {
   display: flex;
   align-items: center;
@@ -255,17 +249,6 @@ body.is-boks .coming-soon-view { display: none !important; }
   background: var(--bx-red);
 }
 .boks-pin-dot svg { width: 13px; height: 13px; }
-
-.boks-link {
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--bx-accent);
-  cursor: pointer;
-}
 
 /* ---------- Efir ---------- */
 .boks-stream {
@@ -447,19 +430,7 @@ body.is-boks .coming-soon-view { display: none !important; }
 
 /* ---------- Janglar: kartalar ---------- */
 .boks-fights { display: grid; gap: 10px; }
-.boks-fights--rail {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 78%;
-  gap: 10px;
-  margin: 0 -16px;
-  padding: 0 16px 4px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
-.boks-fights--rail::-webkit-scrollbar { display: none; }
-.boks-fights--rail .boks-fight { scroll-snap-align: start; }
+.boks-fight { scroll-snap-align: start; }
 
 .boks-fight {
   display: flex;
@@ -584,6 +555,18 @@ body.is-boks .coming-soon-view { display: none !important; }
 }
 .boks-more:disabled { opacity: 0.6; cursor: default; }
 
+/* Cheksiz ro'yxat oxiri: ko'rinishga kirganda keyingi qism yuklanadi */
+.boks-sentinel { min-height: 8px; }
+.boks-sentinel[hidden] { display: none; }
+.boks-sentinel .boks-loading { padding: 18px 0 8px; }
+.boks-fights--pinned { margin-bottom: 10px; }
+
+/* Uzun ro'yxatlar: ekrandan tashqaridagi kartalar chizilmaydi (telefonda scroll silliq) */
+.boks-fight--row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 92px;
+}
+
 /* ---------- Yangiliklar ---------- */
 .boks-channel {
   display: flex;
@@ -624,17 +607,18 @@ body.is-boks .coming-soon-view { display: none !important; }
 }
 
 .boks-posts { display: grid; gap: 12px; }
+/* Rasmli uzun lenta: katta blur soyasi har scroll kadrida qayta chiziladi va telefonda
+   sahifani qotiradi — shuning uchun soyasiz; ekrandan tashqaridagi kartalar chizilmaydi. */
 .boks-post {
   padding: 12px;
   border-radius: 18px;
   border: 1px solid var(--bx-border);
   background: var(--bx-card);
-  box-shadow: var(--bx-shadow);
   cursor: pointer;
-  outline: none;
   -webkit-tap-highlight-color: transparent;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
 }
-.boks-post:focus-visible { border-color: var(--bx-red); }
 .boks-post__meta {
   display: flex;
   align-items: center;
@@ -844,69 +828,6 @@ html.boks-sheet-open body { overflow: hidden; }
   cursor: pointer;
 }
 .boks-sheet__tg svg { width: 18px; height: 18px; }
-
-/* ---------- Turnirlar ---------- */
-.boks-events { display: grid; gap: 10px; }
-.boks-event {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px solid var(--bx-border);
-  background: var(--bx-card);
-}
-.boks-event__date {
-  flex: 0 0 52px;
-  height: 56px;
-  border-radius: 13px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: var(--bx-accent-soft);
-  color: var(--bx-accent);
-}
-.boks-event__day { font-size: 20px; font-weight: 900; line-height: 1; }
-.boks-event__month {
-  margin-top: 3px;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-.boks-event__body { flex: 1; min-width: 0; }
-.boks-event__name {
-  margin: 0;
-  font-size: 14.5px;
-  font-weight: 800;
-  line-height: 1.3;
-  color: var(--bx-text);
-}
-.boks-event__meta {
-  margin: 3px 0 0;
-  font-size: 12px;
-  color: var(--bx-muted);
-}
-.boks-event__status {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--bx-blue);
-  background: color-mix(in srgb, var(--bx-blue) 13%, transparent);
-}
-.boks-event--live .boks-event__status {
-  color: var(--bx-red);
-  background: color-mix(in srgb, var(--bx-red) 14%, transparent);
-}
-.boks-event--done { opacity: 0.68; }
-.boks-event--done .boks-event__status {
-  color: var(--bx-muted);
-  background: var(--bx-surface);
-}
-.boks-event__link { flex-shrink: 0; }
 
 /* ---------- Terma jamoa ---------- */
 .boks-team {

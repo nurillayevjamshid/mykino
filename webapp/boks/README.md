@@ -17,4 +17,3 @@ Yangiliklar: Telegram @boxinguzbekistan kanalidan avtomatik (t.me/s/ sahifasi, 2
 boks.json (kesh: ~10 daqiqada yangilanadi):
 - partner: name, logo (rasm URL, bo'sh bo'lsa qo'lqop belgisi), about, links [{label, url}]
 - stats: [{value, label}] — hero kartadagi raqamlar
-- events: [{name, city, dateFrom, dateTo, url}] — holat sanadan hisoblanadi

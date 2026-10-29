@@ -2,12 +2,11 @@
   "partner": {
     "name": "O'zbekiston Boks Federatsiyasi",
     "logo": "",
-    "about": "NTV va O'zbekiston Boks Federatsiyasi hamkorligi: terma jamoa janglari, turnirlar taqvimi va federatsiya yangiliklari bir joyda.",
+    "about": "NTV va O'zbekiston Boks Federatsiyasi hamkorligi: jonli efirlar, terma jamoa janglari va federatsiya yangiliklari bir joyda.",
     "links": []
   },
   "stats": [
     { "value": "5", "label": "Parij-2024 oltin medali" },
     { "value": "1-o'rin", "label": "Olimpiada boks reytingida" }
-  ],
-  "events": []
+  ]
 }

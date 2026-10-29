@@ -44,7 +44,7 @@ describe('Boks section (NTV × O\'zbekiston Boks Federatsiyasi)', () => {
   test('boks.json is valid and boks.js exposes the module interface', () => {
     const data = JSON.parse(read('webapp', 'boks', 'boks.json'));
     assert.equal(data.partner.name, "O'zbekiston Boks Federatsiyasi");
-    assert.ok(Array.isArray(data.events));
+    assert.ok(Array.isArray(data.stats));
     const js = read('webapp', 'boks', 'boks.js');
     assert.match(js, /window\.__boks = \{ openBoksView: openBoksView, closeBoksView: closeBoksView \}/);
     // Efir, janglar va terma jamoa admin paneldan (/api/boks), yangiliklar Telegram kanaldan
