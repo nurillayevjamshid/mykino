@@ -3,7 +3,6 @@
 // search, category filters, and media formatting.
 
 const CHANNEL_USERNAME = "tezkorofficial_uz";
-const CHANNEL_URL = `https://t.me/s/${CHANNEL_USERNAME}`;
 const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes for latest news
 const HISTORICAL_TTL_MS = 60 * 60 * 1000; // 1 hour for old pages
 
@@ -262,15 +261,17 @@ function parseMessageBlock(block) {
     category,
     tags,
     telegramUrl: `https://t.me/${postFullId}`,
-    sourceChannel: CHANNEL_USERNAME,
+    sourceChannel: postFullId.split("/")[0] || CHANNEL_USERNAME,
   };
 }
 
 /**
- * Fetch and parse posts from Telegram public web preview
+ * Fetch and parse one page of any public channel's web preview (t.me/s/<channel>).
+ * Pure — does not touch the Tezkor caches, so other sections (Boks) can reuse it.
  */
-async function fetchTelegramPosts(beforeId = null) {
-  const url = beforeId ? `${CHANNEL_URL}?before=${beforeId}` : CHANNEL_URL;
+async function fetchChannelPage(channel, beforeId = null) {
+  const base = `https://t.me/s/${channel}`;
+  const url = beforeId ? `${base}?before=${beforeId}` : base;
   const res = await fetch(url, {
     headers: {
       "User-Agent":
@@ -290,10 +291,7 @@ async function fetchTelegramPosts(beforeId = null) {
 
   for (let i = 1; i < blocks.length; i++) {
     const post = parseMessageBlock(blocks[i]);
-    if (post) {
-      posts.push(post);
-      _postIndex.set(post.id, post);
-    }
+    if (post) posts.push(post);
   }
 
   // Sort descending by ID (newest first)
@@ -307,6 +305,15 @@ async function fetchTelegramPosts(beforeId = null) {
   }
 
   return { posts, nextBefore };
+}
+
+/**
+ * Fetch and parse posts from the Tezkor channel, indexing them for ?id= lookups
+ */
+async function fetchTelegramPosts(beforeId = null) {
+  const res = await fetchChannelPage(CHANNEL_USERNAME, beforeId);
+  res.posts.forEach((post) => _postIndex.set(post.id, post));
+  return res;
 }
 
 /**
@@ -458,6 +465,7 @@ async function getNews({ before = null, limit = 15, q = "", category = "", id = 
 
 module.exports = {
   getNews,
+  fetchChannelPage,
   ingestWebhookPost,
   inferCategory,
   formatUzbekTime,

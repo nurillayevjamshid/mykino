@@ -126,6 +126,7 @@ const SECTION_TITLES = {
   ad: 'Reklama',
   fifa: 'Futbol',
   esportsStreams: 'Kibersport translatsiyalari',
+  boks: 'Boks',
   tv: 'TV kanallar',
 };
 
@@ -618,6 +619,7 @@ function switchSection(name) {
     ad: 'adSection',
     fifa: 'fifaSection',
     esportsStreams: 'esportsStreamsSection',
+    boks: 'boksSection',
     tv: 'tvSection',
   };
   const targetId = sections[name];
@@ -641,6 +643,7 @@ function switchSection(name) {
   if (name === 'ad') { loadAdSettings(); loadPreRollSettings(); loadPreRollDriveVideos(); loadTickerSettings(); }
   if (name === 'fifa') { loadFifaHighlights(); loadFifaStreamsSettings(); loadFifaTvSettings(); }
   if (name === 'esportsStreams') { loadEsportsStreams(); }
+  if (name === 'boks') { window.boksAdmin?.load(); }
   if (name === 'tv') { loadTvChannelsAdmin(); }
 
   if (window.innerWidth <= 768) {

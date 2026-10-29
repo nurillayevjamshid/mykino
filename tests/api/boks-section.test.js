@@ -44,8 +44,32 @@ describe('Boks section (NTV × O\'zbekiston Boks Federatsiyasi)', () => {
   test('boks.json is valid and boks.js exposes the module interface', () => {
     const data = JSON.parse(read('webapp', 'boks', 'boks.json'));
     assert.equal(data.partner.name, "O'zbekiston Boks Federatsiyasi");
-    ['videos', 'news', 'events', 'team'].forEach((k) => assert.ok(Array.isArray(data[k]), k));
+    assert.ok(Array.isArray(data.events));
     const js = read('webapp', 'boks', 'boks.js');
     assert.match(js, /window\.__boks = \{ openBoksView: openBoksView, closeBoksView: closeBoksView \}/);
+    // Efir, janglar va terma jamoa admin paneldan (/api/boks), yangiliklar Telegram kanaldan
+    assert.match(js, /var API_URL = "\/api\/boks";/);
+    assert.match(js, /\?resource=news/);
+    assert.match(js, /\?resource=fights/);
+  });
+
+  test('/api/boks is routed through the music.js delegator (no new Vercel function)', () => {
+    const vercel = JSON.parse(read('vercel.json'));
+    assert.ok(vercel.routes.some((r) => r.src === '/api/boks' && r.dest === '/api/music.js?_boks=1'));
+    assert.match(read('api', 'music.js'), /request\.query\?\._boks\) \{\s*await handleBoksRequest\(request, response\);/);
+  });
+
+  test('admin panel has a Boks section with Efir / Janglar / Terma jamoa tabs', () => {
+    const html = read('webapp', 'admin', 'index.html');
+    assert.match(html, /<li class="nav-item" data-section="boks">/);
+    assert.match(html, /<section class="content-section boks-admin" id="boksSection">/);
+    ['stream', 'fights', 'team'].forEach((tab) => {
+      assert.match(html, new RegExp(`data-boks-admin-tab="${tab}"`));
+      assert.match(html, new RegExp(`data-boks-admin-panel="${tab}"`));
+    });
+    assert.match(html, /<script src="\/admin\/admin-boks\.js\?v=/);
+    const adminJs = read('webapp', 'admin', 'admin.js');
+    assert.match(adminJs, /boks: 'boksSection'/);
+    assert.match(adminJs, /if \(name === 'boks'\) \{ window\.boksAdmin\?\.load\(\); \}/);
   });
 });

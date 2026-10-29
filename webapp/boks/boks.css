@@ -2,8 +2,10 @@
    BOKS BO'LIMI — NTV × O'zbekiston Boks Federatsiyasi
    /static/boks/boks.css sifatida lazy-load qilinadi (kino.js: ensureBoksCss).
    Ranglar: ring burchaklari (qizil / ko'k) + bayroq ko'ki aksent sifatida.
+   .boks-sheet (yangilik oynasi) body ichida turadi — tokenlar unga ham beriladi.
    ========================================================================== */
-.boks-view {
+.boks-view,
+.boks-sheet {
   --bx-card: #ffffff;
   --bx-surface: #f4f6f9;
   --bx-border: #e6e9ef;
@@ -16,11 +18,11 @@
   --bx-gold: #c88a04;
   --bx-hero: linear-gradient(135deg, #fff5f5 0%, #ffffff 46%, #eef4ff 100%);
   --bx-shadow: 0 10px 24px rgba(15, 15, 18, 0.07);
-
-  padding: 14px 16px 24px;
+  --bx-sheet: #ffffff;
   color: var(--bx-text);
 }
-html[data-theme="dark"] .boks-view {
+html[data-theme="dark"] .boks-view,
+html[data-theme="dark"] .boks-sheet {
   --bx-card: rgba(255, 255, 255, 0.05);
   --bx-surface: rgba(255, 255, 255, 0.07);
   --bx-border: rgba(255, 255, 255, 0.12);
@@ -33,7 +35,10 @@ html[data-theme="dark"] .boks-view {
   --bx-gold: #f5b82e;
   --bx-hero: linear-gradient(135deg, rgba(224, 36, 47, 0.24) 0%, rgba(10, 14, 28, 0.6) 48%, rgba(31, 91, 216, 0.26) 100%);
   --bx-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --bx-sheet: #10131c;
 }
+
+.boks-view { padding: 14px 16px 24px; }
 .boks-view[hidden] { display: none !important; }
 .boks-view__spacer { height: 24px; }
 
@@ -134,11 +139,14 @@ body.is-boks .coming-soon-view { display: none !important; }
   align-items: center;
   gap: 5px;
   padding: 4px 9px;
+  border: 0;
   border-radius: 999px;
+  font: inherit;
   font-size: 11px;
   font-weight: 800;
   color: var(--bx-red);
   background: color-mix(in srgb, var(--bx-red) 15%, transparent);
+  cursor: pointer;
 }
 .boks-live-pill__dot {
   width: 6px;
@@ -211,12 +219,52 @@ body.is-boks .coming-soon-view { display: none !important; }
 
 .boks-panel { margin-top: 14px; }
 
+.boks-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
 .boks-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   margin: 18px 0 10px;
   font-size: 16px;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--bx-text);
+}
+.boks-panel > .boks-section-title:first-child,
+.boks-panel #boksFightResults > .boks-section-title:first-child { margin-top: 4px; }
+.boks-section-title__count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--bx-muted);
+  background: var(--bx-surface);
+}
+.boks-pin-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: var(--bx-red);
+}
+.boks-pin-dot svg { width: 13px; height: 13px; }
+
+.boks-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--bx-accent);
+  cursor: pointer;
 }
 
 /* ---------- Efir ---------- */
@@ -255,7 +303,8 @@ body.is-boks .coming-soon-view { display: none !important; }
   opacity: 0.85;
 }
 .boks-stream__play,
-.boks-video__play {
+.boks-fight__play,
+.boks-post__play {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -312,13 +361,237 @@ body.is-boks .coming-soon-view { display: none !important; }
   color: var(--bx-muted);
 }
 
-.boks-videos { display: grid; gap: 10px; }
-.boks-video {
+/* ---------- Janglar: qidiruv ---------- */
+.boks-search {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
   display: flex;
-  gap: 12px;
   align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 6px 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--bx-border);
+  background: var(--c-bg, var(--bx-card));
+  box-shadow: 0 6px 18px rgba(15, 15, 18, 0.06);
+}
+.boks-search:focus-within {
+  border-color: var(--bx-red);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bx-red) 16%, transparent);
+}
+.boks-search__icon { display: grid; color: var(--bx-muted); }
+.boks-search__icon svg { width: 18px; height: 18px; }
+.boks-search__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--bx-text);
+  font: inherit;
+  font-size: 15px;
+}
+.boks-search__input::placeholder { color: var(--bx-muted); }
+.boks-search__input::-webkit-search-cancel-button { display: none; }
+.boks-search__clear {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--bx-muted);
+  background: var(--bx-surface);
+  cursor: pointer;
+}
+.boks-search__clear[hidden] { display: none; }
+.boks-search__clear svg { width: 15px; height: 15px; }
+.boks-count {
+  margin: 12px 2px 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--bx-muted);
+}
+.boks-count:empty { display: none; }
+#boksFightResults { margin-top: 12px; }
+
+.boks-qchips {
+  display: flex;
+  gap: 6px;
+  margin: 10px -16px 0;
+  padding: 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.boks-qchips::-webkit-scrollbar { display: none; }
+.boks-qchip {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--bx-border);
+  background: var(--bx-card);
+  color: var(--bx-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.boks-qchip.is-active {
+  color: var(--bx-red);
+  border-color: var(--bx-red);
+  background: color-mix(in srgb, var(--bx-red) 10%, transparent);
+}
+
+/* ---------- Janglar: kartalar ---------- */
+.boks-fights { display: grid; gap: 10px; }
+.boks-fights--rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 78%;
+  gap: 10px;
+  margin: 0 -16px;
+  padding: 0 16px 4px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.boks-fights--rail::-webkit-scrollbar { display: none; }
+.boks-fights--rail .boks-fight { scroll-snap-align: start; }
+
+.boks-fight {
+  display: flex;
   width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--bx-border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bx-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease;
+}
+.boks-fight:active { transform: scale(0.985); }
+.boks-fight__thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--bx-surface);
+}
+.boks-fight__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.boks-fight__dur {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.78);
+}
+.boks-fight__pin {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+  background: var(--bx-red);
+  box-shadow: 0 4px 12px rgba(224, 36, 47, 0.4);
+}
+.boks-fight__pin svg { width: 12px; height: 12px; }
+.boks-fight__pin--dot {
+  top: 5px;
+  left: 5px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  justify-content: center;
+}
+.boks-fight__body {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+}
+.boks-fight__title {
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.32;
+  color: var(--bx-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.boks-fight__meta {
+  font-size: 12px;
+  color: var(--bx-muted);
+}
+
+.boks-fight--featured {
+  flex-direction: column;
+  box-shadow: var(--bx-shadow);
+}
+.boks-fight--featured .boks-fight__body { padding: 10px 12px 12px; }
+.boks-fight--featured .boks-fight__play { width: 46px; height: 46px; }
+.boks-fight--featured .boks-fight__play svg { width: 20px; height: 20px; margin-left: 2px; }
+
+.boks-fight--row {
+  align-items: center;
+  gap: 12px;
   padding: 8px;
+  border-radius: 14px;
+}
+.boks-fight--row .boks-fight__thumb {
+  flex: 0 0 132px;
+  border-radius: 10px;
+}
+.boks-fight--row .boks-fight__title { font-size: 13.5px; }
+
+.boks-more {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--bx-border);
+  background: var(--bx-surface);
+  color: var(--bx-text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.boks-more:disabled { opacity: 0.6; cursor: default; }
+
+/* ---------- Yangiliklar ---------- */
+.boks-channel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px 12px;
   border-radius: 16px;
   border: 1px solid var(--bx-border);
   background: var(--bx-card);
@@ -327,85 +600,250 @@ body.is-boks .coming-soon-view { display: none !important; }
   text-align: left;
   cursor: pointer;
 }
-.boks-video__thumb {
+.boks-channel__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2aabee 0%, #229ed9 100%);
+}
+.boks-channel__icon svg { width: 20px; height: 20px; margin-left: -2px; }
+.boks-channel__text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.boks-channel__text b { font-size: 14px; color: var(--bx-text); }
+.boks-channel__text small { font-size: 12px; color: var(--bx-muted); }
+.boks-channel__cta {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+  background: #229ed9;
+}
+
+.boks-posts { display: grid; gap: 12px; }
+.boks-post {
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--bx-border);
+  background: var(--bx-card);
+  box-shadow: var(--bx-shadow);
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.boks-post:focus-visible { border-color: var(--bx-red); }
+.boks-post__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--bx-muted);
+}
+.boks-post__source {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  font-weight: 800;
+  color: var(--bx-red);
+  background: color-mix(in srgb, var(--bx-red) 11%, transparent);
+}
+.boks-post__source svg { width: 13px; height: 13px; }
+.boks-post__views {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.boks-post__views svg { width: 14px; height: 14px; }
+.boks-post__media {
   position: relative;
-  flex: 0 0 118px;
-  aspect-ratio: 16 / 9;
-  border-radius: 11px;
+  margin-top: 10px;
+  aspect-ratio: 16 / 10;
+  border-radius: 14px;
   overflow: hidden;
   background: var(--bx-surface);
 }
-.boks-video__thumb img {
+.boks-post__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.boks-video__play { width: 30px; height: 30px; }
-.boks-video__play svg { width: 14px; height: 14px; margin-left: 2px; }
-.boks-video__body { min-width: 0; display: grid; gap: 4px; }
-.boks-video__title {
-  font-size: 13.5px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--bx-text);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.boks-post__media-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--bx-red), var(--bx-blue));
+  opacity: 0.6;
 }
-.boks-video__meta { font-size: 12px; color: var(--bx-muted); }
-
-/* ---------- Yangiliklar ---------- */
-.boks-news { display: grid; gap: 12px; }
-.boks-news__card {
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid var(--bx-border);
-  background: var(--bx-card);
-  box-shadow: var(--bx-shadow);
-}
-.boks-news__img {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  display: block;
-}
-.boks-news__body { padding: 12px 14px 14px; }
-.boks-news__date {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--bx-accent);
-}
-.boks-news__title {
-  margin: 4px 0 0;
-  font-size: 15.5px;
+.boks-post__album {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 800;
-  line-height: 1.3;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.62);
+}
+.boks-post__play { width: 48px; height: 48px; }
+.boks-post__play svg { width: 21px; height: 21px; margin-left: 2px; }
+.boks-post__title {
+  margin: 10px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.32;
   color: var(--bx-text);
 }
-.boks-news__text {
-  margin: 6px 0 0;
-  font-size: 13px;
+.boks-post__lead {
+  margin: 5px 0 0;
+  font-size: 13.5px;
   line-height: 1.5;
   color: var(--bx-muted);
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
-.boks-link {
-  margin-top: 10px;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
+.boks-post__more {
+  display: inline-block;
+  margin-top: 8px;
   font-size: 13px;
   font-weight: 800;
   color: var(--bx-accent);
+}
+
+/* --- Yangilik oynasi (bottom sheet) --- */
+html.boks-sheet-open,
+html.boks-sheet-open body { overflow: hidden; }
+.boks-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 15000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.boks-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 7, 12, 0.55);
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+.boks-sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  max-height: 92vh;
+  max-height: 92dvh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px 22px 0 0;
+  background: var(--bx-sheet);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
+  transform: translateY(100%);
+  transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.boks-sheet.is-open .boks-sheet__backdrop { opacity: 1; }
+.boks-sheet.is-open .boks-sheet__panel { transform: translateY(0); }
+.boks-sheet__grab {
+  width: 40px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: var(--bx-border);
+}
+.boks-sheet__close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--bx-text);
+  background: var(--bx-surface);
   cursor: pointer;
 }
+.boks-sheet__close svg { width: 16px; height: 16px; }
+.boks-sheet__scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+.boks-sheet__scroll .boks-post__meta { padding-right: 44px; }
+.boks-sheet__title {
+  margin: 12px 0 0;
+  font-size: 19px;
+  font-weight: 850;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--bx-text);
+}
+.boks-sheet__gallery {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.boks-sheet__gallery.is-multi {
+  grid-auto-flow: column;
+  grid-auto-columns: 86%;
+  margin: 12px -16px 0;
+  padding: 0 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.boks-sheet__gallery::-webkit-scrollbar { display: none; }
+.boks-sheet__gallery img {
+  width: 100%;
+  border-radius: 14px;
+  display: block;
+  scroll-snap-align: start;
+}
+.boks-sheet__gallery.is-multi img { aspect-ratio: 4 / 3; object-fit: cover; }
+.boks-sheet__video {
+  width: 100%;
+  margin-top: 12px;
+  border-radius: 14px;
+  background: #000;
+}
+.boks-sheet__text {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--bx-text);
+  word-break: break-word;
+}
+.boks-sheet__text a { color: var(--bx-accent); }
+.boks-sheet__tg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px;
+  border: 0;
+  border-radius: 14px;
+  color: #ffffff;
+  background: #229ed9;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.boks-sheet__tg svg { width: 18px; height: 18px; }
 
 /* ---------- Turnirlar ---------- */
 .boks-events { display: grid; gap: 10px; }
@@ -468,76 +906,86 @@ body.is-boks .coming-soon-view { display: none !important; }
   color: var(--bx-muted);
   background: var(--bx-surface);
 }
-.boks-event__link { margin: 0; flex-shrink: 0; }
+.boks-event__link { flex-shrink: 0; }
 
 /* ---------- Terma jamoa ---------- */
-.boks-team { display: grid; gap: 10px; }
+.boks-team {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
 .boks-boxer {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 16px;
+  flex-direction: column;
+  border-radius: 18px;
+  overflow: hidden;
   border: 1px solid var(--bx-border);
   background: var(--bx-card);
+  box-shadow: var(--bx-shadow);
 }
-.boks-boxer__avatar {
-  flex: 0 0 52px;
-  height: 52px;
-  border-radius: 50%;
-  overflow: hidden;
+.boks-boxer__photo {
+  position: relative;
+  aspect-ratio: 4 / 5;
   display: grid;
   place-items: center;
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 900;
-  background: linear-gradient(135deg, var(--bx-red) 0%, var(--bx-blue) 100%);
+  overflow: hidden;
+  background: linear-gradient(150deg, var(--bx-red) 0%, #7a1220 48%, var(--bx-blue) 100%);
 }
-.boks-boxer__avatar img {
+.boks-boxer__photo img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center top;
 }
-.boks-boxer__body { min-width: 0; flex: 1; }
-.boks-boxer__name {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--bx-text);
+.boks-boxer__photo::after {
+  content: "";
+  position: absolute;
+  inset: 55% 0 0;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+}
+.boks-boxer__initials {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.92);
 }
 .boks-boxer__weight {
-  display: inline-block;
-  margin-top: 4px;
-  padding: 2px 8px;
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 1;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 11.5px;
   font-weight: 800;
-  color: var(--bx-accent);
-  background: var(--bx-accent-soft);
+  color: #0d0f14;
+  background: rgba(255, 255, 255, 0.92);
 }
-.boks-boxer__titles {
-  margin: 7px 0 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 3px;
+.boks-boxer__body { padding: 10px 11px 12px; }
+.boks-boxer__name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--bx-text);
 }
-.boks-boxer__title {
-  position: relative;
-  padding-left: 16px;
-  font-size: 12.5px;
+.boks-boxer__result {
+  display: flex;
+  gap: 5px;
+  margin: 6px 0 0;
+  font-size: 12px;
   line-height: 1.4;
   color: var(--bx-muted);
 }
-.boks-boxer__title::before {
-  content: "";
-  position: absolute;
-  left: 2px;
-  top: 0.45em;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--bx-gold);
+.boks-boxer__result svg {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  color: var(--bx-gold);
 }
 
 /* ---------- Bo'sh / yuklanish holatlari ---------- */
@@ -611,4 +1059,6 @@ body.is-boks .coming-soon-view { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .boks-live-pill__dot,
   .boks-loading span { animation: none; }
+  .boks-sheet__panel,
+  .boks-sheet__backdrop { transition: none; }
 }

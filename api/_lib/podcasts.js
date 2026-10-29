@@ -574,4 +574,12 @@ async function handlePodcastsRequest(request, response) {
   }
 }
 
-module.exports = { handlePodcastsRequest, getChannelView };
+// Kanal sahifasining 6 soatlik keshini tashlaydi (admin "Yangilash" tugmasi uchun).
+// Oxirgi to'liq natija saqlanadi — YouTube xato bersa, o'shasi ko'rsatiladi.
+async function invalidateChannelView(channelId) {
+  const redis = await getRedis();
+  if (!redis || !channelId) return;
+  try { await redis.del(channelViewKeys(channelId).fresh); } catch (_) {}
+}
+
+module.exports = { handlePodcastsRequest, getChannelView, resolveChannel, invalidateChannelView, ytFetch };

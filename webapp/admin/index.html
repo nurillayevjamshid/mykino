@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#3d4adf">
   <title>NTV - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20261029-no-kicker">
+  <link rel="stylesheet" href="/admin/admin.css?v=20261029-boks-v1">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -84,6 +84,12 @@
                 <path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"></path>
               </svg>
               <span class="nav-text">Futbol</span>
+            </a>
+          </li>
+          <li class="nav-item" data-section="boks">
+            <a href="#" class="nav-link">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 15.5V19a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-3.5"></path><path d="M8 15.5h9"></path><path d="M17 15.5c1.8-.9 3-2.8 3-5V8a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v1"></path><path d="M8 15.5c-1.8-.6-3-2.2-3-4.2A2.3 2.3 0 0 1 7.3 9H10a2 2 0 0 1 0 4H8"></path></svg>
+              <span class="nav-text">Boks</span>
             </a>
           </li>
           <li class="nav-item" data-section="esportsStreams">
@@ -1178,6 +1184,156 @@
           </div>
           </div>
         </section>
+        <!-- Boks Section — NTV × O'zbekiston Boks Federatsiyasi (admin-boks.js) -->
+        <section class="content-section boks-admin" id="boksSection">
+          <div class="section-header">
+            <h2>Boks bo'limi</h2>
+            <div class="section-header__hint">NTV × O'zbekiston Boks Federatsiyasi. Efir, janglar videolari va terma jamoa shu yerda boshqariladi. Yangiliklar <b>@boxinguzbekistan</b> Telegram kanalidan avtomatik keladi.</div>
+          </div>
+
+          <div class="bx-summary" id="boksAdminSummary"></div>
+
+          <div class="tabs" role="tablist">
+            <button type="button" class="tab is-active" data-boks-admin-tab="stream" role="tab" aria-selected="true">Efir</button>
+            <button type="button" class="tab" data-boks-admin-tab="fights" role="tab" aria-selected="false">Janglar <span class="bx-tab-badge" id="boksAdminPinBadge"></span></button>
+            <button type="button" class="tab" data-boks-admin-tab="team" role="tab" aria-selected="false">Terma jamoa <span class="bx-tab-badge" id="boksAdminTeamBadge"></span></button>
+          </div>
+
+          <!-- 1. Efir -->
+          <div data-boks-admin-panel="stream">
+            <div class="form-card">
+              <div class="card-head">
+                <h3>Jonli efir</h3>
+                <p>YouTube efir havolasini qo'shing — mini ilovadagi Boks bo'limida «Efir» tabida ko'rinadi. «Hozir jonli» yoqilsa, sarlavha yonida qizil «Jonli» belgisi chiqadi.</p>
+              </div>
+              <div class="bx-stream">
+                <div class="bx-stream__form" id="boksStreamForm">
+                  <div class="form-group">
+                    <label for="boksStreamUrl">YouTube havolasi</label>
+                    <input type="url" id="boksStreamUrl" class="form-input" placeholder="https://www.youtube.com/live/..." autocomplete="off">
+                    <small class="form-hint" id="boksStreamUrlHint">YouTube Live, watch, youtu.be yoki embed havolasi.</small>
+                  </div>
+                  <div class="form-group">
+                    <label for="boksStreamTitle">Sarlavha</label>
+                    <input type="text" id="boksStreamTitle" class="form-input" maxlength="120" placeholder="Masalan: O'zbekiston chempionati — final">
+                  </div>
+                  <div class="form-group">
+                    <label for="boksStreamSubtitle">Izoh</label>
+                    <input type="text" id="boksStreamSubtitle" class="form-input" maxlength="160" placeholder="Masalan: Toshkent · Humo Arena">
+                  </div>
+                  <label class="bx-switch-row" for="boksStreamLive">
+                    <span><b>Hozir jonli</b><small>Mini ilovada «Jonli» va «LIVE» belgilari chiqadi</small></span>
+                    <span class="fifa-tv-switch"><input type="checkbox" id="boksStreamLive"><span></span></span>
+                  </label>
+                </div>
+                <div class="bx-preview">
+                  <div class="bx-preview__label">Mini ilovada ko'rinishi</div>
+                  <div id="boksStreamPreview"></div>
+                </div>
+              </div>
+              <div class="modal-actions">
+                <button type="button" class="btn btn-danger-soft" id="boksStreamClearBtn">Efirni o'chirish</button>
+                <button type="button" class="btn btn-primary" id="boksStreamSaveBtn">Saqlash</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Janglar -->
+          <div data-boks-admin-panel="fights" hidden>
+            <div class="form-card">
+              <div class="card-head">
+                <h3>YouTube kanal</h3>
+                <p>Janglar shu kanaldan olinadi. Faqat 3 daqiqadan uzun videolar chiqadi — shorts va qisqa kliplar mini ilovaga tushmaydi. Jang bo'lmagan videoni pastdagi ro'yxatda «Yashirish» bilan olib tashlang.</p>
+              </div>
+              <div class="bx-channel">
+                <input type="text" id="boksChannelInput" class="form-input" placeholder="https://youtube.com/@kanal yoki @kanal" autocomplete="off">
+                <button type="button" class="btn btn-primary" id="boksChannelSaveBtn">Saqlash</button>
+                <button type="button" class="btn btn-secondary" id="boksVideosRefreshBtn" title="YouTube'dan yangi videolarni hozir olib kelish (odatda 6 soatda bir yangilanadi)">Videolarni yangilash</button>
+              </div>
+              <div class="bx-channel-card" id="boksChannelCard"></div>
+            </div>
+
+            <div class="form-card">
+              <div class="card-head">
+                <h3 id="boksPinsTitle">Pin qilingan janglar</h3>
+                <p>Pin qilingan janglar mini ilovada «Tanlangan janglar» bo'lib eng tepada, shu tartibda turadi. Tartibni strelkalar bilan o'zgartiring.</p>
+              </div>
+              <div class="bx-pins" id="boksPinsList"></div>
+            </div>
+
+            <div class="form-card">
+              <div class="card-head">
+                <h3>Kanal janglari</h3>
+                <p>Jangni pin qiling yoki mini ilovada yashiring. Rasmni bossangiz, video YouTube'da ochiladi.</p>
+              </div>
+              <div class="bx-toolbar">
+                <div class="bx-search">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                  <input type="search" id="boksVideosSearch" class="form-input" placeholder="Jangni qidirish…" autocomplete="off">
+                </div>
+                <div class="bx-seg" role="group" aria-label="Filtr">
+                  <button type="button" class="is-active" data-bx-filter="all">Hammasi <span class="bx-seg__n"></span></button>
+                  <button type="button" data-bx-filter="visible">Ko'rinadigan <span class="bx-seg__n"></span></button>
+                  <button type="button" data-bx-filter="pinned">Pin <span class="bx-seg__n"></span></button>
+                  <button type="button" data-bx-filter="hidden">Yashirilgan <span class="bx-seg__n"></span></button>
+                </div>
+              </div>
+              <p class="bx-results" id="boksVideosCount"></p>
+              <div class="bx-videos" id="boksVideosGrid"></div>
+              <div class="bx-more" id="boksVideosMore"></div>
+            </div>
+          </div>
+
+          <!-- 3. Terma jamoa -->
+          <div data-boks-admin-panel="team" hidden>
+            <div class="form-card">
+              <div class="bx-team-head">
+                <div class="card-head">
+                  <h3 id="boksTeamTitle">Terma jamoa a'zolari</h3>
+                  <p>Rasm, ism va natija mini ilovadagi «Terma jamoa» tabida kartochka bo'lib chiqadi. Tartibni strelkalar bilan o'zgartiring.</p>
+                </div>
+                <button type="button" class="btn btn-primary" id="boksMemberAddBtn">+ A'zo qo'shish</button>
+              </div>
+              <div class="bx-team" id="boksTeamGrid"></div>
+            </div>
+          </div>
+
+          <!-- A'zo tahrirlash oynasi -->
+          <div class="bx-modal" id="boksMemberModal" hidden role="dialog" aria-modal="true" aria-labelledby="boksMemberModalTitle">
+            <div class="bx-modal__backdrop" data-bx-modal-close></div>
+            <div class="bx-modal__dialog">
+              <div class="bx-modal__head">
+                <h3 id="boksMemberModalTitle">Yangi a'zo</h3>
+                <button type="button" class="bx-icon-btn" data-bx-modal-close aria-label="Yopish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+              </div>
+              <div class="bx-modal__body">
+                <div class="bx-editor-photo">
+                  <button type="button" class="bx-drop" id="boksMemberPhotoDrop"><span class="bx-drop__preview"></span><span class="bx-drop__spinner" aria-hidden="true"></span></button>
+                  <input type="file" id="boksMemberPhotoFile" accept="image/*" hidden>
+                  <button type="button" class="btn btn-secondary btn-sm" id="boksMemberPhotoRemove" hidden>Rasmni olib tashlash</button>
+                </div>
+                <div class="bx-editor-fields">
+                  <div class="form-group">
+                    <label for="boksMemberName">Ism familiya <span class="bx-req">*</span></label>
+                    <input type="text" id="boksMemberName" class="form-input" maxlength="80" placeholder="Masalan: Bahodir Jalolov">
+                  </div>
+                  <div class="form-group">
+                    <label for="boksMemberWeight">Vazn toifasi</label>
+                    <input type="text" id="boksMemberWeight" class="form-input" maxlength="24" placeholder="Masalan: +92 kg">
+                  </div>
+                  <div class="form-group">
+                    <label for="boksMemberResult">Natija</label>
+                    <textarea id="boksMemberResult" class="form-input form-textarea" rows="3" maxlength="240" placeholder="Masalan: Parij-2024 olimpiada chempioni"></textarea>
+                  </div>
+                </div>
+              </div>
+              <div class="bx-modal__foot">
+                <button type="button" class="btn btn-secondary" data-bx-modal-close>Bekor qilish</button>
+                <button type="button" class="btn btn-primary" id="boksMemberSaveBtn">Saqlash</button>
+              </div>
+            </div>
+          </div>
+        </section>
         <!-- Kibersport translatsiyalar Section -->
         <section class="content-section" id="esportsStreamsSection">
           <div class="section-header">
@@ -1505,6 +1661,7 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20261029-no-kicker"></script>
+  <script src="/admin/admin.js?v=20261029-boks-v1"></script>
+  <script src="/admin/admin-boks.js?v=20261029-boks-v1"></script>
 </body>
 </html>
