@@ -1314,6 +1314,15 @@ function bindEvents() {
   document.getElementById('moviePushEnabled')?.addEventListener('change', (e) => {
     const panel = document.getElementById('moviePushPanel');
     if (panel) panel.style.display = e.target.checked ? 'block' : 'none';
+    // Admin matnni qo'lda o'zgartirmagan bo'lsa, formadagi eng so'nggi
+    // qiymatlar (nom, reyting, janr, tavsif) bilan qayta to'ldiramiz.
+    const pushText = document.getElementById('moviePushText');
+    if (e.target.checked && pushText && pushText.dataset.edited !== '1') {
+      pushText.value = buildMoviePushText();
+    }
+  });
+  document.getElementById('moviePushText')?.addEventListener('input', (e) => {
+    e.target.dataset.edited = '1';
   });
   // Push media radio toggle
   document.querySelectorAll('input[name="moviePushMedia"]').forEach(r => {
@@ -1869,7 +1878,10 @@ function openMovieModal(movie) {
   const pushUploadWrap = document.getElementById('moviePushUploadWrap');
   if (pushEnabled) pushEnabled.checked = false;
   if (pushPanel) pushPanel.style.display = 'none';
-  if (pushText) pushText.value = `🎬 Yangi kino: ${movie.name}\n\nJanr: ${movie.category || ''}\n${movie.rating ? '⭐ ' + movie.rating + '/10' : ''}`.trim();
+  if (pushText) {
+    pushText.value = buildMoviePushText();
+    pushText.dataset.edited = '0';
+  }
   if (pushFile) pushFile.value = '';
   if (pushResult) pushResult.textContent = '';
   if (pushUploadWrap) pushUploadWrap.style.display = 'none';
@@ -2306,6 +2318,29 @@ function readFileAsDataUrl(file) {
     reader.onerror = () => reject(new Error("Faylni o'qib bo'lmadi"));
     reader.readAsDataURL(file);
   });
+}
+
+// Obunachilarga yuboriladigan xabar: nom, reyting, janr va qisqacha mazmun.
+// Media bilan caption 1024 belgidan oshmasligi kerak, shuning uchun tavsif
+// sig'magan qismi "…" bilan qisqartiriladi.
+const MOVIE_PUSH_CAPTION_LIMIT = 1024;
+function buildMoviePushText() {
+  const name = (document.getElementById('movieName')?.value || '').trim();
+  const rating = Number(document.getElementById('movieRating')?.value || 0);
+  const category = joinCategories([...selectedCategories]);
+  const description = (document.getElementById('movieDescription')?.value || '').trim().replace(/\n{3,}/g, '\n\n');
+
+  const lines = [`🎬 Yangi kino: ${name}`, ''];
+  if (rating) lines.push(`⭐ ${rating}/10`);
+  if (category) lines.push(`🎭 Janr: ${category}`);
+  let text = lines.join('\n').trim();
+  if (!description) return text;
+
+  const prefix = `${text}\n\n📝 `;
+  const room = MOVIE_PUSH_CAPTION_LIMIT - prefix.length;
+  if (room <= 1) return text;
+  const short = description.length > room ? description.slice(0, room - 1).trimEnd() + '…' : description;
+  return prefix + short;
 }
 
 async function sendMoviePush(movieId, movieData, posterValue, savedMovie) {
