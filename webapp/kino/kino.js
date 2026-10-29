@@ -2150,19 +2150,19 @@ function buildDriveStreamUrl(fileId) {
   return buildApiUrl(`/api/drive-stream/${encodeURIComponent(fileId)}`);
 }
 
-// Kino oqimini olish: cdnUrl (R2) -> server bergan token-li videoUrl ->
-// (oxirgi chora) token-siz drive-stream. Avval token-li videoUrl olinmasa,
-// drive-stream endpoint'i 403 LINK_EXPIRED qaytaradi va kino umuman ochilmaydi.
-function getMoviePlaybackUrl(movie) {
-  if (!movie) return "";
+// R2'dagi kino oqimi manbalari, ustuvorlik tartibida:
+// 1) cdnSignedUrl — imzolangan S3 havola (rate-limit yo'q, eng tez ochiladi);
+// 2) cdnUrl — public r2.dev (posterlar bilan bir host, burst'da throttle qiladi);
+// 3) server bergan token-li drive-stream (oxirgi chora).
+// Birinchisi bir necha soniyada ochilmasa, createVideoElement keyingisiga o'tadi.
+function getMovieCdnSources(movie) {
+  if (!movie) return [];
   const cdnUrl = String(movie.cdnUrl || "").trim();
-  if (cdnUrl) return cdnUrl;
+  if (!cdnUrl) return [];
+  const list = [String(movie.cdnSignedUrl || "").trim(), cdnUrl];
   const serverVideoUrl = String(movie.videoUrl || movie.streamUrl || "").trim();
-  if (serverVideoUrl && /token=/.test(serverVideoUrl)) return serverVideoUrl;
-  const driveFileId = String(movie.driveFileId || movie.fileId || "").trim();
-  if (serverVideoUrl) return serverVideoUrl;
-  if (driveFileId) return buildDriveStreamUrl(driveFileId);
-  return "";
+  if (serverVideoUrl && /token=/.test(serverVideoUrl)) list.push(serverVideoUrl);
+  return [...new Set(list.filter(Boolean))];
 }
 
 // Tarmoq tezligini baholash — preload va startup timeout uchun kerak.
@@ -2390,6 +2390,7 @@ function normalizeMovie(movie, index = 0) {
     fileId,
     driveFileId: String(movie?.driveFileId || movie?.fileId || movie?.googleDriveFileId || "").trim(),
     cdnUrl: rewriteR2Host(String(movie?.cdnUrl || "").trim()),
+    cdnSignedUrl: String(movie?.cdnSignedUrl || "").trim(),
     fileName,
     telegramVideoFileId: fileId,
     telegramFileId: fileId,
@@ -4477,7 +4478,7 @@ function startMoviePreload(movie) {
   if (getYouTubeVideoUrl(movie)) return;
   if (isMobileViewingContext() && !isLaunchReadyMovie(movie)) return;
 
-  const cdnUrl = String(movie?.cdnUrl || "").trim();
+  const cdnUrl = getMovieCdnSources(movie)[0] || "";
   const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
   const serverVideoUrl = String(movie?.videoUrl || movie?.streamUrl || "").trim();
   if (!cdnUrl && !driveFileId && !serverVideoUrl) return;
@@ -6584,12 +6585,20 @@ function createVideoElement(src, movie, options = {}) {
       return 14000;
     })(),
     preload = "auto",
+    alternateSources = [],
   } = normalizedOptions;
+  // Zaxira manbalar: joriy manba tez ochilmasa yoki xato bersa, navbatdagisiga
+  // o'tiladi (masalan imzolangan R2 -> public r2.dev -> drive-stream).
+  const pendingSources = [...new Set(
+    alternateSources.map((u) => safeUrl(u)?.href || "").filter((u) => u && u !== src),
+  )];
   let video;
   // Modal ochilganda yashirin preload qilingan element bo'lsa — qaytadan yuklamasdan
   // o'shani ko'tarib chiqamiz. Aks holda preload behuda ketardi va kino qaytadan
   // 0-baytdan yuklab boshlanardi (kech ochilish sababi).
-  if (preloadVideoEl && (preloadVideoUrl === src || preloadVideoEl.src === src || preloadVideoEl.currentSrc === src)) {
+  // Xato bergan preload'ni ishlatmaymiz: uning "error" hodisasi allaqachon
+  // o'tib ketgan, yangi element esa xatoni darhol ushlab zaxira manbaga o'tadi.
+  if (preloadVideoEl && !preloadVideoEl.error && (preloadVideoUrl === src || preloadVideoEl.src === src || preloadVideoEl.currentSrc === src)) {
     video = preloadVideoEl;
     video.removeAttribute("aria-hidden");
     video.style.cssText = "";
@@ -6623,7 +6632,7 @@ function createVideoElement(src, movie, options = {}) {
     }
   });
   video.addEventListener("ended", () => { setStateLabel(videoToggleButton, "play", plainLabel(t("play"))); setControlsVisible(true); releaseWakeLock(); });
-  video.addEventListener("loadedmetadata", () => {
+  const applyLoadedMetadata = () => {
     video.playbackRate = currentSpeed;
     video.volume = currentVolume;
     if (pendingResumeTime >= WATCH_PROGRESS_MIN_SECONDS && pendingResumeTime < (video.duration || Infinity) - 5) {
@@ -6632,7 +6641,8 @@ function createVideoElement(src, movie, options = {}) {
     }
     updateHtml5VideoControls();
     updateWatermarkPosition();
-  });
+  };
+  video.addEventListener("loadedmetadata", applyLoadedMetadata);
   video.addEventListener("resize", () => {
     updateWatermarkPosition();
   });
@@ -6646,11 +6656,6 @@ function createVideoElement(src, movie, options = {}) {
   video.addEventListener("stalled", () => showBuffering(true));
   video.addEventListener("canplay", () => showBuffering(false));
   video.addEventListener("playing", () => showBuffering(false));
-  video.addEventListener("error", () => {
-    if (videoErrorRetried) return;
-    videoErrorRetried = true;
-    try { video.load(); video.play().catch(() => {}); } catch {}
-  });
   let startupDone = false;
   let fallbackMounted = false;
   const finishStartup = () => {
@@ -6668,12 +6673,13 @@ function createVideoElement(src, movie, options = {}) {
     createIframeElement(fallbackEmbedUrl, movie.title);
     return true;
   };
-  const startupTimer = window.setTimeout(() => {
+  const showStartupFallback = () => {
     if (startupDone) return;
     if (mountEmbedFallback()) return;
     setVideoLoading(false);
     setFallbackMessage(fallbackMessage, isFallback ? "" : fallbackUrl || movie.sourceUrl || src);
-  }, startupTimeout);
+  };
+  let startupTimer = window.setTimeout(showStartupFallback, startupTimeout);
   const onReady = () => {
     window.clearTimeout(startupTimer);
     finishStartup();
@@ -6682,20 +6688,76 @@ function createVideoElement(src, movie, options = {}) {
   video.addEventListener("loadeddata", onReady, { once: true });
   video.addEventListener("canplay", onReady, { once: true });
   video.addEventListener("playing", onReady, { once: true });
-  video.addEventListener(
-    "error",
-    () => {
-      window.clearTimeout(startupTimer);
-      if (mountEmbedFallback()) return;
-      setVideoLoading(false);
-      // Xato kodiga qarab aniq xabar — foydalanuvchi muammoni tushunsin
-      // (tarmoq, format, decode) — generik "tayyor emas" ekranidan farqli.
-      const specificMessage = describeVideoError(video) || fallbackMessage;
-      setFallbackMessage(specificMessage, isFallback ? "" : fallbackUrl || movie.sourceUrl || src);
-    },
-    { once: true },
-  );
+
+  // Tez ochilish kafolati: manba bir necha soniyada o'ynashga tayyor
+  // bo'lmasa (r2.dev throttle, sekin birinchi bayt) foydalanuvchini 10+
+  // soniya kutdirmasdan keyingi manbaga o'tamiz. Oxirgi manbaga to'liq
+  // startupTimeout beriladi.
+  const failoverDelay = (() => {
+    const net = getNetworkProfile();
+    if (net.saveData || net.isSlow) return 7000;
+    if (net.isCellular) return 4500;
+    return 3000;
+  })();
+  let failoverTimer = 0;
+  const isStalledStartup = () => {
+    // Metadata bor-u, autoplay bloklangani uchun pauzada turgan video —
+    // tiqilib qolgan emas, foydalanuvchi Play bosishini kutyapti.
+    if (video.readyState >= 3) return false;
+    if (video.readyState >= 1 && video.paused) return false;
+    return true;
+  };
+  const switchToNextSource = () => {
+    window.clearTimeout(failoverTimer);
+    if (!video.isConnected) return false;
+    const next = pendingSources.shift();
+    if (!next) return false;
+    if (video.currentTime > 0) pendingResumeTime = video.currentTime;
+    video.src = next;
+    try { video.load(); } catch {}
+    try { video.play()?.catch?.(() => {}); } catch {}
+    window.clearTimeout(startupTimer);
+    if (!startupDone) startupTimer = window.setTimeout(showStartupFallback, startupTimeout);
+    armFailover();
+    return true;
+  };
+  function armFailover() {
+    window.clearTimeout(failoverTimer);
+    if (!pendingSources.length) return;
+    failoverTimer = window.setTimeout(() => {
+      if (video.isConnected && isStalledStartup()) switchToNextSource();
+    }, failoverDelay);
+  }
+  const clearFailover = () => window.clearTimeout(failoverTimer);
+  video.addEventListener("canplay", clearFailover);
+  video.addEventListener("playing", clearFailover);
+
+  video.addEventListener("error", () => {
+    if (!video.isConnected) return;
+    if (switchToNextSource()) return;
+    if (!videoErrorRetried) {
+      videoErrorRetried = true;
+      if (video.currentTime > 0) pendingResumeTime = video.currentTime;
+      try { video.load(); video.play()?.catch?.(() => {}); } catch {}
+      return;
+    }
+    window.clearTimeout(startupTimer);
+    if (mountEmbedFallback()) return;
+    setVideoLoading(false);
+    // Xato kodiga qarab aniq xabar — foydalanuvchi muammoni tushunsin
+    // (tarmoq, format, decode) — generik "tayyor emas" ekranidan farqli.
+    const specificMessage = describeVideoError(video) || fallbackMessage;
+    setFallbackMessage(specificMessage, isFallback ? "" : fallbackUrl || movie.sourceUrl || src);
+  });
   videoMount.replaceChildren(video);
+  // Oldindan yuklangan (preload) element metadata/canplay hodisalarini allaqachon
+  // bergan bo'lsa, ular qayta kelmaydi: resume/tezlik qo'llanmay, startup taymeri
+  // esa tayyor videoni "ochilmadi" deb yopib qo'yardi.
+  if (video.readyState >= 1) {
+    applyLoadedMetadata();
+    onReady();
+  }
+  if (video.readyState < 3) armFailover();
   const playAttempt = video.play();
   if (playAttempt && typeof playAttempt.catch === "function") {
     playAttempt.catch(() => {
@@ -6742,6 +6804,7 @@ function renderVideoSource(videoUrl, movie, options = {}) {
     errorOnly = false,
     requestId = activeVideoRequest,
     fallbackMessage = getStreamErrorMessage(),
+    alternateSources = [],
   } = options;
   destroyYouTubePlayer();
   clearVideoLoadTimer();
@@ -6787,6 +6850,7 @@ function renderVideoSource(videoUrl, movie, options = {}) {
       fallbackMessage,
       sourceLabel: t("customPlayer"),
       preload: "auto",
+      alternateSources,
     });
     return;
   }
@@ -6965,7 +7029,8 @@ async function openVideoPlayer(movie, options = {}) {
     return;
   }
 
-  const cdnUrl = String(movie?.cdnUrl || "").trim();
+  const cdnSources = getMovieCdnSources(movie);
+  const cdnUrl = cdnSources[0] || "";
   const driveFileId = String(movie?.driveFileId || movie?.fileId || "").trim();
   const serverVideoUrl = String(movie?.videoUrl || movie?.streamUrl || "").trim();
   if (cdnUrl || driveFileId || (serverVideoUrl && /token=/.test(serverVideoUrl))) {
@@ -6990,6 +7055,7 @@ async function openVideoPlayer(movie, options = {}) {
       originalUrl: "",
       requestId,
       fallbackMessage: getStreamErrorMessage(),
+      alternateSources: cdnSources.slice(1),
     });
     return;
   }
@@ -8114,6 +8180,7 @@ function normalizeSeriesEntry(raw) {
       fileName: String(ep?.fileName || "").trim(),
       mimeType: String(ep?.mimeType || "").trim(),
       cdnUrl: rewriteR2Host(String(ep?.cdnUrl || "").trim()),
+      cdnSignedUrl: String(ep?.cdnSignedUrl || "").trim(),
       season: Number.isFinite(rawSeason) && rawSeason > 0 ? rawSeason : 1,
     };
   }).filter((ep) => ep.id).sort(compareSeriesEpisodes);
@@ -8330,6 +8397,7 @@ function playSeriesEpisode(series, episode, index) {
     fileName: episode.fileName || "",
     mimeType: episode.mimeType || "video/mp4",
     cdnUrl: episode.cdnUrl || "",
+    cdnSignedUrl: episode.cdnSignedUrl || "",
     posterImage: series.posterImage || "",
     description: series.description || "",
   };
@@ -10372,7 +10440,7 @@ function writeMovieCache(rawPayload) {
         hd: m.hd, posterImage: m.posterImage, headerImage: m.headerImage,
         showInHeader: m.showInHeader, isPremium: m.isPremium,
         likes: m.likes, dislikes: m.dislikes, streamUrl: m.streamUrl,
-        cdnUrl: m.cdnUrl, sourceType: m.sourceType, size: m.size,
+        cdnUrl: m.cdnUrl, cdnSignedUrl: m.cdnSignedUrl, sourceType: m.sourceType, size: m.size,
         createdTime: m.createdTime, modifiedTime: m.modifiedTime
       }));
       localStorage.setItem(MOVIE_CACHE_KEY, JSON.stringify({ movies: compact, ts: Date.now() }));

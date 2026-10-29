@@ -401,7 +401,85 @@ async function deleteImageFromR2(urlOrKey) {
   }
 }
 
+// === Kino videosi uchun imzolangan (presigned) GET havola ===
+// Public r2.dev domeni Cloudflare tomonidan rate-limit qilinadi: posterlar
+// bilan birga ko'p so'rov ketganda video birinchi baytni 5-10s kechiktirib
+// beradi (kino "ba'zida 10 sekundda ochiladi" muammosi). S3 API endpoint'i
+// bunday cheklovga ega emas. Imzo vaqti UTC kun boshiga yaxlitlanadi — bir
+// kun davomida havola o'zgarmaydi (edge kesh / ETag barqaror), muddati
+// 7 kun bo'lgani uchun kamida 6 kun amal qiladi.
+const R2_PUBLIC_HOST_RE = /(^|\.)r2\.dev$|^r2\.myplaylist\.uz$/i;
+const PRESIGN_EXPIRES_SEC = 7 * 24 * 3600;
+
+function encodeRfc3986(value) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+function presignR2PublicUrl(publicUrl, now = Date.now()) {
+  const raw = String(publicUrl || "").trim();
+  if (!raw) return "";
+  let config;
+  let parsed;
+  try {
+    config = getR2Config();
+    parsed = new URL(raw);
+  } catch {
+    return "";
+  }
+  let configuredHost = "";
+  try { configuredHost = new URL(config.publicUrl).host.toLowerCase(); } catch {}
+  const host = parsed.host.toLowerCase();
+  if (!R2_PUBLIC_HOST_RE.test(host) && host !== configuredHost) return "";
+
+  let key;
+  try {
+    key = parsed.pathname.replace(/^\/+/, "").split("/").map((s) => decodeURIComponent(s)).join("/");
+  } catch {
+    return "";
+  }
+  if (!key) return "";
+
+  const endpointUrl = new URL(config.endpoint);
+  const canonicalUri = `${endpointUrl.pathname.replace(/\/+$/, "")}/${config.bucket}/${key}`
+    .split("/").map(encodeRfc3986).join("/");
+  const region = "auto";
+  const service = "s3";
+  const dayStart = new Date(Math.floor(now / 86400000) * 86400000);
+  const amzDate = dayStart.toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const scope = `${dateStamp}/${region}/${service}/aws4_request`;
+
+  const params = {
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": `${config.accessKeyId}/${scope}`,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Expires": String(PRESIGN_EXPIRES_SEC),
+    "X-Amz-SignedHeaders": "host",
+  };
+  const canonicalQuery = Object.keys(params).sort()
+    .map((k) => `${encodeRfc3986(k)}=${encodeRfc3986(params[k])}`)
+    .join("&");
+  const canonicalRequest = [
+    "GET",
+    canonicalUri,
+    canonicalQuery,
+    `host:${endpointUrl.host}\n`,
+    "host",
+    "UNSIGNED-PAYLOAD",
+  ].join("\n");
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, sha256Hex(canonicalRequest)].join("\n");
+
+  const kDate = hmac(`AWS4${config.secretAccessKey}`, dateStamp);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, service);
+  const kSigning = hmac(kService, "aws4_request");
+  const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex");
+
+  return `${endpointUrl.origin}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`;
+}
+
 module.exports = {
+  presignR2PublicUrl,
   uploadImageToR2,
   uploadFileToR2,
   putJsonToR2,

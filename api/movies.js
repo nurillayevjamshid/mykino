@@ -7,6 +7,7 @@ const {
   setCors,
   findMovieByIdOrCode,
 } = require("./_lib/google-drive");
+const { presignR2PublicUrl } = require("./_lib/r2-store");
 
 const SERIES_DESCRIPTION_MAX_LENGTH = 4000;
 
@@ -63,7 +64,12 @@ function sanitizeMovieR2(movie) {
   if (clone.headerImage) clone.headerImage = fixR2(clone.headerImage);
   if (clone.heroPoster) clone.heroPoster = fixR2(clone.heroPoster);
   if (clone.thumbnail) clone.thumbnail = fixR2(clone.thumbnail);
-  if (clone.cdnUrl) clone.cdnUrl = fixR2(clone.cdnUrl);
+  if (clone.cdnUrl) {
+    clone.cdnUrl = fixR2(clone.cdnUrl);
+    // Asosiy oqim — rate-limit'siz S3 endpoint; cdnUrl (r2.dev) zaxira bo'lib qoladi.
+    const signed = presignR2PublicUrl(clone.cdnUrl);
+    if (signed) clone.cdnSignedUrl = signed;
+  }
   return clone;
 }
 
@@ -75,7 +81,9 @@ function sanitizeSeriesR2(series) {
   if (Array.isArray(clone.episodes)) {
     clone.episodes = clone.episodes.map((ep) => {
       if (!ep || typeof ep !== "object") return ep;
-      return { ...ep, cdnUrl: fixR2(ep.cdnUrl) };
+      const cdnUrl = fixR2(ep.cdnUrl);
+      const signed = cdnUrl ? presignR2PublicUrl(cdnUrl) : "";
+      return signed ? { ...ep, cdnUrl, cdnSignedUrl: signed } : { ...ep, cdnUrl };
     });
   }
   return clone;
