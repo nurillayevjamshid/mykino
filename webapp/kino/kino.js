@@ -7550,6 +7550,7 @@ function hideAllCustomViews() {
   closeTvView();
   closeFifaView();
   closeEsportView();
+  closeBoksView();
   closeCategoryDetailView({ goHome: true });
   closeCategoriesView();
   closeSeriesDetailView();
@@ -7953,6 +7954,7 @@ function openCategoriesView() {
   closeFifaView();
   closeTvView();
   closeEsportView();
+  closeBoksView();
   setSearchPanelOpen(false);
   if (categoryPanel) categoryPanel.hidden = true;
   if (seriesListView) seriesListView.hidden = true;
@@ -8203,6 +8205,7 @@ function openSeriesListView() {
   closeFifaView();
   closeTvView();
   closeEsportView();
+  closeBoksView();
   setSearchPanelOpen(false);
   seriesListOpenedFromCategories = !!(categoriesView && !categoriesView.hidden);
   if (categoriesView) categoriesView.hidden = true;
@@ -8736,6 +8739,7 @@ if (requestedSection) setTimeout(() => {
     if (requestedSection === 'music') openMusicView();
     else if (requestedSection === 'podcasts') openPodcastsView();
     else if (requestedSection === 'football' || requestedSection === 'fifa') openFifaView();
+    else if (requestedSection === 'boks') openBoksView();
     else if (requestedSection === 'news') { /* arxivlangan — kinoda qoladi */ }
   } catch (err) {
     console.error("Error activating requested section:", err);
@@ -8746,12 +8750,17 @@ if (requestedSection) setTimeout(() => {
   }, 1500);
 }, 0);
 
-// Sidebar yuqori 3 slot — joriy bo'limdan boshqa bo'limlarga o'tish tugmalari.
+// Boks (NTV × O'zbekiston Boks Federatsiyasi) qo'lqop belgisi — sidebar,
+// topbar va splash ekranda bir xil ishlatiladi.
+const BOKS_GLOVE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 15.5V19a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-3.5"></path><path d="M8 15.5h9"></path><path d="M17 15.5c1.8-.9 3-2.8 3-5V8a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v1"></path><path d="M8 15.5c-1.8-.6-3-2.2-3-4.2A2.3 2.3 0 0 1 7.3 9H10a2 2 0 0 1 0 4H8"></path></svg>`;
+
+// Sidebar yuqori 4 slot — joriy bo'limdan boshqa bo'limlarga o'tish tugmalari.
 // Tartib har bo'limda qat'iy:
-//   Kino:       Futbol, Musiqa, Potkastlar
-//   Futbol:     Kino, Musiqa, Potkastlar
-//   Musiqa:     Kino, Futbol, Potkastlar
-//   Potkastlar: Kino, Futbol, Musiqa
+//   Kino:       Futbol, Musiqa, Potkastlar, Boks
+//   Futbol:     Kino, Musiqa, Potkastlar, Boks
+//   Musiqa:     Kino, Futbol, Potkastlar, Boks
+//   Potkastlar: Kino, Futbol, Musiqa, Boks
+//   Boks:       Kino, Futbol, Musiqa, Potkastlar
 function syncTopbarSection() {
   const brand = document.getElementById("topbarSectionBrand");
   const icon = document.getElementById("topbarSectionIcon");
@@ -8759,6 +8768,7 @@ function syncTopbarSection() {
   const section = document.body.classList.contains("is-fifa") ? "fifa"
     : document.body.classList.contains("is-tv") ? "tv"
     : document.body.classList.contains("is-esport") ? "esport"
+    : document.body.classList.contains("is-boks") ? "boks"
     : document.body.classList.contains("is-music") ? "music"
     : document.body.classList.contains("is-podcasts") ? "podcasts"
     : "kino";
@@ -8769,6 +8779,7 @@ function syncTopbarSection() {
     fifa: `<img class="sidebar__item-img sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="22" height="22">`,
     tv: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="m8 2 4 4 4-4"></path></svg>`,
     esport: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8h8a4 4 0 0 1 4 4v3a3 3 0 0 1-5.1 2.1L13 15h-2l-1.9 2.1A3 3 0 0 1 4 15v-3a4 4 0 0 1 4-4Z"></path><path d="M8 11v4M6 13h4M16 12h.01M18 14h.01"></path></svg>`,
+    boks: BOKS_GLOVE_SVG,
   };
   icon.innerHTML = icons[section] || icons.kino;
   brand.setAttribute("aria-label", "NTV");
@@ -8785,11 +8796,13 @@ function syncSidebarSectionItems() {
     document.getElementById("sidebarFifaItem"),
     document.getElementById("sidebarMusicItem"),
     document.getElementById("sidebarPodcastsItem"),
+    document.getElementById("sidebarBoksItem"),
   ];
   if (!slots.some(Boolean)) return;
 
   const section = document.body.classList.contains("is-fifa") ? "fifa"
     : document.body.classList.contains("is-esport") ? "esport"
+    : document.body.classList.contains("is-boks") ? "boks"
     : document.body.classList.contains("is-music") ? "music"
     : document.body.classList.contains("is-podcasts") ? "podcasts"
     : "kino";
@@ -8857,14 +8870,21 @@ function syncSidebarSectionItems() {
       </svg>
       <span>Kibersport</span>`,
     },
+    boks: {
+      action: "boks",
+      html: `
+      ${BOKS_GLOVE_SVG}
+      <span>Boks</span>`,
+    },
   };
 
   const ORDER = {
-    kino: ["fifa", "music", "podcasts"],
-    fifa: ["kino", "music", "podcasts"],
-    music: ["kino", "fifa", "podcasts"],
-    podcasts: ["kino", "fifa", "music"],
-    esport: ["kino", "fifa", "music"],
+    kino: ["fifa", "music", "podcasts", "boks"],
+    fifa: ["kino", "music", "podcasts", "boks"],
+    music: ["kino", "fifa", "podcasts", "boks"],
+    podcasts: ["kino", "fifa", "music", "boks"],
+    esport: ["kino", "fifa", "music", "boks"],
+    boks: ["kino", "fifa", "music", "podcasts"],
     news: ["kino", "fifa", "music", "podcasts"],
   };
 
@@ -8882,7 +8902,7 @@ function syncSidebarSectionItems() {
   const lower1 = document.getElementById("sidebarLowerItem1") || document.querySelector(".sidebar__nav [data-sidebar-action='favorites'], .sidebar__nav [data-sidebar-action='music-playlists'], .sidebar__nav [data-sidebar-action='podcast-saved']");
   const lower2 = document.getElementById("sidebarLowerItem2") || document.querySelector(".sidebar__nav [data-sidebar-action='profile'], .sidebar__nav [data-sidebar-action='music-profile'], .sidebar__nav [data-sidebar-action='podcast-profile']");
   if (lower1 && lower2) {
-    if (section === "fifa" || section === "esport") {
+    if (section === "fifa" || section === "esport" || section === "boks") {
       if (lowerDivider) {
         lowerDivider.hidden = true;
         lowerDivider.style.display = "none";
@@ -9032,6 +9052,7 @@ const SECTION_SPLASH_ICONS = {
   esport: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M7 12h3"></path><path d="M8.5 10.5v3"></path><circle cx="16" cy="11" r="1"></circle><circle cx="18" cy="13.5" r="1"></circle></svg>`,
   tv: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="m8 2 4 4 4-4"></path></svg>`,
   news: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>`,
+  boks: BOKS_GLOVE_SVG,
 };
 
 const SECTION_SPLASH_COLORS = {
@@ -9040,6 +9061,7 @@ const SECTION_SPLASH_COLORS = {
   podcasts: "#ff9800",
   fifa: "#00b894",
   esport: "#00cec9",
+  boks: "#e0242f",
   tv: "#e50914",
   news: "#2563eb",
 };
@@ -9122,6 +9144,7 @@ function getCurrentAppSection() {
   return document.body.classList.contains("is-fifa") ? "fifa"
     : document.body.classList.contains("is-tv") ? "tv"
     : document.body.classList.contains("is-esport") ? "esport"
+    : document.body.classList.contains("is-boks") ? "boks"
     : document.body.classList.contains("is-music") ? "music"
     : document.body.classList.contains("is-podcasts") ? "podcasts"
     : "kino";
@@ -9180,6 +9203,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         closeFifaView();
         closeTvView();
         closeEsportView();
+        closeBoksView();
         return openMusicView();
       });
       return;
@@ -9190,6 +9214,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         closeFifaView();
         closeTvView();
         closeEsportView();
+        closeBoksView();
         return openPodcastsView();
       });
       return;
@@ -9200,6 +9225,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         closePodcastsView();
         closeTvView();
         closeEsportView();
+        closeBoksView();
         return openFifaView();
       });
       return;
@@ -9210,7 +9236,19 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         closePodcastsView();
         closeFifaView();
         closeTvView();
+        closeBoksView();
         return openEsportView();
+      });
+      return;
+    }
+    if (action === "boks") {
+      navigateSidebarSection("boks", () => {
+        closeMusicView();
+        closePodcastsView();
+        closeFifaView();
+        closeTvView();
+        closeEsportView();
+        return openBoksView();
       });
       return;
     }
@@ -9220,6 +9258,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         closePodcastsView();
         closeFifaView();
         closeEsportView();
+        closeBoksView();
         return openTvView();
       });
       return;
@@ -9231,6 +9270,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
         closeFifaView();
         closeTvView();
         closeEsportView();
+        closeBoksView();
         setFilter("all");
         tgBackClearExcept([]);
         document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
@@ -9251,6 +9291,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
           closeFifaView();
           closeTvView();
           closeEsportView();
+          closeBoksView();
           await openMusicView();
           const m = await ensureMusicModule();
           m?.openPlaylistsView?.();
@@ -9277,6 +9318,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
           closeFifaView();
           closeTvView();
           closeEsportView();
+          closeBoksView();
           await openPodcastsView();
           const m = await ensurePotcastsModule();
           m?.openSavedView?.();
@@ -9303,6 +9345,7 @@ document.querySelectorAll("[data-sidebar-action]").forEach((el) => {
           closeFifaView();
           closeTvView();
           closeEsportView();
+          closeBoksView();
           setFilter("favorites");
           document.getElementById("appShell")?.scrollTo({ top: 0, behavior: "auto" });
         });
@@ -11352,6 +11395,7 @@ async function initApp() {
     ensureFifaModule().catch(() => {});
     ensureTvModule().catch(() => {});
     ensureEsportModule().catch(() => {});
+    ensureBoksModule().catch(() => {});
   };
   if (typeof window.requestIdleCallback === "function") {
     window.requestIdleCallback(preloadAllModules, { timeout: 2000 });
@@ -11394,6 +11438,7 @@ initApp();
     '.sidebar__item',
     '.fifa-tab',
     '.esport-tab',
+    '.boks-tab',
     '.category-card',
     '.lang-pill',
     '.theme-switch',
@@ -12283,6 +12328,43 @@ function closeEsportView() {
   window.__esport?.closeEsportView?.();
   syncNavButtons();
   ensureTelegramFullscreen();
+}
+
+// ============================================================
+// BOKS (NTV × O'zbekiston Boks Federatsiyasi) — lazy-loader
+// Alohida webapp/boks/boks.{js,css,json}. Naqsh esport bilan bir xil.
+// ============================================================
+let __boksModulePromise = null;
+let __boksCssPromise = null;
+function ensureBoksCss() {
+  if (__boksCssPromise) return __boksCssPromise;
+  __boksCssPromise = new Promise((resolve) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/static/boks/boks.css?v=20261029-boks-v1";
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+  return __boksCssPromise;
+}
+function ensureBoksModule() {
+  if (window.__boks) return Promise.resolve(window.__boks);
+  if (__boksModulePromise) return __boksModulePromise;
+  const cssPromise = ensureBoksCss();
+  const jsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/static/boks/boks.js?v=20261029-boks-v1";
+    script.onload = () => resolve(window.__boks);
+    script.onerror = (err) => { __boksModulePromise = null; reject(err); };
+    document.head.appendChild(script);
+  });
+  __boksModulePromise = Promise.all([cssPromise, jsPromise]).then(() => window.__boks);
+  return __boksModulePromise;
+}
+function openBoksView() { ensureTelegramFullscreen(); return ensureBoksModule().then((m) => m?.openBoksView?.()).catch(() => {}); }
+function closeBoksView() {
+  window.__boks?.closeBoksView?.();
 }
 
 

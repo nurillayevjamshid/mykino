@@ -1,0 +1,28 @@
+{
+  "partner": {
+    "name": "O'zbekiston Boks Federatsiyasi",
+    "logo": "",
+    "about": "NTV va O'zbekiston Boks Federatsiyasi hamkorligi: terma jamoa janglari, turnirlar taqvimi va federatsiya yangiliklari bir joyda.",
+    "links": []
+  },
+  "stats": [
+    { "value": "5", "label": "Parij-2024 oltin medali" },
+    { "value": "1-o'rin", "label": "Olimpiada boks reytingida" }
+  ],
+  "stream": {
+    "youtubeId": "",
+    "title": "",
+    "subtitle": "",
+    "isLive": false
+  },
+  "videos": [],
+  "news": [],
+  "events": [],
+  "team": [
+    { "name": "Hasanboy Do'smatov", "weight": "51 kg", "titles": ["Parij-2024 olimpiada chempioni", "Rio-2016 olimpiada chempioni"] },
+    { "name": "Abdumalik Xalokov", "weight": "57 kg", "titles": ["Parij-2024 olimpiada chempioni"] },
+    { "name": "Asadxo'ja Muydinxo'jayev", "weight": "71 kg", "titles": ["Parij-2024 olimpiada chempioni"] },
+    { "name": "Lazizbek Mullojonov", "weight": "92 kg", "titles": ["Parij-2024 olimpiada chempioni"] },
+    { "name": "Bahodir Jalolov", "weight": "+92 kg", "titles": ["Parij-2024 olimpiada chempioni", "Tokio-2020 olimpiada chempioni"] }
+  ]
+}

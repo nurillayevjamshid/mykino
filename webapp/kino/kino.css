@@ -6817,7 +6817,10 @@ body.is-fifa #sidebarLowerItem1,
 body.is-fifa #sidebarLowerItem2,
 body.is-esport #sidebarLowerDivider,
 body.is-esport #sidebarLowerItem1,
-body.is-esport #sidebarLowerItem2 {
+body.is-esport #sidebarLowerItem2,
+body.is-boks #sidebarLowerDivider,
+body.is-boks #sidebarLowerItem1,
+body.is-boks #sidebarLowerItem2 {
   display: none !important;
 }
 
@@ -13599,6 +13602,7 @@ body.is-fifa .continue-watching-card,
 body.is-music .continue-watching-card,
 body.is-tv .continue-watching-card,
 body.is-esport .continue-watching-card,
+body.is-boks .continue-watching-card,
 body.is-podcasts .continue-watching-card {
   display: none !important;
 }

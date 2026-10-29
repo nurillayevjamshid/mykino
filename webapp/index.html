@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="/static/kino/kino.css?v=20261029-no-kicker" />
+  <link rel="stylesheet" href="/static/kino/kino.css?v=20261029-boks-v2" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Shaxmat/shashka taklif havolasi: t.me/bot?startapp=shaxmat_<xona> — o'yinga o'tkazamiz.
        Bir marta: o'yindan bosh sahifaga qaytganda qayta yo'naltirilmasin. -->
@@ -244,6 +244,7 @@
           : (req === "music") ? "music"
           : (req === "podcasts") ? "podcasts"
           : (req === "esport") ? "esport"
+          : (req === "boks") ? "boks"
           : (req === "news") ? "news"
           : (function() {
             try { return sessionStorage.getItem("ntv_section_splash") || "kino"; } catch(_) { return "kino"; }
@@ -254,9 +255,10 @@
           podcasts: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar__item-icon--podcasts podcast-icon" aria-hidden="true"><rect x="8" y="2" width="8" height="12" rx="4"></rect><circle cx="12" cy="5.2" r="0.9" fill="currentColor" stroke="none" style="fill:currentColor;stroke:none;"></circle><path d="M10.2 8h3.6" stroke-width="1.8"></path><circle cx="12" cy="10.8" r="0.9" fill="currentColor" stroke="none" style="fill:currentColor;stroke:none;"></circle><path d="M5 10v1.5a7 7 0 0 0 14 0V10"></path><line x1="12" y1="18.5" x2="12" y2="22"></line></svg>',
           fifa: '<img class="sidebar__item-img--fifa" src="/static/assets/futbol-ball.png" alt="" aria-hidden="true" width="44" height="44" style="object-fit:contain;display:block;">',
           esport: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M7 12h3"></path><path d="M8.5 10.5v3"></path><circle cx="16" cy="11" r="1"></circle><circle cx="18" cy="13.5" r="1"></circle></svg>',
-          news: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>'
+          news: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>',
+          boks: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 15.5V19a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-3.5"></path><path d="M8 15.5h9"></path><path d="M17 15.5c1.8-.9 3-2.8 3-5V8a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v1"></path><path d="M8 15.5c-1.8-.6-3-2.2-3-4.2A2.3 2.3 0 0 1 7.3 9H10a2 2 0 0 1 0 4H8"></path></svg>'
         };
-        var COLORS = { kino: "#e50914", music: "#8b5cff", podcasts: "#ff9800", fifa: "#00b894", esport: "#00cec9", news: "#2563eb" };
+        var COLORS = { kino: "#e50914", music: "#8b5cff", podcasts: "#ff9800", fifa: "#00b894", esport: "#00cec9", news: "#2563eb", boks: "#e0242f" };
         var logo = document.getElementById("sectionSplashLogo");
         var spin = document.getElementById("sectionSplashSpinner");
         if (logo && ICONS[splashKey]) logo.innerHTML = ICONS[splashKey];
@@ -347,6 +349,10 @@
           <line x1="12" y1="18.5" x2="12" y2="22"></line>
         </svg>
         <span data-i18n="tvNav">Potkastlar</span>
+      </button>
+      <button class="sidebar__item sidebar__item--top" type="button" id="sidebarBoksItem" data-sidebar-action="boks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 15.5V19a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-3.5"></path><path d="M8 15.5h9"></path><path d="M17 15.5c1.8-.9 3-2.8 3-5V8a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v1"></path><path d="M8 15.5c-1.8-.6-3-2.2-3-4.2A2.3 2.3 0 0 1 7.3 9H10a2 2 0 0 1 0 4H8"></path></svg>
+        <span>Boks</span>
       </button>
       <button class="sidebar__item sidebar__item--top sidebar__item--news" type="button" id="sidebarNewsItem" data-sidebar-action="news" hidden aria-hidden="true" style="display: none !important;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -833,6 +839,10 @@
 
       <div class="esport-view__spacer"></div>
     </section>
+
+    <!-- BOKS bo'limi — NTV × O'zbekiston Boks Federatsiyasi hamkorligi.
+         Ichki tuzilma boks/boks.js tomonidan chiziladi (lazy-load). -->
+    <section class="boks-view" id="boksView" hidden aria-label="Boks — O'zbekiston Boks Federatsiyasi"></section>
 
     <!-- Kategoriya placeholder -->
     <section class="coming-soon-view" id="categoryComingSoon" hidden>
@@ -1817,7 +1827,7 @@
     </div>
   </div>
 
-  <script src="/static/kino/kino.js?v=20261029-no-kicker"></script>
+  <script src="/static/kino/kino.js?v=20261029-boks-v2"></script>
   <script>
     (function preventPinchZoom() {
       document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });

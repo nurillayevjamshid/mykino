@@ -17,13 +17,14 @@ describe('News Section Archived & Inaccessibility Suite', () => {
     const js = fs.readFileSync(path.join(rootDir, 'webapp', 'kino', 'kino.js'), 'utf8');
 
     // slots array in syncSidebarSectionItems must NOT contain sidebarNewsItem
-    assert.match(js, /const slots = \[\s*document\.getElementById\("sidebarFifaItem"\),\s*document\.getElementById\("sidebarMusicItem"\),\s*document\.getElementById\("sidebarPodcastsItem"\),\s*\];/);
+    assert.match(js, /const slots = \[\s*document\.getElementById\("sidebarFifaItem"\),\s*document\.getElementById\("sidebarMusicItem"\),\s*document\.getElementById\("sidebarPodcastsItem"\),\s*document\.getElementById\("sidebarBoksItem"\),\s*\];/);
 
     // ORDER must not route to news in any active section
-    assert.match(js, /kino:\s*\["fifa",\s*"music",\s*"podcasts"\]/);
-    assert.match(js, /fifa:\s*\["kino",\s*"music",\s*"podcasts"\]/);
-    assert.match(js, /music:\s*\["kino",\s*"fifa",\s*"podcasts"\]/);
-    assert.match(js, /podcasts:\s*\["kino",\s*"fifa",\s*"music"\]/);
+    assert.match(js, /kino:\s*\["fifa",\s*"music",\s*"podcasts",\s*"boks"\]/);
+    assert.match(js, /fifa:\s*\["kino",\s*"music",\s*"podcasts",\s*"boks"\]/);
+    assert.match(js, /music:\s*\["kino",\s*"fifa",\s*"podcasts",\s*"boks"\]/);
+    assert.match(js, /podcasts:\s*\["kino",\s*"fifa",\s*"music",\s*"boks"\]/);
+    assert.match(js, /boks:\s*\["kino",\s*"fifa",\s*"music",\s*"podcasts"\]/);
 
     // action === "news" must not redirect to /news
     assert.doesNotMatch(js, /if\s*\(action === "news"\)[\s\S]*?window\.location\.href\s*=\s*["']\/news/);
