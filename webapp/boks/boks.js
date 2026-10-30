@@ -22,6 +22,8 @@
   if (!boksView) return;
 
   var DATA_URL = "/static/boks/boks.json";
+  // Header rasmi (boks.json -> banner; "" bo'lsa matnli hamkorlik kartasi chiqadi)
+  var DEFAULT_BANNER = "/static/assets/boks-header.jpg";
   var API_URL = "/api/boks";
   var MONTHS = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"];
 
@@ -236,6 +238,18 @@
     }).join("");
 
     var live = stream();
+    var livePill = live.id && live.isLive
+      ? '<button class="boks-live-pill" type="button" data-boks-tab="live"><span class="boks-live-pill__dot"></span>Jonli</button>'
+      : "";
+    var banner = String(base.banner == null ? DEFAULT_BANNER : base.banner).trim();
+    hero.classList.toggle("boks-hero--banner", Boolean(banner));
+    if (banner) {
+      // Futbol bo'limidagi kabi rasmli header
+      hero.innerHTML =
+        '<img class="boks-hero__img" src="' + esc(banner) + '" alt="O\'zbekiston boks terma jamoasi" decoding="async" fetchpriority="high">' +
+        livePill;
+      return;
+    }
     hero.innerHTML =
       '<div class="boks-collab" aria-label="NTV × ' + esc(name) + '">' +
       '<span class="boks-collab__ntv">NTV</span>' +
@@ -245,7 +259,7 @@
       "</div>" +
       '<div class="boks-hero__row">' +
       '<h2 class="boks-hero__title">Boks</h2>' +
-      (live.id && live.isLive ? '<button class="boks-live-pill" type="button" data-boks-tab="live"><span class="boks-live-pill__dot"></span>Jonli</button>' : "") +
+      livePill +
       "</div>" +
       (partner.about ? '<p class="boks-hero__about">' + esc(partner.about) + "</p>" : "") +
       (stats ? '<div class="boks-stats">' + stats + "</div>" : "");

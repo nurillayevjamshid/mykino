@@ -12415,7 +12415,7 @@ function ensureBoksCss() {
   __boksCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/boks/boks.css?v=20261030-boks-ui-v1";
+    link.href = "/static/boks/boks.css?v=20261030-boks-header-v1";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -12428,7 +12428,7 @@ function ensureBoksModule() {
   const cssPromise = ensureBoksCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/boks/boks.js?v=20261030-boks-ui-v1";
+    script.src = "/static/boks/boks.js?v=20261030-boks-header-v1";
     script.onload = () => resolve(window.__boks);
     script.onerror = (err) => { __boksModulePromise = null; reject(err); };
     document.head.appendChild(script);

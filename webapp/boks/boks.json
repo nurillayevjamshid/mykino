@@ -1,4 +1,5 @@
 {
+  "banner": "/static/assets/boks-header.jpg",
   "partner": {
     "name": "O'zbekiston Boks Federatsiyasi",
     "logo": "/static/assets/boks-federation-logo.png",
@@ -6,7 +7,13 @@
     "links": []
   },
   "stats": [
-    { "value": "5", "label": "Parij-2024 oltin medali" },
-    { "value": "1-o'rin", "label": "Olimpiada boks reytingida" }
+    {
+      "value": "5",
+      "label": "Parij-2024 oltin medali"
+    },
+    {
+      "value": "1-o'rin",
+      "label": "Olimpiada boks reytingida"
+    }
   ]
 }
