@@ -2186,10 +2186,19 @@ input[type="checkbox"], input[type="radio"] {
   grid-auto-flow: row dense;
   gap: 14px;
 }
+/* Har bir kartochka o'z rangi va rasmiga ega; umumiy qolip — sarlavha, ikonka, matn.
+   --tint fon, --fg matn, --fg-muted ikkinchi darajali matn, --ink urg'u rangi,
+   --chip ikonka doirachasi, --glow hover soyasi, --ring ichki chegara. */
 .hub-tile {
   --tint: var(--hub-card);
   --ink: var(--hub-ink);
+  --fg: var(--hub-ink);
+  --fg-muted: var(--hub-muted);
+  --chip: rgba(16, 24, 40, 0.06);
+  --glow: rgba(16, 24, 40, 0.16);
+  --ring: var(--hub-line);
   position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2200,13 +2209,13 @@ input[type="checkbox"], input[type="radio"] {
   border: 0;
   border-radius: 24px;
   background: var(--tint);
-  box-shadow: var(--hub-shadow), inset 0 0 0 1px var(--hub-line);
-  color: var(--hub-ink);
+  box-shadow: var(--hub-shadow), inset 0 0 0 1px var(--ring);
+  color: var(--fg);
   text-align: left;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
   /* backwards: animatsiya tugagach hover'dagi transform ishlay olsin */
-  animation: hubIn 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation: hubIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 .hub-tile:nth-child(2) { animation-delay: 0.04s; }
 .hub-tile:nth-child(3) { animation-delay: 0.08s; }
@@ -2214,193 +2223,552 @@ input[type="checkbox"], input[type="radio"] {
 .hub-tile:nth-child(5) { animation-delay: 0.16s; }
 .hub-tile:nth-child(6) { animation-delay: 0.2s; }
 .hub-tile:nth-child(n+7) { animation-delay: 0.24s; }
-.hub-tile:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(16, 24, 40, 0.12), inset 0 0 0 1px var(--hub-line); }
+.hub-tile:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -16px var(--glow), inset 0 0 0 1px var(--ring); }
 .hub-tile:active { transform: scale(0.985); }
 .hub-tile:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 
+/* Matn har doim bezak rasmlari ustida turadi */
+.hub-tile__head, .hub-tile__text { position: relative; z-index: 2; }
 .hub-tile__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .hub-tile__label {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--fg);
   font-size: var(--fs-sm);
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.hub-tile__glyph { display: inline-flex; color: var(--ink); }
-.hub-tile__glyph svg { width: 22px; height: 22px; }
-.hub-tile__text { display: flex; align-items: center; gap: 6px; color: var(--hub-muted); font-size: var(--fs-sm); line-height: 1.4; }
+.hub-tile__glyph {
+  display: grid;
+  flex: 0 0 34px;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--fg);
+  transition: transform 0.3s ease;
+}
+.hub-tile__glyph svg { width: 18px; height: 18px; }
+.hub-tile:hover .hub-tile__glyph { transform: rotate(-10deg) scale(1.08); }
+.hub-tile__text { display: flex; align-items: center; gap: 6px; color: var(--fg-muted); font-size: var(--fs-sm); line-height: 1.4; }
 .hub-tile__badge {
   padding: 2px 8px;
   border-radius: var(--radius-pill);
-  background: var(--primary);
-  color: #ffffff;
+  background: #ffffff;
+  color: #4f46e5;
   font-size: 10px;
   letter-spacing: 0.04em;
 }
 
-/* Kinolar — 2×2 */
-.hub-tile--movies { grid-column: span 2; grid-row: span 2; flex-direction: row; justify-content: flex-start; gap: 18px; padding: 16px; }
+/* Kinolar — 2×2, kino zali: eng yangi kino posteri xiralashib fonga aylanadi */
+.hub-tile--movies {
+  --tint: radial-gradient(90% 80% at 0% 0%, #4a1d2e 0%, transparent 60%), radial-gradient(80% 80% at 100% 100%, #3b2a10 0%, transparent 60%), #0e0f16;
+  --fg: #ffffff;
+  --fg-muted: rgba(255, 255, 255, 0.68);
+  --ink: #fbbf24;
+  --glow: rgba(251, 146, 60, 0.45);
+  --ring: rgba(255, 255, 255, 0.08);
+  grid-column: span 2;
+  grid-row: span 2;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 18px;
+  padding: 16px;
+}
+.hub-movies__backdrop {
+  position: absolute;
+  top: -40px;
+  left: -40px;
+  z-index: 0;
+  width: calc(100% + 80px);
+  height: calc(100% + 80px);
+  object-fit: cover;
+  filter: blur(38px) saturate(1.5) brightness(0.55);
+}
+.hub-tile--movies::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(90deg, rgba(14, 15, 22, 0.1) 0%, rgba(14, 15, 22, 0.55) 55%, rgba(14, 15, 22, 0.8) 100%);
+}
 .hub-movies__poster {
   position: relative;
+  z-index: 1;
   flex: 0 0 44%;
   overflow: hidden;
   border-radius: 18px;
   background: linear-gradient(160deg, #2b2f3a, #0f1117);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 .hub-movies__poster img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
-.hub-tile--movies:hover .hub-movies__poster img { transform: scale(1.04); }
-.hub-movies__play {
-  position: absolute;
-  bottom: 14px;
-  left: 50%;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
-  color: #1d1d1f;
-  transform: translateX(-50%);
-  backdrop-filter: blur(6px);
-}
-.hub-movies__play svg { width: 16px; height: 16px; margin-left: 2px; }
-.hub-movies__info { display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 0; padding: 6px 2px; }
-.hub-movies__info .hub-tile__label { color: var(--hub-muted); font-weight: 700; }
-.hub-movies__title {
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  text-transform: uppercase;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.hub-movies__recent-label { margin-top: auto; color: var(--hub-muted); font-size: var(--fs-sm); font-weight: 600; }
-.hub-movies__recent { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.hub-movies__recent img { width: 100%; aspect-ratio: 2 / 3; border-radius: 10px; object-fit: cover; background: var(--bg-elevated); }
-
-/* Bosh sahifa — mini ilova bosh ekrani */
-.hub-tile--home { --tint: linear-gradient(135deg, #eef0fe 0%, #f4ecfe 100%); --ink: var(--primary); grid-column: span 2; }
-.hub-home__art {
-  position: absolute;
-  top: 18px;
-  right: 22px;
-  display: grid;
-  grid-template-columns: repeat(2, 30px);
-  grid-auto-rows: 20px;
-  gap: 5px;
-  padding: 9px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 8px 20px rgba(84, 104, 232, 0.16);
-  transform: rotate(-6deg) translateY(14px);
-  transition: transform 0.3s ease;
-}
-.hub-home__art i { border-radius: 6px; background: rgba(84, 104, 232, 0.25); }
-.hub-home__art i:first-child { grid-column: span 2; grid-row: span 2; background: var(--primary); }
-.hub-home__art i:nth-child(2) { grid-column: span 2; background: rgba(84, 104, 232, 0.45); }
-.hub-tile--home:hover .hub-home__art { transform: rotate(-2deg) translateY(10px) scale(1.04); }
-.hub-tile--home .hub-tile__glyph { display: none; }
-.hub-tile--home .hub-tile__text { max-width: 60%; color: var(--text-secondary); }
-
-/* Futbol — keng yashil */
-.hub-tile--fifa { --tint: #e3f2e7; --ink: #15803d; grid-column: span 2; }
-.hub-tile--fifa::after {
-  content: "";
-  position: absolute;
-  right: -40px;
-  bottom: -40px;
-  width: 150px;
-  height: 150px;
-  border: 2px solid rgba(21, 128, 61, 0.14);
-  border-radius: 50%;
-}
-.hub-fifa__line { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-.hub-fifa__line i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); opacity: 0.5; }
-
-/* Boks — oq, chiziqli qo'lqoplar */
-.hub-tile--boks { --ink: #e0242f; }
-.hub-boks__art { display: grid; flex: 1; place-items: center; color: var(--hub-ink); }
-.hub-boks__art svg { width: 76px; height: 76px; transition: transform 0.3s ease; }
-.hub-tile--boks:hover .hub-boks__art svg { transform: rotate(-6deg) scale(1.05); }
-
-/* Musiqa — shaftoli, aylanuvchi halqa */
-.hub-tile--music { --tint: linear-gradient(160deg, #fdeee4 0%, #f4e8fb 100%); --ink: #1d1d1f; }
-.hub-music__art { position: absolute; top: 50%; right: 18px; display: grid; place-items: center; width: 74px; height: 74px; transform: translateY(-50%); }
-.hub-music__art::before {
+.hub-tile--movies:hover .hub-movies__poster img { transform: scale(1.05); }
+.hub-movies__poster::after {
   content: "";
   position: absolute;
   inset: 0;
-  border: 2px dashed rgba(29, 29, 31, 0.28);
-  border-radius: 50%;
-  animation: hubSpin 14s linear infinite;
+  background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
 }
-.hub-music__art span { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 255, 255, 0.75); box-shadow: 0 6px 16px rgba(194, 65, 12, 0.15); }
-.hub-music__art svg { width: 18px; height: 18px; margin-left: 2px; }
+.hub-movies__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: #e11d48;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgba(225, 29, 72, 0.45);
+}
+.hub-movies__play {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0e0f16;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease;
+}
+.hub-movies__play svg { width: 17px; height: 17px; margin-left: 2px; }
+.hub-tile--movies:hover .hub-movies__play { transform: scale(1.1); }
+.hub-movies__info { position: relative; z-index: 1; display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 0; padding: 4px 2px; }
+.hub-movies__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.hub-movies__count {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: #1c1917;
+  font-size: var(--fs-xs);
+  font-weight: 800;
+}
+.hub-movies__eyebrow { color: var(--ink); font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.hub-movies__title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.hub-movies__recent-label { margin-top: auto; color: var(--fg-muted); font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.hub-movies__info > * { flex-shrink: 0; }
+/* Postelar qatori qolgan joyni egallaydi — sarlavha hech qachon siqilmaydi */
+.hub-movies__info > .hub-movies__recent { display: grid; flex: 1 1 0; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); gap: 8px; min-height: 0; max-height: 200px; }
+.hub-movies__recent img {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 20px -6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease;
+}
+.hub-tile--movies:hover .hub-movies__recent img { transform: translateY(-3px); }
+.hub-tile--movies:hover .hub-movies__recent img:nth-child(2) { transition-delay: 0.04s; }
+.hub-tile--movies:hover .hub-movies__recent img:nth-child(3) { transition-delay: 0.08s; }
+.hub-tile--movies:hover .hub-movies__recent img:nth-child(4) { transition-delay: 0.12s; }
 
-/* Obunachilar — keng, raqam bilan */
-.hub-tile--users { --ink: var(--primary); grid-column: span 2; }
-.hub-users__art { display: flex; align-items: center; gap: 14px; }
+/* Bosh sahifa — yorqin indigo, qiyshaygan telefon maketi */
+.hub-tile--home {
+  --tint: radial-gradient(60% 90% at 90% 0%, rgba(255, 255, 255, 0.28), transparent 60%), linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #c026d3 100%);
+  --fg: #ffffff;
+  --fg-muted: rgba(255, 255, 255, 0.82);
+  --chip: rgba(255, 255, 255, 0.18);
+  --glow: rgba(124, 58, 237, 0.55);
+  --ring: rgba(255, 255, 255, 0.12);
+  grid-column: span 2;
+}
+.hub-home__art {
+  position: absolute;
+  top: 16px;
+  right: 26px;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 32px);
+  grid-auto-rows: 20px;
+  gap: 5px;
+  padding: 16px 9px 9px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 20px 40px -10px rgba(30, 10, 80, 0.55), 0 0 0 4px rgba(255, 255, 255, 0.25);
+  transform: rotate(-8deg) translateY(18px);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hub-home__art::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  background: #e0e7ff;
+  transform: translateX(-50%);
+}
+.hub-home__art i { border-radius: 6px; background: #e0e7ff; }
+.hub-home__art i:first-child { grid-column: span 2; grid-row: span 2; background: linear-gradient(135deg, #6366f1, #a855f7); }
+.hub-home__art i:nth-child(2) { grid-column: span 2; background: #c7d2fe; }
+.hub-tile--home:hover .hub-home__art { transform: rotate(-3deg) translateY(10px) scale(1.05); }
+.hub-tile--home .hub-tile__glyph { display: none; }
+.hub-tile--home .hub-tile__text { max-width: 60%; }
+
+/* Futbol — chiziqlari bilan maydon */
+.hub-tile--fifa {
+  --tint: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 34px, transparent 34px 68px), linear-gradient(135deg, #16a34a 0%, #0f6b32 100%);
+  --fg: #ffffff;
+  --fg-muted: rgba(255, 255, 255, 0.82);
+  --chip: rgba(255, 255, 255, 0.18);
+  --ink: #bbf7d0;
+  --glow: rgba(22, 163, 74, 0.5);
+  --ring: rgba(255, 255, 255, 0.1);
+  grid-column: span 2;
+}
+.hub-tile--fifa .hub-tile__glyph { display: none; }
+.hub-fifa__pitch {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 0;
+  width: 44%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-radius: 4px;
+}
+.hub-fifa__pitch::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -32px;
+  width: 60px;
+  height: 60px;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+.hub-fifa__pitch::after {
+  content: "";
+  position: absolute;
+  top: 24%;
+  right: -2px;
+  width: 26%;
+  height: 52%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-right: 0;
+}
+.hub-fifa__pitch i {
+  position: absolute;
+  top: 50%;
+  left: 18%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transform: translateY(-50%);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hub-tile--fifa:hover .hub-fifa__pitch i { transform: translate(140%, -50%); }
+.hub-fifa__line { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.18); }
+.hub-fifa__line i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+
+/* Boks — tungi ring, qizil arqonlar va oq qo'lqoplar */
+.hub-tile--boks {
+  --tint: radial-gradient(110% 80% at 50% 115%, #991b1b 0%, transparent 62%), linear-gradient(160deg, #1f1b1a 0%, #0c0a09 100%);
+  --fg: #ffffff;
+  --fg-muted: rgba(255, 255, 255, 0.7);
+  --ink: #ef4444;
+  --glow: rgba(220, 38, 38, 0.5);
+  --ring: rgba(255, 255, 255, 0.08);
+}
+.hub-boks__ropes { position: absolute; top: 38%; right: 0; left: 0; z-index: 0; display: grid; gap: 13px; }
+.hub-boks__ropes i { height: 3px; background: linear-gradient(90deg, transparent, var(--ink) 15%, var(--ink) 85%, transparent); opacity: 0.75; }
+.hub-boks__ropes i:nth-child(2) { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55) 15%, rgba(255, 255, 255, 0.55) 85%, transparent); }
+.hub-boks__art { position: relative; z-index: 1; display: grid; flex: 1; place-items: center; color: #ffffff; }
+.hub-boks__art svg { width: 76px; height: 76px; filter: drop-shadow(0 8px 18px rgba(239, 68, 68, 0.6)); transition: transform 0.3s ease; }
+.hub-tile--boks:hover .hub-boks__art svg { transform: rotate(-8deg) scale(1.08); }
+
+/* Musiqa — marjon rang, aylanuvchi vinil plastinka */
+.hub-tile--music {
+  --tint: radial-gradient(70% 70% at 0% 0%, rgba(255, 255, 255, 0.25), transparent 60%), linear-gradient(150deg, #fb7185 0%, #f97316 100%);
+  --fg: #ffffff;
+  --fg-muted: rgba(255, 255, 255, 0.88);
+  --glow: rgba(249, 115, 22, 0.5);
+  --ring: rgba(255, 255, 255, 0.14);
+}
+.hub-tile--music .hub-tile__glyph { display: none; }
+.hub-music__vinyl {
+  position: absolute;
+  top: 50%;
+  right: -30px;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 40deg, transparent 0 18%, rgba(255, 255, 255, 0.16) 24%, transparent 30% 68%, rgba(255, 255, 255, 0.1) 74%, transparent 80%),
+    repeating-radial-gradient(circle, #141414 0 2px, #222222 2px 4px);
+  box-shadow: 0 16px 30px -8px rgba(124, 45, 18, 0.6);
+  transform: translateY(-50%);
+  transition: right 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hub-music__vinyl i {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: conic-gradient(#fde68a 0 25%, #fb7185 25% 50%, #fde68a 50% 75%, #fb7185 75%);
+  animation: hubSpin 4s linear infinite;
+}
+.hub-music__vinyl i::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #141414;
+  transform: translate(-50%, -50%);
+}
+.hub-tile--music:hover .hub-music__vinyl { right: -18px; }
+
+/* Obunachilar — toza oq, nuqtali to'r va o'sish ustunlari */
+.hub-tile--users {
+  --tint: radial-gradient(circle, rgba(84, 104, 232, 0.16) 1px, transparent 1.6px) 0 0 / 16px 16px, var(--hub-card);
+  --ink: var(--primary);
+  --chip: var(--primary-soft);
+  --glow: rgba(84, 104, 232, 0.35);
+  grid-column: span 2;
+}
+.hub-tile--users .hub-tile__glyph { color: var(--primary); }
+.hub-tile--users .hub-tile__text { max-width: 60%; }
+.hub-users__art { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; }
 .hub-users__faces { display: flex; }
 .hub-users__faces i { width: 38px; height: 38px; margin-left: -10px; border-radius: 50%; box-shadow: 0 0 0 3px var(--hub-card); }
 .hub-users__faces i:first-child { margin-left: 0; background: linear-gradient(135deg, #a5b4fc, #818cf8); }
 .hub-users__faces i:nth-child(2) { background: linear-gradient(135deg, #fdba74, #fb7185); }
 .hub-users__faces i:nth-child(3) { background: linear-gradient(135deg, #86efac, #22c55e); }
 .hub-users__faces i:nth-child(4) { background: linear-gradient(135deg, #f0abfc, #c084fc); }
-.hub-users__count { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; }
+.hub-users__count { color: var(--primary); font-size: 32px; font-weight: 800; letter-spacing: -0.03em; }
+.hub-users__bars { position: absolute; right: 20px; bottom: 18px; z-index: 0; display: flex; align-items: flex-end; gap: 6px; height: 46%; }
+.hub-users__bars i {
+  width: 10px;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(180deg, var(--primary), rgba(84, 104, 232, 0.25));
+  transform-origin: bottom;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hub-users__bars i:nth-child(1) { height: 28%; opacity: 0.45; }
+.hub-users__bars i:nth-child(2) { height: 40%; opacity: 0.55; }
+.hub-users__bars i:nth-child(3) { height: 34%; opacity: 0.6; }
+.hub-users__bars i:nth-child(4) { height: 56%; opacity: 0.7; }
+.hub-users__bars i:nth-child(5) { height: 66%; opacity: 0.8; }
+.hub-users__bars i:nth-child(6) { height: 80%; opacity: 0.9; }
+.hub-users__bars i:nth-child(7) { height: 100%; }
+.hub-tile--users:hover .hub-users__bars i { transform: scaleY(1.12); }
 
-/* Potkastlar — lavanda, to'lqin */
-.hub-tile--podcasts { --tint: #ebe8fb; --ink: #1d1d1f; }
-.hub-wave { display: flex; flex: 1; align-items: center; justify-content: center; gap: 3px; }
-.hub-wave i { width: 3px; height: 30%; border-radius: 3px; background: var(--ink); opacity: 0.75; transform-origin: center; animation: hubWave 1.6s ease-in-out infinite; }
+/* Potkastlar — to'q binafsha studiya, neon to'lqin va "efirda" nuqtasi */
+.hub-tile--podcasts {
+  --tint: radial-gradient(90% 70% at 50% 60%, rgba(168, 85, 247, 0.4), transparent 70%), linear-gradient(160deg, #3b0764 0%, #1e1b4b 100%);
+  --fg: #ffffff;
+  --fg-muted: rgba(255, 255, 255, 0.72);
+  --chip: rgba(255, 255, 255, 0.14);
+  --ink: #e9d5ff;
+  --glow: rgba(147, 51, 234, 0.55);
+  --ring: rgba(255, 255, 255, 0.08);
+}
+.hub-tile--podcasts .hub-tile__label::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f43f5e;
+  box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.6);
+  animation: hubPulse 1.8s ease-out infinite;
+}
+.hub-wave { position: relative; z-index: 1; display: flex; flex: 1; align-items: center; justify-content: center; gap: 3px; }
+.hub-wave i {
+  width: 3px;
+  height: 30%;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #f0abfc, #a78bfa);
+  box-shadow: 0 0 8px rgba(216, 180, 254, 0.55);
+  transform-origin: center;
+  animation: hubWave 1.6s ease-in-out infinite;
+}
 .hub-wave i:nth-child(3n) { height: 55%; animation-delay: -0.4s; }
 .hub-wave i:nth-child(4n) { height: 75%; animation-delay: -0.8s; }
 .hub-wave i:nth-child(5n) { height: 40%; animation-delay: -1.1s; }
 .hub-wave i:nth-child(7n) { height: 90%; animation-delay: -0.2s; }
-.hub-wave i:nth-child(2n + 1) { opacity: 0.45; }
+.hub-wave i:nth-child(2n + 1) { opacity: 0.55; }
 
-/* Reklama — sariq, e'lon chiziqlari */
-.hub-tile--ad { --tint: #fdf4dc; --ink: #b45309; }
-.hub-ad__art { display: flex; flex: 1; flex-direction: column; justify-content: center; gap: 7px; }
-.hub-ad__art i { height: 8px; border-radius: 4px; background: rgba(180, 83, 9, 0.22); }
-.hub-ad__art i:first-child { width: 80%; background: rgba(180, 83, 9, 0.45); }
-.hub-ad__art i:nth-child(2) { width: 60%; }
-.hub-ad__art i:nth-child(3) { width: 40%; }
+/* Reklama — quyoshli sariq, qiyshiq banner namunasi */
+.hub-tile--ad {
+  --tint: radial-gradient(70% 70% at 100% 0%, rgba(255, 255, 255, 0.4), transparent 60%), linear-gradient(150deg, #fde047 0%, #facc15 45%, #f59e0b 100%);
+  --fg: #1c1917;
+  --fg-muted: rgba(28, 25, 23, 0.72);
+  --chip: rgba(28, 25, 23, 0.1);
+  --glow: rgba(245, 158, 11, 0.55);
+  --ring: rgba(28, 25, 23, 0.06);
+}
+.hub-ad__art {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 6px 10px;
+  align-items: center;
+  align-self: flex-start;
+  width: 82%;
+  padding: 10px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 14px 28px -10px rgba(120, 53, 15, 0.45);
+  transform: rotate(-4deg);
+  transition: transform 0.3s ease;
+}
+.hub-ad__art b {
+  display: grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #1c1917;
+  color: #facc15;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+.hub-ad__art i { height: 7px; border-radius: 4px; background: #e7e5e4; }
+.hub-ad__art i:first-of-type { width: 90%; background: #a8a29e; }
+.hub-ad__art i:last-of-type { width: 60%; }
+.hub-tile--ad:hover .hub-ad__art { transform: rotate(0deg) scale(1.03); }
 
-/* Kibersport va TV — katta ingichka ikonka */
-.hub-tile--esports { --tint: #f1e8fd; --ink: #7c3aed; }
-.hub-tile--tv { --tint: #fdeee2; --ink: #c2410c; }
-.hub-big-icon { position: absolute; right: -10px; bottom: -14px; color: var(--ink); opacity: 0.18; transition: transform 0.3s ease, opacity 0.3s ease; }
+/* Kibersport — tungi neon, perspektivali to'r */
+.hub-tile--esports {
+  --tint: radial-gradient(80% 70% at 100% 100%, rgba(236, 72, 153, 0.5), transparent 60%), radial-gradient(70% 60% at 0% 0%, rgba(34, 211, 238, 0.35), transparent 60%), #0b1026;
+  --fg: #ffffff;
+  --fg-muted: rgba(255, 255, 255, 0.72);
+  --chip: rgba(255, 255, 255, 0.12);
+  --ink: #22d3ee;
+  --glow: rgba(236, 72, 153, 0.5);
+  --ring: rgba(255, 255, 255, 0.08);
+}
+.hub-esports__grid {
+  position: absolute;
+  right: -30%;
+  bottom: -18%;
+  left: -30%;
+  z-index: 0;
+  height: 70%;
+  background:
+    linear-gradient(rgba(34, 211, 238, 0.5) 1px, transparent 1px) 0 0 / 100% 14px,
+    linear-gradient(90deg, rgba(34, 211, 238, 0.5) 1px, transparent 1px) 0 0 / 22px 100%;
+  transform: perspective(160px) rotateX(55deg);
+  transform-origin: bottom;
+  -webkit-mask-image: linear-gradient(transparent, #000 70%);
+  mask-image: linear-gradient(transparent, #000 70%);
+}
+.hub-big-icon { position: absolute; right: -10px; bottom: -14px; z-index: 0; color: var(--ink); opacity: 0.18; transition: transform 0.3s ease, opacity 0.3s ease; }
 .hub-big-icon svg { width: 110px; height: 110px; }
 .hub-tile:hover .hub-big-icon { opacity: 0.28; transform: rotate(-8deg); }
+.hub-tile--esports .hub-big-icon { right: 8px; bottom: 22px; color: #f5d0fe; opacity: 0.85; filter: drop-shadow(0 0 10px rgba(240, 171, 252, 0.8)); }
+.hub-tile--esports .hub-big-icon svg { width: 72px; height: 72px; }
+.hub-tile--esports:hover .hub-big-icon { opacity: 1; transform: rotate(-8deg) scale(1.06); }
 
-/* Tungi rejim — pastel o'rniga to'q tuslar */
-[data-theme="dark"] .hub-tile--home { --tint: linear-gradient(135deg, #222a55 0%, #2d2350 100%); --ink: #a5b4fc; }
-[data-theme="dark"] .hub-tile--home .hub-tile__text { color: var(--hub-muted); }
-[data-theme="dark"] .hub-home__art { background: rgba(255, 255, 255, 0.08); }
-[data-theme="dark"] .hub-tile--fifa { --tint: #12291c; --ink: #4ade80; }
-[data-theme="dark"] .hub-tile--boks { --ink: #f87171; }
-[data-theme="dark"] .hub-tile--music { --tint: linear-gradient(160deg, #2c1d16 0%, #2a1b33 100%); --ink: #fdba74; }
-[data-theme="dark"] .hub-music__art::before { border-color: rgba(255, 255, 255, 0.25); }
-[data-theme="dark"] .hub-music__art span { background: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .hub-tile--podcasts { --tint: #1f1c3a; --ink: #c4b5fd; }
-[data-theme="dark"] .hub-tile--ad { --tint: #2b2310; --ink: #fbbf24; }
-[data-theme="dark"] .hub-ad__art i { background: rgba(251, 191, 36, 0.2); }
-[data-theme="dark"] .hub-ad__art i:first-child { background: rgba(251, 191, 36, 0.4); }
-[data-theme="dark"] .hub-tile--esports { --tint: #241a3a; --ink: #c084fc; }
-[data-theme="dark"] .hub-tile--tv { --tint: #2d1e14; --ink: #fb923c; }
+/* TV kanallar — iliq krem, rangli sozlash chiziqlari tushgan ekran */
+.hub-tile--tv {
+  --tint: radial-gradient(80% 80% at 100% 100%, rgba(251, 146, 60, 0.3), transparent 60%), linear-gradient(160deg, #fff7ed 0%, #ffedd5 100%);
+  --fg: #431407;
+  --fg-muted: rgba(67, 20, 7, 0.68);
+  --ink: #ea580c;
+  --glow: rgba(234, 88, 12, 0.4);
+  --ring: rgba(234, 88, 12, 0.12);
+}
+.hub-tile--tv .hub-tile__glyph { display: none; }
+.hub-tv__screen {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  z-index: 1;
+  display: flex;
+  width: 44%;
+  max-width: 120px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 5px solid #292524;
+  border-radius: 12px;
+  background: #292524;
+  box-shadow: 0 14px 26px -10px rgba(67, 20, 7, 0.55);
+  transform: translateY(-58%) rotate(3deg);
+  transition: transform 0.3s ease;
+}
+.hub-tv__screen i { flex: 1; }
+.hub-tv__screen i:nth-of-type(1) { background: #d4d4d4; }
+.hub-tv__screen i:nth-of-type(2) { background: #facc15; }
+.hub-tv__screen i:nth-of-type(3) { background: #22d3ee; }
+.hub-tv__screen i:nth-of-type(4) { background: #22c55e; }
+.hub-tv__screen i:nth-of-type(5) { background: #d946ef; }
+.hub-tv__screen i:nth-of-type(6) { background: #ef4444; }
+.hub-tv__screen i:nth-of-type(7) { background: #3b82f6; }
+.hub-tv__screen b {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.hub-tile--tv:hover .hub-tv__screen { transform: translateY(-58%) rotate(0deg) scale(1.05); }
+.hub-tile--tv .hub-tile__text { max-width: 52%; }
+
+/* Tungi rejim — yorqin kartochkalar o'z rangini saqlaydi, faqat ochiqlari to'qlashadi */
+[data-theme="dark"] .hub-tile--users { --tint: radial-gradient(circle, rgba(129, 140, 248, 0.16) 1px, transparent 1.6px) 0 0 / 16px 16px, var(--hub-card); --glow: rgba(0, 0, 0, 0.5); }
+[data-theme="dark"] .hub-tile--users .hub-tile__glyph, [data-theme="dark"] .hub-users__count { color: #a5b4fc; }
+[data-theme="dark"] .hub-tile--ad { --tint: radial-gradient(70% 70% at 100% 0%, rgba(255, 255, 255, 0.2), transparent 60%), linear-gradient(150deg, #eab308 0%, #d97706 100%); }
+[data-theme="dark"] .hub-tile--tv {
+  --tint: radial-gradient(80% 80% at 100% 100%, rgba(234, 88, 12, 0.35), transparent 60%), linear-gradient(160deg, #2a1a10 0%, #1c120b 100%);
+  --fg: #fff7ed;
+  --fg-muted: rgba(255, 237, 213, 0.7);
+  --glow: rgba(234, 88, 12, 0.45);
+  --ring: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .hub-tv__screen { border-color: #0c0a09; background: #0c0a09; }
 
 @keyframes hubIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes hubSpin { to { transform: rotate(360deg); } }
 @keyframes hubWave { 50% { transform: scaleY(0.45); } }
+@keyframes hubPulse { 70% { box-shadow: 0 0 0 7px rgba(244, 63, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); } }
 
 @media (max-width: 1100px) {
   .hub-grid { grid-auto-rows: 164px; }
-  .hub-movies__title { font-size: 20px; }
+  .hub-movies__title { font-size: 22px; }
 }
 @media (max-width: 760px) {
   .hub-hero { margin-bottom: 16px; }
@@ -2408,22 +2776,39 @@ input[type="checkbox"], input[type="radio"] {
   .hub-hero__title { font-size: 34px; }
   .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 150px; gap: 10px; }
   .hub-tile { padding: 14px; border-radius: 22px; }
+  .hub-tile__glyph { flex-basis: 30px; width: 30px; height: 30px; }
+  .hub-tile__glyph svg { width: 16px; height: 16px; }
   .hub-tile--movies { gap: 14px; padding: 12px; }
-  .hub-movies__title { font-size: 18px; }
-  .hub-movies__recent { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .hub-movies__badge { top: 9px; left: 9px; }
+  .hub-movies__play { bottom: 10px; left: 10px; width: 36px; height: 36px; }
+  .hub-movies__title { font-size: 19px; }
+  .hub-movies__info > .hub-movies__recent { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .hub-movies__recent img:nth-child(4) { display: none; }
   .hub-tile__label { font-size: var(--fs-xs); }
   .hub-tile__text { font-size: var(--fs-xs); }
   .hub-tile--home .hub-tile__text { max-width: 58%; }
   .hub-fifa__line { font-size: 21px; gap: 9px; }
-  .hub-boks__art svg { width: 60px; height: 60px; }
-  .hub-music__art { position: relative; top: auto; right: auto; align-self: center; transform: none; width: 64px; height: 64px; }
-  .hub-music__art span { width: 44px; height: 44px; }
+  .hub-fifa__pitch { width: 40%; }
+  .hub-boks__art svg { width: 58px; height: 58px; }
+  .hub-boks__ropes { gap: 10px; }
+  .hub-music__vinyl { right: -34px; width: 100px; height: 100px; }
+  .hub-music__vinyl i { width: 34px; height: 34px; }
+  .hub-tile--music:hover .hub-music__vinyl { right: -26px; }
+  .hub-tile--music .hub-tile__text { max-width: 64%; }
   .hub-users__count { font-size: 26px; }
+  .hub-users__bars { right: 14px; bottom: 14px; gap: 4px; }
+  .hub-users__bars i { width: 8px; }
+  .hub-ad__art { width: 100%; padding: 8px; gap: 5px 8px; }
+  .hub-ad__art b { width: 28px; height: 28px; font-size: 10px; }
+  .hub-tile--esports .hub-big-icon { right: 4px; bottom: 26px; }
+  .hub-tile--esports .hub-big-icon svg { width: 56px; height: 56px; }
+  .hub-tv__screen { right: 12px; border-width: 4px; border-radius: 10px; }
+  .hub-tile--tv .hub-tile__text { max-width: 50%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hub-tile, .hub-music__art::before, .hub-wave i { animation: none; }
-  .hub-tile, .hub-home__art, .hub-big-icon, .hub-boks__art svg, .hub-movies__poster img { transition: none; }
+  .hub-tile, .hub-music__vinyl i, .hub-wave i, .hub-tile--podcasts .hub-tile__label::after { animation: none; }
+  .hub-tile, .hub-tile__glyph, .hub-home__art, .hub-big-icon, .hub-boks__art svg, .hub-movies__poster img, .hub-movies__play,
+  .hub-movies__recent img, .hub-fifa__pitch i, .hub-music__vinyl, .hub-users__bars i, .hub-ad__art, .hub-tv__screen { transition: none; }
 }
 
 /* ==========================================================================

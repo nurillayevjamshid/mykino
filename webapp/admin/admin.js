@@ -568,18 +568,28 @@ function renderHubStats() {
 
   // Drive ro'yxati eng yangi o'zgartirilgan fayldan boshlanadi.
   const [latest, ...rest] = movies;
-  const poster = document.getElementById('hubMoviePoster');
-  if (poster) {
-    poster.hidden = !latest?.poster;
+  // Asosiy poster va uning xiralashtirilgan foni (kartochka shu kino ranglarini oladi).
+  ['hubMoviePoster', 'hubMovieBackdrop'].forEach(id => {
+    const img = document.getElementById(id);
+    if (!img) return;
+    img.hidden = !latest?.poster;
     if (latest?.poster) {
-      poster.src = proxiedPoster(latest.poster);
-      poster.onerror = () => retryPoster(poster);
+      img.src = proxiedPoster(latest.poster);
+      img.onerror = () => retryPoster(img);
     }
+  });
+  const count = document.getElementById('hubMovieCount');
+  if (count) {
+    count.hidden = !movies.length;
+    count.textContent = `${movies.length.toLocaleString('ru-RU')} ta`;
   }
   const title = document.getElementById('hubMovieTitle');
   if (title) title.textContent = latest ? latest.name : 'Kinolar va seriallar';
   const meta = document.getElementById('hubMovieMeta');
-  if (meta) meta.textContent = movies.length ? `${movies.length} ta kino · seriallar va kategoriyalar` : 'Kinolar, seriallar va kategoriyalar';
+  if (meta) {
+    const parts = latest ? [latest.category, latest.year, latest.quality].filter(Boolean) : [];
+    meta.textContent = parts.length ? parts.join(' · ') : 'Kinolar, seriallar va kategoriyalar';
+  }
   const recent = document.getElementById('hubMovieRecent');
   if (recent) {
     recent.innerHTML = rest.filter(m => m.poster).slice(0, 4).map(m =>
