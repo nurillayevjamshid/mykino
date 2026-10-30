@@ -373,20 +373,26 @@ function safeCompareStrings(a, b) {
   return eq && bufA.length === bufB.length;
 }
 
+// Repo ochiq — parol va sessiya kaliti faqat env'dan olinadi, kodda hech
+// qanday zaxira qiymat bo'lmasligi kerak (aks holda har kim admin bo'ladi).
+// ADMIN_SESSION_SECRET berilmagan bo'lsa, kalit ADMIN_PASSWORD'dan hosil
+// qilinadi: parol almashsa, eski sessiyalar ham bekor bo'ladi.
 function getAdminSecret() {
-  return String(process.env.ADMIN_SESSION_SECRET || "jamnr-session-secret-salt-2026-ntv-secure").trim();
+  const explicit = String(process.env.ADMIN_SESSION_SECRET || "").trim();
+  if (explicit) return explicit;
+  const password = getRequiredAdminPassword();
+  if (!password) return "";
+  return crypto.createHash("sha256").update(`mykino-admin-session:${password}`).digest("hex");
 }
 
 function getRequiredAdminPassword() {
-  return "jamnr";
+  return String(process.env.ADMIN_PASSWORD || "").trim();
 }
 
 function safeCompareAdminPassword(input) {
   if (!input) return false;
-  if (safeCompareStrings(input, "jamnr")) return true;
-  const envPass = String(process.env.ADMIN_PASSWORD || "").trim();
-  if (envPass && safeCompareStrings(input, envPass)) return true;
-  return false;
+  const envPass = getRequiredAdminPassword();
+  return Boolean(envPass) && safeCompareStrings(input, envPass);
 }
 
 function signAdminSession(ttlSec = ADMIN_SESSION_TTL_SEC) {

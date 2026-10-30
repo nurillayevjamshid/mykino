@@ -4,7 +4,7 @@ const crypto = require("node:crypto");
 const { createMockReq, createMockRes } = require("../helpers/mock-http");
 
 const TEST_BOT_TOKEN = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ_test_token";
-const TEST_ADMIN_PASSWORD = "jamnr";
+const TEST_ADMIN_PASSWORD = "test-admin-password";
 
 function createValidInitData(userObj, botToken = TEST_BOT_TOKEN, authDate = Math.floor(Date.now() / 1000)) {
   const params = {
@@ -31,6 +31,7 @@ function createValidInitData(userObj, botToken = TEST_BOT_TOKEN, authDate = Math
 describe("Security Audit & Protection Suite", () => {
   let prevBotToken;
   let prevRedisUrl;
+  let prevAdminPassword;
   let authLib;
   let categoriesHandler;
   let settingsHandler;
@@ -42,7 +43,9 @@ describe("Security Audit & Protection Suite", () => {
   beforeEach(() => {
     prevBotToken = process.env.BOT_TOKEN;
     prevRedisUrl = process.env.REDIS_URL;
+    prevAdminPassword = process.env.ADMIN_PASSWORD;
     process.env.BOT_TOKEN = TEST_BOT_TOKEN;
+    process.env.ADMIN_PASSWORD = TEST_ADMIN_PASSWORD;
     delete process.env.REDIS_URL;
     delete process.env.KV_URL;
 
@@ -74,6 +77,8 @@ describe("Security Audit & Protection Suite", () => {
     else delete process.env.BOT_TOKEN;
     if (prevRedisUrl !== undefined) process.env.REDIS_URL = prevRedisUrl;
     else delete process.env.REDIS_URL;
+    if (prevAdminPassword !== undefined) process.env.ADMIN_PASSWORD = prevAdminPassword;
+    else delete process.env.ADMIN_PASSWORD;
   });
 
   // =========================================================================
