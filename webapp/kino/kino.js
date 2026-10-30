@@ -8822,6 +8822,9 @@ if (requestedSection) setTimeout(() => {
 // topbar va splash ekranda bir xil ishlatiladi.
 const BOKS_GLOVE_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g transform="rotate(-12 7 11)"><rect x="2.5" y="2" width="7.9" height="12.3" rx="3.6"></rect><ellipse cx="10.4" cy="9.6" rx="1.6" ry="2.4"></ellipse><rect x="3.2" y="15.1" width="6.4" height="4.6" rx="1.1"></rect></g><g transform="translate(0.6 1.6)"><rect x="13.6" y="2" width="7.9" height="12.3" rx="3.6"></rect><ellipse cx="13.6" cy="9.6" rx="1.6" ry="2.4"></ellipse><rect x="14.4" y="15.1" width="6.4" height="4.6" rx="1.1"></rect></g></svg>`;
 
+// Topbarda Boks bo'limi uchun: Federatsiya logosi + "x" (keyin NTV logosi keladi).
+const BOKS_COLLAB_MARK = `<img class="brand-section__collab-logo" src="/static/assets/boks-federation-logo.png" alt="" aria-hidden="true" width="28" height="28" decoding="async"><span class="brand-section__collab-x">x</span>`;
+
 // Sidebar yuqori 4 slot — joriy bo'limdan boshqa bo'limlarga o'tish tugmalari.
 // Tartib har bo'limda qat'iy:
 //   Kino:       Futbol, Musiqa, Potkastlar, Boks
@@ -8849,8 +8852,11 @@ function syncTopbarSection() {
     esport: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8h8a4 4 0 0 1 4 4v3a3 3 0 0 1-5.1 2.1L13 15h-2l-1.9 2.1A3 3 0 0 1 4 15v-3a4 4 0 0 1 4-4Z"></path><path d="M8 11v4M6 13h4M16 12h.01M18 14h.01"></path></svg>`,
     boks: BOKS_GLOVE_SVG,
   };
-  icon.innerHTML = icons[section] || icons.kino;
-  brand.setAttribute("aria-label", "NTV");
+  // Boks — hamkorlik bo'limi: "Federatsiya logosi × NTV" ko'rinishida.
+  const isCollab = section === "boks";
+  icon.innerHTML = isCollab ? BOKS_COLLAB_MARK : (icons[section] || icons.kino);
+  brand.classList.toggle("brand--collab", isCollab);
+  brand.setAttribute("aria-label", isCollab ? "O'zbekiston Boks Federatsiyasi × NTV" : "NTV");
 }
 function syncSidebarSectionItems() {
   const newsSlot = document.getElementById("sidebarNewsItem");

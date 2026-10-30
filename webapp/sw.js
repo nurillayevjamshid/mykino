@@ -1,4 +1,4 @@
-const VERSION = "v20261029-fast-start-v1";
+const VERSION = "v20261030-boks-collab-v1";
 const STATIC_CACHE = `kp-static-${VERSION}`;
 const RUNTIME_CACHE = `kp-runtime-${VERSION}`;
 const API_CACHE = `kp-api-${VERSION}`;
