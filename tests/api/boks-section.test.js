@@ -61,7 +61,7 @@ describe('Boks section (NTV × O\'zbekiston Boks Federatsiyasi)', () => {
 
   test('admin panel has a Boks section with Efir / Janglar / Terma jamoa tabs', () => {
     const html = read('webapp', 'admin', 'index.html');
-    assert.match(html, /<li class="nav-item" data-section="boks">/);
+    assert.match(html, /<button type="button" class="hub-tile hub-tile--boks" data-hub-target="boks">/);
     assert.match(html, /<section class="content-section boks-admin" id="boksSection">/);
     ['stream', 'fights', 'team'].forEach((tab) => {
       assert.match(html, new RegExp(`data-boks-admin-tab="${tab}"`));

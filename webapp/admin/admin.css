@@ -169,98 +169,6 @@ code {
   padding: 20px;
 }
 
-.sidebar {
-  position: sticky;
-  top: 20px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 248px;
-  width: 248px;
-  height: calc(100vh - 40px);
-  overflow: hidden;
-  background: var(--bg-sidebar);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xs);
-}
-.sidebar-header { padding: 20px 20px 16px; }
-.brand { display: flex; align-items: center; gap: 12px; color: var(--text); }
-.brand-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--primary-soft);
-  color: var(--primary);
-}
-.brand-icon svg { width: 22px; height: 22px; }
-.brand-text { display: flex; flex-direction: column; line-height: 1.1; }
-.brand-text__top { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
-.brand-text__bottom { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: var(--text-muted); }
-
-.sidebar-nav { flex: 1; overflow-y: auto; padding: 4px 12px 12px; }
-.sidebar-nav::before {
-  content: "MENU";
-  display: block;
-  padding: 8px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
-}
-.nav-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 42px;
-  padding: 0 12px;
-  border-radius: var(--radius);
-  color: var(--text-secondary);
-  font-size: var(--fs-md);
-  font-weight: 500;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-.nav-text { overflow: hidden; text-overflow: ellipsis; }
-.nav-icon { flex: 0 0 18px; width: 18px; height: 18px; color: var(--text-muted); }
-.nav-link:hover { background: var(--bg-elevated); color: var(--text); }
-.nav-item.active .nav-link { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
-.nav-item.active .nav-icon { color: var(--primary); }
-
-.sidebar-footer { padding: 12px; border-top: 1px solid var(--border-light); }
-.logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 42px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--danger);
-  font-size: var(--fs-md);
-  font-weight: 600;
-  cursor: pointer;
-}
-.logout-btn .nav-icon { color: currentColor; }
-.logout-btn:hover { background: var(--danger-bg); }
-
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 990;
-  background: rgba(10, 15, 30, 0.5);
-  backdrop-filter: blur(3px);
-}
-.sidebar-overlay.active { display: block; }
-
 .main-content {
   display: flex;
   flex-direction: column;
@@ -297,7 +205,7 @@ code {
   white-space: nowrap;
 }
 
-.theme-toggle, .menu-toggle {
+.theme-toggle, .hub-back {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -311,16 +219,12 @@ code {
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
-.theme-toggle:hover, .menu-toggle:hover { background: var(--bg-elevated); color: var(--text); }
-.theme-toggle svg { width: 18px; height: 18px; }
+.theme-toggle:hover, .hub-back:hover { background: var(--bg-elevated); color: var(--text); }
+.theme-toggle svg, .hub-back svg { width: 18px; height: 18px; }
 .theme-toggle .icon-sun, [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
 [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
-
-.menu-toggle { display: none; flex-direction: column; gap: 4px; }
-.menu-toggle span { width: 18px; height: 2px; border-radius: 2px; background: currentColor; transition: transform 0.25s ease, opacity 0.2s ease; }
-.menu-toggle.active span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-.menu-toggle.active span:nth-child(2) { opacity: 0; }
-.menu-toggle.active span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+.hub-back { color: var(--primary); background: var(--primary-soft); border-color: transparent; }
+.logout-icon-btn:hover { background: var(--danger-bg); color: var(--danger); }
 
 .admin-badge {
   display: inline-flex;
@@ -1502,7 +1406,6 @@ input[type="checkbox"], input[type="radio"] {
 @media (max-width: 1100px) {
   :root { --gutter: 22px; }
   .admin-layout { gap: 14px; padding: 14px; }
-  .sidebar { top: 14px; flex-basis: 220px; width: 220px; height: calc(100vh - 28px); }
   .broadcast-grid, .ticker-editor-grid, .split { grid-template-columns: 1fr; }
   .sticky-card { position: static; }
 }
@@ -1522,30 +1425,10 @@ input[type="checkbox"], input[type="radio"] {
 
   .admin-layout { flex-direction: column; gap: 0; padding: 0; }
 
-  .sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
-    width: min(84vw, 300px);
-    height: 100dvh;
-    padding-top: env(safe-area-inset-top);
-    border: 0;
-    border-right: 1px solid var(--border);
-    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
-    box-shadow: var(--shadow-lg);
-    transform: translateX(-105%);
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .sidebar.open { transform: none; }
-  .sidebar-footer { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
-  .nav-link, .logout-btn { min-height: 46px; }
 
   .main-content { min-height: 100vh; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
   .admin-header { min-height: 58px; padding: calc(8px + env(safe-area-inset-top)) var(--gutter) 8px; }
   .header-title h1 { font-size: 18px; }
-  .menu-toggle { display: inline-flex; }
   .admin-badge { display: none; }
   .content-wrapper { overflow: visible; padding: 16px var(--gutter) calc(32px + env(safe-area-inset-bottom)); }
 
@@ -2258,4 +2141,535 @@ input[type="checkbox"], input[type="radio"] {
   .bx-modal__dialog { width: 100%; max-height: 92vh; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
   .bx-modal__body { grid-template-columns: 1fr; }
   .bx-editor-photo { width: 160px; margin: 0 auto; }
+}
+
+/* ==========================================================================
+   Hub — admin panelning bosh sahifasi (sidebar o'rniga bento kartochkalar)
+   ========================================================================== */
+.hub {
+  --hub-card: #ffffff;
+  --hub-ink: #1d1d1f;
+  --hub-muted: #6e6e73;
+  --hub-line: rgba(16, 24, 40, 0.07);
+  --hub-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 30px rgba(16, 24, 40, 0.06);
+  max-width: var(--content-max);
+}
+[data-theme="dark"] .hub {
+  --hub-card: #161d33;
+  --hub-ink: #eef1f8;
+  --hub-muted: #949fb8;
+  --hub-line: rgba(255, 255, 255, 0.07);
+  --hub-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.hub-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.hub-hero__greeting { color: var(--text-muted); font-size: var(--fs-lg); font-weight: 500; }
+.hub-hero__title { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.05; }
+.hub-hero__avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a5b4fc, #f0abfc);
+  color: #ffffff;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  box-shadow: 0 0 0 3px var(--bg-shell), 0 0 0 4px var(--border);
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 176px;
+  grid-auto-flow: row dense;
+  gap: 14px;
+}
+.hub-tile {
+  --tint: var(--hub-card);
+  --ink: var(--hub-ink);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 18px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 24px;
+  background: var(--tint);
+  box-shadow: var(--hub-shadow), inset 0 0 0 1px var(--hub-line);
+  color: var(--hub-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* backwards: animatsiya tugagach hover'dagi transform ishlay olsin */
+  animation: hubIn 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.hub-tile:nth-child(2) { animation-delay: 0.04s; }
+.hub-tile:nth-child(3) { animation-delay: 0.08s; }
+.hub-tile:nth-child(4) { animation-delay: 0.12s; }
+.hub-tile:nth-child(5) { animation-delay: 0.16s; }
+.hub-tile:nth-child(6) { animation-delay: 0.2s; }
+.hub-tile:nth-child(n+7) { animation-delay: 0.24s; }
+.hub-tile:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(16, 24, 40, 0.12), inset 0 0 0 1px var(--hub-line); }
+.hub-tile:active { transform: scale(0.985); }
+.hub-tile:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+.hub-tile__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hub-tile__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.hub-tile__glyph { display: inline-flex; color: var(--ink); }
+.hub-tile__glyph svg { width: 22px; height: 22px; }
+.hub-tile__text { display: flex; align-items: center; gap: 6px; color: var(--hub-muted); font-size: var(--fs-sm); line-height: 1.4; }
+.hub-tile__badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+/* Kinolar — 2×2 */
+.hub-tile--movies { grid-column: span 2; grid-row: span 2; flex-direction: row; justify-content: flex-start; gap: 18px; padding: 16px; }
+.hub-movies__poster {
+  position: relative;
+  flex: 0 0 44%;
+  overflow: hidden;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #2b2f3a, #0f1117);
+}
+.hub-movies__poster img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+.hub-tile--movies:hover .hub-movies__poster img { transform: scale(1.04); }
+.hub-movies__play {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #1d1d1f;
+  transform: translateX(-50%);
+  backdrop-filter: blur(6px);
+}
+.hub-movies__play svg { width: 16px; height: 16px; margin-left: 2px; }
+.hub-movies__info { display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 0; padding: 6px 2px; }
+.hub-movies__info .hub-tile__label { color: var(--hub-muted); font-weight: 700; }
+.hub-movies__title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.hub-movies__recent-label { margin-top: auto; color: var(--hub-muted); font-size: var(--fs-sm); font-weight: 600; }
+.hub-movies__recent { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.hub-movies__recent img { width: 100%; aspect-ratio: 2 / 3; border-radius: 10px; object-fit: cover; background: var(--bg-elevated); }
+
+/* Bosh sahifa — mini ilova bosh ekrani */
+.hub-tile--home { --tint: linear-gradient(135deg, #eef0fe 0%, #f4ecfe 100%); --ink: var(--primary); grid-column: span 2; }
+.hub-home__art {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  display: grid;
+  grid-template-columns: repeat(2, 30px);
+  grid-auto-rows: 20px;
+  gap: 5px;
+  padding: 9px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 20px rgba(84, 104, 232, 0.16);
+  transform: rotate(-6deg) translateY(14px);
+  transition: transform 0.3s ease;
+}
+.hub-home__art i { border-radius: 6px; background: rgba(84, 104, 232, 0.25); }
+.hub-home__art i:first-child { grid-column: span 2; grid-row: span 2; background: var(--primary); }
+.hub-home__art i:nth-child(2) { grid-column: span 2; background: rgba(84, 104, 232, 0.45); }
+.hub-tile--home:hover .hub-home__art { transform: rotate(-2deg) translateY(10px) scale(1.04); }
+.hub-tile--home .hub-tile__glyph { display: none; }
+.hub-tile--home .hub-tile__text { max-width: 60%; color: var(--text-secondary); }
+
+/* Futbol — keng yashil */
+.hub-tile--fifa { --tint: #e3f2e7; --ink: #15803d; grid-column: span 2; }
+.hub-tile--fifa::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  bottom: -40px;
+  width: 150px;
+  height: 150px;
+  border: 2px solid rgba(21, 128, 61, 0.14);
+  border-radius: 50%;
+}
+.hub-fifa__line { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.hub-fifa__line i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); opacity: 0.5; }
+
+/* Boks — oq, chiziqli qo'lqoplar */
+.hub-tile--boks { --ink: #e0242f; }
+.hub-boks__art { display: grid; flex: 1; place-items: center; color: var(--hub-ink); }
+.hub-boks__art svg { width: 76px; height: 76px; transition: transform 0.3s ease; }
+.hub-tile--boks:hover .hub-boks__art svg { transform: rotate(-6deg) scale(1.05); }
+
+/* Musiqa — shaftoli, aylanuvchi halqa */
+.hub-tile--music { --tint: linear-gradient(160deg, #fdeee4 0%, #f4e8fb 100%); --ink: #1d1d1f; }
+.hub-music__art { position: absolute; top: 50%; right: 18px; display: grid; place-items: center; width: 74px; height: 74px; transform: translateY(-50%); }
+.hub-music__art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px dashed rgba(29, 29, 31, 0.28);
+  border-radius: 50%;
+  animation: hubSpin 14s linear infinite;
+}
+.hub-music__art span { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 255, 255, 0.75); box-shadow: 0 6px 16px rgba(194, 65, 12, 0.15); }
+.hub-music__art svg { width: 18px; height: 18px; margin-left: 2px; }
+
+/* Obunachilar — keng, raqam bilan */
+.hub-tile--users { --ink: var(--primary); grid-column: span 2; }
+.hub-users__art { display: flex; align-items: center; gap: 14px; }
+.hub-users__faces { display: flex; }
+.hub-users__faces i { width: 38px; height: 38px; margin-left: -10px; border-radius: 50%; box-shadow: 0 0 0 3px var(--hub-card); }
+.hub-users__faces i:first-child { margin-left: 0; background: linear-gradient(135deg, #a5b4fc, #818cf8); }
+.hub-users__faces i:nth-child(2) { background: linear-gradient(135deg, #fdba74, #fb7185); }
+.hub-users__faces i:nth-child(3) { background: linear-gradient(135deg, #86efac, #22c55e); }
+.hub-users__faces i:nth-child(4) { background: linear-gradient(135deg, #f0abfc, #c084fc); }
+.hub-users__count { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; }
+
+/* Potkastlar — lavanda, to'lqin */
+.hub-tile--podcasts { --tint: #ebe8fb; --ink: #1d1d1f; }
+.hub-wave { display: flex; flex: 1; align-items: center; justify-content: center; gap: 3px; }
+.hub-wave i { width: 3px; height: 30%; border-radius: 3px; background: var(--ink); opacity: 0.75; transform-origin: center; animation: hubWave 1.6s ease-in-out infinite; }
+.hub-wave i:nth-child(3n) { height: 55%; animation-delay: -0.4s; }
+.hub-wave i:nth-child(4n) { height: 75%; animation-delay: -0.8s; }
+.hub-wave i:nth-child(5n) { height: 40%; animation-delay: -1.1s; }
+.hub-wave i:nth-child(7n) { height: 90%; animation-delay: -0.2s; }
+.hub-wave i:nth-child(2n + 1) { opacity: 0.45; }
+
+/* Reklama — sariq, e'lon chiziqlari */
+.hub-tile--ad { --tint: #fdf4dc; --ink: #b45309; }
+.hub-ad__art { display: flex; flex: 1; flex-direction: column; justify-content: center; gap: 7px; }
+.hub-ad__art i { height: 8px; border-radius: 4px; background: rgba(180, 83, 9, 0.22); }
+.hub-ad__art i:first-child { width: 80%; background: rgba(180, 83, 9, 0.45); }
+.hub-ad__art i:nth-child(2) { width: 60%; }
+.hub-ad__art i:nth-child(3) { width: 40%; }
+
+/* Kibersport va TV — katta ingichka ikonka */
+.hub-tile--esports { --tint: #f1e8fd; --ink: #7c3aed; }
+.hub-tile--tv { --tint: #fdeee2; --ink: #c2410c; }
+.hub-big-icon { position: absolute; right: -10px; bottom: -14px; color: var(--ink); opacity: 0.18; transition: transform 0.3s ease, opacity 0.3s ease; }
+.hub-big-icon svg { width: 110px; height: 110px; }
+.hub-tile:hover .hub-big-icon { opacity: 0.28; transform: rotate(-8deg); }
+
+/* Tungi rejim — pastel o'rniga to'q tuslar */
+[data-theme="dark"] .hub-tile--home { --tint: linear-gradient(135deg, #222a55 0%, #2d2350 100%); --ink: #a5b4fc; }
+[data-theme="dark"] .hub-tile--home .hub-tile__text { color: var(--hub-muted); }
+[data-theme="dark"] .hub-home__art { background: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .hub-tile--fifa { --tint: #12291c; --ink: #4ade80; }
+[data-theme="dark"] .hub-tile--boks { --ink: #f87171; }
+[data-theme="dark"] .hub-tile--music { --tint: linear-gradient(160deg, #2c1d16 0%, #2a1b33 100%); --ink: #fdba74; }
+[data-theme="dark"] .hub-music__art::before { border-color: rgba(255, 255, 255, 0.25); }
+[data-theme="dark"] .hub-music__art span { background: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .hub-tile--podcasts { --tint: #1f1c3a; --ink: #c4b5fd; }
+[data-theme="dark"] .hub-tile--ad { --tint: #2b2310; --ink: #fbbf24; }
+[data-theme="dark"] .hub-ad__art i { background: rgba(251, 191, 36, 0.2); }
+[data-theme="dark"] .hub-ad__art i:first-child { background: rgba(251, 191, 36, 0.4); }
+[data-theme="dark"] .hub-tile--esports { --tint: #241a3a; --ink: #c084fc; }
+[data-theme="dark"] .hub-tile--tv { --tint: #2d1e14; --ink: #fb923c; }
+
+@keyframes hubIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes hubSpin { to { transform: rotate(360deg); } }
+@keyframes hubWave { 50% { transform: scaleY(0.45); } }
+
+@media (max-width: 1100px) {
+  .hub-grid { grid-auto-rows: 164px; }
+  .hub-movies__title { font-size: 20px; }
+}
+@media (max-width: 760px) {
+  .hub-hero { margin-bottom: 16px; }
+  .hub-hero__greeting { font-size: var(--fs-md); }
+  .hub-hero__title { font-size: 34px; }
+  .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 150px; gap: 10px; }
+  .hub-tile { padding: 14px; border-radius: 22px; }
+  .hub-tile--movies { gap: 14px; padding: 12px; }
+  .hub-movies__title { font-size: 18px; }
+  .hub-movies__recent { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .hub-movies__recent img:nth-child(4) { display: none; }
+  .hub-tile__label { font-size: var(--fs-xs); }
+  .hub-tile__text { font-size: var(--fs-xs); }
+  .hub-tile--home .hub-tile__text { max-width: 58%; }
+  .hub-fifa__line { font-size: 21px; gap: 9px; }
+  .hub-boks__art svg { width: 60px; height: 60px; }
+  .hub-music__art { position: relative; top: auto; right: auto; align-self: center; transform: none; width: 64px; height: 64px; }
+  .hub-music__art span { width: 44px; height: 44px; }
+  .hub-users__count { font-size: 26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-tile, .hub-music__art::before, .hub-wave i { animation: none; }
+  .hub-tile, .hub-home__art, .hub-big-icon, .hub-boks__art svg, .hub-movies__poster img { transition: none; }
+}
+
+/* ==========================================================================
+   Bosh sahifa bo'limi (admin-home.js) — hl-* klasslari
+   ========================================================================== */
+.hl { max-width: 1240px; }
+.hl .section-header__hint { max-width: none; }
+.hl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.hl-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: var(--control-h);
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.hl-status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.hl-status[data-state="live"] { background: var(--success-bg); color: var(--success-text); }
+.hl-status[data-state="dirty"], .hl-status[data-state="warn"] { background: var(--warning-bg); color: var(--warning); }
+
+.hl-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.hl-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.hl-pair > .form-card + .form-card { margin-top: 0; }
+
+/* Bo'limlar ro'yxati */
+.hl-list { list-style: none; display: flex; flex-direction: column; }
+.hl-list.is-sorting { cursor: grabbing; user-select: none; }
+.hl-item {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px 10px 2px;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  transition: box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.hl-item:last-child { border-bottom-color: transparent; }
+.hl-item__handle {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+  touch-action: none;
+}
+.hl-item__handle svg { width: 18px; height: 18px; }
+.hl-item__handle:hover { background: var(--bg-elevated); color: var(--text); }
+.hl-item__icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: var(--radius); background: var(--bg-elevated); color: var(--text-secondary); }
+.hl-item__icon svg { width: 18px; height: 18px; }
+.hl-item__name { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.hl-item.is-dragging {
+  position: relative;
+  z-index: 2;
+  border-bottom-color: transparent;
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--primary-light);
+  transform: scale(1.01);
+}
+.hl-item.is-dragging .hl-item__handle { color: var(--primary); cursor: grabbing; }
+.hl-item.is-off .hl-item__icon,
+.hl-item.is-off .hl-item__name { opacity: 0.45; }
+.hl-item.is-off .hl-item__size { visibility: hidden; }
+.hl-item__size .segmented__btn { padding: 0 10px; }
+
+/* Asosiy kino */
+.hl-hero { display: flex; gap: 14px; align-items: flex-start; }
+.hl-hero__poster { flex: 0 0 72px; width: 72px; height: 104px; border-radius: var(--radius); object-fit: cover; background: var(--bg-elevated); }
+.hl-hero__fields { display: flex; flex: 1; flex-direction: column; gap: 8px; min-width: 0; }
+.hl-hero__name { overflow: hidden; color: var(--text-secondary); font-size: var(--fs-sm); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.hl-picker__results { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; max-height: 240px; overflow-y: auto; }
+.hl-picker__results:empty { display: none; }
+.hl-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.hl-picker__item:hover { background: var(--bg-elevated); }
+.hl-picker__item img { flex: 0 0 30px; width: 30px; height: 42px; border-radius: 5px; object-fit: cover; }
+.hl-picker__item span { display: flex; flex-direction: column; min-width: 0; }
+.hl-picker__item b { overflow: hidden; font-size: var(--fs-sm); text-overflow: ellipsis; white-space: nowrap; }
+.hl-picker__item small, .hl-picker__empty { color: var(--text-muted); font-size: var(--fs-xs); }
+.hl-picker__empty { padding: 8px; }
+
+/* Jonli ko'rinish — telefon */
+.hl-preview { position: sticky; top: 16px; }
+.hl-preview__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.hl-preview__head h3 { font-size: var(--fs-lg); font-weight: 700; }
+.hl-phone {
+  --ph-bg: #f5f5f7;
+  --ph-card: #ffffff;
+  --ph-text: #1d1d1f;
+  --ph-muted: #86868b;
+  --ph-line: rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 280px;
+  height: 560px;
+  margin: 0 auto;
+  padding: 10px;
+  border-radius: 46px;
+  background: #1d1d1f;
+  box-shadow: 0 20px 50px rgba(16, 24, 40, 0.22), inset 0 0 0 2px #3a3a3c;
+}
+.hl-phone[data-scheme="dark"] {
+  --ph-bg: #000000;
+  --ph-card: #1c1c1e;
+  --ph-text: #f5f5f7;
+  --ph-muted: #8e8e93;
+  --ph-line: rgba(255, 255, 255, 0.08);
+}
+.hl-phone__screen {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  padding: 40px 12px 16px;
+  border-radius: 37px;
+  background: var(--ph-bg);
+  color: var(--ph-text);
+  scrollbar-width: none;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+.hl-phone__screen::-webkit-scrollbar { display: none; }
+.hl-phone__screen::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 84px;
+  height: 22px;
+  border-radius: 12px;
+  background: #000000;
+  transform: translateX(-50%);
+}
+.hl-phone__top { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding: 0 2px; }
+.hl-phone__greeting { color: var(--ph-muted); font-size: 11px; font-weight: 500; }
+.hl-phone__brand { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.hl-phone__avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #a5b4fc, #f0abfc); }
+
+/* dense: yolg'iz kichik kartochka qoldirgan bo'shliqni keyingi kichik kartochka to'ldiradi */
+.hl-bento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; gap: 8px; }
+.hl-bento__empty { grid-column: 1 / -1; padding: 40px 10px; color: var(--ph-muted); font-size: 12px; text-align: center; }
+.hl-card {
+  --tint: var(--ph-card);
+  --ink: var(--ph-text);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  height: 92px;
+  padding: 11px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--tint);
+  box-shadow: 0 0 0 1px var(--ph-line), 0 4px 12px rgba(0, 0, 0, 0.04);
+  animation: hlCardIn 0.25s ease both;
+}
+.hl-card--m { grid-column: span 2; height: 74px; flex-direction: row; align-items: center; justify-content: flex-start; }
+.hl-card--l { grid-column: span 2; height: 150px; }
+.hl-card__icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: rgba(255, 255, 255, 0.6); color: var(--ink); }
+.hl-card__icon svg { width: 16px; height: 16px; }
+.hl-card__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.hl-card__label { overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.hl-card__text small { overflow: hidden; color: var(--ph-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.hl-card__live {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #e5484d;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.hl-card__live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: hlPulse 1.4s ease-in-out infinite; }
+.hl-card--l .hl-card__icon { width: 36px; height: 36px; border-radius: 11px; }
+.hl-card--l .hl-card__label { font-size: 15px; }
+
+.hl-card--kino { justify-content: flex-end; padding: 0; background: #111111; color: #ffffff; }
+.hl-card--kino.hl-card--m { flex-direction: column; align-items: stretch; justify-content: flex-end; }
+.hl-card__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hl-card__shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.82) 100%); }
+.hl-card--kino .hl-card__text { position: relative; padding: 11px; }
+.hl-card--kino .hl-card__label { color: rgba(255, 255, 255, 0.7); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.hl-card--kino b { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.hl-card__progress { display: block; height: 3px; margin-top: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); }
+.hl-card__progress i { display: block; width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff9a62, #ff5f6d); }
+
+.hl-card--fifa { --tint: #e3f4e8; --ink: #15803d; }
+.hl-card--boks { --ink: #e0242f; }
+.hl-card--music { --tint: #fdeee4; --ink: #c2410c; }
+.hl-card--podcasts { --tint: #eceafd; --ink: #5b4fd6; }
+.hl-card--favorites { --ink: #e5484d; }
+.hl-card--esports { --tint: #f1e8fd; --ink: #7c3aed; }
+.hl-card--tv { --tint: #fdf3e2; --ink: #b45309; }
+.hl-phone[data-scheme="dark"] .hl-card--fifa { --tint: #10261a; --ink: #4ade80; }
+.hl-phone[data-scheme="dark"] .hl-card--music { --tint: #2a1a10; --ink: #fb923c; }
+.hl-phone[data-scheme="dark"] .hl-card--podcasts { --tint: #1c1a33; --ink: #a5b4fc; }
+.hl-phone[data-scheme="dark"] .hl-card--esports { --tint: #231736; --ink: #c084fc; }
+.hl-phone[data-scheme="dark"] .hl-card--tv { --tint: #2a2112; --ink: #fbbf24; }
+.hl-phone[data-scheme="dark"] .hl-card__icon { background: rgba(255, 255, 255, 0.08); }
+
+@keyframes hlCardIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes hlPulse { 50% { opacity: 0.35; } }
+
+@media (max-width: 1100px) {
+  .hl-grid { grid-template-columns: 1fr; }
+  .hl-preview { position: static; }
+}
+@media (max-width: 900px) {
+  .hl-pair { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .hl-actions { width: 100%; }
+  .hl-actions .btn { flex: 1; }
+  .hl-status { flex: 1 1 100%; justify-content: center; height: 30px; }
+  .hl-item {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "handle icon name switch" "handle size size size";
+    row-gap: 8px;
+  }
+  .hl-item__handle { grid-area: handle; height: 100%; }
+  .hl-item__icon { grid-area: icon; }
+  .hl-item__name { grid-area: name; }
+  .hl-item .fifa-tv-switch { grid-area: switch; }
+  .hl-item__size { grid-area: size; display: flex; }
+  .hl-item__size .segmented__btn { flex: 1; }
+  .hl-item.is-off .hl-item__size { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hl-card, .hl-card__live::before { animation: none; }
 }

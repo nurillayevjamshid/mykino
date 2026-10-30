@@ -92,6 +92,7 @@
     { "src": "/api/music-playlists", "dest": "/api/music.js?_playlists=1" },
     { "src": "/api/books", "dest": "/api/music.js?_books=1" },
     { "src": "/api/boks", "dest": "/api/music.js?_boks=1" },
+    { "src": "/api/home", "dest": "/api/music.js?_home=1" },
     { "src": "/api/categories", "dest": "/api/categories.js" },
     { "src": "/api/news", "dest": "/api/telegram-webhook.js?_news=1" },
     { "src": "/api/news/(.*)", "dest": "/api/telegram-webhook.js?_news=1&$1" },

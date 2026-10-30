@@ -5,141 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#3d4adf">
   <title>NTV - Admin Panel</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=20261029-boks-v2">
+  <link rel="stylesheet" href="/admin/admin.css?v=20261030-hub-v1">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="admin-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="brand">
-          <div class="brand-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polygon points="10 8 16 12 10 16 10 8" fill="currentColor"></polygon>
-            </svg>
-          </div>
-          <div class="brand-text">
-            <span class="brand-text__top">MY</span>
-            <span class="brand-text__bottom">PLAYLIST</span>
-          </div>
-        </div>
-      </div>
-
-      <nav class="sidebar-nav">
-        <ul class="nav-list">
-          <li class="nav-item active" data-section="movies">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
-                <line x1="7" y1="2" x2="7" y2="22"></line>
-                <line x1="17" y1="2" x2="17" y2="22"></line>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-              </svg>
-              <span class="nav-text">Kinolar</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="users">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span class="nav-text">Obunachilar</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="music">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 18V5l12-2v13"></path>
-                <circle cx="6" cy="18" r="3"></circle>
-                <circle cx="18" cy="16" r="3"></circle>
-              </svg>
-              <span class="nav-text">Musiqa</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="podcasts">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon sidebar__item-icon--podcasts podcast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="12" rx="4"></rect><circle cx="12" cy="5.2" r="0.9" fill="currentColor" stroke="none"></circle><path d="M10.2 8h3.6" stroke-width="1.8"></path><circle cx="12" cy="10.8" r="0.9" fill="currentColor" stroke="none"></circle><path d="M5 10v1.5a7 7 0 0 0 14 0V10"></path><line x1="12" y1="18.5" x2="12" y2="22"></line></svg>
-              <span class="nav-text">Potkastlar</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="ad">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 11l18-5v12l-18-5z"></path>
-                <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path>
-              </svg>
-              <span class="nav-text">Reklama</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="fifa">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"></path>
-              </svg>
-              <span class="nav-text">Futbol</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="boks">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 544 544" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M174 530C155 528 132 523 116 517C101 512 73 499 64 492C44 479 28 458 20 436C15 420 13 413 14 394C14 366 14 364 38 309C56 267 61 259 74 247C86 235 97 228 114 223L122 220 L134 191C140 175 145 162 145 161C145 156 149 151 155 148C160 146 161 146 176 146C190 146 204 147 210 150C212 150 216 142 228 118C237 100 244 86 244 86C243 86 239 89 234 92C221 101 211 103 197 101C183 99 171 91 165 78C163 73 162 72 162 57C162 43 163 42 166 36C168 31 171 27 175 24C183 16 189 14 202 13C216 13 222 14 239 26L253 35 L258 33C262 30 264 30 272 30C280 30 282 30 286 33L291 35 L306 26C314 20 322 15 324 15C327 14 333 14 340 14C349 14 353 14 357 16C365 19 374 27 378 36C381 42 382 43 382 57C382 72 381 73 379 78C375 86 367 94 360 98C353 101 341 102 334 102C325 101 320 98 310 92C305 89 301 86 300 86C300 86 307 100 316 118C328 142 332 150 334 150C340 147 354 146 368 146C383 146 384 146 389 148C395 151 399 156 399 161C399 162 404 175 410 191L422 220 L432 224C439 226 447 230 452 233C463 239 479 254 485 265C490 273 522 344 525 356C530 368 531 375 530 395C530 411 530 415 528 423C521 447 512 463 496 480C485 490 475 496 455 506C426 519 411 524 386 528C369 531 336 531 328 529C304 522 287 504 280 482C277 472 276 456 278 446L280 438 L276 434L272 431 L268 434L264 438 L266 446C268 456 267 472 264 482C257 504 240 521 217 529C212 530 184 531 174 530ZM206 507C214 504 223 499 229 493C240 482 246 464 243 452L242 448 L230 448C221 448 217 448 212 446C204 443 198 439 192 433C187 428 180 415 180 412C180 410 180 410 178 410C168 414 161 415 154 415L145 415 L145 404L145 393 L151 393C159 392 167 389 173 385L178 382 L178 374C177 368 177 365 174 360C172 356 171 351 171 350C171 347 172 347 178 344C182 342 186 340 188 340C192 340 192 340 195 348C197 352 199 357 199 358C200 359 200 370 201 382C202 401 202 403 204 408C209 418 221 425 230 425C241 425 253 417 258 406L260 400 L261 367C261 346 261 330 260 325C258 311 253 299 245 288L241 283 L230 283C199 281 166 270 139 251L128 244 L121 246C106 251 88 265 79 278C75 285 46 350 41 365C33 386 35 409 44 432C50 445 64 461 77 471C83 475 104 486 120 493C136 499 160 506 176 507C185 508 201 508 206 507ZM385 505C399 502 411 498 424 493C441 486 461 475 468 470C503 444 516 401 503 364C497 349 468 284 465 278C456 265 438 251 423 246L416 244 L405 251C378 270 345 281 314 283L303 283 L299 288C291 300 286 311 284 325C283 330 283 347 283 367C283 399 284 401 286 405C291 417 303 426 313 425C323 425 335 418 340 408C342 403 342 401 343 382C344 370 344 359 345 358C345 357 347 352 349 348C352 340 352 340 356 340C358 340 362 342 366 344C372 347 373 347 373 350C373 351 372 356 370 360C367 365 367 368 366 374L366 382 L371 385C377 389 385 392 393 393L399 393 L399 404L399 415 L390 415C383 415 376 414 366 410C364 410 364 410 364 412C364 415 357 428 352 433C346 439 340 443 332 446C327 448 323 448 314 448L302 448 L301 452C298 464 304 482 315 493C321 499 330 504 338 507C345 509 370 508 385 505ZM278 276L283 268 L278 253C275 244 272 237 272 237C272 237 269 244 266 253L261 268 L266 276C269 280 272 284 272 284C272 284 275 280 278 276ZM246 239L253 217 L243 217C232 216 214 212 200 207C189 204 169 194 164 191C161 189 161 189 160 192C159 193 162 195 181 205C194 211 205 217 207 219C209 221 212 225 214 227C216 232 216 233 216 245L216 258 L222 259C226 259 231 260 234 260L239 260 L246 239ZM320 259L328 258 L328 245C328 234 328 232 330 228C331 225 334 221 336 219C338 218 350 211 363 205C382 195 385 193 384 192C383 189 383 189 380 191C375 194 355 204 344 207C330 212 312 216 301 217L291 217 L298 239L305 260 L309 260C311 260 316 260 320 259ZM194 244C194 239 190 237 171 227C160 221 151 217 150 217C150 218 149 220 148 222C147 226 147 226 150 229C155 233 174 244 183 247L192 251 L193 248C193 247 194 245 194 244ZM372 242C377 240 385 235 390 232L398 227 L396 222C395 220 394 217 393 217C393 217 384 222 373 227C350 239 349 240 351 247L352 251 L357 249C359 248 366 245 372 242ZM252 193C247 189 231 181 220 178C206 173 192 169 182 168L174 168 L178 171C185 175 204 184 216 187C229 191 241 194 253 195C254 195 254 194 252 193ZM306 193C324 190 353 179 366 170L370 168 L363 168C353 169 342 172 328 176C316 180 297 189 292 193L290 195 L294 194C296 194 302 193 306 193ZM278 172C286 168 297 162 303 160C306 159 308 158 308 157C308 156 272 86 272 86C272 86 236 156 236 157C236 158 238 159 241 160C247 162 259 168 266 172C269 174 272 176 272 176C272 176 275 174 278 172ZM212 76C215 75 239 59 240 58C242 57 212 37 208 36C195 34 182 49 185 61C187 69 193 76 201 78C204 79 208 78 212 76ZM349 75C356 71 361 61 359 53C358 48 355 43 350 40C341 34 337 34 318 47C310 53 303 57 303 57C303 58 331 76 335 78C339 79 343 79 349 75ZM275 60C277 58 277 57 275 55C275 54 273 53 272 53C271 53 269 54 269 55C267 57 267 58 269 60C270 61 272 62 272 62C272 62 274 61 275 60Z"></path></svg>
-              <span class="nav-text">Boks</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="esportsStreams">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 8h8a4 4 0 0 1 4 4v3a3 3 0 0 1-5.1 2.1L13 15h-2l-1.9 2.1A3 3 0 0 1 4 15v-3a4 4 0 0 1 4-4Z"></path>
-                <path d="M8 11v4M6 13h4M16 12h.01M18 14h.01"></path>
-              </svg>
-              <span class="nav-text">Kibersport translatsiyalar</span>
-            </a>
-          </li>
-          <li class="nav-item" data-section="tv">
-            <a href="#" class="nav-link">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="7" width="20" height="14" rx="3"></rect>
-                <path d="m8 2 4 4 4-4"></path>
-              </svg>
-              <span class="nav-text">TV kanallar</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-
-      <div class="sidebar-footer">
-        <button class="logout-btn" id="logoutBtn">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-          <span>Chiqish</span>
-        </button>
-      </div>
-    </aside>
-
-    <!-- Sidebar Overlay for mobile -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
     <!-- Main Content -->
     <main class="main-content">
       <!-- Header -->
       <header class="admin-header">
         <div class="header-left">
-          <button class="menu-toggle" id="menuToggle" aria-label="Menyu">
-            <span></span>
-            <span></span>
-            <span></span>
+          <button class="hub-back" id="hubBackBtn" type="button" aria-label="Bo'limlarga qaytish" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+            </svg>
           </button>
           <div class="header-title">
-            <h1 id="pageTitle">Kinolar</h1>
+            <h1 id="pageTitle">Admin panel</h1>
           </div>
         </div>
         <div class="header-actions">
@@ -160,14 +46,203 @@
             </svg>
           </button>
           <span class="admin-badge">Admin</span>
+          <button class="theme-toggle logout-icon-btn" id="logoutBtn" type="button" aria-label="Chiqish" title="Chiqish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
         </div>
       </header>
 
       <!-- Content Area -->
       <div class="content-wrapper">
 
+        <!-- Hub — admin panelga kirganda birinchi shu ochiladi (sidebar o'rniga) -->
+        <section class="content-section active hub" id="hubSection">
+          <div class="hub-hero">
+            <div>
+              <div class="hub-hero__greeting" id="hubGreeting">Xush kelibsiz</div>
+              <h2 class="hub-hero__title">NTV</h2>
+            </div>
+            <span class="hub-hero__avatar" id="hubAvatar" aria-hidden="true">A</span>
+          </div>
+
+          <div class="hub-grid">
+            <!-- Kinolar — eng katta kartochka: eng yangi kino va yangi qo'shilganlar -->
+            <button type="button" class="hub-tile hub-tile--movies" data-hub-target="movies">
+              <span class="hub-movies__poster">
+                <img id="hubMoviePoster" alt="" hidden>
+                <span class="hub-movies__play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"></path></svg></span>
+              </span>
+              <span class="hub-movies__info">
+                <span class="hub-tile__label">Kinolar</span>
+                <span class="hub-movies__title" id="hubMovieTitle">Kinolar va seriallar</span>
+                <span class="hub-tile__text" id="hubMovieMeta">Kinolar, seriallar va kategoriyalar</span>
+                <span class="hub-movies__recent-label">Yangi qo'shilganlar</span>
+                <span class="hub-movies__recent" id="hubMovieRecent"></span>
+              </span>
+            </button>
+
+            <button type="button" class="hub-tile hub-tile--home" data-hub-target="homeLayout">
+              <span class="hub-tile__head">
+                <span class="hub-tile__label">Bosh sahifa <span class="hub-tile__badge">Yangi</span></span>
+                <span class="hub-tile__glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"></path></svg></span>
+              </span>
+              <span class="hub-home__art" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+              <span class="hub-tile__text">Mini ilova bosh ekrani: bo'limlar tartibi, o'lchami va asosiy kino</span>
+            </button>
+
+            <button type="button" class="hub-tile hub-tile--fifa" data-hub-target="fifa">
+              <span class="hub-tile__head">
+                <span class="hub-tile__label">Futbol</span>
+                <span class="hub-tile__glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"></path></svg></span>
+              </span>
+              <span class="hub-fifa__line">Obzorlar <i></i> Efir <i></i> TV</span>
+              <span class="hub-tile__text">Futbol bo'limi sozlamalari va translatsiyalar</span>
+            </button>
+
+            <button type="button" class="hub-tile hub-tile--boks" data-hub-target="boks">
+              <span class="hub-tile__head"><span class="hub-tile__label">Boks</span></span>
+              <span class="hub-boks__art" aria-hidden="true"><svg viewBox="0 0 544 544" fill="currentColor" fill-rule="evenodd"><path d="M174 530C155 528 132 523 116 517C101 512 73 499 64 492C44 479 28 458 20 436C15 420 13 413 14 394C14 366 14 364 38 309C56 267 61 259 74 247C86 235 97 228 114 223L122 220 L134 191C140 175 145 162 145 161C145 156 149 151 155 148C160 146 161 146 176 146C190 146 204 147 210 150C212 150 216 142 228 118C237 100 244 86 244 86C243 86 239 89 234 92C221 101 211 103 197 101C183 99 171 91 165 78C163 73 162 72 162 57C162 43 163 42 166 36C168 31 171 27 175 24C183 16 189 14 202 13C216 13 222 14 239 26L253 35 L258 33C262 30 264 30 272 30C280 30 282 30 286 33L291 35 L306 26C314 20 322 15 324 15C327 14 333 14 340 14C349 14 353 14 357 16C365 19 374 27 378 36C381 42 382 43 382 57C382 72 381 73 379 78C375 86 367 94 360 98C353 101 341 102 334 102C325 101 320 98 310 92C305 89 301 86 300 86C300 86 307 100 316 118C328 142 332 150 334 150C340 147 354 146 368 146C383 146 384 146 389 148C395 151 399 156 399 161C399 162 404 175 410 191L422 220 L432 224C439 226 447 230 452 233C463 239 479 254 485 265C490 273 522 344 525 356C530 368 531 375 530 395C530 411 530 415 528 423C521 447 512 463 496 480C485 490 475 496 455 506C426 519 411 524 386 528C369 531 336 531 328 529C304 522 287 504 280 482C277 472 276 456 278 446L280 438 L276 434L272 431 L268 434L264 438 L266 446C268 456 267 472 264 482C257 504 240 521 217 529C212 530 184 531 174 530ZM206 507C214 504 223 499 229 493C240 482 246 464 243 452L242 448 L230 448C221 448 217 448 212 446C204 443 198 439 192 433C187 428 180 415 180 412C180 410 180 410 178 410C168 414 161 415 154 415L145 415 L145 404L145 393 L151 393C159 392 167 389 173 385L178 382 L178 374C177 368 177 365 174 360C172 356 171 351 171 350C171 347 172 347 178 344C182 342 186 340 188 340C192 340 192 340 195 348C197 352 199 357 199 358C200 359 200 370 201 382C202 401 202 403 204 408C209 418 221 425 230 425C241 425 253 417 258 406L260 400 L261 367C261 346 261 330 260 325C258 311 253 299 245 288L241 283 L230 283C199 281 166 270 139 251L128 244 L121 246C106 251 88 265 79 278C75 285 46 350 41 365C33 386 35 409 44 432C50 445 64 461 77 471C83 475 104 486 120 493C136 499 160 506 176 507C185 508 201 508 206 507ZM385 505C399 502 411 498 424 493C441 486 461 475 468 470C503 444 516 401 503 364C497 349 468 284 465 278C456 265 438 251 423 246L416 244 L405 251C378 270 345 281 314 283L303 283 L299 288C291 300 286 311 284 325C283 330 283 347 283 367C283 399 284 401 286 405C291 417 303 426 313 425C323 425 335 418 340 408C342 403 342 401 343 382C344 370 344 359 345 358C345 357 347 352 349 348C352 340 352 340 356 340C358 340 362 342 366 344C372 347 373 347 373 350C373 351 372 356 370 360C367 365 367 368 366 374L366 382 L371 385C377 389 385 392 393 393L399 393 L399 404L399 415 L390 415C383 415 376 414 366 410C364 410 364 410 364 412C364 415 357 428 352 433C346 439 340 443 332 446C327 448 323 448 314 448L302 448 L301 452C298 464 304 482 315 493C321 499 330 504 338 507C345 509 370 508 385 505ZM278 276L283 268 L278 253C275 244 272 237 272 237C272 237 269 244 266 253L261 268 L266 276C269 280 272 284 272 284C272 284 275 280 278 276ZM246 239L253 217 L243 217C232 216 214 212 200 207C189 204 169 194 164 191C161 189 161 189 160 192C159 193 162 195 181 205C194 211 205 217 207 219C209 221 212 225 214 227C216 232 216 233 216 245L216 258 L222 259C226 259 231 260 234 260L239 260 L246 239ZM320 259L328 258 L328 245C328 234 328 232 330 228C331 225 334 221 336 219C338 218 350 211 363 205C382 195 385 193 384 192C383 189 383 189 380 191C375 194 355 204 344 207C330 212 312 216 301 217L291 217 L298 239L305 260 L309 260C311 260 316 260 320 259ZM194 244C194 239 190 237 171 227C160 221 151 217 150 217C150 218 149 220 148 222C147 226 147 226 150 229C155 233 174 244 183 247L192 251 L193 248C193 247 194 245 194 244ZM372 242C377 240 385 235 390 232L398 227 L396 222C395 220 394 217 393 217C393 217 384 222 373 227C350 239 349 240 351 247L352 251 L357 249C359 248 366 245 372 242ZM252 193C247 189 231 181 220 178C206 173 192 169 182 168L174 168 L178 171C185 175 204 184 216 187C229 191 241 194 253 195C254 195 254 194 252 193ZM306 193C324 190 353 179 366 170L370 168 L363 168C353 169 342 172 328 176C316 180 297 189 292 193L290 195 L294 194C296 194 302 193 306 193ZM278 172C286 168 297 162 303 160C306 159 308 158 308 157C308 156 272 86 272 86C272 86 236 156 236 157C236 158 238 159 241 160C247 162 259 168 266 172C269 174 272 176 272 176C272 176 275 174 278 172ZM212 76C215 75 239 59 240 58C242 57 212 37 208 36C195 34 182 49 185 61C187 69 193 76 201 78C204 79 208 78 212 76ZM349 75C356 71 361 61 359 53C358 48 355 43 350 40C341 34 337 34 318 47C310 53 303 57 303 57C303 58 331 76 335 78C339 79 343 79 349 75ZM275 60C277 58 277 57 275 55C275 54 273 53 272 53C271 53 269 54 269 55C267 57 267 58 269 60C270 61 272 62 272 62C272 62 274 61 275 60Z"></path></svg></span>
+              <span class="hub-tile__text">Efir, janglar va terma jamoa</span>
+            </button>
+
+            <button type="button" class="hub-tile hub-tile--music" data-hub-target="music">
+              <span class="hub-tile__head">
+                <span class="hub-tile__label">Musiqa</span>
+                <span class="hub-tile__glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></span>
+              </span>
+              <span class="hub-music__art" aria-hidden="true"><span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"></path></svg></span></span>
+              <span class="hub-tile__text" data-hub-stat="music">Qo'shiqlar va qo'shiqchilar</span>
+            </button>
+
+            <button type="button" class="hub-tile hub-tile--users" data-hub-target="users">
+              <span class="hub-tile__head">
+                <span class="hub-tile__label">Obunachilar</span>
+                <span class="hub-tile__glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+              </span>
+              <span class="hub-users__art">
+                <span class="hub-users__faces" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span class="hub-users__count" data-hub-stat="users"></span>
+              </span>
+              <span class="hub-tile__text">Bot obunachilari va ularning faolligi</span>
+            </button>
+
+            <button type="button" class="hub-tile hub-tile--podcasts" data-hub-target="podcasts">
+              <span class="hub-tile__head">
+                <span class="hub-tile__label">Potkastlar</span>
+                <span class="hub-tile__glyph"><svg class="podcast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="12" rx="4"></rect><circle cx="12" cy="5.2" r="0.9" fill="currentColor" stroke="none"></circle><path d="M10.2 8h3.6" stroke-width="1.8"></path><circle cx="12" cy="10.8" r="0.9" fill="currentColor" stroke="none"></circle><path d="M5 10v1.5a7 7 0 0 0 14 0V10"></path><line x1="12" y1="18.5" x2="12" y2="22"></line></svg></span>
+              </span>
+              <span class="hub-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <span class="hub-tile__text">YouTube kanallar</span>
+            </button>
+
+            <button type="button" class="hub-tile hub-tile--ad" data-hub-target="ad">
+              <span class="hub-tile__head">
+                <span class="hub-tile__label">Reklama</span>
+                <span class="hub-tile__glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-5v12l-18-5z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg></span>
+              </span>
+              <span class="hub-ad__art" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="hub-tile__text">Banner, pre-roll, xabar yuborish</span>
+            </button>
+
+            <button type="button" class="hub-tile hub-tile--esports" data-hub-target="esportsStreams">
+              <span class="hub-tile__head">
+                <span class="hub-tile__label">Kibersport</span>
+                <span class="hub-tile__glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8h8a4 4 0 0 1 4 4v3a3 3 0 0 1-5.1 2.1L13 15h-2l-1.9 2.1A3 3 0 0 1 4 15v-3a4 4 0 0 1 4-4Z"></path><path d="M8 11v4M6 13h4M16 12h.01M18 14h.01"></path></svg></span>
+              </span>
+              <span class="hub-big-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8h8a4 4 0 0 1 4 4v3a3 3 0 0 1-5.1 2.1L13 15h-2l-1.9 2.1A3 3 0 0 1 4 15v-3a4 4 0 0 1 4-4Z"></path><path d="M8 11v4M6 13h4M16 12h.01M18 14h.01"></path></svg></span>
+              <span class="hub-tile__text">YouTube translatsiyalar</span>
+            </button>
+
+            <button type="button" class="hub-tile hub-tile--tv" data-hub-target="tv">
+              <span class="hub-tile__head">
+                <span class="hub-tile__label">TV kanallar</span>
+                <span class="hub-tile__glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="m8 2 4 4 4-4"></path></svg></span>
+              </span>
+              <span class="hub-big-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="m8 2 4 4 4-4"></path></svg></span>
+              <span class="hub-tile__text">Jonli efir kanallari</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Bosh sahifa — mini ilova bosh ekrani sozlamalari (admin-home.js, /api/home) -->
+        <section class="content-section hl" id="homeLayoutSection">
+          <div class="section-header">
+            <h2>Bosh sahifa</h2>
+            <div class="hl-actions">
+              <span class="hl-status" id="homeLayoutStatus" data-state="loading">Yuklanmoqda…</span>
+              <button type="button" class="btn btn-secondary" id="homeLayoutReset" disabled>Bekor qilish</button>
+              <button type="button" class="btn btn-primary" id="homeLayoutSave" disabled>Saqlash</button>
+            </div>
+            <p class="section-header__hint">Mini ilova bosh ekrani: qaysi bo'limlar, qaysi tartibda va qanday o'lchamda chiqishi. O'zgarishlar «Saqlash» bosilgandagina yoziladi. Hozircha mini ilova bu sozlamani o'qimaydi — bosh sahifa ishga tushganda shu tartib qo'llanadi.</p>
+          </div>
+
+          <div class="hl-grid">
+            <div class="hl-main">
+              <div class="form-card">
+                <div class="card-head">
+                  <h3>Bo'limlar tartibi</h3>
+                  <p>Ushlagichdan sudrab tartiblang (klaviaturada: ↑ / ↓). O'chirilgan bo'lim bosh sahifada ko'rinmaydi. Kichik kartochkalar ikkitadan yonma-yon turadi; bo'sh joy qolsa, keyingi kichik kartochka uni to'ldiradi.</p>
+                </div>
+                <ol class="hl-list" id="homeLayoutList" aria-label="Bo'limlar tartibi"></ol>
+              </div>
+
+              <div class="hl-pair">
+                <div class="form-card">
+                  <div class="card-head"><h3>Asosiy kino (Hero)</h3></div>
+                  <div class="hl-hero">
+                    <img class="hl-hero__poster" id="homeLayoutHeroPoster" alt="" src="data:,">
+                    <div class="hl-hero__fields">
+                      <select class="form-select" id="homeLayoutHeroMode" aria-label="Asosiy kinoni tanlash usuli">
+                        <option value="auto">Avtomatik: eng yangi kino</option>
+                        <option value="manual">Qo'lda tanlash</option>
+                      </select>
+                      <div class="hl-picker" id="homeLayoutPicker" hidden>
+                        <input type="search" class="form-input" id="homeLayoutHeroSearch" placeholder="Kino nomi yoki kodi…" autocomplete="off" aria-label="Kino qidirish">
+                        <div class="hl-picker__results" id="homeLayoutHeroResults"></div>
+                      </div>
+                      <div class="hl-hero__name" id="homeLayoutHeroName"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-card">
+                  <div class="card-head"><h3>Salomlashish</h3></div>
+                  <input type="text" class="form-input" id="homeLayoutGreeting" maxlength="80" placeholder="Xayrli kun, {ism}">
+                  <small class="form-hint"><code>{ism}</code> o'rniga foydalanuvchining Telegram ismi qo'yiladi. Bo'sh qoldirsangiz salom chiqmaydi.</small>
+                </div>
+              </div>
+            </div>
+
+            <aside class="form-card hl-preview">
+              <div class="hl-preview__head">
+                <h3>Jonli ko'rinish</h3>
+                <div class="segmented" role="group" aria-label="Ko'rinish rejimi">
+                  <button type="button" class="segmented__btn is-active" data-hl-scheme="light">Kunduzgi</button>
+                  <button type="button" class="segmented__btn" data-hl-scheme="dark">Tungi</button>
+                </div>
+              </div>
+              <div class="hl-phone" id="homeLayoutPhone" data-scheme="light">
+                <div class="hl-phone__screen">
+                  <div class="hl-phone__top">
+                    <div>
+                      <div class="hl-phone__greeting" id="homeLayoutPreviewGreeting"></div>
+                      <div class="hl-phone__brand">NTV</div>
+                    </div>
+                    <span class="hl-phone__avatar" aria-hidden="true"></span>
+                  </div>
+                  <div class="hl-bento" id="homeLayoutPreview"></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
         <!-- Movies Section -->
-        <section class="content-section active" id="moviesSection">
+        <section class="content-section" id="moviesSection">
           <div class="movie-tabs" role="tablist">
             <button type="button" class="movie-tab is-active" data-movie-tab="movies" role="tab">Kinolar</button>
             <button type="button" class="movie-tab" data-movie-tab="series" role="tab">Seriallar</button>
@@ -1661,7 +1736,8 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20261030-boks-icon-v2"></script>
+  <script src="/admin/admin.js?v=20261030-hub-v1"></script>
   <script src="/admin/admin-boks.js?v=20261029-boks-v2"></script>
+  <script src="/admin/admin-home.js?v=20261030-hub-v1"></script>
 </body>
 </html>

@@ -11,6 +11,7 @@ const { handleMusicPlaylists } = require("./_lib/music-playlists");
 const { withErrorHandler } = require("./_lib/error-logger");
 const { handleBooksRequest } = require("./_lib/books");
 const { handleBoksRequest } = require("./_lib/boks");
+const { handleHomeLayoutRequest } = require("./_lib/home-layout");
 
 const SEED_FILE = path.join(process.cwd(), "data", "music.json");
 const REDIS_KEY = "music:tracks:v1";
@@ -388,6 +389,10 @@ module.exports = withErrorHandler(async function handler(request, response) {
   }
   if (request.query?._boks) {
     await handleBoksRequest(request, response);
+    return;
+  }
+  if (request.query?._home) {
+    await handleHomeLayoutRequest(request, response);
     return;
   }
 

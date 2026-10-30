@@ -118,6 +118,8 @@ let filteredUsers = [];
 let userSearchQuery = '';
 
 const SECTION_TITLES = {
+  hub: 'Admin panel',
+  homeLayout: 'Bosh sahifa',
   movies: 'Kinolar',
   music: 'Musiqa',
   podcasts: 'Potkastlar',
@@ -352,6 +354,7 @@ async function fetchMovies(force = false) {
     filteredMovies = [...movies];
     renderMovies();
     syncAvailableCategories();
+    renderHubStats();
   };
   if (cached?.data && !force) {
     applyMovies(cached.data);
@@ -411,8 +414,6 @@ async function fetchMovies(force = false) {
 }
 
 // DOM Elements
-const menuToggle = document.getElementById('menuToggle');
-const sidebar = document.querySelector('.sidebar');
 const themeToggle = document.getElementById('themeToggle');
 
 // ===== Telegram WebApp integration =====
@@ -550,16 +551,53 @@ async function init() {
   await fetchMovies();
   bindEvents();
   bindBottomSheetDrag();
-  createSidebarOverlay();
+  // Admin panel har doim bo'limlar sahifasidan (hub) ochiladi — sidebar yo'q.
+  switchSection('hub');
+}
 
-  const savedSection = localStorage.getItem('admin-section');
-  if (savedSection === 'categories') {
-    // Oldingi versiyadagi alohida sidebar bo'limini kino ichidagi tabga migrate qilamiz.
-    localStorage.setItem('admin-section', 'movies');
-    switchMovieTab('categories');
-  } else if (savedSection && savedSection !== 'movies') {
-    switchSection(savedSection);
+// Hub kartochkalaridagi jonli ma'lumot. Faqat allaqachon yuklangan kinolar va
+// localStorage keshidagi ro'yxatlardan olinadi — hub uchun alohida so'rov yo'q.
+function renderHubStats() {
+  const hour = new Date().getHours();
+  const greet = hour < 5 ? 'Xayrli tun' : hour < 11 ? 'Xayrli tong' : hour < 18 ? 'Xayrli kun' : 'Xayrli kech';
+  const tgName = isInsideTelegram() ? String(tg.initDataUnsafe?.user?.first_name || '').trim() : '';
+  const greetingEl = document.getElementById('hubGreeting');
+  if (greetingEl) greetingEl.textContent = `${greet}, ${tgName || 'Admin'}`;
+  const avatar = document.getElementById('hubAvatar');
+  if (avatar) avatar.textContent = (tgName || 'A').charAt(0).toUpperCase();
+
+  // Drive ro'yxati eng yangi o'zgartirilgan fayldan boshlanadi.
+  const [latest, ...rest] = movies;
+  const poster = document.getElementById('hubMoviePoster');
+  if (poster) {
+    poster.hidden = !latest?.poster;
+    if (latest?.poster) {
+      poster.src = proxiedPoster(latest.poster);
+      poster.onerror = () => retryPoster(poster);
+    }
   }
+  const title = document.getElementById('hubMovieTitle');
+  if (title) title.textContent = latest ? latest.name : 'Kinolar va seriallar';
+  const meta = document.getElementById('hubMovieMeta');
+  if (meta) meta.textContent = movies.length ? `${movies.length} ta kino · seriallar va kategoriyalar` : 'Kinolar, seriallar va kategoriyalar';
+  const recent = document.getElementById('hubMovieRecent');
+  if (recent) {
+    recent.innerHTML = rest.filter(m => m.poster).slice(0, 4).map(m =>
+      `<img src="${escapeHtml(proxiedPoster(m.poster))}" alt="" loading="lazy" onerror="retryPoster(this)">`
+    ).join('');
+  }
+
+  const cachedCount = (name, pick) => {
+    const data = readAdminCache(name)?.data;
+    const list = pick(data);
+    return Array.isArray(list) ? list.length : 0;
+  };
+  const users = cachedCount('users', d => Array.isArray(d) ? d : d?.users);
+  const usersEl = document.querySelector('[data-hub-stat="users"]');
+  if (usersEl) usersEl.textContent = users ? users.toLocaleString('ru-RU') : '';
+  const tracks = cachedCount('music', d => Array.isArray(d) ? d : d?.tracks);
+  const musicEl = document.querySelector('[data-hub-stat="music"]');
+  if (musicEl) musicEl.textContent = tracks ? `${tracks.toLocaleString('ru-RU')} ta qo'shiq` : "Qo'shiqlar va qo'shiqchilar";
 }
 
 // ===== Bottom-sheet swipe-down to close (modals) =====
@@ -610,8 +648,14 @@ function bindBottomSheetDrag() {
   });
 }
 
+// Telegram'dagi "orqaga" tugmasi bo'lim ichida hub'ga qaytaradi.
+let hubBackRegistered = false;
+function goToHub() { switchSection('hub'); }
+
 function switchSection(name) {
   const sections = {
+    hub: 'hubSection',
+    homeLayout: 'homeLayoutSection',
     movies: 'moviesSection',
     music: 'musicSection',
     podcasts: 'podcastsSection',
@@ -625,11 +669,6 @@ function switchSection(name) {
   const targetId = sections[name];
   if (!targetId) return;
 
-  localStorage.setItem('admin-section', name);
-
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.classList.toggle('active', item.dataset.section === name);
-  });
   document.querySelectorAll('.content-section').forEach(section => {
     section.classList.toggle('active', section.id === targetId);
   });
@@ -637,6 +676,14 @@ function switchSection(name) {
   const title = document.getElementById('pageTitle');
   if (title) title.textContent = SECTION_TITLES[name] || 'Admin';
 
+  const isHub = name === 'hub';
+  if (isHub) renderHubStats();
+  const backBtn = document.getElementById('hubBackBtn');
+  if (backBtn) backBtn.hidden = isHub;
+  if (!isHub && !hubBackRegistered) { tgPushBack(goToHub); hubBackRegistered = true; }
+  if (isHub && hubBackRegistered) { tgPopBack(); hubBackRegistered = false; }
+
+  if (name === 'homeLayout') window.homeLayoutAdmin?.load();
   if (name === 'users') fetchUsers();
   if (name === 'music') fetchMusic();
   if (name === 'podcasts') { fetchPodcasts(); fetchPodLangs(); }
@@ -646,12 +693,8 @@ function switchSection(name) {
   if (name === 'boks') { window.boksAdmin?.load(); }
   if (name === 'tv') { loadTvChannelsAdmin(); }
 
-  if (window.innerWidth <= 768) {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    document.querySelector('.sidebar')?.classList.remove('open');
-    document.getElementById('menuToggle')?.classList.remove('active');
-    document.getElementById('sidebarOverlay')?.classList.remove('active');
-  }
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  document.querySelector('.content-wrapper')?.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 // ------------- Subscribers -------------
@@ -966,22 +1009,6 @@ function renderUsers() {
   }).join('');
 }
 
-// Create sidebar overlay for mobile
-function createSidebarOverlay() {
-  let overlay = document.getElementById('sidebarOverlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.className = 'sidebar-overlay';
-    overlay.id = 'sidebarOverlay';
-    document.body.appendChild(overlay);
-  }
-  overlay.onclick = () => {
-    sidebar?.classList.remove('open');
-    menuToggle?.classList.remove('active');
-    overlay.classList.remove('active');
-  };
-}
-
 function commandPaletteItems(query = '') {
   const q = String(query || '').toLowerCase().trim();
   const items = [
@@ -1049,24 +1076,6 @@ function bindEvents() {
     if (e.key === 'Escape') document.getElementById('userDetailDrawer')?.classList.remove('is-open');
   });
 
-  // Mobile menu toggle
-  menuToggle?.addEventListener('click', () => {
-    sidebar?.classList.toggle('open');
-    menuToggle.classList.toggle('active');
-    document.getElementById('sidebarOverlay')?.classList.toggle('active');
-  });
-
-  // Close sidebar on mobile when clicking outside
-  document.addEventListener('click', (e) => {
-    if (window.innerWidth <= 768) {
-      if (sidebar && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
-        sidebar.classList.remove('open');
-        menuToggle?.classList.remove('active');
-        document.getElementById('sidebarOverlay')?.classList.remove('active');
-      }
-    }
-  });
-
   // Search Movies
   document.getElementById('movieSearchInput')?.addEventListener('input', debounce((e) => {
     filterMovies(e.target.value);
@@ -1117,14 +1126,11 @@ function bindEvents() {
   // Theme toggle
   themeToggle?.addEventListener('click', toggleTheme);
 
-  // Sidebar navigation
-  document.querySelectorAll('.nav-item[data-section]').forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const name = item.dataset.section;
-      if (name) switchSection(name);
-    });
+  // Hub: bo'lim kartochkalari va sarlavhadagi "bo'limlarga qaytish" tugmasi
+  document.querySelectorAll('.hub-tile[data-hub-target]').forEach(tile => {
+    tile.addEventListener('click', () => switchSection(tile.dataset.hubTarget));
   });
+  document.getElementById('hubBackBtn')?.addEventListener('click', goToHub);
 
   // Users search + refresh
   document.getElementById('userSearchInput')?.addEventListener('input', debounce((e) => {
