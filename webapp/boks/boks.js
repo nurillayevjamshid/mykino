@@ -33,8 +33,8 @@
     { key: "team", label: "Terma jamoa" }
   ];
 
-  // Bir juft boks qo'lqoplari (to'ldirilgan) — sidebar, splash va admin bilan bir xil
-  var ICON_GLOVE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g transform="rotate(-12 7 11)"><rect x="2.5" y="2" width="7.9" height="12.3" rx="3.6"></rect><ellipse cx="10.4" cy="9.6" rx="1.6" ry="2.4"></ellipse><rect x="3.2" y="15.1" width="6.4" height="4.6" rx="1.1"></rect></g><g transform="translate(0.6 1.6)"><rect x="13.6" y="2" width="7.9" height="12.3" rx="3.6"></rect><ellipse cx="13.6" cy="9.6" rx="1.6" ry="2.4"></ellipse><rect x="14.4" y="15.1" width="6.4" height="4.6" rx="1.1"></rect></g></svg>';
+  // Lentaga osilgan bir juft boks qo'lqopi (chiziqli) — sidebar, splash va admin bilan bir xil
+  var ICON_GLOVE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.3c-1-1.5-3-1.7-3-.6s2 1.3 3 .6Zm0 0c1-1.5 3-1.7 3-.6s-2 1.3-3 .6Zm0 0L8 7.2M12 3.3l4 3.9"></path><path d="M4.6 9.8V7.8c0-.4.2-.6.6-.6h4.4c.4 0 .6.2.6.6v2M4.6 9.8C2.4 10.7 1.6 13 1.7 15.6c.2 3.8 2.6 6.3 5.6 6.3 2.3 0 3.5-1.2 3.5-3.2v-6.4c0-1.2-.3-1.9-.6-2.4ZM19.4 9.8V7.8c0-.4-.2-.6-.6-.6h-4.4c-.4 0-.6.2-.6.6v2M19.4 9.8c2.2.9 3 3.2 2.9 5.8-.2 3.8-2.6 6.3-5.6 6.3-2.3 0-3.5-1.2-3.5-3.2v-6.4c0-1.2.3-1.9.6-2.4Z"></path><path d="M6.6 13.4c0 2 .9 3.3 2.4 3.7M17.4 13.4c0 2-.9 3.3-2.4 3.7"></path></svg>';
   var ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7V5Z"/></svg>';
   var ICON_PIN = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .7 1.7L15 6.4v4.1l2.6 2.6A1 1 0 0 1 17 15h-4v5.5a1 1 0 0 1-2 0V15H7a1 1 0 0 1-.7-1.7L9 10.5V6.4L7.3 4.7A1 1 0 0 1 8 3h8Z"/></svg>';
   var ICON_SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>';

@@ -8820,7 +8820,7 @@ if (requestedSection) setTimeout(() => {
 
 // Boks (NTV × O'zbekiston Boks Federatsiyasi) qo'lqop belgisi — sidebar,
 // topbar va splash ekranda bir xil ishlatiladi.
-const BOKS_GLOVE_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g transform="rotate(-12 7 11)"><rect x="2.5" y="2" width="7.9" height="12.3" rx="3.6"></rect><ellipse cx="10.4" cy="9.6" rx="1.6" ry="2.4"></ellipse><rect x="3.2" y="15.1" width="6.4" height="4.6" rx="1.1"></rect></g><g transform="translate(0.6 1.6)"><rect x="13.6" y="2" width="7.9" height="12.3" rx="3.6"></rect><ellipse cx="13.6" cy="9.6" rx="1.6" ry="2.4"></ellipse><rect x="14.4" y="15.1" width="6.4" height="4.6" rx="1.1"></rect></g></svg>`;
+const BOKS_GLOVE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.3c-1-1.5-3-1.7-3-.6s2 1.3 3 .6Zm0 0c1-1.5 3-1.7 3-.6s-2 1.3-3 .6Zm0 0L8 7.2M12 3.3l4 3.9"></path><path d="M4.6 9.8V7.8c0-.4.2-.6.6-.6h4.4c.4 0 .6.2.6.6v2M4.6 9.8C2.4 10.7 1.6 13 1.7 15.6c.2 3.8 2.6 6.3 5.6 6.3 2.3 0 3.5-1.2 3.5-3.2v-6.4c0-1.2-.3-1.9-.6-2.4ZM19.4 9.8V7.8c0-.4-.2-.6-.6-.6h-4.4c-.4 0-.6.2-.6.6v2M19.4 9.8c2.2.9 3 3.2 2.9 5.8-.2 3.8-2.6 6.3-5.6 6.3-2.3 0-3.5-1.2-3.5-3.2v-6.4c0-1.2.3-1.9.6-2.4Z"></path><path d="M6.6 13.4c0 2 .9 3.3 2.4 3.7M17.4 13.4c0 2-.9 3.3-2.4 3.7"></path></svg>`;
 
 // Topbarda Boks bo'limi uchun: Federatsiya logosi + "x" (keyin NTV logosi keladi).
 const BOKS_COLLAB_MARK = `<img class="brand-section__collab-logo" src="/static/assets/boks-federation-logo.png" alt="" aria-hidden="true" width="28" height="28" decoding="async"><span class="brand-section__collab-x">x</span>`;
@@ -12415,7 +12415,7 @@ function ensureBoksCss() {
   __boksCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/boks/boks.css?v=20261030-boks-header-v1";
+    link.href = "/static/boks/boks.css?v=20261030-boks-icon-v1";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -12428,7 +12428,7 @@ function ensureBoksModule() {
   const cssPromise = ensureBoksCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/boks/boks.js?v=20261030-boks-header-v1";
+    script.src = "/static/boks/boks.js?v=20261030-boks-icon-v1";
     script.onload = () => resolve(window.__boks);
     script.onerror = (err) => { __boksModulePromise = null; reject(err); };
     document.head.appendChild(script);
