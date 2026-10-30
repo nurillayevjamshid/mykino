@@ -1,7 +1,7 @@
 {
   "partner": {
     "name": "O'zbekiston Boks Federatsiyasi",
-    "logo": "",
+    "logo": "/static/assets/boks-federation-logo.png",
     "about": "NTV va O'zbekiston Boks Federatsiyasi hamkorligi: jonli efirlar, terma jamoa janglari va federatsiya yangiliklari bir joyda.",
     "links": []
   },

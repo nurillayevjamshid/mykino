@@ -7,7 +7,7 @@
    - Ko'rinish #boksView (index.html) ichiga to'liq JS bilan chiziladi.
 
    Kontent manbalari:
-     /api/boks               -> efir, terma jamoa, janglar videolari (admin panelda boshqariladi;
+     /api/boks               -> efir, terma jamoa, janglar videolari (Efir tabida, qidiruv bilan) (admin panelda boshqariladi;
                                 videolar YouTube kanaldan, shorts va qisqa kliplarsiz; pin qilinganlar boshida)
      /api/boks?resource=news -> @boxinguzbekistan Telegram kanalidagi xabarlar
      /static/boks/boks.json  -> hamkor ma'lumoti va hero kartadagi raqamlar
@@ -27,7 +27,6 @@
 
   var TABS = [
     { key: "live", label: "Efir" },
-    { key: "fights", label: "Janglar" },
     { key: "news", label: "Yangiliklar" },
     { key: "team", label: "Terma jamoa" }
   ];
@@ -54,7 +53,7 @@
     loading: false,
     playingId: null,
     query: "",
-    // all — qidiruvsiz ro'yxat (Efir va Janglar), search — qidiruv natijalari
+    // all — qidiruvsiz ro'yxat, search — qidiruv natijalari (ikkalasi ham Efir tabida)
     lists: { all: newList(), search: newList() },
     news: { posts: [], nextBefore: null, loaded: false, loading: false, failed: false }
   };
@@ -203,14 +202,15 @@
     var tabs = TABS.map(function (tab) {
       var active = tab.key === state.tab;
       return (
-        '<button class="boks-tab' + (active ? " is-active" : "") + '" type="button" role="tab"' +
+        '<button class="fifa-tab boks-tab' + (active ? " is-active" : "") + '" type="button" role="tab"' +
         ' data-boks-tab="' + tab.key + '" aria-selected="' + active + '">' + esc(tab.label) + "</button>"
       );
     }).join("");
 
     boksView.innerHTML =
       '<header class="boks-hero" id="boksHero"></header>' +
-      '<nav class="boks-tabs" role="tablist" aria-label="Boks bo\'limlari">' + tabs + "</nav>" +
+      // Tablar Futbol bo'limidagi .fifa-tabs ko'rinishida (fifa.js faqat data-fifa-tab'li tugmalarni ushlaydi)
+      '<nav class="fifa-tabs boks-tabs" role="tablist" aria-label="Boks bo\'limlari">' + tabs + "</nav>" +
       '<div class="boks-panel" id="boksPanel" role="tabpanel"></div>' +
       '<div class="boks-view__spacer"></div>';
   }
@@ -275,34 +275,37 @@
         '<button class="boks-stream__preview" type="button" data-boks-play="' + esc(s.id) + '"' +
         ' data-boks-title="' + esc(s.title || "Jonli efir") + '" aria-label="Efirni tomosha qilish">' +
         '<img src="' + thumbUrl(s.id) + '" alt="" loading="lazy" decoding="async">' +
-        '<span class="boks-stream__play">' + ICON_PLAY + "</span>" +
+        '<span class="boks-card__overlay"></span>' +
+        '<span class="boks-card__play">' + ICON_PLAY + "</span>" +
         "</button>" +
         (s.isLive ? '<span class="boks-stream__badge"><span class="boks-live-pill__dot"></span>LIVE</span>' : "");
     }
     var meta = s.id
-      ? '<div class="boks-stream__meta">' +
-        '<p class="boks-stream__title">' + esc(s.title || "Jonli efir") + "</p>" +
-        (s.subtitle ? '<p class="boks-stream__sub">' + esc(s.subtitle) + "</p>" : "") +
-        "</div>"
+      ? '<div class="boks-card__body">' +
+        '<div class="boks-card__title">' + esc(s.title || "Jonli efir") + "</div>" +
+        '<div class="boks-card__meta"><span class="boks-card__source">' + (s.isLive ? "Jonli efir" : "Efir") + "</span>" +
+        (s.subtitle ? '<span class="boks-card__dot">•</span><span>' + esc(s.subtitle) + "</span>" : "") +
+        "</div></div>"
       : "";
     return '<div class="boks-stream"><div class="boks-stream__frame">' + frame + "</div>" + meta + "</div>";
   }
 
-  // Efir tabi: efir kartasi, ostida "Boks janglari" — pastga cheksiz davom etadi.
+  // Efir tabi: efir kartasi, "Boks janglari" sarlavhasi, uning ostida qidiruv va
+  // janglar ro'yxati — pastga cheksiz davom etadi.
   function renderLive() {
     var all = state.lists.all;
     var total = pinnedFights().length + all.total;
     return (
       renderStreamCard() +
-      '<h3 class="boks-section-title">Boks janglari' +
+      '<h3 class="boks-section-title"><span class="boks-section-title__pulse" aria-hidden="true"></span>Boks janglari' +
       (total ? ' <span class="boks-section-title__count">' + formatCount(total) + "</span>" : "") +
       "</h3>" +
-      renderAllFights()
+      renderFightSearch()
     );
   }
 
   /* ---------------------------------------------------------------
-     Janglar (qidiruv serverda — kanal arxivi minglab videodan iborat)
+     Janglar (Efir tabida; qidiruv serverda — kanal arxivi minglab videodan iborat)
      --------------------------------------------------------------- */
   // Tezkor filtrlar: sarlavhalar inglizcha ("Jalolov (UZB)", "Olympic Games 2024 Final")
   var QUICK = [
@@ -320,34 +323,25 @@
     return parts.join(" · ");
   }
 
-  function featuredCard(v) {
+  // Futbol bo'limidagi video kartalar kabi: rasm tepada, ostida sarlavha va manba.
+  function fightCard(v) {
+    var ago = formatAgo(v.publishedAt);
     return (
-      '<button class="boks-fight boks-fight--featured" type="button" data-boks-play="' + esc(v.videoId) + '" data-boks-title="' + esc(v.title) + '">' +
-      '<span class="boks-fight__thumb">' +
+      '<button class="boks-fight" type="button" data-boks-play="' + esc(v.videoId) + '" data-boks-title="' + esc(v.title) + '">' +
+      '<span class="boks-card__media">' +
       '<img src="' + esc(v.thumb || thumbUrl(v.videoId)) + '" alt="" loading="lazy" decoding="async">' +
-      (v.pinned ? '<span class="boks-fight__pin">' + ICON_PIN + "Tanlangan</span>" : "") +
-      (v.durationSec ? '<span class="boks-fight__dur">' + formatDuration(v.durationSec) + "</span>" : "") +
-      '<span class="boks-fight__play">' + ICON_PLAY + "</span>" +
+      '<span class="boks-card__overlay"></span>' +
+      (v.pinned
+        ? '<span class="boks-card__badge boks-card__badge--pin">' + ICON_PIN + "Tanlangan</span>"
+        : ago ? '<span class="boks-card__badge">' + esc(ago) + "</span>" : "") +
+      (v.durationSec ? '<span class="boks-card__dur">' + formatDuration(v.durationSec) + "</span>" : "") +
+      '<span class="boks-card__play">' + ICON_PLAY + "</span>" +
       "</span>" +
-      '<span class="boks-fight__body">' +
-      '<span class="boks-fight__title">' + esc(v.title) + "</span>" +
-      '<span class="boks-fight__meta">' + esc(metaLine(v)) + "</span>" +
+      '<span class="boks-card__body">' +
+      '<span class="boks-card__title">' + esc(v.title) + "</span>" +
+      '<span class="boks-card__meta"><span class="boks-card__source">Boks janglari</span>' +
+      (v.viewCount ? '<span class="boks-card__dot">•</span><span>' + formatCount(v.viewCount) + " marta ko'rilgan</span>" : "") +
       "</span>" +
-      "</button>"
-    );
-  }
-
-  function rowCard(v) {
-    return (
-      '<button class="boks-fight boks-fight--row" type="button" data-boks-play="' + esc(v.videoId) + '" data-boks-title="' + esc(v.title) + '">' +
-      '<span class="boks-fight__thumb">' +
-      '<img src="' + esc(v.thumb || thumbUrl(v.videoId)) + '" alt="" loading="lazy" decoding="async">' +
-      (v.pinned ? '<span class="boks-fight__pin boks-fight__pin--dot" aria-label="Tanlangan">' + ICON_PIN + "</span>" : "") +
-      (v.durationSec ? '<span class="boks-fight__dur">' + formatDuration(v.durationSec) + "</span>" : "") +
-      "</span>" +
-      '<span class="boks-fight__body">' +
-      '<span class="boks-fight__title">' + esc(v.title) + "</span>" +
-      '<span class="boks-fight__meta">' + esc(metaLine(v)) + "</span>" +
       "</span>" +
       "</button>"
     );
@@ -374,13 +368,13 @@
         : empty("Janglar tez orada", "Terma jamoa janglarining videolari shu yerda paydo bo'ladi.");
     }
     return (
-      (pinned.length ? '<div class="boks-fights boks-fights--pinned">' + pinned.map(featuredCard).join("") + "</div>" : "") +
-      '<div class="boks-fights" data-boks-rows="all">' + l.items.map(rowCard).join("") + "</div>" +
+      (pinned.length ? '<div class="boks-fights boks-fights--pinned">' + pinned.map(fightCard).join("") + "</div>" : "") +
+      '<div class="boks-fights" data-boks-rows="all">' + l.items.map(fightCard).join("") + "</div>" +
       sentinel("all", l.nextOffset != null, l.failed)
     );
   }
 
-  function renderFights() {
+  function renderFightSearch() {
     var chips = QUICK.map(function (c) {
       var active = normalizeText(state.query) === normalizeText(c.q);
       return '<button class="boks-qchip' + (active ? " is-active" : "") + '" type="button" data-boks-quick="' + esc(c.q) + '">' + esc(c.label) + "</button>";
@@ -405,7 +399,7 @@
     if (!l.items.length) return empty("Hech narsa topilmadi", "Boshqa so'z bilan qidiring — masalan, bokschining familiyasi (lotincha: Jalolov).");
     return (
       '<p class="boks-count">' + formatCount(l.total) + " ta jang topildi</p>" +
-      '<div class="boks-fights" data-boks-rows="search">' + l.items.map(rowCard).join("") + "</div>" +
+      '<div class="boks-fights" data-boks-rows="search">' + l.items.map(fightCard).join("") + "</div>" +
       sentinel("search", l.nextOffset != null, l.failed)
     );
   }
@@ -449,20 +443,20 @@
         l.nextOffset = json && json.nextOffset != null ? json.nextOffset : null;
         l.loading = false;
         if (append) appendRows(key, incoming);
-        else if (state.tab === "fights") refreshFightResults();
+        else if (state.tab === "live") refreshFightResults();
       })
       .catch(function () {
         if (seq !== l.seq) return;
         l.loading = false;
         l.failed = true;
         if (append) updateSentinel(key, true, true);
-        else if (state.tab === "fights") refreshFightResults();
+        else if (state.tab === "live") refreshFightResults();
       });
   }
 
   function appendRows(key, items) {
     var rows = boksView.querySelector('[data-boks-rows="' + key + '"]');
-    if (rows && items.length) rows.insertAdjacentHTML("beforeend", items.map(rowCard).join(""));
+    if (rows && items.length) rows.insertAdjacentHTML("beforeend", items.map(fightCard).join(""));
     var l = state.lists[key];
     updateSentinel(key, l.nextOffset != null, false);
   }
@@ -488,24 +482,40 @@
      --------------------------------------------------------------- */
   function newsMedia(post) {
     var photos = list(post.photos);
+    var ago = formatAgo(post.datetime);
+    var badge = ago ? '<span class="boks-card__badge">' + esc(ago) + "</span>" : "";
     if (photos.length) {
       return (
-        '<div class="boks-post__media">' +
+        '<div class="boks-card__media">' +
         '<img src="' + esc(photos[0]) + '" alt="" loading="lazy" decoding="async">' +
-        (photos.length > 1 ? '<span class="boks-post__album">+' + (photos.length - 1) + " rasm</span>" : "") +
+        badge +
+        (photos.length > 1 ? '<span class="boks-card__dur">+' + (photos.length - 1) + " rasm</span>" : "") +
         "</div>"
       );
     }
     if (post.videoUrl) {
       return (
-        '<div class="boks-post__media">' +
+        '<div class="boks-card__media">' +
         (post.videoThumb ? '<img src="' + esc(post.videoThumb) + '" alt="" loading="lazy" decoding="async">' : '<span class="boks-post__media-fill"></span>') +
-        '<span class="boks-post__play">' + ICON_PLAY + "</span>" +
-        (post.videoDuration ? '<span class="boks-fight__dur">' + esc(post.videoDuration) + "</span>" : "") +
+        '<span class="boks-card__overlay"></span>' +
+        badge +
+        '<span class="boks-card__play">' + ICON_PLAY + "</span>" +
+        (post.videoDuration ? '<span class="boks-card__dur">' + esc(post.videoDuration) + "</span>" : "") +
         "</div>"
       );
     }
     return "";
+  }
+
+  // Kartadagi manba qatori: @kanal • vaqt • ko'rishlar
+  function postMeta(post) {
+    return (
+      '<span class="boks-card__meta">' +
+      '<span class="boks-card__source">@boxinguzbekistan</span>' +
+      '<span class="boks-card__dot">•</span><span>' + esc(formatAgo(post.datetime)) + "</span>" +
+      (post.views ? '<span class="boks-card__views">' + ICON_EYE + esc(post.views) + "</span>" : "") +
+      "</span>"
+    );
   }
 
   function newsMeta(post) {
@@ -521,11 +531,12 @@
   function postCard(post) {
     return (
       '<article class="boks-post" data-boks-post="' + post.id + '">' +
-      newsMeta(post) +
       newsMedia(post) +
-      '<h4 class="boks-post__title">' + esc(post.title) + "</h4>" +
+      '<div class="boks-card__body">' +
+      '<h4 class="boks-card__title">' + esc(post.title) + "</h4>" +
       (post.lead && post.lead !== post.title ? '<p class="boks-post__lead">' + esc(post.lead) + "</p>" : "") +
-      '<span class="boks-post__more">Batafsil o\'qish</span>' +
+      postMeta(post) +
+      "</div>" +
       "</article>"
     );
   }
@@ -686,8 +697,7 @@
   function renderPanel() {
     var panel = document.getElementById("boksPanel");
     if (!panel) return;
-    var html = state.tab === "fights" ? renderFights()
-      : state.tab === "news" ? renderNews()
+    var html = state.tab === "news" ? renderNews()
       : state.tab === "team" ? renderTeam() + renderLinks()
       : renderLive();
     panel.innerHTML = html;
