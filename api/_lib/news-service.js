@@ -319,8 +319,13 @@ async function fetchTelegramPosts(beforeId = null) {
 /**
  * Ingest live post from Telegram Webhook (update.channel_post)
  */
+const TELEGRAM_FILE_ID_RE = /^[A-Za-z0-9_-]{10,200}$/;
+
 function ingestWebhookPost(channelPost) {
   if (!channelPost || !channelPost.message_id) return null;
+  // id va file_id lenta sahifasida onclick/src ichiga to'g'ridan-to'g'ri
+  // qo'yiladi, shuning uchun faqat Telegram formatidagi qiymatlar o'tadi.
+  if (!Number.isSafeInteger(channelPost.message_id) || channelPost.message_id <= 0) return null;
 
   const id = channelPost.message_id;
   const text = channelPost.text || channelPost.caption || "";
@@ -331,14 +336,14 @@ function ingestWebhookPost(channelPost) {
   if (Array.isArray(channelPost.photo) && channelPost.photo.length > 0) {
     // Note: webhook provides file_id; we can form proxy/cdn link or use getFile if bot token present
     const bestPhoto = channelPost.photo[channelPost.photo.length - 1];
-    if (bestPhoto.file_id) {
+    if (TELEGRAM_FILE_ID_RE.test(String(bestPhoto.file_id || ""))) {
       photos.push(`/api/news?media=photo&fileId=${bestPhoto.file_id}`);
     }
   }
 
   // Extract video
   let videoUrl = null;
-  if (channelPost.video?.file_id) {
+  if (TELEGRAM_FILE_ID_RE.test(String(channelPost.video?.file_id || ""))) {
     videoUrl = `/api/news?media=video&fileId=${channelPost.video.file_id}`;
   }
 
@@ -355,7 +360,7 @@ function ingestWebhookPost(channelPost) {
     title,
     lead: rawLines.slice(0, 3).join(" ").slice(0, 220),
     text: cleanText,
-    html: cleanText.replace(/\n/g, "<br>"),
+    html: cleanText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>"),
     photos,
     videoUrl,
     videoThumb: null,

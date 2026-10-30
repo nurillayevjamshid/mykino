@@ -1,0 +1,4 @@
+#!/bin/sh
+# Commit qilinayotgan fayllarda token/parol bo'lsa, commit to'xtatiladi.
+# Yoqish: npm install (avtomatik) yoki: git config core.hooksPath .githooks
+exec node scripts/check-secrets.js --staged

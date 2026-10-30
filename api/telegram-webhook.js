@@ -1,6 +1,6 @@
 const { readBlobJsonStrict, writeBlobJson } = require("./_lib/blob-store");
 const { getJsonFromR2SignedStrict, putJsonToR2 } = require("./_lib/r2-store");
-const { verifyTelegramWebappInitData, setCorsHeaders } = require("./_lib/auth");
+const { verifyTelegramWebappInitData, setCorsHeaders, safeCompareStrings } = require("./_lib/auth");
 
 const TG_API = "https://api.telegram.org";
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
@@ -24,6 +24,21 @@ function getContactUsername() {
 
 function getFeedbackGroupId() {
   return String(process.env.FEEDBACK_GROUP_ID || "").trim();
+}
+
+// setWebhook'da secret_token berilsa, Telegram har bir so'rovga shu qiymatni
+// X-Telegram-Bot-Api-Secret-Token sarlavhasida qo'shib yuboradi. Env'da
+// TELEGRAM_WEBHOOK_SECRET bo'lsa, sarlavhasiz (ya'ni Telegram'dan
+// kelmagan) so'rovlar rad etiladi.
+function getWebhookSecret() {
+  return String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+}
+
+function isFromTelegram(request) {
+  const secret = getWebhookSecret();
+  if (!secret) return true;
+  const header = String(request.headers?.["x-telegram-bot-api-secret-token"] || "");
+  return safeCompareStrings(header, secret);
 }
 
 function parseInitDataUser(initData) {
@@ -504,6 +519,10 @@ module.exports = async function handler(request, response) {
   }
   if (request.method !== "POST") {
     response.status(405).json({ ok: false, error: "Method not allowed" });
+    return;
+  }
+  if (!isFromTelegram(request)) {
+    response.status(401).json({ ok: false, error: "Unauthorized" });
     return;
   }
 

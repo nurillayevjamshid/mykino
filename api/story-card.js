@@ -5,6 +5,20 @@ const { uploadImageToR2 } = require("./_lib/r2-store");
 // Map: id -> { buffer: Buffer, expiresAt: number }
 const memoryStoryCache = new Map();
 
+// Proxy faqat rasm uchun: aks holda u istalgan HTML/JS'ni bizning domen
+// nomidan ko'rsatib berardi (admin cookie'si bor sahifada XSS). SVG ichida
+// skript bo'lishi mumkin, shuning uchun u ham ruxsat etilmaydi.
+const PROXY_MAX_BYTES = 10 * 1024 * 1024;
+const PROXY_IMAGE_TYPE_RE = /^image\/(jpeg|jpg|png|webp|gif|avif)$/i;
+
+function isPrivateHostname(hostname) {
+  const host = String(hostname || "").toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local")) return true;
+  if (/^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return true;
+  if (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80")) return host.includes(":");
+  return false;
+}
+
 function cleanMemoryCache() {
   const now = Date.now();
   for (const [key, item] of memoryStoryCache.entries()) {
@@ -78,6 +92,10 @@ module.exports = async function handler(request, response) {
       response.status(400).end("Invalid protocol");
       return;
     }
+    if (isPrivateHostname(parsed.hostname)) {
+      response.status(400).end("Invalid host");
+      return;
+    }
     try {
       const upstream = await fetch(parsed.toString(), {
         headers: {
@@ -92,8 +110,26 @@ module.exports = async function handler(request, response) {
         response.status(upstream.status).end("Upstream fetch failed");
         return;
       }
+      // Ba'zi CDN'lar rasmni octet-stream deb beradi — uni jpeg deb belgilaymiz
+      // (nosniff bilan brauzer uni hech qachon HTML sifatida ochmaydi).
+      let contentType = String(upstream.headers.get("content-type") || "").split(";")[0].trim();
+      if (/^(application|binary)\/octet-stream$/i.test(contentType)) contentType = "image/jpeg";
+      if (!PROXY_IMAGE_TYPE_RE.test(contentType)) {
+        response.status(415).end("Only images");
+        return;
+      }
+      if (Number(upstream.headers.get("content-length") || 0) > PROXY_MAX_BYTES) {
+        response.status(413).end("Too large");
+        return;
+      }
       const buffer = Buffer.from(await upstream.arrayBuffer());
-      response.setHeader("Content-Type", upstream.headers.get("content-type") || "image/jpeg");
+      if (buffer.length > PROXY_MAX_BYTES) {
+        response.status(413).end("Too large");
+        return;
+      }
+      response.setHeader("Content-Type", contentType);
+      response.setHeader("X-Content-Type-Options", "nosniff");
+      response.setHeader("Content-Security-Policy", "default-src 'none'; sandbox");
       response.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800, immutable");
       response.status(200).end(buffer);
       return;

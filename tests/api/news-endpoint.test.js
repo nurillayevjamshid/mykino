@@ -55,17 +55,29 @@ describe("GET & POST /api/news HTTP Endpoint Suite", () => {
       text: "⚡️ TEZKOR: Vercel serverless news ingestion muvaffaqiyatli ishga tushdi!",
     };
 
-    const req = createMockReq({
-      method: "POST",
-      url: "/api/news",
-      body: { channelPost: testChannelPost },
-    });
-    const res = createMockRes();
+    const prevPassword = process.env.ADMIN_PASSWORD;
+    process.env.ADMIN_PASSWORD = "test-admin-password";
+    try {
+      const anon = createMockRes();
+      await newsHandler(createMockReq({ method: "POST", url: "/api/news", body: { channelPost: testChannelPost } }), anon);
+      assert.equal(anon.statusCode, 401);
 
-    await newsHandler(req, res);
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.body.ok, true);
-    assert.equal(res.body.post.id, 88888);
-    assert.equal(res.body.post.category, "⚡ Tezkor");
+      const req = createMockReq({
+        method: "POST",
+        url: "/api/news",
+        headers: { "x-admin-password": "test-admin-password" },
+        body: { channelPost: testChannelPost },
+      });
+      const res = createMockRes();
+
+      await newsHandler(req, res);
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.ok, true);
+      assert.equal(res.body.post.id, 88888);
+      assert.equal(res.body.post.category, "⚡ Tezkor");
+    } finally {
+      if (prevPassword === undefined) delete process.env.ADMIN_PASSWORD;
+      else process.env.ADMIN_PASSWORD = prevPassword;
+    }
   });
 });

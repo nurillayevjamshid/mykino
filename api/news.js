@@ -1,7 +1,7 @@
 // API endpoint: /api/news
 // Serves parsed and cached news feed from Telegram channel @tezkorofficial_uz.
 
-const { setCorsHeaders } = require("./_lib/auth");
+const { setCorsHeaders, isAdminAuthorized } = require("./_lib/auth");
 const { getNews, ingestWebhookPost, CHANNEL_USERNAME } = require("./_lib/news-service");
 
 module.exports = async function handler(request, response) {
@@ -16,6 +16,12 @@ module.exports = async function handler(request, response) {
 
   // POST endpoint: ingest webhook post or refresh cache
   if (request.method === "POST") {
+    // Lentaga post qo'shish va keshni majburan yangilash faqat admin uchun —
+    // aks holda har kim yangiliklarga soxta post (va zararli HTML) qo'sha olardi.
+    if (!isAdminAuthorized(request)) {
+      response.status(401).json({ ok: false, error: "Avtorizatsiya talab qilinadi." });
+      return;
+    }
     try {
       let body = {};
       if (request.body && typeof request.body === "object") {

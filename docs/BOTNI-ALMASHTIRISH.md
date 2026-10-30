@@ -123,10 +123,17 @@ npx vercel --prod
 Yangi bot uchun webhook o'rnatish (agar webhook ishlatilsa):
 
 ```bash
-curl "https://api.telegram.org/bot<YANGI_TOKEN>/setWebhook?url=https://www.myplaylist.uz/api/telegram-webhook"
+curl "https://api.telegram.org/bot<YANGI_TOKEN>/setWebhook?url=https://www.myplaylist.uz/api/telegram-webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>"
 ```
 
-Javobda `"ok":true` bo'lishi kerak.
+Javobda `"ok":true` bo'lishi kerak. `secret_token` Vercel'dagi
+`TELEGRAM_WEBHOOK_SECRET` bilan bir xil bo'lishi shart (u bo'sh bo'lsa,
+`&secret_token=...` qismini tashlab yuboring).
+
+> **Tokenni hech qachon repodagi faylga yozmang** (`.env.example`, workflow,
+> kod). Repo ochiq — token bir necha daqiqada o'g'irlanib, bot nomidan spam
+> yuboriladi. Token faqat `.env`, Vercel Environment Variables va GitHub
+> Secrets'da turadi. `npm run check:secrets` va CI buni avtomatik tekshiradi.
 
 Bot @BotFather'da mini app tugmasini yangi domenga ulang:
 `/mybots` → botni tanlang → **Bot Settings** → **Menu Button** → URL kiriting.

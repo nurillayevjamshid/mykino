@@ -10,6 +10,8 @@
   },
   "scripts": {
     "check": "node scripts/check-syntax.js",
+    "check:secrets": "node scripts/check-secrets.js",
+    "prepare": "node scripts/install-hooks.js",
     "test": "node scripts/run-tests.js --reporter=spec",
     "test:ci": "node scripts/run-tests.js --reporter=tap",
     "migrate:r2": "node --no-warnings scripts/migrate-to-r2.js",
