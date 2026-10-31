@@ -945,15 +945,15 @@ html.boks-sheet-open body { overflow: hidden; }
   gap: 6px;
   padding: 40px 0;
 }
-.boks-loading span {
+.boks-loading__dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--bx-red);
   animation: boks-pulse 1s ease-in-out infinite;
 }
-.boks-loading span:nth-child(2) { animation-delay: 0.15s; background: var(--bx-muted); }
-.boks-loading span:nth-child(3) { animation-delay: 0.3s; background: var(--bx-blue); }
+.boks-loading__dot:nth-child(2) { animation-delay: 0.15s; background: var(--bx-muted); }
+.boks-loading__dot:nth-child(3) { animation-delay: 0.3s; background: var(--bx-blue); }
 
 .boks-partner-links {
   display: flex;
@@ -976,7 +976,7 @@ html.boks-sheet-open body { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .boks-live-pill__dot,
   .boks-section-title__pulse,
-  .boks-loading span { animation: none; }
+  .boks-loading__dot { animation: none; }
   .boks-sheet__panel,
   .boks-sheet__backdrop { transition: none; }
 }

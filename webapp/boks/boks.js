@@ -185,7 +185,7 @@
   }
 
   function loader() {
-    return '<div class="boks-loading" aria-label="Yuklanmoqda"><span></span><span></span><span></span></div>';
+    return '<div class="boks-loading" aria-label="Yuklanmoqda"><span class="boks-loading__dot"></span><span class="boks-loading__dot"></span><span class="boks-loading__dot"></span></div>';
   }
 
   function stream() {

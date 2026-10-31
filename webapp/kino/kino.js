@@ -3297,14 +3297,20 @@ function __ensureHeroVisibilityObserver() {
 //   qayta hisoblashni talab qiladi, CSS qoidalari ko'p bo'lgani uchun bu qimmat.
 let __appLastScrollAt = 0;
 let __appScrollEndTimer = 0;
+const __checkScrollEnd = () => {
+  const idle = performance.now() - __appLastScrollAt;
+  if (idle < 200) {
+    __appScrollEndTimer = setTimeout(__checkScrollEnd, 200 - idle);
+    return;
+  }
+  __appScrollEndTimer = 0;
+  document.documentElement.classList.remove("is-scrolling");
+};
 document.addEventListener("scroll", () => {
   __appLastScrollAt = performance.now();
-  if (!__appScrollEndTimer) document.documentElement.classList.add("is-scrolling");
-  clearTimeout(__appScrollEndTimer);
-  __appScrollEndTimer = setTimeout(() => {
-    __appScrollEndTimer = 0;
-    document.documentElement.classList.remove("is-scrolling");
-  }, 200);
+  if (__appScrollEndTimer) return;
+  document.documentElement.classList.add("is-scrolling");
+  __appScrollEndTimer = setTimeout(__checkScrollEnd, 200);
 }, { capture: true, passive: true });
 window.__isAppScrolling = () => performance.now() - __appLastScrollAt < 300;
 
@@ -12446,7 +12452,7 @@ function ensureBoksCss() {
   __boksCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/boks/boks.css?v=20261031-smooth-scroll-v1";
+    link.href = "/static/boks/boks.css?v=20261031-smooth-scroll-v2";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -12459,7 +12465,7 @@ function ensureBoksModule() {
   const cssPromise = ensureBoksCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/boks/boks.js?v=20261030-boks-icon-v2";
+    script.src = "/static/boks/boks.js?v=20261031-smooth-scroll-v2";
     script.onload = () => resolve(window.__boks);
     script.onerror = (err) => { __boksModulePromise = null; reject(err); };
     document.head.appendChild(script);

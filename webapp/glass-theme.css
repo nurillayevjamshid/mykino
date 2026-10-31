@@ -5091,13 +5091,12 @@ html[data-theme] .brand-section__icon img.brand-section__collab-logo,
    Ular har kadrda style qayta hisoblashni talab qiladi — scroll to'xtagach davom etadi. */
 html.is-scrolling .boks-live-pill__dot,
 html.is-scrolling .boks-section-title__pulse,
-html.is-scrolling .boks-loading span,
+html.is-scrolling .boks-loading__dot,
 html.is-scrolling .fifa-highlights-pulse,
 html.is-scrolling .fifa-match__status-dot::after,
 html.is-scrolling .fifa-banner__live-dot::after,
 html.is-scrolling .fifa-next-badge--live,
 html.is-scrolling .hero__play::after,
-html.is-scrolling .ad-ticker-card__content,
-html.is-scrolling .ads-hero__badge i {
+html.is-scrolling .ad-ticker-card__content {
   animation-play-state: paused !important;
 }
