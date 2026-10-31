@@ -169,19 +169,27 @@ const memoryRateLimitCache = new Map();
 const DEFAULT_WINDOW_MS = 60000; // 1 minute
 const DEFAULT_MAX_REQUESTS = 120; // 120 requests/minute per IP
 
-async function checkRateLimitAsync({ ip, userId, max = DEFAULT_MAX_REQUESTS, windowMs = DEFAULT_WINDOW_MS } = {}) {
-  const keyIdentifier = userId ? `user:${userId}` : (ip ? `ip:${ip}` : "unknown");
+// scope — hisoblagich qaysi amal uchun ekanini bildiradi. Ilgari foydalanuvchining
+// BARCHA so'rovlari (kino, sozlamalar, jonli reaksiyalar har ~2s...) bitta
+// hisoblagichga tushardi va eng qattiq limitli endpoint (masalan, prognoz)
+// bilan solishtirilardi: 3-4 ta prognozdan keyin "juda ko'p so'rov" chiqardi.
+async function checkRateLimitAsync({ ip, userId, max = DEFAULT_MAX_REQUESTS, windowMs = DEFAULT_WINDOW_MS, scope = "" } = {}) {
+  const who = userId ? `user:${userId}` : (ip ? `ip:${ip}` : "unknown");
+  const keyIdentifier = scope ? `${scope}:${who}` : who;
   const now = Date.now();
 
   try {
     const redis = await getRateLimitRedis();
     if (redis) {
-      const redisKey = `rl:v1:${keyIdentifier}`;
-      const count = await redis.incr(redisKey);
-      if (count === 1) {
-        await redis.pExpire(redisKey, windowMs);
-      }
-      const ttlMs = await redis.pTTL(redisKey);
+      const redisKey = `rl:v2:${keyIdentifier}`;
+      // Bitta round-trip: kalit yo'q bo'lsa muddat bilan yaratiladi, keyin oshiriladi.
+      const [, countRaw, ttlRaw] = await redis.multi()
+        .set(redisKey, "0", { PX: windowMs, NX: true })
+        .incr(redisKey)
+        .pTTL(redisKey)
+        .exec();
+      const count = Number(countRaw);
+      const ttlMs = Number(ttlRaw);
       const remainingTtl = ttlMs > 0 ? ttlMs : windowMs;
       const retryAfter = Math.ceil(remainingTtl / 1000);
       const remaining = Math.max(0, max - count);
@@ -236,12 +244,15 @@ async function applyRateLimit(request, response, options = {}) {
   const userId = user?.id ? String(user.id) : null;
   const max = Number(options.max || (request.method === "GET" ? DEFAULT_MAX_REQUESTS : 40));
   const windowMs = Number(options.windowMs || DEFAULT_WINDOW_MS);
+  // Har xil limit va o'qish/yozish o'z hisoblagichiga ega; alohida limit kerak
+  // bo'lgan amallar (prognoz, reaksiya) options.scope beradi.
+  const scope = String(options.scope || `${request.method === "GET" ? "r" : "w"}${max}`);
 
   // 1. If user is an authenticated Telegram Mini App user, rate-limit by their individual User ID.
   // This completely prevents innocent users from being blocked when sharing Carrier-Grade NAT (CGNAT) IPs
   // on mobile networks (Beeline, Ucell, Mobiuz, Uztelecom).
   if (userId) {
-    const userCheck = await checkRateLimitAsync({ userId, max, windowMs });
+    const userCheck = await checkRateLimitAsync({ userId, max, windowMs, scope });
     setRateLimitHeaders(response, userCheck);
     if (!userCheck.allowed) {
       response.status(429).json({
@@ -256,7 +267,7 @@ async function applyRateLimit(request, response, options = {}) {
   }
 
   // 2. Unauthenticated / Anonymous requests are rate-limited by IP
-  const ipCheck = await checkRateLimitAsync({ ip: clientIp, max, windowMs });
+  const ipCheck = await checkRateLimitAsync({ ip: clientIp, max, windowMs, scope });
   setRateLimitHeaders(response, ipCheck);
 
   if (!ipCheck.allowed) {
@@ -577,14 +588,14 @@ async function requireAdmin(request, response) {
  * Telegram WebApp initData (HMAC-SHA256) hash'ini Bot Token orqali tekshiradi.
  * Natijada request.user va request.verifiedUserId ni biriktiradi.
  */
-async function requireVerifiedUser(request, response) {
+async function requireVerifiedUser(request, response, options = {}) {
   setCorsHeaders(request, response);
   if (request.method === "OPTIONS") {
     response.status(204).end();
     return null;
   }
 
-  const rateOk = await applyRateLimit(request, response, { max: 60 });
+  const rateOk = await applyRateLimit(request, response, { max: 60, ...(options.rateLimit || {}) });
   if (!rateOk) return null;
 
   const user = getVerifiedInitDataUser(request);

@@ -39,7 +39,14 @@
     const headers = { Accept: "application/json" };
     if (initData()) headers["X-TG-Init-Data"] = initData();
     if (body) headers["Content-Type"] = "application/json";
-    const res = await fetch(`${API}${type}${query}`, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
+    const send = () => fetch(`${API}${type}${query}`, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
+    let res = await send();
+    // Server vaqtincha band desa (429), foydalanuvchiga xato ko'rsatmasdan bir marta qayta urinamiz.
+    if (res.status === 429) {
+      const wait = Math.min(3, Math.max(1, Number(res.headers.get("Retry-After")) || 1));
+      await new Promise((r) => setTimeout(r, wait * 1000));
+      res = await send();
+    }
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok && data.ok !== false, status: res.status, data };
   }

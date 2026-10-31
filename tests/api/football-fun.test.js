@@ -220,6 +220,30 @@ describe("football predictions, reminders and live reactions", () => {
     assert.match(res.headers["Cache-Control"], /s-maxage=3/);
   });
 
+  test("a busy user can keep saving predictions: other requests do not use up the prediction limit", async () => {
+    const auth = require("../../api/_lib/auth");
+    // Ilovaning qolgan qismi: kino, sozlamalar, jonli reaksiyalar — daqiqasiga 100+ so'rov.
+    for (let i = 0; i < 100; i++) {
+      const res = createMockRes();
+      await auth.applyRateLimit(createMockReq({ method: "GET", headers: { "x-tg-init-data": initData(ALI) } }), res);
+    }
+    for (let i = 0; i < 40; i++) {
+      await call("POST", "type=fifa-reactions", { user: ALI, body: { counts: { "⚽": 1 } } });
+    }
+    for (let i = 0; i < 12; i++) {
+      addMatch(String(4000 + i), { kickoffMs: Date.now() + 3600 * 1000 });
+      const res = await predict(ALI, String(4000 + i), i % 4, 1);
+      assert.equal(res.statusCode, 200, `prediction ${i + 1} must be accepted (${res.body?.error || ""})`);
+    }
+    // Bir o'yinni ko'p marta o'zgartirish ham mumkin; taqsimot buzilmaydi.
+    for (let i = 0; i < 15; i++) {
+      const res = await predict(ALI, "4000", i % 5, 2);
+      assert.equal(res.statusCode, 200);
+    }
+    const last = await predict(ALI, "4000", 4, 2);
+    assert.deepEqual(last.body.dist, { home: 1, draw: 0, away: 0, total: 1 });
+  });
+
   test("the football page wires predictions, reminders and reactions", () => {
     const fun = fs.readFileSync(path.join(ROOT, "webapp/fifa/fifa-fun.js"), "utf8");
     for (const type of ["fifa-predict", "fifa-remind", "fifa-reactions"]) assert.match(fun, new RegExp(`"${type}"`));

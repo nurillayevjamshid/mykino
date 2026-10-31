@@ -12343,7 +12343,7 @@ function ensureFifaModule() {
   });
   // Prognoz, eslatma va reaksiyalar moduli (fifa-fun.js) fifa.js'dan oldin yuklanadi;
   // u yuklanmasa ham futbol bo'limi odatdagidek ishlayveradi.
-  __fifaModulePromise = loadScript("/static/fifa/fifa-fun.js?v=20261028-fifa-fun-v1")
+  __fifaModulePromise = loadScript("/static/fifa/fifa-fun.js?v=20261031-fifa-fun-v2")
     .catch(() => null)
     .then(() => loadScript("/static/fifa/fifa.js?v=20261029-no-kicker"))
     .then(() => window.__fifa)

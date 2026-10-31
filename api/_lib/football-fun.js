@@ -60,8 +60,22 @@ function memoryStore() {
     async sAdd(k, member) { ensure(k, () => new Set()).add(String(member)); },
     async sRem(k, member) { alive(k)?.v.delete(String(member)); },
     async sMembers(k) { return [...(alive(k)?.v || [])]; },
+    async batch(ops) {
+      const out = [];
+      for (const [op, ...args] of ops) out.push(await this[op](...args));
+      return out;
+    },
   };
 }
+
+// store.batch() uchun: bir nechta buyruq Redis'ga bitta round-trip'da (MULTI) ketadi.
+const BATCH_OPS = {
+  hIncrBy: (m, k, f, n) => m.hIncrBy(k, String(f), n),
+  hSet: (m, k, f, v) => m.hSet(k, String(f), String(v)),
+  hGetAll: (m, k) => m.hGetAll(k),
+  expire: (m, k, sec) => m.expire(k, sec),
+  zAdd: (m, k, score, member) => m.zAdd(k, { score: Number(score), value: String(member) }),
+};
 
 function redisStore(client) {
   return {
@@ -85,6 +99,11 @@ function redisStore(client) {
     sAdd: (k, member) => client.sAdd(k, String(member)),
     sRem: (k, member) => client.sRem(k, String(member)),
     sMembers: (k) => client.sMembers(k),
+    batch: (ops) => {
+      const m = client.multi();
+      for (const [op, ...args] of ops) BATCH_OPS[op](m, ...args);
+      return m.exec();
+    },
   };
 }
 
@@ -209,10 +228,32 @@ const K = {
   names: "fifa:pred:names",
 };
 
-async function readDist(store, mid) {
-  const raw = await store.hGetAll(K.dist(mid));
-  const home = Number(raw.home || 0), draw = Number(raw.draw || 0), away = Number(raw.away || 0);
+function distFromHash(raw) {
+  let obj = raw || {};
+  if (Array.isArray(obj)) {
+    const pairs = {};
+    for (let i = 0; i + 1 < obj.length; i += 2) pairs[obj[i]] = obj[i + 1];
+    obj = pairs;
+  }
+  const home = Number(obj.home || 0), draw = Number(obj.draw || 0), away = Number(obj.away || 0);
   return { home, draw, away, total: home + draw + away };
+}
+
+async function readDist(store, mid) {
+  return distFromHash(await store.hGetAll(K.dist(mid)));
+}
+
+// Bir nechta o'yin taqsimotini bitta round-trip'da o'qiydi.
+async function readDists(store, mids) {
+  if (!mids.length) return {};
+  const rows = await store.batch(mids.map((mid) => ["hGetAll", K.dist(mid)]));
+  return Object.fromEntries(mids.map((mid, i) => [mid, distFromHash(rows[i])]));
+}
+
+// Natija hisoblash ESPN'ga murojaat qiladi — har GET'da emas, ~30 soniyada bir marta.
+async function settlePredictionsThrottled(store) {
+  if (!(await store.setNx("fifa:pred:settle:tick", "1", 30))) return null;
+  return settlePredictions(store);
 }
 
 const outcomeField = (h, a) => (h > a ? "home" : h < a ? "away" : "draw");
@@ -229,21 +270,31 @@ async function savePrediction(store, user, body) {
   const uid = String(user.id);
   const prevRaw = await store.hGet(K.user(uid), matchId);
   const prev = prevRaw ? JSON.parse(prevRaw) : null;
-  if (prev) await store.hIncrBy(K.dist(matchId), outcomeField(prev.h, prev.a), -1);
-  await store.hIncrBy(K.dist(matchId), outcomeField(h, a), 1);
+  // Xuddi o'sha hisob qayta yuborilsa bazaga hech narsa yozilmaydi.
+  if (prev && prev.status === "pending" && prev.h === h && prev.a === a) {
+    return { status: 200, prediction: prev, dist: await readDist(store, matchId) };
+  }
   const record = {
     leagueId, matchId, h, a, at: Date.now(), kickoffMs: match.kickoffMs, leagueName: match.leagueName,
     home: match.home.name, away: match.away.name, homeLogo: match.home.logo, awayLogo: match.away.logo,
     status: "pending",
   };
-  await store.hSet(K.user(uid), matchId, JSON.stringify(record));
-  await store.expire(K.user(uid), 180 * DAY_SEC);
-  await store.hSet(K.match(matchId), uid, `${h}:${a}`);
-  await store.expire(K.match(matchId), 30 * DAY_SEC);
-  await store.expire(K.dist(matchId), 30 * DAY_SEC);
-  await store.zAdd(K.pending, match.kickoffMs, `${leagueId}|${matchId}`);
-  await store.hSet(K.names, uid, displayName(user));
-  return { status: 200, prediction: record, dist: await readDist(store, matchId) };
+  // Barcha yozuvlar va yangi taqsimot — bitta round-trip.
+  const ops = [];
+  if (prev) ops.push(["hIncrBy", K.dist(matchId), outcomeField(prev.h, prev.a), -1]);
+  ops.push(
+    ["hIncrBy", K.dist(matchId), outcomeField(h, a), 1],
+    ["hSet", K.user(uid), matchId, JSON.stringify(record)],
+    ["expire", K.user(uid), 180 * DAY_SEC],
+    ["hSet", K.match(matchId), uid, `${h}:${a}`],
+    ["expire", K.match(matchId), 30 * DAY_SEC],
+    ["expire", K.dist(matchId), 30 * DAY_SEC],
+    ["zAdd", K.pending, match.kickoffMs, `${leagueId}|${matchId}`],
+    ["hSet", K.names, uid, displayName(user)],
+    ["hGetAll", K.dist(matchId)],
+  );
+  const results = await store.batch(ops);
+  return { status: 200, prediction: record, dist: distFromHash(results[results.length - 1]) };
 }
 
 // Tugagan o'yinlar bo'yicha ball beradi. Bir vaqtda faqat bitta jarayon ishlaydi.
@@ -334,7 +385,7 @@ async function handlePredictions(request, response) {
   const store = await getStore();
   if (request.method === "GET" && view === "leaderboard") {
     setCorsHeaders(request, response);
-    await settlePredictions(store).catch(() => {});
+    await settlePredictionsThrottled(store).catch(() => {});
     const period = ["week", "lastweek", "all"].includes(url.searchParams.get("period")) ? url.searchParams.get("period") : "week";
     const board = await leaderboard(store, period);
     response.setHeader("Cache-Control", "public, max-age=0, s-maxage=30, stale-while-revalidate=60");
@@ -342,18 +393,21 @@ async function handlePredictions(request, response) {
     return response.status(200).json({ ok: true, ...board, rows: board.rows.map(({ uid, ...row }) => ({ ...row, id: hashId(uid) })) });
   }
 
-  const user = await requireVerifiedUser(request, response);
+  // Prognozning o'z hisoblagichi bor: ilovaning boshqa so'rovlari (kino, jonli
+  // reaksiyalar...) unga ta'sir qilmaydi. 120/daqiqa — odam yetolmaydi, faqat botni to'xtatadi.
+  const user = await requireVerifiedUser(request, response, {
+    rateLimit: { scope: request.method === "GET" ? "fifa-predict-r" : "fifa-predict-w", max: 120 },
+  });
   if (!user) return;
   response.setHeader("Cache-Control", "no-store, max-age=0");
   const uid = String(request.verifiedUserId);
   try {
     if (request.method === "GET") {
-      await settlePredictions(store).catch(() => {});
+      await settlePredictionsThrottled(store).catch(() => {});
       const all = Object.values(await store.hGetAll(K.user(uid))).map((v) => JSON.parse(v));
       all.sort((x, y) => y.kickoffMs - x.kickoffMs);
       const list = all.slice(0, 60);
-      const dists = {};
-      for (const p of list) if (p.status === "pending") dists[p.matchId] = await readDist(store, p.matchId);
+      const dists = await readDists(store, list.filter((p) => p.status === "pending").map((p) => p.matchId));
       return response.status(200).json({
         ok: true,
         me: hashId(uid),
@@ -474,7 +528,7 @@ async function sendDueReminders(store, { aheadMs = 0, limit = 120 } = {}) {
 }
 
 async function handleReminders(request, response) {
-  const user = await requireVerifiedUser(request, response);
+  const user = await requireVerifiedUser(request, response, { rateLimit: { scope: "fifa-remind", max: 120 } });
   if (!user) return;
   response.setHeader("Cache-Control", "no-store, max-age=0");
   const uid = String(request.verifiedUserId);
@@ -518,7 +572,8 @@ async function handleReactions(request, response) {
   }
   if (request.method !== "POST") return response.status(405).json({ ok: false, error: "Method not allowed." });
   // Sonni sun'iy ko'paytirib bo'lmasin — faqat tasdiqlangan Telegram foydalanuvchisi.
-  const user = await requireVerifiedUser(request, response);
+  // Jonli efirda har ~2s yuboriladi — o'z hisoblagichi, prognozga xalaqit bermaydi.
+  const user = await requireVerifiedUser(request, response, { rateLimit: { scope: "fifa-react", max: 90 } });
   if (!user) return;
   response.setHeader("Cache-Control", "no-store, max-age=0");
   try {
