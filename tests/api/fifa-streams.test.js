@@ -190,6 +190,15 @@ describe("FIFA live stream buttons", () => {
     assert.match(fifa, /const openLink = isYoutube \?/);
     // Taklif xabarida admin bergan o'yin nomi bo'ladi; standart sarlavhalar qo'shilmaydi.
     assert.match(fifa, /const matchTitle = getFifaInviteMatchTitle\(\)/);
+    // Mini ekran: pleyer «stage» ichida CSS bilan suzadi (iframe ko'chirilmaydi), tugma, sudrash va yopish bor.
+    const kinoCss = fs.readFileSync(path.join(root, "webapp/kino/kino.css"), "utf8");
+    assert.match(fifa, /<div class="fifa-efir-card__stage">\$\{miniBar\}<iframe/);
+    assert.match(fifa, /<div class="fifa-efir-card__stage">\$\{miniBar\}<video/);
+    assert.match(fifa, /data-fifa-mini aria-label="Mini ekran"/);
+    assert.match(fifa, /function setupFifaMini\(wrap\)/);
+    assert.match(fifa, /new IntersectionObserver/);
+    assert.match(fifa, /data-fifa-mini-close/);
+    assert.match(kinoCss, /\.fifa-efir-card\.is-mini \.fifa-efir-card__stage\{position:fixed/);
     assert.match(fifa, /"ntv futbol stream"/);
     assert.match(fifa, /streamsSignature/);
     // Telefonda VK Live embed yuklanmaydi — iframe o'rniga ochish cover'i.

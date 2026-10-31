@@ -1543,6 +1543,11 @@
     const platform = String(window.Telegram?.WebApp?.platform || "").toLowerCase();
     const isPhone = /^(ios|android)/.test(platform) || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
     const livePill = `<span class="fifa-streams-live-pill"><i></i> LIVE<span class="fifa-streams-viewers" data-fifa-viewers hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C6.5 5 2.7 9.4 1.5 12c1.2 2.6 5 7 10.5 7s9.3-4.4 10.5-7C21.3 9.4 17.5 5 12 5Zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Zm0-2.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg><b></b></span></span>`;
+    // Mini ekran: tepada tugma, pleyer esa «stage» ichida — suzganda faqat CSS o'zgaradi,
+    // iframe DOM'da ko'chirilmaydi va efir qayta yuklanmaydi.
+    const miniButton = `<button type="button" class="fifa-efir-card__mini" data-fifa-mini aria-label="Mini ekran"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h13A2.5 2.5 0 0 1 21 5.5V11h-2V5.5a.5.5 0 0 0-.5-.5h-13a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5H10v2H5.5A2.5 2.5 0 0 1 3 18.5v-13Zm10 8.5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-6Z"/></svg></button>`;
+    const miniBar = `<div class="fifa-mini-bar" data-fifa-mini-drag><button type="button" data-fifa-mini-expand aria-label="Kattalashtirish"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v2H7.4l4.3 4.3-1.4 1.4L6 7.4V11H4V4Zm16 16h-7v-2h3.6l-4.3-4.3 1.4-1.4 4.3 4.3V13h2v7Z"/></svg></button><span class="fifa-mini-bar__grip" aria-hidden="true"></span><button type="button" data-fifa-mini-close aria-label="Yopish"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z"/></svg></button></div>`;
+    const actions = `<div class="fifa-efir-card__actions">${miniButton}${livePill}</div>`;
     wrap.innerHTML = list.map((stream) => {
       const title = stream.title || "Futbol jonli efiri";
       const originalUrl = stream.originalUrl || stream.url;
@@ -1550,10 +1555,10 @@
       const isHls = stream.provider === "hls" || /\.m3u8(?:$|\?)/i.test(stream.url);
       if (isHls) {
         const provider = stream.isTv ? "TV kanal" : (/(?:varzish)/i.test(title) ? "Varzish TV" : "HLS Live");
-        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__brand"><div class="fifa-efir-card__titles"><h3>${esc(title)}</h3></div></div>${livePill}</div>`;
+        const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__brand"><div class="fifa-efir-card__titles"><h3>${esc(title)}</h3></div></div>${actions}</div>`;
         // TV kanalning "ochish" havolasi xom .m3u8 bo'lardi — foydasiz, shuning uchun ko'rsatmaymiz.
         const openLink = stream.isTv ? "" : `<a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a>`;
-        return `<article class="fifa-efir-card fifa-efir-card--hls${stream.poster ? " fifa-efir-card--poster" : ""}" data-hls-src="${esc(stream.url)}">${head}<div class="fifa-efir-card__player"><video class="fifa-efir-card__video" playsinline controls preload="none"${stream.poster ? ` poster="${esc(stream.poster)}"` : ""}></video></div>${openLink}</article>`;
+        return `<article class="fifa-efir-card fifa-efir-card--hls${stream.poster ? " fifa-efir-card--poster" : ""}" data-hls-src="${esc(stream.url)}">${head}<div class="fifa-efir-card__player"><div class="fifa-efir-card__stage">${miniBar}<video class="fifa-efir-card__video" playsinline controls preload="none"${stream.poster ? ` poster="${esc(stream.poster)}"` : ""}></video></div></div>${openLink}</article>`;
       }
       const isEmbed = isYoutube || /(?:video_ext\.php|app\/embed)/i.test(stream.url);
       if (!isEmbed) {
@@ -1563,6 +1568,7 @@
       const provider = isYoutube ? "YouTube" : (isVkLive ? "VK Video Live" : "VK Video");
       // Kartaning tepasida faqat o'yin nomi va LIVE — manba (VK Video, YouTube, TV kanal) yozilmaydi.
       const head = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><h3>${esc(title)}</h3></div>${livePill}</div>`;
+      const playerHead = `<div class="fifa-efir-card__head"><div class="fifa-efir-card__titles"><h3>${esc(title)}</h3></div>${actions}</div>`;
       if (isVkLive && isPhone) {
         return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><a class="fifa-efir-card__cover" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open><span class="fifa-efir-card__play" aria-hidden="true"></span><span class="fifa-efir-card__cover-text">Efirni ko‘rish</span><small>VK Video Live’da ochiladi</small></a></div></article>`;
       }
@@ -1570,11 +1576,12 @@
       // sandbox'da — pleyer ichidagi tugmalar (Apple belgisi, VK logosi) VK'ga olib chiqa olmaydi.
       const sandbox = isYoutube ? "" : ` sandbox="allow-scripts allow-same-origin allow-presentation"`;
       const openLink = isYoutube ? `<a class="fifa-efir-card__open" href="${esc(originalUrl)}" target="_blank" rel="noopener noreferrer" data-fifa-stream-open>${provider}’da ochish <span>↗</span></a>` : "";
-      return `<article class="fifa-efir-card">${head}<div class="fifa-efir-card__player"><iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"${sandbox}></iframe></div>${openLink}</article>`;
+      return `<article class="fifa-efir-card">${playerHead}<div class="fifa-efir-card__player"><div class="fifa-efir-card__stage">${miniBar}<iframe class="fifa-efir-card__frame" src="${esc(stream.url)}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"${sandbox}></iframe></div></div>${openLink}</article>`;
     }).join("") + `<div class="fifa-react" data-fifa-react></div><a class="fifa-efir-invite" href="${esc(buildFifaInviteUrl())}" data-fifa-invite><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8a3 3 0 1 0-2.9-3.7L8.9 6.1a3 3 0 1 0 0 5.8l3.2 1.8a3 3 0 1 0 1-1.7L9.9 10.2a3 3 0 0 0 0-1.4l3.2-1.8A3 3 0 0 0 15 8Z"/></svg><span>${esc(F("shareLive"))}</span></a>`;
     paintFifaViewers();
     // Efir ostidagi emoji reaksiyalar (fifa-fun.js).
     window.FifaFun?.mountReactions?.(wrap.querySelector("[data-fifa-react]"));
+    setupFifaMini(wrap);
 
     wrap.querySelectorAll(".fifa-efir-card--hls").forEach((card) => {
       const video = card.querySelector("video");
@@ -1585,7 +1592,7 @@
         if (card.classList.contains("is-offline")) return;
         card.classList.add("is-offline");
         video.removeAttribute("controls");
-        card.querySelector(".fifa-efir-card__player")?.insertAdjacentHTML("beforeend", `<div class="fifa-efir-card__offline"><strong>Efir hozir mavjud emas</strong><span>Birozdan keyin qayta urinib ko‘ring</span></div>`);
+        card.querySelector(".fifa-efir-card__stage")?.insertAdjacentHTML("beforeend", `<div class="fifa-efir-card__offline"><strong>Efir hozir mavjud emas</strong><span>Birozdan keyin qayta urinib ko‘ring</span></div>`);
       };
       video.addEventListener("error", markOffline);
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -1642,6 +1649,130 @@
     event.preventDefault();
     try { openLink.call(window.Telegram.WebApp, link.href); } catch (_) { window.open(link.href, "_blank", "noopener"); }
   });
+  // --- Mini ekran: efirni sahifa bo'ylab burchakdagi kichik oynada ko'rish ---
+  // Efir boshlangan karta ekrandan chiqib ketsa, pleyer avtomatik mini oynaga o'tadi va
+  // karta qaytib ko'ringanda joyiga qaytadi. Kartadagi tugma bilan qo'lda ham ochiladi.
+  const FIFA_MINI_MARGIN = 12;
+  let fifaMiniCard = null;
+  let fifaMiniAuto = false;
+  let fifaMiniObserver = null;
+  let fifaMiniPos = null;
+  const fifaMiniEngaged = new WeakSet();
+
+  function fifaMiniBottomGap() {
+    // Pastki navigatsiya paneli ustida tursin.
+    const safe = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-bottom")) || 0;
+    return 110 + safe;
+  }
+  function placeFifaMini(stage, pos) {
+    const w = stage.offsetWidth;
+    const h = stage.offsetHeight;
+    const maxX = window.innerWidth - w - FIFA_MINI_MARGIN;
+    const maxY = window.innerHeight - h - fifaMiniBottomGap();
+    const x = Math.min(Math.max(pos.x, FIFA_MINI_MARGIN), Math.max(maxX, FIFA_MINI_MARGIN));
+    const y = Math.min(Math.max(pos.y, FIFA_MINI_MARGIN + 60), Math.max(maxY, FIFA_MINI_MARGIN));
+    stage.style.left = `${x}px`;
+    stage.style.top = `${y}px`;
+    return { x, y };
+  }
+  function floatFifaMini(card, auto) {
+    if (fifaMiniCard === card) { fifaMiniAuto = fifaMiniAuto && auto; return; }
+    if (fifaMiniCard) dockFifaMini();
+    const stage = card.querySelector(".fifa-efir-card__stage");
+    if (!stage) return;
+    fifaMiniCard = card;
+    fifaMiniAuto = auto;
+    fifaMiniEngaged.add(card);
+    card.classList.add("is-mini");
+    // Birinchi marta — o'ng pastki burchak, keyin foydalanuvchi qo'ygan joy.
+    fifaMiniPos = placeFifaMini(stage, fifaMiniPos || { x: window.innerWidth, y: window.innerHeight });
+  }
+  function dockFifaMini() {
+    const card = fifaMiniCard;
+    if (!card) return;
+    fifaMiniCard = null;
+    fifaMiniAuto = false;
+    card.classList.remove("is-mini");
+    const stage = card.querySelector(".fifa-efir-card__stage");
+    if (stage) { stage.style.left = ""; stage.style.top = ""; }
+  }
+  function stopFifaMini() {
+    const card = fifaMiniCard;
+    if (!card) return;
+    dockFifaMini();
+    fifaMiniEngaged.delete(card);
+    const video = card.querySelector("video");
+    if (video) { video.pause(); return; }
+    // iframe pleyerni tashqaridan to'xtatib bo'lmaydi — qayta yuklab, ovozini o'chiramiz.
+    const frame = card.querySelector("iframe");
+    if (frame) frame.src = frame.src;
+  }
+  function setupFifaMini(wrap) {
+    dockFifaMini();
+    fifaMiniObserver?.disconnect();
+    const cards = [...wrap.querySelectorAll(".fifa-efir-card")].filter((card) => card.querySelector(".fifa-efir-card__stage"));
+    if (!cards.length || typeof IntersectionObserver !== "function") return;
+    fifaMiniObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const card = entry.target;
+        if (!entry.isIntersecting && fifaMiniEngaged.has(card) && !fifaMiniCard && !fifaView?.hidden) floatFifaMini(card, true);
+        else if (entry.isIntersecting && fifaMiniCard === card && fifaMiniAuto) dockFifaMini();
+      });
+    }, { threshold: 0 });
+    cards.forEach((card) => {
+      fifaMiniObserver.observe(card);
+      card.querySelector("video")?.addEventListener("play", () => fifaMiniEngaged.add(card));
+    });
+  }
+  // iframe ichiga bosilganini sahifa faqat focus yo'qotishidan biladi — shunda efir boshlangan deb hisoblaymiz.
+  window.addEventListener("blur", () => {
+    setTimeout(() => {
+      const card = document.activeElement?.closest?.(".fifa-efir-card");
+      if (card && document.activeElement.tagName === "IFRAME") fifaMiniEngaged.add(card);
+    }, 0);
+  });
+  window.addEventListener("resize", () => {
+    const stage = fifaMiniCard?.querySelector(".fifa-efir-card__stage");
+    if (stage && fifaMiniPos) fifaMiniPos = placeFifaMini(stage, fifaMiniPos);
+  });
+  document.getElementById("fifaStreamsPromoWrap")?.addEventListener("click", (event) => {
+    const card = event.target.closest?.(".fifa-efir-card");
+    if (!card) return;
+    if (event.target.closest("[data-fifa-mini]")) {
+      if (fifaMiniCard === card) dockFifaMini();
+      else floatFifaMini(card, false);
+    } else if (event.target.closest("[data-fifa-mini-close]")) {
+      stopFifaMini();
+    } else if (event.target.closest("[data-fifa-mini-expand]")) {
+      dockFifaMini();
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+  // Mini oynani tepadagi panelidan sudrab boshqa joyga qo'yish; qo'yib yuborilganda chap/o'ng chetga yopishadi.
+  document.getElementById("fifaStreamsPromoWrap")?.addEventListener("pointerdown", (event) => {
+    const bar = event.target.closest?.("[data-fifa-mini-drag]");
+    if (!bar || event.target.closest("button") || !fifaMiniCard) return;
+    const stage = fifaMiniCard.querySelector(".fifa-efir-card__stage");
+    if (!stage) return;
+    event.preventDefault();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const origin = { ...fifaMiniPos };
+    stage.classList.add("is-dragging");
+    const onMove = (e) => { fifaMiniPos = placeFifaMini(stage, { x: origin.x + e.clientX - startX, y: origin.y + e.clientY - startY }); };
+    const onUp = () => {
+      stage.classList.remove("is-dragging");
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      const toRight = fifaMiniPos.x + stage.offsetWidth / 2 > window.innerWidth / 2;
+      fifaMiniPos = placeFifaMini(stage, { x: toRight ? window.innerWidth : 0, y: fifaMiniPos.y });
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  });
+
   // --- Jonli efirni hozir ko'rib turganlar soni ---
   // Futbol bo'limi ochiq va efir kartasi bor ekan, har 30 soniyada serverga
   // "shu yerdaman" signali yuboriladi; javobda umumiy son keladi.
@@ -2650,6 +2781,7 @@
     document.body.classList.remove("is-fifa");
     stopFifaPolling();
     syncFifaViewers();
+    dockFifaMini();
     try { window.tgBackUnregister?.("fifa-lineup"); } catch (_) {}
     try { window.tgBackUnregister?.("fifa"); } catch (_) {}
     try { window.setFilter?.("all"); } catch (_) {}
