@@ -19,28 +19,11 @@ const ARTISTS_KEY = "music:artists:v1";
 const BLOB_API_BASE = "https://blob.vercel-storage.com";
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
-let redisPromise = null;
-async function getRedis() {
-  const url = process.env.REDIS_URL || process.env.KV_URL || "";
-  if (!url) return null;
-  if (redisPromise) {
-    try { const c = await redisPromise; if (c?.isOpen) return c; } catch (_) {}
-    redisPromise = null;
-  }
-  redisPromise = (async () => {
-    const { createClient } = require("redis");
-    const client = createClient({ url });
-    client.on("error", (err) => console.error("redis error:", err.message));
-    await client.connect();
-    return client;
-  })();
-  try {
-    return await redisPromise;
-  } catch (err) {
-    console.warn("redis ulanishi muvaffaqiyatsiz:", err.message);
-    redisPromise = null;
-    return null;
-  }
+// Barcha bo'limlar bitta umumiy Redis ulanishidan foydalanadi (api/_lib/kv.js):
+// har modul o'z ulanishini ochganda bitta serverless instansiya 8+ ulanish
+// ochar va ko'p foydalanuvchida Redis ulanish limitiga urilardi.
+function getRedis() {
+  return require("./_lib/kv").getRedisClient();
 }
 
 function readSeed() {

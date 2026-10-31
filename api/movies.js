@@ -6,6 +6,7 @@ const {
   updateCatalogSeriesMetadata,
   setCors,
   findMovieByIdOrCode,
+  overlayReactionCounts,
 } = require("./_lib/google-drive");
 const { presignR2PublicUrl } = require("./_lib/r2-store");
 
@@ -104,7 +105,8 @@ async function handleMoviesList(request, response) {
       throw driveError;
     }
   }
-  const cleanMovies = Array.isArray(movies) ? movies.map(sanitizeMovieR2) : movies;
+  let cleanMovies = Array.isArray(movies) ? movies.map(sanitizeMovieR2) : movies;
+  try { cleanMovies = await overlayReactionCounts(cleanMovies); } catch (_) {}
 
   const url = new URL(request.url || "/", "http://localhost");
   const pageParam = request.query?.page || url.searchParams.get("page");

@@ -3,8 +3,96 @@ const {
   readCatalogMetadataStrict,
   writeCatalogMetadata,
 } = require("./google-drive");
+const kv = require("./kv");
 
 const MAX_ENTRIES_PER_USER = 500;
+const PROGRESS_TTL_SEC = 400 * 24 * 3600;
+
+// Redis'da har bir foydalanuvchining o'z hash'i: maydon = kino ID, qiymat = JSON.
+// Ilgari hammaning tarixi katalog faylining ichida edi: har ~25 soniyada har bir
+// tomoshabin butun katalogni qayta yozardi, ustma-ust kelgan yozuvlar bir-birini
+// (va admin o'zgarishlarini) o'chirib yuborardi.
+const WP = {
+  user: (uid) => `wp:v1:${uid}`,
+  migrated: (uid) => `wp:v1:m:${uid}`,
+};
+
+function parseEntry(raw) {
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+function parseMap(hash) {
+  const out = {};
+  for (const [id, raw] of Object.entries(hash || {})) {
+    const entry = parseEntry(raw);
+    if (entry) out[id] = entry;
+  }
+  return out;
+}
+
+// Eski (katalogdagi) tarixni bir marta Redis'ga ko'chiradi. HSETNX — Redis'dagi
+// yangiroq yozuv ustidan yozilmaydi. Katalog o'qilmasa belgi qo'yilmaydi va
+// keyingi so'rovda qayta urinadi.
+async function ensureMigrated(store, userId) {
+  if (await store.get(WP.migrated(userId))) return;
+  let legacy;
+  try {
+    legacy = readUserProgressMap((await readCatalogMetadataStrict()).data, userId);
+  } catch (_) {
+    return;
+  }
+  const ops = Object.entries(legacy)
+    .map(([id, entry]) => [id, sanitizeEntry(entry)])
+    .filter(([id, entry]) => id && entry)
+    .map(([id, entry]) => ["hSetNx", WP.user(userId), id, JSON.stringify(entry)]);
+  if (ops.length) {
+    ops.push(["expire", WP.user(userId), PROGRESS_TTL_SEC]);
+    await store.batch(ops);
+  }
+  await store.set(WP.migrated(userId), "1", PROGRESS_TTL_SEC);
+}
+
+async function readProgressFromStore(store, userId) {
+  await ensureMigrated(store, userId);
+  return parseMap(await store.hGetAll(WP.user(userId)));
+}
+
+async function writeProgressToStore(store, userId, { upserts, removeIds, clearAll }) {
+  await ensureMigrated(store, userId);
+  const key = WP.user(userId);
+  if (clearAll) {
+    await store.batch([["del", key], ["set", WP.migrated(userId), "1", PROGRESS_TTL_SEC]]);
+    return {};
+  }
+  const incoming = [];
+  for (const [rawId, rawEntry] of Object.entries(upserts)) {
+    const id = trim(rawId);
+    const cleaned = id ? sanitizeEntry(rawEntry) : null;
+    if (cleaned) incoming.push([id, cleaned]);
+  }
+  const ops = removeIds.map((id) => ["hDel", key, id]);
+  if (incoming.length) {
+    // Boshqa qurilmadan kelgan yangiroq yozuv eskisi bilan almashtirilmasin.
+    const current = await store.batch(incoming.map(([id]) => ["hGet", key, id]));
+    incoming.forEach(([id, entry], i) => {
+      const prev = parseEntry(current[i]);
+      if (prev && Number(prev.updatedAt || 0) > entry.updatedAt) return;
+      ops.push(["hSet", key, id, JSON.stringify(entry)]);
+    });
+  }
+  if (ops.length) {
+    ops.push(["expire", key, PROGRESS_TTL_SEC]);
+    await store.batch(ops);
+  }
+  let map = parseMap(await store.hGetAll(key));
+  const clipped = clipToLatest(map);
+  if (clipped !== map) {
+    const drop = Object.keys(map).filter((id) => !(id in clipped));
+    await store.batch(drop.map((id) => ["hDel", key, id]));
+    map = clipped;
+  }
+  return map;
+}
 
 async function readRequestBody(request) {
   if (request.body && Buffer.isBuffer(request.body)) {
@@ -76,6 +164,11 @@ async function handleWatchProgress(request, response) {
         response.status(400).json({ ok: false, error: "userId kerak." });
         return;
       }
+      const store = await kv.getPersistentStore();
+      if (store) {
+        response.status(200).json({ ok: true, userId, items: await readProgressFromStore(store, userId) });
+        return;
+      }
       const metadataState = await readCatalogMetadata();
       const progress = readUserProgressMap(metadataState.data, userId);
       response.status(200).json({ ok: true, userId, items: progress });
@@ -99,6 +192,14 @@ async function handleWatchProgress(request, response) {
       const removeIds = Array.isArray(body.removeIds) ? body.removeIds.map(trim).filter(Boolean) : [];
       const clearAll = body.clearAll === true;
 
+      const store = await kv.getPersistentStore();
+      if (store) {
+        const items = await writeProgressToStore(store, userId, { upserts, removeIds, clearAll });
+        response.status(200).json({ ok: true, userId, items });
+        return;
+      }
+
+      // Redis yo'q (lokal) — eski yo'l: katalog faylida.
       // Strict: o'qish xatosi "bo'sh katalog" bo'lib ko'rinsa, quyidagi yozuv
       // barcha kino posterlari va sozlamalarni o'chirib yuborardi.
       const metadataState = await readCatalogMetadataStrict();

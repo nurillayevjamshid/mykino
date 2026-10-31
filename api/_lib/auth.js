@@ -143,26 +143,9 @@ function verifySignedToken(fileId, token, botToken) {
 }
 
 // ---------- Rate Limiting (Redis distributed + in-memory fallback) ----------
-let _rateLimitRedis = null;
-async function getRateLimitRedis() {
-  const url = process.env.REDIS_URL || process.env.KV_URL || "";
-  if (!url) return null;
-  if (_rateLimitRedis) {
-    try { const c = await _rateLimitRedis; if (c?.isOpen) return c; } catch (_) {}
-    _rateLimitRedis = null;
-  }
-  _rateLimitRedis = (async () => {
-    try {
-      const { createClient } = require("redis");
-      const client = createClient({ url });
-      client.on("error", (err) => console.warn("redis (rate-limit) error:", err.message));
-      await client.connect();
-      return client;
-    } catch (_) {
-      return null;
-    }
-  })();
-  return await _rateLimitRedis;
+// Barcha bo'limlar bilan bitta umumiy Redis ulanishi (api/_lib/kv.js).
+function getRateLimitRedis() {
+  return require("./kv").getRedisClient();
 }
 
 const memoryRateLimitCache = new Map();
@@ -238,15 +221,37 @@ function setRateLimitHeaders(response, rateCheck) {
   } catch (_) {}
 }
 
+// So'rov qaysi bo'limga tegishli: /api/<yo'l> + ichki marshrut belgisi (_watch,
+// _playlists...) + categories'ning ?type=. Har bir bo'lim o'z hisoblagichiga ega,
+// shuning uchun bitta bo'limdagi faollik boshqasini bloklamaydi. Qiymatlar oq
+// ro'yxatdan — tasodifiy ?type= bilan yangi hisoblagich ochib limitni aylanib
+// o'tib bo'lmaydi.
+const ROUTE_FLAGS = ["_watch", "_playlists", "_podcasts", "_books", "_boks", "_home", "_news", "_photo", "_games", "_series", "_share", "_reaction", "_resolve"];
+const ROUTE_TYPE_RE = /^(fifa(-[a-z]{2,16})?|tv-channels|podcast-langs)$/;
+
+function routeScope(request) {
+  let url;
+  try { url = new URL(request.url || "/", "http://localhost"); } catch { return "api"; }
+  const seg = (url.pathname.match(/^\/api\/([a-z-]{1,24})/i) || [])[1];
+  const parts = [seg ? seg.toLowerCase() : "api"];
+  const query = request.query || {};
+  for (const flag of ROUTE_FLAGS) {
+    if (String(query[flag] ?? url.searchParams.get(flag) ?? "") === "1") { parts.push(flag.slice(1)); break; }
+  }
+  const type = String(query.type ?? url.searchParams.get("type") ?? "").toLowerCase();
+  if (type) parts.push(ROUTE_TYPE_RE.test(type) ? type : "other");
+  return parts.join(".");
+}
+
 async function applyRateLimit(request, response, options = {}) {
   const clientIp = getClientIp(request);
   const user = getVerifiedInitDataUser(request);
   const userId = user?.id ? String(user.id) : null;
   const max = Number(options.max || (request.method === "GET" ? DEFAULT_MAX_REQUESTS : 40));
   const windowMs = Number(options.windowMs || DEFAULT_WINDOW_MS);
-  // Har xil limit va o'qish/yozish o'z hisoblagichiga ega; alohida limit kerak
-  // bo'lgan amallar (prognoz, reaksiya) options.scope beradi.
-  const scope = String(options.scope || `${request.method === "GET" ? "r" : "w"}${max}`);
+  // Har bir bo'lim, o'qish/yozish va limit o'z hisoblagichiga ega; alohida limit
+  // kerak bo'lgan amallar (prognoz, reaksiya) options.scope beradi.
+  const scope = String(options.scope || `${routeScope(request)}:${request.method === "GET" ? "r" : "w"}${max}`);
 
   // 1. If user is an authenticated Telegram Mini App user, rate-limit by their individual User ID.
   // This completely prevents innocent users from being blocked when sharing Carrier-Grade NAT (CGNAT) IPs
@@ -714,6 +719,7 @@ module.exports = {
   requireVerifiedUser,
   applyRateLimit,
   checkRateLimitAsync,
+  routeScope,
   setRateLimitHeaders,
   setCorsHeaders,
   isOriginAllowed,

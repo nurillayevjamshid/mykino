@@ -1,5 +1,6 @@
-const { getJsonFromR2Signed, putJsonToR2 } = require("./r2-store");
+const { getJsonFromR2Signed, getJsonFromR2SignedStrict, putJsonToR2 } = require("./r2-store");
 const { readBlobJson, writeBlobJson } = require("./blob-store");
+const kv = require("./kv");
 
 const R2_KEY = "settings/music-playlists.json";
 const BLOB_PATHNAME = "settings/music-playlists.json";
@@ -106,7 +107,67 @@ async function readBody(request) {
   return raw ? JSON.parse(raw) : {};
 }
 
+// Redis'da har foydalanuvchining playlistlari o'z kalitida. Ilgari HAMMA
+// foydalanuvchilarning playlistlari bitta R2 faylda edi: ikki kishi bir vaqtda
+// qo'shiq qo'shsa, biriniki yo'qolardi, har amal esa butun faylni qayta yozardi.
+// Endi faqat bitta foydalanuvchining o'z so'rovlari navbatga turadi (qulf).
+const PL = {
+  user: (uid) => `pl:v1:${uid}`,
+  lock: (uid) => `pl:v1:lock:${uid}`,
+};
+
+function parseUserMap(raw) {
+  try {
+    const map = JSON.parse(raw);
+    return map && typeof map === "object" ? normalizeRoot({ users: { u: map } }).users.u || {} : {};
+  } catch {
+    return {};
+  }
+}
+
+// Redis'da hali yo'q bo'lsa — eski umumiy fayldan shu foydalanuvchinikini oladi.
+async function loadUserMapFromStore(store, userId, { strict }) {
+  const raw = await store.get(PL.user(userId));
+  if (raw != null) return { map: parseUserMap(raw), fromLegacy: false };
+  // Yozishdan oldin eski ma'lumot aniq o'qilishi shart (strict) — aks holda
+  // foydalanuvchining eski playlistlari bo'sh ro'yxat bilan almashib ketadi.
+  // Faqat o'qishda xato bo'lsa oddiy o'qishga tushamiz.
+  try {
+    let payload = await getJsonFromR2SignedStrict(R2_KEY);
+    if (!payload) payload = await readBlobJson(BLOB_PATHNAME, null).catch(() => null);
+    return { map: readUserPlaylists(normalizeRoot(payload), userId), fromLegacy: true };
+  } catch (err) {
+    if (strict) throw err;
+    return { map: readUserPlaylists(await readStore(), userId), fromLegacy: true };
+  }
+}
+
+async function withUserPlaylistsInStore(store, userId, mutate) {
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const out = await kv.withLock(store, PL.lock(userId), 10, async () => {
+      const { map } = await loadUserMapFromStore(store, userId, { strict: true });
+      const next = mutate({ ...map });
+      if (next == null) return { value: null };
+      await store.set(PL.user(userId), JSON.stringify(next));
+      return { value: next };
+    });
+    if (out) return out.value;
+    await new Promise((r) => setTimeout(r, 75));
+  }
+  const err = new Error("Playlist band, birozdan keyin qayta urinib ko'ring.");
+  err.statusCode = 503;
+  throw err;
+}
+
+async function readUserPlaylistsAny(userId) {
+  const store = await kv.getPersistentStore();
+  if (store) return (await loadUserMapFromStore(store, userId, { strict: false })).map;
+  return readUserPlaylists(await readStore(), userId);
+}
+
 async function withUserPlaylists(userId, mutate) {
+  const store = await kv.getPersistentStore();
+  if (store) return withUserPlaylistsInStore(store, userId, mutate);
   const root = await readStore();
   const allUsers = { ...(root.users || {}) };
   const current = allUsers[userId] && typeof allUsers[userId] === "object" ? { ...allUsers[userId] } : {};
@@ -131,8 +192,7 @@ async function handleMusicPlaylists(request, response) {
       const requestedUserId = trim(url.searchParams.get("userId") || request.query?.userId);
       const userId = request.isAdmin && requestedUserId ? requestedUserId : String(user.id);
       if (!userId) { response.status(400).json({ ok: false, error: "userId kerak." }); return; }
-      const root = await readStore();
-      const map = readUserPlaylists(root, userId);
+      const map = await readUserPlaylistsAny(userId);
       response.status(200).json({ ok: true, userId, playlists: toList(map) });
       return;
     }

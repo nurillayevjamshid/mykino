@@ -69,6 +69,8 @@ describe("Podcast channel view survives YouTube quota errors", () => {
       if (path === "channels" && mode.channelsDown) return ytResponse(path, true);
       return ytResponse(path, mode.quota);
     };
+    // Redis ulanishi umumiy kv modulida saqlanadi — har test o'z soxta Redis'ini olsin.
+    delete require.cache[require.resolve("../../api/_lib/kv")];
     delete require.cache[require.resolve("../../api/_lib/podcasts")];
     podcasts = require("../../api/_lib/podcasts");
   });

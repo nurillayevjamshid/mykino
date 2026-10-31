@@ -1,6 +1,7 @@
 const crypto = require("crypto");
-const { uploadImageToR2, putJsonToR2, getJsonFromR2, deleteImageFromR2 } = require("./r2-store");
+const { uploadImageToR2, putJsonToR2, getJsonFromR2, getJsonFromR2SignedStrict, deleteImageFromR2 } = require("./r2-store");
 const { generateSignedToken } = require("./auth");
+const kv = require("./kv");
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3/files";
 const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3/files";
@@ -1508,7 +1509,7 @@ async function readMovieReactionState(fileId, options = {}) {
   return { metadataState, metadata, reactions };
 }
 
-async function setMovieReaction(fileId, userId, reaction) {
+async function setMovieReactionLegacy(fileId, userId, reaction) {
   const normalizedFileId = trimString(fileId);
   const normalizedUserId = trimString(userId);
   if (!normalizedFileId || !normalizedUserId) {
@@ -1548,7 +1549,7 @@ async function setMovieReaction(fileId, userId, reaction) {
   };
 }
 
-async function getMovieReaction(fileId, userId = "") {
+async function getMovieReactionLegacy(fileId, userId = "") {
   const normalizedFileId = trimString(fileId);
   const normalizedUserId = trimString(userId);
   const { reactions } = await readMovieReactionState(normalizedFileId);
@@ -1559,6 +1560,129 @@ async function getMovieReaction(fileId, userId = "") {
     userReaction: normalizedUserId ? (reactions[normalizedUserId] || null) : null,
     ...counts,
   };
+}
+
+// Like/dislike Redis'da: har kino uchun o'z hash'i (foydalanuvchi -> reaksiya) va
+// umumiy hisoblagich hash'i (HINCRBY — atomar). Ilgari har bir like butun katalog
+// faylini qayta yozardi: bir vaqtda bosilgan like'lar bir-birini o'chirardi.
+const MR = {
+  movie: (id) => `mr:v1:${id}`,
+  counts: "mr:v1:counts",
+  migrated: "mr:v1:migrated",
+};
+const reactionCountField = (id, reaction) => `${id}|${reaction === "like" ? "l" : "d"}`;
+
+// Katalogdagi eski like'larni bir marta ko'chiradi. HSETNX + faqat haqiqatan
+// yozilganlarini sanash — parallel ko'chirish yoki undan oldin bosilgan like
+// ikki marta hisoblanmaydi.
+async function ensureReactionsMigrated(store, fileId) {
+  if (await store.sIsMember(MR.migrated, fileId)) return;
+  let legacy;
+  try {
+    ({ reactions: legacy } = await readMovieReactionState(fileId, { strict: true }));
+  } catch (_) {
+    return;
+  }
+  const entries = Object.entries(legacy || {}).filter(([uid, r]) => uid && (r === "like" || r === "dislike"));
+  if (entries.length) {
+    const results = await store.batch(entries.map(([uid, r]) => ["hSetNx", MR.movie(fileId), uid, r]));
+    const deltas = {};
+    entries.forEach(([, r], i) => {
+      if (Number(results[i]) === 1 || results[i] === true) {
+        const field = reactionCountField(fileId, r);
+        deltas[field] = (deltas[field] || 0) + 1;
+      }
+    });
+    const ops = Object.entries(deltas).map(([field, n]) => ["hIncrBy", MR.counts, field, n]);
+    if (ops.length) await store.batch(ops);
+  }
+  await store.sAdd(MR.migrated, fileId);
+}
+
+async function readReactionCounts(store, fileId, userId = "") {
+  const ops = [
+    ["hGet", MR.counts, reactionCountField(fileId, "like")],
+    ["hGet", MR.counts, reactionCountField(fileId, "dislike")],
+  ];
+  if (userId) ops.push(["hGet", MR.movie(fileId), userId]);
+  const [l, d, mine] = await store.batch(ops);
+  return {
+    likes: Math.max(0, Number(l) || 0),
+    dislikes: Math.max(0, Number(d) || 0),
+    userReaction: userId ? (mine || null) : null,
+  };
+}
+
+async function setMovieReaction(fileId, userId, reaction) {
+  const store = await kv.getPersistentStore();
+  if (!store) return setMovieReactionLegacy(fileId, userId, reaction);
+  const normalizedFileId = trimString(fileId);
+  const normalizedUserId = trimString(userId);
+  if (!normalizedFileId || !normalizedUserId) {
+    const error = new Error("Kino ID va foydalanuvchi ID si kerak.");
+    error.statusCode = 400;
+    error.code = "REACTION_FIELDS_MISSING";
+    throw error;
+  }
+  if (reaction != null && reaction !== "" && reaction !== "like" && reaction !== "dislike") {
+    const error = new Error("Reaction noto'g'ri.");
+    error.statusCode = 400;
+    error.code = "REACTION_INVALID";
+    throw error;
+  }
+  const normalizedReaction = reaction === "like" || reaction === "dislike" ? reaction : null;
+  await ensureReactionsMigrated(store, normalizedFileId);
+  const prev = await store.hGetSet(MR.movie(normalizedFileId), normalizedUserId, normalizedReaction || "");
+  if (prev !== normalizedReaction) {
+    const ops = [];
+    if (prev === "like" || prev === "dislike") ops.push(["hIncrBy", MR.counts, reactionCountField(normalizedFileId, prev), -1]);
+    if (normalizedReaction) ops.push(["hIncrBy", MR.counts, reactionCountField(normalizedFileId, normalizedReaction), 1]);
+    if (ops.length) await store.batch(ops);
+  }
+  const counts = await readReactionCounts(store, normalizedFileId);
+  return {
+    id: normalizedFileId,
+    userId: normalizedUserId,
+    userReaction: normalizedReaction,
+    likes: counts.likes,
+    dislikes: counts.dislikes,
+  };
+}
+
+async function getMovieReaction(fileId, userId = "") {
+  const store = await kv.getPersistentStore();
+  if (!store) return getMovieReactionLegacy(fileId, userId);
+  const normalizedFileId = trimString(fileId);
+  const normalizedUserId = trimString(userId);
+  if (!normalizedFileId) {
+    const error = new Error("Kino ID si kerak.");
+    error.statusCode = 400;
+    error.code = "MOVIE_ID_MISSING";
+    throw error;
+  }
+  await ensureReactionsMigrated(store, normalizedFileId);
+  const counts = await readReactionCounts(store, normalizedFileId, normalizedUserId);
+  return { id: normalizedFileId, userId: normalizedUserId, ...counts };
+}
+
+// Kino ro'yxatidagi like/dislike sonlarini Redis'dagi joriy qiymat bilan
+// almashtiradi (ko'chirilgan kinolar uchun). Bitta round-trip.
+async function overlayReactionCounts(movies) {
+  const store = await kv.getPersistentStore();
+  if (!store || !Array.isArray(movies) || !movies.length) return movies;
+  const [migrated, counts] = await store.batch([["sMembers", MR.migrated], ["hGetAll", MR.counts]]);
+  const done = new Set(migrated || []);
+  if (!done.size) return movies;
+  const map = kv.hashFromReply(counts);
+  return movies.map((m) => {
+    const id = trimString(m?.id || m?.fileId);
+    if (!id || !done.has(id)) return m;
+    return {
+      ...m,
+      likes: Math.max(0, Number(map[`${id}|l`]) || 0),
+      dislikes: Math.max(0, Number(map[`${id}|d`]) || 0),
+    };
+  });
 }
 
 // ===== Comments (per-movie, stored in Cloudflare R2) =====
@@ -1608,7 +1732,7 @@ async function readMovieCommentsFromR2(fileId) {
   return { normalizedFileId, comments };
 }
 
-async function addMovieComment(fileId, { userId, userName, userPhotoUrl, text }) {
+async function addMovieCommentLegacy(fileId, { userId, userName, userPhotoUrl, text }) {
   const userIdStr = trimString(userId);
   const userNameStr = sanitizeCommentText(userName, 64) || "Foydalanuvchi";
   const userPhotoStr = sanitizeCommentPhotoUrl(userPhotoUrl);
@@ -1639,13 +1763,13 @@ async function addMovieComment(fileId, { userId, userName, userPhotoUrl, text })
   return { id: normalizedFileId, comment, total: next.length };
 }
 
-async function listMovieComments(fileId) {
+async function listMovieCommentsLegacy(fileId) {
   const { normalizedFileId, comments } = await readMovieCommentsFromR2(fileId);
   const sorted = comments.slice().sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
   return { id: normalizedFileId, comments: sorted, total: sorted.length };
 }
 
-async function deleteMovieComment(fileId, commentId) {
+async function deleteMovieCommentLegacy(fileId, commentId) {
   const cleanCommentId = trimString(commentId);
   if (!cleanCommentId) {
     const error = new Error("commentId kerak.");
@@ -1665,6 +1789,126 @@ async function deleteMovieComment(fileId, commentId) {
   return { id: normalizedFileId, commentId: cleanCommentId, total: next.length };
 }
 
+
+// Izohlar Redis ro'yxatida (LPUSH — atomar). Ilgari har bir izoh kinoning R2
+// faylini o'qib, butunini qayta yozardi: bir vaqtda yozilgan ikki izohdan biri
+// yo'qolardi. Eski R2 izohlari birinchi murojaatda bir marta ko'chiriladi.
+const MC = {
+  list: (id) => `mc:v1:${id}`,
+  migrated: (id) => `mc:v1:m:${id}`,
+  lock: (id) => `mc:v1:lock:${id}`,
+};
+const MAX_COMMENTS = 2000;
+
+async function ensureCommentsMigrated(store, fileId) {
+  if (await store.get(MC.migrated(fileId))) return;
+  await kv.withLock(store, MC.lock(fileId), 15, async () => {
+    if (await store.get(MC.migrated(fileId))) return;
+    let legacy;
+    try {
+      legacy = await getJsonFromR2SignedStrict(commentsR2Key(fileId));
+    } catch (_) {
+      return; // R2 vaqtincha javob bermadi — keyingi safar qayta urinamiz.
+    }
+    const comments = legacy && Array.isArray(legacy.comments) ? legacy.comments : [];
+    const ops = comments
+      .filter((c) => c && c.id)
+      .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")))
+      .slice(-MAX_COMMENTS)
+      .map((c) => ["lPush", MC.list(fileId), JSON.stringify(c)]);
+    if (ops.length) await store.batch(ops);
+    await store.set(MC.migrated(fileId), "1");
+  });
+}
+
+async function readCommentsFromStore(store, fileId) {
+  await ensureCommentsMigrated(store, fileId);
+  const raw = await store.lRange(MC.list(fileId), 0, MAX_COMMENTS - 1);
+  const seen = new Set();
+  const out = [];
+  for (const item of raw || []) {
+    let c;
+    try { c = JSON.parse(item); } catch { continue; }
+    if (!c?.id || seen.has(c.id)) continue;
+    seen.add(c.id);
+    out.push({ comment: c, raw: item });
+  }
+  return out;
+}
+
+async function addMovieComment(fileId, { userId, userName, userPhotoUrl, text }) {
+  const store = await kv.getPersistentStore();
+  if (!store) return addMovieCommentLegacy(fileId, { userId, userName, userPhotoUrl, text });
+  const normalizedFileId = trimString(fileId);
+  const userIdStr = trimString(userId);
+  const cleanText = sanitizeCommentText(text, 500);
+  if (!normalizedFileId) {
+    const error = new Error("Kino ID si kerak.");
+    error.statusCode = 400;
+    error.code = "MOVIE_ID_MISSING";
+    throw error;
+  }
+  if (!userIdStr) {
+    const error = new Error("Foydalanuvchi ID si kerak.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!cleanText) {
+    const error = new Error("Izoh bo'sh.");
+    error.statusCode = 400;
+    throw error;
+  }
+  await ensureCommentsMigrated(store, normalizedFileId);
+  const comment = {
+    id: `c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    userId: userIdStr,
+    userName: sanitizeCommentText(userName, 64) || "Foydalanuvchi",
+    userPhotoUrl: sanitizeCommentPhotoUrl(userPhotoUrl) || null,
+    text: cleanText,
+    createdAt: new Date().toISOString(),
+  };
+  const [total] = await store.batch([
+    ["lPush", MC.list(normalizedFileId), JSON.stringify(comment)],
+    ["lTrim", MC.list(normalizedFileId), 0, MAX_COMMENTS - 1],
+  ]);
+  return { id: normalizedFileId, comment, total: Math.min(MAX_COMMENTS, Number(total) || 1) };
+}
+
+async function listMovieComments(fileId) {
+  const store = await kv.getPersistentStore();
+  if (!store) return listMovieCommentsLegacy(fileId);
+  const normalizedFileId = trimString(fileId);
+  if (!normalizedFileId) {
+    const error = new Error("Kino ID si kerak.");
+    error.statusCode = 400;
+    error.code = "MOVIE_ID_MISSING";
+    throw error;
+  }
+  const items = await readCommentsFromStore(store, normalizedFileId);
+  const sorted = items.map((x) => x.comment).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  return { id: normalizedFileId, comments: sorted, total: sorted.length };
+}
+
+async function deleteMovieComment(fileId, commentId) {
+  const store = await kv.getPersistentStore();
+  if (!store) return deleteMovieCommentLegacy(fileId, commentId);
+  const normalizedFileId = trimString(fileId);
+  const cleanCommentId = trimString(commentId);
+  if (!cleanCommentId) {
+    const error = new Error("commentId kerak.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const items = await readCommentsFromStore(store, normalizedFileId);
+  const found = items.find((x) => x.comment.id === cleanCommentId);
+  if (!found) {
+    const error = new Error("Izoh topilmadi.");
+    error.statusCode = 404;
+    throw error;
+  }
+  await store.lRem(MC.list(normalizedFileId), 0, found.raw);
+  return { id: normalizedFileId, commentId: cleanCommentId, total: items.length - 1 };
+}
 
 const MOVIE_R2_CACHE_KEY = "cache/movies.json";
 const MOVIE_R2_CACHE_TTL_MS = 600_000; // 10 daqiqa
@@ -2245,6 +2489,7 @@ module.exports = {
   trashDriveFile,
   restoreDriveFile,
   updateCatalogMovieMetadata,
+  overlayReactionCounts,
   getMovieReaction,
   setMovieReaction,
   addMovieComment,

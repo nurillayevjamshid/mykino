@@ -73,7 +73,22 @@ function formatTelegramError(rawError) {
   return msg || "Yuborib bo'lmadi.";
 }
 
+// Murojaatlar Redis ro'yxatida (LPUSH — atomar). Ilgari har murojaat butun katalog
+// faylini (admin kino sozlamalari ham shu yerda) qayta yozardi — admin bilan
+// ustma-ust kelsa, admin o'zgarishlari yo'qolishi mumkin edi.
+const FEEDBACK_LIST = "fb:v1:list";
+const FEEDBACK_MAX = 500;
+
 async function saveFeedbackToStorage(record) {
+  const kv = require("./_lib/kv");
+  const store = await kv.getPersistentStore();
+  if (store) {
+    await store.batch([
+      ["lPush", FEEDBACK_LIST, JSON.stringify(record)],
+      ["lTrim", FEEDBACK_LIST, 0, FEEDBACK_MAX - 1],
+    ]);
+    return;
+  }
   // 1. Google Drive Metadata (Kafolatli zaxira)
   try {
     const { readCatalogMetadataStrict, writeCatalogMetadata } = require("./_lib/google-drive");
@@ -109,6 +124,24 @@ async function saveFeedbackToStorage(record) {
 }
 
 async function getFeedbacksFromStorage() {
+  const kv = require("./_lib/kv");
+  const store = await kv.getPersistentStore().catch(() => null);
+  if (store) {
+    // Yangi (Redis) + eski (katalog/R2) murojaatlar, id bo'yicha takrorsiz, yangisi oldin.
+    const fresh = ((await store.lRange(FEEDBACK_LIST, 0, FEEDBACK_MAX - 1).catch(() => [])) || [])
+      .map((raw) => { try { return JSON.parse(raw); } catch { return null; } })
+      .filter(Boolean);
+    const legacy = await getLegacyFeedbacks();
+    const seen = new Set();
+    return [...fresh, ...legacy]
+      .filter((f) => { const key = f?.id || JSON.stringify(f); if (seen.has(key)) return false; seen.add(key); return true; })
+      .sort((a, b) => String(b?.created_at || "").localeCompare(String(a?.created_at || "")))
+      .slice(0, FEEDBACK_MAX);
+  }
+  return getLegacyFeedbacks();
+}
+
+async function getLegacyFeedbacks() {
   try {
     const { readCatalogMetadataStrict } = require("./_lib/google-drive");
     const metadataState = await readCatalogMetadataStrict();
@@ -386,6 +419,14 @@ async function upsertUser(telegramUser) {
     // last_active — to'liq vaqt (ISO), admin panelda "Oxirgi faollik" ustuni.
     last_active: nowIso,
   };
+  // Redis bor bo'lsa: navbatga yozamiz — fayl bitta jarayon tomonidan, bir yo'la
+  // yangilanadi (bir vaqtda /start bosganlar bir-birini o'chirmaydi). Katalog
+  // fayliga (admin kino sozlamalari ham shu yerda) endi umuman yozilmaydi.
+  const usersQueue = require("./_lib/users-queue");
+  if (await usersQueue.queueUserUpsert(record)) {
+    await usersQueue.flushPendingUsers().catch((err) => console.error("users flush error:", err.message));
+    return;
+  }
   // R2 — primary (reliable, private). Blob — best-effort legacy.
   let r2Ok = false;
   try {

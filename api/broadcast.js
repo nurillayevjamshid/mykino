@@ -110,6 +110,10 @@ function uniqIds(list) {
 }
 
 async function loadRecipients() {
+  // Navbatdagi yangi obunachilar ham xabar olsin.
+  const usersQueue = require("./_lib/users-queue");
+  try { await usersQueue.flushPendingUsers({ force: true }); } catch (_) {}
+  const pending = (await usersQueue.readPendingUsers().catch(() => [])).map(normalizeUser).filter(Boolean);
   const [r2, blob, proxied, metadataUsers] = await Promise.all([
     readUsersFromR2(),
     readUsersFromBlob(),
@@ -124,6 +128,7 @@ async function loadRecipients() {
     })(),
   ]);
   return uniqIds([
+    ...pending,
     ...(r2 || []),
     ...(blob || []),
     ...(proxied || []),

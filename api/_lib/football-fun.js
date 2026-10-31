@@ -21,117 +21,13 @@ const POINTS_OUTCOME = 1;
 const DAY_SEC = 24 * 60 * 60;
 
 // ---------------- Saqlash (Redis yoki xotira) ----------------
-function memoryStore() {
-  const data = new Map();
-  const alive = (k) => {
-    const e = data.get(k);
-    if (!e) return null;
-    if (e.exp && e.exp < Date.now()) { data.delete(k); return null; }
-    return e;
-  };
-  const ensure = (k, make) => {
-    let e = alive(k);
-    if (!e) { e = { v: make(), exp: 0 }; data.set(k, e); }
-    return e.v;
-  };
-  const zsorted = (k) => [...(alive(k)?.v || new Map()).entries()].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1));
-  return {
-    async get(k) { return alive(k)?.v ?? null; },
-    async set(k, v, ttlSec) { data.set(k, { v: String(v), exp: ttlSec ? Date.now() + ttlSec * 1000 : 0 }); },
-    async setNx(k, v, ttlSec) { if (alive(k)) return false; data.set(k, { v: String(v), exp: Date.now() + ttlSec * 1000 }); return true; },
-    async del(k) { data.delete(k); },
-    async expire(k, sec) { const e = alive(k); if (e) e.exp = Date.now() + sec * 1000; },
-    async hGet(k, f) { return alive(k)?.v.get(String(f)) ?? null; },
-    async hSet(k, f, v) { ensure(k, () => new Map()).set(String(f), String(v)); },
-    async hGetAll(k) { return Object.fromEntries(alive(k)?.v || []); },
-    async hIncrBy(k, f, n) { const m = ensure(k, () => new Map()); const x = Number(m.get(String(f)) || 0) + n; m.set(String(f), String(x)); return x; },
-    async zAdd(k, score, member) { ensure(k, () => new Map()).set(String(member), Number(score)); },
-    async zIncrBy(k, n, member) { const m = ensure(k, () => new Map()); const x = (m.get(String(member)) || 0) + n; m.set(String(member), x); return x; },
-    async zRem(k, member) { return alive(k)?.v.delete(String(member)) ? 1 : 0; },
-    async zScore(k, member) { const v = alive(k)?.v.get(String(member)); return v == null ? null : v; },
-    async zRangeByScore(k, min, max, count) { return zsorted(k).filter(([, s]) => s >= min && s <= max).slice(0, count).map(([m]) => m); },
-    async zTop(k, count) { return zsorted(k).reverse().slice(0, count).map(([value, score]) => ({ value, score })); },
-    async zRevRank(k, member) {
-      const list = zsorted(k).reverse();
-      const i = list.findIndex(([m]) => m === String(member));
-      return i < 0 ? null : i;
-    },
-    async zCard(k) { return alive(k)?.v.size || 0; },
-    async sAdd(k, member) { ensure(k, () => new Set()).add(String(member)); },
-    async sRem(k, member) { alive(k)?.v.delete(String(member)); },
-    async sMembers(k) { return [...(alive(k)?.v || [])]; },
-    async batch(ops) {
-      const out = [];
-      for (const [op, ...args] of ops) out.push(await this[op](...args));
-      return out;
-    },
-  };
-}
-
-// store.batch() uchun: bir nechta buyruq Redis'ga bitta round-trip'da (MULTI) ketadi.
-const BATCH_OPS = {
-  hIncrBy: (m, k, f, n) => m.hIncrBy(k, String(f), n),
-  hSet: (m, k, f, v) => m.hSet(k, String(f), String(v)),
-  hGetAll: (m, k) => m.hGetAll(k),
-  expire: (m, k, sec) => m.expire(k, sec),
-  zAdd: (m, k, score, member) => m.zAdd(k, { score: Number(score), value: String(member) }),
-};
-
-function redisStore(client) {
-  return {
-    get: (k) => client.get(k),
-    set: (k, v, ttlSec) => (ttlSec ? client.set(k, String(v), { EX: ttlSec }) : client.set(k, String(v))),
-    setNx: async (k, v, ttlSec) => (await client.set(k, String(v), { NX: true, EX: ttlSec })) === "OK",
-    del: (k) => client.del(k),
-    expire: (k, sec) => client.expire(k, sec),
-    hGet: (k, f) => client.hGet(k, String(f)),
-    hSet: (k, f, v) => client.hSet(k, String(f), String(v)),
-    hGetAll: (k) => client.hGetAll(k),
-    hIncrBy: (k, f, n) => client.hIncrBy(k, String(f), n),
-    zAdd: (k, score, member) => client.zAdd(k, { score: Number(score), value: String(member) }),
-    zIncrBy: (k, n, member) => client.zIncrBy(k, n, String(member)),
-    zRem: (k, member) => client.zRem(k, String(member)),
-    zScore: (k, member) => client.zScore(k, String(member)),
-    zRangeByScore: (k, min, max, count) => client.zRangeByScore(k, min, max, { LIMIT: { offset: 0, count } }),
-    zTop: (k, count) => client.zRangeWithScores(k, 0, count - 1, { REV: true }),
-    zRevRank: (k, member) => client.zRevRank(k, String(member)),
-    zCard: (k) => client.zCard(k),
-    sAdd: (k, member) => client.sAdd(k, String(member)),
-    sRem: (k, member) => client.sRem(k, String(member)),
-    sMembers: (k) => client.sMembers(k),
-    batch: (ops) => {
-      const m = client.multi();
-      for (const [op, ...args] of ops) BATCH_OPS[op](m, ...args);
-      return m.exec();
-    },
-  };
-}
+const kv = require("./kv");
 
 let memory = null;
-let redisPromise = null;
 async function getStore() {
-  const url = process.env.REDIS_URL || process.env.KV_URL || "";
-  if (!url) return (memory = memory || memoryStore());
-  if (redisPromise) {
-    try {
-      const c = await redisPromise;
-      if (c?.isOpen) return redisStore(c);
-    } catch (_) {}
-    redisPromise = null;
-  }
-  redisPromise = (async () => {
-    const { createClient } = require("redis");
-    const client = createClient({ url });
-    client.on("error", (err) => console.warn("redis (football) error:", err.message));
-    await client.connect();
-    return client;
-  })();
-  try {
-    return redisStore(await redisPromise);
-  } catch (_) {
-    redisPromise = null;
-    return (memory = memory || memoryStore());
-  }
+  const client = await kv.getRedisClient();
+  if (client) return kv.redisStore(client);
+  return (memory = memory || kv.memoryStore());
 }
 
 // ---------------- Yordamchilar ----------------
@@ -229,12 +125,7 @@ const K = {
 };
 
 function distFromHash(raw) {
-  let obj = raw || {};
-  if (Array.isArray(obj)) {
-    const pairs = {};
-    for (let i = 0; i + 1 < obj.length; i += 2) pairs[obj[i]] = obj[i + 1];
-    obj = pairs;
-  }
+  const obj = kv.hashFromReply(raw);
   const home = Number(obj.home || 0), draw = Number(obj.draw || 0), away = Number(obj.away || 0);
   return { home, draw, away, total: home + draw + away };
 }
@@ -560,13 +451,15 @@ async function handleReactions(request, response) {
     setCorsHeaders(request, response);
     const now = Date.now();
     const current = Math.floor(now / REACTION_BUCKET_MS);
-    const buckets = [];
-    for (let b = current - REACTION_BUCKETS + 1; b <= current; b++) {
-      const raw = await store.hGetAll(reactionKey(b));
+    const ids = [];
+    for (let b = current - REACTION_BUCKETS + 1; b <= current; b++) ids.push(b);
+    const rows = await store.batch(ids.map((b) => ["hGetAll", reactionKey(b)]));
+    const buckets = ids.map((b, i) => {
+      const raw = kv.hashFromReply(rows[i]);
       const counts = {};
       for (const e of REACTION_EMOJIS) if (Number(raw[e]) > 0) counts[e] = Number(raw[e]);
-      buckets.push({ b, counts });
-    }
+      return { b, counts };
+    });
     response.setHeader("Cache-Control", "public, max-age=0, s-maxage=3, stale-while-revalidate=3");
     return response.status(200).json({ ok: true, now, bucketMs: REACTION_BUCKET_MS, emojis: REACTION_EMOJIS, buckets });
   }
@@ -580,13 +473,14 @@ async function handleReactions(request, response) {
     const body = await readBody(request);
     const bucket = Math.floor(Date.now() / REACTION_BUCKET_MS);
     let total = 0;
+    const ops = [];
     for (const e of REACTION_EMOJIS) {
       const n = Math.min(15, Math.max(0, Math.floor(Number(body?.counts?.[e]) || 0)));
       if (!n || total + n > 30) continue;
       total += n;
-      await store.hIncrBy(reactionKey(bucket), e, n);
+      ops.push(["hIncrBy", reactionKey(bucket), e, n]);
     }
-    if (total) await store.expire(reactionKey(bucket), 60);
+    if (total) await store.batch([...ops, ["expire", reactionKey(bucket), 60]]);
     return response.status(200).json({ ok: true, accepted: total });
   } catch (err) {
     return response.status(err.statusCode || 400).json({ ok: false, error: "So'rov noto'g'ri." });

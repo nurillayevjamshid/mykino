@@ -23,6 +23,7 @@ const {
 const { readBlobJson, readBlobJsonStrict, writeBlobJson } = require("./_lib/blob-store");
 const { getJsonFromR2Signed, getJsonFromR2SignedStrict, putJsonToR2 } = require("./_lib/r2-store");
 const { handleWatchProgress } = require("./_lib/watch-progress");
+const usersQueue = require("./_lib/users-queue");
 
 const BLOB_USERS_PATHNAME = "settings/bot-users.json";
 const R2_USERS_KEY = "settings/bot-users.json";
@@ -341,6 +342,10 @@ async function handleAdminLogout(request, response) {
 
 // Barcha manbalardan obunachilarni yig'ib, admin panelda ko'rinadigan ro'yxatni qaytaradi.
 async function readMergedUsers() {
+  // Navbatda turgan yangi obunachilarni avval faylga tushiramiz; bo'lmasa ham
+  // navbatdagilar pastda ro'yxatga qo'shiladi.
+  try { await usersQueue.flushPendingUsers({ force: true }); } catch (_) {}
+  const pendingUsers = await usersQueue.readPendingUsers().catch(() => []);
   const repoBackupUsers = readUsersFromRepoBackup();
   const [r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome] = await Promise.all([
     (async () => {
@@ -366,7 +371,7 @@ async function readMergedUsers() {
       } catch (e) { return { ok: false, error: e?.message || String(e) }; }
     })(),
   ]);
-  const allMerged = mergeUsers(r2Outcome.users || [], backupOutcome.users || [], repoBackupUsers, blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || []);
+  const allMerged = mergeUsers(r2Outcome.users || [], backupOutcome.users || [], repoBackupUsers, blobOutcome.users || [], proxiedOutcome.users || [], metaOutcome.users || [], pendingUsers.map(normalizeUser).filter(Boolean));
   // Bot almashgandan oldingi obunachilarni chiqarib tashlaymiz (faqat o'qishda).
   const merged = filterByBotLaunch(allMerged);
   return { repoBackupUsers, r2Outcome, backupOutcome, blobOutcome, proxiedOutcome, metaOutcome, allMerged, merged };
@@ -530,6 +535,15 @@ module.exports = async function handler(request, response) {
       // shunda eski foydalanuvchi yangi botga kirsa ham ro'yxatda ko'rinadi.
       const nowIsoDate = todayIsoDate();
       const nowIso = new Date().toISOString();
+      // Redis bor bo'lsa: faqat navbatga bitta yozuv — umumiy fayl bilan ustma-ust
+      // yozish yo'q. Fayl navbat bilan bir jarayon tomonidan yangilanadi.
+      const queued = { ...next, last_seen_at: nowIsoDate, last_active: nowIso };
+      if (await usersQueue.queueUserUpsert(queued)) {
+        // Serverless javobdan keyin muzlatilishi mumkin — kutib olamiz (15s'da bir marta ishlaydi).
+        await usersQueue.flushPendingUsers().catch((err) => console.warn("users flush:", err?.message || err));
+        response.status(200).json({ ok: true, user: queued });
+        return;
+      }
       // R2 — primary (private signed GET). Blob — best-effort legacy.
       // MUHIM: bu yerda strict o'qish ishlatiladi. Oddiy o'qish har qanday
       // vaqtinchalik xatoni "fayl bo'sh" deb qaytarar edi, keyin yozuv butun

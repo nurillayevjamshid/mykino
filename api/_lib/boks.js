@@ -41,28 +41,11 @@ const DEFAULT_TEAM = [
   { id: "jalolov", name: "Bahodir Jalolov", weight: "+92 kg", result: "Parij-2024 va Tokio-2020 olimpiada chempioni", photo: "" },
 ];
 
-let _redisPromise = null;
-async function getRedis() {
-  const url = process.env.REDIS_URL || process.env.KV_URL || "";
-  if (!url) return null;
-  if (_redisPromise) {
-    try { const c = await _redisPromise; if (c?.isOpen) return c; } catch (_) {}
-    _redisPromise = null;
-  }
-  _redisPromise = (async () => {
-    const { createClient } = require("redis");
-    const client = createClient({ url });
-    client.on("error", (err) => console.error("redis (boks) error:", err.message));
-    await client.connect();
-    return client;
-  })();
-  try {
-    return await _redisPromise;
-  } catch (err) {
-    console.warn("redis (boks) ulanmadi:", err.message);
-    _redisPromise = null;
-    return null;
-  }
+// Barcha bo'limlar bitta umumiy Redis ulanishidan foydalanadi (api/_lib/kv.js):
+// har modul o'z ulanishini ochganda bitta serverless instansiya 8+ ulanish
+// ochar va ko'p foydalanuvchida Redis ulanish limitiga urilardi.
+function getRedis() {
+  return require("./kv").getRedisClient();
 }
 
 // ---------- Normalizatsiya ----------

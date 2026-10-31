@@ -56,30 +56,11 @@ const ENGINES = {
 
 // ---------------- Saqlash ----------------
 const memoryRooms = new Map();
-let redisPromise = null;
-
-async function getRedis() {
-  const url = process.env.REDIS_URL || process.env.KV_URL || "";
-  if (!url) return null;
-  if (redisPromise) {
-    try {
-      const c = await redisPromise;
-      if (c?.isOpen) return c;
-    } catch (_) {}
-    redisPromise = null;
-  }
-  redisPromise = (async () => {
-    try {
-      const { createClient } = require("redis");
-      const client = createClient({ url });
-      client.on("error", (err) => console.warn("redis (games) error:", err.message));
-      await client.connect();
-      return client;
-    } catch (_) {
-      return null;
-    }
-  })();
-  return redisPromise;
+// Barcha bo'limlar bitta umumiy Redis ulanishidan foydalanadi (api/_lib/kv.js):
+// har modul o'z ulanishini ochganda bitta serverless instansiya 8+ ulanish
+// ochar va ko'p foydalanuvchida Redis ulanish limitiga urilardi.
+function getRedis() {
+  return require("./kv").getRedisClient();
 }
 
 const roomKey = (id) => `game:room:${id}`;

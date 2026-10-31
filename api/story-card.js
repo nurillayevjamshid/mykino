@@ -28,22 +28,11 @@ function cleanMemoryCache() {
   }
 }
 
-let redisPromise = null;
-async function getRedis() {
-  if (redisPromise) {
-    try { const c = await redisPromise; if (c?.isOpen) return c; } catch (_) {}
-    redisPromise = null;
-  }
-  const redisUrl = process.env.REDIS_URL || process.env.KV_URL;
-  if (!redisUrl) return null;
-  redisPromise = (async () => {
-    const { createClient } = require("redis");
-    const client = createClient({ url: redisUrl });
-    client.on("error", () => {});
-    await client.connect();
-    return client;
-  })().catch(() => null);
-  return await redisPromise;
+// Barcha bo'limlar bitta umumiy Redis ulanishidan foydalanadi (api/_lib/kv.js):
+// har modul o'z ulanishini ochganda bitta serverless instansiya 8+ ulanish
+// ochar va ko'p foydalanuvchida Redis ulanish limitiga urilardi.
+function getRedis() {
+  return require("./_lib/kv").getRedisClient();
 }
 
 function setCors(response) {
