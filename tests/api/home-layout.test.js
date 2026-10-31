@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { createMockReq, createMockRes } = require("../helpers/mock-http");
 
-const read = (...parts) => fs.readFileSync(path.resolve(__dirname, "../..", ...parts), "utf8");
+const read = (...parts) => fs.readFileSync(path.resolve(__dirname, "../..", ...parts), "utf8").replace(/\r\n/g, "\n");
 
 describe("Home layout API (api/_lib/home-layout.js)", () => {
   let home;
