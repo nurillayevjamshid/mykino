@@ -1095,7 +1095,8 @@ input[type="checkbox"], input[type="radio"] {
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .poster-upload--portrait { aspect-ratio: 9 / 16; max-width: 180px; }
-.poster-upload.header-upload { aspect-ratio: 16 / 9; max-width: 320px; }
+.poster-upload.header-upload,
+.poster-upload.broadcast-upload { aspect-ratio: 16 / 9; max-width: 320px; }
 .poster-upload:hover, .poster-upload.is-dragover { border-color: var(--primary); background: var(--primary-soft); }
 .poster-upload-input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .poster-upload-content { pointer-events: none; }

@@ -272,4 +272,94 @@ describe("api/broadcast.js — happy path", () => {
     assert.equal(res.body.failed, 0);
     assert.ok(telegramCalls.length >= 2, "should have retried at least once");
   });
+
+  test("sends broadcast with photoUrl via sendPhoto", async () => {
+    const googleDrive = require("../../api/_lib/google-drive");
+    const blobStore = require("../../api/_lib/blob-store");
+    const r2Store = require("../../api/_lib/r2-store");
+
+    mock.method(googleDrive, "readCatalogMetadata", async () => ({ file: null, data: { users: [{ id: 777 }] } }));
+    mock.method(blobStore, "readBlobJson", async () => ({ users: [{ id: 777 }] }));
+    mock.method(r2Store, "getJsonFromR2Signed", async () => ({ users: [{ id: 777 }] }));
+
+    setEnv({ ADMIN_PASSWORD: "secret", BOT_TOKEN: "fake-token" });
+    telegramCalls = [];
+
+    restoreFetch = installFetchStub([
+      [(url) => isUserListUrl(url), () => jsonResponse({ users: [{ id: 777 }] })],
+      [
+        isTelegramSend,
+        (url, init) => {
+          telegramCalls.push({ url, body: JSON.parse(init.body) });
+          return jsonResponse({ ok: true, result: { message_id: 101 } });
+        },
+      ],
+    ]);
+
+    const handler = loadHandler();
+    const req = createMockReq({
+      method: "POST",
+      url: "/api/broadcast",
+      body: {
+        password: "secret",
+        text: "Kino yangiliklari",
+        photoUrl: "https://example.com/poster.jpg",
+      },
+    });
+    const res = createMockRes();
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.sent, 1);
+    assert.equal(telegramCalls.length, 1);
+    assert.match(telegramCalls[0].url, /sendPhoto/);
+    assert.equal(telegramCalls[0].body.photo, "https://example.com/poster.jpg");
+    assert.equal(telegramCalls[0].body.caption, "Kino yangiliklari");
+  });
+
+  test("sends broadcast with mediaDataUrl via multipart sendPhoto", async () => {
+    const googleDrive = require("../../api/_lib/google-drive");
+    const blobStore = require("../../api/_lib/blob-store");
+    const r2Store = require("../../api/_lib/r2-store");
+
+    mock.method(googleDrive, "readCatalogMetadata", async () => ({ file: null, data: { users: [{ id: 888 }] } }));
+    mock.method(blobStore, "readBlobJson", async () => ({ users: [{ id: 888 }] }));
+    mock.method(r2Store, "getJsonFromR2Signed", async () => ({ users: [{ id: 888 }] }));
+
+    setEnv({ ADMIN_PASSWORD: "secret", BOT_TOKEN: "fake-token" });
+    telegramCalls = [];
+
+    restoreFetch = installFetchStub([
+      [(url) => isUserListUrl(url), () => jsonResponse({ users: [{ id: 888 }] })],
+      [
+        isTelegramSend,
+        (url, init) => {
+          telegramCalls.push({ url, isMultipart: init.body instanceof FormData });
+          return jsonResponse({ ok: true, result: { message_id: 102 } });
+        },
+      ],
+    ]);
+
+    const fakePngB64 = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).toString("base64");
+    const mediaDataUrl = "data:image/png;base64," + fakePngB64;
+
+    const handler = loadHandler();
+    const req = createMockReq({
+      method: "POST",
+      url: "/api/broadcast",
+      body: {
+        password: "secret",
+        text: "Qurilmadan yuklangan rasm",
+        mediaDataUrl,
+      },
+    });
+    const res = createMockRes();
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.sent, 1);
+    assert.equal(telegramCalls.length, 1);
+    assert.match(telegramCalls[0].url, /sendPhoto/);
+    assert.equal(telegramCalls[0].isMultipart, true);
+  });
 });

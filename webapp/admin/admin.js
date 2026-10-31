@@ -2835,6 +2835,8 @@ document.head.appendChild(style);
 
 // ------------- Broadcast (xabar yuborish) -------------
 let broadcastInited = false;
+let broadcastSelectedDataUrl = '';
+let broadcastUploadedUrl = '';
 
 function escapeBroadcastHtml(value) {
   return String(value ?? '')
@@ -2843,11 +2845,68 @@ function escapeBroadcastHtml(value) {
     .replaceAll('>', '&gt;');
 }
 
+function updateBroadcastPhotoArea(urlOrDataUrl) {
+  const area = document.getElementById('broadcastUploadArea');
+  const img = document.getElementById('broadcastPhotoPreviewImg');
+  if (!area || !img) return;
+  if (urlOrDataUrl) {
+    img.src = urlOrDataUrl;
+    img.style.display = 'block';
+    area.classList.add('has-preview');
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    area.classList.remove('has-preview');
+  }
+}
+
+function setBroadcastPhotoHint(msg, tone = '') {
+  const hint = document.getElementById('broadcastPhotoHint');
+  if (!hint) return;
+  hint.textContent = msg;
+  hint.style.color = tone === 'ok' ? 'var(--success)' : tone === 'error' ? 'var(--danger)' : tone === 'loading' ? 'var(--primary)' : '';
+}
+
+async function handleBroadcastPhotoFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    setBroadcastPhotoHint('Faqat rasm fayli tanlang (JPG, PNG, WebP).', 'error');
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    setBroadcastPhotoHint('Rasm hajmi juda katta (maks 8MB).', 'error');
+    return;
+  }
+  setBroadcastPhotoHint('Rasm yuklanmoqda...', 'loading');
+  try {
+    const raw = await readFileAsDataUrl(file);
+    const dataUrl = await compressImageDataUrl(raw, 1920, 1920, 0.88);
+    broadcastSelectedDataUrl = dataUrl;
+    updateBroadcastPhotoArea(dataUrl);
+    renderBroadcastPreview();
+    updateBroadcastCharCount();
+
+    try {
+      const url = await uploadCategoryImage(dataUrl, 'broadcast-' + Date.now().toString(36));
+      broadcastUploadedUrl = url;
+      const urlInput = document.getElementById('broadcastPhotoUrl');
+      if (urlInput) urlInput.value = url;
+      setBroadcastPhotoHint('Rasm muvaffaqiyatli yuklandi.', 'ok');
+      renderBroadcastPreview();
+    } catch (uploadErr) {
+      console.warn('Broadcast R2 upload warning:', uploadErr);
+      setBroadcastPhotoHint('Rasm qurilmadan tanlandi (yuborishga tayyor).', 'ok');
+    }
+  } catch (err) {
+    setBroadcastPhotoHint(`Yuklashda xato: ${err.message}`, 'error');
+  }
+}
+
 function renderBroadcastPreview() {
   const preview = document.getElementById('broadcastPreview');
   if (!preview) return;
   const text = document.getElementById('broadcastText').value.trim();
-  const photo = document.getElementById('broadcastPhotoUrl').value.trim();
+  const photo = document.getElementById('broadcastPhotoUrl').value.trim() || broadcastSelectedDataUrl;
   const btnText = document.getElementById('broadcastButtonText').value.trim();
   const btnUrl = document.getElementById('broadcastButtonUrl').value.trim();
   const asHtml = document.getElementById('broadcastParseHtml').checked;
@@ -2870,7 +2929,12 @@ function renderBroadcastPreview() {
 function updateBroadcastCharCount() {
   const el = document.getElementById('broadcastText');
   const count = document.getElementById('broadcastTextCount');
-  if (el && count) count.textContent = el.value.length;
+  if (el && count) {
+    count.textContent = el.value.length;
+    const hasPhoto = Boolean(document.getElementById('broadcastPhotoUrl')?.value.trim() || broadcastSelectedDataUrl);
+    const max = hasPhoto ? 1024 : 4000;
+    count.style.color = el.value.length > max ? 'var(--danger)' : '';
+  }
 }
 
 async function loadBroadcastUserCount() {
@@ -2892,13 +2956,14 @@ async function submitBroadcast(event) {
   const resultEl = document.getElementById('broadcastResult');
   const text = document.getElementById('broadcastText').value.trim();
   const photoUrl = document.getElementById('broadcastPhotoUrl').value.trim();
+  const mediaDataUrl = (!photoUrl && broadcastSelectedDataUrl) ? broadcastSelectedDataUrl : undefined;
   const buttonText = document.getElementById('broadcastButtonText').value.trim();
   const buttonUrl = document.getElementById('broadcastButtonUrl').value.trim();
   const parseMode = document.getElementById('broadcastParseHtml').checked ? 'HTML' : '';
   const silent = document.getElementById('broadcastSilent').checked;
   const disablePreview = document.getElementById('broadcastDisablePreview').checked;
 
-  if (!text && !photoUrl) {
+  if (!text && !photoUrl && !mediaDataUrl) {
     resultEl.innerHTML = '<div class="alert alert--error">Matn yoki rasm kerak.</div>';
     return;
   }
@@ -2920,7 +2985,16 @@ async function submitBroadcast(event) {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, photoUrl, buttonText, buttonUrl, parseMode, silent, disablePreview }),
+      body: JSON.stringify({
+        text,
+        photoUrl: photoUrl || undefined,
+        mediaDataUrl,
+        buttonText,
+        buttonUrl,
+        parseMode,
+        silent,
+        disablePreview
+      }),
     });
     const data = await resp.json();
     if (!resp.ok || !data.ok) {
@@ -2949,15 +3023,80 @@ function initBroadcastSection() {
   const form = document.getElementById('broadcastForm');
   const previewBtn = document.getElementById('broadcastPreviewBtn');
   const text = document.getElementById('broadcastText');
-  const inputs = ['broadcastText', 'broadcastPhotoUrl', 'broadcastButtonText', 'broadcastButtonUrl', 'broadcastParseHtml'];
+  const urlInput = document.getElementById('broadcastPhotoUrl');
+  const fileInput = document.getElementById('broadcastPhotoFile');
+  const removeBtn = document.getElementById('broadcastPhotoRemoveBtn');
+  const uploadArea = document.getElementById('broadcastUploadArea');
+
+  const inputs = ['broadcastText', 'broadcastButtonText', 'broadcastButtonUrl', 'broadcastParseHtml'];
   inputs.forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', renderBroadcastPreview);
     if (el) el.addEventListener('change', renderBroadcastPreview);
   });
+
+  if (urlInput) {
+    urlInput.addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      if (val) {
+        broadcastUploadedUrl = val;
+        broadcastSelectedDataUrl = '';
+        if (fileInput) fileInput.value = '';
+        updateBroadcastPhotoArea(val);
+        setBroadcastPhotoHint('Rasm URL kiritildi.', '');
+      } else {
+        broadcastUploadedUrl = '';
+        broadcastSelectedDataUrl = '';
+        updateBroadcastPhotoArea('');
+        setBroadcastPhotoHint("Qurilmadan tanlansa avtomatik yuklanadi yoki URL kiriting. (Agar rasm bo'lsa, matn 1024 belgi maks).", '');
+      }
+      renderBroadcastPreview();
+      updateBroadcastCharCount();
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (file) await handleBroadcastPhotoFile(file);
+      e.target.value = '';
+    });
+  }
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      broadcastUploadedUrl = '';
+      broadcastSelectedDataUrl = '';
+      if (fileInput) fileInput.value = '';
+      if (urlInput) urlInput.value = '';
+      updateBroadcastPhotoArea('');
+      setBroadcastPhotoHint("Qurilmadan tanlansa avtomatik yuklanadi yoki URL kiriting. (Agar rasm bo'lsa, matn 1024 belgi maks).", '');
+      renderBroadcastPreview();
+      updateBroadcastCharCount();
+    });
+  }
+
+  if (uploadArea) {
+    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('is-dragover'); });
+    uploadArea.addEventListener('dragleave', (e) => { e.preventDefault(); uploadArea.classList.remove('is-dragover'); });
+    uploadArea.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('is-dragover');
+      const file = e.dataTransfer.files?.[0];
+      if (file) await handleBroadcastPhotoFile(file);
+    });
+  }
+
   if (text) text.addEventListener('input', updateBroadcastCharCount);
   if (previewBtn) previewBtn.addEventListener('click', renderBroadcastPreview);
   if (form) form.addEventListener('submit', submitBroadcast);
+
+  if (urlInput && urlInput.value.trim()) {
+    updateBroadcastPhotoArea(urlInput.value.trim());
+  }
+
   renderBroadcastPreview();
   updateBroadcastCharCount();
   loadBroadcastUserCount();
