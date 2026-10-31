@@ -3289,6 +3289,25 @@ function __ensureHeroVisibilityObserver() {
   __heroVisibilityObserver.observe(heroSection);
 }
 
+// Foydalanuvchi hozir scroll qilyaptimi (sahifa yoki istalgan ichki ro'yxat).
+// - Avtomatik aylanadigan karusellar (musiqa, podkast) scroll paytida slayd almashtirmaydi:
+//   almashish katta rasmni qayta chizadi.
+// - <html> ga .is-scrolling qo'yiladi: dekorativ cheksiz animatsiyalar (LIVE nuqtalari,
+//   pulsatsiyalar) scroll davomida pauza qilinadi (glass-theme.css). Ular har kadrda style
+//   qayta hisoblashni talab qiladi, CSS qoidalari ko'p bo'lgani uchun bu qimmat.
+let __appLastScrollAt = 0;
+let __appScrollEndTimer = 0;
+document.addEventListener("scroll", () => {
+  __appLastScrollAt = performance.now();
+  if (!__appScrollEndTimer) document.documentElement.classList.add("is-scrolling");
+  clearTimeout(__appScrollEndTimer);
+  __appScrollEndTimer = setTimeout(() => {
+    __appScrollEndTimer = 0;
+    document.documentElement.classList.remove("is-scrolling");
+  }, 200);
+}, { capture: true, passive: true });
+window.__isAppScrolling = () => performance.now() - __appLastScrollAt < 300;
+
 function __attachHeroScrollPause() {
   if (__attachHeroScrollPause.__done) return;
   __attachHeroScrollPause.__done = true;
@@ -7865,7 +7884,7 @@ function ensureMusicModule() {
   const cssPromise = ensureMusicCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/music/music.js?v=20261021-mini-player-v2";
+    script.src = "/static/music/music.js?v=20261031-smooth-scroll-v1";
     script.onload = () => resolve(window.__music);
     script.onerror = (err) => { __musicModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -7912,7 +7931,7 @@ function ensurePotcastsModule() {
   const cssPromise = ensurePotcastsCss();
   const jsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/static/potcasts/potcasts.js?v=20261021-saved-icon-v1";
+    script.src = "/static/potcasts/potcasts.js?v=20261031-smooth-scroll-v1";
     script.onload = () => resolve(window.__potcasts);
     script.onerror = (err) => { __potcastsModulePromise = null; reject(err); };
     document.head.appendChild(script);
@@ -11905,7 +11924,19 @@ initApp();
   };
 
   window.addEventListener("touchstart", onTouchStart, { passive: true });
-  window.addEventListener("touchmove", onTouchMove, { passive: false });
+  // Bloklovchi (passive: false) touchmove faqat sahifa tepasida ulanadi — PTR faqat
+  // o'sha yerda kerak. Doim ulangan bo'lsa, brauzer har bir scroll harakatida JS
+  // tugashini kutadi va asosiy oqim band bo'lganda scroll qotadi.
+  let moveAttached = false;
+  const syncMoveListener = () => {
+    const want = isAtTop();
+    if (want === moveAttached) return;
+    moveAttached = want;
+    if (want) window.addEventListener("touchmove", onTouchMove, { passive: false });
+    else window.removeEventListener("touchmove", onTouchMove, { passive: false });
+  };
+  (scroller || window).addEventListener("scroll", syncMoveListener, { passive: true });
+  syncMoveListener();
   window.addEventListener("touchend", onTouchEnd, { passive: true });
   window.addEventListener("touchcancel", onTouchEnd, { passive: true });
 })();
@@ -12345,7 +12376,7 @@ function ensureFifaModule() {
   // u yuklanmasa ham futbol bo'limi odatdagidek ishlayveradi.
   __fifaModulePromise = loadScript("/static/fifa/fifa-fun.js?v=20261031-fifa-fun-v2")
     .catch(() => null)
-    .then(() => loadScript("/static/fifa/fifa.js?v=20261029-no-kicker"))
+    .then(() => loadScript("/static/fifa/fifa.js?v=20261031-smooth-scroll-v1"))
     .then(() => window.__fifa)
     .catch((err) => { __fifaModulePromise = null; throw err; });
   return __fifaModulePromise;
@@ -12415,7 +12446,7 @@ function ensureBoksCss() {
   __boksCssPromise = new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/static/boks/boks.css?v=20261030-boks-icon-v2";
+    link.href = "/static/boks/boks.css?v=20261031-smooth-scroll-v1";
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);

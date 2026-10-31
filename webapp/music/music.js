@@ -1354,7 +1354,11 @@
   function startMusicCarouselTimer() {
     stopMusicCarouselTimer();
     if (musicCarouselItems.length < 2) return;
-    musicCarouselTimer = setInterval(() => setMusicCarouselIndex(musicCarouselIndex + 1), 4500);
+    musicCarouselTimer = setInterval(() => {
+      // Scroll paytida slayd almashmasin (kino.js: __isAppScrolling)
+      if (document.hidden || window.__isAppScrolling?.()) return;
+      setMusicCarouselIndex(musicCarouselIndex + 1);
+    }, 4500);
   }
   function stopMusicCarouselTimer() {
     if (musicCarouselTimer) { clearInterval(musicCarouselTimer); musicCarouselTimer = null; }

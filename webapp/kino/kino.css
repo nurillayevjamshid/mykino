@@ -8900,6 +8900,13 @@ body.is-series-detail .search-panel { display: none !important; }
   opacity: 1;
   pointer-events: auto;
 }
+/* Yopiq oyna umuman chizilmasin: aks holda display:flex [hidden]ni bekor qilib,
+   to'liq ekranli blur va cheksiz animatsiyalar har kadrda ishlab, butun ilova
+   bo'ylab scrollni qotirardi. */
+.ad-modal[hidden] { display: none !important; }
+@starting-style {
+  .ad-modal:not([hidden]) { opacity: 0; }
+}
 .ad-modal__backdrop {
   position: absolute;
   inset: 0;
@@ -9961,17 +9968,20 @@ html.is-android .hero__bg.is-loaded {
   content: "";
   position: absolute;
   top: 0;
-  left: -120%;
+  left: 0;
   width: 60%;
   height: 100%;
   background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
+  transform: translateX(-200%);
   animation: heroPlayShimmer 3.4s ease-in-out infinite;
   animation-delay: 1.2s;
   pointer-events: none;
 }
+/* transform (left emas): har kadrda layout qilinmaydi, GPU'da aylanadi.
+   -200% / 217% — kenglik 60% bo'lgani uchun eski left: -120% / 130% ga teng. */
 @keyframes heroPlayShimmer {
-  0%, 60%, 100% { left: -120%; }
-  80%           { left: 130%; }
+  0%, 60%, 100% { transform: translateX(-200%); }
+  80%           { transform: translateX(217%); }
 }
 .hero__play:active {
   transform: scale(0.96);
@@ -10129,15 +10139,27 @@ html[data-theme="dark"] #sectionSplash .section-splash__logo img,
   color: #fff;
 }
 .fifa-banner__live-dot {
+  position: relative;
   width: 6px; height: 6px; border-radius: 50%;
   background: #fff;
-  box-shadow: 0 0 0 0 rgba(255,255,255,.6);
+}
+/* Pulsatsiya halqasi: box-shadow animatsiyasi har kadrda qayta chizilardi —
+   endi transform/opacity bilan GPU'da ishlaydi. */
+.fifa-banner__live-dot::after,
+.fifa-match__status-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0;
   animation: fifaLivePulse 1.4s ease-out infinite;
+  pointer-events: none;
 }
 @keyframes fifaLivePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(255,255,255,.6); }
-  70%  { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
-  100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  0%   { transform: scale(1); opacity: .6; }
+  70%  { transform: scale(3.6); opacity: 0; }
+  100% { transform: scale(3.6); opacity: 0; }
 }
 .fifa-banner__body {
   display: flex;
@@ -10980,9 +11002,9 @@ html[data-theme="dark"] .fifa-stream-card__title { color: #fff; }
   text-transform: uppercase;
 }
 .fifa-match__status-dot {
+  position: relative;
   width: 6px; height: 6px; border-radius: 50%;
   background: #ff2d55;
-  animation: fifaLivePulse 1.4s ease-out infinite;
 }
 
 /* --- Jonli efir --- */

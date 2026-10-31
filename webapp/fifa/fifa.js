@@ -2461,7 +2461,7 @@
           return `
             <div class="fifa-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(localizedTitle)}" role="button" tabindex="0">
               <div class="fifa-hl-card__media">
-                <img src="${esc(thumb)}" alt="" class="fifa-hl-card__img" loading="lazy" decoding="async" onerror="this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
+                <img src="${esc(thumb)}" alt="" class="fifa-hl-card__img" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
                 <div class="fifa-hl-card__overlay"></div>
                 <div class="fifa-hl-card__play" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
@@ -2571,7 +2571,7 @@
         return `
           <div class="fifa-all-hl-card" data-fifa-play-highlight="${esc(v.videoId)}" data-video-title="${esc(localizedTitle)}" role="button" tabindex="0">
             <div class="fifa-all-hl-card__media">
-              <img src="${esc(thumb)}" alt="" class="fifa-all-hl-card__img" loading="lazy" decoding="async" onerror="this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
+              <img src="${esc(thumb)}" alt="" class="fifa-all-hl-card__img" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${esc(v.videoId)}/mqdefault.jpg'" />
               <div class="fifa-all-hl-card__overlay"></div>
               <div class="fifa-all-hl-card__play" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">

@@ -482,8 +482,6 @@ body.is-boks .coming-soon-view { display: none !important; }
   border-radius: 9999px;
   border: 1px solid var(--bx-border);
   background: var(--bx-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   box-shadow: var(--bx-shadow);
 }
 .boks-search:focus-within {

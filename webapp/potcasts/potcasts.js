@@ -824,6 +824,8 @@
     podHeroRotateTimer = setInterval(() => {
       if (document.hidden) return;
       if (currentView !== "list") return;
+      // Scroll paytida slayd almashmasin (kino.js: __isAppScrolling)
+      if (window.__isAppScrolling?.()) return;
       switchPodHero(podHeroIndex + 1);
     }, POD_HERO_ROTATE_MS);
   }

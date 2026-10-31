@@ -5054,3 +5054,50 @@ html[data-theme] .brand-section__icon img.brand-section__collab-logo,
   line-height: 1;
   color: var(--c-text);
 }
+
+/* ==========================================================================
+   SCROLL TEZLIGI: scroll bilan birga suriladigan elementlarda backdrop-filter yo'q.
+   Blur ostidagi fon har scroll kadrida o'zgaradi, shuning uchun GPU har bir
+   shunday kartani har kadrda qayta xiralashtiradi — telefonda scroll qotadi
+   (kino kartalarida 80 ta, musiqa/podkast/futbol ro'yxatlarida o'nlab).
+   Fonlari allaqachon to'q/yarim shaffof, shuning uchun ko'rinish deyarli o'zgarmaydi.
+   Blur faqat qotib turadigan elementlarda qoladi: topbar tugmalari, pastki menyu,
+   mini-pleyer, sidebar, modal oynalar.
+   ========================================================================== */
+:root:root:root body .movie-card .rating,
+:root:root:root body .wishlist-toggle,
+:root:root:root body .music-artist-card,
+:root:root:root body .music-artist-detail__back,
+:root:root:root body .music-more__btn,
+:root:root:root body .music-view .music-list,
+:root:root:root body .music-allsongs .music-list,
+:root:root:root body .music-artist-detail .music-list,
+:root:root:root body .pod-channel-row,
+:root:root:root body .pod-fresh-card,
+:root:root:root body .pod-fav-btn,
+:root:root:root body .pod-hero-kino__name,
+:root:root:root body .fifa-match,
+:root:root:root body .fifa-tabs,
+:root:root:root body .fifa-hl-card__duration,
+:root:root:root body .fifa-hl-card__time,
+:root:root:root body .fifa-all-hl-card__duration,
+:root:root:root body .fifa-all-hl-card__time,
+:root:root:root body .boks-search {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Scroll paytida dekorativ cheksiz animatsiyalar to'xtab turadi (kino.js: html.is-scrolling).
+   Ular har kadrda style qayta hisoblashni talab qiladi — scroll to'xtagach davom etadi. */
+html.is-scrolling .boks-live-pill__dot,
+html.is-scrolling .boks-section-title__pulse,
+html.is-scrolling .boks-loading span,
+html.is-scrolling .fifa-highlights-pulse,
+html.is-scrolling .fifa-match__status-dot::after,
+html.is-scrolling .fifa-banner__live-dot::after,
+html.is-scrolling .fifa-next-badge--live,
+html.is-scrolling .hero__play::after,
+html.is-scrolling .ad-ticker-card__content,
+html.is-scrolling .ads-hero__badge i {
+  animation-play-state: paused !important;
+}

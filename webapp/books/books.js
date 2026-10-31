@@ -750,7 +750,7 @@
             <div class="chart-card" data-action="play-in-app" data-id="${book.id}">
               <!-- Squircle Cover Art -->
               <div class="chart-cover">
-                <img src="${coverSrc}" alt="${escapeHtml(book.title)}" loading="lazy" onerror="this.src='/books/cover.jpg'" />
+                <img src="${coverSrc}" alt="${escapeHtml(book.title)}" loading="lazy" onerror="this.onerror=null;this.src='/books/cover.jpg'" />
               </div>
 
               <!-- Middle Info: Title and Author / Duration (Single line, no wrap) -->
